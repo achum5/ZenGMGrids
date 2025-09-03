@@ -1,0 +1,23 @@
+node_modules
+dist
+.DS_Store
+server/public
+vite.config.ts.*
+*.tar.gz
+
+# League files - user uploads, don't commit to git
+attached_assets/*.json
+attached_assets/*.gz
+attached_assets/*.json_*
+attached_assets/*.gz_*
+# Ignore uploaded leagues and attachments
+attached_assets/
+*.gz
+*.json_*
+
+
+# Ignore uploaded leagues and attachments
+attached_assets/
+*.gz
+*.json_*
+
