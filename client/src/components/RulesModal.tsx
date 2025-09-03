@@ -26,7 +26,7 @@ const generalRules = {
 
 const sportSpecificRules = {
   basketball: {
-    title: "Basketball GM Grids — Rules",
+    title: "Basketball ZenGM Grids — Rules",
     howCellsWork: [
       "Match both labels.",
       "Team × Team: player must appear (GP > 0) for both teams (any seasons).",
@@ -63,7 +63,7 @@ const sportSpecificRules = {
     remember: "No duplicate players across the grid."
   },
   football: {
-    title: "Football GM Grids — Quick Rules",
+    title: "Football ZenGM Grids — Quick Rules",
     howCellsWork: [
       "Match both labels.",
       "Team × Team: player must appear (GP > 0) for both teams (any seasons).",
@@ -98,7 +98,7 @@ const sportSpecificRules = {
     remember: "No duplicate players across the grid."
   },
   baseball: {
-    title: "Baseball GM Grids — Quick Rules",
+    title: "Baseball ZenGM Grids — Quick Rules",
     howCellsWork: [
       "Match both labels.",
       "Team × Team: appeared (GP > 0) for both teams (any seasons).",
@@ -134,7 +134,7 @@ const sportSpecificRules = {
     ]
   },
   hockey: {
-    title: "Hockey GM Grids — Quick Rules",
+    title: "Hockey ZenGM Grids — Quick Rules",
     howCellsWork: [
       "Match both labels.",
       "Team × Team: player appeared (GP > 0) for both teams (any seasons).",

@@ -513,8 +513,8 @@ export default function Home() {
                 className="w-10 h-10 object-contain"
               />
               <h1 className="text-2xl font-bold text-foreground">
-                {leagueData?.sport === 'basketball' && 'Basketball GM Grids'}
-                {leagueData?.sport === 'football' && 'Football GM Grids'}
+                {leagueData?.sport === 'basketball' && 'Basketball ZenGM Grids'}
+                {leagueData?.sport === 'football' && 'Football ZenGM Grids'}
                 {leagueData?.sport === 'hockey' && 'ZenGM Hockey Grids'}
                 {leagueData?.sport === 'baseball' && 'ZenGM Baseball Grids'}
               </h1>
