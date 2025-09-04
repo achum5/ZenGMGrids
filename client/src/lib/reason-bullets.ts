@@ -222,6 +222,11 @@ function generateAchievementBullet(
     return generateAwardBullet(player, achievementId, sport);
   }
   
+  // Hall of Fame
+  if (achievementId === 'isHallOfFamer') {
+    return generateHallOfFameBullet(player);
+  }
+  
   return null;
 }
 
@@ -257,6 +262,22 @@ function generateLongevityBullet(player: Player, achievementId: string): ReasonB
   return {
     text: `Played ${seasons} Seasons`,
     type: 'longevity'
+  };
+}
+
+function generateHallOfFameBullet(player: Player): ReasonBullet | null {
+  if (!player.awards || !Array.isArray(player.awards)) return null;
+  
+  // Find the Hall of Fame induction award
+  const hofAward = player.awards.find((award: any) => 
+    award.type === 'Inducted into the Hall of Fame'
+  );
+  
+  if (!hofAward || !hofAward.season) return null;
+  
+  return {
+    text: `Hall of Fame (${hofAward.season})`,
+    type: 'award'
   };
 }
 
