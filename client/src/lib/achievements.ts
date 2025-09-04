@@ -444,7 +444,7 @@ export function getCachedSportDetection(): 'basketball' | 'football' | 'hockey' 
 
 // Clear season length cache
 export function clearSeasonLengthCache(): void {
-  Object.keys(seasonLengthCache).forEach(key => delete seasonLengthCache[key]);
+  Object.keys(seasonLengthCache).forEach(key => delete seasonLengthCache[parseInt(key)]);
 }
 
 // Calculate league leadership across all seasons
@@ -624,8 +624,9 @@ function calculateBaseballAchievements(player: Player, achievements: any): void 
   // EXACT award type matching per ZGMB specification
   achievements.wonMVP = awards.some((a: any) => a.type === 'Most Valuable Player');
   achievements.wonFinalsMVP = awards.some((a: any) => a.type === 'Finals MVP');
-  achievements.wonPitcherOfYear = awards.some((a: any) => a.type === 'Pitcher of the Year');
-  achievements.wonReliefPitcherOfYear = awards.some((a: any) => a.type === 'Relief Pitcher of the Year');
+  // Note: Pitcher awards removed from UI but keeping for data consistency
+  // achievements.wonPitcherOfYear = awards.some((a: any) => a.type === 'Pitcher of the Year');
+  // achievements.wonReliefPitcherOfYear = awards.some((a: any) => a.type === 'Relief Pitcher of the Year');
   achievements.wonROY = awards.some((a: any) => a.type === 'Rookie of the Year');
   
   // Note: All-Star not mentioned in ZGMB spec, keeping as-is
@@ -695,7 +696,7 @@ function calculateHockeyAchievements(player: Player, achievements: any): void {
   
   // Second pass: calculate career totals
   
-  for (const seasonData of seasonStats.values()) {
+  seasonStats.forEach((seasonData) => {
     // Career totals
     careerGoals += seasonData.goals;
     careerAssists += seasonData.assists;
@@ -708,7 +709,7 @@ function calculateHockeyAchievements(player: Player, achievements: any): void {
       careerShutouts += seasonData.shutouts;
       
     }
-  }
+  });
   
   // Set career achievements - using EXACT user-specified NHL thresholds
   achievements.career500Goals = careerGoals >= 500;   // 500+ Career Goals
@@ -722,10 +723,6 @@ function calculateHockeyAchievements(player: Player, achievements: any): void {
     console.log(`Hockey: ${player.firstName} ${player.lastName} - Career: ${careerGoals}G, ${careerAssists}A, ${careerPoints}P (${seasonStats.size} seasons)`);
   }
   
-  // Debug high season performers
-  if (maxSeasonGoals >= 20 || maxSeasonPoints >= 40) {
-    console.log(`Hockey: ${player.firstName} ${player.lastName} - Best season: ${maxSeasonGoals}G, ${maxSeasonPoints}P`);
-  }
   
   
   // Awards - use exact ZGMH award type strings from documentation
@@ -893,7 +890,8 @@ export function calculateTeamSeasonsAndAchievementSeasons(player: Player, leader
       ledStlAny: new Set<number>(),
       ledBlkAny: new Set<number>(),
       // played15PlusSeasons: new Set<number>(), // Not needed in achievement seasons
-      isPick1Overall: new Set<number>(),
+      // Note: Draft achievements removed from UI
+      // isPick1Overall: new Set<number>(),
       isFirstRoundPick: new Set<number>(),
       isSecondRoundPick: new Set<number>(),
       isUndrafted: new Set<number>(),
