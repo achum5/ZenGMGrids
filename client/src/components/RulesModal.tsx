@@ -12,7 +12,7 @@ const generalRules = {
   whatCounts: [
     "Team × Team: The player must have appeared (GP > 0) for both teams (any seasons).",
     "Team × Category (career): The player must meet the career requirement and have GP > 0 for that team in any season.",
-    "Team × Category (season/award): The player must have earned that season-specific stat/award while on that team in that season.",
+    "Team × Award: The player must have earned that award while on that team in that season.",
     "Category × Category: The player must satisfy both categories; team doesn't matter."
   ],
   oneUse: "A player can be used only once per grid (no duplicates across cells).",
@@ -31,7 +31,7 @@ const sportSpecificRules = {
       "Match both labels.",
       "Team × Team: player must appear (GP > 0) for both teams (any seasons).",
       "Team × Career: player must have ever played for the team + meet the career/longevity/birthplace item.",
-      "Team × Season/Award: player must do it with that team in that season."
+      "Team × Award: player must do it with that team in that season."
     ],
     achievements: {
       career: [
@@ -40,11 +40,6 @@ const sportSpecificRules = {
         "Played 10+ Seasons • Played 15+ Seasons",
         "Hall of Fame",
         "Born outside 50 states + DC"
-      ],
-      singleSeason: [
-        "30+ PPG • 10+ APG • 15+ RPG",
-        "3+ BPG • 2.5+ SPG",
-        "50/40/90 Season"
       ],
       awards: [
         "Most Valuable Player",
@@ -68,7 +63,7 @@ const sportSpecificRules = {
       "Match both labels.",
       "Team × Team: player must appear (GP > 0) for both teams (any seasons).",
       "Team × Career: player must have ever played for the team + meet the career/longevity/birthplace item.",
-      "Team × Season/Award: player must do it with that team in that season."
+      "Team × Award: player must do it with that team in that season."
     ],
     achievements: {
       career: [
@@ -79,12 +74,6 @@ const sportSpecificRules = {
         "Longevity: played 10+ seasons; played 15+ seasons",
         "Hall of Fame",
         "Born outside 50 states + DC"
-      ],
-      singleSeason: [
-        "Passing: 35+ pass TDs",
-        "Rushing: 1,600+ yards; 20+ TDs",
-        "Receiving: 1,400+ yards; 15+ TDs",
-        "Defense: 15+ sacks; 8+ interceptions"
       ],
       awards: [
         "Most Valuable Player",
@@ -103,7 +92,7 @@ const sportSpecificRules = {
       "Match both labels.",
       "Team × Team: appeared (GP > 0) for both teams (any seasons).",
       "Team × Career: has ever played for the team + meets the career/long-term/birthplace requirement.",
-      "Team × Season/Award: must do it with that team in that season."
+      "Team × Award: must do it with that team in that season."
     ],
     achievements: {
       career: [
@@ -111,10 +100,6 @@ const sportSpecificRules = {
         "300+ Wins (P) • 3,000+ SO (P) • 300+ Saves (P)",
         "Played 10+ Seasons • Played 15+ Seasons • Hall of Fame",
         "Born outside 50 states + DC"
-      ],
-      singleSeason: [
-        "50+ HR • 130+ RBI • 200+ Hits • 50+ SB",
-        "20+ Wins (P) • 40+ Saves (P) • 300+ SO (P) • sub-2.00 ERA (P)"
       ],
       awards: [
         "Most Valuable Player",
@@ -139,7 +124,7 @@ const sportSpecificRules = {
       "Match both labels.",
       "Team × Team: player appeared (GP > 0) for both teams (any seasons).",
       "Team × Career: player has ever played for the team + meets the career/longevity/birthplace item.",
-      "Team × Season/Award: player must do it with that team in that season."
+      "Team × Award: player must do it with that team in that season."
     ],
     achievements: {
       career: [
@@ -149,10 +134,6 @@ const sportSpecificRules = {
         "Hall of Fame",
         "Born outside 50 states + DC",
         "#1 Overall • First Round • Second Round • Undrafted • Drafted as Teenager (age ≤ 19 at draft)"
-      ],
-      singleSeason: [
-        "50+ Goals • 100+ Points • 60+ Assists",
-        "35+ Wins (G) • 10+ Shutouts (G) • .925+ Save% (G)"
       ],
       awards: [
         "Most Valuable Player",
@@ -257,9 +238,9 @@ export function RulesModal({ sport }: RulesModalProps) {
                     </ul>
                   </div>
 
-                  {/* Career (not season-aligned) */}
+                  {/* Career */}
                   <div>
-                    <h3 className="font-semibold mb-3 text-base">Career (not season-aligned)</h3>
+                    <h3 className="font-semibold mb-3 text-base">Career</h3>
                     <ul className="space-y-2">
                       {sportRules.achievements.career.map((achievement: string, index: number) => (
                         <li key={index} className="flex items-start gap-2">
@@ -270,22 +251,10 @@ export function RulesModal({ sport }: RulesModalProps) {
                     </ul>
                   </div>
 
-                  {/* Single-season stats (season-aligned) */}
-                  <div>
-                    <h3 className="font-semibold mb-3 text-base">Single-season stats (season-aligned; must be with that team that year)</h3>
-                    <ul className="space-y-2">
-                      {sportRules.achievements.singleSeason.map((stat: string, index: number) => (
-                        <li key={index} className="flex items-start gap-2">
-                          <span className="text-primary">•</span>
-                          <span>{stat}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
 
-                  {/* Awards (season-aligned) */}
+                  {/* Awards */}
                   <div>
-                    <h3 className="font-semibold mb-3 text-base">Awards (season-aligned; with-team that year)</h3>
+                    <h3 className="font-semibold mb-3 text-base">Awards (with-team that year)</h3>
                     <ul className="space-y-2">
                       {sportRules.achievements.awards.map((award: string, index: number) => (
                         <li key={index} className="flex items-start gap-2">
@@ -296,10 +265,10 @@ export function RulesModal({ sport }: RulesModalProps) {
                     </ul>
                   </div>
 
-                  {/* Draft (not season-aligned) */}
+                  {/* Draft */}
                   {sportRules.achievements.draft.length > 0 && (
                     <div>
-                      <h3 className="font-semibold mb-3 text-base">Draft (not season-aligned)</h3>
+                      <h3 className="font-semibold mb-3 text-base">Draft</h3>
                       <div className="text-center">
                         <span>{sportRules.achievements.draft[0]}</span>
                       </div>
@@ -329,16 +298,6 @@ export function RulesModal({ sport }: RulesModalProps) {
               ) : (
                 <>
                   {/* Standard format for other sports */}
-                  {/* Season Alignment Section */}
-                  <div>
-                    <h3 className="font-semibold mb-2">What "season-aligned with team" means</h3>
-                    <p className="text-muted-foreground">{(sportRules as any).seasonAligned}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold mb-2">What is not season-aligned</h3>
-                    <p className="text-muted-foreground">{(sportRules as any).notSeasonAligned}</p>
-                  </div>
 
                   {/* Achievements Section */}
                   <div>
@@ -346,7 +305,7 @@ export function RulesModal({ sport }: RulesModalProps) {
                     
                     {/* Career */}
                     <div className="mb-4">
-                      <h4 className="font-medium mb-2">Career (not season-aligned; Team × Career requires ever played for team)</h4>
+                      <h4 className="font-medium mb-2">Career (Team × Career requires ever played for team)</h4>
                       <ul className="space-y-1 ml-4">
                         {sportRules.achievements.career.map((achievement: string, index: number) => (
                           <li key={index} className="flex items-start gap-2">
@@ -357,22 +316,10 @@ export function RulesModal({ sport }: RulesModalProps) {
                       </ul>
                     </div>
 
-                    {/* Single-Season Stats */}
-                    <div className="mb-4">
-                      <h4 className="font-medium mb-2">Single-Season Stats (season-aligned; must be with team in that season)</h4>
-                      <ul className="space-y-1 ml-4">
-                        {sportRules.achievements.singleSeason.map((stat: string, index: number) => (
-                          <li key={index} className="flex items-start gap-2">
-                            <span className="text-primary">•</span>
-                            <span>{stat}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
 
                     {/* Awards/Honors */}
                     <div className="mb-4">
-                      <h4 className="font-medium mb-2">Awards/Honors (season-aligned; with-team that season)</h4>
+                      <h4 className="font-medium mb-2">Awards/Honors (with-team that season)</h4>
                       <ul className="space-y-1 ml-4">
                         {sportRules.achievements.awards.map((award: string, index: number) => (
                           <li key={index} className="flex items-start gap-2">
@@ -386,7 +333,7 @@ export function RulesModal({ sport }: RulesModalProps) {
                     {/* Draft */}
                     {sportRules.achievements.draft.length > 0 && (
                       <div>
-                        <h4 className="font-medium mb-2">Draft (not season-aligned)</h4>
+                        <h4 className="font-medium mb-2">Draft</h4>
                         <ul className="space-y-1 ml-4">
                           {sportRules.achievements.draft.map((draft: string, index: number) => (
                             <li key={index} className="flex items-start gap-2">

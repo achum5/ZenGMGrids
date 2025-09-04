@@ -107,43 +107,6 @@ export const BASKETBALL_ACHIEVEMENTS: Achievement[] = [
     test: (p: Player) => p.achievements?.career2kThrees || false,
     minPlayers: 5
   },
-  // Season achievements
-  {
-    id: 'season30ppg',
-    label: '30+ PPG Season',
-    test: (p: Player) => p.achievements?.season30ppg || false,
-    minPlayers: 5
-  },
-  {
-    id: 'season10apg',
-    label: '10+ APG Season',
-    test: (p: Player) => p.achievements?.season10apg || false,
-    minPlayers: 5
-  },
-  {
-    id: 'season15rpg',
-    label: '15+ RPG Season',
-    test: (p: Player) => p.achievements?.season15rpg || false,
-    minPlayers: 5
-  },
-  {
-    id: 'season3bpg',
-    label: '3+ BPG Season',
-    test: (p: Player) => p.achievements?.season3bpg || false,
-    minPlayers: 5
-  },
-  {
-    id: 'season25spg',
-    label: '2.5+ SPG Season',
-    test: (p: Player) => p.achievements?.season25spg || false,
-    minPlayers: 5
-  },
-  {
-    id: 'season504090',
-    label: '50/40/90 Season',
-    test: (p: Player) => p.achievements?.season504090 || false,
-    minPlayers: 5
-  },
   // Awards achievements
   {
     id: 'hasMVP',
@@ -241,55 +204,6 @@ export const BASEBALL_ACHIEVEMENTS: Achievement[] = [
     test: (p: Player) => p.achievements?.career300Saves || false,
     minPlayers: 5
   },
-  // Single season achievements
-  {
-    id: 'season50HRs',
-    label: '50+ Home Runs Season',
-    test: (p: Player) => p.achievements?.season50HRs || false,
-    minPlayers: 5
-  },
-  {
-    id: 'season130RBIs',
-    label: '130+ RBIs Season',
-    test: (p: Player) => p.achievements?.season130RBIs || false,
-    minPlayers: 5
-  },
-  {
-    id: 'season200Hits',
-    label: '200+ Hits Season',
-    test: (p: Player) => p.achievements?.season200Hits || false,
-    minPlayers: 5
-  },
-  {
-    id: 'season50SBs',
-    label: '50+ Stolen Bases Season',
-    test: (p: Player) => p.achievements?.season50SBs || false,
-    minPlayers: 5
-  },
-  {
-    id: 'season20Wins',
-    label: '20+ Wins Season (P)',
-    test: (p: Player) => p.achievements?.season20Wins || false,
-    minPlayers: 5
-  },
-  {
-    id: 'season40Saves',
-    label: '40+ Saves Season',
-    test: (p: Player) => p.achievements?.season40Saves || false,
-    minPlayers: 5
-  },
-  {
-    id: 'season300Ks',
-    label: '300+ Strikeouts Season',
-    test: (p: Player) => p.achievements?.season300Ks || false,
-    minPlayers: 5
-  },
-  {
-    id: 'season200ERA',
-    label: 'Sub-2.00 ERA Season',
-    test: (p: Player) => p.achievements?.season200ERA || false,
-    minPlayers: 5
-  },
   // Awards achievements
   {
     id: 'wonMVP',
@@ -368,43 +282,6 @@ export const HOCKEY_ACHIEVEMENTS: Achievement[] = [
     test: (p: Player) => p.achievements?.career50Shutouts || false,
     minPlayers: 5
   },
-  // Season achievements
-  {
-    id: 'season50Goals',
-    label: '50+ Goals Season',
-    test: (p: Player) => p.achievements?.season50Goals || false,
-    minPlayers: 5
-  },
-  {
-    id: 'season100Points',
-    label: '100+ Points Season',
-    test: (p: Player) => p.achievements?.season100Points || false,
-    minPlayers: 5
-  },
-  {
-    id: 'season60Assists',
-    label: '60+ Assists Season',
-    test: (p: Player) => p.achievements?.season60Assists || false,
-    minPlayers: 5
-  },
-  {
-    id: 'season35Wins',
-    label: '35+ Wins Season (G)',
-    test: (p: Player) => p.achievements?.season35Wins || false,
-    minPlayers: 5
-  },
-  {
-    id: 'season10Shutouts',
-    label: '10+ Shutouts Season (G)',
-    test: (p: Player) => p.achievements?.season10Shutouts || false,
-    minPlayers: 5
-  },
-  {
-    id: 'season925SavePct',
-    label: '.925+ Save % Season (G)',
-    test: (p: Player) => p.achievements?.season925SavePct || false,
-    minPlayers: 5
-  },
   // Awards achievements
   {
     id: 'wonMVP',
@@ -459,12 +336,6 @@ export const FOOTBALL_ACHIEVEMENTS: Achievement[] = [
     test: (p: Player) => p.achievements?.career300PassTDs || false,
     minPlayers: 5
   },
-  {
-    id: 'season35PassTDs',
-    label: '35+ Pass TDs Season',
-    test: (p: Player) => p.achievements?.season35PassTDs || false,
-    minPlayers: 5
-  },
   // Rushing achievements
   {
     id: 'career12kRushYds',
@@ -476,18 +347,6 @@ export const FOOTBALL_ACHIEVEMENTS: Achievement[] = [
     id: 'career100RushTDs',
     label: '40+ Career Rush TDs',
     test: (p: Player) => p.achievements?.career100RushTDs || false,
-    minPlayers: 5
-  },
-  {
-    id: 'season1800RushYds',
-    label: '1,600+ Rush Yards Season',
-    test: (p: Player) => p.achievements?.season1800RushYds || false,
-    minPlayers: 5
-  },
-  {
-    id: 'season20RushTDs',
-    label: '20+ Rush TDs Season',
-    test: (p: Player) => p.achievements?.season20RushTDs || false,
     minPlayers: 5
   },
   // Receiving achievements
@@ -503,18 +362,6 @@ export const FOOTBALL_ACHIEVEMENTS: Achievement[] = [
     test: (p: Player) => p.achievements?.career100RecTDs || false,
     minPlayers: 5
   },
-  {
-    id: 'season1400RecYds',
-    label: '1,400+ Rec Yards Season',
-    test: (p: Player) => p.achievements?.season1400RecYds || false,
-    minPlayers: 5
-  },
-  {
-    id: 'season15RecTDs',
-    label: '15+ Rec TDs Season',
-    test: (p: Player) => p.achievements?.season15RecTDs || false,
-    minPlayers: 5
-  },
   // Defensive achievements
   {
     id: 'career100Sacks',
@@ -526,18 +373,6 @@ export const FOOTBALL_ACHIEVEMENTS: Achievement[] = [
     id: 'career20Ints',
     label: '20+ Career Interceptions',
     test: (p: Player) => p.achievements?.career20Ints || false,
-    minPlayers: 5
-  },
-  {
-    id: 'season15Sacks',
-    label: '15+ Sacks Season',
-    test: (p: Player) => p.achievements?.season15Sacks || false,
-    minPlayers: 5
-  },
-  {
-    id: 'season8Ints',
-    label: '8+ Interceptions Season',
-    test: (p: Player) => p.achievements?.season8Ints || false,
     minPlayers: 5
   },
   // Awards achievements
@@ -581,11 +416,6 @@ export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | '
 
 // Season-aligned achievements that need same-season matching for Team × Achievement cells
 export const SEASON_ALIGNED_ACHIEVEMENTS = new Set([
-  'season30ppg', 'season10apg', 'season15rpg', 'season3bpg', 'season25spg', 'season504090',
-  'season4500PassYds', 'season35PassTDs', 'season1800RushYds', 'season20RushTDs', 
-  'season1400RecYds', 'season15RecTDs', 'season15Sacks', 'season8Ints',
-  'season50Goals', 'season100Points', 'season60Assists', 'season35Wins', 'season10Shutouts', 'season925SavePct',
-  'season50HRs', 'season130RBIs', 'season200Hits', 'season50SBs', 'season20Wins', 'season40Saves', 'season300Ks', 'season200ERA',
   'ledScoringAny', 'ledRebAny', 'ledAstAny'
 ]);
 
@@ -664,11 +494,6 @@ function calculateFootballAchievements(player: Player, achievements: any): void 
   let careerRecYds = 0, careerRecTDs = 0;
   let careerSacks = 0, careerInts = 0;
   
-  // Season maximums
-  let maxSeasonPassTDs = 0;
-  let maxSeasonRushYds = 0, maxSeasonRushTDs = 0;
-  let maxSeasonRecYds = 0, maxSeasonRecTDs = 0;
-  let maxSeasonSacks = 0, maxSeasonInts = 0;
   
   stats.forEach((season: any) => {
     if (season.playoffs) return; // Only regular season stats
@@ -682,7 +507,6 @@ function calculateFootballAchievements(player: Player, achievements: any): void 
     const passTDs = season.pssTD || 0;  // Passing TDs use pssTD in FBGM
     
     careerPassTDs += passTDs;
-    maxSeasonPassTDs = Math.max(maxSeasonPassTDs, passTDs);
     
     // Debug passing stats when they exist
     if (passTDs > 15) {
@@ -692,21 +516,15 @@ function calculateFootballAchievements(player: Player, achievements: any): void 
     // Rushing stats
     careerRushYds += season.rusYds || 0;
     careerRushTDs += season.rusTD || 0;
-    maxSeasonRushYds = Math.max(maxSeasonRushYds, season.rusYds || 0);
-    maxSeasonRushTDs = Math.max(maxSeasonRushTDs, season.rusTD || 0);
     
     // Receiving stats
     careerRecYds += season.recYds || 0;
     careerRecTDs += season.recTD || 0;
-    maxSeasonRecYds = Math.max(maxSeasonRecYds, season.recYds || 0);
-    maxSeasonRecTDs = Math.max(maxSeasonRecTDs, season.recTD || 0);
     
     // Defensive stats - FBGM uses 'sk' field, fallback to 'defSk'
     const seasonSacks = season.sk ?? season.defSk ?? 0;
     careerSacks += seasonSacks;
     careerInts += season.defInt || 0;
-    maxSeasonSacks = Math.max(maxSeasonSacks, seasonSacks);
-    maxSeasonInts = Math.max(maxSeasonInts, season.defInt || 0);
   });
   
   // Set career achievements - FBGM doesn't track passing yards, only TDs
@@ -732,14 +550,6 @@ function calculateFootballAchievements(player: Player, achievements: any): void 
   achievements.career100Sacks = careerSacks >= 60; // Lowered from 100
   achievements.career20Ints = careerInts >= 20;
   
-  // Set season achievements - FBGM doesn't track passing yards, only TDs
-  achievements.season35PassTDs = maxSeasonPassTDs >= 35;
-  achievements.season1800RushYds = maxSeasonRushYds >= 1600;
-  achievements.season20RushTDs = maxSeasonRushTDs >= 20;
-  achievements.season1400RecYds = maxSeasonRecYds >= 1400;
-  achievements.season15RecTDs = maxSeasonRecTDs >= 15;
-  achievements.season15Sacks = maxSeasonSacks >= 15;
-  achievements.season8Ints = maxSeasonInts >= 8;
   
   // Awards (simplified for now)
   const awards = player.awards || [];
@@ -772,9 +582,6 @@ function calculateBaseballAchievements(player: Player, achievements: any): void 
   // Career pitching totals
   let careerWins = 0, careerKs = 0, careerSaves = 0;
   
-  // Season maximums
-  let maxSeasonHRs = 0, maxSeasonRBIs = 0, maxSeasonHits = 0, maxSeasonSBs = 0;
-  let maxSeasonWins = 0, maxSeasonSaves = 0, maxSeasonKs = 0, minSeasonERA = 999;
   
   stats.forEach((season: any) => {
     if (season.playoffs) return; // Only regular season stats
@@ -785,30 +592,12 @@ function calculateBaseballAchievements(player: Player, achievements: any): void 
     careerRBIs += season.rbi || 0;
     careerSBs += season.sb || 0;
     careerRuns += season.r || 0;
-    maxSeasonHRs = Math.max(maxSeasonHRs, season.hr || 0);
-    maxSeasonRBIs = Math.max(maxSeasonRBIs, season.rbi || 0);
-    maxSeasonHits = Math.max(maxSeasonHits, season.h || 0);
-    maxSeasonSBs = Math.max(maxSeasonSBs, season.sb || 0);
     
     // Pitching stats - baseball uses soPit (strikeouts pitched), not so
     careerWins += season.w || 0;
     careerSaves += season.sv || 0;
     careerKs += season.soPit || 0; // Strikeouts pitched in baseball
-    maxSeasonWins = Math.max(maxSeasonWins, season.w || 0);
-    maxSeasonSaves = Math.max(maxSeasonSaves, season.sv || 0);
-    maxSeasonKs = Math.max(maxSeasonKs, season.soPit || 0);
     
-    // ERA (calculated from runs and innings)
-    if (season.outs && season.outs > 0) {
-      const innings = season.outs / 3; // Outs to innings
-      const runs = season.er || season.rPit || 0; // Earned runs
-      if (innings > 0) {
-        const era = (runs * 9) / innings;
-        if (era > 0) {
-          minSeasonERA = Math.min(minSeasonERA, era);
-        }
-      }
-    }
   });
   
   // Set career achievements
@@ -821,15 +610,6 @@ function calculateBaseballAchievements(player: Player, achievements: any): void 
   achievements.career3000Ks = careerKs >= 3000;
   achievements.career300Saves = careerSaves >= 300;
   
-  // Set season achievements
-  achievements.season50HRs = maxSeasonHRs >= 50;
-  achievements.season130RBIs = maxSeasonRBIs >= 130;
-  achievements.season200Hits = maxSeasonHits >= 200;
-  achievements.season50SBs = maxSeasonSBs >= 50;
-  achievements.season20Wins = maxSeasonWins >= 20;
-  achievements.season40Saves = maxSeasonSaves >= 40;
-  achievements.season300Ks = maxSeasonKs >= 300;
-  achievements.season200ERA = minSeasonERA < 2.00 && minSeasonERA > 0;
   
   // Awards - Use EXACT ZGMB strings only (no aliases)
   const awards = player.awards || [];
@@ -860,7 +640,7 @@ function calculateHockeyAchievements(player: Player, achievements: any): void {
   let careerGoals = 0, careerAssists = 0, careerPoints = 0;
   let careerWins = 0, careerShutouts = 0;
   
-  // Season maximums and tracking for multi-team seasons
+  // Tracking for multi-team seasons
   const seasonStats = new Map<number, {
     goals: number; assists: number; points: number;
     wins: number; shutouts: number; saves: number; shotsAgainst: number;
@@ -913,9 +693,7 @@ function calculateHockeyAchievements(player: Player, achievements: any): void {
     seasonStats.set(seasonYear, existing);
   });
   
-  // Second pass: calculate career totals and season maximums
-  let maxSeasonGoals = 0, maxSeasonAssists = 0, maxSeasonPoints = 0;
-  let maxSeasonWins = 0, maxSeasonShutouts = 0, maxSeasonSavePct = 0;
+  // Second pass: calculate career totals
   
   for (const seasonData of seasonStats.values()) {
     // Career totals
@@ -923,24 +701,12 @@ function calculateHockeyAchievements(player: Player, achievements: any): void {
     careerAssists += seasonData.assists;
     careerPoints += seasonData.points;
     
-    // Season maximums
-    maxSeasonGoals = Math.max(maxSeasonGoals, seasonData.goals);
-    maxSeasonAssists = Math.max(maxSeasonAssists, seasonData.assists);
-    maxSeasonPoints = Math.max(maxSeasonPoints, seasonData.points);
     
     // Goalie stats (only for goalies)
     if (seasonData.isGoalie) {
       careerWins += seasonData.wins;
       careerShutouts += seasonData.shutouts;
       
-      maxSeasonWins = Math.max(maxSeasonWins, seasonData.wins);
-      maxSeasonShutouts = Math.max(maxSeasonShutouts, seasonData.shutouts);
-      
-      // Calculate save percentage for this season
-      if (seasonData.shotsAgainst > 0) {
-        const savePct = seasonData.saves / seasonData.shotsAgainst;
-        maxSeasonSavePct = Math.max(maxSeasonSavePct, savePct);
-      }
     }
   }
   
@@ -961,13 +727,6 @@ function calculateHockeyAchievements(player: Player, achievements: any): void {
     console.log(`Hockey: ${player.firstName} ${player.lastName} - Best season: ${maxSeasonGoals}G, ${maxSeasonPoints}P`);
   }
   
-  // Set season achievements - using EXACT user-specified NHL thresholds
-  achievements.season50Goals = maxSeasonGoals >= 50;   // 50+ Goals Season
-  achievements.season100Points = maxSeasonPoints >= 100; // 100+ Points Season
-  achievements.season60Assists = maxSeasonAssists >= 60; // 60+ Assists Season
-  achievements.season35Wins = maxSeasonWins >= 35;     // 35+ Wins Season (G)
-  achievements.season10Shutouts = maxSeasonShutouts >= 10; // 10+ Shutouts Season (G)
-  achievements.season925SavePct = maxSeasonSavePct >= 0.925; // .925+ Save % Season (G)
   
   // Awards - use exact ZGMH award type strings from documentation
   const awards = player.awards || [];
@@ -1005,8 +764,6 @@ function calculateBasketballAchievements(player: Player, achievements: any): voi
   // Career totals
   let careerPts = 0, careerReb = 0, careerAst = 0, careerStl = 0, careerBlk = 0, careerThree = 0;
   
-  // Season maximums
-  let maxSeasonPPG = 0, maxSeasonAPG = 0, maxSeasonRPG = 0, maxSeasonSPG = 0, maxSeasonBPG = 0;
   
   stats.forEach((season: any) => {
     if (season.playoffs) return; // Only regular season stats
@@ -1030,13 +787,6 @@ function calculateBasketballAchievements(player: Player, achievements: any): voi
     const seasonThrees = season.tpm || season.tp || season.fg3 || 0;
     careerThree += seasonThrees;
     
-    // Calculate per-game averages
-    const gp = season.gp || 1;
-    maxSeasonPPG = Math.max(maxSeasonPPG, (season.pts || 0) / gp);
-    maxSeasonAPG = Math.max(maxSeasonAPG, (season.ast || 0) / gp);
-    maxSeasonRPG = Math.max(maxSeasonRPG, seasonRebounds / gp);
-    maxSeasonSPG = Math.max(maxSeasonSPG, (season.stl || 0) / gp);
-    maxSeasonBPG = Math.max(maxSeasonBPG, (season.blk || 0) / gp);
   });
   
   // Set career achievements
@@ -1047,52 +797,6 @@ function calculateBasketballAchievements(player: Player, achievements: any): voi
   achievements.career1500Blocks = careerBlk >= 1500;
   achievements.career2kThrees = careerThree >= 2000;
   
-  // Set season achievements
-  achievements.season30ppg = maxSeasonPPG >= 30;
-  achievements.season10apg = maxSeasonAPG >= 10;
-  achievements.season15rpg = maxSeasonRPG >= 15;
-  achievements.season25spg = maxSeasonSPG >= 2.5;
-  achievements.season3bpg = maxSeasonBPG >= 3;
-  
-  // 50/40/90 Season calculation
-  let has504090Season = false;
-  stats.forEach((season: any) => {
-    if (season.playoffs) return;
-    const gp = season.gp || 1;
-    
-    // Need sufficient attempts to qualify
-    if (gp >= 41) { // At least half season
-      const fg = season.fg || 0;
-      const fga = season.fga || 0;
-      const threes = season.tpm || season.tp || season.fg3 || 0;
-      const tpa = season.tpa || 0;
-      const ft = season.ft || 0;
-      const fta = season.fta || 0;
-      
-      // Calculate percentages (handle both 0-1 and 0-100 formats)
-      let fgPct = 0, tpPct = 0, ftPct = 0;
-      
-      if (fga > 0) {
-        fgPct = fg / fga;
-        if (fgPct > 1) fgPct = fgPct / 100; // Convert from percentage
-      }
-      if (tpa > 0) {
-        tpPct = threes / tpa;
-        if (tpPct > 1) tpPct = tpPct / 100;
-      }
-      if (fta > 0) {
-        ftPct = ft / fta;
-        if (ftPct > 1) ftPct = ftPct / 100;
-      }
-      
-      // Check 50/40/90 thresholds with minimum attempts
-      if (fgPct >= 0.50 && tpPct >= 0.40 && ftPct >= 0.90 &&
-          fga >= 300 && tpa >= 55 && fta >= 125) {
-        has504090Season = true;
-      }
-    }
-  });
-  achievements.season504090 = has504090Season;
   
   // Awards
   const awards = player.awards || [];
