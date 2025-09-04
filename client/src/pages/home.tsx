@@ -19,6 +19,47 @@ import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
 import { useToast } from '@/hooks/use-toast';
 import type { LeagueData, CatTeam, CellState, Player, SearchablePlayer } from '@/types/bbgm';
 
+// Helper functions for attempt tracking
+function getAttemptCount(gridId: string): number {
+  try {
+    const stored = localStorage.getItem(`attemptCount:${gridId}`);
+    return stored ? parseInt(stored, 10) : 1;
+  } catch {
+    return 1;
+  }
+}
+
+function storeAttemptCount(gridId: string, count: number): void {
+  try {
+    localStorage.setItem(`attemptCount:${gridId}`, count.toString());
+  } catch {
+    // Storage failed, continue without persistence
+  }
+}
+
+function getOrdinalLabel(count: number): string {
+  const ordinals = {
+    2: 'second', 3: 'third', 4: 'fourth', 5: 'fifth', 6: 'sixth', 7: 'seventh', 8: 'eighth', 9: 'ninth', 10: 'tenth',
+    11: 'eleventh', 12: 'twelfth', 13: 'thirteenth', 14: 'fourteenth', 15: 'fifteenth', 16: 'sixteenth', 17: 'seventeenth', 18: 'eighteenth', 19: 'nineteenth', 20: 'twentieth'
+  };
+  
+  if (count <= 20) {
+    return ordinals[count as keyof typeof ordinals] || `${count}th`;
+  }
+  
+  // For numbers above 20, use hyphenated form
+  const tens = Math.floor(count / 10) * 10;
+  const ones = count % 10;
+  const tensWord = { 20: 'twenty', 30: 'thirty', 40: 'forty', 50: 'fifty', 60: 'sixty', 70: 'seventy', 80: 'eighty', 90: 'ninety' }[tens];
+  const onesWord = { 1: 'first', 2: 'second', 3: 'third', 4: 'fourth', 5: 'fifth', 6: 'sixth', 7: 'seventh', 8: 'eighth', 9: 'ninth' }[ones];
+  
+  if (ones === 0) {
+    return `${tensWord}th`;
+  }
+  
+  return `${tensWord}-${onesWord}`;
+}
+
 export default function Home() {
   const { toast } = useToast();
   
@@ -49,6 +90,10 @@ export default function Home() {
   const [modalEligiblePlayers, setModalEligiblePlayers] = useState<Player[]>([]);
   const [modalPuzzleSeed, setModalPuzzleSeed] = useState<string>("");
   const [modalCellKey, setModalCellKey] = useState<string>("");
+  
+  // Attempt tracking state
+  const [currentGridId, setCurrentGridId] = useState<string>('');
+  const [attemptCount, setAttemptCount] = useState<number>(1);
 
   // Helper function to build and cache player rankings for a cell
   const buildRankCacheForCell = useCallback((cellKey: string): Array<{player: Player, rarity: number}> => {
@@ -176,6 +221,14 @@ export default function Home() {
     setIntersections(gridResult.intersections);
     setCells({});
     
+    // Initialize grid tracking
+    const gridId = `${gridResult.rows.map(r => r.key).join('-')}_${gridResult.cols.map(c => c.key).join('-')}`;
+    setCurrentGridId(gridId);
+    
+    // Load attempt count from localStorage
+    const storedAttemptCount = getAttemptCount(gridId);
+    setAttemptCount(storedAttemptCount);
+    
     // Success toast removed - was blocking mobile interactions
   }, [toast]);
 
@@ -192,6 +245,14 @@ export default function Home() {
       setCells({}); // Reset all answers
       setUsedPids(new Set()); // Reset used players
       setRankCache({}); // Reset cached rankings for the old grid
+      
+      // Initialize new grid tracking
+      const gridId = `${gridResult.rows.map(r => r.key).join('-')}_${gridResult.cols.map(c => c.key).join('-')}`;
+      setCurrentGridId(gridId);
+      
+      // Reset attempt count for new grid
+      setAttemptCount(1);
+      storeAttemptCount(gridId, 1);
       
       // Grid generation toast removed - was intrusive
       
@@ -461,6 +522,22 @@ export default function Home() {
     setUsedPids(usedPidsSet);
   }, [leagueData, rows, cols, cells, rankCache, buildRankCacheForCell]);
 
+  const handleRetryGrid = useCallback(() => {
+    if (!currentGridId) return;
+    
+    // Increment attempt count
+    const newAttemptCount = attemptCount + 1;
+    setAttemptCount(newAttemptCount);
+    storeAttemptCount(currentGridId, newAttemptCount);
+    
+    // Reset the grid state
+    setCells({});
+    setUsedPids(new Set());
+    setRankCache({});
+    
+    // Keep the same rows, cols, and intersections (same puzzle)
+  }, [currentGridId, attemptCount]);
+
   // Show upload section if no league data
   if (!leagueData) {
     return (
@@ -561,9 +638,12 @@ export default function Home() {
           onCellClick={handleCellClick}
           onGenerateNewGrid={handleGenerateNewGrid}
           onGiveUp={handleGiveUp}
+          onRetryGrid={handleRetryGrid}
           isGenerating={isGenerating}
           teams={leagueData?.teams || []}
           sport={leagueData?.sport}
+          attemptCount={attemptCount}
+          getOrdinalLabel={getOrdinalLabel}
         />
         
         <PlayerSearchModal

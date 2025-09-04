@@ -26,9 +26,12 @@ interface GridSectionProps {
   onCellClick: (rowKey: string, colKey: string) => void;
   onGenerateNewGrid: () => void;
   onGiveUp: () => void;
+  onRetryGrid: () => void;
   isGenerating: boolean;
   teams: Team[]; // Add teams for jersey styling
   sport?: string;
+  attemptCount: number;
+  getOrdinalLabel: (count: number) => string;
 }
 
 // Calculate total score from correct guesses
@@ -45,9 +48,12 @@ export function GridSection({
   onCellClick,
   onGenerateNewGrid,
   onGiveUp,
+  onRetryGrid,
   isGenerating,
   teams,
   sport,
+  attemptCount,
+  getOrdinalLabel,
 }: GridSectionProps) {
   const totalScore = calculateScore(cells);
   const getCellKey = (rowKey: string, colKey: string) => `${rowKey}|${colKey}`;
@@ -119,32 +125,44 @@ export function GridSection({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        {/* Give Up button on the left */}
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant="ghost"
-              disabled={isGenerating || !hasEmptyCells}
-              className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg"
-              data-testid="button-give-up"
-            >
-              <Flag className="mr-2 h-4 w-4" />
-              Give Up
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Reveal remaining answers?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Your score won't change.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={onGiveUp}>Reveal</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {/* Left button: Give Up or Retry This Grid */}
+        {isGridComplete ? (
+          <Button
+            onClick={onRetryGrid}
+            variant="default"
+            className="bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            data-testid="button-retry-grid"
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Retry This Grid
+          </Button>
+        ) : (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                disabled={isGenerating || !hasEmptyCells}
+                className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg"
+                data-testid="button-give-up"
+              >
+                <Flag className="mr-2 h-4 w-4" />
+                Give Up
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Reveal remaining answers?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Your score won't change.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={onGiveUp}>Reveal</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
 
         {/* Generate New Grid button on the right */}
         <Button
@@ -183,6 +201,11 @@ export function GridSection({
                 <div className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold leading-none text-foreground dark:text-white">
                   {totalScore}
                 </div>
+                {attemptCount >= 2 && (
+                  <div className="text-xs text-muted-foreground dark:text-gray-500 mt-1">
+                    ({getOrdinalLabel(attemptCount)} try)
+                  </div>
+                )}
               </div>
               
               {/* Column Headers */}
