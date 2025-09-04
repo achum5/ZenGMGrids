@@ -1532,6 +1532,17 @@ export function generateFeedbackMessage(
     }
   }
   
+  // Fix season achievement messages
+  if (rowConstraint.type === 'achievement' && isSeasonAchievement(rowConstraint.achievementId!) && !rowDetails.passed) {
+    const achData = SEASON_ACHIEVEMENT_LABELS[rowConstraint.achievementId! as SeasonAchievementId];
+    rowDetails.failText = `never ${achData.verbGeneric}`;
+  }
+  
+  if (colConstraint.type === 'achievement' && isSeasonAchievement(colConstraint.achievementId!) && !colDetails.passed) {
+    const achData = SEASON_ACHIEVEMENT_LABELS[colConstraint.achievementId! as SeasonAchievementId];
+    colDetails.failText = `never ${achData.verbGeneric}`;
+  }
+  
   // Apply strict 4-case logic based on actual pass/fail booleans
   
   // Case 1: Both fail (!row.ok && !col.ok)
