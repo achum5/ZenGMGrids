@@ -8,14 +8,12 @@ import { RulesModal } from '@/components/RulesModal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Home as HomeIcon } from 'lucide-react';
-// Sport-specific icons (using emoji/text instead of image files)
-const sportIcons = {
-  basketball: '🏀',
-  football: '🏈', 
-  hockey: '🏒',
-  baseball: '⚾',
-  default: '🏆'
-};
+// Import sport icon images
+import sportsCombinedIcon from '@/assets/sports-combined.png';
+import basketballIcon from '@/assets/basketball.png';
+import footballIcon from '@/assets/football.png';
+import hockeyIcon from '@/assets/hockey.png';
+import baseballIcon from '@/assets/baseball.png';
 import { parseLeagueFile, parseLeagueUrl, buildSearchIndex } from '@/lib/bbgm-parser';
 import { generateTeamsGrid, cellKey } from '@/lib/grid-generator';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
@@ -549,9 +547,11 @@ export default function Home() {
           <div className="max-w-6xl mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 flex items-center justify-center text-4xl">
-                  {sportIcons.default}
-                </div>
+                <img 
+                  src={sportsCombinedIcon}
+                  alt="Basketball, Football, Hockey, and Baseball icons" 
+                  className="w-12 h-12 object-contain"
+                />
                 <h1 className="text-2xl font-bold text-foreground">ZenGM Grids</h1>
               </div>
               <div className="flex items-center space-x-3">
@@ -579,9 +579,17 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 flex items-center justify-center text-3xl">
-                {sportIcons[leagueData?.sport as keyof typeof sportIcons] || sportIcons.default}
-              </div>
+              <img 
+                src={
+                  leagueData?.sport === 'basketball' ? basketballIcon :
+                  leagueData?.sport === 'football' ? footballIcon :
+                  leagueData?.sport === 'hockey' ? hockeyIcon :
+                  leagueData?.sport === 'baseball' ? baseballIcon :
+                  sportsCombinedIcon
+                }
+                alt={`${leagueData?.sport || 'Sports'} icon`} 
+                className="w-10 h-10 object-contain"
+              />
               <h1 className="text-2xl font-bold text-foreground">
                 {leagueData?.sport === 'basketball' && 'Basketball GM Grids'}
                 {leagueData?.sport === 'football' && 'Football GM Grids'}
