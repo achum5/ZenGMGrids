@@ -725,17 +725,22 @@ function buildOppositeAxisForSeed(
   
   console.log(`After team filling - teamIndex: ${teamIndex}, rows filled: ${rows.filter(r => r).length}, cols filled: ${cols.filter(c => c).length}`);
   
-  // Fill remaining slots with career achievements (not more season achievements)
-  // Get viable career achievements (exclude season-specific ones)
-  console.log(`Debug: about to call getViableAchievements with sport=${sport}`);
-  const minPlayersRequired = 5;
-  const allAchievements = getViableAchievements(players, minPlayersRequired, sport, seasonIndex);
-  console.log(`Debug: getViableAchievements returned ${allAchievements.length} achievements`);
-  const careerAchievements = allAchievements.filter(achievement => 
-    !SEASON_ACHIEVEMENTS.some(sa => sa.id === achievement.id)
-  );
-  
-  console.log(`Available career achievements: ${careerAchievements.length}`);
+  try {
+    // Fill remaining slots with career achievements (not more season achievements)
+    // Get viable career achievements (exclude season-specific ones)
+    console.log(`Debug: about to call getViableAchievements with sport=${sport}`);
+    const minPlayersRequired = 5;
+    const allAchievements = getViableAchievements(players, minPlayersRequired, sport, seasonIndex);
+    console.log(`Debug: getViableAchievements returned ${allAchievements.length} achievements`);
+    var careerAchievements = allAchievements.filter(achievement => 
+      !SEASON_ACHIEVEMENTS.some(sa => sa.id === achievement.id)
+    );
+    
+    console.log(`Available career achievements: ${careerAchievements.length}`);
+  } catch (error) {
+    console.error(`Error in getViableAchievements:`, error);
+    throw error;
+  }
   
   // Helper to get random career achievement using seeded randomness
   let achievementSeedCounter = 0;
