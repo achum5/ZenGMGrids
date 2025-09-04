@@ -181,10 +181,11 @@ function attemptGridGeneration(leagueData: LeagueData): {
     );
     
     console.log(`🎯 SELECTION: ${awardAchievements.length} award achievements available`);
+    awardAchievements.forEach(a => console.log(`   - ${a.label} (${a.achievementId})`));
     console.log(`📊 SELECTION: ${nonAwardAchievements.length} non-award achievements available`);
     
-    // Strongly bias selection toward including at least one award achievement
-    const includeAward = awardAchievements.length > 0 && Math.random() < 0.8; // 80% chance to include an award
+    // FORCE inclusion of award achievements - make it 100% for testing
+    const includeAward = awardAchievements.length > 0; // ALWAYS include an award if available
     
     if (includeAward && awardAchievements.length > 0) {
       console.log(`🎯 FORCING inclusion of award achievement!`);
