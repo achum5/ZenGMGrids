@@ -592,12 +592,17 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
   
   if (sport === 'basketball') {
     console.log('🏀 Building season-specific achievement index for basketball...');
-    seasonIndex = buildSeasonIndex(players);
+    seasonIndex = buildSeasonIndex(players, sport);
   } else if (sport === 'football' && seasonCount >= 50) {
     console.log(`🏈 Building season-specific achievement index for football (${seasonCount} seasons ≥ 50)...`);
-    seasonIndex = buildSeasonIndex(players);
+    seasonIndex = buildSeasonIndex(players, sport);
   } else if (sport === 'football') {
     console.log(`🏈 Skipping season achievements for football (${seasonCount} seasons < 50)`);
+  } else if (sport === 'hockey' && seasonCount >= 50) {
+    console.log(`🏒 Building season-specific achievement index for hockey (${seasonCount} seasons ≥ 50)...`);
+    seasonIndex = buildSeasonIndex(players, sport);
+  } else if (sport === 'hockey') {
+    console.log(`🏒 Skipping season achievements for hockey (${seasonCount} seasons < 50)`);
   }
   
   return { players, teams, sport, teamOverlaps, seasonIndex };

@@ -161,6 +161,92 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     short: 'Scrimmage Leader',
     verbTeam: 'led the league in scrimmage yards',
     verbGeneric: 'led the league in scrimmage yards'
+  },
+  
+  // Hockey GM season achievements
+  HKAllStar: {
+    label: 'All-Star',
+    short: 'All-Star',
+    verbTeam: 'made an All-Star team',
+    verbGeneric: 'made an All-Star team'
+  },
+  HKAllStarMVP: {
+    label: 'All-Star MVP',
+    short: 'All-Star MVP',
+    verbTeam: 'won an All-Star MVP',
+    verbGeneric: 'won an All-Star MVP'
+  },
+  HKMVP: {
+    label: 'Most Valuable Player',
+    short: 'MVP',
+    verbTeam: 'won an MVP',
+    verbGeneric: 'won an MVP'
+  },
+  HKDPOY: {
+    label: 'Defensive Player of the Year',
+    short: 'DPOY',
+    verbTeam: 'won a Defensive Player of the Year',
+    verbGeneric: 'won a Defensive Player of the Year'
+  },
+  HKDefForward: {
+    label: 'Defensive Forward of the Year',
+    short: 'Def Forward',
+    verbTeam: 'won Defensive Forward of the Year',
+    verbGeneric: 'won Defensive Forward of the Year'
+  },
+  HKGoalie: {
+    label: 'Goalie of the Year',
+    short: 'Goalie',
+    verbTeam: 'won Goalie of the Year',
+    verbGeneric: 'won Goalie of the Year'
+  },
+  HKROY: {
+    label: 'Rookie of the Year',
+    short: 'ROY',
+    verbTeam: 'won Rookie of the Year',
+    verbGeneric: 'won Rookie of the Year'
+  },
+  HKAllRookie: {
+    label: 'All-Rookie Team',
+    short: 'All-Rookie',
+    verbTeam: 'made an All-Rookie Team',
+    verbGeneric: 'made an All-Rookie Team'
+  },
+  HKAllLeague: {
+    label: 'All-League Team',
+    short: 'All-League',
+    verbTeam: 'made an All-League Team',
+    verbGeneric: 'made an All-League Team'
+  },
+  HKPointsLeader: {
+    label: 'League Points Leader',
+    short: 'Points Leader',
+    verbTeam: 'led the league in points',
+    verbGeneric: 'led the league in points'
+  },
+  HKAssistsLeader: {
+    label: 'League Assists Leader',
+    short: 'Assists Leader',
+    verbTeam: 'led the league in assists',
+    verbGeneric: 'led the league in assists'
+  },
+  HKGoalsLeader: {
+    label: 'League Goals Leader',
+    short: 'Goals Leader',
+    verbTeam: 'led the league in goals',
+    verbGeneric: 'led the league in goals'
+  },
+  HKPlayoffsMVP: {
+    label: 'Playoffs MVP',
+    short: 'Playoffs MVP',
+    verbTeam: 'won a Playoffs MVP',
+    verbGeneric: 'won a Playoffs MVP'
+  },
+  HKChampion: {
+    label: 'Won Championship',
+    short: 'Champion',
+    verbTeam: 'won a championship',
+    verbGeneric: 'won a championship'
   }
 };
 
@@ -208,7 +294,23 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     FBPassLeader: ['League Passing Leader'],
     FBRecLeader: ['League Receiving Leader'],
     FBRushLeader: ['League Rushing Leader'],
-    FBScrimmageLeader: ['League Scrimmage Yards Leader']
+    FBScrimmageLeader: ['League Scrimmage Yards Leader'],
+    
+    // Hockey GM achievements (case-insensitive matches from ZGMH)
+    HKAllStar: ['All-Star', 'all-star'],
+    HKAllStarMVP: ['All-Star MVP', 'all-star mvp'],
+    HKMVP: ['Most Valuable Player', 'most valuable player'],
+    HKDPOY: ['Defensive Player of the Year', 'defensive player of the year'],
+    HKDefForward: ['Defensive Forward of the Year', 'defensive forward of the year'],
+    HKGoalie: ['Goalie of the Year', 'goalie of the year'],
+    HKROY: ['Rookie of the Year', 'rookie of the year'],
+    HKAllRookie: ['All-Rookie Team', 'all-rookie team'],
+    HKAllLeague: ['All-League Team', 'all-league team', 'First Team All-League', 'Second Team All-League'],
+    HKPointsLeader: ['League Points Leader', 'league points leader'],
+    HKAssistsLeader: ['League Assists Leader', 'league assists leader'],
+    HKGoalsLeader: ['League Goals Leader', 'league goals leader'],
+    HKPlayoffsMVP: ['Playoffs MVP', 'playoffs mvp'],
+    HKChampion: ['Won Championship', 'won championship']
   };
 
   const patterns = awardTypePatterns[achievementId] || [];
@@ -229,8 +331,8 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     if (award.season) {
       seasons.push(award.season);
       
-      // For Finals MVP and Conference Finals MVP (both BBGM and FBGM), include team abbreviation
-      if (achievementId === 'FinalsMVP' || achievementId === 'SFMVP' || achievementId === 'FBFinalsMVP') {
+      // For Finals MVP and Conference Finals MVP (BBGM, FBGM, and HKGM), include team abbreviation
+      if (achievementId === 'FinalsMVP' || achievementId === 'SFMVP' || achievementId === 'FBFinalsMVP' || achievementId === 'HKPlayoffsMVP' || achievementId === 'HKChampion') {
         // Try to get team from playoffs stats for that season
         const playoffTeam = getPlayoffTeamForSeason(player, award.season);
         if (playoffTeam) {

@@ -308,7 +308,13 @@ export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | '
     }
     return footballAchievements;
   } else if (sport === 'hockey') {
-    return [...common, ...HOCKEY_ACHIEVEMENTS];
+    const hockeyAchievements = [...common, ...HOCKEY_ACHIEVEMENTS];
+    // Add season-specific achievements for hockey if season index is available
+    if (seasonIndex) {
+      const seasonAchievements = createSeasonAchievementTests(seasonIndex);
+      hockeyAchievements.push(...seasonAchievements);
+    }
+    return hockeyAchievements;
   } else if (sport === 'baseball') {
     return [...common, ...BASEBALL_ACHIEVEMENTS];
   } else {

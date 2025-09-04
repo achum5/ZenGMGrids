@@ -36,7 +36,22 @@ export type SeasonAchievementId =
   | 'FBPassLeader'
   | 'FBRecLeader'
   | 'FBRushLeader'
-  | 'FBScrimmageLeader';
+  | 'FBScrimmageLeader'
+  // Hockey GM achievements
+  | 'HKAllStar'
+  | 'HKAllStarMVP'
+  | 'HKMVP'
+  | 'HKDPOY'
+  | 'HKDefForward'
+  | 'HKGoalie'
+  | 'HKROY'
+  | 'HKAllRookie'
+  | 'HKAllLeague'
+  | 'HKPointsLeader'
+  | 'HKAssistsLeader'
+  | 'HKGoalsLeader'
+  | 'HKPlayoffsMVP'
+  | 'HKChampion';
 
 // Award type normalization mapping
 const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId> = {
@@ -118,16 +133,52 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId> = {
   'League Receiving Leader': 'FBRecLeader',
   'League Rushing Leader': 'FBRushLeader',
   'League Scrimmage Yards Leader': 'FBScrimmageLeader',
+  
+  // Hockey GM specific awards (case-sensitive exact matches from ZGMH)
+  'all-star mvp': 'HKAllStarMVP',
+  'defensive forward of the year': 'HKDefForward',
+  'goalie of the year': 'HKGoalie',
+  'all-league team': 'HKAllLeague',
+  'league points leader': 'HKPointsLeader',
+  'league assists leader': 'HKAssistsLeader',
+  'league goals leader': 'HKGoalsLeader',
+  'playoffs mvp': 'HKPlayoffsMVP'
 };
 
 // Season index structure: season -> team -> achievement -> Set<pid>
 export type SeasonIndex = Record<number, Record<number, Record<SeasonAchievementId, Set<number>>>>;
 
 /**
- * Normalize award type to canonical achievement ID
+ * Normalize award type to canonical achievement ID with sport context
  */
-function normalizeAwardType(awardType: string): SeasonAchievementId | null {
+function normalizeAwardType(awardType: string, sport?: string): SeasonAchievementId | null {
   const normalized = awardType.toLowerCase().trim();
+  
+  // Handle sport-specific conflicts
+  if (sport === 'hockey') {
+    // Hockey-specific mappings for conflicting awards
+    switch (normalized) {
+      case 'all-star': return 'HKAllStar';
+      case 'most valuable player': return 'HKMVP';
+      case 'defensive player of the year': return 'HKDPOY';
+      case 'rookie of the year': return 'HKROY';
+      case 'all-rookie team': return 'HKAllRookie';
+      case 'first team all-league': return 'HKAllLeague';
+      case 'second team all-league': return 'HKAllLeague';
+      case 'won championship': return 'HKChampion';
+    }
+  } else if (sport === 'football') {
+    // Football-specific mappings (case-sensitive exact matches)
+    if (awardType === 'All-Star') return 'FBAllStar';
+    if (awardType === 'Most Valuable Player') return 'FBMVP';
+    if (awardType === 'Defensive Player of the Year') return 'FBDPOY';
+    if (awardType === 'Won Championship') return 'FBChampion';
+    if (awardType === 'All-Rookie Team') return 'FBAllRookie';
+    if (awardType === 'First Team All-League') return 'FBAllLeague1st';
+    if (awardType === 'Second Team All-League') return 'FBAllLeague2nd';
+  }
+  
+  // Fall back to general mapping
   return AWARD_TYPE_MAPPING[normalized] || null;
 }
 
@@ -193,7 +244,7 @@ function resolveSFMVPTeam(player: Player, season: number): number | null {
 /**
  * Build the player-derived season index from player data
  */
-export function buildSeasonIndex(players: Player[]): SeasonIndex {
+export function buildSeasonIndex(players: Player[], sport?: string): SeasonIndex {
   console.log('🏆 Building season-specific achievement index...');
   
   const seasonIndex: SeasonIndex = {};
@@ -205,13 +256,13 @@ export function buildSeasonIndex(players: Player[]): SeasonIndex {
     
     // Process each award
     for (const award of player.awards) {
-      const achievementId = normalizeAwardType(award.type);
+      const achievementId = normalizeAwardType(award.type, sport);
       if (!achievementId) continue;
       
       const season = award.season;
       
-      // Handle Finals MVP and SFMVP (single playoffs team) - for both BBGM and FBGM
-      if (achievementId === 'FinalsMVP' || achievementId === 'FBFinalsMVP') {
+      // Handle Finals MVP and SFMVP (single playoffs team) - for BBGM, FBGM, and HKGM
+      if (achievementId === 'FinalsMVP' || achievementId === 'FBFinalsMVP' || achievementId === 'HKPlayoffsMVP' || achievementId === 'HKChampion') {
         const playoffsTeam = resolveFinalsMVPTeam(player, season);
         if (playoffsTeam !== null) {
           if (!seasonIndex[season]) seasonIndex[season] = {};
@@ -473,6 +524,92 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
   {
     id: 'FBScrimmageLeader',
     label: 'League Scrimmage Yards Leader',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  
+  // Hockey GM achievements
+  {
+    id: 'HKAllStar',
+    label: 'All-Star',
+    isSeasonSpecific: true,
+    minPlayers: 5
+  },
+  {
+    id: 'HKAllStarMVP',
+    label: 'All-Star MVP',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKMVP',
+    label: 'MVP',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKDPOY',
+    label: 'Defensive Player of the Year',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKDefForward',
+    label: 'Defensive Forward of the Year',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKGoalie',
+    label: 'Goalie of the Year',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKROY',
+    label: 'Rookie of the Year',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKAllRookie',
+    label: 'All-Rookie Team',
+    isSeasonSpecific: true,
+    minPlayers: 5
+  },
+  {
+    id: 'HKAllLeague',
+    label: 'All-League Team',
+    isSeasonSpecific: true,
+    minPlayers: 5
+  },
+  {
+    id: 'HKPointsLeader',
+    label: 'League Points Leader',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKAssistsLeader',
+    label: 'League Assists Leader',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKGoalsLeader',
+    label: 'League Goals Leader',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKPlayoffsMVP',
+    label: 'Playoffs MVP',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKChampion',
+    label: 'Won Championship',
     isSeasonSpecific: true,
     minPlayers: 3
   },
