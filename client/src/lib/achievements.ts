@@ -634,12 +634,6 @@ function calculateCommonAchievements(player: Player, achievements: any): void {
   // Location - check if born outside the 50 US states + DC
   achievements.bornOutsideUS50DC = isBornOutsideUS50DC(player.born);
   
-  // Debug birth location logic for verification (sample both true and false cases)
-  if (Math.random() < 0.05) { // Sample 5% of players
-    const isOutside = achievements.bornOutsideUS50DC;
-    const loc = player.born?.loc || 'unknown';
-    console.log(`🏠 ${player.firstName} ${player.lastName}: ${isOutside ? '✓ OUTSIDE' : '✗ INSIDE'} US50+DC: "${loc}"`);
-  }
   
   // Hall of Fame - check awards only (hof property doesn't exist in Player type)
   const awards = player.awards || [];
@@ -660,7 +654,7 @@ function isBornOutsideUS50DC(born: any): boolean {
   // Check if location contains USA at the end
   if (location.endsWith(', USA')) {
     // Extract state/region part: "City, ST, USA" -> "ST"
-    const parts = location.split(',').map(part => part.trim());
+    const parts = location.split(',').map((part: string) => part.trim());
     if (parts.length >= 3) {
       const statePart = parts[parts.length - 2]; // Second to last part should be state
       return !isUSState(statePart);
@@ -699,10 +693,22 @@ export function calculateTeamSeasonsAndAchievementSeasons(player: Player, leader
   }
   if (!player.achievementSeasons) {
     player.achievementSeasons = {
+      // Major awards
+      mvpWinner: new Set<number>(),
+      dpoyWinner: new Set<number>(),
+      royWinner: new Set<number>(),
+      smoyWinner: new Set<number>(),
+      mipWinner: new Set<number>(),
+      fmvpWinner: new Set<number>(),
+      // Team honors  
+      allLeagueTeam: new Set<number>(),
+      allDefensiveTeam: new Set<number>(),
+      allStarSelection: new Set<number>(),
+      champion: new Set<number>(),
       // Note: Single season achievements removed from game
-      // season30ppg: new Set<number>(),
-      // season10apg: new Set<number>(),
-      // season15rpg: new Set<number>(),
+      season30ppg: new Set<number>(),
+      season10apg: new Set<number>(),
+      season15rpg: new Set<number>(),
       season3bpg: new Set<number>(),
       season25spg: new Set<number>(),
       season504090: new Set<number>(),
@@ -713,7 +719,7 @@ export function calculateTeamSeasonsAndAchievementSeasons(player: Player, leader
       ledBlkAny: new Set<number>(),
       // played15PlusSeasons: new Set<number>(), // Not needed in achievement seasons
       // Note: Draft achievements removed from UI
-      // isPick1Overall: new Set<number>(),
+      isPick1Overall: new Set<number>(),
       // Note: Draft achievements still used for some sports
       isFirstRoundPick: new Set<number>(),
       isSecondRoundPick: new Set<number>(),

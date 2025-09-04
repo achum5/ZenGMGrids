@@ -24,9 +24,21 @@ function getCareerStats(player: Player, statTypes: string[]) {
   const careerStats: Record<string, number> = {};
   
   statTypes.forEach(statType => {
-    careerStats[statType] = player.stats
+    let total = 0;
+    
+    player.stats!
       .filter(s => !s.playoffs)
-      .reduce((total, season) => total + (season[statType] || 0), 0);
+      .forEach(season => {
+        // Handle special case for three-pointers - try multiple field names
+        if (statType === 'fg3') {
+          const seasonThrees = (season as any).tpm || (season as any).tp || (season as any).fg3 || 0;
+          total += seasonThrees;
+        } else {
+          total += (season as any)[statType] || 0;
+        }
+      });
+    
+    careerStats[statType] = total;
   });
   
   return careerStats;
@@ -42,7 +54,7 @@ function getBestSeason(player: Player, statType: string, isMin = false) {
   player.stats.forEach(season => {
     if (season.playoffs) return;
     
-    const value = season[statType] || (isMin ? Infinity : 0);
+    const value = (season as any)[statType] || (isMin ? Infinity : 0);
     if ((isMin && value < bestValue && value > 0) || (!isMin && value > bestValue)) {
       bestValue = value;
       bestYear = season.season;
@@ -63,7 +75,7 @@ function getAwardSeasons(player: Player, awardTypes: string[]): number[] {
   
   player.awards.forEach(award => {
     for (const awardType of awardTypes) {
-      if (award.type?.includes(awardType) || award.name?.includes(awardType)) {
+      if (award.type?.includes(awardType) || (award as any).name?.includes(awardType)) {
         if (award.season) seasons.push(award.season);
         break;
       }
@@ -329,10 +341,10 @@ function generatePerGameBullet(player: Player, achievementId: string, threshold:
   player.stats.forEach(season => {
     if (season.playoffs) return;
     
-    const gp = season.gp || season.g || 0;
+    const gp = season.gp || (season as any).g || 0;
     if (gp < 10) return; // Minimum games requirement
     
-    const total = season[threshold.stat] || 0;
+    const total = (season as any)[threshold.stat] || 0;
     const perGame = total / gp;
     
     if (perGame > bestValue) {
