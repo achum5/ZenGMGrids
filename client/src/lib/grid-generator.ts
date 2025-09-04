@@ -1,11 +1,166 @@
 import type { LeagueData, CatTeam, Player } from '@/types/bbgm';
-import { getViableAchievements, playerMeetsAchievement } from '@/lib/achievements';
+import { getViableAchievements, playerMeetsAchievement, SEASON_ALIGNED_ACHIEVEMENTS } from '@/lib/achievements';
 import { evaluateConstraintPair, GridConstraint } from '@/lib/feedback';
 
 // Simple session-based memory to avoid immediate repetition
 const recentlyUsedTeams = new Set<number>();
 const recentlyUsedAchievements = new Set<string>();
 const maxRecentItems = 8; // Remember last 8 items to avoid immediate reuse
+
+/**
+ * AUTO-FIX MODE: When season-specific achievements are selected, adapt the opposite axis
+ * to ensure viable intersections by choosing teams that actually have players with those achievements
+ */
+function applyAutoFixMode(
+  achievements: CatTeam[],
+  teams: CatTeam[],
+  leagueData: LeagueData,
+  numAchievements: number
+): { fixedAchievements: CatTeam[]; fixedTeams: CatTeam[] } {
+  const { players } = leagueData;
+  
+  // Check if any selected achievements are season-specific
+  const seasonSpecificAchievements = achievements.filter(ach => 
+    ach.achievementId && SEASON_ALIGNED_ACHIEVEMENTS.has(ach.achievementId)
+  );
+  
+  if (seasonSpecificAchievements.length === 0) {
+    // No season-specific achievements, return as-is
+    return { fixedAchievements: achievements, fixedTeams: teams };
+  }
+  
+  console.log(`🔧 AUTO-FIX MODE activated for ${seasonSpecificAchievements.length} season-specific achievements:`, 
+    seasonSpecificAchievements.map(a => a.achievementId));
+  
+  let fixedTeams = [...teams];
+  
+  // For each season-specific achievement, build eligible team pool and adapt teams as needed
+  for (const seasonAchievement of seasonSpecificAchievements) {
+    const eligibleTeamIds = buildEligibleTeamPool(seasonAchievement.achievementId!, players, leagueData);
+    console.log(`📊 Achievement ${seasonAchievement.achievementId} has ${eligibleTeamIds.length} eligible teams`);
+    
+    if (eligibleTeamIds.length === 0) {
+      console.log(`⚠️ No eligible teams found for ${seasonAchievement.achievementId}, skipping auto-fix`);
+      continue;
+    }
+    
+    // Check how many current teams are viable for this achievement
+    const viableCurrentTeams = fixedTeams.filter(team => 
+      team.tid && eligibleTeamIds.includes(team.tid)
+    );
+    
+    console.log(`🔍 Current teams viable for ${seasonAchievement.achievementId}: ${viableCurrentTeams.length}/${fixedTeams.length}`);
+    
+    // If we need more viable teams, swap out problematic ones
+    if (viableCurrentTeams.length < Math.ceil(fixedTeams.length * 0.6)) { // Need at least 60% coverage
+      fixedTeams = swapTeamsForViability(fixedTeams, eligibleTeamIds, leagueData, seasonAchievement.achievementId!);
+    }
+  }
+  
+  return { fixedAchievements: achievements, fixedTeams };
+}
+
+/**
+ * Build pool of teams that have players meeting the season-specific achievement
+ */
+function buildEligibleTeamPool(achievementId: string, players: Player[], leagueData: LeagueData): number[] {
+  const { teams } = leagueData;
+  const eligibleTeamIds = new Set<number>();
+  
+  // Find all players who have this achievement and add their associated teams
+  players.forEach(player => {
+    if (playerMeetsAchievement(player, achievementId)) {
+      // For season-specific achievements, we need teams from the seasons when they achieved it
+      if (player.achievementSeasons && player.teamSeasonsPaired) {
+        // Get seasons when this achievement was earned
+        let achievementSeasons: Set<number> | undefined;
+        
+        // Map achievement to season data (same logic as in feedback.ts)
+        switch (achievementId) {
+          case 'hasMVP': achievementSeasons = player.achievementSeasons.mvpWinner; break;
+          case 'hasDPOY': achievementSeasons = player.achievementSeasons.dpoyWinner; break;
+          case 'hasAllStar': achievementSeasons = player.achievementSeasons.allStarSelection; break;
+          case 'hasFMVP': achievementSeasons = player.achievementSeasons.fmvpWinner; break;
+          case 'hasChampion': achievementSeasons = player.achievementSeasons.champion; break;
+          // Add season stats
+          case 'season30ppg': achievementSeasons = player.achievementSeasons.season30ppg; break;
+          case 'season10apg': achievementSeasons = player.achievementSeasons.season10apg; break;
+          case 'season15rpg': achievementSeasons = player.achievementSeasons.season15rpg; break;
+          case 'season3bpg': achievementSeasons = player.achievementSeasons.season3bpg; break;
+          case 'season25spg': achievementSeasons = player.achievementSeasons.season25spg; break;
+          case 'season504090': achievementSeasons = player.achievementSeasons.season504090; break;
+        }
+        
+        if (achievementSeasons) {
+          // Add teams from seasons where achievement was earned
+          for (const season of achievementSeasons) {
+            for (const teamSeasonKey of player.teamSeasonsPaired) {
+              const [seasonStr, tidStr] = teamSeasonKey.split('|');
+              if (parseInt(seasonStr) === season) {
+                const tid = parseInt(tidStr);
+                eligibleTeamIds.add(tid);
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+  
+  // Filter to only active teams
+  const activeTeamIds = teams.map(t => t.tid);
+  return Array.from(eligibleTeamIds).filter(tid => activeTeamIds.includes(tid));
+}
+
+/**
+ * Swap out problematic teams with viable ones for better achievement coverage
+ */
+function swapTeamsForViability(
+  currentTeams: CatTeam[],
+  eligibleTeamIds: number[],
+  leagueData: LeagueData,
+  achievementId: string
+): CatTeam[] {
+  const { teams } = leagueData;
+  const result = [...currentTeams];
+  
+  // Find teams that need to be swapped (not eligible)
+  const problematicIndices: number[] = [];
+  result.forEach((team, index) => {
+    if (team.tid && !eligibleTeamIds.includes(team.tid)) {
+      problematicIndices.push(index);
+    }
+  });
+  
+  if (problematicIndices.length === 0) {
+    return result; // All teams are already viable
+  }
+  
+  console.log(`🔄 Swapping ${problematicIndices.length} problematic teams for ${achievementId}`);
+  
+  // Get available eligible teams that aren't already selected
+  const usedTeamIds = result.map(t => t.tid).filter(Boolean);
+  const availableEligibleTeams = teams.filter(team => 
+    eligibleTeamIds.includes(team.tid) && !usedTeamIds.includes(team.tid)
+  );
+  
+  // Swap problematic teams with eligible ones
+  for (let i = 0; i < Math.min(problematicIndices.length, availableEligibleTeams.length); i++) {
+    const problemIndex = problematicIndices[i];
+    const replacementTeam = availableEligibleTeams[i];
+    
+    result[problemIndex] = {
+      type: 'team' as const,
+      key: `team-${replacementTeam.tid}`,
+      label: replacementTeam.region + ' ' + replacementTeam.name,
+      tid: replacementTeam.tid
+    };
+    
+    console.log(`  ✓ Swapped team at index ${problemIndex} to ${replacementTeam.region} ${replacementTeam.name}`);
+  }
+  
+  return result;
+}
 
 function addToRecentlyUsed(teams: CatTeam[], achievements: CatTeam[]) {
   teams.forEach(team => {
@@ -288,6 +443,9 @@ function attemptGridGeneration(leagueData: LeagueData): {
 
   const allSelected = [...selectedAchievements, ...selectedTeams];
 
+  // AUTO-FIX MODE: If we have season-specific achievements, adapt opposite axis for viability
+  const { fixedAchievements, fixedTeams } = applyAutoFixMode(selectedAchievements, selectedTeams, leagueData, numAchievements);
+
   // Apply distribution constraints based on number of achievements
   let rows: CatTeam[], cols: CatTeam[];
 
@@ -297,12 +455,12 @@ function attemptGridGeneration(leagueData: LeagueData): {
     
     if (achievementPositions === 'rows') {
       // Both achievements in rows, teams in columns
-      rows = [selectedTeams[0], ...selectedAchievements];
-      cols = selectedTeams.slice(1, 4);
+      rows = [fixedTeams[0], ...fixedAchievements];
+      cols = fixedTeams.slice(1, 4);
     } else {
       // Both achievements in columns, teams in rows  
-      cols = [selectedTeams[0], ...selectedAchievements];
-      rows = selectedTeams.slice(1, 4);
+      cols = [fixedTeams[0], ...fixedAchievements];
+      rows = fixedTeams.slice(1, 4);
     }
   } else {
     // With 3 achievements: cannot all be in same dimension (max 2 per row/column set)
@@ -311,12 +469,12 @@ function attemptGridGeneration(leagueData: LeagueData): {
     
     if (twoInRows) {
       // 2 achievements in rows, 1 in columns
-      rows = [selectedTeams[0], ...selectedAchievements.slice(0, 2)];
-      cols = [...selectedTeams.slice(1, 3), selectedAchievements[2]];
+      rows = [fixedTeams[0], ...fixedAchievements.slice(0, 2)];
+      cols = [...fixedTeams.slice(1, 3), fixedAchievements[2]];
     } else {
       // 2 achievements in columns, 1 in rows
-      cols = [selectedTeams[0], ...selectedAchievements.slice(0, 2)];
-      rows = [...selectedTeams.slice(1, 3), selectedAchievements[2]];
+      cols = [fixedTeams[0], ...fixedAchievements.slice(0, 2)];
+      rows = [...fixedTeams.slice(1, 3), fixedAchievements[2]];
     }
   }
 
@@ -376,9 +534,10 @@ function attemptGridGeneration(leagueData: LeagueData): {
         const teamId = rowConstraint.tid!;
         const hasPlayersWithAchievement = leagueData.teamOverlaps?.teamAchievementMatrix[achievementId]?.has(teamId) || false;
         
-        // BYPASS pre-check for stat achievements since matrix may be incomplete
+        // BYPASS pre-check for stat and award achievements since Auto-Fix Mode and improved logic handles them
         const isStatAchievement = achievementId.includes('career') || achievementId.includes('season');
-        if (!hasPlayersWithAchievement && !isStatAchievement) {
+        const isAwardAchievement = achievementId.startsWith('has') || achievementId.startsWith('won') || SEASON_ALIGNED_ACHIEVEMENTS.has(achievementId);
+        if (!hasPlayersWithAchievement && !isStatAchievement && !isAwardAchievement) {
           throw new Error(`No eligible players for intersection ${row.label} × ${col.label}`);
         }
       }
@@ -389,9 +548,10 @@ function attemptGridGeneration(leagueData: LeagueData): {
         const teamId = colConstraint.tid!;
         const hasPlayersWithAchievement = leagueData.teamOverlaps?.teamAchievementMatrix[achievementId]?.has(teamId) || false;
         
-        // BYPASS pre-check for stat achievements since matrix may be incomplete
+        // BYPASS pre-check for stat and award achievements since Auto-Fix Mode and improved logic handles them
         const isStatAchievement = achievementId.includes('career') || achievementId.includes('season');
-        if (!hasPlayersWithAchievement && !isStatAchievement) {
+        const isAwardAchievement = achievementId.startsWith('has') || achievementId.startsWith('won') || SEASON_ALIGNED_ACHIEVEMENTS.has(achievementId);
+        if (!hasPlayersWithAchievement && !isStatAchievement && !isAwardAchievement) {
           throw new Error(`No eligible players for intersection ${row.label} × ${col.label}`);
         }
       }
