@@ -581,20 +581,12 @@ export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | '
 
 // Season-aligned achievements that need same-season matching for Team × Achievement cells
 export const SEASON_ALIGNED_ACHIEVEMENTS = new Set([
-  // Basketball season stats
   'season30ppg', 'season10apg', 'season15rpg', 'season3bpg', 'season25spg', 'season504090',
-  // Basketball league leaders
-  'ledScoringAny', 'ledRebAny', 'ledAstAny', 'ledStlAny', 'ledBlkAny',
-  // Basketball awards (season-specific) - All basketball awards require same-season validation
-  'hasMVP', 'hasDPOY', 'hasAllStar', 'hasFMVP', 'hasChampion', 'hasROY', 'hasSixthMan', 'hasMIP', 
-  'hasAllLeague', 'hasAllDef', 'allStar35Plus',
-  // Football season stats
   'season4500PassYds', 'season35PassTDs', 'season1800RushYds', 'season20RushTDs', 
   'season1400RecYds', 'season15RecTDs', 'season15Sacks', 'season8Ints',
-  // Hockey season stats
   'season50Goals', 'season100Points', 'season60Assists', 'season35Wins', 'season10Shutouts', 'season925SavePct',
-  // Baseball season stats
-  'season50HRs', 'season130RBIs', 'season200Hits', 'season50SBs', 'season20Wins', 'season40Saves', 'season300Ks', 'season200ERA'
+  'season50HRs', 'season130RBIs', 'season200Hits', 'season50SBs', 'season20Wins', 'season40Saves', 'season300Ks', 'season200ERA',
+  'ledScoringAny', 'ledRebAny', 'ledAstAny'
 ]);
 
 // Check if a player meets a specific achievement
