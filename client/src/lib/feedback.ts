@@ -2288,6 +2288,15 @@ function generateTeamSeasonAchievementMessage(
   const countStr = playerData.count === 0 ? '0×' : 
     `${playerData.count}× — ${formatSeasonList(playerData.seasonsWithTeam, achievementId === 'FinalsMVP' || achievementId === 'SFMVP')}`;
   
+  // Check if player actually played for this team
+  const playedForTeam = playerPlayedForTeam(player, teamTid);
+  
+  if (!playedForTeam) {
+    // Player never played for the team at all
+    return `${player.name} never played for the ${teamStr}. (${achData.short}: ${countStr})`;
+  }
+  
+  // Player did play for team but didn't achieve the award with them
   return `${player.name} did play for the ${teamStr}, but never ${achData.verbTeam} with the ${teamStr}. (${achData.short}: ${countStr})`;
 }
 
