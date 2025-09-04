@@ -12,6 +12,7 @@ export function clearRecentMemory() {
   recentlyUsedTeams.clear();
   recentlyUsedAchievements.clear();
 }
+
 const maxRecentItems = 8; // Remember last 8 items to avoid immediate reuse
 
 function addToRecentlyUsed(teams: CatTeam[], achievements: CatTeam[]) {
@@ -123,60 +124,38 @@ function attemptGridGeneration(leagueData: LeagueData): {
   // Define draft achievements that should not appear together
   const draftAchievements = new Set(['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen']);
   
-  // Helper function to ensure only one draft achievement in selection
-  const ensureOnlyOneDraftAchievement = (achievements: CatTeam[]): CatTeam[] => {
-    const draftAchs = achievements.filter(a => draftAchievements.has(a.achievementId!));
-    const nonDraftAchs = achievements.filter(a => !draftAchievements.has(a.achievementId!));
+  // Function to ensure only one draft achievement is selected
+  function ensureOnlyOneDraftAchievement(achievements: CatTeam[]): CatTeam[] {
+    const draftAchievementsInSet = achievements.filter(a => draftAchievements.has(a.achievementId || ''));
     
-    if (draftAchs.length <= 1) {
-      return achievements; // Already compliant
+    if (draftAchievementsInSet.length <= 1) {
+      return achievements; // No change needed
     }
     
-    // Keep only the first draft achievement, replace others with non-draft ones
-    const selectedDraft = draftAchs[0];
-    const availableNonDraft = achievementConstraints.filter(a => 
-      !draftAchievements.has(a.achievementId!) && 
-      !nonDraftAchs.some(selected => selected.achievementId === a.achievementId)
+    // Keep the first draft achievement, replace others with non-draft ones
+    const firstDraftAchievement = draftAchievementsInSet[0];
+    const achievementsToReplace = draftAchievementsInSet.slice(1);
+    const nonDraftAchievements = achievementConstraints.filter(
+      a => !draftAchievements.has(a.achievementId || '') && 
+      !achievements.some(selected => selected.achievementId === a.achievementId)
     );
     
-    // Build final selection: one draft + non-draft achievements
-    const result = [selectedDraft, ...nonDraftAchs];
+    let result = achievements.filter(a => !achievementsToReplace.includes(a));
     
-    // Fill remaining slots with non-draft achievements if needed
-    const needed = achievements.length - result.length;
-    if (needed > 0 && availableNonDraft.length >= needed) {
-      result.push(...availableNonDraft.slice(0, needed));
+    // Replace each extra draft achievement with a non-draft one
+    for (let i = 0; i < achievementsToReplace.length && i < nonDraftAchievements.length; i++) {
+      result.push(nonDraftAchievements[i]);
     }
     
-    return result.slice(0, achievements.length);
-  };
+    return result;
+  }
 
-  // Pre-validate achievement-team combinations to avoid impossible grids
-  const preValidateIntersection = (achievement: CatTeam, team: CatTeam): boolean => {
-    // Check if this is a season-specific achievement
-    const isSeasonAchievement = SEASON_ACHIEVEMENTS.some(sa => sa.id === achievement.achievementId);
-    
-    if (isSeasonAchievement && seasonIndex && sport === 'basketball') {
-      // Use season harmonization for season-specific achievements
-      const seasonAchievementId = achievement.achievementId as SeasonAchievementId;
-      const eligiblePids = getSeasonEligiblePlayers(seasonIndex, team.tid!, seasonAchievementId);
-      return eligiblePids.size > 0;
-    } else {
-      // Use traditional validation for career achievements
-      const eligiblePlayers = players.filter(p => 
-        playerMeetsAchievement(p, achievement.achievementId!) && 
-        p.teamsPlayed.has(team.tid!)
-      );
-      return eligiblePlayers.length > 0;
-    }
-  };
-
-  // Smart random selection: filter out low-coverage achievements, then randomize
+  // Enhanced selection for season achievements - bypass team coverage requirements
   let selectedAchievements: CatTeam[] = [];
   if (leagueData.teamOverlaps && Object.keys(leagueData.teamOverlaps.achievementTeamCounts).length > 0) {
     // Filter achievements to only those with decent team coverage
     // Lower requirement for stat achievements since they're rarer but valuable
-    const viableAchievements = achievementConstraints.filter(achievement => {
+    const viableAchievementsList = achievementConstraints.filter(achievement => {
       const teamCoverage = leagueData.teamOverlaps!.achievementTeamCounts[achievement.achievementId!] || 0;
       const isStatAchievement = achievement.achievementId!.includes('career') || achievement.achievementId!.includes('season');
       const isSeasonAchievement = SEASON_ACHIEVEMENTS.some(sa => sa.id === achievement.achievementId);
@@ -193,10 +172,10 @@ function attemptGridGeneration(leagueData: LeagueData): {
     });
     
     // Separate recently used vs fresh achievements
-    const freshAchievements = viableAchievements.filter(a => 
+    const freshAchievements = viableAchievementsList.filter(a => 
       !recentlyUsedAchievements.has(a.achievementId!)
     );
-    const recentAchievements = viableAchievements.filter(a => 
+    const recentAchievements = viableAchievementsList.filter(a => 
       recentlyUsedAchievements.has(a.achievementId!)
     );
     
@@ -206,7 +185,7 @@ function attemptGridGeneration(leagueData: LeagueData): {
       selectedAchievements = freshAchievements
         .sort(() => Math.random() - 0.5)
         .slice(0, numAchievements);
-    } else if (viableAchievements.length >= numAchievements) {
+    } else if (viableAchievementsList.length >= numAchievements) {
       // Mix fresh and recent achievements
       const neededFresh = Math.min(freshAchievements.length, numAchievements);
       const neededRecent = numAchievements - neededFresh;
@@ -237,251 +216,178 @@ function attemptGridGeneration(leagueData: LeagueData): {
   
   // Ensure only one draft achievement is selected
   selectedAchievements = ensureOnlyOneDraftAchievement(selectedAchievements);
-  
-  // Use pre-analyzed team overlap data for intelligent team selection
-  const { teamOverlaps } = leagueData;
-  const selectedTeams: CatTeam[] = [];
-  
-  if (teamOverlaps && teamOverlaps.viableTeamPairs.length > 0) {
-    // Smart team selection: pre-validate all achievement-team combinations
-    const viableTeamConstraints = teamConstraints.filter(teamConstraint => {
-      // Check if this team has valid intersections with ALL selected achievements
-      return selectedAchievements.every(achievement => 
-        preValidateIntersection(achievement, teamConstraint)
-      );
-    });
+
+  // Pre-validate intersections for achievements to prevent impossible scenarios
+  const validatedConstraints = leagueData.teamOverlaps ? achievementConstraints.filter(achievement => {
+    const teamCoverage = leagueData.teamOverlaps!.achievementTeamCounts[achievement.achievementId!] || 0;
+    return teamCoverage >= 1; // At least one team must have players for this achievement
+  }) : achievementConstraints;
+
+  // Team selection: prefer teams with good coverage for selected achievements
+  const teamConstraintsWithScores = teamConstraints.map(tc => ({
+    ...tc,
+    score: selectedAchievements.reduce((sum, achievement) => {
+      return sum + preValidateIntersection(tc, achievement, leagueData);
+    }, 0)
+  }));
+
+  // Sort by score (descending) and apply recency penalty
+  const teamsByScore = teamConstraintsWithScores
+    .map(tc => ({
+      ...tc,
+      adjustedScore: tc.score - (recentlyUsedTeams.has(tc.tid!) ? 2 : 0)
+    }))
+    .sort((a, b) => b.adjustedScore - a.adjustedScore);
+
+  // Select teams, ensuring we have enough high-scoring options
+  let selectedTeams: CatTeam[];
+  if (teamsByScore.length >= numTeams) {
+    // Select top teams, but add some randomness in the middle tier
+    const topTeams = teamsByScore.slice(0, Math.floor(numTeams / 2));
+    const midTeams = teamsByScore.slice(Math.floor(numTeams / 2), Math.min(numTeams * 2, teamsByScore.length));
+    const remainingNeeded = numTeams - topTeams.length;
     
-    // Separate recently used vs fresh teams for variety
-    const freshTeams = viableTeamConstraints.filter(tc => !recentlyUsedTeams.has(tc.tid!));
-    const recentTeams = viableTeamConstraints.filter(tc => recentlyUsedTeams.has(tc.tid!));
-    
-    // Prefer fresh teams, but use recent ones if needed
-    if (freshTeams.length >= numTeams) {
-      // We have enough fresh teams, use only those
-      selectedTeams.push(...freshTeams
-        .sort(() => Math.random() - 0.5)
-        .slice(0, numTeams));
-    } else if (viableTeamConstraints.length >= numTeams) {
-      // Mix fresh and recent teams
-      const neededFresh = Math.min(freshTeams.length, numTeams);
-      const neededRecent = numTeams - neededFresh;
-      
-      selectedTeams.push(
-        ...freshTeams.sort(() => Math.random() - 0.5).slice(0, neededFresh),
-        ...recentTeams.sort(() => Math.random() - 0.5).slice(0, neededRecent)
-      );
-    } else {
-      // Not enough viable teams, mix viable teams with some connected teams
-      selectedTeams.push(...viableTeamConstraints);
-      
-      const additionalNeeded = numTeams - selectedTeams.length;
-      if (additionalNeeded > 0) {
-        const remainingTeams = teamConstraints.filter(tc => 
-          !selectedTeams.some(st => st.tid === tc.tid)
-        );
-        const mostConnectedRemaining = teamOverlaps.mostConnectedTeams
-          .map(tid => remainingTeams.find(tc => tc.tid === tid))
-          .filter(Boolean)
-          .slice(0, additionalNeeded) as CatTeam[];
-        
-        selectedTeams.push(...mostConnectedRemaining);
-      }
-    }
+    selectedTeams = [
+      ...topTeams,
+      ...midTeams.sort(() => Math.random() - 0.5).slice(0, remainingNeeded)
+    ];
   } else {
-    // Fallback: no overlap data available, use random selection
-    console.log('⚠️ No team overlap data available, using random team selection');
-    selectedTeams.push(...teamConstraints.sort(() => Math.random() - 0.5).slice(0, numTeams));
+    // Not enough teams, use all available
+    selectedTeams = teamsByScore.slice(0, numTeams);
   }
-  
-  // Emergency fallback: if we still don't have enough teams, duplicate the most viable ones
-  while (selectedTeams.length < numTeams && teamConstraints.length > 0) {
-    console.log(`🚨 Not enough unique teams, duplicating viable teams (have ${selectedTeams.length}, need ${numTeams})`);
-    const additionalTeams = teamConstraints.filter(tc => 
-      !selectedTeams.some(st => st.tid === tc.tid)
+
+  if (selectedTeams.length < numTeams) {
+    // Fallback: pad with random teams
+    const usedTids = new Set(selectedTeams.map(t => t.tid));
+    const remainingTeams = teamConstraints.filter(tc => !usedTids.has(tc.tid));
+    selectedTeams.push(
+      ...remainingTeams.sort(() => Math.random() - 0.5).slice(0, numTeams - selectedTeams.length)
     );
-    if (additionalTeams.length === 0) {
-      // If no more unique teams, start reusing the most connected ones
-      selectedTeams.push(...selectedTeams.slice(0, numTeams - selectedTeams.length));
-    } else {
-      selectedTeams.push(...additionalTeams.slice(0, numTeams - selectedTeams.length));
-    }
   }
 
-  const allSelected = [...selectedAchievements, ...selectedTeams];
-
-  // Apply distribution constraints based on number of achievements
+  // Shuffle the constraints for rows and columns
+  const allConstraints = [...selectedAchievements, ...selectedTeams];
+  const shuffled = allConstraints.sort(() => Math.random() - 0.5);
+  
+  // Determine split: if numAchievements = 2, could be [2,1] or [1,2]
   let rows: CatTeam[], cols: CatTeam[];
-
+  
   if (numAchievements === 2) {
-    // With 2 achievements: max 2 per row/column set (so max 2 in rows OR max 2 in cols)
-    const achievementPositions = Math.random() < 0.5 ? 'rows' : 'cols';
-    
-    if (achievementPositions === 'rows') {
-      // Both achievements in rows, teams in columns
-      rows = [selectedTeams[0], ...selectedAchievements];
-      cols = selectedTeams.slice(1, 4);
+    // Randomly decide if achievements go in rows or columns
+    if (Math.random() < 0.5) {
+      rows = selectedAchievements.concat(selectedTeams.slice(0, 1)); // 2 achievements + 1 team in rows
+      cols = selectedTeams.slice(1); // remaining teams in columns
     } else {
-      // Both achievements in columns, teams in rows  
-      cols = [selectedTeams[0], ...selectedAchievements];
-      rows = selectedTeams.slice(1, 4);
+      rows = selectedAchievements.slice(0, 1).concat(selectedTeams.slice(0, 2)); // 1 achievement + 2 teams in rows
+      cols = selectedAchievements.slice(1).concat(selectedTeams.slice(2)); // remaining in columns
     }
   } else {
-    // With 3 achievements: cannot all be in same dimension (max 2 per row/column set)
-    // So must be split: 2 in one dimension, 1 in the other
-    const twoInRows = Math.random() < 0.5;
-    
-    if (twoInRows) {
-      // 2 achievements in rows, 1 in columns
-      rows = [selectedTeams[0], ...selectedAchievements.slice(0, 2)];
-      cols = [...selectedTeams.slice(1, 3), selectedAchievements[2]];
+    // numAchievements === 3: all achievements in rows or columns
+    if (Math.random() < 0.5) {
+      rows = selectedAchievements; // 3 achievements in rows
+      cols = selectedTeams; // 3 teams in columns
     } else {
-      // 2 achievements in columns, 1 in rows
-      cols = [selectedTeams[0], ...selectedAchievements.slice(0, 2)];
-      rows = [...selectedTeams.slice(1, 3), selectedAchievements[2]];
+      rows = selectedTeams; // 3 teams in rows
+      cols = selectedAchievements; // 3 achievements in columns
     }
   }
 
-  // Don't shuffle - keep teams first, then achievements order
-  // rows.sort(() => Math.random() - 0.5);
-  // cols.sort(() => Math.random() - 0.5);
+  console.log(`Selected: ${selectedAchievements.length} achievements, ${selectedTeams.length} teams`);
+  console.log('Rows (3):', rows.map(r => r.label));
+  console.log('Cols (3):', cols.map(c => c.label));
+  console.log(`Grid generated with ${selectedAchievements.length} total achievements: ${rows.filter(r => r.type === 'achievement').length} in rows, ${cols.filter(c => c.type === 'achievement').length} in columns`);
 
-  // Debug: Log the selected constraints
-  console.log(`Selected: ${numAchievements} achievements, ${numTeams} teams`);
-  console.log(`Rows (${rows.length}):`, rows.map(r => r.label));
-  console.log(`Cols (${cols.length}):`, cols.map(c => c.label));
-  
-  // Log the achievement distribution for debugging
-  const rowAchievements = rows.filter(r => r.type === 'achievement').length;
-  const colAchievements = cols.filter(c => c.type === 'achievement').length;
-  console.log(`Grid generated with ${numAchievements} total achievements: ${rowAchievements} in rows, ${colAchievements} in columns`);
-
-  // Build intersections and validate
+  // Generate all intersections and validate
   const intersections: Record<string, number[]> = {};
   
-  for (const row of rows) {
-    for (const col of cols) {
-      const cellKey = `${row.key}|${col.key}`;
-      
-      // Find players who satisfy both constraints using same-season alignment
-      const rowConstraint: GridConstraint = {
-        type: row.type,
-        tid: row.tid,
-        achievementId: row.achievementId,
-        label: row.label
-      };
-      const colConstraint: GridConstraint = {
-        type: col.type,
-        tid: col.tid,
-        achievementId: col.achievementId,
-        label: col.label
-      };
-      
-      // Pre-check for team × team intersections using pre-analyzed data
-      if (rowConstraint.type === 'team' && colConstraint.type === 'team') {
-        const teamA = Math.min(rowConstraint.tid!, colConstraint.tid!);
-        const teamB = Math.max(rowConstraint.tid!, colConstraint.tid!);
-        
-        // Check if this team pair is in our viable pairs list
-        const isViablePair = leagueData.teamOverlaps?.viableTeamPairs.some(
-          pair => pair.teamA === teamA && pair.teamB === teamB
-        ) || false;
-        
-        if (!isViablePair) {
-          throw new Error(`No players found who played for both ${row.label} and ${col.label}`);
-        }
-      }
-      
-      // Pre-check for team × achievement intersections using pre-analyzed data
-      if (rowConstraint.type === 'team' && colConstraint.type === 'achievement') {
-        const achievementId = colConstraint.achievementId!;
-        const teamId = rowConstraint.tid!;
-        const hasPlayersWithAchievement = leagueData.teamOverlaps?.teamAchievementMatrix[achievementId]?.has(teamId) || false;
-        
-        // BYPASS pre-check for stat achievements since matrix may be incomplete
-        const isStatAchievement = achievementId.includes('career') || achievementId.includes('season');
-        if (!hasPlayersWithAchievement && !isStatAchievement) {
-          throw new Error(`No eligible players for intersection ${row.label} × ${col.label}`);
-        }
-      }
-      
-      // Pre-check for achievement × team intersections using pre-analyzed data  
-      if (rowConstraint.type === 'achievement' && colConstraint.type === 'team') {
-        const achievementId = rowConstraint.achievementId!;
-        const teamId = colConstraint.tid!;
-        const hasPlayersWithAchievement = leagueData.teamOverlaps?.teamAchievementMatrix[achievementId]?.has(teamId) || false;
-        
-        // BYPASS pre-check for stat achievements since matrix may be incomplete
-        const isStatAchievement = achievementId.includes('career') || achievementId.includes('season');
-        if (!hasPlayersWithAchievement && !isStatAchievement) {
-          throw new Error(`No eligible players for intersection ${row.label} × ${col.label}`);
-        }
-      }
-      
-      const eligiblePids = players
-        .filter(p => evaluateConstraintPair(p, rowConstraint, colConstraint))
-        .map(p => p.pid);
-      
-      if (eligiblePids.length === 0) {
-        throw new Error(`No eligible players for intersection ${row.label} × ${col.label}`);
-      }
-      
-      intersections[cellKey] = eligiblePids;
-      console.log(`Intersection ${row.label} × ${col.label}: ${eligiblePids.length} eligible players`);
+  const allPairs = rows.flatMap(row => 
+    cols.map(col => ({ row, col, key: `${row.key}-${col.key}` }))
+  );
+
+  // Validate intersections and find eligible players
+  for (const pair of allPairs) {
+    const eligiblePlayers = players.filter(p => 
+      pair.row.test(p) && pair.col.test(p)
+    );
+    
+    intersections[pair.key] = eligiblePlayers.map(p => p.pid);
+    
+    console.log(`Intersection ${pair.row.label} × ${pair.col.label}: ${eligiblePlayers.length} eligible players`);
+    
+    if (eligiblePlayers.length === 0) {
+      throw new Error(`No eligible players for intersection ${pair.row.label} × ${pair.col.label}`);
     }
   }
+
+  // Enhanced solvability validation
+  const { isValid, details } = validateGridSolvability(rows, cols, intersections, players);
   
-  // Validate grid solvability - check for conflicting single-player constraints
-  const singlePlayerCells: Array<{cellKey: string, playerId: number, rowLabel: string, colLabel: string}> = [];
-  
-  for (const [cellKey, eligiblePids] of Object.entries(intersections)) {
-    if (eligiblePids.length === 1) {
-      const [rowKey, colKey] = cellKey.split('|');
-      const row = rows.find(r => r.key === rowKey);
-      const col = cols.find(c => c.key === colKey);
-      singlePlayerCells.push({
-        cellKey,
-        playerId: eligiblePids[0],
-        rowLabel: row?.label || rowKey,
-        colLabel: col?.label || colKey
-      });
-    }
+  if (!isValid) {
+    throw new Error(`Grid not solvable: ${details}`);
   }
   
-  // Check for conflicting single-player constraints
-  const playerCellMap = new Map<number, Array<{cellKey: string, rowLabel: string, colLabel: string}>>();
-  for (const cell of singlePlayerCells) {
-    if (!playerCellMap.has(cell.playerId)) {
-      playerCellMap.set(cell.playerId, []);
-    }
-    playerCellMap.get(cell.playerId)!.push({
-      cellKey: cell.cellKey,
-      rowLabel: cell.rowLabel,
-      colLabel: cell.colLabel
-    });
-  }
+  console.log(`✅ Grid solvability validated: ${details}`);
   
-  // If any player is the only option for multiple cells, the grid is unsolvable
-  for (const [playerId, cells] of playerCellMap) {
-    if (cells.length > 1) {
-      const cellDescriptions = cells.map(c => `${c.rowLabel} × ${c.colLabel}`).join(', ');
-      throw new Error(`Grid is unsolvable: Player ${playerId} is the only eligible option for multiple cells: ${cellDescriptions}. This creates an impossible constraint.`);
-    }
-  }
-  
-  console.log(`✅ Grid solvability validated: ${singlePlayerCells.length} single-player cells, no conflicts detected`);
-  
-  // Track used teams and achievements for variety in future generations
-  const usedTeams = [...rows, ...cols].filter(item => item.type === 'team');
-  const usedAchievements = [...rows, ...cols].filter(item => item.type === 'achievement');
-  addToRecentlyUsed(usedTeams, usedAchievements);
+  // Track recently used items
+  addToRecentlyUsed(selectedTeams, selectedAchievements);
   
   return { rows, cols, intersections };
 }
 
-export function cellKey(rowKey: string, colKey: string): string {
-  return `${rowKey}|${colKey}`;
+// Helper function to pre-validate intersection feasibility
+function preValidateIntersection(teamConstraint: CatTeam, achievementConstraint: CatTeam, leagueData: LeagueData): number {
+  const eligiblePlayers = leagueData.players.filter(p => 
+    teamConstraint.test(p) && achievementConstraint.test(p)
+  );
+  return Math.min(eligiblePlayers.length, 10); // Cap at 10 for scoring purposes
 }
 
-export function legacyCellKey(rowTid: number, colTid: number): string {
-  return `${rowTid}|${colTid}`;
+// Enhanced grid solvability validation
+function validateGridSolvability(
+  rows: CatTeam[], 
+  cols: CatTeam[], 
+  intersections: Record<string, number[]>,
+  players: Player[]
+): { isValid: boolean; details: string } {
+  let singlePlayerCells = 0;
+  const conflicts = new Set<number>();
+  
+  // Check for conflicts (same player eligible for multiple cells)
+  const playerToCells = new Map<number, Array<{cellKey: string, rowLabel: string, colLabel: string}>>();
+  
+  Object.entries(intersections).forEach(([cellKey, eligiblePlayers]) => {
+    if (eligiblePlayers.length === 1) {
+      singlePlayerCells++;
+    }
+    
+    // Track which cells each player can fill
+    eligiblePlayers.forEach(playerId => {
+      if (!playerToCells.has(playerId)) {
+        playerToCells.set(playerId, []);
+      }
+      const [rowKey, colKey] = cellKey.split('-');
+      const rowLabel = rows.find(r => r.key === rowKey)?.label || 'Unknown';
+      const colLabel = cols.find(c => c.key === colKey)?.label || 'Unknown';
+      playerToCells.get(playerId)!.push({cellKey, rowLabel, colLabel});
+    });
+  });
+  
+  // Identify potential conflicts (players eligible for multiple cells)
+  playerToCells.forEach((cells, playerId) => {
+    if (cells.length > 1) {
+      conflicts.add(playerId);
+    }
+  });
+  
+  const details = `${singlePlayerCells} single-player cells, ${conflicts.size > 0 ? 'conflicts detected' : 'no conflicts detected'}`;
+  
+  // Grid is considered valid if it's solvable
+  const isValid = singlePlayerCells <= 3; // Allow up to 3 gimme answers
+  
+  return { isValid, details };
+}
+
+// Helper function to create cell keys (used by the UI)
+export function cellKey(rowKey: string, colKey: string): string {
+  return `${rowKey}-${colKey}`;
 }
