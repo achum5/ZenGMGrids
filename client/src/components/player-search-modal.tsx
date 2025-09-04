@@ -37,7 +37,8 @@ export function PlayerSearchModal({
     return s.normalize('NFKD')
       .toLowerCase()
       .replace(/[\u0300-\u036f]/g, '') // Remove combining diacritical marks
-      .replace(/'/g, ''); // Remove apostrophes for search matching
+      .replace(/'/g, '') // Remove apostrophes for search matching
+      .replace(/[-]/g, ' '); // Convert hyphens to spaces for flexible search
   };
 
   // Get career year range for a player
