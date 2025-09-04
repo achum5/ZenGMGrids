@@ -56,15 +56,15 @@ export function generateTeamsGrid(leagueData: LeagueData): {
 
   console.log(`Unique seasons found: ${uniqueSeasons.size}`);
 
-  // If < 50 seasons, use old random builder without season-specific achievements
-  if (uniqueSeasons.size < 50) {
-    console.log('Using old random builder (< 50 seasons)');
+  // If < 20 seasons, use old random builder without season-specific achievements
+  if (uniqueSeasons.size < 20) {
+    console.log('Using old random builder (< 20 seasons)');
     return generateGridOldRandom(leagueData);
   }
 
-  // If >= 50 seasons and basketball, football, hockey, or baseball, use new seeded builder
+  // If >= 20 seasons and basketball, football, hockey, or baseball, use new seeded builder
   if ((sport === 'basketball' || sport === 'football' || sport === 'hockey' || sport === 'baseball') && leagueData.seasonIndex) {
-    console.log(`Using new seeded coverage-aware builder (>= 50 seasons, ${sport})`);
+    console.log(`Using new seeded coverage-aware builder (>= 20 seasons, ${sport})`);
     return generateGridSeeded(leagueData);
   }
 

@@ -593,21 +593,21 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
   if (sport === 'basketball') {
     console.log('🏀 Building season-specific achievement index for basketball...');
     seasonIndex = buildSeasonIndex(players, sport);
-  } else if (sport === 'football' && seasonCount >= 50) {
-    console.log(`🏈 Building season-specific achievement index for football (${seasonCount} seasons ≥ 50)...`);
+  } else if (sport === 'football' && seasonCount >= 20) {
+    console.log(`🏈 Building season-specific achievement index for football (${seasonCount} seasons ≥ 20)...`);
     seasonIndex = buildSeasonIndex(players, sport);
   } else if (sport === 'football') {
-    console.log(`🏈 Skipping season achievements for football (${seasonCount} seasons < 50)`);
-  } else if (sport === 'hockey' && seasonCount >= 50) {
-    console.log(`🏒 Building season-specific achievement index for hockey (${seasonCount} seasons ≥ 50)...`);
+    console.log(`🏈 Skipping season achievements for football (${seasonCount} seasons < 20)`);
+  } else if (sport === 'hockey' && seasonCount >= 20) {
+    console.log(`🏒 Building season-specific achievement index for hockey (${seasonCount} seasons ≥ 20)...`);
     seasonIndex = buildSeasonIndex(players, sport);
   } else if (sport === 'hockey') {
-    console.log(`🏒 Skipping season achievements for hockey (${seasonCount} seasons < 50)`);
-  } else if (sport === 'baseball' && seasonCount >= 50) {
-    console.log(`⚾ Building season-specific achievement index for baseball (${seasonCount} seasons ≥ 50)...`);
+    console.log(`🏒 Skipping season achievements for hockey (${seasonCount} seasons < 20)`);
+  } else if (sport === 'baseball' && seasonCount >= 20) {
+    console.log(`⚾ Building season-specific achievement index for baseball (${seasonCount} seasons ≥ 20)...`);
     seasonIndex = buildSeasonIndex(players, sport);
   } else if (sport === 'baseball') {
-    console.log(`⚾ Skipping season achievements for baseball (${seasonCount} seasons < 50)`);
+    console.log(`⚾ Skipping season achievements for baseball (${seasonCount} seasons < 20)`);
   }
   
   return { players, teams, sport, teamOverlaps, seasonIndex };
