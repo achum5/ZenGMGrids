@@ -1492,6 +1492,25 @@ export function generateFeedbackMessage(
 ): string {
   const playerName = player.name;
   
+  // Special handling for season achievement combinations
+  const rowIsSeasonAch = rowConstraint.type === 'achievement' && isSeasonAchievement(rowConstraint.achievementId!);
+  const colIsSeasonAch = colConstraint.type === 'achievement' && isSeasonAchievement(colConstraint.achievementId!);
+  
+  // Case 1: Team × Season Achievement
+  if (rowConstraint.type === 'team' && colIsSeasonAch) {
+    return generateTeamSeasonAchievementMessage(player, teams, rowConstraint.tid!, colConstraint.achievementId! as SeasonAchievementId);
+  }
+  
+  if (colConstraint.type === 'team' && rowIsSeasonAch) {
+    return generateTeamSeasonAchievementMessage(player, teams, colConstraint.tid!, rowConstraint.achievementId! as SeasonAchievementId);
+  }
+  
+  // Case 2: Season Achievement × Season Achievement
+  if (rowIsSeasonAch && colIsSeasonAch) {
+    return generateSeasonSeasonAchievementMessage(player, rowConstraint.achievementId! as SeasonAchievementId, colConstraint.achievementId! as SeasonAchievementId);
+  }
+  
+  // Fall back to original logic for other constraint combinations
   // Get detailed evaluation for both constraints using actual achievement results
   const rowDetails = getConstraintDetails(player, rowConstraint);
   const colDetails = getConstraintDetails(player, colConstraint);
