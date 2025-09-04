@@ -694,7 +694,16 @@ function buildOppositeAxisForSeed(
   }
   
   // Fill remaining slots with safe achievements/teams
-  const safeAchievement: CatTeam = {
+  // For layouts with season achievements, use other season achievements to avoid mixing career/season
+  const safeSeasonAchievement: CatTeam = {
+    key: 'achievement-AllStar',
+    label: 'All-Star',
+    achievementId: 'AllStar',
+    type: 'achievement',
+    test: (p: Player) => playerMeetsAchievement(p, 'AllStar'),
+  };
+  
+  const safeCareerAchievement: CatTeam = {
     key: 'achievement-played10PlusSeasons',
     label: 'Played 10+ Seasons',
     achievementId: 'played10PlusSeasons',
@@ -704,10 +713,12 @@ function buildOppositeAxisForSeed(
   
   for (let i = 0; i < 3; i++) {
     if (!rows[i]) {
-      rows[i] = layout.rows[i] === 'T' ? selectedTeams[0] : safeAchievement;
+      // Use season achievements to be compatible with the seed
+      rows[i] = layout.rows[i] === 'T' ? selectedTeams[0] : safeSeasonAchievement;
     }
     if (!cols[i]) {
-      cols[i] = layout.cols[i] === 'T' ? selectedTeams[0] : safeAchievement;
+      // Use season achievements to be compatible with the seed
+      cols[i] = layout.cols[i] === 'T' ? selectedTeams[0] : safeSeasonAchievement;
     }
   }
   
@@ -730,19 +741,35 @@ function buildOppositeAxisForSeed(
         label: cols[col].label
       };
       
-      // For season-specific achievements, use season index directly
+      // Handle different constraint combinations
       let eligiblePlayers: Player[] = [];
       
-      if (rowConstraint.type === 'achievement' && SEASON_ACHIEVEMENTS.some(sa => sa.id === rowConstraint.achievementId)) {
+      const rowIsSeasonAchievement = rowConstraint.type === 'achievement' && SEASON_ACHIEVEMENTS.some(sa => sa.id === rowConstraint.achievementId);
+      const colIsSeasonAchievement = colConstraint.type === 'achievement' && SEASON_ACHIEVEMENTS.some(sa => sa.id === colConstraint.achievementId);
+      
+      if (rowIsSeasonAchievement && colConstraint.type === 'team') {
         // Season achievement × team
         const eligiblePids = getSeasonEligiblePlayers(seasonIndex, colConstraint.tid!, rowConstraint.achievementId as SeasonAchievementId);
         eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
-      } else if (colConstraint.type === 'achievement' && SEASON_ACHIEVEMENTS.some(sa => sa.id === colConstraint.achievementId)) {
-        // Team × season achievement
+      } else if (colIsSeasonAchievement && rowConstraint.type === 'team') {
+        // Team × season achievement  
         const eligiblePids = getSeasonEligiblePlayers(seasonIndex, rowConstraint.tid!, colConstraint.achievementId as SeasonAchievementId);
         eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
+      } else if (rowIsSeasonAchievement && colIsSeasonAchievement) {
+        // Season achievement × season achievement - use achievement index intersection
+        // For now, find players who have both achievements (simplified)
+        eligiblePlayers = players.filter(p => {
+          // Check if player has both season achievements in any season
+          let hasRow = false, hasCol = false;
+          if (p.achievementSeasons) {
+            // This is a simplification - should check season alignment
+            hasRow = playerMeetsAchievement(p, rowConstraint.achievementId!);
+            hasCol = playerMeetsAchievement(p, colConstraint.achievementId!);
+          }
+          return hasRow && hasCol;
+        });
       } else {
-        // Use standard evaluation for other combinations
+        // Standard evaluation for career achievements or mixed career/season
         eligiblePlayers = players.filter(p => 
           evaluateConstraintPair(p, rowConstraint, colConstraint)
         );
