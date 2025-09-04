@@ -163,31 +163,6 @@ function attemptGridGeneration(leagueData: LeagueData): {
       return teamCoverage >= 3;
     });
     
-    // Create weighted selection pools: season-specific achievements get 5x higher probability
-    const createWeightedPool = (achievements: CatTeam[]) => {
-      const pool: CatTeam[] = [];
-      achievements.forEach(achievement => {
-        const isSeasonSpecific = achievement.achievementId!.includes('season') || 
-                                achievement.achievementId!.startsWith('has') || 
-                                achievement.achievementId!.startsWith('won') || 
-                                achievement.achievementId!.includes('MVP') || 
-                                achievement.achievementId!.includes('DPOY') || 
-                                achievement.achievementId!.includes('AllStar');
-        
-        if (isSeasonSpecific) {
-          // Add season-specific achievements 5 times (5x probability)
-          for (let i = 0; i < 5; i++) {
-            pool.push(achievement);
-          }
-          console.log(`Season-specific achievement ${achievement.achievementId}: 5x weight applied`);
-        } else {
-          // Add regular achievements once (1x probability)
-          pool.push(achievement);
-        }
-      });
-      return pool;
-    };
-
     // Separate recently used vs fresh achievements
     const freshAchievements = viableAchievements.filter(a => 
       !recentlyUsedAchievements.has(a.achievementId!)
@@ -196,45 +171,33 @@ function attemptGridGeneration(leagueData: LeagueData): {
       recentlyUsedAchievements.has(a.achievementId!)
     );
     
-    // Create weighted pools for selection
-    const freshWeightedPool = createWeightedPool(freshAchievements);
-    const recentWeightedPool = createWeightedPool(recentAchievements);
-    const allWeightedPool = createWeightedPool(viableAchievements);
-    
-    // Helper function to randomly select unique achievements from weighted pool
-    const selectUniqueFromPool = (pool: CatTeam[], count: number): CatTeam[] => {
-      const selected = new Set<string>();
-      const result: CatTeam[] = [];
-      
-      while (result.length < count && selected.size < pool.length) {
-        const randomIndex = Math.floor(Math.random() * pool.length);
-        const achievement = pool[randomIndex];
-        
-        if (!selected.has(achievement.achievementId!)) {
-          selected.add(achievement.achievementId!);
-          result.push(achievement);
-        }
-      }
-      
-      return result;
-    };
-    
     // Prefer fresh achievements, but use recent ones if needed
     if (freshAchievements.length >= numAchievements) {
-      // We have enough fresh achievements, use weighted selection from fresh pool
-      selectedAchievements = selectUniqueFromPool(freshWeightedPool, numAchievements);
+      // We have enough fresh achievements, use only those
+      selectedAchievements = freshAchievements
+        .sort(() => Math.random() - 0.5)
+        .slice(0, numAchievements);
     } else if (viableAchievements.length >= numAchievements) {
-      // Mix fresh and recent achievements with weighted selection
+      // Mix fresh and recent achievements
       const neededFresh = Math.min(freshAchievements.length, numAchievements);
       const neededRecent = numAchievements - neededFresh;
       
       selectedAchievements = [
-        ...selectUniqueFromPool(freshWeightedPool, neededFresh),
-        ...selectUniqueFromPool(recentWeightedPool, neededRecent)
+        ...freshAchievements.sort(() => Math.random() - 0.5).slice(0, neededFresh),
+        ...recentAchievements.sort(() => Math.random() - 0.5).slice(0, neededRecent)
       ];
     } else {
-      // Use all viable achievements with weighted selection
-      selectedAchievements = selectUniqueFromPool(allWeightedPool, Math.min(numAchievements, viableAchievements.length));
+      // Not enough high-coverage achievements, include some with lower coverage
+      const allByTeamCoverage = achievementConstraints
+        .map(achievement => ({
+          achievement,
+          teamCoverage: leagueData.teamOverlaps!.achievementTeamCounts[achievement.achievementId!] || 0
+        }))
+        .sort((a, b) => b.teamCoverage - a.teamCoverage);
+      
+      selectedAchievements = allByTeamCoverage
+        .slice(0, numAchievements)
+        .map(item => item.achievement);
     }
   } else {
     // Fallback: random selection
