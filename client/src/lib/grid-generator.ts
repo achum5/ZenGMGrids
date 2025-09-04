@@ -56,15 +56,15 @@ export function generateTeamsGrid(leagueData: LeagueData): {
 
   console.log(`Unique seasons found: ${uniqueSeasons.size}`);
 
-  // If < 12 seasons, use old random builder without season-specific achievements
-  if (uniqueSeasons.size < 12) {
-    console.log('Using old random builder (< 12 seasons)');
+  // If < 50 seasons, use old random builder without season-specific achievements
+  if (uniqueSeasons.size < 50) {
+    console.log('Using old random builder (< 50 seasons)');
     return generateGridOldRandom(leagueData);
   }
 
-  // If >= 12 seasons and basketball, use new seeded builder
+  // If >= 50 seasons and basketball, use new seeded builder
   if (sport === 'basketball' && leagueData.seasonIndex) {
-    console.log('Using new seeded coverage-aware builder (>= 12 seasons, basketball)');
+    console.log('Using new seeded coverage-aware builder (>= 50 seasons, basketball)');
     return generateGridSeeded(leagueData);
   }
 
@@ -1044,10 +1044,8 @@ function calculateIntersectionSimple(
     // Career achievement × season achievement
     if (!seasonIndex) return [];
     
-    console.log(`🔍 DEBUG: Career achievement "${rowConstraint.achievementId}" × Season achievement "${colConstraint.achievementId}"`);
-    
     // Find players who meet the career achievement AND have the season achievement
-    const result = players.filter(p => {
+    return players.filter(p => {
       if (!playerMeetsAchievement(p, rowConstraint.achievementId)) return false;
       
       // Check if this player has the season achievement in any season/team
@@ -1065,13 +1063,6 @@ function calculateIntersectionSimple(
       }
       return false;
     });
-    
-    console.log(`🔍 DEBUG: Found ${result.length} players for this intersection`);
-    if (result.length > 0) {
-      console.log(`🔍 DEBUG: Sample players:`, result.slice(0, 3).map(p => p.name));
-    }
-    
-    return result;
   } else if (rowConstraint.type === 'achievement' && rowIsSeasonAchievement && colConstraint.type === 'achievement' && !colIsSeasonAchievement) {
     // Season achievement × career achievement  
     if (!seasonIndex) return [];
