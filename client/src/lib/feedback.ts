@@ -1892,9 +1892,7 @@ function generateTeamBullet(player: Player, teamTid: number, teams: Team[]): str
   const playedForTeam = playerPlayedForTeam(player, teamTid);
   
   if (playedForTeam) {
-    const years = getPlayerTeamSeasons(player, teamTid);
-    const yearText = years.length > 0 ? ` (${years.join(', ')})` : '';
-    return `• Played for ${teamName}${yearText}|GREEN`;
+    return `• Played for ${teamName}|GREEN`;
   } else {
     return `• Never played for ${teamName}|RED`;
   }
