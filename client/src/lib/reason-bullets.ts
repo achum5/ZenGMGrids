@@ -33,6 +33,11 @@ function getCareerStats(player: Player, statTypes: string[]) {
         if (statType === 'fg3') {
           const seasonThrees = (season as any).tpm || (season as any).tp || (season as any).fg3 || 0;
           total += seasonThrees;
+        } 
+        // Handle hockey assists - try multiple field names
+        else if (statType === 'a') {
+          const seasonAssists = (season as any).a || (season as any).ast || (season as any).assists || 0;
+          total += seasonAssists;
         } else {
           total += (season as any)[statType] || 0;
         }
@@ -54,7 +59,15 @@ function getBestSeason(player: Player, statType: string, isMin = false) {
   player.stats.forEach(season => {
     if (season.playoffs) return;
     
-    const value = (season as any)[statType] || (isMin ? Infinity : 0);
+    let value = 0;
+    
+    // Handle hockey assists - try multiple field names
+    if (statType === 'a') {
+      value = (season as any).a || (season as any).ast || (season as any).assists || 0;
+    } else {
+      value = (season as any)[statType] || (isMin ? Infinity : 0);
+    }
+    
     if ((isMin && value < bestValue && value > 0) || (!isMin && value > bestValue)) {
       bestValue = value;
       bestYear = season.season;
