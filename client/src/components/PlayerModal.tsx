@@ -9,6 +9,7 @@ import { generateFeedbackMessage, type GridConstraint } from '@/lib/feedback';
 import { cellKey } from '@/lib/grid-generator';
 import { CareerTeamLogo, checkAllTeamsHaveLogos } from '@/components/CareerTeamLogo';
 import { generateReasonBullets } from '@/lib/reason-bullets';
+import { generateModalContent, type CellConstraint } from '@/lib/player-modal-content';
 
 type Props = {
   open: boolean;
@@ -174,8 +175,9 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                         
                         const feedback = getScoreFeedback(rarity);
                         
-                        // Generate reason bullets for correct guess
-                        const reasonBullets = generateReasonBullets(
+                        // Generate modal content for correct guess
+                        const teamsById = teams.reduce((acc, team) => ({ ...acc, [team.tid]: team }), {} as Record<number, Team>);
+                        const modalContent = generateModalContent(
                           player,
                           {
                             type: rowConstraint.type,
@@ -189,8 +191,8 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                             achievementId: colConstraint.achievementId,
                             label: colConstraint.label
                           },
-                          teams,
-                          sport || 'basketball'
+                          teamsById,
+                          true // isCorrectGuess
                         );
                         
                         return (
@@ -199,13 +201,13 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                               Score: {rarity}
                             </span>
                             
-                            {/* Reason bullets for correct guesses */}
-                            {reasonBullets.length > 0 && (
+                            {/* Modal content for correct guesses */}
+                            {modalContent.content.length > 0 && (
                               <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                                {reasonBullets.map((bullet, index) => (
+                                {modalContent.content.map((bullet, index) => (
                                   <div key={index} className="flex items-start gap-2">
                                     <span className="text-xs leading-5">•</span>
-                                    <span className="leading-5">{bullet.text}</span>
+                                    <span className="leading-5">{bullet}</span>
                                   </div>
                                 ))}
                               </div>
@@ -214,26 +216,24 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                         );
                       }
                     } else {
-                      // Show feedback message for wrong guesses
-                      const rowGridConstraint: GridConstraint = {
-                        type: rowConstraint.type,
-                        tid: rowConstraint.tid,
-                        achievementId: rowConstraint.achievementId,
-                        label: rowConstraint.label
-                      };
-                      
-                      const colGridConstraint: GridConstraint = {
-                        type: colConstraint.type,
-                        tid: colConstraint.tid,
-                        achievementId: colConstraint.achievementId,
-                        label: colConstraint.label
-                      };
-                      
-                      const feedbackMessage = generateFeedbackMessage(
+                      // Generate modal content for incorrect guess
+                      const teamsById = teams.reduce((acc, team) => ({ ...acc, [team.tid]: team }), {} as Record<number, Team>);
+                      const modalContent = generateModalContent(
                         player,
-                        rowGridConstraint,
-                        colGridConstraint,
-                        teams
+                        {
+                          type: rowConstraint.type,
+                          tid: rowConstraint.tid,
+                          achievementId: rowConstraint.achievementId,
+                          label: rowConstraint.label
+                        },
+                        {
+                          type: colConstraint.type,
+                          tid: colConstraint.tid,
+                          achievementId: colConstraint.achievementId,
+                          label: colConstraint.label
+                        },
+                        teamsById,
+                        false // isCorrectGuess
                       );
                       
                       return (
@@ -243,12 +243,13 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                               aria-hidden="true"
                               className="w-5 h-5 sm:w-6 sm:h-6 text-red-500 dark:text-red-400 shrink-0 mt-0.5"
                             />
-                            <span 
-                              className="text-red-600 dark:text-red-400 font-medium leading-snug"
-                              style={{ fontSize: 'clamp(14px, 1.6vw, 18px)' }}
-                            >
-                              {feedbackMessage}
-                            </span>
+                            <div className="text-red-600 dark:text-red-400 font-medium leading-snug" style={{ fontSize: 'clamp(14px, 1.6vw, 18px)' }}>
+                              {modalContent.content.map((sentence, index) => (
+                                <div key={index} className={index > 0 ? 'mt-1' : ''}>
+                                  {sentence}
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       );
