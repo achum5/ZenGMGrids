@@ -1,7 +1,186 @@
 import type { Player, Team } from '@/types/bbgm';
 import { SEASON_ALIGNED_ACHIEVEMENTS } from '@/lib/achievements';
 import { playerMeetsAchievement } from '@/lib/achievements';
-import { SEASON_ACHIEVEMENTS } from './season-achievements';
+import { SEASON_ACHIEVEMENTS, type SeasonAchievementId } from './season-achievements';
+
+// Season achievement metadata for modal copy
+const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
+  label: string;
+  short: string;
+  verbTeam: string;
+  verbGeneric: string;
+}> = {
+  AllStar: {
+    label: 'All-Star',
+    short: 'All-Star',
+    verbTeam: 'made an All-Star team',
+    verbGeneric: 'made an All-Star team'
+  },
+  MVP: {
+    label: 'Most Valuable Player',
+    short: 'MVP',
+    verbTeam: 'won an MVP',
+    verbGeneric: 'won an MVP'
+  },
+  DPOY: {
+    label: 'Defensive Player of the Year',
+    short: 'DPOY',
+    verbTeam: 'won a Defensive Player of the Year',
+    verbGeneric: 'won a Defensive Player of the Year'
+  },
+  ROY: {
+    label: 'Rookie of the Year',
+    short: 'ROY',
+    verbTeam: 'won Rookie of the Year',
+    verbGeneric: 'won Rookie of the Year'
+  },
+  SMOY: {
+    label: 'Sixth Man of the Year',
+    short: 'SMOY',
+    verbTeam: 'won Sixth Man of the Year',
+    verbGeneric: 'won Sixth Man of the Year'
+  },
+  MIP: {
+    label: 'Most Improved Player',
+    short: 'MIP',
+    verbTeam: 'won Most Improved Player',
+    verbGeneric: 'won Most Improved Player'
+  },
+  FinalsMVP: {
+    label: 'Finals MVP',
+    short: 'Finals MVP',
+    verbTeam: 'won a Finals MVP',
+    verbGeneric: 'won a Finals MVP'
+  },
+  SFMVP: {
+    label: 'Conference Finals MVP',
+    short: 'CFMVP',
+    verbTeam: 'won a Conference Finals MVP',
+    verbGeneric: 'won a Conference Finals MVP'
+  },
+  AllLeagueAny: {
+    label: 'All-League Team',
+    short: 'All-League',
+    verbTeam: 'made an All-League Team',
+    verbGeneric: 'made an All-League Team'
+  },
+  AllDefAny: {
+    label: 'All-Defensive Team',
+    short: 'All-Defensive',
+    verbTeam: 'made an All-Defensive Team',
+    verbGeneric: 'made an All-Defensive Team'
+  },
+  AllRookieAny: {
+    label: 'All-Rookie Team',
+    short: 'All-Rookie',
+    verbTeam: 'made an All-Rookie Team',
+    verbGeneric: 'made an All-Rookie Team'
+  }
+};
+
+// Helper function to check if an achievement ID is a season achievement
+function isSeasonAchievement(achievementId: string): achievementId is SeasonAchievementId {
+  return Object.keys(SEASON_ACHIEVEMENT_LABELS).includes(achievementId as SeasonAchievementId);
+}
+
+// Helper function to get season achievement data for a player
+function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAchievementId, teamId?: number) {
+  if (!player.awards) {
+    return {
+      count: 0,
+      seasons: [] as number[],
+      seasonsWithTeam: [] as string[]
+    };
+  }
+
+  // Map achievement ID to award type patterns
+  const awardTypePatterns: Record<SeasonAchievementId, string[]> = {
+    AllStar: ['All-Star', 'all-star', 'allstar'],
+    MVP: ['MVP', 'Most Valuable Player', 'most valuable player'],
+    DPOY: ['DPOY', 'Defensive Player of the Year', 'defensive player of the year'],
+    ROY: ['ROY', 'Rookie of the Year', 'rookie of the year'],
+    SMOY: ['SMOY', 'Sixth Man of the Year', 'sixth man of the year', '6MOY', '6th man'],
+    MIP: ['MIP', 'Most Improved Player', 'most improved player'],
+    FinalsMVP: ['Finals MVP', 'finals mvp', 'championship mvp'],
+    SFMVP: ['Conference Finals MVP', 'conference finals mvp', 'CFMVP', 'cfmvp'],
+    AllLeagueAny: ['All-League', 'all-league', 'First Team All-League', 'Second Team All-League', 'Third Team All-League'],
+    AllDefAny: ['All-Defensive', 'all-defensive', 'First Team All-Defensive', 'Second Team All-Defensive'],
+    AllRookieAny: ['All-Rookie', 'all-rookie', 'All-Rookie Team']
+  };
+
+  const patterns = awardTypePatterns[achievementId] || [];
+  const matchingAwards = player.awards.filter(award => {
+    const awardType = (award.type || '').toLowerCase();
+    const awardName = (award.name || '').toLowerCase();
+    return patterns.some(pattern => 
+      awardType.includes(pattern.toLowerCase()) || 
+      awardName.includes(pattern.toLowerCase())
+    );
+  });
+
+  // Extract seasons and format with team info if needed
+  const seasonsWithTeam: string[] = [];
+  const seasons: number[] = [];
+
+  for (const award of matchingAwards) {
+    if (award.season) {
+      seasons.push(award.season);
+      
+      // For Finals MVP and Conference Finals MVP, include team abbreviation
+      if (achievementId === 'FinalsMVP' || achievementId === 'SFMVP') {
+        // Try to get team from playoffs stats for that season
+        const playoffTeam = getPlayoffTeamForSeason(player, award.season);
+        if (playoffTeam) {
+          seasonsWithTeam.push(`${award.season} ${playoffTeam}`);
+        } else {
+          seasonsWithTeam.push(`${award.season}`);
+        }
+      } else {
+        seasonsWithTeam.push(`${award.season}`);
+      }
+    }
+  }
+
+  // Sort seasons
+  seasons.sort((a, b) => a - b);
+  seasonsWithTeam.sort();
+
+  return {
+    count: matchingAwards.length,
+    seasons,
+    seasonsWithTeam
+  };
+}
+
+// Helper function to get playoff team abbreviation for a season
+function getPlayoffTeamForSeason(player: Player, season: number): string | null {
+  if (!player.stats) return null;
+  
+  const playoffStats = player.stats.find(s => 
+    s.season === season && s.playoffs && (s.gp || 0) > 0
+  );
+  
+  if (playoffStats) {
+    // For now, return generic team identifier - would need teams array to get abbreviation
+    return `T${playoffStats.tid}`;
+  }
+  
+  return null;
+}
+
+// Helper function to format season lists
+function formatSeasonList(seasons: string[], isFinalsOrCFMVP: boolean = false): string {
+  if (seasons.length === 0) return '';
+  if (seasons.length === 1) return seasons[0];
+  
+  // For Finals MVP/CFMVP, use semicolon separator: "1994 HOU; 1995 HOU"
+  if (isFinalsOrCFMVP) {
+    return seasons.join('; ');
+  }
+  
+  // For other awards, use comma separator: "2019, 2020, 2021"
+  return seasons.join(', ');
+}
 
 // Helper functions for football stat calculations
 function getFootballCareerStats(player: Player) {
@@ -1648,4 +1827,60 @@ function getDraftNegativeMessage(player: Player, achievementId: string): string 
   
   // Return the same consistent format for all draft-related feedback
   return draftMessage;
+}
+
+/**
+ * Generate feedback message for Team × Season Achievement incorrect guesses
+ */
+function generateTeamSeasonAchievementMessage(
+  player: Player,
+  teams: Team[],
+  teamTid: number,
+  achievementId: SeasonAchievementId
+): string {
+  const teamName = teams.find(t => t.tid === teamTid);
+  const teamStr = teamName ? `${teamName.region} ${teamName.name}` : `Team ${teamTid}`;
+  const achData = SEASON_ACHIEVEMENT_LABELS[achievementId];
+  const playerData = getPlayerSeasonAchievementData(player, achievementId, teamTid);
+  
+  const countStr = playerData.count === 0 ? '0×' : 
+    `${playerData.count}× — ${formatSeasonList(playerData.seasonsWithTeam, achievementId === 'FinalsMVP' || achievementId === 'SFMVP')}`;
+  
+  return `${player.name} did play for the ${teamStr}, but never ${achData.verbTeam} with the ${teamStr}. (${achData.short}: ${countStr})`;
+}
+
+/**
+ * Generate feedback message for Season Achievement × Season Achievement incorrect guesses
+ */
+function generateSeasonSeasonAchievementMessage(
+  player: Player,
+  achievementA: SeasonAchievementId,
+  achievementB: SeasonAchievementId
+): string {
+  const achDataA = SEASON_ACHIEVEMENT_LABELS[achievementA];
+  const achDataB = SEASON_ACHIEVEMENT_LABELS[achievementB];
+  const playerDataA = getPlayerSeasonAchievementData(player, achievementA);
+  const playerDataB = getPlayerSeasonAchievementData(player, achievementB);
+  
+  // Case: Player has both awards but never in the same season
+  if (playerDataA.count > 0 && playerDataB.count > 0) {
+    const seasonsA = formatSeasonList(playerDataA.seasonsWithTeam, achievementA === 'FinalsMVP' || achievementA === 'SFMVP');
+    const seasonsB = formatSeasonList(playerDataB.seasonsWithTeam, achievementB === 'FinalsMVP' || achievementB === 'SFMVP');
+    
+    return `${player.name} did earn ${achDataA.label} and ${achDataB.label}, but never in the same season. (${achDataA.short}: ${playerDataA.count}× — ${seasonsA}; ${achDataB.short}: ${playerDataB.count}× — ${seasonsB})`;
+  }
+  
+  // Case: Player is missing one side entirely
+  if (playerDataA.count > 0 && playerDataB.count === 0) {
+    const seasonsA = formatSeasonList(playerDataA.seasonsWithTeam, achievementA === 'FinalsMVP' || achievementA === 'SFMVP');
+    return `${player.name} did earn ${achDataA.label}, but never ${achDataB.verbGeneric}. (${achDataA.short}: ${playerDataA.count}× — ${seasonsA}; ${achDataB.short}: 0×)`;
+  }
+  
+  if (playerDataB.count > 0 && playerDataA.count === 0) {
+    const seasonsB = formatSeasonList(playerDataB.seasonsWithTeam, achievementB === 'FinalsMVP' || achievementB === 'SFMVP');
+    return `${player.name} did earn ${achDataB.label}, but never ${achDataA.verbGeneric}. (${achDataB.short}: ${playerDataB.count}× — ${seasonsB}; ${achDataA.short}: 0×)`;
+  }
+  
+  // Case: Player has neither achievement
+  return `${player.name} never ${achDataA.verbGeneric} and never ${achDataB.verbGeneric}. (${achDataA.short}: 0×; ${achDataB.short}: 0×)`;
 }
