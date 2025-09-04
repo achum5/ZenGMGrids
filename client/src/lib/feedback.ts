@@ -77,6 +77,146 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     verbGeneric: 'made an All-Rookie Team'
   },
   
+  // Baseball GM season achievements
+  BBAllStar: {
+    label: 'All-Star',
+    short: 'All-Star',
+    verbTeam: 'made an All-Star team',
+    verbGeneric: 'made an All-Star team'
+  },
+  BBAllStarMVP: {
+    label: 'All-Star MVP',
+    short: 'All-Star MVP',
+    verbTeam: 'won an All-Star MVP',
+    verbGeneric: 'won an All-Star MVP'
+  },
+  BBMVP: {
+    label: 'Most Valuable Player',
+    short: 'MVP',
+    verbTeam: 'won an MVP',
+    verbGeneric: 'won an MVP'
+  },
+  BBPitcherOTY: {
+    label: 'Pitcher of the Year',
+    short: 'Pitcher OTY',
+    verbTeam: 'won Pitcher of the Year',
+    verbGeneric: 'won Pitcher of the Year'
+  },
+  BBReliefPitcherOTY: {
+    label: 'Relief Pitcher of the Year',
+    short: 'Relief Pitcher OTY',
+    verbTeam: 'won Relief Pitcher of the Year',
+    verbGeneric: 'won Relief Pitcher of the Year'
+  },
+  BBROY: {
+    label: 'Rookie of the Year',
+    short: 'ROY',
+    verbTeam: 'won Rookie of the Year',
+    verbGeneric: 'won Rookie of the Year'
+  },
+  BBGoldGlove: {
+    label: 'Gold Glove',
+    short: 'Gold Glove',
+    verbTeam: 'won a Gold Glove',
+    verbGeneric: 'won a Gold Glove'
+  },
+  BBSilverSlugger: {
+    label: 'Silver Slugger',
+    short: 'Silver Slugger',
+    verbTeam: 'won a Silver Slugger',
+    verbGeneric: 'won a Silver Slugger'
+  },
+  BBPlayoffsMVP: {
+    label: 'Playoffs MVP',
+    short: 'Playoffs MVP',
+    verbTeam: 'won a Playoffs MVP',
+    verbGeneric: 'won a Playoffs MVP'
+  },
+  BBChampion: {
+    label: 'Champion',
+    short: 'Champion',
+    verbTeam: 'won a championship',
+    verbGeneric: 'won a championship'
+  },
+  BBHRLeader: {
+    label: 'Home Run Leader',
+    short: 'HR Leader',
+    verbTeam: 'led league in home runs',
+    verbGeneric: 'led league in home runs'
+  },
+  BBRBILeader: {
+    label: 'RBI Leader',
+    short: 'RBI Leader',
+    verbTeam: 'led league in RBIs',
+    verbGeneric: 'led league in RBIs'
+  },
+  BBSBLeader: {
+    label: 'Stolen Base Leader',
+    short: 'SB Leader',
+    verbTeam: 'led league in stolen bases',
+    verbGeneric: 'led league in stolen bases'
+  },
+  BBBALeader: {
+    label: 'Batting Average Leader',
+    short: 'BA Leader',
+    verbTeam: 'led league in batting average',
+    verbGeneric: 'led league in batting average'
+  },
+  BBHitsLeader: {
+    label: 'Hits Leader',
+    short: 'Hits Leader',
+    verbTeam: 'led league in hits',
+    verbGeneric: 'led league in hits'
+  },
+  BBRunsLeader: {
+    label: 'Runs Leader',
+    short: 'Runs Leader',
+    verbTeam: 'led league in runs',
+    verbGeneric: 'led league in runs'
+  },
+  BBWinsLeader: {
+    label: 'Wins Leader',
+    short: 'Wins Leader',
+    verbTeam: 'led league in wins',
+    verbGeneric: 'led league in wins'
+  },
+  BBERALeader: {
+    label: 'ERA Leader',
+    short: 'ERA Leader',
+    verbTeam: 'led league in ERA',
+    verbGeneric: 'led league in ERA'
+  },
+  BBStrikeoutsLeader: {
+    label: 'Strikeouts Leader',
+    short: 'K Leader',
+    verbTeam: 'led league in strikeouts',
+    verbGeneric: 'led league in strikeouts'
+  },
+  BBSavesLeader: {
+    label: 'Saves Leader',
+    short: 'Saves Leader',
+    verbTeam: 'led league in saves',
+    verbGeneric: 'led league in saves'
+  },
+  BBOPSLeader: {
+    label: 'OPS Leader',
+    short: 'OPS Leader',
+    verbTeam: 'led league in OPS',
+    verbGeneric: 'led league in OPS'
+  },
+  BBSLGLeader: {
+    label: 'Slugging Leader',
+    short: 'SLG Leader',
+    verbTeam: 'led league in slugging',
+    verbGeneric: 'led league in slugging'
+  },
+  BBOBPLeader: {
+    label: 'On-Base Percentage Leader',
+    short: 'OBP Leader',
+    verbTeam: 'led league in on-base percentage',
+    verbGeneric: 'led league in on-base percentage'
+  },
+  
   // Football GM season achievements
   FBAllStar: {
     label: 'All-Star',
@@ -1754,9 +1894,9 @@ function generateTeamBullet(player: Player, teamTid: number, teams: Team[]): str
   if (playedForTeam) {
     const years = getPlayerTeamSeasons(player, teamTid);
     const yearText = years.length > 0 ? ` (${years.join(', ')})` : '';
-    return `✅ Played for ${teamName}${yearText}`;
+    return `• Played for ${teamName}${yearText}|GREEN`;
   } else {
-    return `❌ Never played for ${teamName}`;
+    return `• Never played for ${teamName}|RED`;
   }
 }
 
@@ -1777,9 +1917,9 @@ function generateAchievementBullet(player: Player, achievementId: string, teams:
   if (meetsAchievement) {
     const years = getAchievementYears(player, achievementId);
     const yearText = years.length > 0 ? ` (${years.join(', ')})` : '';
-    return `✅ ${achievementLabel}${yearText}`;
+    return `• ${achievementLabel}${yearText}|GREEN`;
   } else {
-    return `❌ ${achievementLabel}`;
+    return `• ${achievementLabel}|RED`;
   }
 }
 
@@ -1792,9 +1932,9 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
   
   if (seasons.length > 0) {
     const yearText = ` (${seasons.join(', ')})`;
-    return `✅ ${achData.label}${yearText}`;
+    return `• ${achData.label}${yearText}|GREEN`;
   } else {
-    return `❌ ${achData.label}`;
+    return `• ${achData.label}|RED`;
   }
 }
 
@@ -1802,20 +1942,16 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
  * Get seasons when player achieved a season achievement
  */
 function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchievementId): number[] {
-  if (!player.seasonAchievements) return [];
+  if (!player.awards) return [];
   
   // Find seasons where this achievement was earned
   const seasons: number[] = [];
   
-  for (const season of player.seasonAchievements) {
-    const achievementKeys = Object.keys(season.achievements || {});
-    
-    // Check if this season achievement ID matches any achievement in this season
-    if (achievementKeys.some(key => {
-      const mappedId = SEASON_ACHIEVEMENTS[key as keyof typeof SEASON_ACHIEVEMENTS];
-      return mappedId === achievementId;
-    })) {
-      seasons.push(season.season);
+  for (const award of player.awards) {
+    // Check if this award maps to our achievement ID
+    const mappedId = SEASON_ACHIEVEMENTS[award.type as keyof typeof SEASON_ACHIEVEMENTS];
+    if (mappedId === achievementId && award.season) {
+      seasons.push(award.season);
     }
   }
   
