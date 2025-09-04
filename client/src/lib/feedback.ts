@@ -1434,13 +1434,19 @@ function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, a
   }
 
   // Check if there's any season where player both played for the team AND achieved the accomplishment
+  console.log(`🔍 Checking season alignment for ${player.name} (${achievementId}) with team ${teamTid}:`);
+  console.log(`  Achievement seasons: [${Array.from(achievementSeasons).join(', ')}]`);
+  console.log(`  Team seasons: [${Array.from(player.teamSeasonsPaired).filter(key => key.endsWith(`|${teamTid}`)).join(', ')}]`);
+  
   for (const season of Array.from(achievementSeasons)) {
     const teamSeasonKey = `${season}|${teamTid}`;
     if (player.teamSeasonsPaired.has(teamSeasonKey)) {
+      console.log(`  ✅ Match found: Season ${season} - player earned ${achievementId} while on team ${teamTid}`);
       return true;
     }
   }
 
+  console.log(`  ❌ No season overlap found`);
   return false;
 }
 
