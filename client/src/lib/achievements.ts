@@ -585,8 +585,9 @@ export const SEASON_ALIGNED_ACHIEVEMENTS = new Set([
   'season30ppg', 'season10apg', 'season15rpg', 'season3bpg', 'season25spg', 'season504090',
   // Basketball league leaders
   'ledScoringAny', 'ledRebAny', 'ledAstAny', 'ledStlAny', 'ledBlkAny',
-  // Basketball awards (season-specific) - Only add the most important ones that we know work
-  'hasMVP', 'hasDPOY', 'hasAllStar', 'hasFMVP', 'hasChampion',
+  // Basketball awards (season-specific) - All basketball awards require same-season validation
+  'hasMVP', 'hasDPOY', 'hasAllStar', 'hasFMVP', 'hasChampion', 'hasROY', 'hasSixthMan', 'hasMIP', 
+  'hasAllLeague', 'hasAllDef', 'allStar35Plus',
   // Football season stats
   'season4500PassYds', 'season35PassTDs', 'season1800RushYds', 'season20RushTDs', 
   'season1400RecYds', 'season15RecTDs', 'season15Sacks', 'season8Ints',
