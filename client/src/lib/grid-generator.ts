@@ -730,9 +730,23 @@ function buildOppositeAxisForSeed(
         label: cols[col].label
       };
       
-      const eligiblePlayers = players.filter(p => 
-        evaluateConstraintPair(p, rowConstraint, colConstraint)
-      );
+      // For season-specific achievements, use season index directly
+      let eligiblePlayers: Player[] = [];
+      
+      if (rowConstraint.type === 'achievement' && SEASON_ACHIEVEMENTS.some(sa => sa.id === rowConstraint.achievementId)) {
+        // Season achievement × team
+        const eligiblePids = getSeasonEligiblePlayers(seasonIndex, colConstraint.tid!, rowConstraint.achievementId as SeasonAchievementId);
+        eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
+      } else if (colConstraint.type === 'achievement' && SEASON_ACHIEVEMENTS.some(sa => sa.id === colConstraint.achievementId)) {
+        // Team × season achievement
+        const eligiblePids = getSeasonEligiblePlayers(seasonIndex, rowConstraint.tid!, colConstraint.achievementId as SeasonAchievementId);
+        eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
+      } else {
+        // Use standard evaluation for other combinations
+        eligiblePlayers = players.filter(p => 
+          evaluateConstraintPair(p, rowConstraint, colConstraint)
+        );
+      }
       
       intersections[key] = eligiblePlayers.map(p => p.pid);
       console.log(`Intersection ${rows[row].label} × ${cols[col].label}: ${eligiblePlayers.length} eligible players`);
