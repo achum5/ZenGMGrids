@@ -686,22 +686,30 @@ function buildOppositeAxisForSeed(
     throw new Error(`Need at least 3 different teams for opposite axis, only found ${selectedTeams.length}`);
   }
   
-  // Fill the opposite axis with selected teams (ensuring no duplicates)
-  const oppositeAxis = seedSlot.axis === 'row' ? 'col' : 'row';
-  const oppositeLayout = oppositeAxis === 'row' ? layout.rows : layout.cols;
+  // Fill BOTH axes completely according to their layouts
+  console.log(`Layout: ${layout.name} - Rows: [${layout.rows.join(', ')}], Cols: [${layout.cols.join(', ')}]`);
+  console.log(`Seed: ${seedAchievement.name} at ${seedSlot.axis} ${seedSlot.index}`);
   
+  // Fill all team slots first
   let teamIndex = 0;
-  if (oppositeAxis === 'row') {
-    for (let i = 0; i < 3; i++) {
-      if (oppositeLayout[i] === 'T') {
-        rows[i] = selectedTeams[teamIndex];
+  
+  // Fill column team slots
+  for (let i = 0; i < 3; i++) {
+    if (layout.cols[i] === 'T') {
+      if (teamIndex < selectedTeams.length) {
+        cols[i] = selectedTeams[teamIndex];
+        console.log(`Filled col ${i} with team: ${selectedTeams[teamIndex].label}`);
         teamIndex++;
       }
     }
-  } else {
-    for (let i = 0; i < 3; i++) {
-      if (oppositeLayout[i] === 'T') {
-        cols[i] = selectedTeams[teamIndex];
+  }
+  
+  // Fill row team slots  
+  for (let i = 0; i < 3; i++) {
+    if (layout.rows[i] === 'T') {
+      if (teamIndex < selectedTeams.length) {
+        rows[i] = selectedTeams[teamIndex];
+        console.log(`Filled row ${i} with team: ${selectedTeams[teamIndex].label}`);
         teamIndex++;
       }
     }
@@ -733,94 +741,63 @@ function buildOppositeAxisForSeed(
     test: (p: Player) => playerMeetsAchievement(p, 'played10PlusSeasons'),
   };
   
-  // Fill remaining slots ensuring uniqueness
-  const usedTeamIds = new Set<number>();
-  const usedAchievementIds = new Set<string>();
+  // Now fill all achievement slots
+  console.log(`Filling achievement slots. Seed already placed: ${seedAchievement.name} at ${seedSlot.axis} ${seedSlot.index}`);
   
-  // Track already used items
+  // Track already used achievements
+  const usedAchievementIds = new Set<string>();
+  usedAchievementIds.add(seedAchievement.id); // Seed is already used
+  
+  let availableAchievementIndex = 0;
+  
+  // Fill row achievement slots
   for (let i = 0; i < 3; i++) {
-    if (rows[i]) {
-      if (rows[i].type === 'team') usedTeamIds.add(rows[i].tid!);
-      if (rows[i].type === 'achievement') usedAchievementIds.add(rows[i].achievementId!);
-    }
-    if (cols[i]) {
-      if (cols[i].type === 'team') usedTeamIds.add(cols[i].tid!);
-      if (cols[i].type === 'achievement') usedAchievementIds.add(cols[i].achievementId!);
+    if (layout.rows[i] === 'A' && !rows[i]) {
+      while (availableAchievementIndex < availableSeasonAchievements.length &&
+             usedAchievementIds.has(availableSeasonAchievements[availableAchievementIndex].id)) {
+        availableAchievementIndex++;
+      }
+      if (availableAchievementIndex < availableSeasonAchievements.length) {
+        const achievement = availableSeasonAchievements[availableAchievementIndex];
+        rows[i] = {
+          key: `achievement-${achievement.id}`,
+          label: achievement.label || achievement.id,
+          achievementId: achievement.id,
+          type: 'achievement',
+          test: (p: Player) => playerMeetsAchievement(p, achievement.id),
+        };
+        usedAchievementIds.add(achievement.id);
+        console.log(`Filled row ${i} with achievement: ${achievement.label || achievement.id}`);
+        availableAchievementIndex++;
+      } else {
+        rows[i] = safeSeasonAchievement;
+        console.log(`Filled row ${i} with fallback achievement: ${safeSeasonAchievement.label}`);
+      }
     }
   }
   
-  // Fill remaining slots without duplicates
-  let availableTeamIndex = 0;
-  let availableAchievementIndex = 0;
-  
+  // Fill col achievement slots
   for (let i = 0; i < 3; i++) {
-    if (!rows[i]) {
-      if (layout.rows[i] === 'T') {
-        // Find next unused team
-        while (availableTeamIndex < selectedTeams.length && 
-               usedTeamIds.has(selectedTeams[availableTeamIndex].tid!)) {
-          availableTeamIndex++;
-        }
-        if (availableTeamIndex < selectedTeams.length) {
-          rows[i] = selectedTeams[availableTeamIndex];
-          usedTeamIds.add(selectedTeams[availableTeamIndex].tid!);
-          availableTeamIndex++;
-        }
-      } else {
-        // Find next unused achievement
-        while (availableAchievementIndex < availableSeasonAchievements.length &&
-               usedAchievementIds.has(availableSeasonAchievements[availableAchievementIndex].id)) {
-          availableAchievementIndex++;
-        }
-        if (availableAchievementIndex < availableSeasonAchievements.length) {
-          const achievement = availableSeasonAchievements[availableAchievementIndex];
-          rows[i] = {
-            key: `achievement-${achievement.id}`,
-            label: achievement.label || achievement.id,
-            achievementId: achievement.id,
-            type: 'achievement',
-            test: (p: Player) => playerMeetsAchievement(p, achievement.id),
-          };
-          usedAchievementIds.add(achievement.id);
-          availableAchievementIndex++;
-        } else {
-          rows[i] = safeSeasonAchievement;
-        }
+    if (layout.cols[i] === 'A' && !cols[i]) {
+      while (availableAchievementIndex < availableSeasonAchievements.length &&
+             usedAchievementIds.has(availableSeasonAchievements[availableAchievementIndex].id)) {
+        availableAchievementIndex++;
       }
-    }
-    
-    if (!cols[i]) {
-      if (layout.cols[i] === 'T') {
-        // Find next unused team
-        while (availableTeamIndex < selectedTeams.length && 
-               usedTeamIds.has(selectedTeams[availableTeamIndex].tid!)) {
-          availableTeamIndex++;
-        }
-        if (availableTeamIndex < selectedTeams.length) {
-          cols[i] = selectedTeams[availableTeamIndex];
-          usedTeamIds.add(selectedTeams[availableTeamIndex].tid!);
-          availableTeamIndex++;
-        }
+      if (availableAchievementIndex < availableSeasonAchievements.length) {
+        const achievement = availableSeasonAchievements[availableAchievementIndex];
+        cols[i] = {
+          key: `achievement-${achievement.id}`,
+          label: achievement.label || achievement.id,
+          achievementId: achievement.id,
+          type: 'achievement',
+          test: (p: Player) => playerMeetsAchievement(p, achievement.id),
+        };
+        usedAchievementIds.add(achievement.id);
+        console.log(`Filled col ${i} with achievement: ${achievement.label || achievement.id}`);
+        availableAchievementIndex++;
       } else {
-        // Find next unused achievement
-        while (availableAchievementIndex < availableSeasonAchievements.length &&
-               usedAchievementIds.has(availableSeasonAchievements[availableAchievementIndex].id)) {
-          availableAchievementIndex++;
-        }
-        if (availableAchievementIndex < availableSeasonAchievements.length) {
-          const achievement = availableSeasonAchievements[availableAchievementIndex];
-          cols[i] = {
-            key: `achievement-${achievement.id}`,
-            label: achievement.label || achievement.id,
-            achievementId: achievement.id,
-            type: 'achievement',
-            test: (p: Player) => playerMeetsAchievement(p, achievement.id),
-          };
-          usedAchievementIds.add(achievement.id);
-          availableAchievementIndex++;
-        } else {
-          cols[i] = safeSeasonAchievement;
-        }
+        cols[i] = safeSeasonAchievement;
+        console.log(`Filled col ${i} with fallback achievement: ${safeSeasonAchievement.label}`);
       }
     }
   }
