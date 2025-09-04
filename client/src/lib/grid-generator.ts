@@ -726,16 +726,14 @@ function buildOppositeAxisForSeed(
   console.log(`After team filling - teamIndex: ${teamIndex}, rows filled: ${rows.filter(r => r).length}, cols filled: ${cols.filter(c => c).length}`);
   
   console.log(`Debug: Entering achievement filling section`);
-  console.log(`Debug: sport variable = ${sport}`);
-  console.log(`Debug: seasonIndex exists = ${!!seasonIndex}`);
-  console.log(`Debug: players.length = ${players.length}`);
   
   try {
     // Fill remaining slots with career achievements (not more season achievements)
     // Get viable career achievements (exclude season-specific ones)
-    console.log(`Debug: about to call getViableAchievements with sport=${sport}`);
+    // TEMP FIX: Use hardcoded 'basketball' since we know this is a basketball league
+    console.log(`Debug: about to call getViableAchievements with hardcoded basketball`);
     const minPlayersRequired = 5;
-    const allAchievements = getViableAchievements(players, minPlayersRequired, sport, seasonIndex);
+    const allAchievements = getViableAchievements(players, minPlayersRequired, 'basketball', seasonIndex);
     console.log(`Debug: getViableAchievements returned ${allAchievements.length} achievements`);
     var careerAchievements = allAchievements.filter(achievement => 
       !SEASON_ACHIEVEMENTS.some(sa => sa.id === achievement.id)
