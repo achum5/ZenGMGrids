@@ -247,6 +247,146 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     short: 'Champion',
     verbTeam: 'won a championship',
     verbGeneric: 'won a championship'
+  },
+  
+  // Baseball GM season achievements
+  BBAllStar: {
+    label: 'All-Star',
+    short: 'All-Star',
+    verbTeam: 'made an All-Star team',
+    verbGeneric: 'made an All-Star team'
+  },
+  BBAllStarMVP: {
+    label: 'All-Star MVP',
+    short: 'All-Star MVP',
+    verbTeam: 'won an All-Star MVP',
+    verbGeneric: 'won an All-Star MVP'
+  },
+  BBMVP: {
+    label: 'Most Valuable Player',
+    short: 'MVP',
+    verbTeam: 'won an MVP',
+    verbGeneric: 'won an MVP'
+  },
+  BBPitcherOTY: {
+    label: 'Pitcher of the Year',
+    short: 'Pitcher OTY',
+    verbTeam: 'won Pitcher of the Year',
+    verbGeneric: 'won Pitcher of the Year'
+  },
+  BBROY: {
+    label: 'Rookie of the Year',
+    short: 'ROY',
+    verbTeam: 'won Rookie of the Year',
+    verbGeneric: 'won Rookie of the Year'
+  },
+  BBAllRookie: {
+    label: 'All-Rookie Team',
+    short: 'All-Rookie',
+    verbTeam: 'made an All-Rookie Team',
+    verbGeneric: 'made an All-Rookie Team'
+  },
+  BBAllLeague: {
+    label: 'All-League Team',
+    short: 'All-League',
+    verbTeam: 'made an All-League Team',
+    verbGeneric: 'made an All-League Team'
+  },
+  BBGoldGlove: {
+    label: 'Gold Glove',
+    short: 'Gold Glove',
+    verbTeam: 'won a Gold Glove',
+    verbGeneric: 'won a Gold Glove'
+  },
+  BBSilverSlugger: {
+    label: 'Silver Slugger',
+    short: 'Silver Slugger',
+    verbTeam: 'won a Silver Slugger',
+    verbGeneric: 'won a Silver Slugger'
+  },
+  BBBattingAvgLeader: {
+    label: 'League Batting Average Leader',
+    short: 'Batting Avg Leader',
+    verbTeam: 'led the league in batting average',
+    verbGeneric: 'led the league in batting average'
+  },
+  BBHomeRunLeader: {
+    label: 'League Home Run Leader',
+    short: 'HR Leader',
+    verbTeam: 'led the league in home runs',
+    verbGeneric: 'led the league in home runs'
+  },
+  BBRBILeader: {
+    label: 'League RBI Leader',
+    short: 'RBI Leader',
+    verbTeam: 'led the league in RBIs',
+    verbGeneric: 'led the league in RBIs'
+  },
+  BBStolenBaseLeader: {
+    label: 'League Stolen Base Leader',
+    short: 'SB Leader',
+    verbTeam: 'led the league in stolen bases',
+    verbGeneric: 'led the league in stolen bases'
+  },
+  BBOBPLeader: {
+    label: 'League On-Base Percentage Leader',
+    short: 'OBP Leader',
+    verbTeam: 'led the league in on-base percentage',
+    verbGeneric: 'led the league in on-base percentage'
+  },
+  BBSluggingLeader: {
+    label: 'League Slugging Percentage Leader',
+    short: 'Slugging Leader',
+    verbTeam: 'led the league in slugging percentage',
+    verbGeneric: 'led the league in slugging percentage'
+  },
+  BBOPSLeader: {
+    label: 'League OPS Leader',
+    short: 'OPS Leader',
+    verbTeam: 'led the league in OPS',
+    verbGeneric: 'led the league in OPS'
+  },
+  BBHitsLeader: {
+    label: 'League Hits Leader',
+    short: 'Hits Leader',
+    verbTeam: 'led the league in hits',
+    verbGeneric: 'led the league in hits'
+  },
+  BBERALeader: {
+    label: 'League ERA Leader',
+    short: 'ERA Leader',
+    verbTeam: 'led the league in ERA',
+    verbGeneric: 'led the league in ERA'
+  },
+  BBStrikeoutsLeader: {
+    label: 'League Strikeouts Leader',
+    short: 'Strikeouts Leader',
+    verbTeam: 'led the league in strikeouts',
+    verbGeneric: 'led the league in strikeouts'
+  },
+  BBSavesLeader: {
+    label: 'League Saves Leader',
+    short: 'Saves Leader',
+    verbTeam: 'led the league in saves',
+    verbGeneric: 'led the league in saves'
+  },
+  BBReliefPitcherOTY: {
+    label: 'Relief Pitcher of the Year',
+    short: 'Relief Pitcher OTY',
+    verbTeam: 'won Relief Pitcher of the Year',
+    verbGeneric: 'won Relief Pitcher of the Year'
+  },
+  BBPlayoffsMVP: {
+    label: 'Playoffs MVP',
+    short: 'Playoffs MVP',
+    verbTeam: 'won a Playoffs MVP',
+    verbGeneric: 'won a Playoffs MVP'
+  },
+  BBChampion: {
+    label: 'Won Championship',
+    short: 'Champion',
+    verbTeam: 'won a championship',
+    verbGeneric: 'won a championship'
   }
 };
 

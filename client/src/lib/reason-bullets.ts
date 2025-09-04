@@ -4,6 +4,7 @@ import { type SeasonAchievementId } from '@/lib/season-achievements';
 
 // Season achievement labels for bullet display
 const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, string> = {
+  // Basketball GM achievements
   AllStar: 'All-Star',
   MVP: 'MVP',
   DPOY: 'Defensive Player of the Year',
@@ -14,7 +15,64 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, string> = {
   SFMVP: 'Conference Finals MVP',
   AllLeagueAny: 'All-League Team',
   AllDefAny: 'All-Defensive Team',
-  AllRookieAny: 'All-Rookie Team'
+  AllRookieAny: 'All-Rookie Team',
+  
+  // Football GM achievements
+  FBAllStar: 'All-Star',
+  FBMVP: 'MVP',
+  FBDPOY: 'Defensive Player of the Year',
+  FBOffROY: 'Offensive Rookie of the Year',
+  FBDefROY: 'Defensive Rookie of the Year',
+  FBAllRookie: 'All-Rookie Team',
+  FBAllLeague1st: 'First Team All-League',
+  FBAllLeague2nd: 'Second Team All-League',
+  FBFinalsMVP: 'Finals MVP',
+  FBChampion: 'Won Championship',
+  FBPassLeader: 'League Passing Leader',
+  FBRecLeader: 'League Receiving Leader',
+  FBRushLeader: 'League Rushing Leader',
+  FBScrimmageLeader: 'League Scrimmage Yards Leader',
+  
+  // Hockey GM achievements
+  HKAllStar: 'All-Star',
+  HKAllStarMVP: 'All-Star MVP',
+  HKMVP: 'MVP',
+  HKDPOY: 'Defensive Player of the Year',
+  HKDefForward: 'Defensive Forward of the Year',
+  HKGoalie: 'Goalie of the Year',
+  HKROY: 'Rookie of the Year',
+  HKAllRookie: 'All-Rookie Team',
+  HKAllLeague: 'All-League Team',
+  HKPointsLeader: 'League Points Leader',
+  HKAssistsLeader: 'League Assists Leader',
+  HKGoalsLeader: 'League Goals Leader',
+  HKPlayoffsMVP: 'Playoffs MVP',
+  HKChampion: 'Won Championship',
+  
+  // Baseball GM achievements
+  BBAllStar: 'All-Star',
+  BBAllStarMVP: 'All-Star MVP',
+  BBMVP: 'MVP',
+  BBPitcherOTY: 'Pitcher of the Year',
+  BBROY: 'Rookie of the Year',
+  BBAllRookie: 'All-Rookie Team',
+  BBAllLeague: 'All-League Team',
+  BBGoldGlove: 'Gold Glove',
+  BBSilverSlugger: 'Silver Slugger',
+  BBBattingAvgLeader: 'League Batting Average Leader',
+  BBHomeRunLeader: 'League Home Run Leader',
+  BBRBILeader: 'League RBI Leader',
+  BBStolenBaseLeader: 'League Stolen Base Leader',
+  BBOBPLeader: 'League On-Base Percentage Leader',
+  BBSluggingLeader: 'League Slugging Percentage Leader',
+  BBOPSLeader: 'League OPS Leader',
+  BBHitsLeader: 'League Hits Leader',
+  BBERALeader: 'League ERA Leader',
+  BBStrikeoutsLeader: 'League Strikeouts Leader',
+  BBSavesLeader: 'League Saves Leader',
+  BBReliefPitcherOTY: 'Relief Pitcher of the Year',
+  BBPlayoffsMVP: 'Playoffs MVP',
+  BBChampion: 'Won Championship'
 };
 
 export interface ReasonBullet {
@@ -44,6 +102,7 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
 
   // Map achievement ID to award type patterns
   const awardTypePatterns: Record<SeasonAchievementId, string[]> = {
+    // Basketball GM achievements
     AllStar: ['All-Star', 'all-star', 'allstar'],
     MVP: ['MVP', 'Most Valuable Player', 'most valuable player'],
     DPOY: ['DPOY', 'Defensive Player of the Year', 'defensive player of the year'],
@@ -54,7 +113,64 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
     SFMVP: ['Conference Finals MVP', 'conference finals mvp', 'CFMVP', 'cfmvp'],
     AllLeagueAny: ['All-League', 'all-league', 'First Team All-League', 'Second Team All-League', 'Third Team All-League'],
     AllDefAny: ['All-Defensive', 'all-defensive', 'First Team All-Defensive', 'Second Team All-Defensive'],
-    AllRookieAny: ['All-Rookie', 'all-rookie', 'All-Rookie Team']
+    AllRookieAny: ['All-Rookie', 'all-rookie', 'All-Rookie Team'],
+    
+    // Football GM achievements
+    FBAllStar: ['All-Star'],
+    FBMVP: ['Most Valuable Player'],
+    FBDPOY: ['Defensive Player of the Year'],
+    FBOffROY: ['Offensive Rookie of the Year'],
+    FBDefROY: ['Defensive Rookie of the Year'],
+    FBAllRookie: ['All-Rookie Team'],
+    FBAllLeague1st: ['First Team All-League'],
+    FBAllLeague2nd: ['Second Team All-League'],
+    FBFinalsMVP: ['Finals MVP'],
+    FBChampion: ['Won Championship'],
+    FBPassLeader: ['League Passing Leader'],
+    FBRecLeader: ['League Receiving Leader'],
+    FBRushLeader: ['League Rushing Leader'],
+    FBScrimmageLeader: ['League Scrimmage Yards Leader'],
+    
+    // Hockey GM achievements
+    HKAllStar: ['All-Star', 'all-star'],
+    HKAllStarMVP: ['All-Star MVP', 'all-star mvp'],
+    HKMVP: ['Most Valuable Player', 'most valuable player'],
+    HKDPOY: ['Defensive Player of the Year', 'defensive player of the year'],
+    HKDefForward: ['Defensive Forward of the Year', 'defensive forward of the year'],
+    HKGoalie: ['Goalie of the Year', 'goalie of the year'],
+    HKROY: ['Rookie of the Year', 'rookie of the year'],
+    HKAllRookie: ['All-Rookie Team', 'all-rookie team'],
+    HKAllLeague: ['All-League Team', 'all-league team', 'First Team All-League', 'Second Team All-League'],
+    HKPointsLeader: ['League Points Leader', 'league points leader'],
+    HKAssistsLeader: ['League Assists Leader', 'league assists leader'],
+    HKGoalsLeader: ['League Goals Leader', 'league goals leader'],
+    HKPlayoffsMVP: ['Playoffs MVP', 'playoffs mvp'],
+    HKChampion: ['Won Championship', 'won championship'],
+    
+    // Baseball GM achievements
+    BBAllStar: ['All-Star'],
+    BBAllStarMVP: ['All-Star MVP'],
+    BBMVP: ['Most Valuable Player'],
+    BBPitcherOTY: ['Pitcher of the Year', 'Cy Young'],
+    BBROY: ['Rookie of the Year'],
+    BBAllRookie: ['All-Rookie Team'],
+    BBAllLeague: ['All-League Team', 'First Team All-League', 'Second Team All-League'],
+    BBGoldGlove: ['Gold Glove'],
+    BBSilverSlugger: ['Silver Slugger'],
+    BBBattingAvgLeader: ['League Batting Average Leader'],
+    BBHomeRunLeader: ['League Home Run Leader'],
+    BBRBILeader: ['League RBI Leader'],
+    BBStolenBaseLeader: ['League Stolen Base Leader'],
+    BBOBPLeader: ['League On-Base Percentage Leader'],
+    BBSluggingLeader: ['League Slugging Percentage Leader'],
+    BBOPSLeader: ['League OPS Leader'],
+    BBHitsLeader: ['League Hits Leader', 'League Doubles Leader', 'League Triples Leader'],
+    BBERALeader: ['League ERA Leader'],
+    BBStrikeoutsLeader: ['League Strikeouts Leader'],
+    BBSavesLeader: ['League Saves Leader'],
+    BBReliefPitcherOTY: ['Relief Pitcher of the Year', 'Reliever of the Year'],
+    BBPlayoffsMVP: ['Playoffs MVP'],
+    BBChampion: ['Won Championship']
   };
 
   const patterns = awardTypePatterns[achievementId] || [];
