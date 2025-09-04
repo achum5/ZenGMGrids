@@ -1788,7 +1788,7 @@ function generateAchievementBullet(player: Player, achievementId: string, teams:
  */
 function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAchievementId, teams: Team[]): string {
   const achData = SEASON_ACHIEVEMENT_LABELS[achievementId];
-  const { seasons } = getSeasonAchievementDetails(player, achievementId);
+  const seasons = getSeasonAchievementSeasons(player, achievementId);
   
   if (seasons.length > 0) {
     const yearText = ` (${seasons.join(', ')})`;
@@ -1796,6 +1796,30 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
   } else {
     return `❌ ${achData.label}`;
   }
+}
+
+/**
+ * Get seasons when player achieved a season achievement
+ */
+function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchievementId): number[] {
+  if (!player.seasonAchievements) return [];
+  
+  // Find seasons where this achievement was earned
+  const seasons: number[] = [];
+  
+  for (const season of player.seasonAchievements) {
+    const achievementKeys = Object.keys(season.achievements || {});
+    
+    // Check if this season achievement ID matches any achievement in this season
+    if (achievementKeys.some(key => {
+      const mappedId = SEASON_ACHIEVEMENTS[key as keyof typeof SEASON_ACHIEVEMENTS];
+      return mappedId === achievementId;
+    })) {
+      seasons.push(season.season);
+    }
+  }
+  
+  return seasons.sort((a, b) => a - b);
 }
 
 /**
