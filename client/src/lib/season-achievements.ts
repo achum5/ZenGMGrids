@@ -22,6 +22,12 @@ export type SeasonAchievementId =
   | 'AllLeagueAny'
   | 'AllDefAny'
   | 'AllRookieAny'
+  | 'PointsLeader'
+  | 'ReboundsLeader'
+  | 'AssistsLeader'
+  | 'StealsLeader'
+  | 'BlocksLeader'
+  | 'ThreePointersLeader'
   // Football GM achievements
   | 'FBAllStar'
   | 'FBMVP'
@@ -142,6 +148,24 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId> = {
   'all-rookie second team': 'AllRookieAny',
   'all-rookie team': 'AllRookieAny',
   
+  // Basketball GM - League Leader variations (use unique patterns)
+  'bbgm points leader': 'PointsLeader',
+  'basketball points leader': 'PointsLeader',
+  'scoring leader basketball': 'PointsLeader',
+  'bbgm rebounds leader': 'ReboundsLeader',
+  'basketball rebounds leader': 'ReboundsLeader',
+  'rebounding leader basketball': 'ReboundsLeader',
+  'bbgm assists leader': 'AssistsLeader',
+  'basketball assists leader': 'AssistsLeader',
+  'bbgm steals leader': 'StealsLeader',
+  'basketball steals leader': 'StealsLeader',
+  'bbgm blocks leader': 'BlocksLeader',
+  'basketball blocks leader': 'BlocksLeader',
+  'bbgm 3-pointers made leader': 'ThreePointersLeader',
+  'basketball 3-pointers made leader': 'ThreePointersLeader',
+  'three-pointers made leader basketball': 'ThreePointersLeader',
+  '3pm leader basketball': 'ThreePointersLeader',
+  
   // Football GM specific awards (case-sensitive exact matches from FBGM)
   'All-Star': 'FBAllStar',
   'Most Valuable Player': 'FBMVP',
@@ -243,6 +267,125 @@ function normalizeAwardType(awardType: string, sport?: string): SeasonAchievemen
   
   // Fall back to general mapping
   return AWARD_TYPE_MAPPING[normalized] || null;
+}
+
+/**
+ * Calculate Basketball GM season leaders for points, rebounds, assists, steals, blocks, and 3PM
+ * Based on user requirements: 70% games played eligibility, per-game averages except 3PM (total)
+ */
+function calculateBBGMSeasonLeaders(
+  players: Player[], 
+  season: number, 
+  gameAttributes: any
+): Record<string, number[]> {
+  const leaders: Record<string, number[]> = {
+    PointsLeader: [],
+    ReboundsLeader: [],
+    AssistsLeader: [],
+    StealsLeader: [],
+    BlocksLeader: [],
+    ThreePointersLeader: []
+  };
+
+  // Get season game count (default to 82 if not found)
+  const numGames = gameAttributes?.numGames || 82;
+  const minGames = Math.ceil(0.7 * numGames);
+
+  // Player season stats aggregated across teams
+  const playerSeasonStats: Record<number, {
+    pid: number;
+    pts: number;
+    trb: number;
+    ast: number;
+    stl: number;
+    blk: number;
+    tpm: number;
+    gp: number;
+    teams: Set<number>;
+  }> = {};
+
+  // Aggregate stats across all teams for each player in the season
+  for (const player of players) {
+    if (!player.stats) continue;
+
+    const regularSeasonStats = player.stats.filter(s => 
+      s.season === season && !s.playoffs && (s.gp || 0) > 0
+    );
+
+    if (regularSeasonStats.length === 0) continue;
+
+    // Sum stats across teams for this season
+    const aggregated = {
+      pid: player.pid,
+      pts: 0,
+      trb: 0,
+      ast: 0,
+      stl: 0,
+      blk: 0,
+      tpm: 0,
+      gp: 0,
+      teams: new Set<number>()
+    };
+
+    for (const stat of regularSeasonStats) {
+      aggregated.pts += (stat.pts || 0);
+      aggregated.trb += (stat.trb || 0);
+      aggregated.ast += (stat.ast || 0);
+      aggregated.stl += (stat.stl || 0);
+      aggregated.blk += (stat.blk || 0);
+      aggregated.tpm += (stat.tpm || stat.tp || 0);
+      aggregated.gp += (stat.gp || 0);
+      aggregated.teams.add(stat.tid);
+    }
+
+    // Only include players with 70%+ games played
+    if (aggregated.gp >= minGames) {
+      playerSeasonStats[player.pid] = aggregated;
+    }
+  }
+
+  // Calculate leaders for each category
+  const eligible = Object.values(playerSeasonStats);
+  
+  if (eligible.length === 0) return leaders;
+
+  // Points Leader: PPG = pts / gp, pick max
+  const maxPPG = Math.max(...eligible.map(p => p.pts / p.gp));
+  leaders.PointsLeader = eligible
+    .filter(p => Math.abs((p.pts / p.gp) - maxPPG) < 0.001)
+    .map(p => p.pid);
+
+  // Rebounds Leader: RPG = trb / gp, pick max
+  const maxRPG = Math.max(...eligible.map(p => p.trb / p.gp));
+  leaders.ReboundsLeader = eligible
+    .filter(p => Math.abs((p.trb / p.gp) - maxRPG) < 0.001)
+    .map(p => p.pid);
+
+  // Assists Leader: APG = ast / gp, pick max
+  const maxAPG = Math.max(...eligible.map(p => p.ast / p.gp));
+  leaders.AssistsLeader = eligible
+    .filter(p => Math.abs((p.ast / p.gp) - maxAPG) < 0.001)
+    .map(p => p.pid);
+
+  // Steals Leader: SPG = stl / gp, pick max
+  const maxSPG = Math.max(...eligible.map(p => p.stl / p.gp));
+  leaders.StealsLeader = eligible
+    .filter(p => Math.abs((p.stl / p.gp) - maxSPG) < 0.001)
+    .map(p => p.pid);
+
+  // Blocks Leader: BPG = blk / gp, pick max
+  const maxBPG = Math.max(...eligible.map(p => p.blk / p.gp));
+  leaders.BlocksLeader = eligible
+    .filter(p => Math.abs((p.blk / p.gp) - maxBPG) < 0.001)
+    .map(p => p.pid);
+
+  // 3-Pointers Made Leader: 3PM = tpm (total), pick max
+  const max3PM = Math.max(...eligible.map(p => p.tpm));
+  leaders.ThreePointersLeader = eligible
+    .filter(p => p.tpm === max3PM)
+    .map(p => p.pid);
+
+  return leaders;
 }
 
 /**
@@ -376,6 +519,62 @@ export function buildSeasonIndex(players: Player[], sport?: string): SeasonIndex
     }
   }
   
+  // Calculate Basketball GM season leaders (new logic for statistical leaders)
+  if (sport === 'basketball') {
+    console.log('🏀 Calculating Basketball GM season leaders...');
+    let leaderEntriesAdded = 0;
+    
+    // Get all seasons from existing index or detect from players
+    const allSeasons = new Set<number>();
+    for (const season of Object.keys(seasonIndex)) {
+      allSeasons.add(parseInt(season));
+    }
+    
+    // Also detect seasons from player stats
+    for (const player of players) {
+      if (player.stats) {
+        for (const stat of player.stats) {
+          if (stat.season && !stat.playoffs) {
+            allSeasons.add(stat.season);
+          }
+        }
+      }
+    }
+    
+    // Calculate leaders for each season
+    for (const season of Array.from(allSeasons)) {
+      // Get gameAttributes for this season (simplified)
+      const gameAttributes = { numGames: 82 }; // Default to 82, could be enhanced
+      
+      const seasonLeaders = calculateBBGMSeasonLeaders(players, season, gameAttributes);
+      
+      // Add leaders to season index with proper team attachment
+      for (const [leaderId, playerIds] of Object.entries(seasonLeaders)) {
+        const achievementId = leaderId as SeasonAchievementId;
+        
+        for (const pid of playerIds) {
+          const player = players.find(p => p.pid === pid);
+          if (!player) continue;
+          
+          // Get all teams this player played for in this season
+          const seasonTeams = getSeasonTeams(player, season);
+          
+          // Attach leader achievement to all teams they played for
+          for (const tid of Array.from(seasonTeams)) {
+            if (!seasonIndex[season]) seasonIndex[season] = {};
+            if (!seasonIndex[season][tid]) seasonIndex[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
+            if (!seasonIndex[season][tid][achievementId]) seasonIndex[season][tid][achievementId] = new Set();
+            
+            seasonIndex[season][tid][achievementId].add(pid);
+            leaderEntriesAdded++;
+          }
+        }
+      }
+    }
+    
+    console.log(`🏀 Basketball GM leaders added: ${leaderEntriesAdded} entries`);
+  }
+  
   // Log statistics
   const seasons = Object.keys(seasonIndex).length;
   const achievements = Object.values(seasonIndex).flatMap(season => 
@@ -501,6 +700,42 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
   {
     id: 'AllRookieAny',
     label: 'All-Rookie Team',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'PointsLeader',
+    label: 'League Points Leader',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'ReboundsLeader',
+    label: 'League Rebounds Leader',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'AssistsLeader',
+    label: 'League Assists Leader',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'StealsLeader',
+    label: 'League Steals Leader',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BlocksLeader',
+    label: 'League Blocks Leader',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'ThreePointersLeader',
+    label: 'League 3-Pointers Made Leader',
     isSeasonSpecific: true,
     minPlayers: 3
   },

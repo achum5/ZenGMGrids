@@ -16,6 +16,12 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, string> = {
   AllLeagueAny: 'All-League Team',
   AllDefAny: 'All-Defensive Team',
   AllRookieAny: 'All-Rookie Team',
+  PointsLeader: 'League Points Leader',
+  ReboundsLeader: 'League Rebounds Leader',
+  AssistsLeader: 'League Assists Leader',
+  StealsLeader: 'League Steals Leader',
+  BlocksLeader: 'League Blocks Leader',
+  ThreePointersLeader: 'League 3-Pointers Made Leader',
   
   // Football GM achievements
   FBAllStar: 'All-Star',
@@ -114,6 +120,12 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
     AllLeagueAny: ['All-League', 'all-league', 'First Team All-League', 'Second Team All-League', 'Third Team All-League'],
     AllDefAny: ['All-Defensive', 'all-defensive', 'First Team All-Defensive', 'Second Team All-Defensive'],
     AllRookieAny: ['All-Rookie', 'all-rookie', 'All-Rookie Team'],
+    PointsLeader: ['League Points Leader', 'league points leader', 'points leader', 'scoring leader'],
+    ReboundsLeader: ['League Rebounds Leader', 'league rebounds leader', 'rebounds leader', 'rebounding leader'],
+    AssistsLeader: ['League Assists Leader', 'league assists leader', 'assists leader'],
+    StealsLeader: ['League Steals Leader', 'league steals leader', 'steals leader'],
+    BlocksLeader: ['League Blocks Leader', 'league blocks leader', 'blocks leader'],
+    ThreePointersLeader: ['League 3-Pointers Made Leader', 'league 3-pointers made leader', '3-pointers made leader', 'three-pointers made leader', '3pm leader'],
     
     // Football GM achievements
     FBAllStar: ['All-Star'],
