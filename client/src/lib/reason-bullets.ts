@@ -34,10 +34,22 @@ function getCareerStats(player: Player, statTypes: string[]) {
           const seasonThrees = (season as any).tpm || (season as any).tp || (season as any).fg3 || 0;
           total += seasonThrees;
         } 
-        // Handle hockey assists - try multiple field names
+        // Handle hockey assists - calculate from component assists
         else if (statType === 'a') {
-          const seasonAssists = (season as any).a || (season as any).ast || (season as any).assists || 0;
-          total += seasonAssists;
+          // Hockey assists are the sum of even-strength, power-play, and short-handed assists
+          const evA = (season as any).evA || 0;
+          const ppA = (season as any).ppA || 0;
+          const shA = (season as any).shA || 0;
+          const seasonAssists = evA + ppA + shA;
+          
+          // Fallback to direct field if components not available
+          const fallbackAssists = seasonAssists || (season as any).a || (season as any).ast || (season as any).assists || 0;
+          
+          // Debug logging for hockey assists
+          if (fallbackAssists > 0) {
+            console.log(`🏒 ASSISTS DEBUG: Season ${season.season}, evA:${evA} + ppA:${ppA} + shA:${shA} = ${seasonAssists}, total so far: ${total + fallbackAssists}`);
+          }
+          total += fallbackAssists;
         } else {
           total += (season as any)[statType] || 0;
         }
@@ -61,9 +73,13 @@ function getBestSeason(player: Player, statType: string, isMin = false) {
     
     let value = 0;
     
-    // Handle hockey assists - try multiple field names
+    // Handle hockey assists - calculate from component assists
     if (statType === 'a') {
-      value = (season as any).a || (season as any).ast || (season as any).assists || 0;
+      const evA = (season as any).evA || 0;
+      const ppA = (season as any).ppA || 0;
+      const shA = (season as any).shA || 0;
+      const calculatedAssists = evA + ppA + shA;
+      value = calculatedAssists || (season as any).a || (season as any).ast || (season as any).assists || 0;
     } else {
       value = (season as any)[statType] || (isMin ? Infinity : 0);
     }
@@ -275,6 +291,15 @@ function generateCareerThresholdBullet(player: Player, achievementId: string, sp
   
   const careerStats = getCareerStats(player, [threshold.stat]);
   const actualValue = careerStats[threshold.stat] || 0;
+  
+  // Debug logging for hockey assists specifically
+  if (threshold.stat === 'a' && player.name) {
+    console.log(`🏒 CAREER ASSISTS DEBUG: ${player.name}, career total: ${actualValue}`);
+    if (player.stats) {
+      console.log(`🏒 Player has ${player.stats.filter(s => !s.playoffs).length} regular season records`);
+      console.log(`🏒 Sample season stats:`, player.stats.filter(s => !s.playoffs)[0]);
+    }
+  }
   
   return {
     text: `${threshold.label} (${formatNumber(actualValue)})`,
