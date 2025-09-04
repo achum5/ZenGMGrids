@@ -631,18 +631,64 @@ function calculateCommonAchievements(player: Player, achievements: any): void {
     console.log(`Hockey: ${player.firstName} ${player.lastName} played ${seasonCount} seasons`);
   }
   
-  // Location  
-  achievements.bornOutsideUS50DC = player.born?.loc && !isUSState(player.born.loc);
+  // Location - check if born outside the 50 US states + DC
+  achievements.bornOutsideUS50DC = isBornOutsideUS50DC(player.born);
+  
+  // Debug birth location logic for verification (sample both true and false cases)
+  if (Math.random() < 0.05) { // Sample 5% of players
+    const isOutside = achievements.bornOutsideUS50DC;
+    const loc = player.born?.loc || 'unknown';
+    console.log(`🏠 ${player.firstName} ${player.lastName}: ${isOutside ? '✓ OUTSIDE' : '✗ INSIDE'} US50+DC: "${loc}"`);
+  }
   
   // Hall of Fame - check awards only (hof property doesn't exist in Player type)
   const awards = player.awards || [];
   achievements.isHallOfFamer = awards.some((a: any) => a.type === 'Inducted into the Hall of Fame');
 }
 
-// Helper function to check if location is a US state
+// Helper function to check if player was born outside the 50 US states + DC
+function isBornOutsideUS50DC(born: any): boolean {
+  if (!born || !born.loc) return false;
+  
+  // Parse the location string - BBGM typically uses formats like:
+  // "City, ST, USA" for US locations
+  // "City, Country" for international locations 
+  // "City, ST" for US territories/unclear cases
+  
+  const location = born.loc.trim();
+  
+  // Check if location contains USA at the end
+  if (location.endsWith(', USA')) {
+    // Extract state/region part: "City, ST, USA" -> "ST"
+    const parts = location.split(',').map(part => part.trim());
+    if (parts.length >= 3) {
+      const statePart = parts[parts.length - 2]; // Second to last part should be state
+      return !isUSState(statePart);
+    }
+    
+    // If format is unclear but ends with USA, check if any US state is mentioned
+    return !containsUSState(location);
+  }
+  
+  // If doesn't end with USA, check if it contains any US state codes
+  // This handles cases like "City, ST" or international locations
+  const hasUSState = containsUSState(location);
+  
+  // If no US state detected, consider it outside US
+  return !hasUSState;
+}
+
+// Helper function to check if location string is a US state code
 function isUSState(location: string): boolean {
   const usStates = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY', 'DC'];
-  return usStates.includes(location);
+  return usStates.includes(location.toUpperCase());
+}
+
+// Helper function to check if location string contains a US state
+function containsUSState(location: string): boolean {
+  const usStates = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY', 'DC'];
+  const upperLoc = location.toUpperCase();
+  return usStates.some(state => upperLoc.includes(state));
 }
 
 // Calculate team seasons and achievement seasons for same-season alignment

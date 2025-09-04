@@ -219,8 +219,16 @@ export interface Player {
     allDefensiveTeam: Set<number>;
     allStarSelection: Set<number>;
     champion: Set<number>;
+    // Draft achievements 
+    isFirstRoundPick: Set<number>;
+    isSecondRoundPick: Set<number>;
+    isUndrafted: Set<number>;
+    draftedTeen: Set<number>;
+    bornOutsideUS50DC: Set<number>;
     // Special
     allStar35Plus: Set<number>;
+    oneTeamOnly: Set<number>;
+    isHallOfFamer: Set<number>;
   };
   ratings?: Array<{ season: number; pos?: string; ovr?: number }>;
   retiredYear?: number | null;
