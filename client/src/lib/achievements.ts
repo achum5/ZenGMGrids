@@ -654,7 +654,16 @@ function isBornOutsideUS50DC(born: any): boolean {
   // If we can confirm US birth, they DON'T qualify for "outside" achievement
   // If we can't confirm US birth, they DO qualify
   
-  return !isBornInUS50DC(normalized);
+  const isUSBorn = isBornInUS50DC(normalized);
+  
+  // Debug logging for US-born players that might be incorrectly qualifying
+  if (!isUSBorn && (normalized.includes('usa') || normalized.includes('united states') || 
+      normalized.includes('california') || normalized.includes('new york') || normalized.includes('texas') ||
+      normalized.includes('florida') || normalized.includes('illinois') || normalized.includes('ohio'))) {
+    console.log(`🚨 POTENTIAL US PLAYER QUALIFYING: "${location}" -> normalized: "${normalized}" -> isUSBorn: ${isUSBorn}`);
+  }
+  
+  return !isUSBorn;
 }
 
 // Check if location definitively indicates birth in the 50 US states + DC
