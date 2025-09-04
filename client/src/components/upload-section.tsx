@@ -64,9 +64,38 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing }: Uploa
       <Card className="mb-8">
         <CardContent className="p-8">
           <Tabs defaultValue="file" className="w-full">
-            <TabsList className="grid w-full grid-cols-1 md:grid-cols-2 gap-2 mb-6">
-              <TabsTrigger value="file" data-testid="tab-file" className="text-center">Upload a ZenGM League</TabsTrigger>
-              <TabsTrigger value="url" data-testid="tab-url" className="text-center">Load a ZenGM League from URL</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-6 bg-transparent p-0 h-auto">
+              <TabsTrigger 
+                value="file" 
+                data-testid="tab-file" 
+                className="
+                  h-12 px-5 py-3 rounded-xl font-semibold text-base cursor-pointer
+                  bg-[#FFD54F] text-gray-900 border-0
+                  hover:bg-[#FFC83D] active:bg-[#FFB300] active:scale-[0.98]
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFD54F] focus-visible:ring-offset-2 focus-visible:ring-offset-background
+                  disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-[#FFD54F]
+                  transition-all duration-200 ease-out
+                  data-[state=active]:bg-[#FFD54F] data-[state=active]:text-gray-900
+                  shadow-sm
+                "
+              >
+                Upload a ZenGM League
+              </TabsTrigger>
+              <TabsTrigger 
+                value="url" 
+                data-testid="tab-url" 
+                className="
+                  h-12 px-5 py-3 rounded-xl font-semibold text-base cursor-pointer
+                  bg-transparent text-[#FFD54F] border-2 border-[#FFD54F]
+                  hover:bg-[#FFD54F]/10 active:bg-[#FFD54F]/15 active:scale-[0.98]
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFD54F] focus-visible:ring-offset-2 focus-visible:ring-offset-background
+                  disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-transparent
+                  transition-all duration-200 ease-out
+                  data-[state=active]:bg-transparent data-[state=active]:text-[#FFD54F] data-[state=active]:border-[#FFD54F]
+                "
+              >
+                Load a ZenGM League from URL
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="file">
