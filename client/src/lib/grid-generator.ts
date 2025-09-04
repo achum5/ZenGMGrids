@@ -661,12 +661,16 @@ function buildOppositeAxisForSeed(
     cols[seedSlot.index] = seedConstraint;
   }
   
-  // Choose 3 DISTINCT teams from eligible teams for the opposite axis
+  // Count total team slots needed across both axes
+  const totalTeamSlotsNeeded = layout.rows.filter(r => r === 'T').length + layout.cols.filter(c => c === 'T').length;
+  console.log(`Total team slots needed: ${totalTeamSlotsNeeded} (${layout.rows.filter(r => r === 'T').length} in rows + ${layout.cols.filter(c => c === 'T').length} in cols)`);
+  
+  // Choose DISTINCT teams from eligible teams for ALL team slots
   const selectedTeamIds = new Set<number>();
   const selectedTeams: CatTeam[] = [];
   
   for (const tid of eligibleTeams) {
-    if (selectedTeams.length >= 3) break;
+    if (selectedTeams.length >= totalTeamSlotsNeeded) break;
     if (selectedTeamIds.has(tid)) continue; // Skip duplicates
     
     const team = teams.find(t => t.tid === tid);
@@ -682,9 +686,11 @@ function buildOppositeAxisForSeed(
     });
   }
   
-  if (selectedTeams.length < 3) {
-    throw new Error(`Need at least 3 different teams for opposite axis, only found ${selectedTeams.length}`);
+  if (selectedTeams.length < totalTeamSlotsNeeded) {
+    throw new Error(`Need at least ${totalTeamSlotsNeeded} different teams for this layout, only found ${selectedTeams.length}`);
   }
+  
+  console.log(`Selected ${selectedTeams.length} teams: ${selectedTeams.map(t => t.label).join(', ')}`);
   
   // Fill BOTH axes completely according to their layouts
   console.log(`Layout: ${layout.name} - Rows: [${layout.rows.join(', ')}], Cols: [${layout.cols.join(', ')}]`);
@@ -711,9 +717,13 @@ function buildOppositeAxisForSeed(
         rows[i] = selectedTeams[teamIndex];
         console.log(`Filled row ${i} with team: ${selectedTeams[teamIndex].label}`);
         teamIndex++;
+      } else {
+        console.log(`ERROR: No more teams available for row ${i}, teamIndex=${teamIndex}, selectedTeams.length=${selectedTeams.length}`);
       }
     }
   }
+  
+  console.log(`After team filling - teamIndex: ${teamIndex}, rows filled: ${rows.filter(r => r).length}, cols filled: ${cols.filter(c => c).length}`);
   
   // Fill remaining slots with safe achievements/teams
   // For layouts with season achievements, use other season achievements to avoid mixing career/season
