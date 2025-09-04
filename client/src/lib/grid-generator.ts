@@ -696,7 +696,7 @@ function buildOppositeAxisForSeed(
   // Fill remaining slots with safe achievements/teams
   // For layouts with season achievements, use other season achievements to avoid mixing career/season
   // But don't reuse the seed achievement
-  const availableSeasonAchievements = seasonAchievements.filter(sa => sa.id !== seedAchievement.id);
+  const availableSeasonAchievements = SEASON_ACHIEVEMENTS.filter((sa: any) => sa.id !== seedAchievement.id);
   const safeSeasonAchievement: CatTeam = availableSeasonAchievements.length > 0 ? {
     key: `achievement-${availableSeasonAchievements[0].id}`,
     label: availableSeasonAchievements[0].label || availableSeasonAchievements[0].id,
@@ -775,7 +775,8 @@ function buildOppositeAxisForSeed(
               const teamId = parseInt(teamStr);
               const teamData = seasonData[teamId];
               if (teamData[rowConstraint.achievementId as SeasonAchievementId]) {
-                teamData[rowConstraint.achievementId as SeasonAchievementId].forEach(pid => eligiblePids.add(pid));
+                const achievementPids = teamData[rowConstraint.achievementId as SeasonAchievementId];
+                achievementPids.forEach(pid => eligiblePids.add(pid));
               }
             }
           }
@@ -793,11 +794,11 @@ function buildOppositeAxisForSeed(
               const colAchievementPids = teamData[colConstraint.achievementId as SeasonAchievementId] || new Set();
               
               // Find intersection of players who had both achievements in this season/team
-              for (const pid of rowAchievementPids) {
+              rowAchievementPids.forEach(pid => {
                 if (colAchievementPids.has(pid)) {
                   eligiblePids.add(pid);
                 }
-              }
+              });
             }
           }
           eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
