@@ -39,7 +39,7 @@ export function generateTeamsGrid(leagueData: LeagueData): {
   console.log(`🎯 STARTING GRID GENERATION for ${sport} (${players.length} players, ${teams.length} teams)`);
   
   // Retry logic to ensure all intersections have eligible players - with maximum attempt limit
-  const MAX_ATTEMPTS = 50;
+  const MAX_ATTEMPTS = 200;
   let attempt = 0;
   let lastError: Error | null = null;
   
