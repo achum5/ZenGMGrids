@@ -252,18 +252,6 @@ export function RulesModal({ sport }: RulesModalProps) {
                   </div>
 
 
-                  {/* Awards */}
-                  <div>
-                    <h3 className="font-semibold mb-3 text-base">Awards (with-team that year)</h3>
-                    <ul className="space-y-2">
-                      {sportRules.achievements.awards.map((award: string, index: number) => (
-                        <li key={index} className="flex items-start gap-2">
-                          <span className="text-primary">•</span>
-                          <span>{award}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
 
                   {/* Draft */}
                   {sportRules.achievements.draft.length > 0 && (
@@ -317,18 +305,6 @@ export function RulesModal({ sport }: RulesModalProps) {
                     </div>
 
 
-                    {/* Awards/Honors */}
-                    <div className="mb-4">
-                      <h4 className="font-medium mb-2">Awards/Honors (with-team that season)</h4>
-                      <ul className="space-y-1 ml-4">
-                        {sportRules.achievements.awards.map((award: string, index: number) => (
-                          <li key={index} className="flex items-start gap-2">
-                            <span className="text-primary">•</span>
-                            <span>{award}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
 
                     {/* Draft */}
                     {sportRules.achievements.draft.length > 0 && (
