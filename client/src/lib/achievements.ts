@@ -650,131 +650,198 @@ function isBornOutsideUS50DC(born: any): boolean {
     .replace(/\s+/g, ' ')
     .trim();
   
-  // Check if we can definitively identify this as being born in the US (50 states + DC)
-  // If we can confirm US birth, they DON'T qualify for "outside" achievement
-  // If we can't confirm US birth, they DO qualify
-  
+  // Check if this is definitively a US birth location (50 states + DC)
+  // If it is, they DON'T qualify for "outside" achievement
   const isUSBorn = isBornInUS50DC(normalized);
-  
-  // Debug logging for US-born players that might be incorrectly qualifying
-  if (!isUSBorn && (normalized.includes('usa') || normalized.includes('united states') || 
-      normalized.includes('california') || normalized.includes('new york') || normalized.includes('texas') ||
-      normalized.includes('florida') || normalized.includes('illinois') || normalized.includes('ohio'))) {
-    console.log(`🚨 POTENTIAL US PLAYER QUALIFYING: "${location}" -> normalized: "${normalized}" -> isUSBorn: ${isUSBorn}`);
-  }
   
   return !isUSBorn;
 }
 
 // Check if location definitively indicates birth in the 50 US states + DC
 function isBornInUS50DC(normalized: string): boolean {
-  // 1. Check for DC (various formats)
+  // A) District of Columbia - any of these = reject (inside US)
   if (isDC(normalized)) {
-    return true; // DC counts as "inside US"
+    return true;
   }
   
-  // 2. Check for US states
-  if (containsUSState(normalized)) {
-    return true; // US states count as "inside US"
+  // B) U.S. state postal codes
+  if (hasUSStateCode(normalized)) {
+    return true;
   }
   
-  // 3. US territories do NOT count as "inside US" - they qualify as outside
-  // So we don't return true for territories
+  // C) U.S. state full names
+  if (hasUSStateName(normalized)) {
+    return true;
+  }
   
-  // 4. If we can't definitively determine it's in the US, return false
-  // This means they qualify for "outside" achievement
+  // D) "Commonwealth of..." variants
+  if (hasCommonwealthVariant(normalized)) {
+    return true;
+  }
+  
+  // E) "Inside-USA" catch-alls (without clear foreign/territory cue)
+  if (hasUSACatchall(normalized)) {
+    return true;
+  }
+  
+  // F) Address patterns that imply "inside"
+  if (hasUSAddressPattern(normalized)) {
+    return true;
+  }
+  
+  // If none of the above, treat as outside (qualifies for achievement)
   return false;
 }
 
-// Check if location indicates Washington, DC
+// A) District of Columbia detection
 function isDC(normalized: string): boolean {
   return normalized.includes('washington dc') ||
          normalized.includes('washington d c') ||
          normalized.includes('district of columbia') ||
-         normalized.match(/\bdc\b/) !== null;
+         normalized.match(/\bdc\b/) !== null ||
+         normalized.match(/\bd\.c\.\b/) !== null;
 }
 
-
-// Check if location contains a US state
-function containsUSState(normalized: string): boolean {
-  const usStates = [
-    // State codes
-    'al', 'ak', 'az', 'ar', 'ca', 'co', 'ct', 'de', 'fl', 'hi', 'id', 'il', 'in', 
+// B) U.S. state postal codes detection
+function hasUSStateCode(normalized: string): boolean {
+  const stateCodes = [
+    'al', 'ak', 'az', 'ar', 'ca', 'co', 'ct', 'de', 'fl', 'ga', 'hi', 'id', 'il', 'in', 
     'ia', 'ks', 'ky', 'la', 'me', 'md', 'ma', 'mi', 'mn', 'ms', 'mo', 'mt', 'ne', 
     'nv', 'nh', 'nj', 'nm', 'ny', 'nc', 'nd', 'oh', 'ok', 'or', 'pa', 'ri', 'sc', 
     'sd', 'tn', 'tx', 'ut', 'vt', 'va', 'wa', 'wv', 'wi', 'wy'
   ];
   
-  // Check for state codes as whole words
-  for (const state of usStates) {
-    const regex = new RegExp(`\\b${state}\\b`);
+  for (const code of stateCodes) {
+    const regex = new RegExp(`\\b${code}\\b`);
     if (regex.test(normalized)) {
-      // Handle ambiguous cases
-      if (state === 'ga') {
-        // "GA" could be Georgia (state) or Georgia (country)
-        // Check for context clues
+      // Handle ambiguous case: GA could be Georgia state or Georgia country
+      if (code === 'ga') {
+        // Look for context clues that indicate Georgia state
         if (normalized.includes('atlanta') || normalized.includes('savannah') || 
-            normalized.includes('augusta') || normalized.includes('columbus')) {
-          return true; // Likely Georgia state
+            normalized.includes('augusta') || normalized.includes('columbus') ||
+            normalized.includes('usa') || normalized.includes('united states')) {
+          return true; // Clearly Georgia state
         }
-        if (normalized.includes('tbilisi') || normalized.includes('georgia') && 
-            !normalized.includes('usa') && !normalized.includes('united states')) {
-          continue; // Likely Georgia country, keep checking
+        // Look for context clues that indicate Georgia country
+        if (normalized.includes('tbilisi') || 
+            (normalized.includes('georgia') && !normalized.includes('usa') && !normalized.includes('united states'))) {
+          continue; // Likely Georgia country, keep checking other codes
         }
-        return true; // Default to state if ambiguous
+        // Default to state if still ambiguous (conservative approach)
+        return true;
       }
       return true;
     }
   }
   
-  // Check for full state names
+  return false;
+}
+
+// C) U.S. state full names detection
+function hasUSStateName(normalized: string): boolean {
   const stateNames = [
     'alabama', 'alaska', 'arizona', 'arkansas', 'california', 'colorado', 'connecticut',
-    'delaware', 'florida', 'hawaii', 'idaho', 'illinois', 'indiana', 'iowa', 'kansas',
-    'kentucky', 'louisiana', 'maine', 'maryland', 'massachusetts', 'michigan', 'minnesota',
-    'mississippi', 'missouri', 'montana', 'nebraska', 'nevada', 'new hampshire', 'new jersey',
-    'new mexico', 'new york', 'north carolina', 'north dakota', 'ohio', 'oklahoma', 'oregon',
-    'pennsylvania', 'rhode island', 'south carolina', 'south dakota', 'tennessee', 'texas',
-    'utah', 'vermont', 'virginia', 'washington', 'west virginia', 'wisconsin', 'wyoming'
+    'delaware', 'florida', 'georgia', 'hawaii', 'idaho', 'illinois', 'indiana', 'iowa', 
+    'kansas', 'kentucky', 'louisiana', 'maine', 'maryland', 'massachusetts', 'michigan', 
+    'minnesota', 'mississippi', 'missouri', 'montana', 'nebraska', 'nevada', 'new hampshire', 
+    'new jersey', 'new mexico', 'new york', 'north carolina', 'north dakota', 'ohio', 
+    'oklahoma', 'oregon', 'pennsylvania', 'rhode island', 'south carolina', 'south dakota', 
+    'tennessee', 'texas', 'utah', 'vermont', 'virginia', 'washington', 'west virginia', 
+    'wisconsin', 'wyoming'
   ];
   
   for (const stateName of stateNames) {
     if (normalized.includes(stateName)) {
-      // Special case: "washington" could be state or DC or foreign
+      // Special handling for ambiguous names
       if (stateName === 'washington') {
-        // Only count as state if context suggests WA state, not DC
+        // Washington could be state, DC, or foreign
         if (normalized.includes('seattle') || normalized.includes('spokane') || 
-            normalized.includes('tacoma') || normalized.match(/\bwa\b/)) {
-          return true;
+            normalized.includes('tacoma') || normalized.includes('washington state') ||
+            normalized.match(/\bwa\b/)) {
+          return true; // Clearly Washington state
         }
-        continue; // Skip ambiguous "washington"
+        if (normalized.includes('dc') || normalized.includes('d c') || 
+            normalized.includes('district')) {
+          return true; // Washington DC (handled by DC check but catch here too)
+        }
+        // If just "washington" without context, default to inside (conservative)
+        return true;
       }
+      
+      if (stateName === 'georgia') {
+        // Same logic as GA code above
+        if (normalized.includes('atlanta') || normalized.includes('savannah') || 
+            normalized.includes('augusta') || normalized.includes('usa') || 
+            normalized.includes('united states')) {
+          return true; // Clearly Georgia state
+        }
+        if (normalized.includes('tbilisi')) {
+          continue; // Clearly Georgia country
+        }
+        return true; // Default to state
+      }
+      
       return true;
     }
   }
   
-  // Additional checks for USA patterns that should disqualify
-  if (normalized.includes('usa') || normalized.includes('united states') || 
-      normalized.includes('u s a') || normalized.includes('united states of america')) {
-    return true; // Any mention of USA should disqualify from "outside" achievement
+  // Also check "State of ___" patterns
+  const stateOfRegex = /state of (alabama|alaska|arizona|arkansas|california|colorado|connecticut|delaware|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new hampshire|new jersey|new mexico|new york|north carolina|north dakota|ohio|oklahoma|oregon|pennsylvania|rhode island|south carolina|south dakota|tennessee|texas|utah|vermont|virginia|washington|west virginia|wisconsin|wyoming)/;
+  if (stateOfRegex.test(normalized)) {
+    return true;
   }
   
-  // Common US city patterns that indicate US birth
-  const usCities = [
-    'new york', 'los angeles', 'chicago', 'houston', 'phoenix', 'philadelphia', 
-    'san antonio', 'san diego', 'dallas', 'san jose', 'austin', 'jacksonville',
-    'fort worth', 'columbus', 'san francisco', 'charlotte', 'indianapolis', 
-    'seattle', 'denver', 'boston', 'el paso', 'nashville', 'detroit', 'oklahoma city',
-    'portland', 'las vegas', 'memphis', 'louisville', 'baltimore', 'milwaukee',
-    'albuquerque', 'tucson', 'fresno', 'sacramento', 'mesa', 'kansas city', 
-    'atlanta', 'long beach', 'colorado springs', 'raleigh', 'miami', 'virginia beach',
-    'omaha', 'oakland', 'minneapolis', 'tulsa', 'arlington', 'new orleans'
+  return false;
+}
+
+// D) Commonwealth variants detection
+function hasCommonwealthVariant(normalized: string): boolean {
+  const commonwealths = [
+    'commonwealth of kentucky',
+    'commonwealth of massachusetts', 
+    'commonwealth of pennsylvania',
+    'commonwealth of virginia'
   ];
   
-  for (const city of usCities) {
-    if (normalized.includes(city)) {
-      return true; // Major US cities indicate US birth
+  for (const commonwealth of commonwealths) {
+    if (normalized.includes(commonwealth)) {
+      return true;
     }
+  }
+  
+  return false;
+}
+
+// E) USA catch-alls detection
+function hasUSACatchall(normalized: string): boolean {
+  const usaPatterns = [
+    'usa', 'u.s.a.', 'u s a', 'us', 'u.s.', 'u s',
+    'united states', 'united states of america'
+  ];
+  
+  for (const pattern of usaPatterns) {
+    if (normalized.includes(pattern)) {
+      // Check if this is combined with a US state/city (clearly inside)
+      // OR if it's just "USA" alone (treat as inside per conservative approach)
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+// F) US address patterns detection
+function hasUSAddressPattern(normalized: string): boolean {
+  // Pattern: City, StateCode (e.g., "dallas tx", "miami fl")
+  const cityStatePattern = /\b[a-z\s]+,?\s+(al|ak|az|ar|ca|co|ct|de|fl|ga|hi|id|il|in|ia|ks|ky|la|me|md|ma|mi|mn|ms|mo|mt|ne|nv|nh|nj|nm|ny|nc|nd|oh|ok|or|pa|ri|sc|sd|tn|tx|ut|vt|va|wa|wv|wi|wy)\b/;
+  if (cityStatePattern.test(normalized)) {
+    return true;
+  }
+  
+  // Pattern: City, StateName (e.g., "portland oregon", "buffalo new york")
+  const cityStateNamePattern = /\b[a-z\s]+,?\s+(alabama|alaska|arizona|arkansas|california|colorado|connecticut|delaware|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new hampshire|new jersey|new mexico|new york|north carolina|north dakota|ohio|oklahoma|oregon|pennsylvania|rhode island|south carolina|south dakota|tennessee|texas|utah|vermont|virginia|washington|west virginia|wisconsin|wyoming)\b/;
+  if (cityStateNamePattern.test(normalized)) {
+    return true;
   }
   
   return false;
