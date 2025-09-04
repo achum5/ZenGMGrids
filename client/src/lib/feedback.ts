@@ -1909,15 +1909,13 @@ function generateAchievementBullet(player: Player, achievementId: string, teams:
     return generateSeasonAchievementBullet(player, achievementId as SeasonAchievementId, teams);
   }
   
-  // Handle regular achievements
-  const achievementLabel = getAchievementLabel(achievementId);
+  // Handle regular achievements with short labels
+  const shortLabel = getShortAchievementLabel(achievementId);
   
   if (meetsAchievement) {
-    const years = getAchievementYears(player, achievementId);
-    const yearText = years.length > 0 ? ` (${years.join(', ')})` : '';
-    return `• ${achievementLabel}${yearText}|GREEN`;
+    return `• ${shortLabel}|GREEN`;
   } else {
-    return `• ${achievementLabel}|RED`;
+    return `• Never ${shortLabel}|RED`;
   }
 }
 
@@ -1930,9 +1928,9 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
   
   if (seasons.length > 0) {
     const yearText = ` (${seasons.join(', ')})`;
-    return `• ${achData.label}${yearText}|GREEN`;
+    return `• Was ${achData.short}${yearText}|GREEN`;
   } else {
-    return `• ${achData.label}|RED`;
+    return `• Never made ${achData.short}|RED`;
   }
 }
 
@@ -1954,6 +1952,86 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
   }
   
   return seasons.sort((a, b) => a - b);
+}
+
+/**
+ * Get short achievement label for bullet points
+ */
+function getShortAchievementLabel(achievementId: string): string {
+  // Map achievement IDs to short, action-oriented labels
+  const shortLabels: Record<string, string> = {
+    // Common achievements across all sports
+    isHallOfFamer: 'Hall of Famer',
+    played10PlusSeasons: 'played 10+ seasons',
+    played15PlusSeasons: 'played 15+ seasons',
+    bornOutsideUS50DC: 'born outside US',
+    isPick1Overall: '#1 overall pick',
+    isFirstRoundPick: 'first round pick',
+    isSecondRoundPick: 'second round pick',
+    isUndrafted: 'went undrafted',
+    draftedTeen: 'drafted as teen',
+    
+    // Basketball specific achievements
+    career20000Pts: '20,000+ career points',
+    career8000Reb: '8,000+ career rebounds',
+    career6000Ast: '6,000+ career assists',
+    career2000Stl: '2,000+ career steals',
+    career2000Blk: '2,000+ career blocks',
+    season30ppg: '30+ PPG season',
+    season10apg: '10+ APG season', 
+    season15rpg: '15+ RPG season',
+    season3bpg: '3+ BPG season',
+    season25spg: '2.5+ SPG season',
+    season504090: '50/40/90 season',
+    ledScoringAny: 'led league in scoring',
+    ledRebAny: 'led league in rebounds',
+    ledAstAny: 'led league in assists',
+    ledBlkAny: 'led league in blocks',
+    ledStlAny: 'led league in steals',
+    
+    // Football specific achievements
+    career40000PassYds: '40,000+ passing yards',
+    career300PassTDs: '300+ passing TDs',
+    career15000RushYds: '15,000+ rushing yards',
+    career100RushTDs: '100+ rushing TDs',
+    career1000RecYds: '10,000+ receiving yards',
+    career100RecTDs: '100+ receiving TDs',
+    season4000PassYds: '4,000+ passing yards',
+    season2000RushYds: '2,000+ rushing yards',
+    season1500RecYds: '1,500+ receiving yards',
+    
+    // Hockey specific achievements
+    career500Goals: '500+ career goals',
+    career1000Pts: '1,000+ career points',
+    career1000Assists: '1,000+ career assists',
+    season50Goals: '50+ goals season',
+    season100Pts: '100+ points season',
+    season60Assists: '60+ assists season',
+    
+    // Baseball specific achievements
+    career3000Hits: '3,000+ career hits',
+    career500HRs: '500+ career home runs',
+    career1500RBIs: '1,500+ career RBIs',
+    career400SBs: '400+ career stolen bases',
+    career1800Runs: '1,800+ career runs',
+    career300Wins: '300+ career wins',
+    career3000Ks: '3,000+ career strikeouts',
+    career300Saves: '300+ career saves',
+    season50HRs: '50+ home runs season',
+    season130RBIs: '130+ RBIs season',
+    season200Hits: '200+ hits season',
+    season50SBs: '50+ stolen bases season',
+    season20Wins: '20+ wins season',
+    season40Saves: '40+ saves season',
+    season300Ks: '300+ strikeouts season',
+    season200ERA: 'sub-2.00 ERA season',
+    
+    // Championship achievements
+    wonChampionship: 'won championship',
+    wonFinalsMVP: 'won Finals MVP'
+  };
+  
+  return shortLabels[achievementId] || achievementId;
 }
 
 /**
