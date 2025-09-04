@@ -548,9 +548,23 @@ function generateGridSeeded(leagueData: LeagueData): {
   console.log(`Selected layout: ${layout.name}`);
   
   // Step B: Seed with one random season-specific achievement
-  const seasonAchievements = SEASON_ACHIEVEMENTS.filter(sa => 
-    players.some(p => playerMeetsAchievement(p, sa.id))
-  );
+  const seasonAchievements = SEASON_ACHIEVEMENTS.filter(sa => {
+    // Check if this achievement has any entries in the season index
+    for (const seasonStr of Object.keys(seasonIndex)) {
+      const season = parseInt(seasonStr);
+      const seasonData = seasonIndex[season];
+      for (const teamStr of Object.keys(seasonData)) {
+        const teamId = parseInt(teamStr);
+        const teamData = seasonData[teamId];
+        if (teamData[sa.id] && teamData[sa.id].size > 0) {
+          return true; // Found at least one player with this achievement
+        }
+      }
+    }
+    return false;
+  });
+  
+  console.log(`Found ${seasonAchievements.length} viable season-specific achievements:`, seasonAchievements.map(sa => sa.id));
   
   if (seasonAchievements.length === 0) {
     throw new Error('No viable season-specific achievements found');
