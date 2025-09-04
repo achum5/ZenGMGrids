@@ -1367,11 +1367,16 @@ export function generateFeedbackMessage(
   * Check if a player satisfies a team × achievement constraint with same-season alignment
   */
 function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, achievementId: string): boolean {
+  console.log(`🔍 EVAL TEAM-ACHIEVEMENT: ${player.name} × team ${teamTid} × achievement '${achievementId}'`);
+  
   // Check if this achievement requires same-season alignment
   if (!SEASON_ALIGNED_ACHIEVEMENTS.has(achievementId)) {
+    console.log(`  📋 Career-based (not season-aligned): ${achievementId}`);
     // Career-based achievements: just check if player ever played for team AND has the achievement
     return playerPlayedForTeam(player, teamTid) && playerMeetsAchievement(player, achievementId);
   }
+
+  console.log(`  🎯 Season-aligned: ${achievementId} - requires same-season validation`);
 
   // Season-aligned achievements: need intersection of team seasons and achievement seasons
   if (!player.teamSeasonsPaired || !player.achievementSeasons) {
