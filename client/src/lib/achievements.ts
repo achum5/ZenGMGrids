@@ -1,10 +1,18 @@
 import type { Player } from "@/types/bbgm";
+import { SEASON_ACHIEVEMENTS, type SeasonAchievement, type SeasonIndex, getSeasonEligiblePlayers } from './season-achievements';
 
 export interface Achievement {
   id: string;
   label: string;
   test: (player: Player) => boolean;
   minPlayers: number;
+  isSeasonSpecific?: boolean;
+}
+
+// Extended achievement interface for season-specific achievements
+export interface SeasonSpecificAchievement extends Achievement {
+  isSeasonSpecific: true;
+  seasonIndex?: SeasonIndex;
 }
 
 // Common achievements available for both sports
@@ -107,9 +115,38 @@ export const BASKETBALL_ACHIEVEMENTS: Achievement[] = [
     test: (p: Player) => p.achievements?.career2kThrees || false,
     minPlayers: 5
   },
-  // Note: Single-season awards removed from game entirely
-  // hasMVP, hasDPOY, hasROY, wonSixMOY, wonFinalsMVP, hasAllStar, wonChampionship
+  // Note: Single-season awards removed from career achievements
+  // Now implemented as season-specific achievements with proper harmonization
 ];
+
+// Convert season achievements to regular Achievement format for grid generation
+function createSeasonAchievementTests(seasonIndex?: SeasonIndex): Achievement[] {
+  if (!seasonIndex) return [];
+  
+  return SEASON_ACHIEVEMENTS.map(seasonAch => ({
+    id: seasonAch.id,
+    label: seasonAch.label,
+    isSeasonSpecific: true,
+    minPlayers: seasonAch.minPlayers,
+    test: (player: Player) => {
+      // For now, just check if player has any awards of this type
+      // The real validation happens during grid generation with season harmonization
+      return player.awards?.some(award => {
+        const normalizedType = award.type.toLowerCase().trim();
+        return seasonAch.id === 'AllStar' && normalizedType.includes('all-star') ||
+               seasonAch.id === 'MVP' && normalizedType.includes('most valuable player') ||
+               seasonAch.id === 'DPOY' && normalizedType.includes('defensive player') ||
+               seasonAch.id === 'ROY' && normalizedType.includes('rookie of the year') ||
+               seasonAch.id === 'SMOY' && normalizedType.includes('sixth man') ||
+               seasonAch.id === 'MIP' && normalizedType.includes('most improved') ||
+               seasonAch.id === 'FinalsMVP' && normalizedType.includes('finals mvp') ||
+               seasonAch.id === 'AllLeagueAny' && normalizedType.includes('all-league') ||
+               seasonAch.id === 'AllDefAny' && normalizedType.includes('all-defensive') ||
+               seasonAch.id === 'AllRookieAny' && normalizedType.includes('all-rookie');
+      }) || false;
+    }
+  }));
+}
 
 // Baseball-specific achievements  
 export const BASEBALL_ACHIEVEMENTS: Achievement[] = [
@@ -257,7 +294,7 @@ export const FOOTBALL_ACHIEVEMENTS: Achievement[] = [
 ];
 
 // Get achievements based on sport
-export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | 'baseball'): Achievement[] {
+export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | 'baseball', seasonIndex?: SeasonIndex): Achievement[] {
   const common = COMMON_ACHIEVEMENTS;
   
   if (sport === 'football') {
@@ -269,8 +306,13 @@ export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | '
   } else if (sport === 'baseball') {
     return [...common, ...BASEBALL_ACHIEVEMENTS];
   } else {
-    // Default to basketball for backwards compatibility
-    return [...common, ...BASKETBALL_ACHIEVEMENTS];
+    // Basketball: add season-specific achievements
+    const basketballAchievements = [...common, ...BASKETBALL_ACHIEVEMENTS];
+    if (seasonIndex) {
+      const seasonAchievements = createSeasonAchievementTests(seasonIndex);
+      basketballAchievements.push(...seasonAchievements);
+    }
+    return basketballAchievements;
   }
 }
 
@@ -901,8 +943,13 @@ export function calculateTeamSeasonsAndAchievementSeasons(player: Player, leader
 }
 
 // Get viable achievements that have at least the minimum number of qualifying players
-export function getViableAchievements(players: Player[], minCount = 15, sport?: 'basketball' | 'football' | 'hockey' | 'baseball'): Achievement[] {
-  const achievements = getAchievements(sport);
+export function getViableAchievements(
+  players: Player[], 
+  minCount = 15, 
+  sport?: 'basketball' | 'football' | 'hockey' | 'baseball',
+  seasonIndex?: any // SeasonIndex from season-achievements
+): Achievement[] {
+  const achievements = getAchievements(sport, seasonIndex);
   
   return achievements.filter(achievement => {
     const qualifyingPlayers = players.filter(achievement.test);

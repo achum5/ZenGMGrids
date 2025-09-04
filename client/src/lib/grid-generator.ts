@@ -1,6 +1,7 @@
 import type { LeagueData, CatTeam, Player } from '@/types/bbgm';
 import { getViableAchievements, playerMeetsAchievement, getAchievements, type Achievement } from '@/lib/achievements';
 import { evaluateConstraintPair, GridConstraint } from '@/lib/feedback';
+import { getSeasonEligiblePlayers, type SeasonAchievementId, SEASON_ACHIEVEMENTS } from './season-achievements';
 
 // Simple session-based memory to avoid immediate repetition
 const recentlyUsedTeams = new Set<number>();
@@ -13,7 +14,9 @@ function addToRecentlyUsed(teams: CatTeam[], achievements: CatTeam[]) {
       recentlyUsedTeams.add(team.tid);
       if (recentlyUsedTeams.size > maxRecentItems) {
         const firstItem = recentlyUsedTeams.values().next().value;
-        recentlyUsedTeams.delete(firstItem);
+        if (firstItem !== undefined) {
+          recentlyUsedTeams.delete(firstItem);
+        }
       }
     }
   });
@@ -23,7 +26,9 @@ function addToRecentlyUsed(teams: CatTeam[], achievements: CatTeam[]) {
       recentlyUsedAchievements.add(achievement.achievementId);
       if (recentlyUsedAchievements.size > maxRecentItems) {
         const firstItem = recentlyUsedAchievements.values().next().value;
-        recentlyUsedAchievements.delete(firstItem);
+        if (firstItem !== undefined) {
+          recentlyUsedAchievements.delete(firstItem);
+        }
       }
     }
   });
@@ -65,10 +70,10 @@ function attemptGridGeneration(leagueData: LeagueData): {
   cols: CatTeam[];
   intersections: Record<string, number[]>;
 } {
-  const { players, teams, sport } = leagueData;
+  const { players, teams, sport, seasonIndex } = leagueData;
   // Get viable achievements - use sport-specific minimum requirements to avoid infinite loops
   const minPlayersRequired = sport === 'hockey' ? 3 : 5; // Lower requirement for hockey due to fewer players
-  const viableAchievements = getViableAchievements(players, minPlayersRequired, sport);
+  const viableAchievements = getViableAchievements(players, minPlayersRequired, sport, seasonIndex);
   
   // Log all achievement counts for debugging - only check sport-specific achievements
   console.log('=== ACHIEVEMENT COUNTS ===');
@@ -142,11 +147,22 @@ function attemptGridGeneration(leagueData: LeagueData): {
 
   // Pre-validate achievement-team combinations to avoid impossible grids
   const preValidateIntersection = (achievement: CatTeam, team: CatTeam): boolean => {
-    const eligiblePlayers = players.filter(p => 
-      playerMeetsAchievement(p, achievement.achievementId!) && 
-      p.teamsPlayed.has(team.tid!)
-    );
-    return eligiblePlayers.length > 0;
+    // Check if this is a season-specific achievement
+    const isSeasonAchievement = SEASON_ACHIEVEMENTS.some(sa => sa.id === achievement.achievementId);
+    
+    if (isSeasonAchievement && seasonIndex && sport === 'basketball') {
+      // Use season harmonization for season-specific achievements
+      const seasonAchievementId = achievement.achievementId as SeasonAchievementId;
+      const eligiblePids = getSeasonEligiblePlayers(seasonIndex, team.tid!, seasonAchievementId);
+      return eligiblePids.size > 0;
+    } else {
+      // Use traditional validation for career achievements
+      const eligiblePlayers = players.filter(p => 
+        playerMeetsAchievement(p, achievement.achievementId!) && 
+        p.teamsPlayed.has(team.tid!)
+      );
+      return eligiblePlayers.length > 0;
+    }
   };
 
   // Smart random selection: filter out low-coverage achievements, then randomize

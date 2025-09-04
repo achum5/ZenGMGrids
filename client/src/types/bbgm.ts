@@ -253,6 +253,8 @@ export interface LeagueData {
   teams: Team[];
   teamOverlaps?: TeamOverlapData; // Pre-analyzed team combination data
   sport?: 'basketball' | 'football' | 'hockey' | 'baseball';
+  // Season index for season-specific achievements (basketball only)
+  seasonIndex?: any; // SeasonIndex from season-achievements
 }
 
 export interface CatTeam {

@@ -1,6 +1,7 @@
 import type { Player, Team } from '@/types/bbgm';
 import { SEASON_ALIGNED_ACHIEVEMENTS } from '@/lib/achievements';
 import { playerMeetsAchievement } from '@/lib/achievements';
+import { SEASON_ACHIEVEMENTS } from './season-achievements';
 
 // Helper functions for football stat calculations
 function getFootballCareerStats(player: Player) {

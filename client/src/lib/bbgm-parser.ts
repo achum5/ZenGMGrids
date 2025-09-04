@@ -1,6 +1,7 @@
 import pako from 'pako';
 import type { LeagueData, Player, Team, SeasonLine, TeamOverlapData } from '@/types/bbgm';
 import { calculatePlayerAchievements, clearSeasonLengthCache, calculateLeagueLeadership, calculateTeamSeasonsAndAchievementSeasons, setCachedSportDetection } from '@/lib/achievements';
+import { buildSeasonIndex, type SeasonIndex } from './season-achievements';
 
 export type Sport = 'basketball' | 'football' | 'hockey' | 'baseball';
 
@@ -580,7 +581,14 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
     delete (window as any)._debugStats;
   }
   
-  return { players, teams, sport, teamOverlaps };
+  // Build season index for basketball only
+  let seasonIndex: SeasonIndex | undefined;
+  if (sport === 'basketball') {
+    console.log('🏀 Building season-specific achievement index for basketball...');
+    seasonIndex = buildSeasonIndex(players);
+  }
+  
+  return { players, teams, sport, teamOverlaps, seasonIndex };
   
   } catch (error) {
     console.error('Error in normalizeLeague:', error);
