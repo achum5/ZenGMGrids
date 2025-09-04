@@ -735,7 +735,8 @@ function buildOppositeAxisForSeed(
   
   console.log(`Available career achievements: ${careerAchievements.length}`);
   
-  // Helper to get random career achievement
+  // Helper to get random career achievement using seeded randomness
+  let achievementSeedCounter = 0;
   const getRandomCareerAchievement = (): CatTeam => {
     if (careerAchievements.length === 0) {
       // Fallback to a known safe career achievement
@@ -748,7 +749,8 @@ function buildOppositeAxisForSeed(
       };
     }
     
-    const randomAchievement = careerAchievements[Math.floor(seedRandom() * careerAchievements.length)];
+    const seedValue = simpleHash(gridId + '_achievement_' + achievementSeedCounter++);
+    const randomAchievement = careerAchievements[seedValue % careerAchievements.length];
     return {
       key: `achievement-${randomAchievement.id}`,
       label: randomAchievement.label || randomAchievement.id,
