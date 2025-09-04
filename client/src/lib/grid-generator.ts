@@ -593,6 +593,10 @@ function generateGridSeeded(leagueData: LeagueData): {
   
   console.log(`✅ Step 2: Seeded with ${seedAchievement.label} at ${seedSlot.axis} ${seedSlot.index}`);
   
+  // Track used season achievements to prevent duplicates
+  const usedSeasonAchievements = new Set<SeasonAchievementId>();
+  usedSeasonAchievements.add(seedAchievement.id);
+  
   // Initialize grid
   const rows: CatTeam[] = new Array(3);
   const cols: CatTeam[] = new Array(3);
@@ -653,9 +657,10 @@ function generateGridSeeded(leagueData: LeagueData): {
       // Pick achievement that has shared players in same season with seed
       const viableAchievements: (typeof SEASON_ACHIEVEMENTS[0] | Achievement)[] = [];
       
-      // Try season achievements first
+      // Try season achievements first (excluding already used ones)
       for (const ach of SEASON_ACHIEVEMENTS) {
         if (ach.id === seedAchievement.id) continue;
+        if (usedSeasonAchievements.has(ach.id)) continue;
         
         // Check if there's overlap in same season
         let hasOverlap = false;
@@ -722,6 +727,11 @@ function generateGridSeeded(leagueData: LeagueData): {
         key: `achievement-${selectedAch.id}`,
         test: (p: Player) => playerMeetsAchievement(p, selectedAch.id),
       };
+      
+      // Mark season achievement as used
+      if (selectedAch.isSeasonSpecific) {
+        usedSeasonAchievements.add(selectedAch.id as SeasonAchievementId);
+      }
       
       console.log(`   Filled ${oppositeAxis} ${i} with achievement: ${selectedAch.label}`);
     }
@@ -790,6 +800,9 @@ function generateGridSeeded(leagueData: LeagueData): {
           // Skip if season achievement but no season index
           if (ach.isSeasonSpecific && !seasonIndex) continue;
           
+          // Skip if this season achievement is already used
+          if (ach.isSeasonSpecific && usedSeasonAchievements.has(ach.id as SeasonAchievementId)) continue;
+          
           // Check if this achievement creates valid intersections with all columns
           let validForAllCols = true;
           
@@ -816,6 +829,12 @@ function generateGridSeeded(leagueData: LeagueData): {
               key: `achievement-${ach.id}`,
               test: (p: Player) => playerMeetsAchievement(p, ach.id),
             };
+            
+            // Mark season achievement as used
+            if (ach.isSeasonSpecific) {
+              usedSeasonAchievements.add(ach.id as SeasonAchievementId);
+            }
+            
             console.log(`     Selected achievement: ${ach.label} (attempt ${attempt + 1})`);
             found = true;
             break;
@@ -884,6 +903,9 @@ function generateGridSeeded(leagueData: LeagueData): {
           // Skip if season achievement but no season index
           if (ach.isSeasonSpecific && !seasonIndex) continue;
           
+          // Skip if this season achievement is already used
+          if (ach.isSeasonSpecific && usedSeasonAchievements.has(ach.id as SeasonAchievementId)) continue;
+          
           // Check if this achievement creates valid intersections with all rows
           let validForAllRows = true;
           
@@ -910,6 +932,12 @@ function generateGridSeeded(leagueData: LeagueData): {
               key: `achievement-${ach.id}`,
               test: (p: Player) => playerMeetsAchievement(p, ach.id),
             };
+            
+            // Mark season achievement as used
+            if (ach.isSeasonSpecific) {
+              usedSeasonAchievements.add(ach.id as SeasonAchievementId);
+            }
+            
             console.log(`     Selected achievement: ${ach.label} (attempt ${attempt + 1})`);
             found = true;
             break;
