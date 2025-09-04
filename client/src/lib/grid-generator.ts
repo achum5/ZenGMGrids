@@ -662,8 +662,10 @@ function generateGridSeeded(leagueData: LeagueData): {
         if (ach.id === seedAchievement.id) continue;
         if (usedSeasonAchievements.has(ach.id)) continue;
         
-        // Check if there's overlap in same season
+        // Check if there's overlap in same season AND enough viable teams
         let hasOverlap = false;
+        let viableTeamCount = 0;
+        
         for (const season of Object.keys(seasonIndex)) {
           const seasonNum = parseInt(season);
           const seasonData = seasonIndex[seasonNum];
@@ -673,18 +675,23 @@ function generateGridSeeded(leagueData: LeagueData): {
             const achPlayers = teamData[ach.id] || new Set();
             
             // Check for overlap
+            let teamHasOverlap = false;
             for (const pid of Array.from(seedPlayers)) {
               if (achPlayers.has(pid)) {
-                hasOverlap = true;
+                teamHasOverlap = true;
                 break;
               }
             }
-            if (hasOverlap) break;
+            
+            if (teamHasOverlap) {
+              hasOverlap = true;
+              viableTeamCount++;
+            }
           }
-          if (hasOverlap) break;
         }
         
-        if (hasOverlap) {
+        // Only add if there's overlap AND at least 2 viable teams (for grid coverage)
+        if (hasOverlap && viableTeamCount >= 2) {
           viableAchievements.push(ach);
         }
       }
@@ -808,6 +815,8 @@ function generateGridSeeded(leagueData: LeagueData): {
           
           for (let colIdx = 0; colIdx < 3; colIdx++) {
             const colConstraint = cols[colIdx];
+            if (!colConstraint) continue; // Skip empty columns
+            
             const intersection = calculateIntersectionSimple(
               { type: 'achievement', achievementId: ach.id, label: ach.label },
               colConstraint,
@@ -911,6 +920,8 @@ function generateGridSeeded(leagueData: LeagueData): {
           
           for (let rowIdx = 0; rowIdx < 3; rowIdx++) {
             const rowConstraint = rows[rowIdx];
+            if (!rowConstraint) continue; // Skip empty rows
+            
             const intersection = calculateIntersectionSimple(
               rowConstraint,
               { type: 'achievement', achievementId: ach.id, label: ach.label },
