@@ -661,34 +661,48 @@ function buildOppositeAxisForSeed(
     cols[seedSlot.index] = seedConstraint;
   }
   
-  // Choose 3 teams from eligible teams for the opposite axis
-  const selectedTeams = eligibleTeams.slice(0, 3).map(tid => {
-    const team = teams.find(t => t.tid === tid);
-    if (!team) throw new Error(`Team ${tid} not found`);
+  // Choose 3 DISTINCT teams from eligible teams for the opposite axis
+  const selectedTeamIds = new Set<number>();
+  const selectedTeams: CatTeam[] = [];
+  
+  for (const tid of eligibleTeams) {
+    if (selectedTeams.length >= 3) break;
+    if (selectedTeamIds.has(tid)) continue; // Skip duplicates
     
-    return {
+    const team = teams.find(t => t.tid === tid);
+    if (!team) continue;
+    
+    selectedTeamIds.add(tid);
+    selectedTeams.push({
       key: `team-${tid}`,
       label: `${team.region || team.abbrev} ${team.name}`,
       tid,
       type: 'team' as const,
       test: (p: Player) => p.teamsPlayed.has(tid),
-    };
-  });
+    });
+  }
   
-  // Fill the opposite axis with selected teams
+  if (selectedTeams.length < 3) {
+    throw new Error(`Need at least 3 different teams for opposite axis, only found ${selectedTeams.length}`);
+  }
+  
+  // Fill the opposite axis with selected teams (ensuring no duplicates)
   const oppositeAxis = seedSlot.axis === 'row' ? 'col' : 'row';
   const oppositeLayout = oppositeAxis === 'row' ? layout.rows : layout.cols;
   
+  let teamIndex = 0;
   if (oppositeAxis === 'row') {
     for (let i = 0; i < 3; i++) {
       if (oppositeLayout[i] === 'T') {
-        rows[i] = selectedTeams[Math.min(i, selectedTeams.length - 1)];
+        rows[i] = selectedTeams[teamIndex];
+        teamIndex++;
       }
     }
   } else {
     for (let i = 0; i < 3; i++) {
       if (oppositeLayout[i] === 'T') {
-        cols[i] = selectedTeams[Math.min(i, selectedTeams.length - 1)];
+        cols[i] = selectedTeams[teamIndex];
+        teamIndex++;
       }
     }
   }
@@ -719,16 +733,113 @@ function buildOppositeAxisForSeed(
     test: (p: Player) => playerMeetsAchievement(p, 'played10PlusSeasons'),
   };
   
+  // Fill remaining slots ensuring uniqueness
+  const usedTeamIds = new Set<number>();
+  const usedAchievementIds = new Set<string>();
+  
+  // Track already used items
   for (let i = 0; i < 3; i++) {
-    if (!rows[i]) {
-      // Use season achievements to be compatible with the seed
-      rows[i] = layout.rows[i] === 'T' ? selectedTeams[0] : safeSeasonAchievement;
+    if (rows[i]) {
+      if (rows[i].type === 'team') usedTeamIds.add(rows[i].tid!);
+      if (rows[i].type === 'achievement') usedAchievementIds.add(rows[i].achievementId!);
     }
-    if (!cols[i]) {
-      // Use season achievements to be compatible with the seed
-      cols[i] = layout.cols[i] === 'T' ? selectedTeams[0] : safeSeasonAchievement;
+    if (cols[i]) {
+      if (cols[i].type === 'team') usedTeamIds.add(cols[i].tid!);
+      if (cols[i].type === 'achievement') usedAchievementIds.add(cols[i].achievementId!);
     }
   }
+  
+  // Fill remaining slots without duplicates
+  let availableTeamIndex = 0;
+  let availableAchievementIndex = 0;
+  
+  for (let i = 0; i < 3; i++) {
+    if (!rows[i]) {
+      if (layout.rows[i] === 'T') {
+        // Find next unused team
+        while (availableTeamIndex < selectedTeams.length && 
+               usedTeamIds.has(selectedTeams[availableTeamIndex].tid!)) {
+          availableTeamIndex++;
+        }
+        if (availableTeamIndex < selectedTeams.length) {
+          rows[i] = selectedTeams[availableTeamIndex];
+          usedTeamIds.add(selectedTeams[availableTeamIndex].tid!);
+          availableTeamIndex++;
+        }
+      } else {
+        // Find next unused achievement
+        while (availableAchievementIndex < availableSeasonAchievements.length &&
+               usedAchievementIds.has(availableSeasonAchievements[availableAchievementIndex].id)) {
+          availableAchievementIndex++;
+        }
+        if (availableAchievementIndex < availableSeasonAchievements.length) {
+          const achievement = availableSeasonAchievements[availableAchievementIndex];
+          rows[i] = {
+            key: `achievement-${achievement.id}`,
+            label: achievement.label || achievement.id,
+            achievementId: achievement.id,
+            type: 'achievement',
+            test: (p: Player) => playerMeetsAchievement(p, achievement.id),
+          };
+          usedAchievementIds.add(achievement.id);
+          availableAchievementIndex++;
+        } else {
+          rows[i] = safeSeasonAchievement;
+        }
+      }
+    }
+    
+    if (!cols[i]) {
+      if (layout.cols[i] === 'T') {
+        // Find next unused team
+        while (availableTeamIndex < selectedTeams.length && 
+               usedTeamIds.has(selectedTeams[availableTeamIndex].tid!)) {
+          availableTeamIndex++;
+        }
+        if (availableTeamIndex < selectedTeams.length) {
+          cols[i] = selectedTeams[availableTeamIndex];
+          usedTeamIds.add(selectedTeams[availableTeamIndex].tid!);
+          availableTeamIndex++;
+        }
+      } else {
+        // Find next unused achievement
+        while (availableAchievementIndex < availableSeasonAchievements.length &&
+               usedAchievementIds.has(availableSeasonAchievements[availableAchievementIndex].id)) {
+          availableAchievementIndex++;
+        }
+        if (availableAchievementIndex < availableSeasonAchievements.length) {
+          const achievement = availableSeasonAchievements[availableAchievementIndex];
+          cols[i] = {
+            key: `achievement-${achievement.id}`,
+            label: achievement.label || achievement.id,
+            achievementId: achievement.id,
+            type: 'achievement',
+            test: (p: Player) => playerMeetsAchievement(p, achievement.id),
+          };
+          usedAchievementIds.add(achievement.id);
+          availableAchievementIndex++;
+        } else {
+          cols[i] = safeSeasonAchievement;
+        }
+      }
+    }
+  }
+  
+  // Validate that we have exactly 3 rows and 3 columns
+  if (rows.length !== 3 || cols.length !== 3) {
+    throw new Error(`Invalid grid dimensions: ${rows.length} rows, ${cols.length} cols (expected 3x3)`);
+  }
+  
+  // Ensure all slots are filled
+  for (let i = 0; i < 3; i++) {
+    if (!rows[i] || !cols[i]) {
+      throw new Error(`Grid has empty slots: row ${i} = ${!!rows[i]}, col ${i} = ${!!cols[i]}`);
+    }
+  }
+  
+  console.log(`Grid structure verified: 3x3 with unique constraints`);
+  console.log(`Rows: ${rows.map(r => r.label).join(', ')}`);
+  console.log(`Cols: ${cols.map(c => c.label).join(', ')}`);
   
   // Calculate intersections using the evaluation system
   const intersections: Record<string, number[]> = {};
