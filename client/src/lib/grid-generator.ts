@@ -140,6 +140,15 @@ function attemptGridGeneration(leagueData: LeagueData): {
     return result.slice(0, achievements.length);
   };
 
+  // Pre-validate achievement-team combinations to avoid impossible grids
+  const preValidateIntersection = (achievement: CatTeam, team: CatTeam): boolean => {
+    const eligiblePlayers = players.filter(p => 
+      playerMeetsAchievement(p, achievement.achievementId!) && 
+      p.teamsPlayed.has(team.tid!)
+    );
+    return eligiblePlayers.length > 0;
+  };
+
   // Smart random selection: filter out low-coverage achievements, then randomize
   let selectedAchievements: CatTeam[] = [];
   if (leagueData.teamOverlaps && Object.keys(leagueData.teamOverlaps.achievementTeamCounts).length > 0) {
@@ -210,21 +219,13 @@ function attemptGridGeneration(leagueData: LeagueData): {
   const selectedTeams: CatTeam[] = [];
   
   if (teamOverlaps && teamOverlaps.viableTeamPairs.length > 0) {
-    // Smart random team selection: avoid problematic teams, then randomize within viable ones
-    const problemTeams = new Set<number>();
-    
-    // Identify teams that have very poor achievement coverage
-    selectedAchievements.forEach(achievement => {
-      const teamsWithAchievement = teamOverlaps.teamAchievementMatrix[achievement.achievementId!] || new Set();
-      teams.forEach(team => {
-        if (!teamsWithAchievement.has(team.tid)) {
-          problemTeams.add(team.tid);
-        }
-      });
+    // Smart team selection: pre-validate all achievement-team combinations
+    const viableTeamConstraints = teamConstraints.filter(teamConstraint => {
+      // Check if this team has valid intersections with ALL selected achievements
+      return selectedAchievements.every(achievement => 
+        preValidateIntersection(achievement, teamConstraint)
+      );
     });
-    
-    // Filter out teams that would cause problems with selected achievements
-    const viableTeamConstraints = teamConstraints.filter(tc => !problemTeams.has(tc.tid!));
     
     // Separate recently used vs fresh teams for variety
     const freshTeams = viableTeamConstraints.filter(tc => !recentlyUsedTeams.has(tc.tid!));
