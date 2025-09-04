@@ -833,7 +833,7 @@ function buildOppositeAxisForSeed(
   
   for (let row = 0; row < 3; row++) {
     for (let col = 0; col < 3; col++) {
-      const key = `${row}-${col}`;
+      const key = `${rows[row].key}|${cols[col].key}`;
       const rowConstraint: GridConstraint = {
         type: rows[row].type,
         tid: rows[row].tid,
