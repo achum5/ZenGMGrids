@@ -1861,8 +1861,8 @@ export function generateFeedbackMessage(
   teams: Team[]
 ): string {
   // Get bullet point explanations for both constraints
-  const rowBullet = generateConstraintBullet(player, rowConstraint, teams);
-  const colBullet = generateConstraintBullet(player, colConstraint, teams);
+  const rowBullet = generateConstraintBullet(player, rowConstraint, teams, colConstraint);
+  const colBullet = generateConstraintBullet(player, colConstraint, teams, rowConstraint);
   
   // Return both bullet points
   return `${rowBullet}\n${colBullet}`;
@@ -1874,12 +1874,15 @@ export function generateFeedbackMessage(
 function generateConstraintBullet(
   player: Player,
   constraint: GridConstraint,
-  teams: Team[]
+  teams: Team[],
+  otherConstraint?: GridConstraint
 ): string {
   if (constraint.type === 'team') {
     return generateTeamBullet(player, constraint.tid!, teams);
   } else {
-    return generateAchievementBullet(player, constraint.achievementId!, teams);
+    // For season achievements, check if we need to filter by team
+    const teamTid = otherConstraint?.type === 'team' ? otherConstraint.tid : undefined;
+    return generateAchievementBullet(player, constraint.achievementId!, teams, teamTid);
   }
 }
 
@@ -1892,7 +1895,9 @@ function generateTeamBullet(player: Player, teamTid: number, teams: Team[]): str
   const playedForTeam = playerPlayedForTeam(player, teamTid);
   
   if (playedForTeam) {
-    return `• Played for ${teamName}|GREEN`;
+    const years = getPlayerTeamSeasons(player, teamTid);
+    const yearText = years.length > 0 ? ` (${formatYearRange(years)})` : '';
+    return `• ${teamName}${yearText}|GREEN`;
   } else {
     return `• Never played for ${teamName}|RED`;
   }
@@ -1901,12 +1906,12 @@ function generateTeamBullet(player: Player, teamTid: number, teams: Team[]): str
 /**
  * Generate bullet point for achievement constraint
  */
-function generateAchievementBullet(player: Player, achievementId: string, teams: Team[]): string {
+function generateAchievementBullet(player: Player, achievementId: string, teams: Team[], teamTid?: number): string {
   const meetsAchievement = playerMeetsAchievement(player, achievementId);
   
   // Handle season achievements with special formatting
   if (isSeasonAchievement(achievementId)) {
-    return generateSeasonAchievementBullet(player, achievementId as SeasonAchievementId, teams);
+    return generateSeasonAchievementBullet(player, achievementId as SeasonAchievementId, teams, teamTid);
   }
   
   // Handle regular achievements with short labels
@@ -1922,13 +1927,19 @@ function generateAchievementBullet(player: Player, achievementId: string, teams:
 /**
  * Generate bullet point for season achievement
  */
-function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAchievementId, teams: Team[]): string {
+function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAchievementId, teams: Team[], teamTid?: number): string {
   const achData = SEASON_ACHIEVEMENT_LABELS[achievementId];
-  const seasons = getSeasonAchievementSeasons(player, achievementId);
+  let seasons = getSeasonAchievementSeasons(player, achievementId);
+  
+  // If we have a specific team, filter to only seasons with that team
+  if (teamTid !== undefined && seasons.length > 0) {
+    const teamSeasons = getPlayerTeamSeasons(player, teamTid);
+    seasons = seasons.filter(season => teamSeasons.includes(season));
+  }
   
   if (seasons.length > 0) {
-    const yearText = ` (${seasons.join(', ')})`;
-    return `• Was ${achData.short}${yearText}|GREEN`;
+    const yearText = ` (${formatYearRange(seasons)})`;
+    return `• ${achData.short}${yearText}|GREEN`;
   } else {
     return `• Never made ${achData.short}|RED`;
   }
@@ -1952,6 +1963,44 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
   }
   
   return seasons.sort((a, b) => a - b);
+}
+
+/**
+ * Format year ranges with hyphens for consecutive years
+ */
+function formatYearRange(years: number[]): string {
+  if (years.length === 0) return '';
+  if (years.length === 1) return years[0].toString();
+  
+  const sortedYears = [...years].sort((a, b) => a - b);
+  const ranges: string[] = [];
+  let start = sortedYears[0];
+  let end = sortedYears[0];
+  
+  for (let i = 1; i < sortedYears.length; i++) {
+    if (sortedYears[i] === end + 1) {
+      // Consecutive year, extend the range
+      end = sortedYears[i];
+    } else {
+      // Gap found, finalize current range
+      if (start === end) {
+        ranges.push(start.toString());
+      } else {
+        ranges.push(`${start}–${end}`);
+      }
+      start = sortedYears[i];
+      end = sortedYears[i];
+    }
+  }
+  
+  // Add the final range
+  if (start === end) {
+    ranges.push(start.toString());
+  } else {
+    ranges.push(`${start}–${end}`);
+  }
+  
+  return ranges.join(', ');
 }
 
 /**
