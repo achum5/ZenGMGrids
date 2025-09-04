@@ -62,8 +62,8 @@ export function generateTeamsGrid(leagueData: LeagueData): {
     return generateGridOldRandom(leagueData);
   }
 
-  // If >= 50 seasons and basketball, football, or hockey, use new seeded builder
-  if ((sport === 'basketball' || sport === 'football' || sport === 'hockey') && leagueData.seasonIndex) {
+  // If >= 50 seasons and basketball, football, hockey, or baseball, use new seeded builder
+  if ((sport === 'basketball' || sport === 'football' || sport === 'hockey' || sport === 'baseball') && leagueData.seasonIndex) {
     console.log(`Using new seeded coverage-aware builder (>= 50 seasons, ${sport})`);
     return generateGridSeeded(leagueData);
   }

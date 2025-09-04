@@ -316,7 +316,13 @@ export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | '
     }
     return hockeyAchievements;
   } else if (sport === 'baseball') {
-    return [...common, ...BASEBALL_ACHIEVEMENTS];
+    const baseballAchievements = [...common, ...BASEBALL_ACHIEVEMENTS];
+    // Add season-specific achievements for baseball if season index is available
+    if (seasonIndex) {
+      const seasonAchievements = createSeasonAchievementTests(seasonIndex);
+      baseballAchievements.push(...seasonAchievements);
+    }
+    return baseballAchievements;
   } else {
     // Basketball: add season-specific achievements
     const basketballAchievements = [...common, ...BASKETBALL_ACHIEVEMENTS];

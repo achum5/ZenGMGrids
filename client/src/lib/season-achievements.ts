@@ -51,7 +51,31 @@ export type SeasonAchievementId =
   | 'HKAssistsLeader'
   | 'HKGoalsLeader'
   | 'HKPlayoffsMVP'
-  | 'HKChampion';
+  | 'HKChampion'
+  // Baseball GM achievements
+  | 'BBAllStar'
+  | 'BBAllStarMVP'
+  | 'BBMVP'
+  | 'BBPitcherOTY'
+  | 'BBROY'
+  | 'BBAllRookie'
+  | 'BBAllLeague'
+  | 'BBGoldGlove'
+  | 'BBSilverSlugger'
+  | 'BBBattingAvgLeader'
+  | 'BBHomeRunLeader'
+  | 'BBRBILeader'
+  | 'BBStolenBaseLeader'
+  | 'BBOBPLeader'
+  | 'BBSluggingLeader'
+  | 'BBOPSLeader'
+  | 'BBHitsLeader'
+  | 'BBERALeader'
+  | 'BBStrikeoutsLeader'
+  | 'BBSavesLeader'
+  | 'BBReliefPitcherOTY'
+  | 'BBPlayoffsMVP'
+  | 'BBChampion';
 
 // Award type normalization mapping
 const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId> = {
@@ -142,7 +166,35 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId> = {
   'league points leader': 'HKPointsLeader',
   'league assists leader': 'HKAssistsLeader',
   'league goals leader': 'HKGoalsLeader',
-  'playoffs mvp': 'HKPlayoffsMVP'
+  'playoffs mvp': 'HKPlayoffsMVP',
+  
+  // Baseball GM specific awards (case-sensitive exact matches from ZGMB)
+  'All-Star MVP': 'BBAllStarMVP',
+  'Pitcher of the Year': 'BBPitcherOTY',
+  'Cy Young': 'BBPitcherOTY',
+  'All-Rookie Team': 'BBAllRookie',
+  'All-League Team': 'BBAllLeague',
+  'First Team All-League': 'BBAllLeague',
+  'Second Team All-League': 'BBAllLeague',
+  'Gold Glove': 'BBGoldGlove',
+  'Silver Slugger': 'BBSilverSlugger',
+  'League Batting Average Leader': 'BBBattingAvgLeader',
+  'League Home Run Leader': 'BBHomeRunLeader',
+  'League RBI Leader': 'BBRBILeader',
+  'League Stolen Base Leader': 'BBStolenBaseLeader',
+  'League On-Base Percentage Leader': 'BBOBPLeader',
+  'League Slugging Percentage Leader': 'BBSluggingLeader',
+  'League OPS Leader': 'BBOPSLeader',
+  'League Hits Leader': 'BBHitsLeader',
+  'League Doubles Leader': 'BBHitsLeader',
+  'League Triples Leader': 'BBHitsLeader',
+  'League ERA Leader': 'BBERALeader',
+  'League Strikeouts Leader': 'BBStrikeoutsLeader',
+  'League Saves Leader': 'BBSavesLeader',
+  'Relief Pitcher of the Year': 'BBReliefPitcherOTY',
+  'Reliever of the Year': 'BBReliefPitcherOTY',
+  'Playoffs MVP': 'BBPlayoffsMVP',
+  'Finals MVP': 'BBPlayoffsMVP'
 };
 
 // Season index structure: season -> team -> achievement -> Set<pid>
@@ -176,6 +228,18 @@ function normalizeAwardType(awardType: string, sport?: string): SeasonAchievemen
     if (awardType === 'All-Rookie Team') return 'FBAllRookie';
     if (awardType === 'First Team All-League') return 'FBAllLeague1st';
     if (awardType === 'Second Team All-League') return 'FBAllLeague2nd';
+  } else if (sport === 'baseball') {
+    // Baseball-specific mappings (case-sensitive exact matches from ZGMB)
+    if (awardType === 'All-Star') return 'BBAllStar';
+    if (awardType === 'Most Valuable Player') return 'BBMVP';
+    if (awardType === 'Rookie of the Year') return 'BBROY';
+    if (awardType === 'Won Championship') return 'BBChampion';
+    if (awardType === 'All-Rookie Team') return 'BBAllRookie';
+    if (awardType === 'All-League Team') return 'BBAllLeague';
+    if (awardType === 'First Team All-League') return 'BBAllLeague';
+    if (awardType === 'Second Team All-League') return 'BBAllLeague';
+    if (awardType === 'Finals MVP') return 'BBPlayoffsMVP';
+    if (awardType === 'Playoffs MVP') return 'BBPlayoffsMVP';
   }
   
   // Fall back to general mapping
@@ -609,6 +673,146 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
   },
   {
     id: 'HKChampion',
+    label: 'Won Championship',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  
+  // Baseball GM achievements
+  {
+    id: 'BBAllStar',
+    label: 'All-Star',
+    isSeasonSpecific: true,
+    minPlayers: 5
+  },
+  {
+    id: 'BBAllStarMVP',
+    label: 'All-Star MVP',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBMVP',
+    label: 'MVP',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBPitcherOTY',
+    label: 'Pitcher of the Year',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBROY',
+    label: 'Rookie of the Year',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBAllRookie',
+    label: 'All-Rookie Team',
+    isSeasonSpecific: true,
+    minPlayers: 5
+  },
+  {
+    id: 'BBAllLeague',
+    label: 'All-League Team',
+    isSeasonSpecific: true,
+    minPlayers: 5
+  },
+  {
+    id: 'BBGoldGlove',
+    label: 'Gold Glove',
+    isSeasonSpecific: true,
+    minPlayers: 5
+  },
+  {
+    id: 'BBSilverSlugger',
+    label: 'Silver Slugger',
+    isSeasonSpecific: true,
+    minPlayers: 5
+  },
+  {
+    id: 'BBBattingAvgLeader',
+    label: 'League Batting Average Leader',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBHomeRunLeader',
+    label: 'League Home Run Leader',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBRBILeader',
+    label: 'League RBI Leader',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBStolenBaseLeader',
+    label: 'League Stolen Base Leader',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBOBPLeader',
+    label: 'League On-Base Percentage Leader',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSluggingLeader',
+    label: 'League Slugging Percentage Leader',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBOPSLeader',
+    label: 'League OPS Leader',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBHitsLeader',
+    label: 'League Hits Leader',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBERALeader',
+    label: 'League ERA Leader',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBStrikeoutsLeader',
+    label: 'League Strikeouts Leader',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSavesLeader',
+    label: 'League Saves Leader',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBReliefPitcherOTY',
+    label: 'Relief Pitcher of the Year',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBPlayoffsMVP',
+    label: 'Playoffs MVP',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBChampion',
     label: 'Won Championship',
     isSeasonSpecific: true,
     minPlayers: 3

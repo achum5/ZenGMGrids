@@ -310,7 +310,32 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     HKAssistsLeader: ['League Assists Leader', 'league assists leader'],
     HKGoalsLeader: ['League Goals Leader', 'league goals leader'],
     HKPlayoffsMVP: ['Playoffs MVP', 'playoffs mvp'],
-    HKChampion: ['Won Championship', 'won championship']
+    HKChampion: ['Won Championship', 'won championship'],
+    
+    // Baseball GM achievements (case-sensitive matches from ZGMB)
+    BBAllStar: ['All-Star'],
+    BBAllStarMVP: ['All-Star MVP'],
+    BBMVP: ['Most Valuable Player'],
+    BBPitcherOTY: ['Pitcher of the Year', 'Cy Young'],
+    BBROY: ['Rookie of the Year'],
+    BBAllRookie: ['All-Rookie Team'],
+    BBAllLeague: ['All-League Team', 'First Team All-League', 'Second Team All-League'],
+    BBGoldGlove: ['Gold Glove'],
+    BBSilverSlugger: ['Silver Slugger'],
+    BBBattingAvgLeader: ['League Batting Average Leader'],
+    BBHomeRunLeader: ['League Home Run Leader'],
+    BBRBILeader: ['League RBI Leader'],
+    BBStolenBaseLeader: ['League Stolen Base Leader'],
+    BBOBPLeader: ['League On-Base Percentage Leader'],
+    BBSluggingLeader: ['League Slugging Percentage Leader'],
+    BBOPSLeader: ['League OPS Leader'],
+    BBHitsLeader: ['League Hits Leader', 'League Doubles Leader', 'League Triples Leader'],
+    BBERALeader: ['League ERA Leader'],
+    BBStrikeoutsLeader: ['League Strikeouts Leader'],
+    BBSavesLeader: ['League Saves Leader'],
+    BBReliefPitcherOTY: ['Relief Pitcher of the Year', 'Reliever of the Year'],
+    BBPlayoffsMVP: ['Playoffs MVP', 'Finals MVP'],
+    BBChampion: ['Won Championship']
   };
 
   const patterns = awardTypePatterns[achievementId] || [];
@@ -331,8 +356,8 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     if (award.season) {
       seasons.push(award.season);
       
-      // For Finals MVP and Conference Finals MVP (BBGM, FBGM, and HKGM), include team abbreviation
-      if (achievementId === 'FinalsMVP' || achievementId === 'SFMVP' || achievementId === 'FBFinalsMVP' || achievementId === 'HKPlayoffsMVP' || achievementId === 'HKChampion') {
+      // For Finals MVP and Conference Finals MVP (BBGM, FBGM, HKGM, and BBGM), include team abbreviation
+      if (achievementId === 'FinalsMVP' || achievementId === 'SFMVP' || achievementId === 'FBFinalsMVP' || achievementId === 'HKPlayoffsMVP' || achievementId === 'HKChampion' || achievementId === 'BBPlayoffsMVP' || achievementId === 'BBChampion') {
         // Try to get team from playoffs stats for that season
         const playoffTeam = getPlayoffTeamForSeason(player, award.season);
         if (playoffTeam) {
