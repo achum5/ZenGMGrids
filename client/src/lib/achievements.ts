@@ -581,12 +581,23 @@ export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | '
 
 // Season-aligned achievements that need same-season matching for Team × Achievement cells
 export const SEASON_ALIGNED_ACHIEVEMENTS = new Set([
+  // Single-season statistical achievements
   'season30ppg', 'season10apg', 'season15rpg', 'season3bpg', 'season25spg', 'season504090',
   'season4500PassYds', 'season35PassTDs', 'season1800RushYds', 'season20RushTDs', 
   'season1400RecYds', 'season15RecTDs', 'season15Sacks', 'season8Ints',
   'season50Goals', 'season100Points', 'season60Assists', 'season35Wins', 'season10Shutouts', 'season925SavePct',
   'season50HRs', 'season130RBIs', 'season200Hits', 'season50SBs', 'season20Wins', 'season40Saves', 'season300Ks', 'season200ERA',
-  'ledScoringAny', 'ledRebAny', 'ledAstAny'
+  'ledScoringAny', 'ledRebAny', 'ledAstAny',
+  
+  // Award achievements - Basketball (has* prefix)
+  'hasMVP', 'hasDPOY', 'hasROY', 'hasSixthMan', 'hasMIP', 'hasFMVP', 
+  'hasAllLeague', 'hasAllDef', 'hasAllStar', 'hasChampion', 'allStar35Plus',
+  
+  // Award achievements - Football/Hockey/Baseball (won* prefix) 
+  'wonMVP', 'wonOPOY', 'wonDPOY', 'wonROY', 'wonChampionship',
+  
+  // All other award/recognition achievements that must be team-season aligned
+  'madeAllStar'
 ]);
 
 // Check if a player meets a specific achievement
