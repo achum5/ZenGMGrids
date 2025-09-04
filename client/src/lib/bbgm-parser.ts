@@ -581,11 +581,23 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
     delete (window as any)._debugStats;
   }
   
-  // Build season index for basketball only
+  // Build season index for basketball and football (when league has 50+ seasons)
   let seasonIndex: SeasonIndex | undefined;
+  
+  // Check if league has enough seasons for season achievement grids
+  const uniqueSeasons = new Set(
+    players.flatMap(p => p.stats?.filter(s => !s.playoffs).map(s => s.season) || [])
+  );
+  const seasonCount = uniqueSeasons.size;
+  
   if (sport === 'basketball') {
     console.log('🏀 Building season-specific achievement index for basketball...');
     seasonIndex = buildSeasonIndex(players);
+  } else if (sport === 'football' && seasonCount >= 50) {
+    console.log(`🏈 Building season-specific achievement index for football (${seasonCount} seasons ≥ 50)...`);
+    seasonIndex = buildSeasonIndex(players);
+  } else if (sport === 'football') {
+    console.log(`🏈 Skipping season achievements for football (${seasonCount} seasons < 50)`);
   }
   
   return { players, teams, sport, teamOverlaps, seasonIndex };

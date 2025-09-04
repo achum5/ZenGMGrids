@@ -75,6 +75,92 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     short: 'All-Rookie',
     verbTeam: 'made an All-Rookie Team',
     verbGeneric: 'made an All-Rookie Team'
+  },
+  
+  // Football GM season achievements
+  FBAllStar: {
+    label: 'All-Star',
+    short: 'All-Star',
+    verbTeam: 'made an All-Star team',
+    verbGeneric: 'made an All-Star team'
+  },
+  FBMVP: {
+    label: 'Most Valuable Player',
+    short: 'MVP',
+    verbTeam: 'won an MVP',
+    verbGeneric: 'won an MVP'
+  },
+  FBDPOY: {
+    label: 'Defensive Player of the Year',
+    short: 'DPOY',
+    verbTeam: 'won a Defensive Player of the Year',
+    verbGeneric: 'won a Defensive Player of the Year'
+  },
+  FBOffROY: {
+    label: 'Offensive Rookie of the Year',
+    short: 'Offensive ROY',
+    verbTeam: 'won Offensive Rookie of the Year',
+    verbGeneric: 'won Offensive Rookie of the Year'
+  },
+  FBDefROY: {
+    label: 'Defensive Rookie of the Year',
+    short: 'Defensive ROY',
+    verbTeam: 'won Defensive Rookie of the Year',
+    verbGeneric: 'won Defensive Rookie of the Year'
+  },
+  FBAllRookie: {
+    label: 'All-Rookie Team',
+    short: 'All-Rookie',
+    verbTeam: 'made an All-Rookie Team',
+    verbGeneric: 'made an All-Rookie Team'
+  },
+  FBAllLeague1st: {
+    label: 'First Team All-League',
+    short: '1st Team All-League',
+    verbTeam: 'made a First Team All-League',
+    verbGeneric: 'made a First Team All-League'
+  },
+  FBAllLeague2nd: {
+    label: 'Second Team All-League',
+    short: '2nd Team All-League',
+    verbTeam: 'made a Second Team All-League',
+    verbGeneric: 'made a Second Team All-League'
+  },
+  FBFinalsMVP: {
+    label: 'Finals MVP',
+    short: 'Finals MVP',
+    verbTeam: 'won a Finals MVP',
+    verbGeneric: 'won a Finals MVP'
+  },
+  FBChampion: {
+    label: 'Won Championship',
+    short: 'Champion',
+    verbTeam: 'won a championship',
+    verbGeneric: 'won a championship'
+  },
+  FBPassLeader: {
+    label: 'League Passing Leader',
+    short: 'Pass Leader',
+    verbTeam: 'led the league in passing',
+    verbGeneric: 'led the league in passing'
+  },
+  FBRecLeader: {
+    label: 'League Receiving Leader',
+    short: 'Rec Leader',
+    verbTeam: 'led the league in receiving',
+    verbGeneric: 'led the league in receiving'
+  },
+  FBRushLeader: {
+    label: 'League Rushing Leader',
+    short: 'Rush Leader',
+    verbTeam: 'led the league in rushing',
+    verbGeneric: 'led the league in rushing'
+  },
+  FBScrimmageLeader: {
+    label: 'League Scrimmage Yards Leader',
+    short: 'Scrimmage Leader',
+    verbTeam: 'led the league in scrimmage yards',
+    verbGeneric: 'led the league in scrimmage yards'
   }
 };
 
@@ -95,6 +181,7 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
 
   // Map achievement ID to award type patterns
   const awardTypePatterns: Record<SeasonAchievementId, string[]> = {
+    // Basketball GM achievements
     AllStar: ['All-Star', 'all-star', 'allstar'],
     MVP: ['MVP', 'Most Valuable Player', 'most valuable player'],
     DPOY: ['DPOY', 'Defensive Player of the Year', 'defensive player of the year'],
@@ -105,7 +192,23 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     SFMVP: ['Conference Finals MVP', 'conference finals mvp', 'CFMVP', 'cfmvp'],
     AllLeagueAny: ['All-League', 'all-league', 'First Team All-League', 'Second Team All-League', 'Third Team All-League'],
     AllDefAny: ['All-Defensive', 'all-defensive', 'First Team All-Defensive', 'Second Team All-Defensive'],
-    AllRookieAny: ['All-Rookie', 'all-rookie', 'All-Rookie Team']
+    AllRookieAny: ['All-Rookie', 'all-rookie', 'All-Rookie Team'],
+    
+    // Football GM achievements (exact case-sensitive matches from FBGM)
+    FBAllStar: ['All-Star'],
+    FBMVP: ['Most Valuable Player'],
+    FBDPOY: ['Defensive Player of the Year'],
+    FBOffROY: ['Offensive Rookie of the Year'],
+    FBDefROY: ['Defensive Rookie of the Year'],
+    FBAllRookie: ['All-Rookie Team'],
+    FBAllLeague1st: ['First Team All-League'],
+    FBAllLeague2nd: ['Second Team All-League'],
+    FBFinalsMVP: ['Finals MVP'],
+    FBChampion: ['Won Championship'],
+    FBPassLeader: ['League Passing Leader'],
+    FBRecLeader: ['League Receiving Leader'],
+    FBRushLeader: ['League Rushing Leader'],
+    FBScrimmageLeader: ['League Scrimmage Yards Leader']
   };
 
   const patterns = awardTypePatterns[achievementId] || [];
@@ -126,8 +229,8 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     if (award.season) {
       seasons.push(award.season);
       
-      // For Finals MVP and Conference Finals MVP, include team abbreviation
-      if (achievementId === 'FinalsMVP' || achievementId === 'SFMVP') {
+      // For Finals MVP and Conference Finals MVP (both BBGM and FBGM), include team abbreviation
+      if (achievementId === 'FinalsMVP' || achievementId === 'SFMVP' || achievementId === 'FBFinalsMVP') {
         // Try to get team from playoffs stats for that season
         const playoffTeam = getPlayoffTeamForSeason(player, award.season);
         if (playoffTeam) {

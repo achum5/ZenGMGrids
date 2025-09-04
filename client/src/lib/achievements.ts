@@ -300,7 +300,13 @@ export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | '
   if (sport === 'football') {
     // Exclude draftedTeen for football
     const footballCommon = common.filter(a => a.id !== 'draftedTeen');
-    return [...footballCommon, ...FOOTBALL_ACHIEVEMENTS];
+    const footballAchievements = [...footballCommon, ...FOOTBALL_ACHIEVEMENTS];
+    // Add season-specific achievements for football if season index is available
+    if (seasonIndex) {
+      const seasonAchievements = createSeasonAchievementTests(seasonIndex);
+      footballAchievements.push(...seasonAchievements);
+    }
+    return footballAchievements;
   } else if (sport === 'hockey') {
     return [...common, ...HOCKEY_ACHIEVEMENTS];
   } else if (sport === 'baseball') {

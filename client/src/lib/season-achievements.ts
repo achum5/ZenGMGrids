@@ -10,6 +10,7 @@ import type { Player } from '@/types/bbgm';
 
 // Season-specific achievement types
 export type SeasonAchievementId = 
+  // Basketball GM achievements
   | 'AllStar' 
   | 'MVP' 
   | 'DPOY' 
@@ -20,50 +21,65 @@ export type SeasonAchievementId =
   | 'SFMVP'
   | 'AllLeagueAny'
   | 'AllDefAny'
-  | 'AllRookieAny';
+  | 'AllRookieAny'
+  // Football GM achievements
+  | 'FBAllStar'
+  | 'FBMVP'
+  | 'FBDPOY'
+  | 'FBOffROY'
+  | 'FBDefROY'
+  | 'FBAllRookie'
+  | 'FBAllLeague1st'
+  | 'FBAllLeague2nd'
+  | 'FBFinalsMVP'
+  | 'FBChampion'
+  | 'FBPassLeader'
+  | 'FBRecLeader'
+  | 'FBRushLeader'
+  | 'FBScrimmageLeader';
 
 // Award type normalization mapping
 const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId> = {
-  // All-Star variations
+  // Basketball GM - All-Star variations
   'all-star': 'AllStar',
   'all star': 'AllStar',
   'allstar': 'AllStar',
   
-  // MVP variations
+  // Basketball GM - MVP variations
   'most valuable player': 'MVP',
   'mvp': 'MVP',
   
-  // DPOY variations
+  // Basketball GM - DPOY variations
   'defensive player of the year': 'DPOY',
   'dpoy': 'DPOY',
   'defensive player': 'DPOY',
   
-  // ROY variations
+  // Basketball GM - ROY variations
   'rookie of the year': 'ROY',
   'roy': 'ROY',
   
-  // SMOY variations
+  // Basketball GM - SMOY variations
   'sixth man of the year': 'SMOY',
   'smoy': 'SMOY',
   '6th man of the year': 'SMOY',
   '6moy': 'SMOY',
   
-  // MIP variations
+  // Basketball GM - MIP variations
   'most improved player': 'MIP',
   'mip': 'MIP',
   
-  // Finals MVP variations
+  // Basketball GM - Finals MVP variations
   'finals mvp': 'FinalsMVP',
   'finals most valuable player': 'FinalsMVP',
   'championship mvp': 'FinalsMVP',
   
-  // SFMVP/Conference Finals MVP variations
+  // Basketball GM - SFMVP/Conference Finals MVP variations
   'conference finals mvp': 'SFMVP',
   'semi-finals mvp': 'SFMVP',
   'cfmvp': 'SFMVP',
   'sfmvp': 'SFMVP',
   
-  // All-League (lumped) variations
+  // Basketball GM - All-League (lumped) variations
   'first team all-league': 'AllLeagueAny',
   'second team all-league': 'AllLeagueAny',
   'third team all-league': 'AllLeagueAny',
@@ -74,7 +90,7 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId> = {
   'all-nba second team': 'AllLeagueAny',
   'all-nba third team': 'AllLeagueAny',
   
-  // All-Defensive (lumped) variations
+  // Basketball GM - All-Defensive (lumped) variations
   'first team all-defensive': 'AllDefAny',
   'second team all-defensive': 'AllDefAny',
   'all-defensive first team': 'AllDefAny',
@@ -82,10 +98,26 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId> = {
   'all-nba defensive first team': 'AllDefAny',
   'all-nba defensive second team': 'AllDefAny',
   
-  // All-Rookie (lumped) variations
+  // Basketball GM - All-Rookie (lumped) variations
   'all-rookie first team': 'AllRookieAny',
   'all-rookie second team': 'AllRookieAny',
   'all-rookie team': 'AllRookieAny',
+  
+  // Football GM specific awards (case-sensitive exact matches from FBGM)
+  'All-Star': 'FBAllStar',
+  'Most Valuable Player': 'FBMVP',
+  'Defensive Player of the Year': 'FBDPOY',
+  'Offensive Rookie of the Year': 'FBOffROY',
+  'Defensive Rookie of the Year': 'FBDefROY',
+  'All-Rookie Team': 'FBAllRookie',
+  'First Team All-League': 'FBAllLeague1st',
+  'Second Team All-League': 'FBAllLeague2nd',
+  'Finals MVP': 'FBFinalsMVP',
+  'Won Championship': 'FBChampion',
+  'League Passing Leader': 'FBPassLeader',
+  'League Receiving Leader': 'FBRecLeader',
+  'League Rushing Leader': 'FBRushLeader',
+  'League Scrimmage Yards Leader': 'FBScrimmageLeader',
 };
 
 // Season index structure: season -> team -> achievement -> Set<pid>
@@ -118,6 +150,7 @@ function getSeasonTeams(player: Player, season: number): Set<number> {
 
 /**
  * Resolve Finals MVP team from playoffs stats
+ * Used for both BBGM FinalsMVP and FBGM FBFinalsMVP
  */
 function resolveFinalsMVPTeam(player: Player, season: number): number | null {
   if (!player.stats) return null;
@@ -133,14 +166,14 @@ function resolveFinalsMVPTeam(player: Player, season: number): number | null {
     return playoffStats[0].tid;
   }
   
-  // Find the team with most playoff minutes (likely Finals team)
+  // Find the team with most playoff minutes/games (likely Finals team)
   let bestTeam = playoffStats[0].tid;
-  let bestMinutes = playoffStats[0].min || 0;
+  let bestActivity = (playoffStats[0].min || 0) + (playoffStats[0].gp || 0) * 10; // Weight games more
   
   for (const stat of playoffStats) {
-    const minutes = stat.min || 0;
-    if (minutes > bestMinutes) {
-      bestMinutes = minutes;
+    const activity = (stat.min || 0) + (stat.gp || 0) * 10;
+    if (activity > bestActivity) {
+      bestActivity = activity;
       bestTeam = stat.tid;
     }
   }
@@ -177,8 +210,8 @@ export function buildSeasonIndex(players: Player[]): SeasonIndex {
       
       const season = award.season;
       
-      // Handle Finals MVP and SFMVP (single playoffs team)
-      if (achievementId === 'FinalsMVP') {
+      // Handle Finals MVP and SFMVP (single playoffs team) - for both BBGM and FBGM
+      if (achievementId === 'FinalsMVP' || achievementId === 'FBFinalsMVP') {
         const playoffsTeam = resolveFinalsMVPTeam(player, season);
         if (playoffsTeam !== null) {
           if (!seasonIndex[season]) seasonIndex[season] = {};
@@ -296,6 +329,7 @@ export interface SeasonAchievement {
 }
 
 export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
+  // Basketball GM achievements
   {
     id: 'AllStar',
     label: 'All-Star',
@@ -353,6 +387,92 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
   {
     id: 'AllRookieAny',
     label: 'All-Rookie Team',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  
+  // Football GM achievements
+  {
+    id: 'FBAllStar',
+    label: 'All-Star',
+    isSeasonSpecific: true,
+    minPlayers: 5
+  },
+  {
+    id: 'FBMVP',
+    label: 'MVP',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'FBDPOY',
+    label: 'Defensive Player of the Year',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'FBOffROY',
+    label: 'Offensive Rookie of the Year',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'FBDefROY',
+    label: 'Defensive Rookie of the Year',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'FBAllRookie',
+    label: 'All-Rookie Team',
+    isSeasonSpecific: true,
+    minPlayers: 5
+  },
+  {
+    id: 'FBAllLeague1st',
+    label: 'First Team All-League',
+    isSeasonSpecific: true,
+    minPlayers: 5
+  },
+  {
+    id: 'FBAllLeague2nd',
+    label: 'Second Team All-League',
+    isSeasonSpecific: true,
+    minPlayers: 5
+  },
+  {
+    id: 'FBFinalsMVP',
+    label: 'Finals MVP',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'FBChampion',
+    label: 'Won Championship',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'FBPassLeader',
+    label: 'League Passing Leader',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'FBRecLeader',
+    label: 'League Receiving Leader',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'FBRushLeader',
+    label: 'League Rushing Leader',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'FBScrimmageLeader',
+    label: 'League Scrimmage Yards Leader',
     isSeasonSpecific: true,
     minPlayers: 3
   },
