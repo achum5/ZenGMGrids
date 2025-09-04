@@ -8,12 +8,14 @@ import { RulesModal } from '@/components/RulesModal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Home as HomeIcon } from 'lucide-react';
-// Sport-specific asset imports
-import sportsIconImage from '@assets/D7A8CF63-116B-46C6-A58E-697981DC48A3_1757025491327.png';
-import basketballIcon from '@assets/13CBA528-7695-4621-8966-0A3B818F60C2_1757025491327.png';
-import footballIcon from '@assets/E8121249-D177-434F-8052-C3DF94CCE154_1757025491327.png';
-import hockeyIcon from '@assets/4E9D4C71-637D-4F89-B781-CFF9A7FCD724_1757025491327.png';
-import baseballIcon from '@assets/5BE52B41-A027-4579-BF4C-FBB1A0D40CCE_1757025491327.png';
+// Sport-specific icons (using emoji/text instead of image files)
+const sportIcons = {
+  basketball: '🏀',
+  football: '🏈', 
+  hockey: '🏒',
+  baseball: '⚾',
+  default: '🏆'
+};
 import { parseLeagueFile, parseLeagueUrl, buildSearchIndex } from '@/lib/bbgm-parser';
 import { generateTeamsGrid, cellKey } from '@/lib/grid-generator';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
@@ -547,11 +549,9 @@ export default function Home() {
           <div className="max-w-6xl mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <img 
-                  src={sportsIconImage}
-                  alt="Basketball, Football, Hockey, and Baseball icons" 
-                  className="w-12 h-12 object-contain"
-                />
+                <div className="w-12 h-12 flex items-center justify-center text-4xl">
+                  {sportIcons.default}
+                </div>
                 <h1 className="text-2xl font-bold text-foreground">ZenGM Grids</h1>
               </div>
               <div className="flex items-center space-x-3">
@@ -579,17 +579,9 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <img 
-                src={
-                  leagueData?.sport === 'basketball' ? basketballIcon :
-                  leagueData?.sport === 'football' ? footballIcon :
-                  leagueData?.sport === 'hockey' ? hockeyIcon :
-                  leagueData?.sport === 'baseball' ? baseballIcon :
-                  sportsIconImage
-                }
-                alt={`${leagueData?.sport || 'Sports'} icon`} 
-                className="w-10 h-10 object-contain"
-              />
+              <div className="w-10 h-10 flex items-center justify-center text-3xl">
+                {sportIcons[leagueData?.sport as keyof typeof sportIcons] || sportIcons.default}
+              </div>
               <h1 className="text-2xl font-bold text-foreground">
                 {leagueData?.sport === 'basketball' && 'Basketball GM Grids'}
                 {leagueData?.sport === 'football' && 'Football GM Grids'}
