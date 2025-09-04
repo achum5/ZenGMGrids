@@ -7,6 +7,12 @@ const recentlyUsedTeams = new Set<number>();
 const recentlyUsedAchievements = new Set<string>();
 const maxRecentItems = 8; // Remember last 8 items to avoid immediate reuse
 
+// Clear caches (useful for debugging)
+export function clearGridCaches() {
+  recentlyUsedTeams.clear();
+  recentlyUsedAchievements.clear();
+}
+
 /**
  * AUTO-FIX MODE: When season-specific achievements are selected, adapt the opposite axis
  * to ensure viable intersections by choosing teams that actually have players with those achievements

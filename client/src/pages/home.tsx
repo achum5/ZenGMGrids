@@ -14,7 +14,7 @@ import footballIcon from '@assets/football-icon.png';
 import hockeyIcon from '@assets/hockey-icon.png';
 import baseballIcon from '@assets/baseball-icon.png';
 import { parseLeagueFile, parseLeagueUrl, buildSearchIndex } from '@/lib/bbgm-parser';
-import { generateTeamsGrid, cellKey } from '@/lib/grid-generator';
+import { generateTeamsGrid, cellKey, clearGridCaches } from '@/lib/grid-generator';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
 import { useToast } from '@/hooks/use-toast';
 import type { LeagueData, CatTeam, CellState, Player, SearchablePlayer } from '@/types/bbgm';
@@ -185,6 +185,9 @@ export default function Home() {
     setIsGenerating(true);
     
     try {
+      // Clear any cached team/achievement selections for fresh generation
+      clearGridCaches();
+      
       const gridResult = generateTeamsGrid(leagueData);
       setRows(gridResult.rows);
       setCols(gridResult.cols);
