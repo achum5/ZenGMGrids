@@ -696,7 +696,7 @@ function analyzeTeamOverlaps(players: Player[], teams: Team[]): TeamOverlapData 
     'season1800RushYds', 'season20RushTDs', 'career12kRecYds', 'career100RecTDs',
     'season1400RecYds', 'season15RecTDs', 'career100Sacks', 'career20Ints',
     'season15Sacks', 'season8Ints', 'wonMVP', 'wonOPOY', 'wonDPOY', 'wonROY',
-    'career20kPoints', 'career10kRebounds', 'season30ppg', 'hasMVP', 'hasAllStar'
+    'career20kPoints', 'career10kRebounds', 'hasMVP', 'hasAllStar'
   ];
   
   // Initialize achievement tracking

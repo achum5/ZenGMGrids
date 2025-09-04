@@ -878,9 +878,10 @@ export function calculateTeamSeasonsAndAchievementSeasons(player: Player, leader
   }
   if (!player.achievementSeasons) {
     player.achievementSeasons = {
-      season30ppg: new Set<number>(),
-      season10apg: new Set<number>(),
-      season15rpg: new Set<number>(),
+      // Note: Single season achievements removed from game
+      // season30ppg: new Set<number>(),
+      // season10apg: new Set<number>(),
+      // season15rpg: new Set<number>(),
       season3bpg: new Set<number>(),
       season25spg: new Set<number>(),
       season504090: new Set<number>(),
@@ -892,6 +893,7 @@ export function calculateTeamSeasonsAndAchievementSeasons(player: Player, leader
       // played15PlusSeasons: new Set<number>(), // Not needed in achievement seasons
       // Note: Draft achievements removed from UI
       // isPick1Overall: new Set<number>(),
+      // Note: Draft achievements still used for some sports
       isFirstRoundPick: new Set<number>(),
       isSecondRoundPick: new Set<number>(),
       isUndrafted: new Set<number>(),

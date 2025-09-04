@@ -1,5 +1,5 @@
 import type { LeagueData, CatTeam, Player } from '@/types/bbgm';
-import { getViableAchievements, playerMeetsAchievement } from '@/lib/achievements';
+import { getViableAchievements, playerMeetsAchievement, getAchievements, type Achievement } from '@/lib/achievements';
 import { evaluateConstraintPair, GridConstraint } from '@/lib/feedback';
 
 // Simple session-based memory to avoid immediate repetition
@@ -64,17 +64,13 @@ function attemptGridGeneration(leagueData: LeagueData): {
   // Get viable achievements (those with at least 5 qualifiers) - lowered to include more rare achievements
   const viableAchievements = getViableAchievements(players, 5, sport);
   
-  // Log all achievement counts for debugging
+  // Log all achievement counts for debugging - only check sport-specific achievements
   console.log('=== ACHIEVEMENT COUNTS ===');
-  const allAchievements = [
-    'isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted',
-    'draftedTeen', 'bornOutsideUS50DC', 'career20kPoints', 'career10kRebounds', 
-    'season30ppg', 'hasMVP', 'hasAllStar', 'isHallOfFamer', 'played15PlusSeasons'
-  ];
-  allAchievements.forEach(achievementId => {
-    const count = players.filter(p => p.achievements && (p.achievements as any)[achievementId]).length;
+  const sportAchievements = getAchievements(sport);
+  sportAchievements.forEach((achievement: Achievement) => {
+    const count = players.filter(p => p.achievements && (p.achievements as any)[achievement.id]).length;
     const viable = count >= 15 ? '✓' : '✗';
-    console.log(`${viable} ${achievementId}: ${count} players`);
+    console.log(`${viable} ${achievement.id}: ${count} players`);
   });
   console.log('==========================');
   
