@@ -725,6 +725,11 @@ function buildOppositeAxisForSeed(
   
   console.log(`After team filling - teamIndex: ${teamIndex}, rows filled: ${rows.filter(r => r).length}, cols filled: ${cols.filter(c => c).length}`);
   
+  console.log(`Debug: Entering achievement filling section`);
+  console.log(`Debug: sport variable = ${sport}`);
+  console.log(`Debug: seasonIndex exists = ${!!seasonIndex}`);
+  console.log(`Debug: players.length = ${players.length}`);
+  
   try {
     // Fill remaining slots with career achievements (not more season achievements)
     // Get viable career achievements (exclude season-specific ones)
