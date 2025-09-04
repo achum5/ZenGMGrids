@@ -1219,12 +1219,16 @@ export function getViableAchievements(players: Player[], minCount = 15, sport?: 
   
   return achievements.filter(achievement => {
     const qualifyingPlayers = players.filter(achievement.test);
-    const hasEnough = qualifyingPlayers.length >= Math.max(minCount, achievement.minPlayers);
+    const isAwardAchievement = achievement.id.startsWith('has') || achievement.id.startsWith('won');
+    
+    // Lower threshold for award achievements since they're rarer but valuable
+    const effectiveMinCount = isAwardAchievement ? 3 : Math.max(minCount, achievement.minPlayers);
+    const hasEnough = qualifyingPlayers.length >= effectiveMinCount;
     
     if (hasEnough) {
-      console.log(`✓ ${achievement.id}: ${qualifyingPlayers.length} players`);
+      console.log(`✅ VIABLE: ${achievement.id}: ${qualifyingPlayers.length} players${isAwardAchievement ? ' (AWARD - LOWERED THRESHOLD)' : ''}`);
     } else {
-      console.log(`✗ ${achievement.id}: only ${qualifyingPlayers.length} players (need ${Math.max(minCount, achievement.minPlayers)})`);
+      console.log(`❌ FILTERED OUT: ${achievement.id}: only ${qualifyingPlayers.length} players (need ${effectiveMinCount})${isAwardAchievement ? ' (AWARD)' : ''}`);
     }
     
     return hasEnough;

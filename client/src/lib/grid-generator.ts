@@ -156,7 +156,7 @@ function attemptGridGeneration(leagueData: LeagueData): {
       
       // ALSO BYPASS team coverage for award achievements since we now have proper season-aligned validation
       if (isAwardAchievement) {
-        console.log(`Award achievement ${achievement.achievementId}: BYPASSING coverage check, always viable=true (team coverage was ${teamCoverage})`);
+        console.log(`🎯 Award achievement ${achievement.achievementId}: INCLUDED IN VIABLE LIST (bypassing coverage check)`);
         return true; // Always allow award achievements regardless of team coverage
       }
       
