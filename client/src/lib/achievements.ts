@@ -638,10 +638,11 @@ function calculateCommonAchievements(player: Player, achievements: any): void {
 
 // Helper function to check if player was born outside the 50 US states + DC
 function isBornOutsideUS50DC(born: any): boolean {
-  if (!born || !born.loc) return false;
+  // If no birth location data, qualify (assume outside US)
+  if (!born || !born.loc) return true;
   
   const location = born.loc.trim();
-  if (!location) return false;
+  if (!location) return true;
   
   // Normalize for comparisons (case-insensitive, handle punctuation)
   const normalized = location.toLowerCase()
@@ -649,43 +650,30 @@ function isBornOutsideUS50DC(born: any): boolean {
     .replace(/\s+/g, ' ')
     .trim();
   
-  // Debug logging for problematic cases
-  if (location.includes('Abdelnaby') || normalized.includes('egypt') || normalized.includes('cairo')) {
-    console.log(`🔍 Birth location debug: "${location}" -> normalized: "${normalized}"`);
-  }
+  // Check if we can definitively identify this as being born in the US (50 states + DC)
+  // If we can confirm US birth, they DON'T qualify for "outside" achievement
+  // If we can't confirm US birth, they DO qualify
   
-  // 1. Check for DC first (various formats)
+  return !isBornInUS50DC(normalized);
+}
+
+// Check if location definitively indicates birth in the 50 US states + DC
+function isBornInUS50DC(normalized: string): boolean {
+  // 1. Check for DC (various formats)
   if (isDC(normalized)) {
-    console.log(`❌ DC detected: ${location}`);
-    return false; // DC is inside US
+    return true; // DC counts as "inside US"
   }
   
-  // 2. Check for US territories (these count as OUTSIDE)
-  if (isUSTerritory(normalized)) {
-    console.log(`✅ US Territory detected: ${location}`);
-    return true; // Territories qualify as outside
-  }
-  
-  // 3. Check for US states
+  // 2. Check for US states
   if (containsUSState(normalized)) {
-    console.log(`❌ US State detected: ${location}`);
-    return false; // US states are inside
+    return true; // US states count as "inside US"
   }
   
-  // 4. Check for "USA" patterns without clear state/DC context
-  if (isUSAWithoutStateContext(normalized)) {
-    console.log(`❌ USA without state context: ${location}`);
-    return false; // Conservative: assume inside if just "USA"
-  }
+  // 3. US territories do NOT count as "inside US" - they qualify as outside
+  // So we don't return true for territories
   
-  // 5. Check for foreign countries (Canada with provinces, other countries)
-  if (isForeignCountry(normalized)) {
-    console.log(`✅ Foreign country detected: ${location}`);
-    return true; // Foreign countries qualify as outside
-  }
-  
-  // 6. Default: if ambiguous, don't qualify (conservative approach)
-  console.log(`❌ Default (ambiguous): ${location}`);
+  // 4. If we can't definitively determine it's in the US, return false
+  // This means they qualify for "outside" achievement
   return false;
 }
 
@@ -697,39 +685,6 @@ function isDC(normalized: string): boolean {
          normalized.match(/\bdc\b/) !== null;
 }
 
-// Check if location is a US territory (counts as outside)
-function isUSTerritory(normalized: string): boolean {
-  // Puerto Rico
-  if (normalized.includes('puerto rico') || normalized.match(/\bpr\b/)) {
-    return true;
-  }
-  
-  // Guam
-  if (normalized.includes('guam') || normalized.match(/\bgu\b/)) {
-    return true;
-  }
-  
-  // US Virgin Islands
-  if (normalized.includes('virgin islands') || 
-      normalized.includes('usvi') || 
-      normalized.match(/\bvi\b/)) {
-    return true;
-  }
-  
-  // American Samoa
-  if (normalized.includes('american samoa') || normalized.match(/\bas\b/)) {
-    return true;
-  }
-  
-  // Northern Mariana Islands
-  if (normalized.includes('northern mariana') || 
-      normalized.includes('mariana islands') || 
-      normalized.match(/\bmp\b/)) {
-    return true;
-  }
-  
-  return false;
-}
 
 // Check if location contains a US state
 function containsUSState(normalized: string): boolean {
@@ -792,91 +747,6 @@ function containsUSState(normalized: string): boolean {
   return false;
 }
 
-// Check if location suggests USA but without clear state/DC/territory context
-function isUSAWithoutStateContext(normalized: string): boolean {
-  const usPatterns = ['usa', 'united states', 'u s a', 'united states of america'];
-  
-  for (const pattern of usPatterns) {
-    if (normalized.includes(pattern)) {
-      return true;
-    }
-  }
-  
-  return false;
-}
-
-// Check if location is clearly a foreign country
-function isForeignCountry(normalized: string): boolean {
-  // Canadian provinces
-  const canadianProvinces = ['on', 'qc', 'bc', 'ab', 'mb', 'sk', 'ns', 'nb', 'nl', 'pe', 'yt', 'nt', 'nu'];
-  for (const province of canadianProvinces) {
-    if (normalized.match(new RegExp(`\\b${province}\\b`))) {
-      return true;
-    }
-  }
-  
-  // Common international patterns
-  if (normalized.includes('canada') || 
-      normalized.includes('ontario') || 
-      normalized.includes('quebec') || 
-      normalized.includes('british columbia') ||
-      normalized.includes('greece') ||
-      normalized.includes('slovenia') ||
-      normalized.includes('france') ||
-      normalized.includes('germany') ||
-      normalized.includes('england') ||
-      normalized.includes('scotland') ||
-      normalized.includes('united kingdom') ||
-      normalized.includes('uk') ||
-      normalized.includes('jamaica') ||
-      normalized.includes('bahamas') ||
-      normalized.includes('serbia') ||
-      normalized.includes('croatia') ||
-      normalized.includes('australia') ||
-      normalized.includes('spain') ||
-      normalized.includes('italy') ||
-      normalized.includes('brazil') ||
-      normalized.includes('argentina') ||
-      normalized.includes('mexico') ||
-      normalized.includes('nigeria') ||
-      normalized.includes('congo') ||
-      normalized.includes('cameroon') ||
-      normalized.includes('senegal') ||
-      normalized.includes('lithuania') ||
-      normalized.includes('latvia') ||
-      normalized.includes('czech') ||
-      normalized.includes('turkey') ||
-      normalized.includes('israel') ||
-      normalized.includes('china') ||
-      normalized.includes('japan') ||
-      normalized.includes('south korea') ||
-      normalized.includes('philippines') ||
-      normalized.includes('egypt') ||
-      normalized.includes('cairo') ||
-      normalized.includes('lebanon') ||
-      normalized.includes('sudan') ||
-      normalized.includes('ethiopia') ||
-      normalized.includes('kenya') ||
-      normalized.includes('south africa') ||
-      normalized.includes('morocco') ||
-      normalized.includes('tunisia') ||
-      normalized.includes('algeria') ||
-      normalized.includes('ghana') ||
-      normalized.includes('ivory coast') ||
-      normalized.includes('mali') ||
-      normalized.includes('burkina faso') ||
-      normalized.includes('rwanda') ||
-      normalized.includes('uganda') ||
-      normalized.includes('tanzania') ||
-      normalized.includes('zambia') ||
-      normalized.includes('zimbabwe') ||
-      normalized.includes('botswana') ||
-      normalized.includes('namibia')) {
-    return true;
-  }
-  
-  return false;
-}
 
 // Calculate team seasons and achievement seasons for same-season alignment
 export function calculateTeamSeasonsAndAchievementSeasons(player: Player, leadershipMap: any, gameAttributes: any): void {
