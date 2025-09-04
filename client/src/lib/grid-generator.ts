@@ -172,33 +172,62 @@ function attemptGridGeneration(leagueData: LeagueData): {
       recentlyUsedAchievements.has(a.achievementId!)
     );
     
-    // Prefer fresh achievements, but use recent ones if needed
-    if (freshAchievements.length >= numAchievements) {
-      // We have enough fresh achievements, use only those
-      selectedAchievements = freshAchievements
+    // Separate achievements by type to ensure variety and bias toward awards
+    const awardAchievements = viableAchievements.filter(a => 
+      a.achievementId!.startsWith('has') || a.achievementId!.startsWith('won')
+    );
+    const nonAwardAchievements = viableAchievements.filter(a => 
+      !a.achievementId!.startsWith('has') && !a.achievementId!.startsWith('won')
+    );
+    
+    console.log(`🎯 SELECTION: ${awardAchievements.length} award achievements available`);
+    console.log(`📊 SELECTION: ${nonAwardAchievements.length} non-award achievements available`);
+    
+    // Strongly bias selection toward including at least one award achievement
+    const includeAward = awardAchievements.length > 0 && Math.random() < 0.8; // 80% chance to include an award
+    
+    if (includeAward && awardAchievements.length > 0) {
+      console.log(`🎯 FORCING inclusion of award achievement!`);
+      // Select one award achievement + fill rest with others
+      const selectedAward = awardAchievements[Math.floor(Math.random() * awardAchievements.length)];
+      const remainingSlots = numAchievements - 1;
+      
+      // Fill remaining slots from all viable achievements (excluding the selected award)
+      const remainingPool = viableAchievements.filter(a => a.achievementId !== selectedAward.achievementId);
+      const remainingSelected = remainingPool
         .sort(() => Math.random() - 0.5)
-        .slice(0, numAchievements);
-    } else if (viableAchievements.length >= numAchievements) {
-      // Mix fresh and recent achievements
-      const neededFresh = Math.min(freshAchievements.length, numAchievements);
-      const neededRecent = numAchievements - neededFresh;
-      
-      selectedAchievements = [
-        ...freshAchievements.sort(() => Math.random() - 0.5).slice(0, neededFresh),
-        ...recentAchievements.sort(() => Math.random() - 0.5).slice(0, neededRecent)
-      ];
+        .slice(0, remainingSlots);
+        
+      selectedAchievements = [selectedAward, ...remainingSelected];
     } else {
-      // Not enough high-coverage achievements, include some with lower coverage
-      const allByTeamCoverage = achievementConstraints
-        .map(achievement => ({
-          achievement,
-          teamCoverage: leagueData.teamOverlaps!.achievementTeamCounts[achievement.achievementId!] || 0
-        }))
-        .sort((a, b) => b.teamCoverage - a.teamCoverage);
-      
-      selectedAchievements = allByTeamCoverage
-        .slice(0, numAchievements)
-        .map(item => item.achievement);
+      // Prefer fresh achievements, but use recent ones if needed
+      if (freshAchievements.length >= numAchievements) {
+        // We have enough fresh achievements, use only those
+        selectedAchievements = freshAchievements
+          .sort(() => Math.random() - 0.5)
+          .slice(0, numAchievements);
+      } else if (viableAchievements.length >= numAchievements) {
+        // Mix fresh and recent achievements
+        const neededFresh = Math.min(freshAchievements.length, numAchievements);
+        const neededRecent = numAchievements - neededFresh;
+        
+        selectedAchievements = [
+          ...freshAchievements.sort(() => Math.random() - 0.5).slice(0, neededFresh),
+          ...recentAchievements.sort(() => Math.random() - 0.5).slice(0, neededRecent)
+        ];
+      } else {
+        // Not enough high-coverage achievements, include some with lower coverage
+        const allByTeamCoverage = achievementConstraints
+          .map(achievement => ({
+            achievement,
+            teamCoverage: leagueData.teamOverlaps!.achievementTeamCounts[achievement.achievementId!] || 0
+          }))
+          .sort((a, b) => b.teamCoverage - a.teamCoverage);
+        
+        selectedAchievements = allByTeamCoverage
+          .slice(0, numAchievements)
+          .map(item => item.achievement);
+      }
     }
   } else {
     // Fallback: random selection
