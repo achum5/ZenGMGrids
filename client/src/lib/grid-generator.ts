@@ -725,28 +725,17 @@ function buildOppositeAxisForSeed(
   
   console.log(`After team filling - teamIndex: ${teamIndex}, rows filled: ${rows.filter(r => r).length}, cols filled: ${cols.filter(c => c).length}`);
   
-  console.log(`Debug: Entering achievement filling section`);
+  // Fill remaining slots with career achievements (not more season achievements)
+  // Get viable career achievements (exclude season-specific ones)
+  const minPlayersRequired = 5;
+  const allAchievements = getViableAchievements(players, minPlayersRequired, sport, seasonIndex);
+  const careerAchievements = allAchievements.filter(achievement => 
+    !SEASON_ACHIEVEMENTS.some(sa => sa.id === achievement.id)
+  );
   
-  try {
-    // Fill remaining slots with career achievements (not more season achievements)
-    // Get viable career achievements (exclude season-specific ones)
-    // TEMP FIX: Use hardcoded 'basketball' since we know this is a basketball league
-    console.log(`Debug: about to call getViableAchievements with hardcoded basketball`);
-    const minPlayersRequired = 5;
-    const allAchievements = getViableAchievements(players, minPlayersRequired, 'basketball', seasonIndex);
-    console.log(`Debug: getViableAchievements returned ${allAchievements.length} achievements`);
-    var careerAchievements = allAchievements.filter(achievement => 
-      !SEASON_ACHIEVEMENTS.some(sa => sa.id === achievement.id)
-    );
-    
-    console.log(`Available career achievements: ${careerAchievements.length}`);
-  } catch (error) {
-    console.error(`Error in getViableAchievements:`, error);
-    throw error;
-  }
+  console.log(`Available career achievements: ${careerAchievements.length}`);
   
-  // Helper to get random career achievement using seeded randomness
-  let achievementSeedCounter = 0;
+  // Helper to get random career achievement
   const getRandomCareerAchievement = (): CatTeam => {
     if (careerAchievements.length === 0) {
       // Fallback to a known safe career achievement
@@ -759,8 +748,7 @@ function buildOppositeAxisForSeed(
       };
     }
     
-    const seedValue = simpleHash(gridId + '_achievement_' + achievementSeedCounter++);
-    const randomAchievement = careerAchievements[seedValue % careerAchievements.length];
+    const randomAchievement = careerAchievements[Math.floor(seedRandom() * careerAchievements.length)];
     return {
       key: `achievement-${randomAchievement.id}`,
       label: randomAchievement.label || randomAchievement.id,
@@ -771,7 +759,7 @@ function buildOppositeAxisForSeed(
   };
   
   // Now fill all achievement slots
-  console.log(`Filling achievement slots. Seed already placed: ${seedAchievement.label || seedAchievement.id} at ${seedSlot.axis} ${seedSlot.index}`);
+  console.log(`Filling achievement slots. Seed already placed: ${seedAchievement.name} at ${seedSlot.axis} ${seedSlot.index}`);
   
   // Track already used achievements
   const usedAchievementIds = new Set<string>();

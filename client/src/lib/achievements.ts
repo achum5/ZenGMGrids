@@ -129,30 +129,21 @@ function createSeasonAchievementTests(seasonIndex?: SeasonIndex): Achievement[] 
     isSeasonSpecific: true,
     minPlayers: seasonAch.minPlayers,
     test: (player: Player) => {
-      try {
-        // For now, just check if player has any awards of this type
-        // The real validation happens during grid generation with season harmonization
-        if (!player.awards || !Array.isArray(player.awards)) return false;
-        
-        return player.awards.some(award => {
-          if (!award || !award.type || typeof award.type !== 'string') return false;
-          
-          const normalizedType = award.type.toLowerCase().trim();
-          return seasonAch.id === 'AllStar' && normalizedType.includes('all-star') ||
-                 seasonAch.id === 'MVP' && normalizedType.includes('most valuable player') ||
-                 seasonAch.id === 'DPOY' && normalizedType.includes('defensive player') ||
-                 seasonAch.id === 'ROY' && normalizedType.includes('rookie of the year') ||
-                 seasonAch.id === 'SMOY' && normalizedType.includes('sixth man') ||
-                 seasonAch.id === 'MIP' && normalizedType.includes('most improved') ||
-                 seasonAch.id === 'FinalsMVP' && normalizedType.includes('finals mvp') ||
-                 seasonAch.id === 'AllLeagueAny' && normalizedType.includes('all-league') ||
-                 seasonAch.id === 'AllDefAny' && normalizedType.includes('all-defensive') ||
-                 seasonAch.id === 'AllRookieAny' && normalizedType.includes('all-rookie');
-        });
-      } catch (error) {
-        console.error(`Error in season achievement test for ${seasonAch.id}:`, error);
-        return false;
-      }
+      // For now, just check if player has any awards of this type
+      // The real validation happens during grid generation with season harmonization
+      return player.awards?.some(award => {
+        const normalizedType = award.type.toLowerCase().trim();
+        return seasonAch.id === 'AllStar' && normalizedType.includes('all-star') ||
+               seasonAch.id === 'MVP' && normalizedType.includes('most valuable player') ||
+               seasonAch.id === 'DPOY' && normalizedType.includes('defensive player') ||
+               seasonAch.id === 'ROY' && normalizedType.includes('rookie of the year') ||
+               seasonAch.id === 'SMOY' && normalizedType.includes('sixth man') ||
+               seasonAch.id === 'MIP' && normalizedType.includes('most improved') ||
+               seasonAch.id === 'FinalsMVP' && normalizedType.includes('finals mvp') ||
+               seasonAch.id === 'AllLeagueAny' && normalizedType.includes('all-league') ||
+               seasonAch.id === 'AllDefAny' && normalizedType.includes('all-defensive') ||
+               seasonAch.id === 'AllRookieAny' && normalizedType.includes('all-rookie');
+      }) || false;
     }
   }));
 }
