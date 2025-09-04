@@ -81,7 +81,7 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing }: Uploa
                   shadow-sm
                 "
               >
-                Upload a ZenGM League
+                Upload a ZenGM League File
               </TabsTrigger>
               <TabsTrigger 
                 value="url" 
