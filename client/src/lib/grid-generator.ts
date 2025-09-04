@@ -725,37 +725,30 @@ function buildOppositeAxisForSeed(
   
   console.log(`After team filling - teamIndex: ${teamIndex}, rows filled: ${rows.filter(r => r).length}, cols filled: ${cols.filter(c => c).length}`);
   
-  // Fill remaining slots with career achievements (not more season achievements)
-  // Get viable career achievements (exclude season-specific ones)
-  const minPlayersRequired = 5;
-  const allAchievements = getViableAchievements(players, minPlayersRequired, sport, seasonIndex);
-  const careerAchievements = allAchievements.filter(achievement => 
-    !SEASON_ACHIEVEMENTS.some(sa => sa.id === achievement.id)
-  );
+  // Fill remaining slots with safe achievements/teams
+  // For layouts with season achievements, use other season achievements to avoid mixing career/season
+  // But don't reuse the seed achievement
+  const availableSeasonAchievements = SEASON_ACHIEVEMENTS.filter((sa: any) => sa.id !== seedAchievement.id);
+  const safeSeasonAchievement: CatTeam = availableSeasonAchievements.length > 0 ? {
+    key: `achievement-${availableSeasonAchievements[0].id}`,
+    label: availableSeasonAchievements[0].label || availableSeasonAchievements[0].id,
+    achievementId: availableSeasonAchievements[0].id,
+    type: 'achievement',
+    test: (p: Player) => playerMeetsAchievement(p, availableSeasonAchievements[0].id),
+  } : {
+    key: 'achievement-AllStar',
+    label: 'All-Star',
+    achievementId: 'AllStar',
+    type: 'achievement',
+    test: (p: Player) => playerMeetsAchievement(p, 'AllStar'),
+  };
   
-  console.log(`Available career achievements: ${careerAchievements.length}`);
-  
-  // Helper to get random career achievement
-  const getRandomCareerAchievement = (): CatTeam => {
-    if (careerAchievements.length === 0) {
-      // Fallback to a known safe career achievement
-      return {
-        key: 'achievement-played10PlusSeasons',
-        label: 'Played 10+ Seasons',
-        achievementId: 'played10PlusSeasons',
-        type: 'achievement',
-        test: (p: Player) => playerMeetsAchievement(p, 'played10PlusSeasons'),
-      };
-    }
-    
-    const randomAchievement = careerAchievements[Math.floor(seedRandom() * careerAchievements.length)];
-    return {
-      key: `achievement-${randomAchievement.id}`,
-      label: randomAchievement.label || randomAchievement.id,
-      achievementId: randomAchievement.id,
-      type: 'achievement',
-      test: (p: Player) => playerMeetsAchievement(p, randomAchievement.id),
-    };
+  const safeCareerAchievement: CatTeam = {
+    key: 'achievement-played10PlusSeasons',
+    label: 'Played 10+ Seasons',
+    achievementId: 'played10PlusSeasons',
+    type: 'achievement',
+    test: (p: Player) => playerMeetsAchievement(p, 'played10PlusSeasons'),
   };
   
   // Now fill all achievement slots
@@ -765,21 +758,57 @@ function buildOppositeAxisForSeed(
   const usedAchievementIds = new Set<string>();
   usedAchievementIds.add(seedAchievement.id); // Seed is already used
   
-  // Fill row achievement slots (use career achievements only)
+  let availableAchievementIndex = 0;
+  
+  // Fill row achievement slots
   for (let i = 0; i < 3; i++) {
     if (layout.rows[i] === 'A' && !rows[i]) {
-      rows[i] = getRandomCareerAchievement();
-      usedAchievementIds.add(rows[i].achievementId);
-      console.log(`Filled row ${i} with career achievement: ${rows[i].label}`);
+      while (availableAchievementIndex < availableSeasonAchievements.length &&
+             usedAchievementIds.has(availableSeasonAchievements[availableAchievementIndex].id)) {
+        availableAchievementIndex++;
+      }
+      if (availableAchievementIndex < availableSeasonAchievements.length) {
+        const achievement = availableSeasonAchievements[availableAchievementIndex];
+        rows[i] = {
+          key: `achievement-${achievement.id}`,
+          label: achievement.label || achievement.id,
+          achievementId: achievement.id,
+          type: 'achievement',
+          test: (p: Player) => playerMeetsAchievement(p, achievement.id),
+        };
+        usedAchievementIds.add(achievement.id);
+        console.log(`Filled row ${i} with achievement: ${achievement.label || achievement.id}`);
+        availableAchievementIndex++;
+      } else {
+        rows[i] = safeSeasonAchievement;
+        console.log(`Filled row ${i} with fallback achievement: ${safeSeasonAchievement.label}`);
+      }
     }
   }
   
-  // Fill col achievement slots (use career achievements only)
+  // Fill col achievement slots
   for (let i = 0; i < 3; i++) {
     if (layout.cols[i] === 'A' && !cols[i]) {
-      cols[i] = getRandomCareerAchievement();
-      usedAchievementIds.add(cols[i].achievementId);
-      console.log(`Filled col ${i} with career achievement: ${cols[i].label}`);
+      while (availableAchievementIndex < availableSeasonAchievements.length &&
+             usedAchievementIds.has(availableSeasonAchievements[availableAchievementIndex].id)) {
+        availableAchievementIndex++;
+      }
+      if (availableAchievementIndex < availableSeasonAchievements.length) {
+        const achievement = availableSeasonAchievements[availableAchievementIndex];
+        cols[i] = {
+          key: `achievement-${achievement.id}`,
+          label: achievement.label || achievement.id,
+          achievementId: achievement.id,
+          type: 'achievement',
+          test: (p: Player) => playerMeetsAchievement(p, achievement.id),
+        };
+        usedAchievementIds.add(achievement.id);
+        console.log(`Filled col ${i} with achievement: ${achievement.label || achievement.id}`);
+        availableAchievementIndex++;
+      } else {
+        cols[i] = safeSeasonAchievement;
+        console.log(`Filled col ${i} with fallback achievement: ${safeSeasonAchievement.label}`);
+      }
     }
   }
   
