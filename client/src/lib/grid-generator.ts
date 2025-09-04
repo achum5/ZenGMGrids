@@ -1040,6 +1040,61 @@ function calculateIntersectionSimple(
     return players.filter(p => {
       return playerMeetsAchievement(p, rowConstraint.achievementId) && playerMeetsAchievement(p, colConstraint.achievementId);
     });
+  } else if (rowConstraint.type === 'achievement' && !rowIsSeasonAchievement && colConstraint.type === 'achievement' && colIsSeasonAchievement) {
+    // Career achievement × season achievement
+    if (!seasonIndex) return [];
+    
+    console.log(`🔍 DEBUG: Career achievement "${rowConstraint.achievementId}" × Season achievement "${colConstraint.achievementId}"`);
+    
+    // Find players who meet the career achievement AND have the season achievement
+    const result = players.filter(p => {
+      if (!playerMeetsAchievement(p, rowConstraint.achievementId)) return false;
+      
+      // Check if this player has the season achievement in any season/team
+      for (const seasonStr of Object.keys(seasonIndex)) {
+        const season = parseInt(seasonStr);
+        const seasonData = seasonIndex[season];
+        for (const teamStr of Object.keys(seasonData)) {
+          const teamId = parseInt(teamStr);
+          const teamData = seasonData[teamId];
+          const seasonAchPlayers = teamData[colConstraint.achievementId as SeasonAchievementId] || new Set();
+          if (seasonAchPlayers.has(p.pid)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    });
+    
+    console.log(`🔍 DEBUG: Found ${result.length} players for this intersection`);
+    if (result.length > 0) {
+      console.log(`🔍 DEBUG: Sample players:`, result.slice(0, 3).map(p => p.name));
+    }
+    
+    return result;
+  } else if (rowConstraint.type === 'achievement' && rowIsSeasonAchievement && colConstraint.type === 'achievement' && !colIsSeasonAchievement) {
+    // Season achievement × career achievement  
+    if (!seasonIndex) return [];
+    
+    // Find players who meet the career achievement AND have the season achievement
+    return players.filter(p => {
+      if (!playerMeetsAchievement(p, colConstraint.achievementId)) return false;
+      
+      // Check if this player has the season achievement in any season/team
+      for (const seasonStr of Object.keys(seasonIndex)) {
+        const season = parseInt(seasonStr);
+        const seasonData = seasonIndex[season];
+        for (const teamStr of Object.keys(seasonData)) {
+          const teamId = parseInt(teamStr);
+          const teamData = seasonData[teamId];
+          const seasonAchPlayers = teamData[rowConstraint.achievementId as SeasonAchievementId] || new Set();
+          if (seasonAchPlayers.has(p.pid)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    });
   }
   
   return [];
