@@ -17,12 +17,39 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing }: Uploa
 
   const handlePaste = async () => {
     try {
+      // Try to request clipboard permission first (this reduces the menu on iOS)
+      if ('permissions' in navigator) {
+        try {
+          const permission = await navigator.permissions.query({ name: 'clipboard-read' as PermissionName });
+          if (permission.state === 'denied') {
+            console.log('Clipboard permission denied');
+            return;
+          }
+        } catch (permError) {
+          // Permission query not supported, continue anyway
+        }
+      }
+      
+      // Use clipboard API with a user gesture
       const text = await navigator.clipboard.readText();
       setUrlInput(text);
       setUrlError('');
     } catch (error) {
-      // Fallback or ignore if clipboard access fails
-      console.log('Clipboard access failed');
+      // If clipboard API fails, try alternative method for iOS
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      
+      if (isIOS) {
+        // For iOS, focus the input and provide instructions
+        const input = document.querySelector('[data-testid="input-url"]') as HTMLInputElement;
+        if (input) {
+          input.focus();
+          // Show a temporary message
+          setUrlError('Please paste manually using Cmd+V or touch and hold to paste');
+          setTimeout(() => setUrlError(''), 3000);
+        }
+      } else {
+        console.log('Clipboard access failed');
+      }
     }
   };
 
