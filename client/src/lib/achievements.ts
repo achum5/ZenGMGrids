@@ -626,10 +626,6 @@ function calculateCommonAchievements(player: Player, achievements: any): void {
   achievements.played10PlusSeasons = seasonCount >= 10;
   achievements.played15PlusSeasons = seasonCount >= 12;  // Lower for shorter league
   
-  // Debug career length for anyone with 8+ seasons
-  if (seasonCount >= 8) {
-    console.log(`Hockey: ${player.firstName} ${player.lastName} played ${seasonCount} seasons`);
-  }
   
   // Location - check if born outside the 50 US states + DC
   achievements.bornOutsideUS50DC = isBornOutsideUS50DC(player.born);
@@ -644,45 +640,210 @@ function calculateCommonAchievements(player: Player, achievements: any): void {
 function isBornOutsideUS50DC(born: any): boolean {
   if (!born || !born.loc) return false;
   
-  // Parse the location string - BBGM typically uses formats like:
-  // "City, ST, USA" for US locations
-  // "City, Country" for international locations 
-  // "City, ST" for US territories/unclear cases
-  
   const location = born.loc.trim();
+  if (!location) return false;
   
-  // Check if location contains USA at the end
-  if (location.endsWith(', USA')) {
-    // Extract state/region part: "City, ST, USA" -> "ST"
-    const parts = location.split(',').map((part: string) => part.trim());
-    if (parts.length >= 3) {
-      const statePart = parts[parts.length - 2]; // Second to last part should be state
-      return !isUSState(statePart);
-    }
-    
-    // If format is unclear but ends with USA, check if any US state is mentioned
-    return !containsUSState(location);
+  // Normalize for comparisons (case-insensitive, handle punctuation)
+  const normalized = location.toLowerCase()
+    .replace(/[.,]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  // 1. Check for DC first (various formats)
+  if (isDC(normalized)) {
+    return false; // DC is inside US
   }
   
-  // If doesn't end with USA, check if it contains any US state codes
-  // This handles cases like "City, ST" or international locations
-  const hasUSState = containsUSState(location);
+  // 2. Check for US territories (these count as OUTSIDE)
+  if (isUSTerritory(normalized)) {
+    return true; // Territories qualify as outside
+  }
   
-  // If no US state detected, consider it outside US
-  return !hasUSState;
+  // 3. Check for US states
+  if (containsUSState(normalized)) {
+    return false; // US states are inside
+  }
+  
+  // 4. Check for "USA" patterns without clear state/DC context
+  if (isUSAWithoutStateContext(normalized)) {
+    return false; // Conservative: assume inside if just "USA"
+  }
+  
+  // 5. Check for foreign countries (Canada with provinces, other countries)
+  if (isForeignCountry(normalized)) {
+    return true; // Foreign countries qualify as outside
+  }
+  
+  // 6. Default: if ambiguous, don't qualify (conservative approach)
+  return false;
 }
 
-// Helper function to check if location string is a US state code
-function isUSState(location: string): boolean {
-  const usStates = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY', 'DC'];
-  return usStates.includes(location.toUpperCase());
+// Check if location indicates Washington, DC
+function isDC(normalized: string): boolean {
+  return normalized.includes('washington dc') ||
+         normalized.includes('washington d c') ||
+         normalized.includes('district of columbia') ||
+         normalized.match(/\bdc\b/) !== null;
 }
 
-// Helper function to check if location string contains a US state
-function containsUSState(location: string): boolean {
-  const usStates = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY', 'DC'];
-  const upperLoc = location.toUpperCase();
-  return usStates.some(state => upperLoc.includes(state));
+// Check if location is a US territory (counts as outside)
+function isUSTerritory(normalized: string): boolean {
+  // Puerto Rico
+  if (normalized.includes('puerto rico') || normalized.match(/\bpr\b/)) {
+    return true;
+  }
+  
+  // Guam
+  if (normalized.includes('guam') || normalized.match(/\bgu\b/)) {
+    return true;
+  }
+  
+  // US Virgin Islands
+  if (normalized.includes('virgin islands') || 
+      normalized.includes('usvi') || 
+      normalized.match(/\bvi\b/)) {
+    return true;
+  }
+  
+  // American Samoa
+  if (normalized.includes('american samoa') || normalized.match(/\bas\b/)) {
+    return true;
+  }
+  
+  // Northern Mariana Islands
+  if (normalized.includes('northern mariana') || 
+      normalized.includes('mariana islands') || 
+      normalized.match(/\bmp\b/)) {
+    return true;
+  }
+  
+  return false;
+}
+
+// Check if location contains a US state
+function containsUSState(normalized: string): boolean {
+  const usStates = [
+    // State codes
+    'al', 'ak', 'az', 'ar', 'ca', 'co', 'ct', 'de', 'fl', 'hi', 'id', 'il', 'in', 
+    'ia', 'ks', 'ky', 'la', 'me', 'md', 'ma', 'mi', 'mn', 'ms', 'mo', 'mt', 'ne', 
+    'nv', 'nh', 'nj', 'nm', 'ny', 'nc', 'nd', 'oh', 'ok', 'or', 'pa', 'ri', 'sc', 
+    'sd', 'tn', 'tx', 'ut', 'vt', 'va', 'wa', 'wv', 'wi', 'wy'
+  ];
+  
+  // Check for state codes as whole words
+  for (const state of usStates) {
+    const regex = new RegExp(`\\b${state}\\b`);
+    if (regex.test(normalized)) {
+      // Handle ambiguous cases
+      if (state === 'ga') {
+        // "GA" could be Georgia (state) or Georgia (country)
+        // Check for context clues
+        if (normalized.includes('atlanta') || normalized.includes('savannah') || 
+            normalized.includes('augusta') || normalized.includes('columbus')) {
+          return true; // Likely Georgia state
+        }
+        if (normalized.includes('tbilisi') || normalized.includes('georgia') && 
+            !normalized.includes('usa') && !normalized.includes('united states')) {
+          continue; // Likely Georgia country, keep checking
+        }
+        return true; // Default to state if ambiguous
+      }
+      return true;
+    }
+  }
+  
+  // Check for full state names
+  const stateNames = [
+    'alabama', 'alaska', 'arizona', 'arkansas', 'california', 'colorado', 'connecticut',
+    'delaware', 'florida', 'hawaii', 'idaho', 'illinois', 'indiana', 'iowa', 'kansas',
+    'kentucky', 'louisiana', 'maine', 'maryland', 'massachusetts', 'michigan', 'minnesota',
+    'mississippi', 'missouri', 'montana', 'nebraska', 'nevada', 'new hampshire', 'new jersey',
+    'new mexico', 'new york', 'north carolina', 'north dakota', 'ohio', 'oklahoma', 'oregon',
+    'pennsylvania', 'rhode island', 'south carolina', 'south dakota', 'tennessee', 'texas',
+    'utah', 'vermont', 'virginia', 'washington', 'west virginia', 'wisconsin', 'wyoming'
+  ];
+  
+  for (const stateName of stateNames) {
+    if (normalized.includes(stateName)) {
+      // Special case: "washington" could be state or DC or foreign
+      if (stateName === 'washington') {
+        // Only count as state if context suggests WA state, not DC
+        if (normalized.includes('seattle') || normalized.includes('spokane') || 
+            normalized.includes('tacoma') || normalized.match(/\bwa\b/)) {
+          return true;
+        }
+        continue; // Skip ambiguous "washington"
+      }
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+// Check if location suggests USA but without clear state/DC/territory context
+function isUSAWithoutStateContext(normalized: string): boolean {
+  const usPatterns = ['usa', 'united states', 'u s a', 'united states of america'];
+  
+  for (const pattern of usPatterns) {
+    if (normalized.includes(pattern)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+// Check if location is clearly a foreign country
+function isForeignCountry(normalized: string): boolean {
+  // Canadian provinces
+  const canadianProvinces = ['on', 'qc', 'bc', 'ab', 'mb', 'sk', 'ns', 'nb', 'nl', 'pe', 'yt', 'nt', 'nu'];
+  for (const province of canadianProvinces) {
+    if (normalized.match(new RegExp(`\\b${province}\\b`))) {
+      return true;
+    }
+  }
+  
+  // Common international patterns
+  if (normalized.includes('canada') || 
+      normalized.includes('ontario') || 
+      normalized.includes('quebec') || 
+      normalized.includes('british columbia') ||
+      normalized.includes('greece') ||
+      normalized.includes('slovenia') ||
+      normalized.includes('france') ||
+      normalized.includes('germany') ||
+      normalized.includes('england') ||
+      normalized.includes('scotland') ||
+      normalized.includes('united kingdom') ||
+      normalized.includes('uk') ||
+      normalized.includes('jamaica') ||
+      normalized.includes('bahamas') ||
+      normalized.includes('serbia') ||
+      normalized.includes('croatia') ||
+      normalized.includes('australia') ||
+      normalized.includes('spain') ||
+      normalized.includes('italy') ||
+      normalized.includes('brazil') ||
+      normalized.includes('argentina') ||
+      normalized.includes('mexico') ||
+      normalized.includes('nigeria') ||
+      normalized.includes('congo') ||
+      normalized.includes('cameroon') ||
+      normalized.includes('senegal') ||
+      normalized.includes('lithuania') ||
+      normalized.includes('latvia') ||
+      normalized.includes('czech') ||
+      normalized.includes('turkey') ||
+      normalized.includes('israel') ||
+      normalized.includes('china') ||
+      normalized.includes('japan') ||
+      normalized.includes('south korea') ||
+      normalized.includes('philippines')) {
+    return true;
+  }
+  
+  return false;
 }
 
 // Calculate team seasons and achievement seasons for same-season alignment
@@ -719,7 +880,6 @@ export function calculateTeamSeasonsAndAchievementSeasons(player: Player, leader
       ledBlkAny: new Set<number>(),
       // played15PlusSeasons: new Set<number>(), // Not needed in achievement seasons
       // Note: Draft achievements removed from UI
-      isPick1Overall: new Set<number>(),
       // Note: Draft achievements still used for some sports
       isFirstRoundPick: new Set<number>(),
       isSecondRoundPick: new Set<number>(),
