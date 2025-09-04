@@ -763,7 +763,7 @@ function buildOppositeAxisForSeed(
   };
   
   // Now fill all achievement slots
-  console.log(`Filling achievement slots. Seed already placed: ${seedAchievement.name} at ${seedSlot.axis} ${seedSlot.index}`);
+  console.log(`Filling achievement slots. Seed already placed: ${seedAchievement.label || seedAchievement.id} at ${seedSlot.axis} ${seedSlot.index}`);
   
   // Track already used achievements
   const usedAchievementIds = new Set<string>();
