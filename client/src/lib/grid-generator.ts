@@ -727,8 +727,10 @@ function buildOppositeAxisForSeed(
   
   // Fill remaining slots with career achievements (not more season achievements)
   // Get viable career achievements (exclude season-specific ones)
+  console.log(`Debug: about to call getViableAchievements with sport=${sport}`);
   const minPlayersRequired = 5;
   const allAchievements = getViableAchievements(players, minPlayersRequired, sport, seasonIndex);
+  console.log(`Debug: getViableAchievements returned ${allAchievements.length} achievements`);
   const careerAchievements = allAchievements.filter(achievement => 
     !SEASON_ACHIEVEMENTS.some(sa => sa.id === achievement.id)
   );
