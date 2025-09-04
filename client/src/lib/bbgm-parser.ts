@@ -721,6 +721,13 @@ function analyzeTeamOverlaps(players: Player[], teams: Team[]): TeamOverlapData 
           // Get seasons when player achieved this specific achievement
           let achievementSeasons: Set<number> | undefined;
           
+          // Debug logging for first player with this achievement
+          if (teamAchievementMatrix[achievementId].size === 0) {
+            console.log(`🔍 Debugging ${achievementId} for player ${player.name || 'Unknown'}`);
+            console.log(`Player has achievementSeasons:`, !!player.achievementSeasons);
+            console.log(`Player has teamSeasonsPaired:`, !!player.teamSeasonsPaired);
+          }
+          
           // Map achievement IDs to their season data
           switch (achievementId) {
             case 'hasMVP': achievementSeasons = player.achievementSeasons.mvpWinner; break;
