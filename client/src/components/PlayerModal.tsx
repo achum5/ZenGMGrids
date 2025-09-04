@@ -236,31 +236,19 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                         teams
                       );
                       
-                      // Parse bullet points with colors
-                      const bulletPoints = feedbackMessage.split('\n').map(line => {
-                        const [text, color] = line.split('|');
-                        return { text, color: color || 'RED' };
-                      });
-
                       return (
                         <div className="mt-2 sm:mt-3 mb-4 sm:mb-6">
-                          <div className="px-3 py-2 sm:px-4 sm:py-3 bg-gray-50/80 dark:bg-gray-400/10 border-l-4 border-gray-500 dark:border-gray-400 rounded-lg sm:rounded-xl" role="note">
-                            <div className="space-y-2">
-                              {bulletPoints.map((bullet, index) => (
-                                <div key={index} className="flex items-start gap-2">
-                                  <span 
-                                    className={`font-medium leading-snug ${
-                                      bullet.color === 'GREEN' 
-                                        ? 'text-green-600 dark:text-green-400' 
-                                        : 'text-red-600 dark:text-red-400'
-                                    }`}
-                                    style={{ fontSize: 'clamp(14px, 1.6vw, 18px)' }}
-                                  >
-                                    {bullet.text}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
+                          <div className="flex items-start gap-2 sm:gap-3 px-3 py-2 sm:px-4 sm:py-3 bg-red-50/80 dark:bg-red-400/10 border-l-4 border-red-500 dark:border-red-400 rounded-lg sm:rounded-xl" role="note">
+                            <AlertCircle 
+                              aria-hidden="true"
+                              className="w-5 h-5 sm:w-6 sm:h-6 text-red-500 dark:text-red-400 shrink-0 mt-0.5"
+                            />
+                            <span 
+                              className="text-red-600 dark:text-red-400 font-medium leading-snug"
+                              style={{ fontSize: 'clamp(14px, 1.6vw, 18px)' }}
+                            >
+                              {feedbackMessage}
+                            </span>
                           </div>
                         </div>
                       );
