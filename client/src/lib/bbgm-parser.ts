@@ -1,6 +1,6 @@
 import pako from 'pako';
 import type { LeagueData, Player, Team, SeasonLine, TeamOverlapData } from '@/types/bbgm';
-import { calculatePlayerAchievements, clearSeasonLengthCache, calculateLeagueLeadership, calculateTeamSeasonsAndAchievementSeasons, setCachedSportDetection } from '@/lib/achievements';
+import { calculatePlayerAchievements, clearSeasonLengthCache, calculateLeagueLeadership, calculateTeamSeasonsAndAchievementSeasons, setCachedSportDetection, SEASON_ALIGNED_ACHIEVEMENTS } from '@/lib/achievements';
 
 export type Sport = 'basketball' | 'football' | 'hockey' | 'baseball';
 
@@ -716,9 +716,55 @@ function analyzeTeamOverlaps(players: Player[], teams: Team[]): TeamOverlapData 
     // Track which teams have players with each achievement
     achievementIds.forEach(achievementId => {
       if ((player.achievements as any)?.[achievementId]) {
-        playerTeams.forEach(tid => {
-          teamAchievementMatrix[achievementId].add(tid);
-        });
+        // For season-aligned achievements (awards), only count teams where the achievement was earned
+        if (SEASON_ALIGNED_ACHIEVEMENTS.has(achievementId) && player.achievementSeasons) {
+          // Get seasons when player achieved this specific achievement
+          let achievementSeasons: Set<number> | undefined;
+          
+          // Map achievement IDs to their season data
+          switch (achievementId) {
+            case 'hasMVP': achievementSeasons = player.achievementSeasons.mvpWinner; break;
+            case 'hasDPOY': achievementSeasons = player.achievementSeasons.dpoyWinner; break;
+            case 'hasROY': achievementSeasons = player.achievementSeasons.royWinner; break;
+            case 'hasSixthMan': achievementSeasons = player.achievementSeasons.smoyWinner; break;
+            case 'hasMIP': achievementSeasons = player.achievementSeasons.mipWinner; break;
+            case 'hasFMVP': achievementSeasons = player.achievementSeasons.fmvpWinner; break;
+            case 'hasAllLeague': achievementSeasons = player.achievementSeasons.allLeagueTeam; break;
+            case 'hasAllDef': achievementSeasons = player.achievementSeasons.allDefensiveTeam; break;
+            case 'hasAllStar': achievementSeasons = player.achievementSeasons.allStarSelection; break;
+            case 'hasChampion': achievementSeasons = player.achievementSeasons.champion; break;
+            case 'wonMVP':
+            case 'wonOPOY': 
+            case 'wonDPOY':
+            case 'wonROY':
+            case 'wonChampionship':
+              // For other sports, check if seasons data exists with different naming
+              if (player.achievementSeasons.mvpWinner) achievementSeasons = player.achievementSeasons.mvpWinner;
+              else if (player.achievementSeasons.dpoyWinner) achievementSeasons = player.achievementSeasons.dpoyWinner;
+              else if (player.achievementSeasons.royWinner) achievementSeasons = player.achievementSeasons.royWinner;
+              break;
+            default:
+              // For single-season stats, use existing logic
+              achievementSeasons = (player.achievementSeasons as any)?.[achievementId];
+          }
+          
+          if (achievementSeasons && player.teamSeasonsPaired) {
+            // Only add teams where the player was on the team during the achievement season
+            achievementSeasons.forEach(season => {
+              const teamsInSeason = player.teamSeasonsPaired?.[season];
+              if (teamsInSeason) {
+                teamsInSeason.forEach((tid: number) => {
+                  teamAchievementMatrix[achievementId].add(tid);
+                });
+              }
+            });
+          }
+        } else {
+          // For non-season-aligned achievements, use all teams the player played for
+          playerTeams.forEach(tid => {
+            teamAchievementMatrix[achievementId].add(tid);
+          });
+        }
       }
     });
     
