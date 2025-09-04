@@ -1,6 +1,6 @@
 import pako from 'pako';
 import type { LeagueData, Player, Team, SeasonLine, TeamOverlapData } from '@/types/bbgm';
-import { calculatePlayerAchievements, clearSeasonLengthCache, calculateLeagueLeadership, calculateTeamSeasonsAndAchievementSeasons, setCachedSportDetection, SEASON_ALIGNED_ACHIEVEMENTS } from '@/lib/achievements';
+import { calculatePlayerAchievements, clearSeasonLengthCache, calculateLeagueLeadership, calculateTeamSeasonsAndAchievementSeasons, setCachedSportDetection } from '@/lib/achievements';
 
 export type Sport = 'basketball' | 'football' | 'hockey' | 'baseball';
 
@@ -716,18 +716,9 @@ function analyzeTeamOverlaps(players: Player[], teams: Team[]): TeamOverlapData 
     // Track which teams have players with each achievement
     achievementIds.forEach(achievementId => {
       if ((player.achievements as any)?.[achievementId]) {
-        // For award achievements, don't bother with team coverage - they're handled properly during validation
-        const isAwardAchievement = achievementId.startsWith('has') || achievementId.startsWith('won');
-        
-        if (isAwardAchievement) {
-          // For award achievements, simply mark that they exist (team coverage is irrelevant)
-          teamAchievementMatrix[achievementId].add(-1); // Use -1 as a placeholder to indicate the achievement exists
-        } else {
-          // For non-award achievements, use all teams the player played for
-          playerTeams.forEach(tid => {
-            teamAchievementMatrix[achievementId].add(tid);
-          });
-        }
+        playerTeams.forEach(tid => {
+          teamAchievementMatrix[achievementId].add(tid);
+        });
       }
     });
     

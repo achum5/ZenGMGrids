@@ -581,23 +581,12 @@ export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | '
 
 // Season-aligned achievements that need same-season matching for Team × Achievement cells
 export const SEASON_ALIGNED_ACHIEVEMENTS = new Set([
-  // Single-season statistical achievements
   'season30ppg', 'season10apg', 'season15rpg', 'season3bpg', 'season25spg', 'season504090',
   'season4500PassYds', 'season35PassTDs', 'season1800RushYds', 'season20RushTDs', 
   'season1400RecYds', 'season15RecTDs', 'season15Sacks', 'season8Ints',
   'season50Goals', 'season100Points', 'season60Assists', 'season35Wins', 'season10Shutouts', 'season925SavePct',
   'season50HRs', 'season130RBIs', 'season200Hits', 'season50SBs', 'season20Wins', 'season40Saves', 'season300Ks', 'season200ERA',
-  'ledScoringAny', 'ledRebAny', 'ledAstAny',
-  
-  // Award achievements - Basketball (has* prefix)
-  'hasMVP', 'hasDPOY', 'hasROY', 'hasSixthMan', 'hasMIP', 'hasFMVP', 
-  'hasAllLeague', 'hasAllDef', 'hasAllStar', 'hasChampion', 'allStar35Plus',
-  
-  // Award achievements - Football/Hockey/Baseball (won* prefix) 
-  'wonMVP', 'wonOPOY', 'wonDPOY', 'wonROY', 'wonChampionship',
-  
-  // All other award/recognition achievements that must be team-season aligned
-  'madeAllStar'
+  'ledScoringAny', 'ledRebAny', 'ledAstAny'
 ]);
 
 // Check if a player meets a specific achievement
@@ -1219,16 +1208,12 @@ export function getViableAchievements(players: Player[], minCount = 15, sport?: 
   
   return achievements.filter(achievement => {
     const qualifyingPlayers = players.filter(achievement.test);
-    const isAwardAchievement = achievement.id.startsWith('has') || achievement.id.startsWith('won');
-    
-    // Lower threshold for award achievements since they're rarer but valuable
-    const effectiveMinCount = isAwardAchievement ? 3 : Math.max(minCount, achievement.minPlayers);
-    const hasEnough = qualifyingPlayers.length >= effectiveMinCount;
+    const hasEnough = qualifyingPlayers.length >= Math.max(minCount, achievement.minPlayers);
     
     if (hasEnough) {
-      console.log(`✅ VIABLE: ${achievement.id}: ${qualifyingPlayers.length} players${isAwardAchievement ? ' (AWARD - LOWERED THRESHOLD)' : ''}`);
+      console.log(`✓ ${achievement.id}: ${qualifyingPlayers.length} players`);
     } else {
-      console.log(`❌ FILTERED OUT: ${achievement.id}: only ${qualifyingPlayers.length} players (need ${effectiveMinCount})${isAwardAchievement ? ' (AWARD)' : ''}`);
+      console.log(`✗ ${achievement.id}: only ${qualifyingPlayers.length} players (need ${Math.max(minCount, achievement.minPlayers)})`);
     }
     
     return hasEnough;
