@@ -649,32 +649,43 @@ function isBornOutsideUS50DC(born: any): boolean {
     .replace(/\s+/g, ' ')
     .trim();
   
+  // Debug logging for problematic cases
+  if (location.includes('Abdelnaby') || normalized.includes('egypt') || normalized.includes('cairo')) {
+    console.log(`🔍 Birth location debug: "${location}" -> normalized: "${normalized}"`);
+  }
+  
   // 1. Check for DC first (various formats)
   if (isDC(normalized)) {
+    console.log(`❌ DC detected: ${location}`);
     return false; // DC is inside US
   }
   
   // 2. Check for US territories (these count as OUTSIDE)
   if (isUSTerritory(normalized)) {
+    console.log(`✅ US Territory detected: ${location}`);
     return true; // Territories qualify as outside
   }
   
   // 3. Check for US states
   if (containsUSState(normalized)) {
+    console.log(`❌ US State detected: ${location}`);
     return false; // US states are inside
   }
   
   // 4. Check for "USA" patterns without clear state/DC context
   if (isUSAWithoutStateContext(normalized)) {
+    console.log(`❌ USA without state context: ${location}`);
     return false; // Conservative: assume inside if just "USA"
   }
   
   // 5. Check for foreign countries (Canada with provinces, other countries)
   if (isForeignCountry(normalized)) {
+    console.log(`✅ Foreign country detected: ${location}`);
     return true; // Foreign countries qualify as outside
   }
   
   // 6. Default: if ambiguous, don't qualify (conservative approach)
+  console.log(`❌ Default (ambiguous): ${location}`);
   return false;
 }
 
@@ -839,7 +850,28 @@ function isForeignCountry(normalized: string): boolean {
       normalized.includes('china') ||
       normalized.includes('japan') ||
       normalized.includes('south korea') ||
-      normalized.includes('philippines')) {
+      normalized.includes('philippines') ||
+      normalized.includes('egypt') ||
+      normalized.includes('cairo') ||
+      normalized.includes('lebanon') ||
+      normalized.includes('sudan') ||
+      normalized.includes('ethiopia') ||
+      normalized.includes('kenya') ||
+      normalized.includes('south africa') ||
+      normalized.includes('morocco') ||
+      normalized.includes('tunisia') ||
+      normalized.includes('algeria') ||
+      normalized.includes('ghana') ||
+      normalized.includes('ivory coast') ||
+      normalized.includes('mali') ||
+      normalized.includes('burkina faso') ||
+      normalized.includes('rwanda') ||
+      normalized.includes('uganda') ||
+      normalized.includes('tanzania') ||
+      normalized.includes('zambia') ||
+      normalized.includes('zimbabwe') ||
+      normalized.includes('botswana') ||
+      normalized.includes('namibia')) {
     return true;
   }
   
