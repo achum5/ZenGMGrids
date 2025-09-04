@@ -70,12 +70,14 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing }: Uploa
                 data-testid="tab-file" 
                 className="
                   h-12 px-5 py-3 rounded-xl font-semibold text-base cursor-pointer
-                  bg-[#FFD54F] text-gray-900 border-0
-                  hover:bg-[#FFC83D] active:bg-[#FFB300] active:scale-[0.98]
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFD54F] focus-visible:ring-offset-2 focus-visible:ring-offset-background
-                  disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-[#FFD54F]
+                  bg-primary text-primary-foreground border-0
+                  hover:bg-primary/90 active:bg-primary/80 active:scale-[0.98]
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background
+                  disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-primary
                   transition-all duration-200 ease-out
-                  data-[state=active]:bg-[#FFD54F] data-[state=active]:text-gray-900
+                  data-[state=active]:bg-primary data-[state=active]:text-primary-foreground
+                  data-[state=inactive]:bg-transparent data-[state=inactive]:text-primary data-[state=inactive]:border-2 data-[state=inactive]:border-primary
+                  data-[state=inactive]:hover:bg-primary/10
                   shadow-sm
                 "
               >
@@ -86,12 +88,14 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing }: Uploa
                 data-testid="tab-url" 
                 className="
                   h-12 px-5 py-3 rounded-xl font-semibold text-base cursor-pointer
-                  bg-transparent text-[#FFD54F] border-2 border-[#FFD54F]
-                  hover:bg-[#FFD54F]/10 active:bg-[#FFD54F]/15 active:scale-[0.98]
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFD54F] focus-visible:ring-offset-2 focus-visible:ring-offset-background
-                  disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-transparent
+                  bg-primary text-primary-foreground border-0
+                  hover:bg-primary/90 active:bg-primary/80 active:scale-[0.98]
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background
+                  disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-primary
                   transition-all duration-200 ease-out
-                  data-[state=active]:bg-transparent data-[state=active]:text-[#FFD54F] data-[state=active]:border-[#FFD54F]
+                  data-[state=active]:bg-primary data-[state=active]:text-primary-foreground
+                  data-[state=inactive]:bg-transparent data-[state=inactive]:text-primary data-[state=inactive]:border-2 data-[state=inactive]:border-primary
+                  data-[state=inactive]:hover:bg-primary/10
                 "
               >
                 Load a ZenGM League from URL
