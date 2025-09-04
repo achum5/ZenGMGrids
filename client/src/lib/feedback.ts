@@ -1367,11 +1367,18 @@ export function generateFeedbackMessage(
   * Check if a player satisfies a team × achievement constraint with same-season alignment
   */
 function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, achievementId: string): boolean {
+  console.log(`🔧 EVAL: ${player.name} for team ${teamTid} × ${achievementId}`);
+  
   // Check if this achievement requires same-season alignment
   if (!SEASON_ALIGNED_ACHIEVEMENTS.has(achievementId)) {
+    console.log(`  📋 Using career-based check (not in season-aligned set)`);
     // Career-based achievements: just check if player ever played for team AND has the achievement
     return playerPlayedForTeam(player, teamTid) && playerMeetsAchievement(player, achievementId);
   }
+
+  console.log(`  🎯 Using season-alignment check (IS in season-aligned set)`);
+
+  // Check if player has required data structures
 
   // Season-aligned achievements: need intersection of team seasons and achievement seasons
   if (!player.teamSeasonsPaired || !player.achievementSeasons) {
@@ -1406,7 +1413,7 @@ function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, a
       case 'hasAllStar': achievementSeasons = player.achievementSeasons.allStarSelection || new Set(); break;
       case 'hasChampion': achievementSeasons = player.achievementSeasons.champion || new Set(); break;
       case 'allStar35Plus': achievementSeasons = player.achievementSeasons.allStar35Plus || new Set(); break;
-      // Football achievements that should use career-based check
+      // Football achievements that should use career-based check (not season-aligned)
       case 'wonMVP':
       case 'wonOPOY': 
       case 'wonDPOY':
@@ -1418,14 +1425,18 @@ function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, a
       case 'season8Ints':
       case 'season1800RushYds':
       case 'season20RushTDs':
-      default:
-        // Fallback to career-based check for unrecognized achievements
+        // These are explicitly career-based achievements
         return playerPlayedForTeam(player, teamTid) && playerMeetsAchievement(player, achievementId);
+      
+      default:
+        // ERROR: Unrecognized season-aligned achievement - must be explicitly handled
+        console.error(`❌ CRITICAL: Unrecognized season-aligned achievement '${achievementId}' - this must be handled explicitly to prevent incorrect validation`);
+        return false; // Fail safe: reject unrecognized achievements rather than using career-based fallback
     }
   } catch (error) {
-    console.error('Error accessing achievement seasons for', achievementId, ':', error);
-    // Fallback to career-based check on error
-    return playerPlayedForTeam(player, teamTid) && playerMeetsAchievement(player, achievementId);
+    console.error(`❌ CRITICAL: Error accessing achievement seasons for '${achievementId}':`, error);
+    // FAIL SAFE: For season-aligned achievements, missing data should result in rejection, not fallback
+    return false;
   }
 
   // Check if achievementSeasons exists and is not empty
@@ -1434,19 +1445,13 @@ function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, a
   }
 
   // Check if there's any season where player both played for the team AND achieved the accomplishment
-  console.log(`🔍 Checking season alignment for ${player.name} (${achievementId}) with team ${teamTid}:`);
-  console.log(`  Achievement seasons: [${Array.from(achievementSeasons).join(', ')}]`);
-  console.log(`  Team seasons: [${Array.from(player.teamSeasonsPaired).filter(key => key.endsWith(`|${teamTid}`)).join(', ')}]`);
-  
   for (const season of Array.from(achievementSeasons)) {
     const teamSeasonKey = `${season}|${teamTid}`;
     if (player.teamSeasonsPaired.has(teamSeasonKey)) {
-      console.log(`  ✅ Match found: Season ${season} - player earned ${achievementId} while on team ${teamTid}`);
       return true;
     }
   }
 
-  console.log(`  ❌ No season overlap found`);
   return false;
 }
 
