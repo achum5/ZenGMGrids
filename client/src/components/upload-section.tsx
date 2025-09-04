@@ -69,7 +69,7 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing }: Uploa
                 value="file" 
                 data-testid="tab-file" 
                 className="
-                  h-12 px-5 py-3 rounded-xl font-semibold text-base cursor-pointer
+                  h-12 px-3 sm:px-5 py-3 rounded-xl font-semibold text-sm sm:text-base cursor-pointer
                   bg-primary text-primary-foreground border-0
                   hover:bg-primary/90 active:bg-primary/80 active:scale-[0.98]
                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background
@@ -79,15 +79,16 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing }: Uploa
                   data-[state=inactive]:bg-transparent data-[state=inactive]:text-primary data-[state=inactive]:border-2 data-[state=inactive]:border-primary
                   data-[state=inactive]:hover:bg-primary/10
                   shadow-sm
+                  truncate overflow-hidden whitespace-nowrap
                 "
               >
-                Upload a ZenGM League File
+                <span className="truncate">Upload a ZenGM League File</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="url" 
                 data-testid="tab-url" 
                 className="
-                  h-12 px-5 py-3 rounded-xl font-semibold text-base cursor-pointer
+                  h-12 px-3 sm:px-5 py-3 rounded-xl font-semibold text-sm sm:text-base cursor-pointer
                   bg-primary text-primary-foreground border-0
                   hover:bg-primary/90 active:bg-primary/80 active:scale-[0.98]
                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background
@@ -96,9 +97,10 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing }: Uploa
                   data-[state=active]:bg-primary data-[state=active]:text-primary-foreground
                   data-[state=inactive]:bg-transparent data-[state=inactive]:text-primary data-[state=inactive]:border-2 data-[state=inactive]:border-primary
                   data-[state=inactive]:hover:bg-primary/10
+                  truncate overflow-hidden whitespace-nowrap
                 "
               >
-                Load a ZenGM League from URL
+                <span className="truncate">Load a ZenGM League from URL</span>
               </TabsTrigger>
             </TabsList>
             
