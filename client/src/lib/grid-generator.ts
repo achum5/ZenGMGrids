@@ -657,46 +657,10 @@ function generateGridSeeded(leagueData: LeagueData): {
       // Pick achievement that has shared players in same season with seed
       const viableAchievements: (typeof SEASON_ACHIEVEMENTS[0] | Achievement)[] = [];
       
-      // Try season achievements first (excluding already used ones)
-      for (const ach of SEASON_ACHIEVEMENTS) {
-        if (ach.id === seedAchievement.id) continue;
-        if (usedSeasonAchievements.has(ach.id)) continue;
-        
-        // Check if there's overlap in same season AND enough viable teams
-        let hasOverlap = false;
-        let viableTeamCount = 0;
-        
-        for (const season of Object.keys(seasonIndex)) {
-          const seasonNum = parseInt(season);
-          const seasonData = seasonIndex[seasonNum];
-          for (const teamId of Object.keys(seasonData)) {
-            const teamData = seasonData[parseInt(teamId)];
-            const seedPlayers = teamData[seedAchievement.id] || new Set();
-            const achPlayers = teamData[ach.id] || new Set();
-            
-            // Check for overlap
-            let teamHasOverlap = false;
-            for (const pid of Array.from(seedPlayers)) {
-              if (achPlayers.has(pid)) {
-                teamHasOverlap = true;
-                break;
-              }
-            }
-            
-            if (teamHasOverlap) {
-              hasOverlap = true;
-              viableTeamCount++;
-            }
-          }
-        }
-        
-        // Only add if there's overlap AND at least 2 viable teams (for grid coverage)
-        if (hasOverlap && viableTeamCount >= 2) {
-          viableAchievements.push(ach);
-        }
-      }
+      // Skip season achievements entirely - only use career achievements for opposite axis
+      // This prevents impossible season harmonization conflicts
       
-      // Also try career achievements (get from achievements passed to function)
+      // Only try career achievements (get from achievements passed to function)
       const achievements = getAchievements('basketball');
       for (const ach of achievements) {
         if (ach.isSeasonSpecific) continue;
@@ -747,7 +711,8 @@ function generateGridSeeded(leagueData: LeagueData): {
   // Step 4: Fill remaining slots using old-style approach
   console.log(`✅ Step 4: Filling remaining slots old-style`);
   
-  const allAchievements = [...SEASON_ACHIEVEMENTS, ...getAchievements('basketball')];
+  // Only use career achievements for old-style fill to avoid season harmonization conflicts
+  const allAchievements = getAchievements('basketball').filter(ach => !ach.isSeasonSpecific);
   
   // Find remaining empty slots
   for (let i = 0; i < 3; i++) {
@@ -804,11 +769,7 @@ function generateGridSeeded(leagueData: LeagueData): {
           const achIndex = simpleHash(gridId + '_rowach' + i + '_' + attempt) % allAchievements.length;
           const ach = allAchievements[achIndex];
           
-          // Skip if season achievement but no season index
-          if (ach.isSeasonSpecific && !seasonIndex) continue;
-          
-          // Skip if this season achievement is already used
-          if (ach.isSeasonSpecific && usedSeasonAchievements.has(ach.id as SeasonAchievementId)) continue;
+          // Career achievements only - no season checks needed
           
           // Check if this achievement creates valid intersections with all columns
           let validForAllCols = true;
@@ -838,11 +799,6 @@ function generateGridSeeded(leagueData: LeagueData): {
               key: `achievement-${ach.id}`,
               test: (p: Player) => playerMeetsAchievement(p, ach.id),
             };
-            
-            // Mark season achievement as used
-            if (ach.isSeasonSpecific) {
-              usedSeasonAchievements.add(ach.id as SeasonAchievementId);
-            }
             
             console.log(`     Selected achievement: ${ach.label} (attempt ${attempt + 1})`);
             found = true;
@@ -909,11 +865,7 @@ function generateGridSeeded(leagueData: LeagueData): {
           const achIndex = simpleHash(gridId + '_colach' + i + '_' + attempt) % allAchievements.length;
           const ach = allAchievements[achIndex];
           
-          // Skip if season achievement but no season index
-          if (ach.isSeasonSpecific && !seasonIndex) continue;
-          
-          // Skip if this season achievement is already used
-          if (ach.isSeasonSpecific && usedSeasonAchievements.has(ach.id as SeasonAchievementId)) continue;
+          // Career achievements only - no season checks needed
           
           // Check if this achievement creates valid intersections with all rows
           let validForAllRows = true;
@@ -943,11 +895,6 @@ function generateGridSeeded(leagueData: LeagueData): {
               key: `achievement-${ach.id}`,
               test: (p: Player) => playerMeetsAchievement(p, ach.id),
             };
-            
-            // Mark season achievement as used
-            if (ach.isSeasonSpecific) {
-              usedSeasonAchievements.add(ach.id as SeasonAchievementId);
-            }
             
             console.log(`     Selected achievement: ${ach.label} (attempt ${attempt + 1})`);
             found = true;
