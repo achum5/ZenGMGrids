@@ -41,8 +41,8 @@ function teamNameAtSeason(teamsByTid: Map<number, Team>, tid: number, season: nu
 export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers = [], puzzleSeed = "", rows = [], cols = [], currentCellKey = "", sport }: Props) {
   if (!player) return null;
 
-  // Create team lookup map for efficient lookups
-  const teamsByTid = new Map(teams.map(team => [team.tid, team]));
+  // Create team lookup map for efficient lookups - defensive check for teams array
+  const teamsByTid = new Map(Array.isArray(teams) ? teams.map(team => [team.tid, team]) : []);
 
   // Memoize expensive calculations
   const modalData = useMemo(() => {
@@ -84,7 +84,7 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
             }
           },
           fullPlayers: eligiblePlayers,
-          teams: new Map(teams?.map(t => [t.tid, t]) ?? [])
+          teams: new Map(Array.isArray(teams) ? teams.map(t => [t.tid, t]) : [])
         });
         
         // Generate reason bullets for correct guess
@@ -102,7 +102,7 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
             achievementId: colConstraint.achievementId,
             label: colConstraint.label
           },
-          teams,
+          Array.isArray(teams) ? teams : [],
           sport || 'basketball'
         );
 
@@ -116,7 +116,7 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
       // Generate feedback for wrong guesses
       const feedbackMessage = generateFeedbackMessage(
         player,
-        teams,
+        Array.isArray(teams) ? teams : [],
         {
           type: rowConstraint.type,
           tid: rowConstraint.tid,

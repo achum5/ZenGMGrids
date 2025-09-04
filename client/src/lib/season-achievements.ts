@@ -340,35 +340,61 @@ function calculateBBGMSeasonLeaders(
   
   if (eligible.length === 0) return leaders;
 
-  // Points Leader: PPG = pts / gp, pick max
-  const maxPPG = Math.max(...eligible.map(p => p.pts / p.gp));
-  leaders.PointsLeader = eligible
-    .filter(p => Math.abs((p.pts / p.gp) - maxPPG) < 0.001)
-    .map(p => p.pid);
+  // Additional safety check: filter out any players with invalid gp
+  const validPlayers = eligible.filter(p => p.gp > 0 && isFinite(p.gp));
+  
+  if (validPlayers.length === 0) return leaders;
 
-  // Rebounds Leader: RPG = trb / gp, pick max
-  const maxRPG = Math.max(...eligible.map(p => p.trb / p.gp));
-  leaders.ReboundsLeader = eligible
-    .filter(p => Math.abs((p.trb / p.gp) - maxRPG) < 0.001)
-    .map(p => p.pid);
+  try {
+    // Points Leader: PPG = pts / gp, pick max
+    const ppgValues = validPlayers.map(p => p.pts / p.gp).filter(val => isFinite(val));
+    if (ppgValues.length > 0) {
+      const maxPPG = Math.max(...ppgValues);
+      leaders.PointsLeader = validPlayers
+        .filter(p => isFinite(p.pts / p.gp) && Math.abs((p.pts / p.gp) - maxPPG) < 0.001)
+        .map(p => p.pid);
+    }
 
-  // Assists Leader: APG = ast / gp, pick max
-  const maxAPG = Math.max(...eligible.map(p => p.ast / p.gp));
-  leaders.AssistsLeader = eligible
-    .filter(p => Math.abs((p.ast / p.gp) - maxAPG) < 0.001)
-    .map(p => p.pid);
+    // Rebounds Leader: RPG = trb / gp, pick max
+    const rpgValues = validPlayers.map(p => p.trb / p.gp).filter(val => isFinite(val));
+    if (rpgValues.length > 0) {
+      const maxRPG = Math.max(...rpgValues);
+      leaders.ReboundsLeader = validPlayers
+        .filter(p => isFinite(p.trb / p.gp) && Math.abs((p.trb / p.gp) - maxRPG) < 0.001)
+        .map(p => p.pid);
+    }
 
-  // Steals Leader: SPG = stl / gp, pick max
-  const maxSPG = Math.max(...eligible.map(p => p.stl / p.gp));
-  leaders.StealsLeader = eligible
-    .filter(p => Math.abs((p.stl / p.gp) - maxSPG) < 0.001)
-    .map(p => p.pid);
+    // Assists Leader: APG = ast / gp, pick max
+    const apgValues = validPlayers.map(p => p.ast / p.gp).filter(val => isFinite(val));
+    if (apgValues.length > 0) {
+      const maxAPG = Math.max(...apgValues);
+      leaders.AssistsLeader = validPlayers
+        .filter(p => isFinite(p.ast / p.gp) && Math.abs((p.ast / p.gp) - maxAPG) < 0.001)
+        .map(p => p.pid);
+    }
 
-  // Blocks Leader: BPG = blk / gp, pick max
-  const maxBPG = Math.max(...eligible.map(p => p.blk / p.gp));
-  leaders.BlocksLeader = eligible
-    .filter(p => Math.abs((p.blk / p.gp) - maxBPG) < 0.001)
-    .map(p => p.pid);
+    // Steals Leader: SPG = stl / gp, pick max
+    const spgValues = validPlayers.map(p => p.stl / p.gp).filter(val => isFinite(val));
+    if (spgValues.length > 0) {
+      const maxSPG = Math.max(...spgValues);
+      leaders.StealsLeader = validPlayers
+        .filter(p => isFinite(p.stl / p.gp) && Math.abs((p.stl / p.gp) - maxSPG) < 0.001)
+        .map(p => p.pid);
+    }
+
+    // Blocks Leader: BPG = blk / gp, pick max
+    const bpgValues = validPlayers.map(p => p.blk / p.gp).filter(val => isFinite(val));
+    if (bpgValues.length > 0) {
+      const maxBPG = Math.max(...bpgValues);
+      leaders.BlocksLeader = validPlayers
+        .filter(p => isFinite(p.blk / p.gp) && Math.abs((p.blk / p.gp) - maxBPG) < 0.001)
+        .map(p => p.pid);
+    }
+  } catch (error) {
+    console.warn('Error calculating season leaders:', error);
+    // Return empty leaders on error to prevent crashes
+    return leaders;
+  }
 
 
   return leaders;
