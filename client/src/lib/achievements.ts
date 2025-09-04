@@ -654,6 +654,11 @@ function isBornOutsideUS50DC(born: any): boolean {
   // If it is, they DON'T qualify for "outside" achievement
   const isUSBorn = isBornInUS50DC(normalized);
   
+  // Debug logging specifically for hockey to help diagnose issues
+  if (location.includes('Hockey') || Math.random() < 0.001) {
+    console.log(`🏒 HOCKEY BIRTH DEBUG: "${location}" -> normalized: "${normalized}" -> isUSBorn: ${isUSBorn} -> qualifies: ${!isUSBorn}`);
+  }
+  
   return !isUSBorn;
 }
 
