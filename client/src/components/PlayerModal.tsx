@@ -46,21 +46,22 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
 
   // Memoize expensive calculations
   const modalData = useMemo(() => {
-    if (!currentCellKey || rows.length === 0 || cols.length === 0) {
-      return null;
-    }
+    try {
+      if (!currentCellKey || rows.length === 0 || cols.length === 0) {
+        return null;
+      }
 
-    const [rowKey, colKey] = currentCellKey.split('|');
-    const rowConstraint = rows.find(r => r.key === rowKey);
-    const colConstraint = cols.find(c => c.key === colKey);
-    
-    if (!rowConstraint || !colConstraint) {
-      return null;
-    }
+      const [rowKey, colKey] = currentCellKey.split('|');
+      const rowConstraint = rows.find(r => r.key === rowKey);
+      const colConstraint = cols.find(c => c.key === colKey);
+      
+      if (!rowConstraint || !colConstraint) {
+        return null;
+      }
 
-    const isCorrectGuess = eligiblePlayers.some(p => p.pid === player.pid);
-    
-    if (isCorrectGuess) {
+      const isCorrectGuess = eligiblePlayers.some(p => p.pid === player.pid);
+      
+      if (isCorrectGuess) {
       // Calculate rarity for correct guesses
       const eligiblePool = eligiblePlayers.map(p => playerToEligibleLite(p));
       if (eligiblePool.length > 0) {
@@ -138,6 +139,10 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
     }
 
     return null;
+    } catch (error) {
+      console.error('Error in PlayerModal modalData calculation:', error);
+      return null;
+    }
   }, [player.pid, currentCellKey, eligiblePlayers, puzzleSeed, rows, cols, teams, sport]);
 
   // Get feedback message and color for score
