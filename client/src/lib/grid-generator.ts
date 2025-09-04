@@ -955,6 +955,21 @@ function simpleHash(str: string): number {
   return Math.abs(hash);
 }
 
+// Get teams that have players for a specific achievement (missing function)
+function getTeamsForAchievement(seasonIndex: SeasonIndex, achievementId: SeasonAchievementId): Set<number> {
+  const teams = new Set<number>();
+  
+  for (const season of Object.values(seasonIndex)) {
+    for (const [teamId, teamData] of Object.entries(season)) {
+      if (teamData[achievementId] && teamData[achievementId].size > 0) {
+        teams.add(parseInt(teamId));
+      }
+    }
+  }
+  
+  return teams;
+}
+
 // Helper function to calculate intersection between two constraints (simplified version)
 function calculateIntersectionSimple(
   rowConstraint: any,
