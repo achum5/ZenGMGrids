@@ -107,49 +107,8 @@ export const BASKETBALL_ACHIEVEMENTS: Achievement[] = [
     test: (p: Player) => p.achievements?.career2kThrees || false,
     minPlayers: 5
   },
-  // Awards achievements
-  {
-    id: 'hasMVP',
-    label: 'Most Valuable Player',
-    test: (p: Player) => p.achievements?.hasMVP || false,
-    minPlayers: 5
-  },
-  {
-    id: 'hasDPOY',
-    label: 'Defensive Player of the Year',
-    test: (p: Player) => p.achievements?.hasDPOY || false,
-    minPlayers: 5
-  },
-  {
-    id: 'hasROY',
-    label: 'Rookie of the Year',
-    test: (p: Player) => p.achievements?.hasROY || false,
-    minPlayers: 5
-  },
-  {
-    id: 'wonSixMOY',
-    label: 'Sixth Man of the Year',
-    test: (p: Player) => p.achievements?.wonSixMOY || false,
-    minPlayers: 5
-  },
-  {
-    id: 'wonFinalsMVP',
-    label: 'Finals MVP',
-    test: (p: Player) => p.achievements?.wonFinalsMVP || false,
-    minPlayers: 5
-  },
-  {
-    id: 'hasAllStar',
-    label: 'All-Star',
-    test: (p: Player) => p.achievements?.hasAllStar || false,
-    minPlayers: 5
-  },
-  {
-    id: 'wonChampionship',
-    label: 'Champion',
-    test: (p: Player) => p.achievements?.wonChampionship || false,
-    minPlayers: 5
-  }
+  // Note: Single-season awards removed from game entirely
+  // hasMVP, hasDPOY, hasROY, wonSixMOY, wonFinalsMVP, hasAllStar, wonChampionship
 ];
 
 // Baseball-specific achievements  
@@ -204,49 +163,8 @@ export const BASEBALL_ACHIEVEMENTS: Achievement[] = [
     test: (p: Player) => p.achievements?.career300Saves || false,
     minPlayers: 5
   },
-  // Awards achievements
-  {
-    id: 'wonMVP',
-    label: 'Most Valuable Player',
-    test: (p: Player) => p.achievements?.wonMVP || false,
-    minPlayers: 5
-  },
-  {
-    id: 'wonFinalsMVP',
-    label: 'Finals MVP',
-    test: (p: Player) => p.achievements?.wonFinalsMVP || false,
-    minPlayers: 5
-  },
-  {
-    id: 'wonPitcherOfYear',
-    label: 'Pitcher of the Year',
-    test: (p: Player) => p.achievements?.wonPitcherOfYear || false,
-    minPlayers: 5
-  },
-  {
-    id: 'wonReliefPitcherOfYear',
-    label: 'Relief Pitcher of the Year', 
-    test: (p: Player) => p.achievements?.wonReliefPitcherOfYear || false,
-    minPlayers: 5
-  },
-  {
-    id: 'wonROY',
-    label: 'Rookie of the Year',
-    test: (p: Player) => p.achievements?.wonROY || false,
-    minPlayers: 5
-  },
-  {
-    id: 'madeAllStar',
-    label: 'All-Star',
-    test: (p: Player) => p.achievements?.madeAllStar || false,
-    minPlayers: 5
-  },
-  {
-    id: 'wonChampionship',
-    label: 'Champion',
-    test: (p: Player) => p.achievements?.wonChampionship || false,
-    minPlayers: 5
-  }
+  // Note: Single-season awards removed from game entirely
+  // wonMVP, wonFinalsMVP, wonPitcherOfYear, wonReliefPitcherOfYear, wonROY, madeAllStar, wonChampionship
 ];
 
 // Hockey-specific achievements
@@ -282,49 +200,8 @@ export const HOCKEY_ACHIEVEMENTS: Achievement[] = [
     test: (p: Player) => p.achievements?.career50Shutouts || false,
     minPlayers: 5
   },
-  // Awards achievements
-  {
-    id: 'wonMVP',
-    label: 'Most Valuable Player',
-    test: (p: Player) => p.achievements?.wonMVP || false,
-    minPlayers: 5
-  },
-  {
-    id: 'wonDefensiveForward',
-    label: 'Defensive Forward of the Year',
-    test: (p: Player) => p.achievements?.wonDefensiveForward || false,
-    minPlayers: 5
-  },
-  {
-    id: 'wonGoalieOfYear',
-    label: 'Goalie of the Year',
-    test: (p: Player) => p.achievements?.wonGoalieOfYear || false,
-    minPlayers: 5
-  },
-  {
-    id: 'wonROY',
-    label: 'Rookie of the Year',
-    test: (p: Player) => p.achievements?.wonROY || false,
-    minPlayers: 5
-  },
-  {
-    id: 'wonPlayoffsMVP',
-    label: 'Playoffs MVP',
-    test: (p: Player) => p.achievements?.wonPlayoffsMVP || false,
-    minPlayers: 5
-  },
-  {
-    id: 'madeAllStar',
-    label: 'All-Star',
-    test: (p: Player) => p.achievements?.madeAllStar || false,
-    minPlayers: 5
-  },
-  {
-    id: 'wonChampionship',
-    label: 'Champion',
-    test: (p: Player) => p.achievements?.wonChampionship || false,
-    minPlayers: 5
-  }
+  // Note: Single-season awards removed from game entirely
+  // wonMVP, wonDefensiveForward, wonGoalieOfYear, wonROY, wonPlayoffsMVP, madeAllStar, wonChampionship
 ];
 
 // Football-specific achievements
@@ -375,25 +252,8 @@ export const FOOTBALL_ACHIEVEMENTS: Achievement[] = [
     test: (p: Player) => p.achievements?.career20Ints || false,
     minPlayers: 5
   },
-  // Awards achievements
-  {
-    id: 'wonMVP',
-    label: 'Most Valuable Player',
-    test: (p: Player) => p.achievements?.wonMVP || false,
-    minPlayers: 5
-  },
-  {
-    id: 'wonDPOY',
-    label: 'Defensive Player of the Year',
-    test: (p: Player) => p.achievements?.wonDPOY || false,
-    minPlayers: 5
-  },
-  {
-    id: 'wonROY',
-    label: 'Rookie of the Year',
-    test: (p: Player) => p.achievements?.wonROY || false,
-    minPlayers: 5
-  }
+  // Note: Single-season awards removed from game entirely
+  // wonMVP, wonDPOY, wonROY
 ];
 
 // Get achievements based on sport
@@ -551,26 +411,7 @@ function calculateFootballAchievements(player: Player, achievements: any): void 
   achievements.career20Ints = careerInts >= 20;
   
   
-  // Awards (simplified for now)
-  const awards = player.awards || [];
-  
-  // Debug: Log unique award types for football (temporary)
-  if (awards.length > 0 && Math.random() < 0.05) { // Log 5% of players with awards
-    const awardTypes = awards.map((a: any) => a.type);
-    const uniqueTypes = Array.from(new Set(awardTypes));
-    console.log('Football award types found:', uniqueTypes);
-  }
-  
-  achievements.wonMVP = awards.some((a: any) => a.type === 'Most Valuable Player' || a.type === 'MVP');
-  achievements.wonOPOY = awards.some((a: any) => a.type === 'Offensive Player of the Year' || a.type === 'OPOY');
-  achievements.wonDPOY = awards.some((a: any) => a.type === 'Defensive Player of the Year' || a.type === 'DPOY');
-  // ROY fix: FBGM has separate offensive and defensive ROY
-  achievements.wonROY = awards.some((a: any) => 
-    a.type === 'Rookie of the Year' || 
-    a.type === 'ROY' || 
-    a.type === 'Offensive Rookie of the Year' ||
-    a.type === 'Defensive Rookie of the Year'
-  );
+  // Note: Single-season award calculations removed from game entirely
 }
 
 // Calculate baseball-specific achievements
@@ -611,26 +452,7 @@ function calculateBaseballAchievements(player: Player, achievements: any): void 
   achievements.career300Saves = careerSaves >= 300;
   
   
-  // Awards - Use EXACT ZGMB strings only (no aliases)
-  const awards = player.awards || [];
-  
-  // Log ALL award types to debug what's actually in the ZGMB file
-  if (awards.length > 0) {
-    awards.forEach((award: any) => {
-      console.log(`Baseball Award Found: "${award.type}" (season ${award.season})`);
-    });
-  }
-  
-  // EXACT award type matching per ZGMB specification
-  achievements.wonMVP = awards.some((a: any) => a.type === 'Most Valuable Player');
-  achievements.wonFinalsMVP = awards.some((a: any) => a.type === 'Finals MVP');
-  // Note: Pitcher awards removed from UI but keeping for data consistency
-  // achievements.wonPitcherOfYear = awards.some((a: any) => a.type === 'Pitcher of the Year');
-  // achievements.wonReliefPitcherOfYear = awards.some((a: any) => a.type === 'Relief Pitcher of the Year');
-  achievements.wonROY = awards.some((a: any) => a.type === 'Rookie of the Year');
-  
-  // Note: All-Star not mentioned in ZGMB spec, keeping as-is
-  achievements.madeAllStar = awards.some((a: any) => a.type === 'All-Star');
+  // Note: Single-season award calculations removed from game entirely
 }
 
 // Calculate hockey-specific achievements
@@ -725,33 +547,7 @@ function calculateHockeyAchievements(player: Player, achievements: any): void {
   
   
   
-  // Awards - use exact ZGMH award type strings from documentation
-  const awards = player.awards || [];
-  
-  // Debug: Log actual award types to see what strings are used in this league
-  if (awards.length > 0 && Math.random() < 0.5) {  // 50% sample to catch more award types
-    const awardTypes = awards.map((a: any) => a.type).join(', ');
-    console.log('Hockey award types found:', awardTypes);
-  }
-  
-  // Log ALL award types to debug what's actually in the ZGMH file
-  if (awards.length > 0) {
-    awards.forEach((award: any) => {
-      console.log(`Hockey Award Found: "${award.type}" (season ${award.season})`);
-    });
-  }
-  
-  // Fix: Use correct achievement property names that match the definitions
-  achievements.wonMVP = awards.some((a: any) => a.type === 'Most Valuable Player');
-  achievements.wonDefensiveForward = awards.some((a: any) => a.type === 'Defensive Forward of the Year');
-  achievements.wonGoalieOfYear = awards.some((a: any) => a.type === 'Goalie of the Year');
-  achievements.wonROY = awards.some((a: any) => a.type === 'Rookie of the Year');
-  achievements.wonPlayoffsMVP = awards.some((a: any) => a.type === 'Playoffs MVP');
-  achievements.madeAllStar = awards.some((a: any) => a.type === 'All-Star');
-  
-  // Championship - need to derive from team data, not player awards
-  // This is a placeholder - proper championship detection would require team season data
-  achievements.wonChampionship = awards.some((a: any) => a.type === 'Won Championship');
+  // Note: Single-season award calculations removed from game entirely
 }
 
 // Calculate basketball-specific achievements
@@ -795,28 +591,7 @@ function calculateBasketballAchievements(player: Player, achievements: any): voi
   achievements.career2kThrees = careerThree >= 2000;
   
   
-  // Awards
-  const awards = player.awards || [];
-  // Fix award detection - try multiple possible award strings
-  achievements.hasMVP = awards.some((a: any) => 
-    a.type === 'Most Valuable Player' || a.type === 'MVP' || a.type === 'Regular Season MVP'
-  );
-  achievements.hasDPOY = awards.some((a: any) => 
-    a.type === 'Defensive Player of the Year' || a.type === 'DPOY'
-  );
-  achievements.hasROY = awards.some((a: any) => 
-    a.type === 'Rookie of the Year' || a.type === 'ROY'
-  );
-  achievements.wonSixMOY = awards.some((a: any) => 
-    a.type === 'Sixth Man of the Year' || a.type === 'SMOY' || a.type === 'Sixth Man'
-  );
-  achievements.wonFinalsMVP = awards.some((a: any) => 
-    a.type === 'Finals MVP' || a.type === 'Playoffs MVP'
-  );
-  achievements.hasAllStar = awards.some((a: any) => 
-    a.type === 'All-Star' || a.type === 'All Star'
-  );
-  achievements.wonChampionship = awards.some((a: any) => a.type === 'Won Championship');
+  // Note: Single-season award calculations removed from game entirely
 }
 
 // Calculate common achievements for both sports
