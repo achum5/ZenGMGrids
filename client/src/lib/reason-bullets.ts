@@ -140,6 +140,16 @@ export function generateReasonBullets(
     if (colBullet) bullets.push(colBullet);
   }
   
+  // Add birth location bullet if one of the constraints is "bornOutsideUS50DC"
+  if ((rowConstraint.achievementId === 'bornOutsideUS50DC' || colConstraint.achievementId === 'bornOutsideUS50DC') && 
+      player.born?.loc) {
+    const birthLocationBullet: ReasonBullet = {
+      text: `Born in ${player.born.loc}`,
+      type: 'category'
+    };
+    bullets.push(birthLocationBullet);
+  }
+  
   return bullets.slice(0, 3); // Max 3 bullets
 }
 

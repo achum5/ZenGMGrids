@@ -1621,15 +1621,8 @@ function getDraftNegativeMessage(player: Player, achievementId: string): string 
     }
     
     const birthplace = player.born.loc.trim();
-    if (!birthplace.endsWith(', USA')) {
-      // Born outside USA - this should be positive, but this is negative message so player must be inside
-      // This case shouldn't happen for negative messages
-      return "was born outside the USA";
-    } else {
-      // Born in USA - if this is a negative message, they were born IN the 50 states/DC
-      const place = birthplace.slice(0, -5).trim();
-      return `was born in ${place}, USA (not outside the 50 states or D.C.)`;
-    }
+    // For wrong guesses on "Born outside 50 states + DC", show their actual birth location
+    return `was born in the US (${birthplace})`;
   }
   
   if (!player.draft) {
