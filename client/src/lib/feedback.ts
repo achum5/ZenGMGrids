@@ -531,8 +531,8 @@ function getPlayoffTeamForSeason(player: Player, season: number): string | null 
   );
   
   if (playoffStats) {
-    // For now, return generic team identifier - would need teams array to get abbreviation
-    return `T${playoffStats.tid}`;
+    // Return null instead of generic team identifier - team names will be resolved elsewhere
+    return null;
   }
   
   return null;

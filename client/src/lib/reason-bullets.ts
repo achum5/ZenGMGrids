@@ -88,7 +88,7 @@ function formatNumber(num: number): string {
 // Helper function to get team abbreviation
 function getTeamAbbrev(teams: Team[], tid: number): string {
   const team = teams.find(t => t.tid === tid);
-  return team?.abbrev || `T${tid}`;
+  return team?.abbrev || team?.region || team?.name || 'Unknown';
 }
 
 // Helper function to check if an achievement ID is a season achievement
@@ -188,14 +188,16 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
   
   for (const award of matchingAwards) {
     if (award.season) {
-      // For Finals MVP and Conference Finals MVP, include team abbreviation
-      if (achievementId === 'FinalsMVP' || achievementId === 'SFMVP') {
+      // For Finals MVP, Conference Finals MVP, Championship, and Playoffs MVP, try to include team abbreviation
+      if (achievementId === 'FinalsMVP' || achievementId === 'SFMVP' || achievementId === 'FBFinalsMVP' || 
+          achievementId === 'HKPlayoffsMVP' || achievementId === 'BBPlayoffsMVP' || 
+          achievementId === 'FBChampion' || achievementId === 'HKChampion' || achievementId === 'BBChampion') {
         const playoffTeam = getBulletPlayoffTeam(player, award.season, teams);
         if (playoffTeam) {
           seasonsWithTeam.push(`${award.season} ${playoffTeam}`);
         } else {
-          // If we can't resolve playoff team, exclude this season from display/eligibility
-          continue;
+          // If we can't resolve playoff team, just show the year without team
+          seasonsWithTeam.push(`${award.season}`);
         }
       } else {
         seasonsWithTeam.push(`${award.season}`);
@@ -216,7 +218,7 @@ function getBulletPlayoffTeam(player: Player, season: number, teams: Team[]): st
   
   if (playoffStats) {
     const team = teams.find(t => t.tid === playoffStats.tid);
-    return team?.abbrev || `T${playoffStats.tid}`;
+    return team?.abbrev || null; // Return null instead of T{tid} fallback
   }
   
   return null;
@@ -456,7 +458,11 @@ function buildSeasonAchievementBullet(player: Player, achievementId: SeasonAchie
   
   if (seasons.length === 0) return null;
   
-  const seasonStr = formatBulletSeasonList(seasons, achievementId === 'FinalsMVP' || achievementId === 'SFMVP');
+  const isPlayoffAward = achievementId === 'FinalsMVP' || achievementId === 'SFMVP' || 
+                        achievementId === 'FBFinalsMVP' || achievementId === 'HKPlayoffsMVP' || 
+                        achievementId === 'BBPlayoffsMVP' || achievementId === 'FBChampion' || 
+                        achievementId === 'HKChampion' || achievementId === 'BBChampion';
+  const seasonStr = formatBulletSeasonList(seasons, isPlayoffAward);
   
   return {
     text: `${achLabel} (${seasonStr})`,
