@@ -519,7 +519,7 @@ export function legacyCellKey(rowTid: number, colTid: number): string {
   return `${rowTid}|${colTid}`;
 }
 
-// New seeded, coverage-aware grid builder (for basketball with >= 12 seasons)
+// New simplified seeded grid builder (for basketball with >= 12 seasons)
 function generateGridSeeded(leagueData: LeagueData): {
   rows: CatTeam[];
   cols: CatTeam[];
@@ -531,70 +531,416 @@ function generateGridSeeded(leagueData: LeagueData): {
     throw new Error('Season index required for seeded builder');
   }
   
-  console.log('🎯 Starting seeded grid generation...');
+  console.log('🎯 Starting simplified seeded grid generation...');
   
-  // Allowed layouts: exactly these, never 3T×3A
-  const LAYOUTS = [
+  // Step 1: Pick layout randomly (seeded by current time)
+  const ALLOWED_LAYOUTS = [
     { name: '1T2A×3T', rows: ['T', 'A', 'A'], cols: ['T', 'T', 'T'] },
     { name: '3T×1T2A', rows: ['T', 'T', 'T'], cols: ['T', 'A', 'A'] },
     { name: '2T1A×2T1A', rows: ['T', 'T', 'A'], cols: ['T', 'T', 'A'] },
     { name: '2T1A×1T2A', rows: ['T', 'T', 'A'], cols: ['T', 'A', 'A'] }
   ] as const;
   
-  // Step A: Choose layout (seeded by a simple hash)
-  const gridId = Date.now().toString(); // Use current time for now
-  const layoutIndex = simpleHash(gridId) % LAYOUTS.length;
-  const layout = LAYOUTS[layoutIndex];
-  console.log(`Selected layout: ${layout.name}`);
+  const gridId = Date.now().toString();
+  const layoutIndex = simpleHash(gridId) % ALLOWED_LAYOUTS.length;
+  const layout = ALLOWED_LAYOUTS[layoutIndex];
+  console.log(`✅ Step 1: Selected layout: ${layout.name}`);
   
-  // Step B: Seed with one random season-specific achievement
-  const seasonAchievements = SEASON_ACHIEVEMENTS.filter(sa => {
-    // Check if this achievement has any entries in the season index
-    for (const seasonStr of Object.keys(seasonIndex)) {
-      const season = parseInt(seasonStr);
-      const seasonData = seasonIndex[season];
-      for (const teamStr of Object.keys(seasonData)) {
-        const teamId = parseInt(teamStr);
-        const teamData = seasonData[teamId];
-        if (teamData[sa.id] && teamData[sa.id].size > 0) {
-          return true; // Found at least one player with this achievement
+  // Step 2: Seed with one random season achievement
+  let retryCount = 0;
+  let seedAchievement: typeof SEASON_ACHIEVEMENTS[0];
+  let seedSlot: { axis: 'row' | 'col', index: number };
+  
+  do {
+    if (retryCount >= 10) {
+      throw new Error('Could not find viable seed achievement after 10 tries');
+    }
+    
+    // Find viable season achievements that have >= 3 eligible teams
+    const viableSeasonAchievements = SEASON_ACHIEVEMENTS.filter(sa => {
+      const eligibleTeams = getTeamsForAchievement(seasonIndex, sa.id);
+      return eligibleTeams.size >= 3;
+    });
+    
+    console.log(`Found ${viableSeasonAchievements.length} viable season achievements:`, viableSeasonAchievements.map(sa => sa.id));
+    
+    if (viableSeasonAchievements.length === 0) {
+      throw new Error('No viable season achievements found for seeded generation');
+    }
+    
+    // Pick random season achievement
+    const achievementIndex = simpleHash(gridId + '_seed' + retryCount) % viableSeasonAchievements.length;
+    seedAchievement = viableSeasonAchievements[achievementIndex];
+    
+    // Find achievement slots and pick one randomly
+    const achievementSlots: Array<{ axis: 'row' | 'col', index: number }> = [];
+    layout.rows.forEach((type, index) => {
+      if (type === 'A') achievementSlots.push({ axis: 'row', index });
+    });
+    layout.cols.forEach((type, index) => {
+      if (type === 'A') achievementSlots.push({ axis: 'col', index });
+    });
+    
+    const slotIndex = simpleHash(gridId + '_slot' + retryCount) % achievementSlots.length;
+    seedSlot = achievementSlots[slotIndex];
+    
+    // Check if this achievement has ≥3 eligible teams
+    const eligibleTeams = getTeamsForAchievement(seasonIndex, seedAchievement.id);
+    if (eligibleTeams.size >= 3) break;
+    
+    retryCount++;
+  } while (retryCount < 10);
+  
+  console.log(`✅ Step 2: Seeded with ${seedAchievement.label} at ${seedSlot.axis} ${seedSlot.index}`);
+  
+  // Initialize grid
+  const rows: CatTeam[] = new Array(3);
+  const cols: CatTeam[] = new Array(3);
+  
+  const seedConstraint: CatTeam = {
+    type: 'achievement',
+    achievementId: seedAchievement.id,
+    label: seedAchievement.label,
+    key: `achievement-${seedAchievement.id}`,
+    test: (p: Player) => playerMeetsAchievement(p, seedAchievement.id),
+  };
+  
+  if (seedSlot.axis === 'row') {
+    rows[seedSlot.index] = seedConstraint;
+  } else {
+    cols[seedSlot.index] = seedConstraint;
+  }
+  
+  // Step 3: Choose opposite axis to ensure seed has 3/3 coverage
+  const oppositeAxis = seedSlot.axis === 'row' ? 'col' : 'row';
+  const oppositeLayout = oppositeAxis === 'row' ? layout.rows : layout.cols;
+  const oppositeArray = oppositeAxis === 'row' ? rows : cols;
+  
+  console.log(`✅ Step 3: Filling opposite ${oppositeAxis} with layout [${oppositeLayout.join(', ')}]`);
+  
+  const eligibleTeams = getTeamsForAchievement(seasonIndex, seedAchievement.id);
+  const eligibleTeamsList = Array.from(eligibleTeams)
+    .map(tid => teams.find(t => t.tid === tid))
+    .filter(t => t) as Team[];
+  
+  // Shuffle teams for randomness
+  for (let i = eligibleTeamsList.length - 1; i > 0; i--) {
+    const j = Math.floor((simpleHash(gridId + '_shuffle' + i) / 2147483647) * (i + 1));
+    [eligibleTeamsList[i], eligibleTeamsList[j]] = [eligibleTeamsList[j], eligibleTeamsList[i]];
+  }
+  
+  let teamIndex = 0;
+  
+  for (let i = 0; i < 3; i++) {
+    if (oppositeLayout[i] === 'T') {
+      // Pick next team that has eligible players with seed
+      const team = eligibleTeamsList[teamIndex];
+      if (!team) {
+        throw new Error(`Not enough eligible teams for seed ${seedAchievement.label}`);
+      }
+      
+      oppositeArray[i] = {
+        type: 'team',
+        tid: team.tid,
+        label: team.name || `Team ${team.tid}`,
+        key: `team-${team.tid}`,
+        test: (p: Player) => p.teamsPlayed.has(team.tid),
+      };
+      
+      console.log(`   Filled ${oppositeAxis} ${i} with team: ${team.name || `Team ${team.tid}`}`);
+      teamIndex++;
+    } else if (oppositeLayout[i] === 'A') {
+      // Pick achievement that has shared players in same season with seed
+      const viableAchievements: (typeof SEASON_ACHIEVEMENTS[0] | Achievement)[] = [];
+      
+      // Try season achievements first
+      for (const ach of SEASON_ACHIEVEMENTS) {
+        if (ach.id === seedAchievement.id) continue;
+        
+        // Check if there's overlap in same season
+        let hasOverlap = false;
+        for (const season of Object.keys(seasonIndex)) {
+          const seasonNum = parseInt(season);
+          const seasonData = seasonIndex[seasonNum];
+          for (const teamId of Object.keys(seasonData)) {
+            const teamData = seasonData[parseInt(teamId)];
+            const seedPlayers = teamData[seedAchievement.id] || new Set();
+            const achPlayers = teamData[ach.id] || new Set();
+            
+            // Check for overlap
+            for (const pid of Array.from(seedPlayers)) {
+              if (achPlayers.has(pid)) {
+                hasOverlap = true;
+                break;
+              }
+            }
+            if (hasOverlap) break;
+          }
+          if (hasOverlap) break;
+        }
+        
+        if (hasOverlap) {
+          viableAchievements.push(ach);
+        }
+      }
+      
+      // Also try career achievements (get from achievements passed to function)
+      const achievements = getAchievements('basketball');
+      for (const ach of achievements) {
+        if (ach.isSeasonSpecific) continue;
+        
+        // Check if any player has both seed achievement (any season) and this career achievement
+        const seedPlayerIds = new Set<number>();
+        for (const season of Object.keys(seasonIndex)) {
+          const seasonData = seasonIndex[parseInt(season)];
+          for (const teamId of Object.keys(seasonData)) {
+            const teamData = seasonData[parseInt(teamId)];
+            const achPlayers = teamData[seedAchievement.id] || new Set();
+            for (const pid of Array.from(achPlayers)) {
+              seedPlayerIds.add(pid);
+            }
+          }
+        }
+        
+        const hasOverlap = players.some(p => seedPlayerIds.has(p.pid) && ach.test(p));
+        if (hasOverlap) {
+          viableAchievements.push(ach);
+        }
+      }
+      
+      if (viableAchievements.length === 0) {
+        throw new Error(`No viable achievements found for opposite axis with seed ${seedAchievement.label}`);
+      }
+      
+      const achIndex = simpleHash(gridId + '_oppach' + i) % viableAchievements.length;
+      const selectedAch = viableAchievements[achIndex];
+      
+      oppositeArray[i] = {
+        type: 'achievement',
+        achievementId: selectedAch.id,
+        label: selectedAch.label,
+        key: `achievement-${selectedAch.id}`,
+        test: (p: Player) => playerMeetsAchievement(p, selectedAch.id),
+      };
+      
+      console.log(`   Filled ${oppositeAxis} ${i} with achievement: ${selectedAch.label}`);
+    }
+  }
+  
+  // Step 4: Fill remaining slots using old-style approach
+  console.log(`✅ Step 4: Filling remaining slots old-style`);
+  
+  const allAchievements = [...SEASON_ACHIEVEMENTS, ...getAchievements('basketball')];
+  
+  // Find remaining empty slots
+  for (let i = 0; i < 3; i++) {
+    if (!rows[i]) {
+      console.log(`   Filling empty row ${i} slot (type: ${layout.rows[i]})`);
+      
+      if (layout.rows[i] === 'T') {
+        // Fill team slot - try up to 50 random teams
+        let found = false;
+        for (let attempt = 0; attempt < 50; attempt++) {
+          const teamIndex = simpleHash(gridId + '_rowteam' + i + '_' + attempt) % teams.length;
+          const team = teams[teamIndex];
+          
+          // Check if this team creates valid intersections with all columns
+          let validForAllCols = true;
+          
+          for (let colIdx = 0; colIdx < 3; colIdx++) {
+            const colConstraint = cols[colIdx];
+            const intersection = calculateIntersectionSimple(
+              { type: 'team', tid: team.tid, label: team.name || `Team ${team.tid}` },
+              colConstraint,
+              players,
+              seasonIndex
+            );
+            
+            if (intersection.length === 0) {
+              validForAllCols = false;
+              break;
+            }
+          }
+          
+          if (validForAllCols) {
+            rows[i] = {
+              type: 'team',
+              tid: team.tid,
+              label: team.name || `Team ${team.tid}`,
+              key: `team-${team.tid}`,
+              test: (p: Player) => p.teamsPlayed.has(team.tid),
+            };
+            console.log(`     Selected team: ${team.name || `Team ${team.tid}`} (attempt ${attempt + 1})`);
+            found = true;
+            break;
+          }
+        }
+        
+        if (!found) {
+          throw new Error(`Could not find valid team for row ${i} after trying 50 candidates`);
+        }
+        
+      } else if (layout.rows[i] === 'A') {
+        // Fill achievement slot - try up to 50 random achievements
+        let found = false;
+        for (let attempt = 0; attempt < 50; attempt++) {
+          const achIndex = simpleHash(gridId + '_rowach' + i + '_' + attempt) % allAchievements.length;
+          const ach = allAchievements[achIndex];
+          
+          // Skip if season achievement but no season index
+          if (ach.isSeasonSpecific && !seasonIndex) continue;
+          
+          // Check if this achievement creates valid intersections with all columns
+          let validForAllCols = true;
+          
+          for (let colIdx = 0; colIdx < 3; colIdx++) {
+            const colConstraint = cols[colIdx];
+            const intersection = calculateIntersectionSimple(
+              { type: 'achievement', achievementId: ach.id, label: ach.label },
+              colConstraint,
+              players,
+              seasonIndex
+            );
+            
+            if (intersection.length === 0) {
+              validForAllCols = false;
+              break;
+            }
+          }
+          
+          if (validForAllCols) {
+            rows[i] = {
+              type: 'achievement',
+              achievementId: ach.id,
+              label: ach.label,
+              key: `achievement-${ach.id}`,
+              test: (p: Player) => playerMeetsAchievement(p, ach.id),
+            };
+            console.log(`     Selected achievement: ${ach.label} (attempt ${attempt + 1})`);
+            found = true;
+            break;
+          }
+        }
+        
+        if (!found) {
+          throw new Error(`Could not find valid achievement for row ${i} after trying 50 candidates`);
         }
       }
     }
-    return false;
-  });
-  
-  console.log(`Found ${seasonAchievements.length} viable season-specific achievements:`, seasonAchievements.map(sa => sa.id));
-  
-  if (seasonAchievements.length === 0) {
-    throw new Error('No viable season-specific achievements found');
+    
+    if (!cols[i]) {
+      console.log(`   Filling empty col ${i} slot (type: ${layout.cols[i]})`);
+      
+      if (layout.cols[i] === 'T') {
+        // Fill team slot - try up to 50 random teams
+        let found = false;
+        for (let attempt = 0; attempt < 50; attempt++) {
+          const teamIndex = simpleHash(gridId + '_colteam' + i + '_' + attempt) % teams.length;
+          const team = teams[teamIndex];
+          
+          // Check if this team creates valid intersections with all rows
+          let validForAllRows = true;
+          
+          for (let rowIdx = 0; rowIdx < 3; rowIdx++) {
+            const rowConstraint = rows[rowIdx];
+            const intersection = calculateIntersectionSimple(
+              rowConstraint,
+              { type: 'team', tid: team.tid, label: team.name || `Team ${team.tid}` },
+              players,
+              seasonIndex
+            );
+            
+            if (intersection.length === 0) {
+              validForAllRows = false;
+              break;
+            }
+          }
+          
+          if (validForAllRows) {
+            cols[i] = {
+              type: 'team',
+              tid: team.tid,
+              label: team.name || `Team ${team.tid}`,
+              key: `team-${team.tid}`,
+              test: (p: Player) => p.teamsPlayed.has(team.tid),
+            };
+            console.log(`     Selected team: ${team.name || `Team ${team.tid}`} (attempt ${attempt + 1})`);
+            found = true;
+            break;
+          }
+        }
+        
+        if (!found) {
+          throw new Error(`Could not find valid team for col ${i} after trying 50 candidates`);
+        }
+        
+      } else if (layout.cols[i] === 'A') {
+        // Fill achievement slot - try up to 50 random achievements
+        let found = false;
+        for (let attempt = 0; attempt < 50; attempt++) {
+          const achIndex = simpleHash(gridId + '_colach' + i + '_' + attempt) % allAchievements.length;
+          const ach = allAchievements[achIndex];
+          
+          // Skip if season achievement but no season index
+          if (ach.isSeasonSpecific && !seasonIndex) continue;
+          
+          // Check if this achievement creates valid intersections with all rows
+          let validForAllRows = true;
+          
+          for (let rowIdx = 0; rowIdx < 3; rowIdx++) {
+            const rowConstraint = rows[rowIdx];
+            const intersection = calculateIntersectionSimple(
+              rowConstraint,
+              { type: 'achievement', achievementId: ach.id, label: ach.label },
+              players,
+              seasonIndex
+            );
+            
+            if (intersection.length === 0) {
+              validForAllRows = false;
+              break;
+            }
+          }
+          
+          if (validForAllRows) {
+            cols[i] = {
+              type: 'achievement',
+              achievementId: ach.id,
+              label: ach.label,
+              key: `achievement-${ach.id}`,
+              test: (p: Player) => playerMeetsAchievement(p, ach.id),
+            };
+            console.log(`     Selected achievement: ${ach.label} (attempt ${attempt + 1})`);
+            found = true;
+            break;
+          }
+        }
+        
+        if (!found) {
+          throw new Error(`Could not find valid achievement for col ${i} after trying 50 candidates`);
+        }
+      }
+    }
   }
   
-  const seedAchievementIndex = simpleHash(gridId + '_seed') % seasonAchievements.length;
-  const seedAchievement = seasonAchievements[seedAchievementIndex];
+  console.log(`✅ Grid complete: ${layout.name}`);
+  console.log(`   Rows: ${rows.map(r => r.label).join(', ')}`);
+  console.log(`   Cols: ${cols.map(c => c.label).join(', ')}`);
   
-  // Find achievement slots in the layout
-  const rowAchSlots = layout.rows.map((type, i) => ({ type, index: i })).filter(s => s.type === 'A');
-  const colAchSlots = layout.cols.map((type, i) => ({ type, index: i })).filter(s => s.type === 'A');
-  const allAchSlots = [...rowAchSlots.map(s => ({ ...s, axis: 'row' as const })), ...colAchSlots.map(s => ({ ...s, axis: 'col' as const }))];
+  // Calculate all intersections
+  const intersections: Record<string, number[]> = {};
   
-  const seedSlotIndex = simpleHash(gridId + '_slot') % allAchSlots.length;
-  const seedSlot = allAchSlots[seedSlotIndex];
-  
-  console.log(`Seeded achievement: ${seedAchievement.label || seedAchievement.id} in ${seedSlot.axis} ${seedSlot.index}`);
-  
-  // Check if seed has >= 3 eligible teams
-  const eligibleTeams = getEligibleTeamsForSeasonAchievement(seasonIndex, seedAchievement.id);
-  if (eligibleTeams.length < 3) {
-    throw new Error(`Seed achievement ${seedAchievement.label || seedAchievement.id} has only ${eligibleTeams.length} eligible teams (need 3+)`);
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 3; col++) {
+      const key = `${rows[row].key}|${cols[col].key}`;
+      const eligiblePlayers = calculateIntersectionSimple(rows[row], cols[col], players, seasonIndex);
+      intersections[key] = eligiblePlayers.map((p: Player) => p.pid);
+      console.log(`Intersection ${rows[row].label} × ${cols[col].label}: ${eligiblePlayers.length} eligible players`);
+    }
   }
   
-  // Step C: Choose opposite axis headers for 3/3 coverage
-  const { rows, cols, intersections } = buildOppositeAxisForSeed(
-    layout, seedSlot, { id: seedAchievement.id, name: seedAchievement.label || seedAchievement.id }, eligibleTeams, teams, players, seasonIndex
-  );
+  console.log('✅ Simplified seeded grid generated successfully');
   
-  console.log(`✅ Seeded grid generated successfully`);
   return { rows, cols, intersections };
 }
 
@@ -609,26 +955,93 @@ function simpleHash(str: string): number {
   return Math.abs(hash);
 }
 
-// Get eligible teams for a season-specific achievement
-function getEligibleTeamsForSeasonAchievement(seasonIndex: SeasonIndex, achievementId: SeasonAchievementId): number[] {
-  const eligibleTeams = new Set<number>();
+// Helper function to calculate intersection between two constraints (simplified version)
+function calculateIntersectionSimple(
+  rowConstraint: any,
+  colConstraint: any,
+  players: Player[],
+  seasonIndex?: SeasonIndex
+): Player[] {
+  const rowIsSeasonAchievement = rowConstraint.type === 'achievement' && 
+    SEASON_ACHIEVEMENTS.some(sa => sa.id === rowConstraint.achievementId);
+  const colIsSeasonAchievement = colConstraint.type === 'achievement' && 
+    SEASON_ACHIEVEMENTS.some(sa => sa.id === colConstraint.achievementId);
   
-  // Scan through all seasons and teams in the season index
-  Object.keys(seasonIndex).forEach(seasonStr => {
-    const season = parseInt(seasonStr);
-    const seasonData = seasonIndex[season];
+  if (rowIsSeasonAchievement && colConstraint.type === 'team') {
+    // Season achievement × team
+    if (!seasonIndex) return [];
+    const eligiblePids = getSeasonEligiblePlayers(seasonIndex, colConstraint.tid!, rowConstraint.achievementId as SeasonAchievementId);
+    return players.filter(p => eligiblePids.has(p.pid));
+  } else if (colIsSeasonAchievement && rowConstraint.type === 'team') {
+    // Team × season achievement  
+    if (!seasonIndex) return [];
+    const eligiblePids = getSeasonEligiblePlayers(seasonIndex, rowConstraint.tid!, colConstraint.achievementId as SeasonAchievementId);
+    return players.filter(p => eligiblePids.has(p.pid));
+  } else if (rowIsSeasonAchievement && colIsSeasonAchievement) {
+    // Season achievement × season achievement
+    if (!seasonIndex) return [];
     
-    Object.keys(seasonData).forEach(teamStr => {
-      const teamId = parseInt(teamStr);
-      const teamData = seasonData[teamId];
-      
-      if (teamData[achievementId] && teamData[achievementId].size > 0) {
-        eligibleTeams.add(teamId);
+    if (rowConstraint.achievementId === colConstraint.achievementId) {
+      // Same achievement - find all players who have it
+      const eligiblePids = new Set<number>();
+      for (const seasonStr of Object.keys(seasonIndex)) {
+        const season = parseInt(seasonStr);
+        const seasonData = seasonIndex[season];
+        for (const teamStr of Object.keys(seasonData)) {
+          const teamId = parseInt(teamStr);
+          const teamData = seasonData[teamId];
+          if (teamData[rowConstraint.achievementId as SeasonAchievementId]) {
+            const achievementPids = teamData[rowConstraint.achievementId as SeasonAchievementId];
+            achievementPids.forEach(pid => eligiblePids.add(pid));
+          }
+        }
       }
+      return players.filter(p => eligiblePids.has(p.pid));
+    } else {
+      // Different achievements - find players who have both in the same season
+      const eligiblePids = new Set<number>();
+      for (const seasonStr of Object.keys(seasonIndex)) {
+        const season = parseInt(seasonStr);
+        const seasonData = seasonIndex[season];
+        for (const teamStr of Object.keys(seasonData)) {
+          const teamId = parseInt(teamStr);
+          const teamData = seasonData[teamId];
+          const rowPids = teamData[rowConstraint.achievementId as SeasonAchievementId] || new Set();
+          const colPids = teamData[colConstraint.achievementId as SeasonAchievementId] || new Set();
+          
+          // Find intersection - players who have both achievements with this team in this season
+          for (const pid of Array.from(rowPids)) {
+            if (colPids.has(pid)) {
+              eligiblePids.add(pid);
+            }
+          }
+        }
+      }
+      return players.filter(p => eligiblePids.has(p.pid));
+    }
+  } else if (rowConstraint.type === 'team' && colConstraint.type === 'team') {
+    // Team × team - players who played for both teams
+    return players.filter(p => {
+      return p.teamsPlayed.has(rowConstraint.tid) && p.teamsPlayed.has(colConstraint.tid);
     });
-  });
+  } else if (rowConstraint.type === 'team' && colConstraint.type === 'achievement' && !colIsSeasonAchievement) {
+    // Team × career achievement
+    return players.filter(p => {
+      return p.teamsPlayed.has(rowConstraint.tid) && playerMeetsAchievement(p, colConstraint.achievementId);
+    });
+  } else if (rowConstraint.type === 'achievement' && !rowIsSeasonAchievement && colConstraint.type === 'team') {
+    // Career achievement × team
+    return players.filter(p => {
+      return playerMeetsAchievement(p, rowConstraint.achievementId) && p.teamsPlayed.has(colConstraint.tid);
+    });
+  } else if (rowConstraint.type === 'achievement' && !rowIsSeasonAchievement && colConstraint.type === 'achievement' && !colIsSeasonAchievement) {
+    // Career achievement × career achievement
+    return players.filter(p => {
+      return playerMeetsAchievement(p, rowConstraint.achievementId) && playerMeetsAchievement(p, colConstraint.achievementId);
+    });
+  }
   
-  return Array.from(eligibleTeams);
+  return [];
 }
 
 // Build opposite axis to ensure seed has 3/3 coverage (simplified implementation)
