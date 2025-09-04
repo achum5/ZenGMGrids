@@ -3,9 +3,15 @@ import { getViableAchievements, playerMeetsAchievement, getAchievements, type Ac
 import { evaluateConstraintPair, GridConstraint } from '@/lib/feedback';
 import { getSeasonEligiblePlayers, type SeasonAchievementId, SEASON_ACHIEVEMENTS } from './season-achievements';
 
-// Simple session-based memory to avoid immediate repetition
+// Simple session-based memory to avoid immediate repetition  
 const recentlyUsedTeams = new Set<number>();
 const recentlyUsedAchievements = new Set<string>();
+
+// Clear memory to allow season achievements to appear
+export function clearRecentMemory() {
+  recentlyUsedTeams.clear();
+  recentlyUsedAchievements.clear();
+}
 const maxRecentItems = 8; // Remember last 8 items to avoid immediate reuse
 
 function addToRecentlyUsed(teams: CatTeam[], achievements: CatTeam[]) {
@@ -173,11 +179,13 @@ function attemptGridGeneration(leagueData: LeagueData): {
     const viableAchievements = achievementConstraints.filter(achievement => {
       const teamCoverage = leagueData.teamOverlaps!.achievementTeamCounts[achievement.achievementId!] || 0;
       const isStatAchievement = achievement.achievementId!.includes('career') || achievement.achievementId!.includes('season');
+      const isSeasonAchievement = SEASON_ACHIEVEMENTS.some(sa => sa.id === achievement.achievementId);
       
-      // COMPLETELY BYPASS team coverage for stat achievements
-      if (isStatAchievement) {
-        console.log(`Stat achievement ${achievement.achievementId}: BYPASSING coverage check, always viable=true`);
-        return true; // Always allow stat achievements regardless of team coverage
+      // COMPLETELY BYPASS team coverage for stat achievements and season-specific achievements
+      if (isStatAchievement || isSeasonAchievement) {
+        const type = isSeasonAchievement ? 'Season-specific' : 'Stat';
+        console.log(`${type} achievement ${achievement.achievementId}: BYPASSING coverage check, always viable=true`);
+        return true; // Always allow stat and season achievements regardless of team coverage
       }
       
       // Only apply team coverage filtering to non-stat achievements
