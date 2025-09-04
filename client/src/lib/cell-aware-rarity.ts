@@ -757,36 +757,7 @@ export function computeCellAwareRarity(opts: {
     (b.cellPopularity - a.cellPopularity) || (a.tieBreaker - b.tieBreaker)
   );
   
-  // DEBUG: Log all player details
-  console.log("=== CELL-AWARE RARITY DEBUG ===");
-  console.log("Cell Context:", {
-    row: cellContext.rowConstraint.label,
-    col: cellContext.colConstraint.label,
-    weights: weights
-  });
-  console.log("Raw components (before normalization):");
-  playersWithComponents.forEach(({ player, components }, i) => {
-    console.log(`${player.name}: T_raw=${components.teamAffinity.toFixed(3)}, C_raw=${components.categoryFit.toFixed(3)}, G_raw=${components.globalPopularity.toFixed(3)}`);
-  });
-  console.log("Normalized components and rankings:");
-  playersWithPopularity.forEach((playerData, rank) => {
-    const { player, components, cellPopularity } = playerData;
-    // Since we sort most common first (rank 0), we need to invert for rarity calculation
-    // rank 0 (most common) should get commonness = 1, rank N-1 (rarest) should get commonness = 0
-    const commonness = N === 1 ? 1 : 1 - (rank / (N - 1));
-    const baseRarity = 10 + (1 - commonness) * 90;
-    const difficultyFactor = getPoolDifficultyFactor(N);
-    const obviousness = 1 - commonness; // obviousness should be high for common answers
-    const smallPoolBonus = 22 * difficultyFactor * Math.pow(1 - obviousness, 0.7);
-    const finalRarity = Math.min(100, Math.max(10, baseRarity + smallPoolBonus));
-    
-    console.log(`${rank + 1}. ${player.name}:`);
-    console.log(`   T=${components.teamAffinity.toFixed(3)}, C=${components.categoryFit.toFixed(3)}, G=${components.globalPopularity.toFixed(3)}`);
-    console.log(`   P_cell=${cellPopularity.toFixed(4)}, rank=${rank + 1}/${N}`);
-    console.log(`   commonness=${commonness.toFixed(3)}, obviousness=${obviousness.toFixed(3)}`);
-    console.log(`   R_base=${baseRarity.toFixed(1)}, Δ_pool=${smallPoolBonus.toFixed(1)}, R_final=${finalRarity.toFixed(1)}`);
-  });
-  console.log("================================");
+  // Removed debug logging for performance
   
   // Find guessed player's rank
   const guessedIndex = playersWithPopularity.findIndex(p => p.player.pid === guessed.pid);

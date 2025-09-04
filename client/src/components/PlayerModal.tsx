@@ -3,6 +3,7 @@ import { PlayerFace } from "@/components/PlayerFace";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { AlertCircle } from "lucide-react";
+import { useMemo } from 'react';
 import type { Player, Team, CatTeam } from '@/types/bbgm';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
 import { generateFeedbackMessage, type GridConstraint } from '@/lib/feedback';
@@ -42,6 +43,102 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
 
   // Create team lookup map for efficient lookups
   const teamsByTid = new Map(teams.map(team => [team.tid, team]));
+
+  // Memoize expensive calculations
+  const modalData = useMemo(() => {
+    if (!currentCellKey || rows.length === 0 || cols.length === 0) {
+      return null;
+    }
+
+    const [rowKey, colKey] = currentCellKey.split('|');
+    const rowConstraint = rows.find(r => r.key === rowKey);
+    const colConstraint = cols.find(c => c.key === colKey);
+    
+    if (!rowConstraint || !colConstraint) {
+      return null;
+    }
+
+    const isCorrectGuess = eligiblePlayers.some(p => p.pid === player.pid);
+    
+    if (isCorrectGuess) {
+      // Calculate rarity for correct guesses
+      const eligiblePool = eligiblePlayers.map(p => playerToEligibleLite(p));
+      if (eligiblePool.length > 0) {
+        const guessedPlayer = playerToEligibleLite(player);
+        const rarity = computeRarityForGuess({
+          guessed: guessedPlayer,
+          eligiblePool: eligiblePool,
+          puzzleSeed: puzzleSeed,
+          cellContext: {
+            rowConstraint: {
+              type: rowConstraint.type,
+              tid: rowConstraint.tid,
+              achievementId: rowConstraint.achievementId,
+              label: rowConstraint.label
+            },
+            colConstraint: {
+              type: colConstraint.type,
+              tid: colConstraint.tid,
+              achievementId: colConstraint.achievementId,
+              label: colConstraint.label
+            }
+          },
+          fullPlayers: eligiblePlayers,
+          teams: new Map(teams?.map(t => [t.tid, t]) ?? [])
+        });
+        
+        // Generate reason bullets for correct guess
+        const reasonBullets = generateReasonBullets(
+          player,
+          {
+            type: rowConstraint.type,
+            tid: rowConstraint.tid,
+            achievementId: rowConstraint.achievementId,
+            label: rowConstraint.label
+          },
+          {
+            type: colConstraint.type,
+            tid: colConstraint.tid,
+            achievementId: colConstraint.achievementId,
+            label: colConstraint.label
+          },
+          teams,
+          sport || 'basketball'
+        );
+
+        return {
+          type: 'correct' as const,
+          rarity,
+          reasonBullets
+        };
+      }
+    } else {
+      // Generate feedback for wrong guesses
+      const feedbackMessage = generateFeedbackMessage(
+        player,
+        teams,
+        {
+          type: rowConstraint.type,
+          tid: rowConstraint.tid,
+          achievementId: rowConstraint.achievementId,
+          label: rowConstraint.label
+        },
+        {
+          type: colConstraint.type,
+          tid: colConstraint.tid,
+          achievementId: colConstraint.achievementId,
+          label: colConstraint.label
+        }
+      );
+
+      return {
+        type: 'wrong' as const,
+        feedbackMessage
+      };
+    }
+
+    return null;
+  }, [player.pid, currentCellKey, eligiblePlayers, puzzleSeed, rows, cols, teams, sport]);
 
   // Get feedback message and color for score
   const getScoreFeedback = (score: number): { message: string; colorClass: string } => {
@@ -134,152 +231,36 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
               </DialogTitle>
               
               {/* Score feedback for correct guesses OR feedback message for wrong guesses */}
-              {(() => {
-                // Check if we have grid constraints and can determine if this was a wrong guess
-                if (currentCellKey && rows.length > 0 && cols.length > 0) {
-                  const [rowKey, colKey] = currentCellKey.split('|');
-                  const rowConstraint = rows.find(r => r.key === rowKey);
-                  const colConstraint = cols.find(c => c.key === colKey);
+              {modalData && modalData.type === 'correct' && (
+                <div className="mt-2">
+                  <span className={`text-lg font-bold ${getScoreFeedback(modalData.rarity).colorClass}`}>
+                    Score: {modalData.rarity}
+                  </span>
                   
-                  // Only provide feedback if we can identify the constraints
-                  if (rowConstraint && colConstraint) {
-                    const isCorrectGuess = eligiblePlayers.some(p => p.pid === player.pid);
-                    
-                    if (isCorrectGuess) {
-                      // Show score for correct guesses
-                      const eligiblePool = eligiblePlayers.map(p => playerToEligibleLite(p));
-                      if (eligiblePool.length > 0) {
-                        const guessedPlayer = playerToEligibleLite(player);
-                        const rarity = computeRarityForGuess({
-                          guessed: guessedPlayer,
-                          eligiblePool: eligiblePool,
-                          puzzleSeed: puzzleSeed,
-                          cellContext: {
-                            rowConstraint: {
-                              type: rowConstraint.type,
-                              tid: rowConstraint.tid,
-                              achievementId: rowConstraint.achievementId,
-                              label: rowConstraint.label
-                            },
-                            colConstraint: {
-                              type: colConstraint.type,
-                              tid: colConstraint.tid,
-                              achievementId: colConstraint.achievementId,
-                              label: colConstraint.label
-                            }
-                          },
-                          fullPlayers: eligiblePlayers,
-                          teams: new Map(teams?.map(t => [t.tid, t]) ?? [])
-                        });
-                        
-                        const feedback = getScoreFeedback(rarity);
-                        
-                        // Generate reason bullets for correct guess
-                        const reasonBullets = generateReasonBullets(
-                          player,
-                          {
-                            type: rowConstraint.type,
-                            tid: rowConstraint.tid,
-                            achievementId: rowConstraint.achievementId,
-                            label: rowConstraint.label
-                          },
-                          {
-                            type: colConstraint.type,
-                            tid: colConstraint.tid,
-                            achievementId: colConstraint.achievementId,
-                            label: colConstraint.label
-                          },
-                          teams,
-                          sport || 'basketball'
-                        );
-                        
-                        return (
-                          <div className="mt-2">
-                            <span className={`text-lg font-bold ${feedback.colorClass}`}>
-                              Score: {rarity}
-                            </span>
-                            
-                            {/* Reason bullets for correct guesses */}
-                            {reasonBullets.length > 0 && (
-                              <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                                {reasonBullets.map((bullet, index) => (
-                                  <div key={index} className="flex items-start gap-2">
-                                    <span className="text-xs leading-5">•</span>
-                                    <span className="leading-5">{bullet.text}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      }
-                    } else {
-                      // Show feedback message for wrong guesses
-                      const rowGridConstraint: GridConstraint = {
-                        type: rowConstraint.type,
-                        tid: rowConstraint.tid,
-                        achievementId: rowConstraint.achievementId,
-                        label: rowConstraint.label
-                      };
-                      
-                      const colGridConstraint: GridConstraint = {
-                        type: colConstraint.type,
-                        tid: colConstraint.tid,
-                        achievementId: colConstraint.achievementId,
-                        label: colConstraint.label
-                      };
-                      
-                      const feedbackMessage = generateFeedbackMessage(
-                        player,
-                        rowGridConstraint,
-                        colGridConstraint,
-                        teams
-                      );
-                      
-                      return (
-                        <div className="mt-2 sm:mt-3 mb-4 sm:mb-6">
-                          <div className="flex items-start gap-2 sm:gap-3 px-3 py-2 sm:px-4 sm:py-3 bg-red-50/80 dark:bg-red-400/10 border-l-4 border-red-500 dark:border-red-400 rounded-lg sm:rounded-xl" role="note">
-                            <AlertCircle 
-                              aria-hidden="true"
-                              className="w-5 h-5 sm:w-6 sm:h-6 text-red-500 dark:text-red-400 shrink-0 mt-0.5"
-                            />
-                            <span 
-                              className="text-red-600 dark:text-red-400 font-medium leading-snug"
-                              style={{ fontSize: 'clamp(14px, 1.6vw, 18px)' }}
-                            >
-                              {feedbackMessage}
-                            </span>
-                          </div>
+                  {/* Reason bullets for correct guesses */}
+                  {modalData.reasonBullets.length > 0 && (
+                    <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                      {modalData.reasonBullets.map((bullet, index) => (
+                        <div key={index} className="flex items-start gap-2">
+                          <span className="text-xs leading-5">•</span>
+                          <span className="leading-5">{bullet.text}</span>
                         </div>
-                      );
-                    }
-                  }
-                }
-                
-                // Fallback: try to show score if we have eligible players and this is a correct guess
-                const eligiblePool = eligiblePlayers.map(p => playerToEligibleLite(p));
-                if (eligiblePool.length > 0 && eligiblePlayers.some(p => p.pid === player.pid)) {
-                  const guessedPlayer = playerToEligibleLite(player);
-                  const rarity = computeRarityForGuess({
-                    guessed: guessedPlayer,
-                    eligiblePool: eligiblePool,
-                    puzzleSeed: puzzleSeed
-                  });
-                  
-                  const feedback = getScoreFeedback(rarity);
-                  
-                  return (
-                    <div className="mt-2">
-                      <span className={`text-lg font-bold ${feedback.colorClass}`}>
-                        Score: {rarity}
-                      </span>
-                      {/* Note: Reason bullets require full grid constraints, not available in fallback mode */}
+                      ))}
                     </div>
-                  );
-                }
-                
-                return null;
-              })()}
+                  )}
+                </div>
+              )}
+
+              {modalData && modalData.type === 'wrong' && (
+                <div className="mt-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
+                    <span className="text-sm text-red-700 dark:text-red-300 leading-5">
+                      {modalData.feedbackMessage}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </DialogHeader>

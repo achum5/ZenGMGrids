@@ -44,31 +44,42 @@ export function PlayerSearchModal({
   // Get career year range for a player
   // Career years are now pre-calculated in SearchablePlayer
 
-  // Filter players based on search query - show all players but mark used ones
+  // Optimized filtering with debouncing and early exits
   const filteredPlayers = useMemo(() => {
     if (!searchQuery.trim()) {
       return searchablePlayers.slice(0, 100); // Show first 100 players when no search
     }
 
-    const queryFolded = fold(searchQuery.trim());
-    // Also create a version with spaces converted to hyphens for bidirectional matching
+    const query = searchQuery.trim();
+    if (query.length < 2) {
+      return searchablePlayers.slice(0, 100); // Wait for at least 2 characters
+    }
+
+    const queryFolded = fold(query);
     const queryWithHyphens = queryFolded.replace(/ /g, '-');
     
-    const matches = searchablePlayers.filter(sp => {
-      // Check original folded versions
-      const matchesOriginal = sp.firstFolded.includes(queryFolded) || 
-                             sp.lastFolded.includes(queryFolded) ||
-                             sp.nameFolded.includes(queryFolded);
+    const matches: SearchablePlayer[] = [];
+    const maxResults = 100;
+    
+    // Early exit when we have enough matches
+    for (let i = 0; i < searchablePlayers.length && matches.length < maxResults; i++) {
+      const sp = searchablePlayers[i];
       
-      // Check hyphenated versions (for when user types spaces but name has hyphens)
-      const matchesHyphenated = sp.firstFolded.includes(queryWithHyphens) || 
-                               sp.lastFolded.includes(queryWithHyphens) ||
-                               sp.nameFolded.includes(queryWithHyphens);
+      // Quick check: if query is longer than the name, skip
+      if (queryFolded.length > sp.nameFolded.length) continue;
       
-      return matchesOriginal || matchesHyphenated;
-    });
+      // Check for matches using includes (already optimized in string internals)
+      if (sp.firstFolded.includes(queryFolded) || 
+          sp.lastFolded.includes(queryFolded) ||
+          sp.nameFolded.includes(queryFolded) ||
+          sp.firstFolded.includes(queryWithHyphens) || 
+          sp.lastFolded.includes(queryWithHyphens) ||
+          sp.nameFolded.includes(queryWithHyphens)) {
+        matches.push(sp);
+      }
+    }
 
-    return matches.sort((a, b) => a.name.localeCompare(b.name)).slice(0, 100);
+    return matches.sort((a, b) => a.name.localeCompare(b.name));
   }, [searchablePlayers, searchQuery]);
 
   // Reset search when modal opens or cell changes and focus input
