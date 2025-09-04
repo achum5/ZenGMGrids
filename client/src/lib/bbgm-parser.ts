@@ -716,58 +716,14 @@ function analyzeTeamOverlaps(players: Player[], teams: Team[]): TeamOverlapData 
     // Track which teams have players with each achievement
     achievementIds.forEach(achievementId => {
       if ((player.achievements as any)?.[achievementId]) {
-        // For season-aligned achievements (awards), only count teams where the achievement was earned
-        if (SEASON_ALIGNED_ACHIEVEMENTS.has(achievementId) && player.achievementSeasons) {
-          // Get seasons when player achieved this specific achievement
-          let achievementSeasons: Set<number> | undefined;
-          
-          // Debug logging for first player with this achievement
-          if (teamAchievementMatrix[achievementId].size === 0) {
-            console.log(`🔍 Debugging ${achievementId} for player ${player.name || 'Unknown'}`);
-            console.log(`Player has achievementSeasons:`, !!player.achievementSeasons);
-            console.log(`Player has teamSeasonsPaired:`, !!player.teamSeasonsPaired);
-          }
-          
-          // Map achievement IDs to their season data
-          switch (achievementId) {
-            case 'hasMVP': achievementSeasons = player.achievementSeasons.mvpWinner; break;
-            case 'hasDPOY': achievementSeasons = player.achievementSeasons.dpoyWinner; break;
-            case 'hasROY': achievementSeasons = player.achievementSeasons.royWinner; break;
-            case 'hasSixthMan': achievementSeasons = player.achievementSeasons.smoyWinner; break;
-            case 'hasMIP': achievementSeasons = player.achievementSeasons.mipWinner; break;
-            case 'hasFMVP': achievementSeasons = player.achievementSeasons.fmvpWinner; break;
-            case 'hasAllLeague': achievementSeasons = player.achievementSeasons.allLeagueTeam; break;
-            case 'hasAllDef': achievementSeasons = player.achievementSeasons.allDefensiveTeam; break;
-            case 'hasAllStar': achievementSeasons = player.achievementSeasons.allStarSelection; break;
-            case 'hasChampion': achievementSeasons = player.achievementSeasons.champion; break;
-            case 'wonMVP':
-            case 'wonOPOY': 
-            case 'wonDPOY':
-            case 'wonROY':
-            case 'wonChampionship':
-              // For other sports, check if seasons data exists with different naming
-              if (player.achievementSeasons.mvpWinner) achievementSeasons = player.achievementSeasons.mvpWinner;
-              else if (player.achievementSeasons.dpoyWinner) achievementSeasons = player.achievementSeasons.dpoyWinner;
-              else if (player.achievementSeasons.royWinner) achievementSeasons = player.achievementSeasons.royWinner;
-              break;
-            default:
-              // For single-season stats, use existing logic
-              achievementSeasons = (player.achievementSeasons as any)?.[achievementId];
-          }
-          
-          if (achievementSeasons && player.teamSeasonsPaired) {
-            // Only add teams where the player was on the team during the achievement season
-            achievementSeasons.forEach(season => {
-              const teamsInSeason = player.teamSeasonsPaired?.[season];
-              if (teamsInSeason) {
-                teamsInSeason.forEach((tid: number) => {
-                  teamAchievementMatrix[achievementId].add(tid);
-                });
-              }
-            });
-          }
+        // For award achievements, don't bother with team coverage - they're handled properly during validation
+        const isAwardAchievement = achievementId.startsWith('has') || achievementId.startsWith('won');
+        
+        if (isAwardAchievement) {
+          // For award achievements, simply mark that they exist (team coverage is irrelevant)
+          teamAchievementMatrix[achievementId].add(-1); // Use -1 as a placeholder to indicate the achievement exists
         } else {
-          // For non-season-aligned achievements, use all teams the player played for
+          // For non-award achievements, use all teams the player played for
           playerTeams.forEach(tid => {
             teamAchievementMatrix[achievementId].add(tid);
           });
