@@ -146,14 +146,20 @@ function attemptGridGeneration(leagueData: LeagueData): {
     const viableAchievements = achievementConstraints.filter(achievement => {
       const teamCoverage = leagueData.teamOverlaps!.achievementTeamCounts[achievement.achievementId!] || 0;
       const isStatAchievement = achievement.achievementId!.includes('career') || achievement.achievementId!.includes('season');
+      const isAwardAchievement = achievement.achievementId!.startsWith('has') || achievement.achievementId!.startsWith('won') || achievement.achievementId!.includes('MVP') || achievement.achievementId!.includes('DPOY') || achievement.achievementId!.includes('AllStar');
       
-      // COMPLETELY BYPASS team coverage for stat achievements
+      // COMPLETELY BYPASS team coverage for stat and award achievements
       if (isStatAchievement) {
         console.log(`Stat achievement ${achievement.achievementId}: BYPASSING coverage check, always viable=true`);
         return true; // Always allow stat achievements regardless of team coverage
       }
       
-      // Only apply team coverage filtering to non-stat achievements
+      if (isAwardAchievement) {
+        console.log(`Award achievement ${achievement.achievementId}: BYPASSING coverage check, always viable=true`);
+        return true; // Always allow award achievements regardless of team coverage
+      }
+      
+      // Only apply team coverage filtering to non-stat, non-award achievements
       return teamCoverage >= 3;
     });
     
