@@ -753,6 +753,30 @@ function containsUSState(normalized: string): boolean {
     }
   }
   
+  // Additional checks for USA patterns that should disqualify
+  if (normalized.includes('usa') || normalized.includes('united states') || 
+      normalized.includes('u s a') || normalized.includes('united states of america')) {
+    return true; // Any mention of USA should disqualify from "outside" achievement
+  }
+  
+  // Common US city patterns that indicate US birth
+  const usCities = [
+    'new york', 'los angeles', 'chicago', 'houston', 'phoenix', 'philadelphia', 
+    'san antonio', 'san diego', 'dallas', 'san jose', 'austin', 'jacksonville',
+    'fort worth', 'columbus', 'san francisco', 'charlotte', 'indianapolis', 
+    'seattle', 'denver', 'boston', 'el paso', 'nashville', 'detroit', 'oklahoma city',
+    'portland', 'las vegas', 'memphis', 'louisville', 'baltimore', 'milwaukee',
+    'albuquerque', 'tucson', 'fresno', 'sacramento', 'mesa', 'kansas city', 
+    'atlanta', 'long beach', 'colorado springs', 'raleigh', 'miami', 'virginia beach',
+    'omaha', 'oakland', 'minneapolis', 'tulsa', 'arlington', 'new orleans'
+  ];
+  
+  for (const city of usCities) {
+    if (normalized.includes(city)) {
+      return true; // Major US cities indicate US birth
+    }
+  }
+  
   return false;
 }
 
