@@ -21,7 +21,6 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, string> = {
   AssistsLeader: 'League Assists Leader',
   StealsLeader: 'League Steals Leader',
   BlocksLeader: 'League Blocks Leader',
-  ThreePointersLeader: 'League 3-Pointers Made Leader',
   
   // Football GM achievements
   FBAllStar: 'All-Star',
@@ -125,7 +124,6 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
     AssistsLeader: ['League Assists Leader', 'league assists leader', 'assists leader'],
     StealsLeader: ['League Steals Leader', 'league steals leader', 'steals leader'],
     BlocksLeader: ['League Blocks Leader', 'league blocks leader', 'blocks leader'],
-    ThreePointersLeader: ['League 3-Pointers Made Leader', 'league 3-pointers made leader', '3-pointers made leader', 'three-pointers made leader', '3pm leader'],
     
     // Football GM achievements
     FBAllStar: ['All-Star'],

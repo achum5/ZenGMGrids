@@ -27,7 +27,6 @@ export type SeasonAchievementId =
   | 'AssistsLeader'
   | 'StealsLeader'
   | 'BlocksLeader'
-  | 'ThreePointersLeader'
   // Football GM achievements
   | 'FBAllStar'
   | 'FBMVP'
@@ -161,10 +160,6 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId> = {
   'basketball steals leader': 'StealsLeader',
   'bbgm blocks leader': 'BlocksLeader',
   'basketball blocks leader': 'BlocksLeader',
-  'bbgm 3-pointers made leader': 'ThreePointersLeader',
-  'basketball 3-pointers made leader': 'ThreePointersLeader',
-  'three-pointers made leader basketball': 'ThreePointersLeader',
-  '3pm leader basketball': 'ThreePointersLeader',
   
   // Football GM specific awards (case-sensitive exact matches from FBGM)
   'All-Star': 'FBAllStar',
@@ -283,8 +278,7 @@ function calculateBBGMSeasonLeaders(
     ReboundsLeader: [],
     AssistsLeader: [],
     StealsLeader: [],
-    BlocksLeader: [],
-    ThreePointersLeader: []
+    BlocksLeader: []
   };
 
   // Get season game count (default to 82 if not found)
@@ -299,7 +293,6 @@ function calculateBBGMSeasonLeaders(
     ast: number;
     stl: number;
     blk: number;
-    tpm: number;
     gp: number;
     teams: Set<number>;
   }> = {};
@@ -322,7 +315,6 @@ function calculateBBGMSeasonLeaders(
       ast: 0,
       stl: 0,
       blk: 0,
-      tpm: 0,
       gp: 0,
       teams: new Set<number>()
     };
@@ -333,7 +325,6 @@ function calculateBBGMSeasonLeaders(
       aggregated.ast += (stat.ast || 0);
       aggregated.stl += (stat.stl || 0);
       aggregated.blk += (stat.blk || 0);
-      aggregated.tpm += (stat.tpm || stat.tp || 0);
       aggregated.gp += (stat.gp || 0);
       aggregated.teams.add(stat.tid);
     }
@@ -379,11 +370,6 @@ function calculateBBGMSeasonLeaders(
     .filter(p => Math.abs((p.blk / p.gp) - maxBPG) < 0.001)
     .map(p => p.pid);
 
-  // 3-Pointers Made Leader: 3PM = tpm (total), pick max
-  const max3PM = Math.max(...eligible.map(p => p.tpm));
-  leaders.ThreePointersLeader = eligible
-    .filter(p => p.tpm === max3PM)
-    .map(p => p.pid);
 
   return leaders;
 }
@@ -730,12 +716,6 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
   {
     id: 'BlocksLeader',
     label: 'League Blocks Leader',
-    isSeasonSpecific: true,
-    minPlayers: 3
-  },
-  {
-    id: 'ThreePointersLeader',
-    label: 'League 3-Pointers Made Leader',
     isSeasonSpecific: true,
     minPlayers: 3
   },

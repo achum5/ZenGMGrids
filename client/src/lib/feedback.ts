@@ -106,12 +106,6 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     verbTeam: 'led the league in blocks',
     verbGeneric: 'led the league in blocks'
   },
-  ThreePointersLeader: {
-    label: 'League 3-Pointers Made Leader',
-    short: '3PM Leader',
-    verbTeam: 'led the league in 3-pointers made',
-    verbGeneric: 'led the league in 3-pointers made'
-  },
   
   // Football GM season achievements
   FBAllStar: {
@@ -460,7 +454,6 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     AssistsLeader: ['League Assists Leader', 'league assists leader', 'assists leader'],
     StealsLeader: ['League Steals Leader', 'league steals leader', 'steals leader'],
     BlocksLeader: ['League Blocks Leader', 'league blocks leader', 'blocks leader'],
-    ThreePointersLeader: ['League 3-Pointers Made Leader', 'league 3-pointers made leader', '3-pointers made leader', 'three-pointers made leader', '3pm leader'],
     
     // Football GM achievements (exact case-sensitive matches from FBGM)
     FBAllStar: ['All-Star'],
