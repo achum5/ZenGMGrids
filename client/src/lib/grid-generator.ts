@@ -179,33 +179,62 @@ function attemptGridGeneration(leagueData: LeagueData): {
       recentlyUsedAchievements.has(a.achievementId!)
     );
     
-    // Prefer fresh achievements, but use recent ones if needed
-    if (freshAchievements.length >= numAchievements) {
-      // We have enough fresh achievements, use only those
-      selectedAchievements = freshAchievements
+    // Separate season achievements from others for better selection
+    const seasonAchievements = viableAchievementsList.filter(a => 
+      SEASON_ACHIEVEMENTS.some(sa => sa.id === a.achievementId)
+    );
+    const nonSeasonAchievements = viableAchievementsList.filter(a => 
+      !SEASON_ACHIEVEMENTS.some(sa => sa.id === a.achievementId)
+    );
+    
+    console.log(`Selection pool: ${seasonAchievements.length} season achievements, ${nonSeasonAchievements.length} other achievements`);
+    
+    // Enhanced selection logic to ensure season achievements get included
+    if (sport === 'basketball' && seasonAchievements.length > 0) {
+      // For basketball, ensure at least one season achievement if available
+      const numSeasonToInclude = Math.min(Math.max(1, Math.floor(numAchievements * 0.4)), seasonAchievements.length);
+      const numOthersToInclude = numAchievements - numSeasonToInclude;
+      
+      console.log(`Basketball mode: selecting ${numSeasonToInclude} season achievements and ${numOthersToInclude} others`);
+      
+      const selectedSeasonAchievements = seasonAchievements
         .sort(() => Math.random() - 0.5)
-        .slice(0, numAchievements);
-    } else if (viableAchievementsList.length >= numAchievements) {
-      // Mix fresh and recent achievements
-      const neededFresh = Math.min(freshAchievements.length, numAchievements);
-      const neededRecent = numAchievements - neededFresh;
-      
-      selectedAchievements = [
-        ...freshAchievements.sort(() => Math.random() - 0.5).slice(0, neededFresh),
-        ...recentAchievements.sort(() => Math.random() - 0.5).slice(0, neededRecent)
-      ];
+        .slice(0, numSeasonToInclude);
+        
+      const selectedOtherAchievements = nonSeasonAchievements
+        .sort(() => Math.random() - 0.5)
+        .slice(0, numOthersToInclude);
+        
+      selectedAchievements = [...selectedSeasonAchievements, ...selectedOtherAchievements];
     } else {
-      // Not enough high-coverage achievements, include some with lower coverage
-      const allByTeamCoverage = achievementConstraints
-        .map(achievement => ({
-          achievement,
-          teamCoverage: leagueData.teamOverlaps!.achievementTeamCounts[achievement.achievementId!] || 0
-        }))
-        .sort((a, b) => b.teamCoverage - a.teamCoverage);
-      
-      selectedAchievements = allByTeamCoverage
-        .slice(0, numAchievements)
-        .map(item => item.achievement);
+      // Prefer fresh achievements, but use recent ones if needed
+      if (freshAchievements.length >= numAchievements) {
+        // We have enough fresh achievements, use only those
+        selectedAchievements = freshAchievements
+          .sort(() => Math.random() - 0.5)
+          .slice(0, numAchievements);
+      } else if (viableAchievementsList.length >= numAchievements) {
+        // Mix fresh and recent achievements
+        const neededFresh = Math.min(freshAchievements.length, numAchievements);
+        const neededRecent = numAchievements - neededFresh;
+        
+        selectedAchievements = [
+          ...freshAchievements.sort(() => Math.random() - 0.5).slice(0, neededFresh),
+          ...recentAchievements.sort(() => Math.random() - 0.5).slice(0, neededRecent)
+        ];
+      } else {
+        // Not enough high-coverage achievements, include some with lower coverage
+        const allByTeamCoverage = achievementConstraints
+          .map(achievement => ({
+            achievement,
+            teamCoverage: leagueData.teamOverlaps!.achievementTeamCounts[achievement.achievementId!] || 0
+          }))
+          .sort((a, b) => b.teamCoverage - a.teamCoverage);
+        
+        selectedAchievements = allByTeamCoverage
+          .slice(0, numAchievements)
+          .map(item => item.achievement);
+      }
     }
   } else {
     // Fallback: random selection
@@ -304,11 +333,29 @@ function attemptGridGeneration(leagueData: LeagueData): {
     cols.map(col => ({ row, col, key: `${row.key}-${col.key}` }))
   );
 
-  // Validate intersections and find eligible players
+  // Validate intersections and find eligible players using season-aware logic
   for (const pair of allPairs) {
-    const eligiblePlayers = players.filter(p => 
-      pair.row.test(p) && pair.col.test(p)
-    );
+    let eligiblePlayers: Player[] = [];
+    
+    // Use season-aware validation for season achievements
+    const rowIsSeasonAchievement = pair.row.type === 'achievement' && SEASON_ACHIEVEMENTS.some(sa => sa.id === pair.row.achievementId);
+    const colIsSeasonAchievement = pair.col.type === 'achievement' && SEASON_ACHIEVEMENTS.some(sa => sa.id === pair.col.achievementId);
+    
+    if (rowIsSeasonAchievement || colIsSeasonAchievement) {
+      // Use season-specific logic from feedback.ts
+      eligiblePlayers = players.filter(p => {
+        return evaluateConstraintPair(
+          p,
+          pair.row as GridConstraint,
+          pair.col as GridConstraint
+        );
+      });
+    } else {
+      // Use simple test logic for non-season achievements
+      eligiblePlayers = players.filter(p => 
+        pair.row.test(p) && pair.col.test(p)
+      );
+    }
     
     intersections[pair.key] = eligiblePlayers.map(p => p.pid);
     
