@@ -1265,12 +1265,12 @@ export interface FeedbackResult {
 }
 
 /**
- * Check if a player played for a specific team (has at least 1 regular season or playoff game)
+ * Check if a player played for a specific team (has at least 1 regular season game)
  */
 function playerPlayedForTeam(player: Player, tid: number): boolean {
   if (!player.stats || !Array.isArray(player.stats)) return false;
   
-  return player.stats.some(stat => stat.tid === tid && (stat.gp || 0) > 0);
+  return player.stats.some(stat => stat.tid === tid && !stat.playoffs && (stat.gp || 0) > 0);
 }
 
 /**
@@ -1280,7 +1280,7 @@ function getPlayerTeamSeasons(player: Player, tid: number): number[] {
   if (!player.stats || !Array.isArray(player.stats)) return [];
   
   return player.stats
-    .filter(stat => stat.tid === tid && (stat.gp || 0) > 0)
+    .filter(stat => stat.tid === tid && !stat.playoffs && (stat.gp || 0) > 0)
     .map(stat => stat.season)
     .sort((a, b) => a - b);
 }
