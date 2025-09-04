@@ -637,10 +637,25 @@ function generateGridSeeded(leagueData: LeagueData): {
   
   for (let i = 0; i < 3; i++) {
     if (oppositeLayout[i] === 'T') {
-      // Pick next team that has eligible players with seed
-      const team = eligibleTeamsList[teamIndex];
+      // Pick next team that has eligible players with seed and isn't already used
+      let team;
+      while (teamIndex < eligibleTeamsList.length) {
+        const candidateTeam = eligibleTeamsList[teamIndex];
+        teamIndex++;
+        
+        // Check if this team is already used in this grid
+        const teamAlreadyUsed = 
+          rows.some(r => r && r.type === 'team' && r.tid === candidateTeam.tid) ||
+          cols.some(c => c && c.type === 'team' && c.tid === candidateTeam.tid);
+        
+        if (!teamAlreadyUsed) {
+          team = candidateTeam;
+          break;
+        }
+      }
+      
       if (!team) {
-        throw new Error(`Not enough eligible teams for seed ${seedAchievement.label}`);
+        throw new Error(`Not enough unique eligible teams for seed ${seedAchievement.label}`);
       }
       
       oppositeArray[i] = {
@@ -652,7 +667,6 @@ function generateGridSeeded(leagueData: LeagueData): {
       };
       
       console.log(`   Filled ${oppositeAxis} ${i} with team: ${team.name || `Team ${team.tid}`}`);
-      teamIndex++;
     } else if (oppositeLayout[i] === 'A') {
       // Pick achievement that has shared players in same season with seed
       const viableAchievements: (typeof SEASON_ACHIEVEMENTS[0] | Achievement)[] = [];
@@ -725,6 +739,13 @@ function generateGridSeeded(leagueData: LeagueData): {
         for (let attempt = 0; attempt < 50; attempt++) {
           const teamIndex = simpleHash(gridId + '_rowteam' + i + '_' + attempt) % teams.length;
           const team = teams[teamIndex];
+          
+          // Check if this team is already used in this grid
+          const teamAlreadyUsed = 
+            rows.some(r => r && r.type === 'team' && r.tid === team.tid) ||
+            cols.some(c => c && c.type === 'team' && c.tid === team.tid);
+          
+          if (teamAlreadyUsed) continue;
           
           // Check if this team creates valid intersections with all columns
           let validForAllCols = true;
@@ -821,6 +842,13 @@ function generateGridSeeded(leagueData: LeagueData): {
         for (let attempt = 0; attempt < 50; attempt++) {
           const teamIndex = simpleHash(gridId + '_colteam' + i + '_' + attempt) % teams.length;
           const team = teams[teamIndex];
+          
+          // Check if this team is already used in this grid
+          const teamAlreadyUsed = 
+            rows.some(r => r && r.type === 'team' && r.tid === team.tid) ||
+            cols.some(c => c && c.type === 'team' && c.tid === team.tid);
+          
+          if (teamAlreadyUsed) continue;
           
           // Check if this team creates valid intersections with all rows
           let validForAllRows = true;
