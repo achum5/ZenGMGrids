@@ -17,15 +17,12 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing }: Uploa
 
   const handlePaste = async () => {
     try {
-      // Direct clipboard access - this should work without the menu popup
       const text = await navigator.clipboard.readText();
       setUrlInput(text);
       setUrlError('');
     } catch (error) {
-      // Fallback if clipboard access fails
+      // Fallback or ignore if clipboard access fails
       console.log('Clipboard access failed');
-      setUrlError('Clipboard access not available');
-      setTimeout(() => setUrlError(''), 3000);
     }
   };
 
@@ -163,10 +160,6 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing }: Uploa
                         data-testid="input-url"
                         onKeyDown={(e) => e.key === 'Enter' && !isProcessing && handleUrlSubmit()}
                         className="flex-1"
-                        style={{
-                          WebkitUserSelect: 'none',
-                          WebkitTouchCallout: 'none'
-                        }}
                       />
                       <Button
                         type="button"
