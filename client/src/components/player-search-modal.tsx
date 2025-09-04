@@ -51,11 +51,22 @@ export function PlayerSearchModal({
     }
 
     const queryFolded = fold(searchQuery.trim());
-    const matches = searchablePlayers.filter(sp => 
-      sp.firstFolded.includes(queryFolded) || 
-      sp.lastFolded.includes(queryFolded) ||
-      sp.nameFolded.includes(queryFolded)
-    );
+    // Also create a version with spaces converted to hyphens for bidirectional matching
+    const queryWithHyphens = queryFolded.replace(/ /g, '-');
+    
+    const matches = searchablePlayers.filter(sp => {
+      // Check original folded versions
+      const matchesOriginal = sp.firstFolded.includes(queryFolded) || 
+                             sp.lastFolded.includes(queryFolded) ||
+                             sp.nameFolded.includes(queryFolded);
+      
+      // Check hyphenated versions (for when user types spaces but name has hyphens)
+      const matchesHyphenated = sp.firstFolded.includes(queryWithHyphens) || 
+                               sp.lastFolded.includes(queryWithHyphens) ||
+                               sp.nameFolded.includes(queryWithHyphens);
+      
+      return matchesOriginal || matchesHyphenated;
+    });
 
     return matches.sort((a, b) => a.name.localeCompare(b.name)).slice(0, 100);
   }, [searchablePlayers, searchQuery]);
