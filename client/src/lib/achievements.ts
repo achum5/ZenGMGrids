@@ -174,31 +174,31 @@ export const HOCKEY_ACHIEVEMENTS: Achievement[] = [
     id: 'career500Goals',
     label: '500+ Career Goals',
     test: (p: Player) => p.achievements?.career500Goals || false,
-    minPlayers: 5
+    minPlayers: 1  // Lowered for hockey - very rare achievement
   },
   {
     id: 'career1000Points',
     label: '1,000+ Career Points',
     test: (p: Player) => p.achievements?.career1000Points || false,
-    minPlayers: 5
+    minPlayers: 1  // Lowered for hockey - very rare achievement
   },
   {
     id: 'career500Assists',
     label: '500+ Career Assists',
     test: (p: Player) => p.achievements?.career500Assists || false,
-    minPlayers: 5
+    minPlayers: 3  // Lowered for hockey - still challenging but more achievable
   },
   {
     id: 'career200Wins',
     label: '200+ Career Wins (G)',
     test: (p: Player) => p.achievements?.career200Wins || false,
-    minPlayers: 5
+    minPlayers: 1  // Lowered for hockey - very rare goalie achievement
   },
   {
     id: 'career50Shutouts',
     label: '50+ Career Shutouts (G)',
     test: (p: Player) => p.achievements?.career50Shutouts || false,
-    minPlayers: 5
+    minPlayers: 1  // Lowered for hockey - very rare goalie achievement
   },
   // Note: Single-season awards removed from game entirely
   // wonMVP, wonDefensiveForward, wonGoalieOfYear, wonROY, wonPlayoffsMVP, madeAllStar, wonChampionship

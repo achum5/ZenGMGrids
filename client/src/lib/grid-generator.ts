@@ -38,11 +38,12 @@ export function generateTeamsGrid(leagueData: LeagueData): {
   
   console.log(`🎯 STARTING GRID GENERATION for ${sport} (${players.length} players, ${teams.length} teams)`);
   
-  // Retry logic to ensure all intersections have eligible players - keep trying until success
+  // Retry logic to ensure all intersections have eligible players - with maximum attempt limit
+  const MAX_ATTEMPTS = 50;
   let attempt = 0;
   let lastError: Error | null = null;
   
-  while (true) {
+  while (attempt < MAX_ATTEMPTS) {
     try {
       const result = attemptGridGeneration(leagueData);
       console.log(`✅ GRID GENERATION SUCCESSFUL after ${attempt + 1} attempts`);
@@ -53,6 +54,10 @@ export function generateTeamsGrid(leagueData: LeagueData): {
     }
     attempt++;
   }
+  
+  // If we reach here, all attempts failed
+  console.error(`❌ GRID GENERATION FAILED after ${MAX_ATTEMPTS} attempts`);
+  throw new Error(`Unable to generate valid grid after ${MAX_ATTEMPTS} attempts. Last error: ${lastError?.message || 'Unknown error'}`);
 }
 
 function attemptGridGeneration(leagueData: LeagueData): {
@@ -61,8 +66,9 @@ function attemptGridGeneration(leagueData: LeagueData): {
   intersections: Record<string, number[]>;
 } {
   const { players, teams, sport } = leagueData;
-  // Get viable achievements (those with at least 5 qualifiers) - lowered to include more rare achievements
-  const viableAchievements = getViableAchievements(players, 5, sport);
+  // Get viable achievements - use sport-specific minimum requirements to avoid infinite loops
+  const minPlayersRequired = sport === 'hockey' ? 3 : 5; // Lower requirement for hockey due to fewer players
+  const viableAchievements = getViableAchievements(players, minPlayersRequired, sport);
   
   // Log all achievement counts for debugging - only check sport-specific achievements
   console.log('=== ACHIEVEMENT COUNTS ===');
