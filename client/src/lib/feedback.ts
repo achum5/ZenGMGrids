@@ -2255,10 +2255,16 @@ function getDraftNegativeMessage(player: Player, achievementId: string): string 
   }
   
   const { round, pick } = player.draft;
+  
+  // Handle missing draft data gracefully
+  if (!round || !pick) {
+    return "was drafted (pick/round information unavailable)";
+  }
+  
   const roundOrdinal = round === 1 ? "1st" : round === 2 ? "2nd" : round === 3 ? "3rd" : `${round}th`;
   
   // All draft messages use consistent format: "was drafted with the [X] pick in the [Y] round"
-  const draftMessage = `was drafted with the ${getOrdinalNumber(pick || 0)} pick in the ${roundOrdinal} round`;
+  const draftMessage = `was drafted with the ${getOrdinalNumber(pick)} pick in the ${roundOrdinal} round`;
   
   // Return the same consistent format for all draft-related feedback
   return draftMessage;
