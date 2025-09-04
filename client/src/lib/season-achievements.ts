@@ -172,10 +172,10 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId> = {
   'All-Star MVP': 'BBAllStarMVP',
   'Pitcher of the Year': 'BBPitcherOTY',
   'Cy Young': 'BBPitcherOTY',
-  'All-Rookie Team': 'BBAllRookie',
-  'All-League Team': 'BBAllLeague',
-  'First Team All-League': 'BBAllLeague',
-  'Second Team All-League': 'BBAllLeague',
+  'BB All-Rookie Team': 'BBAllRookie',
+  'BB All-League Team': 'BBAllLeague',
+  'BB First Team All-League': 'BBAllLeague',
+  'BB Second Team All-League': 'BBAllLeague',
   'Gold Glove': 'BBGoldGlove',
   'Silver Slugger': 'BBSilverSlugger',
   'League Batting Average Leader': 'BBBattingAvgLeader',
@@ -193,8 +193,7 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId> = {
   'League Saves Leader': 'BBSavesLeader',
   'Relief Pitcher of the Year': 'BBReliefPitcherOTY',
   'Reliever of the Year': 'BBReliefPitcherOTY',
-  'Playoffs MVP': 'BBPlayoffsMVP',
-  'Finals MVP': 'BBPlayoffsMVP'
+  'Playoffs MVP': 'BBPlayoffsMVP'
 };
 
 // Season index structure: season -> team -> achievement -> Set<pid>

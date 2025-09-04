@@ -8,12 +8,12 @@ import { RulesModal } from '@/components/RulesModal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Home as HomeIcon } from 'lucide-react';
-// Asset imports commented out for build
-// import sportsIconImage from '@assets/sports-icons.png';
-// import basketballIcon from '@assets/basketball-icon.png';
-// import footballIcon from '@assets/football-icon.png';
-// import hockeyIcon from '@assets/hockey-icon.png';
-// import baseballIcon from '@assets/baseball-icon.png';
+// Sport-specific asset imports
+import sportsIconImage from '@assets/D7A8CF63-116B-46C6-A58E-697981DC48A3_1757025491327.png';
+import basketballIcon from '@assets/13CBA528-7695-4621-8966-0A3B818F60C2_1757025491327.png';
+import footballIcon from '@assets/E8121249-D177-434F-8052-C3DF94CCE154_1757025491327.png';
+import hockeyIcon from '@assets/4E9D4C71-637D-4F89-B781-CFF9A7FCD724_1757025491327.png';
+import baseballIcon from '@assets/5BE52B41-A027-4579-BF4C-FBB1A0D40CCE_1757025491327.png';
 import { parseLeagueFile, parseLeagueUrl, buildSearchIndex } from '@/lib/bbgm-parser';
 import { generateTeamsGrid, cellKey } from '@/lib/grid-generator';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
@@ -548,7 +548,7 @@ export default function Home() {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <img 
-                  src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIHN0cm9rZT0iIzY2NjY2NiIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxwYXRoIGQ9Im0yIDEyIDQgNC00LTQgMjAtOC0xMCA0IDEwLTQiIHN0cm9rZT0iIzY2NjY2NiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+" // Placeholder basketball SVG 
+                  src={sportsIconImage}
                   alt="Basketball, Football, Hockey, and Baseball icons" 
                   className="w-12 h-12 object-contain"
                 />
@@ -580,8 +580,14 @@ export default function Home() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <img 
-                src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIHN0cm9rZT0iIzY2NjY2NiIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxwYXRoIGQ9Im0yIDEyIDQgNC00LTQgMjAtOC0xMCA0IDEwLTQiIHN0cm9rZT0iIzY2NjY2NiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+" // Placeholder sport icon 
-                alt="Sports icon" 
+                src={
+                  leagueData?.sport === 'basketball' ? basketballIcon :
+                  leagueData?.sport === 'football' ? footballIcon :
+                  leagueData?.sport === 'hockey' ? hockeyIcon :
+                  leagueData?.sport === 'baseball' ? baseballIcon :
+                  sportsIconImage
+                }
+                alt={`${leagueData?.sport || 'Sports'} icon`} 
                 className="w-10 h-10 object-contain"
               />
               <h1 className="text-2xl font-bold text-foreground">
