@@ -2299,8 +2299,8 @@ function generateTeamSeasonAchievementMessage(
   const achData = SEASON_ACHIEVEMENT_LABELS[achievementId];
   const playerData = getPlayerSeasonAchievementData(player, achievementId, teamTid);
   
-  const countStr = playerData.count === 0 ? '0×' : 
-    `${playerData.count}× — ${formatSeasonList(playerData.seasonsWithTeam, achievementId === 'FinalsMVP' || achievementId === 'SFMVP')}`;
+  const countStr = playerData.count === 0 ? '0x' : 
+    `${playerData.count}x — ${formatSeasonList(playerData.seasonsWithTeam, achievementId === 'FinalsMVP' || achievementId === 'SFMVP')}`;
   
   // Check if player actually played for this team
   const playedForTeam = playerPlayedForTeam(player, teamTid);
@@ -2332,20 +2332,20 @@ function generateSeasonSeasonAchievementMessage(
     const seasonsA = formatSeasonList(playerDataA.seasonsWithTeam, achievementA === 'FinalsMVP' || achievementA === 'SFMVP');
     const seasonsB = formatSeasonList(playerDataB.seasonsWithTeam, achievementB === 'FinalsMVP' || achievementB === 'SFMVP');
     
-    return `${player.name} did earn ${achDataA.label} and ${achDataB.label}, but never in the same season. (${achDataA.short}: ${playerDataA.count}× — ${seasonsA}; ${achDataB.short}: ${playerDataB.count}× — ${seasonsB})`;
+    return `${player.name} did earn ${achDataA.label} and ${achDataB.label}, but never in the same season. (${achDataA.short}: ${playerDataA.count}x — ${seasonsA}; ${achDataB.short}: ${playerDataB.count}x — ${seasonsB})`;
   }
   
   // Case: Player is missing one side entirely
   if (playerDataA.count > 0 && playerDataB.count === 0) {
     const seasonsA = formatSeasonList(playerDataA.seasonsWithTeam, achievementA === 'FinalsMVP' || achievementA === 'SFMVP');
-    return `${player.name} did earn ${achDataA.label}, but never ${achDataB.verbGeneric}. (${achDataA.short}: ${playerDataA.count}× — ${seasonsA}; ${achDataB.short}: 0×)`;
+    return `${player.name} did earn ${achDataA.label}, but never ${achDataB.verbGeneric}. (${achDataA.short}: ${playerDataA.count}x — ${seasonsA}; ${achDataB.short}: 0x)`;
   }
   
   if (playerDataB.count > 0 && playerDataA.count === 0) {
     const seasonsB = formatSeasonList(playerDataB.seasonsWithTeam, achievementB === 'FinalsMVP' || achievementB === 'SFMVP');
-    return `${player.name} did earn ${achDataB.label}, but never ${achDataA.verbGeneric}. (${achDataB.short}: ${playerDataB.count}× — ${seasonsB}; ${achDataA.short}: 0×)`;
+    return `${player.name} did earn ${achDataB.label}, but never ${achDataA.verbGeneric}. (${achDataB.short}: ${playerDataB.count}x — ${seasonsB}; ${achDataA.short}: 0x)`;
   }
   
   // Case: Player has neither achievement
-  return `${player.name} never ${achDataA.verbGeneric} and never ${achDataB.verbGeneric}. (${achDataA.short}: 0×; ${achDataB.short}: 0×)`;
+  return `${player.name} never ${achDataA.verbGeneric} and never ${achDataB.verbGeneric}. (${achDataA.short}: 0x; ${achDataB.short}: 0x)`;
 }
