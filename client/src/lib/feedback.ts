@@ -2173,8 +2173,14 @@ function getBornOutsidePositiveMessage(player?: Player): string {
 function countPlayerSeasons(player: Player): number {
   if (!player.stats) return 0;
   
-  // Count regular season stats only
-  return player.stats.filter((season: any) => !season.playoffs).length;
+  // Count distinct regular season years with games played (matches achievement logic)
+  const seasonsPlayed = new Set<number>();
+  player.stats.forEach((s: any) => {
+    if (!s.playoffs && (s.gp || 0) > 0) {
+      seasonsPlayed.add(s.season);
+    }
+  });
+  return seasonsPlayed.size;
 }
 
 /**

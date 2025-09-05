@@ -700,7 +700,7 @@ function calculateCommonAchievements(player: Player, achievements: any): void {
   });
   const seasonCount = seasonsPlayed.size;
   achievements.played10PlusSeasons = seasonCount >= 10;
-  achievements.played15PlusSeasons = seasonCount >= 12;  // Lower for shorter league
+  achievements.played15PlusSeasons = seasonCount >= 15;
   
   
   // Location - check if born outside the 50 US states + DC
