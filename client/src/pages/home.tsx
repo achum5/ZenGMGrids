@@ -5,6 +5,7 @@ import { PlayerSearchModal } from '@/components/player-search-modal';
 import { PlayerModal } from '@/components/PlayerModal';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { RulesModal } from '@/components/RulesModal';
+import { GridSharingModal } from '@/components/grid-sharing-modal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Home as HomeIcon } from 'lucide-react';
@@ -95,6 +96,9 @@ export default function Home() {
   // Attempt tracking state
   const [currentGridId, setCurrentGridId] = useState<string>('');
   const [attemptCount, setAttemptCount] = useState<number>(1);
+  
+  // Grid sharing state
+  const [gridSharingModalOpen, setGridSharingModalOpen] = useState(false);
 
   // Helper function to build and cache player rankings for a cell
   const buildRankCacheForCell = useCallback((cellKey: string): Array<{player: Player, rarity: number}> => {
@@ -266,6 +270,56 @@ export default function Home() {
       });
     } finally {
       setIsGenerating(false);
+    }
+  }, [leagueData, toast]);
+
+  // Handle importing a shared grid
+  const handleImportGrid = useCallback((importedRows: CatTeam[], importedCols: CatTeam[]) => {
+    if (!leagueData) return;
+    
+    try {
+      // Set the imported grid structure
+      setRows(importedRows);
+      setCols(importedCols);
+      
+      // Generate intersections for the new grid
+      const allCellKeys = importedRows.flatMap(row => 
+        importedCols.map(col => cellKey(row.key, col.key))
+      );
+      
+      const newIntersections: Record<string, number[]> = {};
+      
+      for (const key of allCellKeys) {
+        const [rowKey, colKey] = key.split('|');
+        const row = importedRows.find(r => r.key === rowKey);
+        const col = importedCols.find(c => c.key === colKey);
+        
+        if (row && col) {
+          const eligible = leagueData.players.filter(p => row.test(p) && col.test(p));
+          newIntersections[key] = eligible.map(p => p.pid);
+        }
+      }
+      
+      setIntersections(newIntersections);
+      setCells({}); // Reset all answers
+      setUsedPids(new Set()); // Reset used players
+      setRankCache({}); // Reset cached rankings
+      
+      // Initialize grid tracking for imported grid
+      const gridId = `${importedRows.map(r => r.key).join('-')}_${importedCols.map(c => c.key).join('-')}`;
+      setCurrentGridId(gridId);
+      
+      // Check if we've played this grid before
+      const storedAttempt = getAttemptCount(gridId);
+      setAttemptCount(storedAttempt);
+      
+    } catch (error) {
+      console.error('Error importing grid:', error);
+      toast({
+        title: 'Error importing grid',
+        description: error instanceof Error ? error.message : 'Failed to import shared grid',
+        variant: 'destructive',
+      });
     }
   }, [leagueData, toast]);
 
@@ -640,6 +694,7 @@ export default function Home() {
           onGenerateNewGrid={handleGenerateNewGrid}
           onGiveUp={handleGiveUp}
           onRetryGrid={handleRetryGrid}
+          onShareGrid={() => setGridSharingModalOpen(true)}
           isGenerating={isGenerating}
           teams={leagueData?.teams || []}
           sport={leagueData?.sport}
@@ -669,6 +724,15 @@ export default function Home() {
           cols={cols}
           currentCellKey={modalCellKey}
           sport={leagueData?.sport}
+        />
+        
+        <GridSharingModal
+          isOpen={gridSharingModalOpen}
+          onClose={() => setGridSharingModalOpen(false)}
+          rows={rows}
+          cols={cols}
+          leagueData={leagueData}
+          onImportGrid={handleImportGrid}
         />
       </main>
     </div>

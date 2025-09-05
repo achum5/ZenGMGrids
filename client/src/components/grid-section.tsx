@@ -1,6 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Flag } from 'lucide-react';
+import { RefreshCw, Flag, Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CatTeam, CellState, Team } from '@/types/bbgm';
 import { PlayerFace } from '@/components/PlayerFace';
@@ -27,6 +27,7 @@ interface GridSectionProps {
   onGenerateNewGrid: () => void;
   onGiveUp: () => void;
   onRetryGrid: () => void;
+  onShareGrid?: () => void;
   isGenerating: boolean;
   teams: Team[]; // Add teams for jersey styling
   sport?: string;
@@ -49,6 +50,7 @@ export function GridSection({
   onGenerateNewGrid,
   onGiveUp,
   onRetryGrid,
+  onShareGrid,
   isGenerating,
   teams,
   sport,
@@ -162,6 +164,19 @@ export function GridSection({
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+        )}
+
+        {/* Share Grid button in the middle */}
+        {onShareGrid && rows.length > 0 && cols.length > 0 && (
+          <Button
+            onClick={onShareGrid}
+            variant="outline"
+            className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg"
+            data-testid="button-share-grid"
+          >
+            <Share2 className="mr-2 h-4 w-4" />
+            Share Grid
+          </Button>
         )}
 
         {/* Generate New Grid button on the right */}
