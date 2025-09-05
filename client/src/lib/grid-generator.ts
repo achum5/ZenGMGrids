@@ -1343,15 +1343,11 @@ function buildOppositeAxisForSeed(
       
       if (rowIsSeasonAchievement && colConstraint.type === 'team') {
         // Season achievement × team
-        console.log(`🎯 Using season index for ${rowConstraint.achievementId} × team ${colConstraint.tid}`);
         const eligiblePids = getSeasonEligiblePlayers(seasonIndex, colConstraint.tid!, rowConstraint.achievementId as SeasonAchievementId);
-        console.log(`🎯 Season index returned ${eligiblePids.size} eligible players for ${rowConstraint.achievementId}`);
         eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
       } else if (colIsSeasonAchievement && rowConstraint.type === 'team') {
         // Team × season achievement  
-        console.log(`🎯 Using season index for team ${rowConstraint.tid} × ${colConstraint.achievementId}`);
         const eligiblePids = getSeasonEligiblePlayers(seasonIndex, rowConstraint.tid!, colConstraint.achievementId as SeasonAchievementId);
-        console.log(`🎯 Season index returned ${eligiblePids.size} eligible players for ${colConstraint.achievementId}`);
         eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
       } else if (rowIsSeasonAchievement && colIsSeasonAchievement) {
         // Season achievement × season achievement
@@ -1395,11 +1391,9 @@ function buildOppositeAxisForSeed(
         }
       } else {
         // Standard evaluation for career achievements or mixed career/season
-        console.log(`🎯 Using fallback evaluateConstraintPair for ${rowConstraint.achievementId || rowConstraint.type} × ${colConstraint.achievementId || colConstraint.type}`);
         eligiblePlayers = players.filter(p => 
           evaluateConstraintPair(p, rowConstraint, colConstraint)
         );
-        console.log(`🎯 Fallback returned ${eligiblePlayers.length} eligible players`);
       }
       
       intersections[key] = eligiblePlayers.map(p => p.pid);
