@@ -2344,7 +2344,9 @@ function generateSeasonSeasonAchievementMessage(
   // Case: Player is missing one side entirely
   if (playerDataA.count > 0 && playerDataB.count === 0) {
     const seasonsA = formatSeasonList(playerDataA.seasonsWithTeam, achievementA === 'FinalsMVP' || achievementA === 'SFMVP');
-    const verbB = achDataB.verbGeneric.replace('made', 'did not make').replace('won', 'did not win');
+    const verbB = isRookieAchievement(achievementB) 
+      ? achDataB.verbGeneric.replace('made the', 'he did not make the').replace('won', 'he did not win')
+      : achDataB.verbGeneric.replace('made', 'did not make').replace('won', 'did not win');
     
     if (isRookieAchievement(achievementA) && isRookieAchievement(achievementB)) {
       return `${player.name} did earn ${achDataA.label}, but ${verbB}.`;
@@ -2358,7 +2360,9 @@ function generateSeasonSeasonAchievementMessage(
   
   if (playerDataB.count > 0 && playerDataA.count === 0) {
     const seasonsB = formatSeasonList(playerDataB.seasonsWithTeam, achievementB === 'FinalsMVP' || achievementB === 'SFMVP');
-    const verbA = achDataA.verbGeneric.replace('made', 'did not make').replace('won', 'did not win');
+    const verbA = isRookieAchievement(achievementA) 
+      ? achDataA.verbGeneric.replace('made the', 'he did not make the').replace('won', 'he did not win')
+      : achDataA.verbGeneric.replace('made', 'did not make').replace('won', 'did not win');
     
     if (isRookieAchievement(achievementA) && isRookieAchievement(achievementB)) {
       return `${player.name} did earn ${achDataB.label}, but ${verbA}.`;
@@ -2371,17 +2375,28 @@ function generateSeasonSeasonAchievementMessage(
   }
   
   // Case: Player has neither achievement
-  const verbA = achDataA.verbGeneric.replace('made', 'did not make').replace('won', 'did not win');
-  const verbB = achDataB.verbGeneric.replace('made', 'did not make').replace('won', 'did not win');
+  // For rookie achievements, we need proper grammar with "he"
+  let verbA, verbB;
+  if (isRookieAchievement(achievementA)) {
+    verbA = achDataA.verbGeneric.replace('made the', 'he did not make the').replace('won', 'he did not win');
+  } else {
+    verbA = `never ${achDataA.verbGeneric}`;
+  }
+  
+  if (isRookieAchievement(achievementB)) {
+    verbB = achDataB.verbGeneric.replace('made the', 'he did not make the').replace('won', 'he did not win');
+  } else {
+    verbB = `never ${achDataB.verbGeneric}`;
+  }
   
   if (isRookieAchievement(achievementA) && isRookieAchievement(achievementB)) {
     return `${player.name} ${verbA} and ${verbB}.`;
   } else if (isRookieAchievement(achievementA)) {
-    return `${player.name} ${verbA} and never ${achDataB.verbGeneric}. (${achDataB.short}: 0x)`;
+    return `${player.name} ${verbA} and ${verbB}. (${achDataB.short}: 0x)`;
   } else if (isRookieAchievement(achievementB)) {
-    return `${player.name} never ${achDataA.verbGeneric} and ${verbB}. (${achDataA.short}: 0x)`;
+    return `${player.name} ${verbA} and ${verbB}. (${achDataA.short}: 0x)`;
   }
-  return `${player.name} never ${achDataA.verbGeneric} and never ${achDataB.verbGeneric}. (${achDataA.short}: 0x; ${achDataB.short}: 0x)`;
+  return `${player.name} ${verbA} and ${verbB}. (${achDataA.short}: 0x; ${achDataB.short}: 0x)`;
 }
 
 /**
