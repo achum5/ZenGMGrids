@@ -59,6 +59,10 @@ export function importGrid(
   leagueData: LeagueData
 ): { rows: CatTeam[]; cols: CatTeam[] } | null {
   try {
+    // Get all available achievements to find proper labels
+    const allAchievements = getAchievements(leagueData.sport, leagueData.seasonIndex);
+    const achievementMap = new Map(allAchievements.map(a => [a.id, a.label]));
+
     // Just reconstruct the grid with the team IDs and achievement IDs
     const reconstructedRows: CatTeam[] = sharedGrid.rows.map((item) => {
       if (typeof item === 'number') {
@@ -75,10 +79,11 @@ export function importGrid(
           test: (p) => p.teamsPlayed.has(item),
         };
       } else {
-        // It's an achievement ID - just use it directly
+        // It's an achievement ID - look up the proper label
+        const achievementLabel = achievementMap.get(item) || item;
         return {
           key: `achievement-${item}`,
-          label: item, // Use the achievement ID as label for now
+          label: achievementLabel,
           achievementId: item,
           type: 'achievement' as const,
           test: (p) => playerMeetsAchievement(p, item),
@@ -101,10 +106,11 @@ export function importGrid(
           test: (p) => p.teamsPlayed.has(item),
         };
       } else {
-        // It's an achievement ID - just use it directly
+        // It's an achievement ID - look up the proper label
+        const achievementLabel = achievementMap.get(item) || item;
         return {
           key: `achievement-${item}`,
-          label: item, // Use the achievement ID as label for now
+          label: achievementLabel,
           achievementId: item,
           type: 'achievement' as const,
           test: (p) => playerMeetsAchievement(p, item),
