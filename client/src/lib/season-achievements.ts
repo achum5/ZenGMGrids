@@ -289,10 +289,11 @@ function calculateBBGMSeasonLeaders(
   try {
     // Step 4: Find leaders for each category using 1e-9 epsilon and tie-breaking by totals
     
-    // Points Leader
-    if (playerSeasonStats.length > 0) {
-      const maxPPG = Math.max(...playerSeasonStats.map(p => p.pts / p.gp));
-      const pointsLeaderCandidates = playerSeasonStats.filter(p => 
+    // Points Leader - exclude players with 0 total points (early seasons might not track points properly)
+    const playersWithPoints = playerSeasonStats.filter(p => p.pts > 0);
+    if (playersWithPoints.length > 0) {
+      const maxPPG = Math.max(...playersWithPoints.map(p => p.pts / p.gp));
+      const pointsLeaderCandidates = playersWithPoints.filter(p => 
         Math.abs((p.pts / p.gp) - maxPPG) < 1e-9
       );
       
@@ -326,10 +327,11 @@ function calculateBBGMSeasonLeaders(
       }
     }
 
-    // Assists Leader
-    if (playerSeasonStats.length > 0) {
-      const maxAPG = Math.max(...playerSeasonStats.map(p => p.ast / p.gp));
-      const assistsLeaderCandidates = playerSeasonStats.filter(p => 
+    // Assists Leader - exclude players with 0 total assists (early seasons didn't track assists)
+    const playersWithAssists = playerSeasonStats.filter(p => p.ast > 0);
+    if (playersWithAssists.length > 0) {
+      const maxAPG = Math.max(...playersWithAssists.map(p => p.ast / p.gp));
+      const assistsLeaderCandidates = playersWithAssists.filter(p => 
         Math.abs((p.ast / p.gp) - maxAPG) < 1e-9
       );
       
@@ -344,10 +346,11 @@ function calculateBBGMSeasonLeaders(
       }
     }
 
-    // Steals Leader
-    if (playerSeasonStats.length > 0) {
-      const maxSPG = Math.max(...playerSeasonStats.map(p => p.stl / p.gp));
-      const stealsLeaderCandidates = playerSeasonStats.filter(p => 
+    // Steals Leader - exclude players with 0 total steals (early seasons didn't track steals)
+    const playersWithSteals = playerSeasonStats.filter(p => p.stl > 0);
+    if (playersWithSteals.length > 0) {
+      const maxSPG = Math.max(...playersWithSteals.map(p => p.stl / p.gp));
+      const stealsLeaderCandidates = playersWithSteals.filter(p => 
         Math.abs((p.stl / p.gp) - maxSPG) < 1e-9
       );
       
