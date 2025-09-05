@@ -130,19 +130,19 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     label: 'Offensive Rookie of the Year',
     short: 'Offensive ROY',
     verbTeam: 'won Offensive Rookie of the Year',
-    verbGeneric: 'won Offensive Rookie of the Year'
+    verbGeneric: 'won Offensive Rookie of the Year his rookie year'
   },
   FBDefROY: {
     label: 'Defensive Rookie of the Year',
     short: 'Defensive ROY',
     verbTeam: 'won Defensive Rookie of the Year',
-    verbGeneric: 'won Defensive Rookie of the Year'
+    verbGeneric: 'won Defensive Rookie of the Year his rookie year'
   },
   FBAllRookie: {
     label: 'All-Rookie Team',
     short: 'All-Rookie',
     verbTeam: 'made an All-Rookie Team',
-    verbGeneric: 'made an All-Rookie Team'
+    verbGeneric: 'made the All-Rookie team his rookie year'
   },
   FBAllLeague1st: {
     label: 'First Team All-League',
@@ -234,13 +234,13 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     label: 'Rookie of the Year',
     short: 'ROY',
     verbTeam: 'won Rookie of the Year',
-    verbGeneric: 'won Rookie of the Year'
+    verbGeneric: 'won Rookie of the Year his rookie year'
   },
   HKAllRookie: {
     label: 'All-Rookie Team',
     short: 'All-Rookie',
     verbTeam: 'made an All-Rookie Team',
-    verbGeneric: 'made an All-Rookie Team'
+    verbGeneric: 'made the All-Rookie team his rookie year'
   },
   HKAllLeague: {
     label: 'All-League Team',
@@ -308,13 +308,13 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     label: 'Rookie of the Year',
     short: 'ROY',
     verbTeam: 'won Rookie of the Year',
-    verbGeneric: 'won Rookie of the Year'
+    verbGeneric: 'won Rookie of the Year his rookie year'
   },
   BBAllRookie: {
     label: 'All-Rookie Team',
     short: 'All-Rookie',
     verbTeam: 'made an All-Rookie Team',
-    verbGeneric: 'made an All-Rookie Team'
+    verbGeneric: 'made the All-Rookie team his rookie year'
   },
   BBAllLeague: {
     label: 'All-League Team',
@@ -2307,10 +2307,16 @@ function generateTeamSeasonAchievementMessage(
   
   if (!playedForTeam) {
     // Player never played for the team at all
+    if (isRookieAchievement(achievementId)) {
+      return `${player.name} never played for the ${teamStr}.`;
+    }
     return `${player.name} never played for the ${teamStr}. (${achData.short}: ${countStr})`;
   }
   
   // Player did play for team but didn't achieve the award with them
+  if (isRookieAchievement(achievementId)) {
+    return `${player.name} did play for the ${teamStr}, but ${achData.verbGeneric.replace('made', 'did not make').replace('won', 'did not win')}.`;
+  }
   return `${player.name} did play for the ${teamStr}, but never ${achData.verbTeam} with the ${teamStr}. (${achData.short}: ${countStr})`;
 }
 
@@ -2338,14 +2344,55 @@ function generateSeasonSeasonAchievementMessage(
   // Case: Player is missing one side entirely
   if (playerDataA.count > 0 && playerDataB.count === 0) {
     const seasonsA = formatSeasonList(playerDataA.seasonsWithTeam, achievementA === 'FinalsMVP' || achievementA === 'SFMVP');
+    const verbB = achDataB.verbGeneric.replace('made', 'did not make').replace('won', 'did not win');
+    
+    if (isRookieAchievement(achievementA) && isRookieAchievement(achievementB)) {
+      return `${player.name} did earn ${achDataA.label}, but ${verbB}.`;
+    } else if (isRookieAchievement(achievementB)) {
+      return `${player.name} did earn ${achDataA.label}, but ${verbB}. (${achDataA.short}: ${playerDataA.count}x — ${seasonsA})`;
+    } else if (isRookieAchievement(achievementA)) {
+      return `${player.name} did earn ${achDataA.label}, but never ${achDataB.verbGeneric}. (${achDataB.short}: 0x)`;
+    }
     return `${player.name} did earn ${achDataA.label}, but never ${achDataB.verbGeneric}. (${achDataA.short}: ${playerDataA.count}x — ${seasonsA}; ${achDataB.short}: 0x)`;
   }
   
   if (playerDataB.count > 0 && playerDataA.count === 0) {
     const seasonsB = formatSeasonList(playerDataB.seasonsWithTeam, achievementB === 'FinalsMVP' || achievementB === 'SFMVP');
+    const verbA = achDataA.verbGeneric.replace('made', 'did not make').replace('won', 'did not win');
+    
+    if (isRookieAchievement(achievementA) && isRookieAchievement(achievementB)) {
+      return `${player.name} did earn ${achDataB.label}, but ${verbA}.`;
+    } else if (isRookieAchievement(achievementA)) {
+      return `${player.name} did earn ${achDataB.label}, but ${verbA}. (${achDataB.short}: ${playerDataB.count}x — ${seasonsB})`;
+    } else if (isRookieAchievement(achievementB)) {
+      return `${player.name} did earn ${achDataB.label}, but never ${achDataA.verbGeneric}. (${achDataA.short}: 0x)`;
+    }
     return `${player.name} did earn ${achDataB.label}, but never ${achDataA.verbGeneric}. (${achDataB.short}: ${playerDataB.count}x — ${seasonsB}; ${achDataA.short}: 0x)`;
   }
   
   // Case: Player has neither achievement
+  const verbA = achDataA.verbGeneric.replace('made', 'did not make').replace('won', 'did not win');
+  const verbB = achDataB.verbGeneric.replace('made', 'did not make').replace('won', 'did not win');
+  
+  if (isRookieAchievement(achievementA) && isRookieAchievement(achievementB)) {
+    return `${player.name} ${verbA} and ${verbB}.`;
+  } else if (isRookieAchievement(achievementA)) {
+    return `${player.name} ${verbA} and never ${achDataB.verbGeneric}. (${achDataB.short}: 0x)`;
+  } else if (isRookieAchievement(achievementB)) {
+    return `${player.name} never ${achDataA.verbGeneric} and ${verbB}. (${achDataA.short}: 0x)`;
+  }
   return `${player.name} never ${achDataA.verbGeneric} and never ${achDataB.verbGeneric}. (${achDataA.short}: 0x; ${achDataB.short}: 0x)`;
+}
+
+/**
+ * Check if an achievement is a rookie achievement (should not show count in parentheses)
+ */
+function isRookieAchievement(achievementId: SeasonAchievementId): boolean {
+  const rookieAchievements = [
+    'ROY', 'AllRookieAny', 
+    'FBOffROY', 'FBDefROY', 'FBAllRookie',
+    'HKROY', 'HKAllRookie',
+    'BBROY', 'BBAllRookie'
+  ];
+  return rookieAchievements.includes(achievementId);
 }
