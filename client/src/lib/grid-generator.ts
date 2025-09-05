@@ -3,6 +3,10 @@ import { getViableAchievements, playerMeetsAchievement, getAchievements, type Ac
 import { evaluateConstraintPair, GridConstraint } from '@/lib/feedback';
 import { getSeasonEligiblePlayers, type SeasonAchievementId, type SeasonIndex, SEASON_ACHIEVEMENTS } from './season-achievements';
 
+// Define conflicting achievement sets at module level
+const draftAchievements = new Set(['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen']);
+const seasonLengthAchievements = new Set(['played10PlusSeasons', 'played15PlusSeasons']);
+
 // Simple session-based memory to avoid immediate repetition
 const recentlyUsedTeams = new Set<number>();
 const recentlyUsedAchievements = new Set<string>();
@@ -157,11 +161,7 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
   const numAchievements = Math.random() < 0.5 ? 2 : 3;
   const numTeams = 6 - numAchievements;
 
-  // Define draft achievements that should not appear together
-  const draftAchievements = new Set(['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen']);
-  
-  // Define season length achievements that should not appear together
-  const seasonLengthAchievements = new Set(['played10PlusSeasons', 'played15PlusSeasons']);
+  // Define draft achievements that should not appear together (using module-level definitions)
   
   // Helper function to ensure only one draft achievement and one season length achievement in selection
   const ensureNoConflictingAchievements = (achievements: CatTeam[]): CatTeam[] => {
