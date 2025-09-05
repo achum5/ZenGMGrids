@@ -17,10 +17,6 @@ export function exportGrid(
   cols: CatTeam[], 
   sport: 'basketball' | 'football' | 'hockey' | 'baseball'
 ): SharedGrid {
-  console.log('Exporting grid with sport:', sport);
-  console.log('Rows:', rows.map(r => ({ key: r.key, type: r.type, tid: r.tid, achievementId: r.achievementId })));
-  console.log('Cols:', cols.map(c => ({ key: c.key, type: c.type, tid: c.tid, achievementId: c.achievementId })));
-  
   const exportedRows = rows.map(row => {
     if (row.type === 'team' && row.tid !== undefined) {
       return row.tid;
@@ -39,16 +35,13 @@ export function exportGrid(
     throw new Error(`Invalid col constraint: ${col.key}`);
   });
 
-  const result = {
+  return {
     rows: exportedRows,
     cols: exportedCols,
     sport,
     version: 1,
     createdAt: new Date().toISOString()
   };
-  
-  console.log('Exported grid:', result);
-  return result;
 }
 
 /**
@@ -62,9 +55,6 @@ export function importGrid(
     // Get all available achievements to find proper labels
     const allAchievements = getAchievements(leagueData.sport, leagueData.seasonIndex);
     const achievementMap = new Map(allAchievements.map(a => [a.id, a.label]));
-    
-    console.log('Import: Available achievement IDs:', Array.from(achievementMap.keys()));
-    console.log('Import: Trying to import achievements:', [...sharedGrid.rows.filter(r => typeof r === 'string'), ...sharedGrid.cols.filter(c => typeof c === 'string')]);
 
     // Just reconstruct the grid with the team IDs and achievement IDs
     const reconstructedRows: CatTeam[] = sharedGrid.rows.map((item) => {
@@ -84,7 +74,6 @@ export function importGrid(
       } else {
         // It's an achievement ID - look up the proper label
         const achievementLabel = achievementMap.get(item) || item;
-        console.log(`Import achievement ${item} -> label: ${achievementLabel}`);
         return {
           key: `achievement-${item}`,
           label: achievementLabel,
@@ -112,7 +101,6 @@ export function importGrid(
       } else {
         // It's an achievement ID - look up the proper label
         const achievementLabel = achievementMap.get(item) || item;
-        console.log(`Import achievement ${item} -> label: ${achievementLabel}`);
         return {
           key: `achievement-${item}`,
           label: achievementLabel,
