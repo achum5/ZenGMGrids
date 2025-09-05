@@ -160,29 +160,41 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
   // Define draft achievements that should not appear together
   const draftAchievements = new Set(['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen']);
   
-  // Helper function to ensure only one draft achievement in selection
-  const ensureOnlyOneDraftAchievement = (achievements: CatTeam[]): CatTeam[] => {
+  // Define season length achievements that should not appear together
+  const seasonLengthAchievements = new Set(['played10PlusSeasons', 'played15PlusSeasons']);
+  
+  // Helper function to ensure only one draft achievement and one season length achievement in selection
+  const ensureNoConflictingAchievements = (achievements: CatTeam[]): CatTeam[] => {
     const draftAchs = achievements.filter(a => draftAchievements.has(a.achievementId!));
-    const nonDraftAchs = achievements.filter(a => !draftAchievements.has(a.achievementId!));
+    const seasonLengthAchs = achievements.filter(a => seasonLengthAchievements.has(a.achievementId!));
+    const otherAchs = achievements.filter(a => 
+      !draftAchievements.has(a.achievementId!) && 
+      !seasonLengthAchievements.has(a.achievementId!)
+    );
     
-    if (draftAchs.length <= 1) {
+    if (draftAchs.length <= 1 && seasonLengthAchs.length <= 1) {
       return achievements; // Already compliant
     }
     
-    // Keep only the first draft achievement, replace others with non-draft ones
-    const selectedDraft = draftAchs[0];
-    const availableNonDraft = achievementConstraints.filter(a => 
+    // Keep only one from each conflicting category
+    const selectedDraft = draftAchs.length > 0 ? draftAchs[0] : null;
+    const selectedSeasonLength = seasonLengthAchs.length > 0 ? seasonLengthAchs[0] : null;
+    
+    const availableNonConflicting = achievementConstraints.filter(a => 
       !draftAchievements.has(a.achievementId!) && 
-      !nonDraftAchs.some(selected => selected.achievementId === a.achievementId)
+      !seasonLengthAchievements.has(a.achievementId!) &&
+      !otherAchs.some(selected => selected.achievementId === a.achievementId)
     );
     
-    // Build final selection: one draft + non-draft achievements
-    const result = [selectedDraft, ...nonDraftAchs];
+    // Build final selection
+    const result = [...otherAchs];
+    if (selectedDraft) result.push(selectedDraft);
+    if (selectedSeasonLength) result.push(selectedSeasonLength);
     
-    // Fill remaining slots with non-draft achievements if needed
+    // Fill remaining slots with non-conflicting achievements if needed
     const needed = achievements.length - result.length;
-    if (needed > 0 && availableNonDraft.length >= needed) {
-      result.push(...availableNonDraft.slice(0, needed));
+    if (needed > 0 && availableNonConflicting.length >= needed) {
+      result.push(...availableNonConflicting.slice(0, needed));
     }
     
     return result.slice(0, achievements.length);
@@ -270,8 +282,8 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
       .slice(0, numAchievements);
   }
   
-  // Ensure only one draft achievement is selected
-  selectedAchievements = ensureOnlyOneDraftAchievement(selectedAchievements);
+  // Ensure no conflicting achievements are selected (draft, season length)
+  selectedAchievements = ensureNoConflictingAchievements(selectedAchievements);
   
   // Use pre-analyzed team overlap data for intelligent team selection
   const { teamOverlaps } = leagueData;
@@ -805,6 +817,14 @@ function generateGridSeeded(leagueData: LeagueData): {
           
           if (achAlreadyUsed) continue;
           
+          // Check for conflicting achievements (draft and season length)
+          const hasConflictingDraft = draftAchievements.has(ach.id) && 
+            [...rows, ...cols].some(slot => slot && slot.type === 'achievement' && draftAchievements.has(slot.achievementId!));
+          const hasConflictingSeasonLength = seasonLengthAchievements.has(ach.id) && 
+            [...rows, ...cols].some(slot => slot && slot.type === 'achievement' && seasonLengthAchievements.has(slot.achievementId!));
+          
+          if (hasConflictingDraft || hasConflictingSeasonLength) continue;
+          
           // Check if this achievement creates valid intersections with all columns
           let validForAllCols = true;
           
@@ -912,6 +932,14 @@ function generateGridSeeded(leagueData: LeagueData): {
             cols.some(c => c && c.type === 'achievement' && c.achievementId === ach.id);
           
           if (achAlreadyUsed) continue;
+          
+          // Check for conflicting achievements (draft and season length)
+          const hasConflictingDraft = draftAchievements.has(ach.id) && 
+            [...rows, ...cols].some(slot => slot && slot.type === 'achievement' && draftAchievements.has(slot.achievementId!));
+          const hasConflictingSeasonLength = seasonLengthAchievements.has(ach.id) && 
+            [...rows, ...cols].some(slot => slot && slot.type === 'achievement' && seasonLengthAchievements.has(slot.achievementId!));
+          
+          if (hasConflictingDraft || hasConflictingSeasonLength) continue;
           
           // Check if this achievement creates valid intersections with all rows
           let validForAllRows = true;
