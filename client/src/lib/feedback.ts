@@ -144,17 +144,11 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     verbTeam: 'made an All-Rookie Team',
     verbGeneric: 'made the All-Rookie team his rookie season'
   },
-  FBAllLeague1st: {
-    label: 'First Team All-League',
-    short: '1st Team All-League',
-    verbTeam: 'made a First Team All-League',
-    verbGeneric: 'made a First Team All-League'
-  },
-  FBAllLeague2nd: {
-    label: 'Second Team All-League',
-    short: '2nd Team All-League',
-    verbTeam: 'made a Second Team All-League',
-    verbGeneric: 'made a Second Team All-League'
+  FBAllLeague: {
+    label: 'All-League Team',
+    short: 'All-League',
+    verbTeam: 'made an All-League Team',
+    verbGeneric: 'made an All-League Team'
   },
   FBFinalsMVP: {
     label: 'Finals MVP',
@@ -462,8 +456,7 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     FBOffROY: ['Offensive Rookie of the Year'],
     FBDefROY: ['Defensive Rookie of the Year'],
     FBAllRookie: ['All-Rookie Team'],
-    FBAllLeague1st: ['First Team All-League'],
-    FBAllLeague2nd: ['Second Team All-League'],
+    FBAllLeague: ['First Team All-League', 'Second Team All-League'],
     FBFinalsMVP: ['Finals MVP'],
     FBChampion: ['Won Championship'],
     FBPassLeader: ['League Passing Leader'],

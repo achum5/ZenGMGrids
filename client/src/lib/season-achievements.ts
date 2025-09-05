@@ -31,8 +31,7 @@ export type SeasonAchievementId =
   | 'FBDefROY'
   | 'FBChampion'
   | 'FBAllRookie'
-  | 'FBAllLeague1st'
-  | 'FBAllLeague2nd'
+  | 'FBAllLeague'
   | 'FBFinalsMVP'
   // Hockey achievements
   | 'HKAllStar'
@@ -125,8 +124,8 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId | null> = {
   'Defensive Rookie of the Year': 'FBDefROY',
   'Won Championship': 'FBChampion',
   'All-Rookie Team': 'FBAllRookie',
-  'First Team All-League': 'FBAllLeague1st',
-  'Second Team All-League': 'FBAllLeague2nd',
+  'First Team All-League': 'FBAllLeague',
+  'Second Team All-League': 'FBAllLeague',
   'Finals MVP': 'FBFinalsMVP',
   
   // Hockey GM (ZGMH) awards
@@ -170,8 +169,8 @@ function mapAwardToAchievement(awardType: string, sport?: 'basketball' | 'footba
     if (awardType === 'Defensive Rookie of the Year') return 'FBDefROY';
     if (awardType === 'Won Championship') return 'FBChampion';
     if (awardType === 'All-Rookie Team') return 'FBAllRookie';
-    if (awardType === 'First Team All-League') return 'FBAllLeague1st';
-    if (awardType === 'Second Team All-League') return 'FBAllLeague2nd';
+    if (awardType === 'First Team All-League') return 'FBAllLeague';
+    if (awardType === 'Second Team All-League') return 'FBAllLeague';
   } else if (sport === 'baseball') {
     // Baseball-specific mappings (case-sensitive exact matches from ZGMB)
     if (awardType === 'All-Star') return 'BBAllStar';
@@ -784,14 +783,8 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
     minPlayers: 3
   },
   {
-    id: 'FBAllLeague1st',
-    label: 'First Team All-League',
-    isSeasonSpecific: true,
-    minPlayers: 3
-  },
-  {
-    id: 'FBAllLeague2nd',
-    label: 'Second Team All-League',
+    id: 'FBAllLeague',
+    label: 'All-League Team',
     isSeasonSpecific: true,
     minPlayers: 3
   },

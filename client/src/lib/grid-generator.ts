@@ -774,11 +774,6 @@ function generateGridSeeded(leagueData: LeagueData): {
           }
           
           if (validForAllCols) {
-            // Double check team is not disabled before adding
-            if (team.disabled) {
-              console.log(`⚠️ CRITICAL: Attempting to add disabled team in old-style fill: ${team.name || `Team ${team.tid}`}`);
-              continue;
-            }
             rows[i] = {
               type: 'team',
               tid: team.tid,
@@ -887,11 +882,6 @@ function generateGridSeeded(leagueData: LeagueData): {
           }
           
           if (validForAllRows) {
-            // Double check team is not disabled before adding
-            if (team.disabled) {
-              console.log(`⚠️ CRITICAL: Attempting to add disabled team in old-style fill: ${team.name || `Team ${team.tid}`}`);
-              continue;
-            }
             cols[i] = {
               type: 'team',
               tid: team.tid,
@@ -1193,12 +1183,7 @@ function buildOppositeAxisForSeed(
     if (selectedTeamIds.has(tid)) continue; // Skip duplicates
     
     const team = teams.find(t => t.tid === tid);
-    if (!team || team.disabled) {
-      if (team?.disabled) {
-        console.log(`⚠️ Skipping disabled team: ${team.name || `Team ${tid}`} (tid: ${tid})`);
-      }
-      continue;
-    }
+    if (!team || team.disabled) continue;
     
     selectedTeamIds.add(tid);
     selectedTeams.push({
