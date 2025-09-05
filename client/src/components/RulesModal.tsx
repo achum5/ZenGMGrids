@@ -238,7 +238,7 @@ export function RulesModal({ sport }: RulesModalProps) {
 
               {/* Scoring */}
               <div>
-                <h3 className="font-semibold mb-3 text-base">Scoring (short & simple)</h3>
+                <h3 className="font-semibold mb-3 text-base">Scoring</h3>
                 <ul className="space-y-2">
                   {generalRules.scoring.map((rule, index) => (
                     <li key={index} className="flex items-start gap-2">
