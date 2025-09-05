@@ -120,10 +120,28 @@ export const BASKETBALL_ACHIEVEMENTS: Achievement[] = [
 ];
 
 // Convert season achievements to regular Achievement format for grid generation
-function createSeasonAchievementTests(seasonIndex?: SeasonIndex): Achievement[] {
+function createSeasonAchievementTests(seasonIndex?: SeasonIndex, sport: 'basketball' | 'football' | 'hockey' | 'baseball' = 'basketball'): Achievement[] {
   if (!seasonIndex) return [];
   
-  return SEASON_ACHIEVEMENTS.map(seasonAch => ({
+  // Filter achievements by sport
+  const sportFilteredAchievements = SEASON_ACHIEVEMENTS.filter(seasonAch => {
+    if (sport === 'basketball') {
+      // Basketball: exclude FB*, HK*, BB* prefixed achievements
+      return !seasonAch.id.startsWith('FB') && !seasonAch.id.startsWith('HK') && !seasonAch.id.startsWith('BB');
+    } else if (sport === 'football') {
+      // Football: only FB* prefixed achievements and some general ones
+      return seasonAch.id.startsWith('FB') || ['PointsLeader', 'ReboundsLeader', 'AssistsLeader'].includes(seasonAch.id);
+    } else if (sport === 'hockey') {
+      // Hockey: only HK* prefixed achievements and some general ones
+      return seasonAch.id.startsWith('HK') || ['PointsLeader', 'ReboundsLeader', 'AssistsLeader'].includes(seasonAch.id);
+    } else if (sport === 'baseball') {
+      // Baseball: only BB* prefixed achievements and some general ones
+      return seasonAch.id.startsWith('BB') || ['PointsLeader', 'ReboundsLeader', 'AssistsLeader'].includes(seasonAch.id);
+    }
+    return false;
+  });
+  
+  return sportFilteredAchievements.map(seasonAch => ({
     id: seasonAch.id,
     label: seasonAch.label,
     isSeasonSpecific: true,
@@ -319,7 +337,7 @@ export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | '
     const footballAchievements = [...footballCommon, ...FOOTBALL_ACHIEVEMENTS];
     // Add season-specific achievements for football if season index is available
     if (seasonIndex) {
-      const seasonAchievements = createSeasonAchievementTests(seasonIndex);
+      const seasonAchievements = createSeasonAchievementTests(seasonIndex, 'football');
       footballAchievements.push(...seasonAchievements);
     }
     return footballAchievements;
@@ -327,7 +345,7 @@ export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | '
     const hockeyAchievements = [...common, ...HOCKEY_ACHIEVEMENTS];
     // Add season-specific achievements for hockey if season index is available
     if (seasonIndex) {
-      const seasonAchievements = createSeasonAchievementTests(seasonIndex);
+      const seasonAchievements = createSeasonAchievementTests(seasonIndex, 'hockey');
       hockeyAchievements.push(...seasonAchievements);
     }
     return hockeyAchievements;
@@ -335,7 +353,7 @@ export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | '
     const baseballAchievements = [...common, ...BASEBALL_ACHIEVEMENTS];
     // Add season-specific achievements for baseball if season index is available
     if (seasonIndex) {
-      const seasonAchievements = createSeasonAchievementTests(seasonIndex);
+      const seasonAchievements = createSeasonAchievementTests(seasonIndex, 'baseball');
       baseballAchievements.push(...seasonAchievements);
     }
     return baseballAchievements;
@@ -343,7 +361,7 @@ export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | '
     // Basketball: add season-specific achievements
     const basketballAchievements = [...common, ...BASKETBALL_ACHIEVEMENTS];
     if (seasonIndex) {
-      const seasonAchievements = createSeasonAchievementTests(seasonIndex);
+      const seasonAchievements = createSeasonAchievementTests(seasonIndex, 'basketball');
       basketballAchievements.push(...seasonAchievements);
     }
     return basketballAchievements;
