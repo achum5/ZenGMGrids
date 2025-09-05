@@ -59,26 +59,10 @@ export function importGrid(
   leagueData: LeagueData
 ): { rows: CatTeam[]; cols: CatTeam[] } | null {
   try {
-    console.log('Importing grid:', sharedGrid);
-    console.log('Current league sport:', leagueData.sport);
-    
-    if (sharedGrid.version !== 1) {
-      throw new Error(`Unsupported grid version: ${sharedGrid.version}`);
-    }
-
-    if (sharedGrid.rows.length !== 3 || sharedGrid.cols.length !== 3) {
-      throw new Error('Invalid grid dimensions');
-    }
-
-    // Get available achievements for this sport
-    const achievements = getAchievements(sharedGrid.sport);
-    console.log('Available achievements for', sharedGrid.sport, ':', achievements.map(a => a.id));
-    const achievementMap = new Map(achievements.map(a => [a.id, a]));
-
-    // Reconstruct rows
-    const reconstructedRows: CatTeam[] = sharedGrid.rows.map((item, index) => {
+    // Just reconstruct the grid with the team IDs and achievement IDs
+    const reconstructedRows: CatTeam[] = sharedGrid.rows.map((item) => {
       if (typeof item === 'number') {
-        // It's a team ID
+        // It's a team ID - find the team
         const team = leagueData.teams.find(t => t.tid === item);
         if (!team) {
           throw new Error(`Team with ID ${item} not found in current league`);
@@ -91,14 +75,10 @@ export function importGrid(
           test: (p) => p.teamsPlayed.has(item),
         };
       } else {
-        // It's an achievement ID
-        const achievement = achievementMap.get(item);
-        if (!achievement) {
-          throw new Error(`Achievement ${item} not available for ${sharedGrid.sport}`);
-        }
+        // It's an achievement ID - just use it directly
         return {
           key: `achievement-${item}`,
-          label: achievement.label,
+          label: item, // Use the achievement ID as label for now
           achievementId: item,
           type: 'achievement' as const,
           test: (p) => playerMeetsAchievement(p, item),
@@ -106,10 +86,9 @@ export function importGrid(
       }
     });
 
-    // Reconstruct cols
-    const reconstructedCols: CatTeam[] = sharedGrid.cols.map((item, index) => {
+    const reconstructedCols: CatTeam[] = sharedGrid.cols.map((item) => {
       if (typeof item === 'number') {
-        // It's a team ID
+        // It's a team ID - find the team
         const team = leagueData.teams.find(t => t.tid === item);
         if (!team) {
           throw new Error(`Team with ID ${item} not found in current league`);
@@ -122,14 +101,10 @@ export function importGrid(
           test: (p) => p.teamsPlayed.has(item),
         };
       } else {
-        // It's an achievement ID
-        const achievement = achievementMap.get(item);
-        if (!achievement) {
-          throw new Error(`Achievement ${item} not available for ${sharedGrid.sport}`);
-        }
+        // It's an achievement ID - just use it directly
         return {
           key: `achievement-${item}`,
-          label: achievement.label,
+          label: item, // Use the achievement ID as label for now
           achievementId: item,
           type: 'achievement' as const,
           test: (p) => playerMeetsAchievement(p, item),
