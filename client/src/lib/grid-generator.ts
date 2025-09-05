@@ -176,6 +176,11 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
       return achievements; // Already compliant
     }
     
+    // Log conflict resolution for debugging
+    if (seasonLengthAchs.length > 1) {
+      console.log(`🔧 Resolving season length conflict: found ${seasonLengthAchs.map(a => a.label).join(' + ')}, keeping only first`);
+    }
+    
     // Keep only one from each conflicting category
     const selectedDraft = draftAchs.length > 0 ? draftAchs[0] : null;
     const selectedSeasonLength = seasonLengthAchs.length > 0 ? seasonLengthAchs[0] : null;
@@ -823,7 +828,12 @@ function generateGridSeeded(leagueData: LeagueData): {
           const hasConflictingSeasonLength = seasonLengthAchievements.has(ach.id) && 
             [...rows, ...cols].some(slot => slot && slot.type === 'achievement' && seasonLengthAchievements.has(slot.achievementId!));
           
-          if (hasConflictingDraft || hasConflictingSeasonLength) continue;
+          if (hasConflictingDraft || hasConflictingSeasonLength) {
+            if (hasConflictingSeasonLength) {
+              console.log(`⚠️ Skipping ${ach.label} - conflicts with existing season length achievement`);
+            }
+            continue;
+          }
           
           // Check if this achievement creates valid intersections with all columns
           let validForAllCols = true;
@@ -939,7 +949,12 @@ function generateGridSeeded(leagueData: LeagueData): {
           const hasConflictingSeasonLength = seasonLengthAchievements.has(ach.id) && 
             [...rows, ...cols].some(slot => slot && slot.type === 'achievement' && seasonLengthAchievements.has(slot.achievementId!));
           
-          if (hasConflictingDraft || hasConflictingSeasonLength) continue;
+          if (hasConflictingDraft || hasConflictingSeasonLength) {
+            if (hasConflictingSeasonLength) {
+              console.log(`⚠️ Skipping ${ach.label} - conflicts with existing season length achievement`);
+            }
+            continue;
+          }
           
           // Check if this achievement creates valid intersections with all rows
           let validForAllRows = true;
