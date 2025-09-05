@@ -1235,18 +1235,45 @@ function buildOppositeAxisForSeed(
   // For layouts with season achievements, use other season achievements to avoid mixing career/season
   // But don't reuse the seed achievement
   const availableSeasonAchievements = SEASON_ACHIEVEMENTS.filter((sa: any) => sa.id !== seedAchievement.id);
-  const safeSeasonAchievement: CatTeam = availableSeasonAchievements.length > 0 ? {
-    key: `achievement-${availableSeasonAchievements[0].id}`,
-    label: availableSeasonAchievements[0].label || availableSeasonAchievements[0].id,
-    achievementId: availableSeasonAchievements[0].id,
-    type: 'achievement',
-    test: (p: Player) => playerMeetsAchievement(p, availableSeasonAchievements[0].id),
-  } : {
-    key: 'achievement-AllStar',
-    label: 'All-Star',
-    achievementId: 'AllStar',
-    type: 'achievement',
-    test: (p: Player) => playerMeetsAchievement(p, 'AllStar'),
+  
+  // Helper function to find an unused fallback achievement
+  const findUnusedFallbackAchievement = (usedIds: Set<string>): CatTeam => {
+    // First try remaining season achievements
+    for (const sa of availableSeasonAchievements) {
+      if (!usedIds.has(sa.id)) {
+        return {
+          key: `achievement-${sa.id}`,
+          label: sa.label || sa.id,
+          achievementId: sa.id,
+          type: 'achievement',
+          test: (p: Player) => playerMeetsAchievement(p, sa.id),
+        };
+      }
+    }
+    
+    // If no season achievements available, fall back to common career achievements
+    const fallbackCareerAchievements = [
+      { id: 'AllStar', label: 'All-Star' },
+      { id: 'played10PlusSeasons', label: 'Played 10+ Seasons' },
+      { id: 'played15PlusSeasons', label: 'Played 15+ Seasons' },
+      { id: 'career2kPoints', label: '2,000+ Career Points' },
+      { id: 'career1kRebounds', label: '1,000+ Career Rebounds' },
+    ];
+    
+    for (const ca of fallbackCareerAchievements) {
+      if (!usedIds.has(ca.id)) {
+        return {
+          key: `achievement-${ca.id}`,
+          label: ca.label,
+          achievementId: ca.id,
+          type: 'achievement',
+          test: (p: Player) => playerMeetsAchievement(p, ca.id),
+        };
+      }
+    }
+    
+    // Final fallback - should never reach here in practice
+    throw new Error('No unused achievements available for grid generation');
   };
   
   const safeCareerAchievement: CatTeam = {
@@ -1286,8 +1313,11 @@ function buildOppositeAxisForSeed(
         console.log(`Filled row ${i} with achievement: ${achievement.label || achievement.id}`);
         availableAchievementIndex++;
       } else {
-        rows[i] = safeSeasonAchievement;
-        console.log(`Filled row ${i} with fallback achievement: ${safeSeasonAchievement.label}`);
+        // Find a fallback achievement that hasn't been used yet
+        const fallbackAchievement = findUnusedFallbackAchievement(usedAchievementIds);
+        rows[i] = fallbackAchievement;
+        usedAchievementIds.add(fallbackAchievement.achievementId!);
+        console.log(`Filled row ${i} with fallback achievement: ${fallbackAchievement.label}`);
       }
     }
   }
@@ -1312,8 +1342,11 @@ function buildOppositeAxisForSeed(
         console.log(`Filled col ${i} with achievement: ${achievement.label || achievement.id}`);
         availableAchievementIndex++;
       } else {
-        cols[i] = safeSeasonAchievement;
-        console.log(`Filled col ${i} with fallback achievement: ${safeSeasonAchievement.label}`);
+        // Find a fallback achievement that hasn't been used yet
+        const fallbackAchievement = findUnusedFallbackAchievement(usedAchievementIds);
+        cols[i] = fallbackAchievement;
+        usedAchievementIds.add(fallbackAchievement.achievementId!);
+        console.log(`Filled col ${i} with fallback achievement: ${fallbackAchievement.label}`);
       }
     }
   }
