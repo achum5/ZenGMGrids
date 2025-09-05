@@ -149,23 +149,6 @@ function createSeasonAchievementTests(seasonIndex?: SeasonIndex): Achievement[] 
       // For traditional award-based achievements, check player awards
       return player.awards?.some(award => {
         const normalizedType = award.type.toLowerCase().trim();
-        // Enhanced All-League detection to catch all Basketball GM variations
-        const isAllLeague = seasonAch.id === 'AllLeagueAny' && (
-          normalizedType.includes('all-league') ||
-          normalizedType === 'first team all-league' ||
-          normalizedType === 'second team all-league' ||
-          normalizedType === 'third team all-league' ||
-          normalizedType === 'all-league team' ||
-          normalizedType === 'bbgm all-league team' ||
-          normalizedType === 'basketball all-league team' ||
-          normalizedType === 'bbgm first team all-league' ||
-          normalizedType === 'basketball first team all-league' ||
-          normalizedType === 'bbgm second team all-league' ||
-          normalizedType === 'basketball second team all-league' ||
-          normalizedType === 'bbgm third team all-league' ||
-          normalizedType === 'basketball third team all-league'
-        );
-        
         return seasonAch.id === 'AllStar' && normalizedType.includes('all-star') ||
                seasonAch.id === 'MVP' && normalizedType.includes('most valuable player') ||
                seasonAch.id === 'DPOY' && normalizedType.includes('defensive player') ||
@@ -173,7 +156,7 @@ function createSeasonAchievementTests(seasonIndex?: SeasonIndex): Achievement[] 
                seasonAch.id === 'SMOY' && normalizedType.includes('sixth man') ||
                seasonAch.id === 'MIP' && normalizedType.includes('most improved') ||
                seasonAch.id === 'FinalsMVP' && normalizedType.includes('finals mvp') ||
-               isAllLeague ||
+               seasonAch.id === 'AllLeagueAny' && normalizedType.includes('all-league') ||
                seasonAch.id === 'AllDefAny' && normalizedType.includes('all-defensive') ||
                seasonAch.id === 'AllRookieAny' && normalizedType.includes('all-rookie');
       }) || false;
