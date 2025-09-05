@@ -7,6 +7,7 @@ export interface Team {
   jersey?: string;   // Jersey style (e.g., "modern", "classic", "sleeved")
   imgURL?: string | null; // Team logo URL
   imgURLSmall?: string | null; // Small team logo URL for Career Summary
+  disabled?: boolean; // Whether team is currently inactive/disabled
   seasons?: Array<{
     season: number;
     tid: number;

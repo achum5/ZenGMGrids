@@ -126,8 +126,8 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
   });
   console.log('==========================');
   
-  // Create constraint pool (teams + achievements)
-  const teamConstraints: CatTeam[] = teams.map(team => ({
+  // Create constraint pool (only active teams + achievements)
+  const teamConstraints: CatTeam[] = teams.filter(team => !team.disabled).map(team => ({
     key: `team-${team.tid}`,
     label: `${team.region || team.abbrev} ${team.name}`,
     tid: team.tid,
@@ -627,7 +627,7 @@ function generateGridSeeded(leagueData: LeagueData): {
   const eligibleTeams = getTeamsForAchievement(seasonIndex, seedAchievement.id);
   const eligibleTeamsList = Array.from(eligibleTeams)
     .map(tid => teams.find(t => t.tid === tid))
-    .filter(t => t) as Team[];
+    .filter(t => t && !t.disabled) as Team[];
   
   // Shuffle teams for randomness
   for (let i = eligibleTeamsList.length - 1; i > 0; i--) {
@@ -1167,7 +1167,7 @@ function buildOppositeAxisForSeed(
     if (selectedTeamIds.has(tid)) continue; // Skip duplicates
     
     const team = teams.find(t => t.tid === tid);
-    if (!team) continue;
+    if (!team || team.disabled) continue;
     
     selectedTeamIds.add(tid);
     selectedTeams.push({

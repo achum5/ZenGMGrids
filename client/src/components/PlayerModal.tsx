@@ -27,15 +27,20 @@ type Props = {
 // Helper function to get team name at a specific season
 function teamNameAtSeason(teamsByTid: Map<number, Team>, tid: number, season: number): string {
   const team = teamsByTid.get(tid);
-  if (!team) return `Team ${tid}`;
+  if (!team) {
+    // Better fallback for missing teams - try to be more descriptive
+    return `Historical Team (ID: ${tid})`;
+  }
   
   const seasonInfo = team.seasons?.find(s => s.season === season);
   if (seasonInfo && seasonInfo.region && seasonInfo.name) {
     return `${seasonInfo.region} ${seasonInfo.name}`;
   }
   
-  // fallback to current name
-  return `${team.region} ${team.name}`;
+  // fallback to current name, handle missing region gracefully
+  const region = team.region || team.abbrev || '';
+  const name = team.name || 'Unknown Team';
+  return region ? `${region} ${name}` : name;
 }
 
 export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers = [], puzzleSeed = "", rows = [], cols = [], currentCellKey = "", sport }: Props) {

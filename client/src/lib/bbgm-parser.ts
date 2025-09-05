@@ -278,8 +278,8 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
   
   console.log(`Current season: ${currentSeason}, Active teams: ${raw.teams?.filter((t: any) => !t.disabled).length || 0}`);
   
-  // Extract only active teams (not disabled)
-  const teams: Team[] = raw.teams?.filter((team: any) => !team.disabled).map((team: any) => {
+  // Extract ALL teams (active and inactive) - we need historical data for player lookups
+  const teams: Team[] = raw.teams?.map((team: any) => {
     // Log the first team's structure to debug
     if (team.tid === 0 && team.seasons) {
       console.log('Sample team with seasons:', team.tid, team.seasons?.slice(0, 3));
@@ -297,6 +297,7 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
       imgURL: team.imgURL || null, // Team logo URL
       imgURLSmall: team.imgURLSmall || team.smallImgURL || null, // Small team logo URL
       seasons: team.seasons || [], // Include historical seasons data
+      disabled: team.disabled || false, // Track if team is currently active
     };
   }) || [];
 
