@@ -117,7 +117,6 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
       // Generate feedback for wrong guesses
       const feedbackMessage = generateFeedbackMessage(
         player,
-        Array.isArray(teams) ? teams : [],
         {
           type: rowConstraint.type,
           tid: rowConstraint.tid,
@@ -129,7 +128,8 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
           tid: colConstraint.tid,
           achievementId: colConstraint.achievementId,
           label: colConstraint.label
-        }
+        },
+        Array.isArray(teams) ? teams : []
       );
 
       return {
