@@ -560,7 +560,7 @@ function generateGridSeeded(leagueData: LeagueData): {
     
     // Find viable season achievements that have >= 3 eligible teams
     const viableSeasonAchievements = SEASON_ACHIEVEMENTS.filter(sa => {
-      const eligibleTeams = getTeamsForAchievement(seasonIndex, sa.id);
+      const eligibleTeams = getTeamsForAchievement(seasonIndex, sa.id, teams);
       return eligibleTeams.size >= 3;
     });
     
@@ -587,7 +587,7 @@ function generateGridSeeded(leagueData: LeagueData): {
     seedSlot = achievementSlots[slotIndex];
     
     // Check if this achievement has ≥3 eligible teams
-    const eligibleTeams = getTeamsForAchievement(seasonIndex, seedAchievement.id);
+    const eligibleTeams = getTeamsForAchievement(seasonIndex, seedAchievement.id, teams);
     if (eligibleTeams.size >= 3) break;
     
     retryCount++;
@@ -624,7 +624,7 @@ function generateGridSeeded(leagueData: LeagueData): {
   
   console.log(`✅ Step 3: Filling opposite ${oppositeAxis} with layout [${oppositeLayout.join(', ')}]`);
   
-  const eligibleTeams = getTeamsForAchievement(seasonIndex, seedAchievement.id);
+  const eligibleTeams = getTeamsForAchievement(seasonIndex, seedAchievement.id, teams);
   const eligibleTeamsList = Array.from(eligibleTeams)
     .map(tid => teams.find(t => t.tid === tid))
     .filter(t => t && !t.disabled) as Team[];
@@ -690,7 +690,7 @@ function generateGridSeeded(leagueData: LeagueData): {
             const teamData = seasonData[parseInt(teamId)];
             const achPlayers = teamData[seedAchievement.id] || new Set();
             for (const pid of Array.from(achPlayers)) {
-              seedPlayerIds.add(pid);
+              seedPlayerIds.add(pid as number);
             }
           }
         }
@@ -974,14 +974,17 @@ function simpleHash(str: string): number {
   return Math.abs(hash);
 }
 
-// Get teams that have players for a specific achievement (missing function)
-function getTeamsForAchievement(seasonIndex: SeasonIndex, achievementId: SeasonAchievementId): Set<number> {
+// Get teams that have players for a specific achievement (only active teams)
+function getTeamsForAchievement(seasonIndex: SeasonIndex, achievementId: SeasonAchievementId, allTeams: Team[]): Set<number> {
   const teams = new Set<number>();
+  const activeTeamIds = new Set(allTeams.filter(t => !t.disabled).map(t => t.tid));
   
   for (const season of Object.values(seasonIndex)) {
     for (const [teamId, teamData] of Object.entries(season)) {
-      if (teamData[achievementId] && teamData[achievementId].size > 0) {
-        teams.add(parseInt(teamId));
+      const tid = parseInt(teamId);
+      // Only include if team is currently active and has players for this achievement
+      if (activeTeamIds.has(tid) && teamData[achievementId] && teamData[achievementId].size > 0) {
+        teams.add(tid);
       }
     }
   }
