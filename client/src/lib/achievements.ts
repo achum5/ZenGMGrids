@@ -991,6 +991,10 @@ export function getViableAchievements(
     
     if (hasEnough) {
       console.log(`✓ ${achievement.id}: ${qualifyingPlayers.length} players`);
+      // Extra debug for statistical leaders
+      if (['BlocksLeader', 'ReboundsLeader'].includes(achievement.id)) {
+        console.log(`🏀 ${achievement.id} qualifying players:`, qualifyingPlayers.slice(0, 5).map(p => p.name));
+      }
     } else {
       console.log(`✗ ${achievement.id}: only ${qualifyingPlayers.length} players (need ${Math.max(minCount, achievement.minPlayers)})`);
     }

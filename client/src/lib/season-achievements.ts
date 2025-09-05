@@ -346,6 +346,11 @@ function calculateBBGMSeasonLeaders(
   if (validPlayers.length === 0) return leaders;
 
   try {
+    // Debug: Check if we have valid players with blocks and rebounds data
+    const playersWithBlocks = validPlayers.filter(p => p.blk > 0).length;
+    const playersWithRebounds = validPlayers.filter(p => p.trb > 0).length;
+    console.log(`🏀 Season ${season}: ${validPlayers.length} valid players, ${playersWithBlocks} with blocks, ${playersWithRebounds} with rebounds`);
+    
     // Points Leader: PPG = pts / gp, pick max
     const ppgValues = validPlayers.map(p => p.pts / p.gp).filter(val => isFinite(val));
     if (ppgValues.length > 0) {
@@ -600,6 +605,21 @@ export function buildSeasonIndex(players: Player[], sport?: string): SeasonIndex
     }
     
     console.log(`🏀 Basketball GM leaders added: ${leaderEntriesAdded} entries`);
+    
+    // Debug: Check if BlocksLeader and ReboundsLeader are being calculated
+    let blocksCount = 0, reboundsCount = 0;
+    for (const seasonStr of Object.keys(seasonIndex)) {
+      const seasonData = seasonIndex[parseInt(seasonStr)];
+      for (const teamData of Object.values(seasonData)) {
+        if (teamData.BlocksLeader?.size > 0) {
+          blocksCount += teamData.BlocksLeader.size;
+        }
+        if (teamData.ReboundsLeader?.size > 0) {
+          reboundsCount += teamData.ReboundsLeader.size;
+        }
+      }
+    }
+    console.log(`🏀 Debug: ${blocksCount} BlocksLeader entries, ${reboundsCount} ReboundsLeader entries in season index`);
   }
   
   // Log statistics
