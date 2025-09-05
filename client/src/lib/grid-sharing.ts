@@ -17,6 +17,10 @@ export function exportGrid(
   cols: CatTeam[], 
   sport: 'basketball' | 'football' | 'hockey' | 'baseball'
 ): SharedGrid {
+  console.log('Exporting grid with sport:', sport);
+  console.log('Rows:', rows.map(r => ({ key: r.key, type: r.type, tid: r.tid, achievementId: r.achievementId })));
+  console.log('Cols:', cols.map(c => ({ key: c.key, type: c.type, tid: c.tid, achievementId: c.achievementId })));
+  
   const exportedRows = rows.map(row => {
     if (row.type === 'team' && row.tid !== undefined) {
       return row.tid;
@@ -35,13 +39,16 @@ export function exportGrid(
     throw new Error(`Invalid col constraint: ${col.key}`);
   });
 
-  return {
+  const result = {
     rows: exportedRows,
     cols: exportedCols,
     sport,
     version: 1,
     createdAt: new Date().toISOString()
   };
+  
+  console.log('Exported grid:', result);
+  return result;
 }
 
 /**
@@ -52,6 +59,9 @@ export function importGrid(
   leagueData: LeagueData
 ): { rows: CatTeam[]; cols: CatTeam[] } | null {
   try {
+    console.log('Importing grid:', sharedGrid);
+    console.log('Current league sport:', leagueData.sport);
+    
     if (sharedGrid.version !== 1) {
       throw new Error(`Unsupported grid version: ${sharedGrid.version}`);
     }
@@ -62,6 +72,7 @@ export function importGrid(
 
     // Get available achievements for this sport
     const achievements = getAchievements(sharedGrid.sport);
+    console.log('Available achievements for', sharedGrid.sport, ':', achievements.map(a => a.id));
     const achievementMap = new Map(achievements.map(a => [a.id, a]));
 
     // Reconstruct rows
@@ -169,19 +180,13 @@ export function parseGridCode(code: string): SharedGrid | null {
  * Get sport from league data for grid sharing
  */
 export function detectSport(leagueData: LeagueData): 'basketball' | 'football' | 'hockey' | 'baseball' {
-  // Simple heuristic based on league metadata or team names
-  const leagueInfo = leagueData.meta?.lid || '';
-  const leagueName = leagueData.meta?.name || '';
+  // Use the sport property if available, otherwise detect from filename/structure
+  if (leagueData.sport) {
+    return leagueData.sport as 'basketball' | 'football' | 'hockey' | 'baseball';
+  }
   
-  if (leagueInfo.toLowerCase().includes('football') || leagueName.toLowerCase().includes('football')) {
-    return 'football';
-  }
-  if (leagueInfo.toLowerCase().includes('hockey') || leagueName.toLowerCase().includes('hockey')) {
-    return 'hockey';
-  }
-  if (leagueInfo.toLowerCase().includes('baseball') || leagueName.toLowerCase().includes('baseball')) {
-    return 'baseball';
-  }
+  // Fallback detection - since LeagueData may not have filename property
+  // Most leagues should have the sport property set during parsing
   
   // Default to basketball
   return 'basketball';
