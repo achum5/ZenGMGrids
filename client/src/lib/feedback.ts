@@ -32,7 +32,7 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     label: 'Rookie of the Year',
     short: 'ROY',
     verbTeam: 'won Rookie of the Year',
-    verbGeneric: 'won Rookie of the Year his rookie year'
+    verbGeneric: 'won Rookie of the Year his rookie season'
   },
   SMOY: {
     label: 'Sixth Man of the Year',
@@ -74,7 +74,7 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     label: 'All-Rookie Team',
     short: 'All-Rookie',
     verbTeam: 'made an All-Rookie Team',
-    verbGeneric: 'made the All-Rookie team his rookie year'
+    verbGeneric: 'made the All-Rookie team his rookie season'
   },
   PointsLeader: {
     label: 'League Points Leader',
@@ -130,19 +130,19 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     label: 'Offensive Rookie of the Year',
     short: 'Offensive ROY',
     verbTeam: 'won Offensive Rookie of the Year',
-    verbGeneric: 'won Offensive Rookie of the Year his rookie year'
+    verbGeneric: 'won Offensive Rookie of the Year his rookie season'
   },
   FBDefROY: {
     label: 'Defensive Rookie of the Year',
     short: 'Defensive ROY',
     verbTeam: 'won Defensive Rookie of the Year',
-    verbGeneric: 'won Defensive Rookie of the Year his rookie year'
+    verbGeneric: 'won Defensive Rookie of the Year his rookie season'
   },
   FBAllRookie: {
     label: 'All-Rookie Team',
     short: 'All-Rookie',
     verbTeam: 'made an All-Rookie Team',
-    verbGeneric: 'made the All-Rookie team his rookie year'
+    verbGeneric: 'made the All-Rookie team his rookie season'
   },
   FBAllLeague1st: {
     label: 'First Team All-League',
@@ -234,13 +234,13 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     label: 'Rookie of the Year',
     short: 'ROY',
     verbTeam: 'won Rookie of the Year',
-    verbGeneric: 'won Rookie of the Year his rookie year'
+    verbGeneric: 'won Rookie of the Year his rookie season'
   },
   HKAllRookie: {
     label: 'All-Rookie Team',
     short: 'All-Rookie',
     verbTeam: 'made an All-Rookie Team',
-    verbGeneric: 'made the All-Rookie team his rookie year'
+    verbGeneric: 'made the All-Rookie team his rookie season'
   },
   HKAllLeague: {
     label: 'All-League Team',
@@ -308,13 +308,13 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     label: 'Rookie of the Year',
     short: 'ROY',
     verbTeam: 'won Rookie of the Year',
-    verbGeneric: 'won Rookie of the Year his rookie year'
+    verbGeneric: 'won Rookie of the Year his rookie season'
   },
   BBAllRookie: {
     label: 'All-Rookie Team',
     short: 'All-Rookie',
     verbTeam: 'made an All-Rookie Team',
-    verbGeneric: 'made the All-Rookie team his rookie year'
+    verbGeneric: 'made the All-Rookie team his rookie season'
   },
   BBAllLeague: {
     label: 'All-League Team',
@@ -2308,7 +2308,7 @@ function generateTeamSeasonAchievementMessage(
   if (!playedForTeam) {
     // Player never played for the team at all
     if (isRookieAchievement(achievementId)) {
-      const negativeVerb = achData.verbGeneric.replace('made the', 'he did not make the').replace('won', 'he did not win');
+      const negativeVerb = achData.verbGeneric.replace('made the', 'didn\'t make the').replace('won', 'didn\'t win');
       return `${player.name} never played for the ${teamStr} and ${negativeVerb}.`;
     }
     return `${player.name} never played for the ${teamStr}. (${achData.short}: ${countStr})`;
@@ -2316,7 +2316,7 @@ function generateTeamSeasonAchievementMessage(
   
   // Player did play for team but didn't achieve the award with them
   if (isRookieAchievement(achievementId)) {
-    return `${player.name} did play for the ${teamStr}, but ${achData.verbGeneric.replace('made', 'did not make').replace('won', 'did not win')}.`;
+    return `${player.name} did play for the ${teamStr}, but ${achData.verbGeneric.replace('made', 'didn\'t make').replace('won', 'didn\'t win')}.`;
   }
   return `${player.name} did play for the ${teamStr}, but never ${achData.verbTeam} with the ${teamStr}. (${achData.short}: ${countStr})`;
 }
@@ -2346,7 +2346,7 @@ function generateSeasonSeasonAchievementMessage(
   if (playerDataA.count > 0 && playerDataB.count === 0) {
     const seasonsA = formatSeasonList(playerDataA.seasonsWithTeam, achievementA === 'FinalsMVP' || achievementA === 'SFMVP');
     const verbB = isRookieAchievement(achievementB) 
-      ? achDataB.verbGeneric.replace('made the', 'he did not make the').replace('won', 'he did not win')
+      ? achDataB.verbGeneric.replace('made the', 'didn\'t make the').replace('won', 'didn\'t win')
       : achDataB.verbGeneric.replace('made', 'did not make').replace('won', 'did not win');
     
     if (isRookieAchievement(achievementA) && isRookieAchievement(achievementB)) {
@@ -2362,7 +2362,7 @@ function generateSeasonSeasonAchievementMessage(
   if (playerDataB.count > 0 && playerDataA.count === 0) {
     const seasonsB = formatSeasonList(playerDataB.seasonsWithTeam, achievementB === 'FinalsMVP' || achievementB === 'SFMVP');
     const verbA = isRookieAchievement(achievementA) 
-      ? achDataA.verbGeneric.replace('made the', 'he did not make the').replace('won', 'he did not win')
+      ? achDataA.verbGeneric.replace('made the', 'didn\'t make the').replace('won', 'didn\'t win')
       : achDataA.verbGeneric.replace('made', 'did not make').replace('won', 'did not win');
     
     if (isRookieAchievement(achievementA) && isRookieAchievement(achievementB)) {
@@ -2379,13 +2379,13 @@ function generateSeasonSeasonAchievementMessage(
   // For rookie achievements, we need proper grammar with "he"
   let verbA, verbB;
   if (isRookieAchievement(achievementA)) {
-    verbA = achDataA.verbGeneric.replace('made the', 'he did not make the').replace('won', 'he did not win');
+    verbA = achDataA.verbGeneric.replace('made the', 'didn\'t make the').replace('won', 'didn\'t win');
   } else {
     verbA = `never ${achDataA.verbGeneric}`;
   }
   
   if (isRookieAchievement(achievementB)) {
-    verbB = achDataB.verbGeneric.replace('made the', 'he did not make the').replace('won', 'he did not win');
+    verbB = achDataB.verbGeneric.replace('made the', 'didn\'t make the').replace('won', 'didn\'t win');
   } else {
     verbB = `never ${achDataB.verbGeneric}`;
   }
