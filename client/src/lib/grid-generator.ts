@@ -135,13 +135,15 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
     test: (p: Player) => p.teamsPlayed.has(team.tid),
   }));
 
-  const achievementConstraints: CatTeam[] = viableAchievements.map(achievement => ({
-    key: `achievement-${achievement.id}`,
-    label: achievement.label,
-    achievementId: achievement.id,
-    type: 'achievement',
-    test: (p: Player) => playerMeetsAchievement(p, achievement.id),
-  }));
+  const achievementConstraints: CatTeam[] = viableAchievements
+    .filter(achievement => achievement.id !== 'bornOutsideUS50DC') // Temporarily remove born outside US achievement
+    .map(achievement => ({
+      key: `achievement-${achievement.id}`,
+      label: achievement.label,
+      achievementId: achievement.id,
+      type: 'achievement',
+      test: (p: Player) => playerMeetsAchievement(p, achievement.id),
+    }));
 
   if (teamConstraints.length < 3) {
     throw new Error(`Need at least 3 teams to generate grid (found ${teamConstraints.length})`);
@@ -678,6 +680,7 @@ function generateGridSeeded(leagueData: LeagueData): {
       const achievements = getAchievements('basketball');
       for (const ach of achievements) {
         if (ach.isSeasonSpecific) continue;
+        if (ach.id === 'bornOutsideUS50DC') continue; // Temporarily remove born outside US achievement
         
         // Check if any player has both seed achievement (any season) and this career achievement
         const seedPlayerIds = new Set<number>();
@@ -726,7 +729,9 @@ function generateGridSeeded(leagueData: LeagueData): {
   console.log(`✅ Step 4: Filling remaining slots old-style`);
   
   // Only use career achievements for old-style fill to avoid season harmonization conflicts
-  const allAchievements = getAchievements('basketball').filter(ach => !ach.isSeasonSpecific);
+  const allAchievements = getAchievements('basketball')
+    .filter(ach => !ach.isSeasonSpecific)
+    .filter(ach => ach.id !== 'bornOutsideUS50DC'); // Temporarily remove born outside US achievement
   
   // Find remaining empty slots
   for (let i = 0; i < 3; i++) {
