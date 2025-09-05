@@ -795,7 +795,12 @@ function generateGridSeeded(leagueData: LeagueData): {
           const achIndex = simpleHash(gridId + '_rowach' + i + '_' + attempt) % allAchievements.length;
           const ach = allAchievements[achIndex];
           
-          // Career achievements only - no season checks needed
+          // Check if this achievement is already used in the grid
+          const achAlreadyUsed = 
+            rows.some(r => r && r.type === 'achievement' && r.achievementId === ach.id) ||
+            cols.some(c => c && c.type === 'achievement' && c.achievementId === ach.id);
+          
+          if (achAlreadyUsed) continue;
           
           // Check if this achievement creates valid intersections with all columns
           let validForAllCols = true;
@@ -898,7 +903,12 @@ function generateGridSeeded(leagueData: LeagueData): {
           const achIndex = simpleHash(gridId + '_colach' + i + '_' + attempt) % allAchievements.length;
           const ach = allAchievements[achIndex];
           
-          // Career achievements only - no season checks needed
+          // Check if this achievement is already used in the grid
+          const achAlreadyUsed = 
+            rows.some(r => r && r.type === 'achievement' && r.achievementId === ach.id) ||
+            cols.some(c => c && c.type === 'achievement' && c.achievementId === ach.id);
+          
+          if (achAlreadyUsed) continue;
           
           // Check if this achievement creates valid intersections with all rows
           let validForAllRows = true;
