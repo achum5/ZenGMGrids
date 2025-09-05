@@ -166,19 +166,6 @@ export function GridSection({
           </AlertDialog>
         )}
 
-        {/* Share Grid button in the middle */}
-        {onShareGrid && rows.length > 0 && cols.length > 0 && (
-          <Button
-            onClick={onShareGrid}
-            variant="outline"
-            className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg"
-            data-testid="button-share-grid"
-          >
-            <Share2 className="mr-2 h-4 w-4" />
-            Share Grid
-          </Button>
-        )}
-
         {/* Generate New Grid button on the right */}
         <Button
           onClick={onGenerateNewGrid}
@@ -377,9 +364,20 @@ export function GridSection({
         </CardContent>
       </Card>
 
-      
-
-      
+      {/* Share/Import Grid button below the grid */}
+      {onShareGrid && rows.length > 0 && cols.length > 0 && (
+        <div className="flex justify-start mt-4">
+          <Button
+            onClick={onShareGrid}
+            variant="outline"
+            className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg"
+            data-testid="button-share-import-grid"
+          >
+            <Share2 className="mr-2 h-4 w-4" />
+            Share/Import Grid
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
