@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Copy, Download, Upload, Check } from 'lucide-react';
+import { Copy, Download, Upload, Check, Clipboard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { CatTeam, LeagueData } from '@/types/bbgm';
 import { exportGrid, importGrid, generateGridCode, parseGridCode, detectSport, type SharedGrid } from '@/lib/grid-sharing';
@@ -47,6 +47,19 @@ export function GridSharingModal({
       toast({
         title: "Copy failed",
         description: "Please manually copy the code below.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePasteCode = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      setImportCode(text);
+    } catch (error) {
+      toast({
+        title: "Paste failed",
+        description: "Unable to read from clipboard.",
         variant: "destructive",
       });
     }
@@ -153,13 +166,23 @@ export function GridSharingModal({
               <div className="space-y-3">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Paste Grid Code:</label>
-                  <Textarea
-                    value={importCode}
-                    onChange={(e) => setImportCode(e.target.value)}
-                    placeholder="Paste the grid code here..."
-                    rows={3}
-                    className="font-mono text-xs"
-                  />
+                  <div className="flex gap-2">
+                    <Textarea
+                      value={importCode}
+                      onChange={(e) => setImportCode(e.target.value)}
+                      placeholder="Paste the grid code here..."
+                      rows={3}
+                      className="font-mono text-xs"
+                    />
+                    <Button
+                      onClick={handlePasteCode}
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0"
+                    >
+                      <Clipboard className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
                 <Button 
                   onClick={handleImportCode}
