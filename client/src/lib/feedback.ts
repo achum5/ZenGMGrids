@@ -2308,7 +2308,8 @@ function generateTeamSeasonAchievementMessage(
   if (!playedForTeam) {
     // Player never played for the team at all
     if (isRookieAchievement(achievementId)) {
-      return `${player.name} never played for the ${teamStr}.`;
+      const negativeVerb = achData.verbGeneric.replace('made the', 'he did not make the').replace('won', 'he did not win');
+      return `${player.name} never played for the ${teamStr} and ${negativeVerb}.`;
     }
     return `${player.name} never played for the ${teamStr}. (${achData.short}: ${countStr})`;
   }
