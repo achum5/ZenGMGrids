@@ -21,7 +21,7 @@ const generalRules = {
     "2. Category fit: How strongly the player matches the stat/award—e.g., cleared the threshold (20k points) or actually won MVP that year.",
     "3. Fame: How well-known the player is overall—Hall of Fame status, MVPs, All-Star selections, and big career volume.",
     "Common picks → lower score.",
-    "Rare, on-brand picks → higher score.",
+    "Rare picks → higher score.",
     "Very small answer pools can add a small bonus—but only if your pick wasn't the obvious one."
   ],
   giveUp: "Fills every remaining cell with the most common valid answer for that cell, without duplicates. Those cells are marked in red."
@@ -63,7 +63,7 @@ const sportSpecificRules = {
       "2. Category fit: How strongly the player matches the stat/award—e.g., cleared the threshold (20k points) or actually won MVP that year.",
       "3. Fame: How well-known the player is overall—Hall of Fame status, MVPs, All-Star selections, and big career volume.",
       "Common picks → lower score.",
-      "Rare, on-brand picks → higher score.",
+      "Rare picks → higher score.",
       "Very small answer pools can add a small bonus—but only if your pick wasn't the obvious one."
     ],
     remember: "No duplicate players across the grid."
@@ -100,7 +100,7 @@ const sportSpecificRules = {
       "2. Category fit: How strongly the player matches the stat/award—e.g., cleared the threshold (20k points) or actually won MVP that year.",
       "3. Fame: How well-known the player is overall—Hall of Fame status, MVPs, All-Star selections, and big career volume.",
       "Common picks → lower score.",
-      "Rare, on-brand picks → higher score.",
+      "Rare picks → higher score.",
       "Very small answer pools can add a small bonus—but only if your pick wasn't the obvious one."
     ],
     remember: "No duplicate players across the grid."
@@ -137,7 +137,7 @@ const sportSpecificRules = {
       "2. Category fit: How strongly the player matches the stat/award—e.g., cleared the threshold (20k points) or actually won MVP that year.",
       "3. Fame: How well-known the player is overall—Hall of Fame status, MVPs, All-Star selections, and big career volume.",
       "Common picks → lower score.",
-      "Rare, on-brand picks → higher score.",
+      "Rare picks → higher score.",
       "Very small answer pools can add a small bonus—but only if your pick wasn't the obvious one."
     ],
     notes: [
@@ -178,7 +178,7 @@ const sportSpecificRules = {
       "2. Category fit: How strongly the player matches the stat/award—e.g., cleared the threshold (20k points) or actually won MVP that year.",
       "3. Fame: How well-known the player is overall—Hall of Fame status, MVPs, All-Star selections, and big career volume.",
       "Common picks → lower score.",
-      "Rare, on-brand picks → higher score.",
+      "Rare picks → higher score.",
       "Very small answer pools can add a small bonus—but only if your pick wasn't the obvious one."
     ],
     notes: [
