@@ -307,10 +307,11 @@ function calculateBBGMSeasonLeaders(
       }
     }
 
-    // Rebounds Leader
-    if (playerSeasonStats.length > 0) {
-      const maxRPG = Math.max(...playerSeasonStats.map(p => p.trb / p.gp));
-      const reboundsLeaderCandidates = playerSeasonStats.filter(p => 
+    // Rebounds Leader - exclude players with 0 total rebounds (early seasons didn't track rebounds)
+    const playersWithRebounds = playerSeasonStats.filter(p => p.trb > 0);
+    if (playersWithRebounds.length > 0) {
+      const maxRPG = Math.max(...playersWithRebounds.map(p => p.trb / p.gp));
+      const reboundsLeaderCandidates = playersWithRebounds.filter(p => 
         Math.abs((p.trb / p.gp) - maxRPG) < 1e-9
       );
       
@@ -361,10 +362,11 @@ function calculateBBGMSeasonLeaders(
       }
     }
 
-    // Blocks Leader
-    if (playerSeasonStats.length > 0) {
-      const maxBPG = Math.max(...playerSeasonStats.map(p => p.blk / p.gp));
-      const blocksLeaderCandidates = playerSeasonStats.filter(p => 
+    // Blocks Leader - exclude players with 0 total blocks (early seasons didn't track blocks)
+    const playersWithBlocks = playerSeasonStats.filter(p => p.blk > 0);
+    if (playersWithBlocks.length > 0) {
+      const maxBPG = Math.max(...playersWithBlocks.map(p => p.blk / p.gp));
+      const blocksLeaderCandidates = playersWithBlocks.filter(p => 
         Math.abs((p.blk / p.gp) - maxBPG) < 1e-9
       );
       
