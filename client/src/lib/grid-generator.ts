@@ -575,8 +575,14 @@ function generateGridSeeded(leagueData: LeagueData): {
       throw new Error('Could not find viable seed achievement after 10 tries');
     }
     
-    // Find viable season achievements that have >= 3 eligible teams
-    const viableSeasonAchievements = SEASON_ACHIEVEMENTS.filter(sa => {
+    // Find viable season achievements that have >= 3 eligible teams (sport-filtered)
+    const sportFilteredAchievements = getAchievements(sport, seasonIndex)
+      .filter(ach => ach.isSeasonSpecific);
+    
+    const viableSeasonAchievements = sportFilteredAchievements.map(ach => 
+      SEASON_ACHIEVEMENTS.find(sa => sa.id === ach.id)
+    ).filter(sa => {
+      if (!sa) return false;
       const eligibleTeams = getTeamsForAchievement(seasonIndex, sa.id, teams);
       return eligibleTeams.size >= 3;
     });
@@ -1279,8 +1285,13 @@ function buildOppositeAxisForSeed(
   
   // Fill remaining slots with safe achievements/teams
   // For layouts with season achievements, use other season achievements to avoid mixing career/season
-  // But don't reuse the seed achievement
-  const availableSeasonAchievements = SEASON_ACHIEVEMENTS.filter((sa: any) => sa.id !== seedAchievement.id);
+  // But don't reuse the seed achievement (and use sport-filtered achievements)
+  const sportFilteredAchievements = getAchievements(sport, seasonIndex)
+    .filter(ach => ach.isSeasonSpecific);
+  
+  const availableSeasonAchievements = sportFilteredAchievements.map(ach => 
+    SEASON_ACHIEVEMENTS.find(sa => sa.id === ach.id)
+  ).filter(sa => sa && sa.id !== seedAchievement.id);
   
   // Helper function to find an unused fallback achievement
   const findUnusedFallbackAchievement = (usedIds: Set<string>): CatTeam => {
