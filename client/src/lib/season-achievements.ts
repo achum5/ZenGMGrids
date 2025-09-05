@@ -364,12 +364,9 @@ function calculateBBGMSeasonLeaders(
     const rpgValues = validPlayers.map(p => p.trb / p.gp).filter(val => isFinite(val));
     if (rpgValues.length > 0) {
       const maxRPG = Math.max(...rpgValues);
-      const reboundsLeaders = validPlayers
+      leaders.ReboundsLeader = validPlayers
         .filter(p => isFinite(p.trb / p.gp) && Math.abs((p.trb / p.gp) - maxRPG) < 0.001)
         .map(p => p.pid);
-      
-      
-      leaders.ReboundsLeader = reboundsLeaders;
     }
 
     // Assists Leader: APG = ast / gp, pick max
@@ -400,12 +397,9 @@ function calculateBBGMSeasonLeaders(
     const bpgValues = validPlayers.map(p => p.blk / p.gp).filter(val => isFinite(val));
     if (bpgValues.length > 0) {
       const maxBPG = Math.max(...bpgValues);
-      const blocksLeaders = validPlayers
+      leaders.BlocksLeader = validPlayers
         .filter(p => isFinite(p.blk / p.gp) && Math.abs((p.blk / p.gp) - maxBPG) < 0.001)
         .map(p => p.pid);
-      
-      
-      leaders.BlocksLeader = blocksLeaders;
     }
   } catch (error) {
     console.warn('Error calculating season leaders:', error);
