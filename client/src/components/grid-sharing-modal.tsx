@@ -42,10 +42,6 @@ export function GridSharingModal({
     try {
       await navigator.clipboard.writeText(currentGridCode);
       setCopied(true);
-      toast({
-        title: "Grid code copied!",
-        description: "Share this code with friends to play the same grid.",
-      });
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       toast({
@@ -80,10 +76,6 @@ export function GridSharingModal({
     }
 
     onImportGrid(result.rows, result.cols);
-    toast({
-      title: "Grid imported!",
-      description: "The shared grid has been loaded successfully.",
-    });
     onClose();
     setImportCode('');
   };
