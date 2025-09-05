@@ -17,6 +17,9 @@ const generalRules = {
   ],
   oneUse: "A player can be used only once per grid (no duplicates across cells).",
   scoring: [
+    "1. Team fit: How much the player truly belongs to the team(s) in the square—played real minutes/games and had impact, not just a cameo.",
+    "2. Category fit: How strongly the player matches the stat/award—e.g., cleared the threshold (20k points) or actually won MVP that year.",
+    "3. Fame: How well-known the player is overall—Hall of Fame status, MVPs, All-Star selections, and big career volume.",
     "Common picks → lower score.",
     "Rare, on-brand picks → higher score.",
     "Very small answer pools can add a small bonus—but only if your pick wasn't the obvious one."
@@ -55,6 +58,14 @@ const sportSpecificRules = {
         "Drafted as Teenager (age ≤ 19 at draft)"
       ]
     },
+    scoring: [
+      "1. Team fit: How much the player truly belongs to the team(s) in the square—played real minutes/games and had impact, not just a cameo.",
+      "2. Category fit: How strongly the player matches the stat/award—e.g., cleared the threshold (20k points) or actually won MVP that year.",
+      "3. Fame: How well-known the player is overall—Hall of Fame status, MVPs, All-Star selections, and big career volume.",
+      "Common picks → lower score.",
+      "Rare, on-brand picks → higher score.",
+      "Very small answer pools can add a small bonus—but only if your pick wasn't the obvious one."
+    ],
     remember: "No duplicate players across the grid."
   },
   football: {
@@ -84,6 +95,14 @@ const sportSpecificRules = {
         "#1 Overall • First Round • Second Round • Undrafted"
       ]
     },
+    scoring: [
+      "1. Team fit: How much the player truly belongs to the team(s) in the square—played real minutes/games and had impact, not just a cameo.",
+      "2. Category fit: How strongly the player matches the stat/award—e.g., cleared the threshold (20k points) or actually won MVP that year.",
+      "3. Fame: How well-known the player is overall—Hall of Fame status, MVPs, All-Star selections, and big career volume.",
+      "Common picks → lower score.",
+      "Rare, on-brand picks → higher score.",
+      "Very small answer pools can add a small bonus—but only if your pick wasn't the obvious one."
+    ],
     remember: "No duplicate players across the grid."
   },
   baseball: {
@@ -113,6 +132,14 @@ const sportSpecificRules = {
         "#1 Overall • First Round • Went Undrafted • Drafted as Teenager (age ≤ 19 at draft)"
       ]
     },
+    scoring: [
+      "1. Team fit: How much the player truly belongs to the team(s) in the square—played real minutes/games and had impact, not just a cameo.",
+      "2. Category fit: How strongly the player matches the stat/award—e.g., cleared the threshold (20k points) or actually won MVP that year.",
+      "3. Fame: How well-known the player is overall—Hall of Fame status, MVPs, All-Star selections, and big career volume.",
+      "Common picks → lower score.",
+      "Rare, on-brand picks → higher score.",
+      "Very small answer pools can add a small bonus—but only if your pick wasn't the obvious one."
+    ],
     notes: [
       "\"(P)\" items apply to pitchers in that season.",
       "No duplicate players across the grid."
@@ -146,6 +173,14 @@ const sportSpecificRules = {
       ],
       draft: []
     },
+    scoring: [
+      "1. Team fit: How much the player truly belongs to the team(s) in the square—played real minutes/games and had impact, not just a cameo.",
+      "2. Category fit: How strongly the player matches the stat/award—e.g., cleared the threshold (20k points) or actually won MVP that year.",
+      "3. Fame: How well-known the player is overall—Hall of Fame status, MVPs, All-Star selections, and big career volume.",
+      "Common picks → lower score.",
+      "Rare, on-brand picks → higher score.",
+      "Very small answer pools can add a small bonus—but only if your pick wasn't the obvious one."
+    ],
     notes: [
       "\"(G)\" items apply to players who were goalies in that season.",
       "Save% uses the season value in the uploaded league.",
@@ -260,6 +295,21 @@ export function RulesModal({ sport }: RulesModalProps) {
                       <div className="text-center">
                         <span>{sportRules.achievements.draft[0]}</span>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Scoring */}
+                  {(sportRules as any).scoring && (
+                    <div>
+                      <h3 className="font-semibold mb-3 text-base">Scoring</h3>
+                      <ul className="space-y-2">
+                        {(sportRules as any).scoring.map((rule: string, index: number) => (
+                          <li key={index} className="flex items-start gap-2">
+                            <span className="text-primary">•</span>
+                            <span>{rule}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   )}
 
