@@ -156,7 +156,7 @@ function createSeasonAchievementTests(seasonIndex?: SeasonIndex): Achievement[] 
                seasonAch.id === 'SMOY' && normalizedType.includes('sixth man') ||
                seasonAch.id === 'MIP' && normalizedType.includes('most improved') ||
                seasonAch.id === 'FinalsMVP' && normalizedType.includes('finals mvp') ||
-               seasonAch.id === 'AllLeagueAny' && normalizedType.includes('all-league') ||
+               seasonAch.id === 'AllLeagueAny' && (normalizedType.includes('all-league') || normalizedType.includes('allleague')) ||
                seasonAch.id === 'AllDefAny' && normalizedType.includes('all-defensive') ||
                seasonAch.id === 'AllRookieAny' && normalizedType.includes('all-rookie');
       }) || false;
