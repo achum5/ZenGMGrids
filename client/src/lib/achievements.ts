@@ -1,5 +1,5 @@
 import type { Player } from "@/types/bbgm";
-import { SEASON_ACHIEVEMENTS, type SeasonAchievement, type SeasonIndex, getSeasonEligiblePlayers } from './season-achievements';
+import { SEASON_ACHIEVEMENTS, type SeasonAchievement, type SeasonIndex, type SeasonAchievementId, getSeasonEligiblePlayers } from './season-achievements';
 
 export interface Achievement {
   id: string;
@@ -129,8 +129,24 @@ function createSeasonAchievementTests(seasonIndex?: SeasonIndex): Achievement[] 
     isSeasonSpecific: true,
     minPlayers: seasonAch.minPlayers,
     test: (player: Player) => {
-      // For now, just check if player has any awards of this type
-      // The real validation happens during grid generation with season harmonization
+      // For statistical leader achievements (PointsLeader, BlocksLeader, etc.), check seasonIndex
+      const statisticalLeaders = ['PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader'];
+      if (statisticalLeaders.includes(seasonAch.id)) {
+        // For statistical leaders, check if player appears in any season/team for this achievement
+        if (!seasonIndex) return false;
+        
+        for (const seasonStr of Object.keys(seasonIndex)) {
+          const seasonData = seasonIndex[parseInt(seasonStr)];
+          for (const teamData of Object.values(seasonData)) {
+            if (teamData[seasonAch.id as keyof typeof teamData]?.has(player.pid)) {
+              return true;
+            }
+          }
+        }
+        return false;
+      }
+      
+      // For traditional award-based achievements, check player awards
       return player.awards?.some(award => {
         const normalizedType = award.type.toLowerCase().trim();
         return seasonAch.id === 'AllStar' && normalizedType.includes('all-star') ||

@@ -350,45 +350,60 @@ function calculateBBGMSeasonLeaders(
     const ppgValues = validPlayers.map(p => p.pts / p.gp).filter(val => isFinite(val));
     if (ppgValues.length > 0) {
       const maxPPG = Math.max(...ppgValues);
-      leaders.PointsLeader = validPlayers
+      const pointsLeaders = validPlayers
         .filter(p => isFinite(p.pts / p.gp) && Math.abs((p.pts / p.gp) - maxPPG) < 0.001)
         .map(p => p.pid);
+      
+      
+      leaders.PointsLeader = pointsLeaders;
     }
 
     // Rebounds Leader: RPG = trb / gp, pick max
     const rpgValues = validPlayers.map(p => p.trb / p.gp).filter(val => isFinite(val));
     if (rpgValues.length > 0) {
       const maxRPG = Math.max(...rpgValues);
-      leaders.ReboundsLeader = validPlayers
+      const reboundsLeaders = validPlayers
         .filter(p => isFinite(p.trb / p.gp) && Math.abs((p.trb / p.gp) - maxRPG) < 0.001)
         .map(p => p.pid);
+      
+      
+      leaders.ReboundsLeader = reboundsLeaders;
     }
 
     // Assists Leader: APG = ast / gp, pick max
     const apgValues = validPlayers.map(p => p.ast / p.gp).filter(val => isFinite(val));
     if (apgValues.length > 0) {
       const maxAPG = Math.max(...apgValues);
-      leaders.AssistsLeader = validPlayers
+      const assistsLeaders = validPlayers
         .filter(p => isFinite(p.ast / p.gp) && Math.abs((p.ast / p.gp) - maxAPG) < 0.001)
         .map(p => p.pid);
+      
+      
+      leaders.AssistsLeader = assistsLeaders;
     }
 
     // Steals Leader: SPG = stl / gp, pick max
     const spgValues = validPlayers.map(p => p.stl / p.gp).filter(val => isFinite(val));
     if (spgValues.length > 0) {
       const maxSPG = Math.max(...spgValues);
-      leaders.StealsLeader = validPlayers
+      const stealsLeaders = validPlayers
         .filter(p => isFinite(p.stl / p.gp) && Math.abs((p.stl / p.gp) - maxSPG) < 0.001)
         .map(p => p.pid);
+      
+      
+      leaders.StealsLeader = stealsLeaders;
     }
 
     // Blocks Leader: BPG = blk / gp, pick max
     const bpgValues = validPlayers.map(p => p.blk / p.gp).filter(val => isFinite(val));
     if (bpgValues.length > 0) {
       const maxBPG = Math.max(...bpgValues);
-      leaders.BlocksLeader = validPlayers
+      const blocksLeaders = validPlayers
         .filter(p => isFinite(p.blk / p.gp) && Math.abs((p.blk / p.gp) - maxBPG) < 0.001)
         .map(p => p.pid);
+      
+      
+      leaders.BlocksLeader = blocksLeaders;
     }
   } catch (error) {
     console.warn('Error calculating season leaders:', error);
