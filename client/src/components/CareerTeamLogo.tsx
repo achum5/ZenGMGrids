@@ -24,16 +24,12 @@ function buildSmallLogoCandidates(team: Team): string[] {
     candidates.push(team.imgURL);
   }
   
-  // 3. Build BBGM default URLs if we have an abbreviation
-  if (team.abbrev) {
-    const abbrev = team.abbrev.toUpperCase();
-    candidates.push(
-      `${BBGM_ASSET_BASE}/img/logos-primary/${abbrev}.svg`,
-      `${BBGM_ASSET_BASE}/img/logos-secondary/${abbrev}.svg`
-    );
+  // If we have custom logos, don't add BBGM fallbacks to avoid showing wrong team logos
+  if (candidates.length > 0) {
+    return candidates;
   }
   
-  // 4. If explicit BBGM default paths are provided, try converting them to absolute
+  // 3. If explicit BBGM default paths are provided, try converting them to absolute
   if (team.imgURLSmall && isBBGMDefaultLogo(team.imgURLSmall)) {
     const cleanPath = team.imgURLSmall.startsWith('/') ? team.imgURLSmall.substring(1) : team.imgURLSmall;
     candidates.push(`${BBGM_ASSET_BASE}/${cleanPath}`);
@@ -42,6 +38,15 @@ function buildSmallLogoCandidates(team: Team): string[] {
   if (team.imgURL && isBBGMDefaultLogo(team.imgURL)) {
     const cleanPath = team.imgURL.startsWith('/') ? team.imgURL.substring(1) : team.imgURL;
     candidates.push(`${BBGM_ASSET_BASE}/${cleanPath}`);
+  }
+  
+  // 4. Only build BBGM default URLs if no custom logos are provided
+  if (candidates.length === 0 && team.abbrev) {
+    const abbrev = team.abbrev.toUpperCase();
+    candidates.push(
+      `${BBGM_ASSET_BASE}/img/logos-primary/${abbrev}.svg`,
+      `${BBGM_ASSET_BASE}/img/logos-secondary/${abbrev}.svg`
+    );
   }
   
   return candidates;
