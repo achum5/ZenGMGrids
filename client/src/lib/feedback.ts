@@ -32,7 +32,7 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     label: 'Rookie of the Year',
     short: 'ROY',
     verbTeam: 'won Rookie of the Year',
-    verbGeneric: 'won Rookie of the Year'
+    verbGeneric: 'won Rookie of the Year his rookie year'
   },
   SMOY: {
     label: 'Sixth Man of the Year',
@@ -74,7 +74,7 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     label: 'All-Rookie Team',
     short: 'All-Rookie',
     verbTeam: 'made an All-Rookie Team',
-    verbGeneric: 'made an All-Rookie Team'
+    verbGeneric: 'made the All-Rookie team his rookie year'
   },
   PointsLeader: {
     label: 'League Points Leader',
