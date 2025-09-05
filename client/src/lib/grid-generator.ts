@@ -733,6 +733,9 @@ function generateGridSeeded(leagueData: LeagueData): {
     .filter(ach => !ach.isSeasonSpecific)
     .filter(ach => ach.id !== 'bornOutsideUS50DC'); // Temporarily remove born outside US achievement
   
+  // Filter out disabled teams for old-style fill
+  const activeTeams = teams.filter(team => !team.disabled);
+  
   // Find remaining empty slots
   for (let i = 0; i < 3; i++) {
     if (!rows[i]) {
@@ -742,8 +745,8 @@ function generateGridSeeded(leagueData: LeagueData): {
         // Fill team slot - try up to 50 random teams
         let found = false;
         for (let attempt = 0; attempt < 50; attempt++) {
-          const teamIndex = simpleHash(gridId + '_rowteam' + i + '_' + attempt) % teams.length;
-          const team = teams[teamIndex];
+          const teamIndex = simpleHash(gridId + '_rowteam' + i + '_' + attempt) % activeTeams.length;
+          const team = activeTeams[teamIndex];
           
           // Check if this team is already used in this grid
           const teamAlreadyUsed = 
@@ -850,8 +853,8 @@ function generateGridSeeded(leagueData: LeagueData): {
         // Fill team slot - try up to 50 random teams
         let found = false;
         for (let attempt = 0; attempt < 50; attempt++) {
-          const teamIndex = simpleHash(gridId + '_colteam' + i + '_' + attempt) % teams.length;
-          const team = teams[teamIndex];
+          const teamIndex = simpleHash(gridId + '_colteam' + i + '_' + attempt) % activeTeams.length;
+          const team = activeTeams[teamIndex];
           
           // Check if this team is already used in this grid
           const teamAlreadyUsed = 
