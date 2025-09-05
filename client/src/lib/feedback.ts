@@ -1988,6 +1988,15 @@ function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, a
     return playerPlayedForTeam(player, teamTid) && playerMeetsAchievement(player, achievementId);
   }
 
+  // For new statistical leader achievements, we need to use the season index approach
+  // These achievements are not stored in player.achievementSeasons but in the global season index
+  const statisticalLeaders = ['PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader'];
+  if (statisticalLeaders.includes(achievementId)) {
+    // This will be handled by the grid generator's season index logic
+    // For now, return false here since the grid generator handles this case differently
+    return false;
+  }
+
   // Season-aligned achievements: need intersection of team seasons and achievement seasons
   if (!player.teamSeasonsPaired || !player.achievementSeasons) {
     return false;
