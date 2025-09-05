@@ -62,6 +62,9 @@ export function importGrid(
     // Get all available achievements to find proper labels
     const allAchievements = getAchievements(leagueData.sport, leagueData.seasonIndex);
     const achievementMap = new Map(allAchievements.map(a => [a.id, a.label]));
+    
+    console.log('Import: Available achievement IDs:', Array.from(achievementMap.keys()));
+    console.log('Import: Trying to import achievements:', [...sharedGrid.rows.filter(r => typeof r === 'string'), ...sharedGrid.cols.filter(c => typeof c === 'string')]);
 
     // Just reconstruct the grid with the team IDs and achievement IDs
     const reconstructedRows: CatTeam[] = sharedGrid.rows.map((item) => {
@@ -81,6 +84,7 @@ export function importGrid(
       } else {
         // It's an achievement ID - look up the proper label
         const achievementLabel = achievementMap.get(item) || item;
+        console.log(`Import achievement ${item} -> label: ${achievementLabel}`);
         return {
           key: `achievement-${item}`,
           label: achievementLabel,
@@ -108,6 +112,7 @@ export function importGrid(
       } else {
         // It's an achievement ID - look up the proper label
         const achievementLabel = achievementMap.get(item) || item;
+        console.log(`Import achievement ${item} -> label: ${achievementLabel}`);
         return {
           key: `achievement-${item}`,
           label: achievementLabel,
