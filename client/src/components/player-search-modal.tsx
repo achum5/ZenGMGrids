@@ -57,6 +57,9 @@ export function PlayerSearchModal({
 
     const queryFolded = fold(query);
     const queryWithHyphens = queryFolded.replace(/ /g, '-');
+    // Create variations to handle period matching: "cj" should match "c.j."
+    const queryWithPeriods = queryFolded.replace(/([a-z])([a-z])/g, '$1.$2.'); // "cj" -> "c.j."
+    const queryNoPeriods = queryFolded.replace(/\./g, ''); // Remove any periods from query
     
     const matches: SearchablePlayer[] = [];
     const maxResults = 100;
@@ -65,8 +68,8 @@ export function PlayerSearchModal({
     for (let i = 0; i < searchablePlayers.length && matches.length < maxResults; i++) {
       const sp = searchablePlayers[i];
       
-      // Quick check: if query is longer than the name, skip
-      if (queryFolded.length > sp.nameFolded.length) continue;
+      // Quick check: if query is longer than the name, skip (but be more lenient for period matching)
+      if (queryFolded.length > sp.nameFolded.length + 4) continue; // +4 to account for periods
       
       // Check for matches using includes (already optimized in string internals)
       if (sp.firstFolded.includes(queryFolded) || 
@@ -74,7 +77,14 @@ export function PlayerSearchModal({
           sp.nameFolded.includes(queryFolded) ||
           sp.firstFolded.includes(queryWithHyphens) || 
           sp.lastFolded.includes(queryWithHyphens) ||
-          sp.nameFolded.includes(queryWithHyphens)) {
+          sp.nameFolded.includes(queryWithHyphens) ||
+          // Handle period matching: "cj" matches "c.j." and vice versa
+          sp.firstFolded.includes(queryNoPeriods) || 
+          sp.lastFolded.includes(queryNoPeriods) ||
+          sp.nameFolded.includes(queryNoPeriods) ||
+          (queryWithPeriods.length > 2 && sp.firstFolded.includes(queryWithPeriods)) ||
+          (queryWithPeriods.length > 2 && sp.lastFolded.includes(queryWithPeriods)) ||
+          (queryWithPeriods.length > 2 && sp.nameFolded.includes(queryWithPeriods))) {
         matches.push(sp);
       }
     }
