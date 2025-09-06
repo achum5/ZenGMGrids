@@ -163,15 +163,7 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId | null> = {
 function mapAwardToAchievement(awardType: string, sport?: 'basketball' | 'football' | 'hockey' | 'baseball'): SeasonAchievementId | null {
   if (!awardType) return null;
   
-  // Direct exact match first (important for Football GM which is case-sensitive)
-  if (AWARD_TYPE_MAPPING[awardType]) {
-    return AWARD_TYPE_MAPPING[awardType];
-  }
-  
-  // Try normalized version for Basketball GM
-  const normalized = awardType.toLowerCase().trim();
-  
-  // Sport-specific handling
+  // Sport-specific handling FIRST (takes priority over global mapping)
   if (sport === 'football') {
     // Football GM specific mappings (case-sensitive exact matches from FBGM)
     if (awardType === 'All-Star') return 'FBAllStar';
@@ -195,9 +187,30 @@ function mapAwardToAchievement(awardType: string, sport?: 'basketball' | 'footba
     if (awardType === 'Second Team All-League') return 'BBAllLeague';
     if (awardType === 'Finals MVP') return 'BBPlayoffsMVP';
     if (awardType === 'Playoffs MVP') return 'BBPlayoffsMVP';
+  } else if (sport === 'hockey') {
+    // Hockey GM specific mappings  
+    if (awardType === 'All-Star Game') return 'HKAllStar';
+    if (awardType === 'MVP') return 'HKMVP';
+    if (awardType === 'Best Defenseman') return 'HKDefenseman';
+    if (awardType === 'Rookie of the Year') return 'HKROY';
+    if (awardType === 'Championship') return 'HKChampion';
+    if (awardType === 'Playoffs MVP') return 'HKPlayoffsMVP';
+    if (awardType === 'Finals MVP') return 'HKFinalsMVP';
+    if (awardType === 'All-Rookie Team') return 'HKAllRookie';
+    if (awardType === 'All-League Team') return 'HKAllLeague';
+    if (awardType === 'All-Star Game MVP') return 'HKAllStarMVP';
+    if (awardType === 'Assists Leader') return 'HKAssistsLeader';
   }
   
-  // Fall back to general mapping
+  // Try normalized version for Basketball GM
+  const normalized = awardType.toLowerCase().trim();
+  
+  // Direct exact match from global mapping (for Basketball and missed cases)
+  if (AWARD_TYPE_MAPPING[awardType]) {
+    return AWARD_TYPE_MAPPING[awardType];
+  }
+  
+  // Fall back to normalized mapping
   return AWARD_TYPE_MAPPING[normalized] || null;
 }
 
