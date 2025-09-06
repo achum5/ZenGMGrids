@@ -584,6 +584,12 @@ function generateGridSeeded(leagueData: LeagueData): {
     ).filter((sa): sa is NonNullable<typeof sa> => {
       if (!sa) return false;
       const eligibleTeams = getTeamsForAchievement(seasonIndex, sa.id, teams);
+      
+      // Debug baseball achievements specifically
+      if (sport === 'baseball') {
+        console.log(`🏀 Baseball achievement ${sa.id}: ${eligibleTeams.size} eligible teams`, Array.from(eligibleTeams));
+      }
+      
       return eligibleTeams.size >= 3;
     });
     
