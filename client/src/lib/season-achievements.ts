@@ -840,7 +840,7 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
   },
   {
     id: 'HKPlayoffsMVP',
-    label: 'Playoffs MVP',
+    label: 'Finals MVP',
     isSeasonSpecific: true,
     minPlayers: 3
   },
