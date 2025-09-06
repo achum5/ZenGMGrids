@@ -237,6 +237,7 @@ export async function parseLeagueUrl(url: string): Promise<LeagueData> {
         return normalizeLeague(rawData);
         
       } catch (error) {
+        console.warn(`Fetch strategy ${JSON.stringify(options)} failed:`, error);
         lastError = error as Error;
         continue; // Try next fetch strategy
       }
