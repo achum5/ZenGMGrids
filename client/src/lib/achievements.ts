@@ -392,7 +392,26 @@ export function playerMeetsAchievement(player: Player, achievementId: string, se
     return false;
   }
   
-  // For non-statistical achievements, use the regular approach
+  // Check if it's a season-specific achievement (like SMOY, MVP, etc.)
+  const seasonAchievement = SEASON_ACHIEVEMENTS.find(sa => sa.id === achievementId);
+  if (seasonAchievement) {
+    // For traditional award-based achievements, check player awards
+    return player.awards?.some(award => {
+      const normalizedType = award.type.toLowerCase().trim();
+      return achievementId === 'AllStar' && normalizedType.includes('all-star') ||
+             achievementId === 'MVP' && normalizedType.includes('most valuable player') ||
+             achievementId === 'DPOY' && normalizedType.includes('defensive player') ||
+             achievementId === 'ROY' && normalizedType.includes('rookie of the year') ||
+             achievementId === 'SMOY' && normalizedType.includes('sixth man') ||
+             achievementId === 'MIP' && normalizedType.includes('most improved') ||
+             achievementId === 'FinalsMVP' && normalizedType.includes('finals mvp') ||
+             achievementId === 'AllLeagueAny' && (normalizedType.includes('all-league') || normalizedType.includes('allleague')) ||
+             achievementId === 'AllDefAny' && normalizedType.includes('all-defensive') ||
+             achievementId === 'AllRookieAny' && normalizedType.includes('all-rookie');
+    }) || false;
+  }
+  
+  // For regular career achievements, use the static achievement arrays
   const allAchievements = [...COMMON_ACHIEVEMENTS, ...BASKETBALL_ACHIEVEMENTS, ...FOOTBALL_ACHIEVEMENTS, ...HOCKEY_ACHIEVEMENTS, ...BASEBALL_ACHIEVEMENTS];
   const achievement = allAchievements.find(a => a.id === achievementId);
   return achievement ? achievement.test(player) : false;
