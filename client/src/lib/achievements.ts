@@ -441,8 +441,8 @@ export function playerMeetsAchievement(player: Player, achievementId: string, se
       if (achievementId === 'BBROY' && award.type === 'Rookie of the Year') return true;
       if (achievementId === 'BBChampion' && award.type === 'Won Championship') return true;
       if (achievementId === 'BBAllRookie' && award.type === 'All-Rookie Team') return true;
-      if (achievementId === 'BBAllLeague' && (award.type === 'First Team All-League' || award.type === 'Second Team All-League')) return true;
-      if (achievementId === 'BBPlayoffsMVP' && award.type === 'Playoffs MVP') return true;
+      if (achievementId === 'BBAllLeague' && (award.type === 'First Team All-League' || award.type === 'Second Team All-League' || award.type === 'All-League Team')) return true;
+      if (achievementId === 'BBPlayoffsMVP' && (award.type === 'Playoffs MVP' || award.type === 'Finals MVP')) return true;
       
       return false;
     }) || false;
