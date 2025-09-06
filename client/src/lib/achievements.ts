@@ -374,7 +374,25 @@ export const SEASON_ALIGNED_ACHIEVEMENTS = new Set([
 ]);
 
 // Check if a player meets a specific achievement
-export function playerMeetsAchievement(player: Player, achievementId: string): boolean {
+export function playerMeetsAchievement(player: Player, achievementId: string, seasonIndex?: SeasonIndex): boolean {
+  // First, check if it's a statistical leader achievement that needs season index
+  const statisticalLeaders = ['PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader'];
+  if (statisticalLeaders.includes(achievementId)) {
+    // For statistical leaders, check if player appears in any season/team for this achievement
+    if (!seasonIndex) return false;
+    
+    for (const seasonStr of Object.keys(seasonIndex)) {
+      const seasonData = seasonIndex[parseInt(seasonStr)];
+      for (const teamData of Object.values(seasonData)) {
+        if (teamData[achievementId as keyof typeof teamData]?.has(player.pid)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+  
+  // For non-statistical achievements, use the regular approach
   const allAchievements = [...COMMON_ACHIEVEMENTS, ...BASKETBALL_ACHIEVEMENTS, ...FOOTBALL_ACHIEVEMENTS, ...HOCKEY_ACHIEVEMENTS, ...BASEBALL_ACHIEVEMENTS];
   const achievement = allAchievements.find(a => a.id === achievementId);
   return achievement ? achievement.test(player) : false;

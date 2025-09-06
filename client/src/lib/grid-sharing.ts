@@ -79,7 +79,7 @@ export function importGrid(
           label: achievementLabel,
           achievementId: item,
           type: 'achievement' as const,
-          test: (p) => playerMeetsAchievement(p, item),
+          test: (p) => playerMeetsAchievement(p, item, leagueData.seasonIndex),
         };
       }
     });
@@ -106,7 +106,7 @@ export function importGrid(
           label: achievementLabel,
           achievementId: item,
           type: 'achievement' as const,
-          test: (p) => playerMeetsAchievement(p, item),
+          test: (p) => playerMeetsAchievement(p, item, leagueData.seasonIndex),
         };
       }
     });

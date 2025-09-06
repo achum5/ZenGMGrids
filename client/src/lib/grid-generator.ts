@@ -146,7 +146,7 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
       label: achievement.label,
       achievementId: achievement.id,
       type: 'achievement',
-      test: (p: Player) => playerMeetsAchievement(p, achievement.id),
+      test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex),
     }));
 
   if (teamConstraints.length < 3) {
@@ -218,7 +218,7 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
     } else {
       // Use traditional validation for career achievements
       const eligiblePlayers = players.filter(p => 
-        playerMeetsAchievement(p, achievement.achievementId!) && 
+        playerMeetsAchievement(p, achievement.achievementId!, seasonIndex) && 
         p.teamsPlayed.has(team.tid!)
       );
       return eligiblePlayers.length > 0;
@@ -581,7 +581,7 @@ function generateGridSeeded(leagueData: LeagueData): {
     
     const viableSeasonAchievements = sportFilteredAchievements.map(ach => 
       SEASON_ACHIEVEMENTS.find(sa => sa.id === ach.id)
-    ).filter(sa => {
+    ).filter((sa): sa is NonNullable<typeof sa> => {
       if (!sa) return false;
       const eligibleTeams = getTeamsForAchievement(seasonIndex, sa.id, teams);
       return eligibleTeams.size >= 3;
@@ -631,7 +631,7 @@ function generateGridSeeded(leagueData: LeagueData): {
     achievementId: seedAchievement.id,
     label: seedAchievement.label,
     key: `achievement-${seedAchievement.id}`,
-    test: (p: Player) => playerMeetsAchievement(p, seedAchievement.id),
+    test: (p: Player) => playerMeetsAchievement(p, seedAchievement.id, seasonIndex),
   };
   
   if (seedSlot.axis === 'row') {
@@ -736,7 +736,7 @@ function generateGridSeeded(leagueData: LeagueData): {
         achievementId: selectedAch.id,
         label: selectedAch.label,
         key: `achievement-${selectedAch.id}`,
-        test: (p: Player) => playerMeetsAchievement(p, selectedAch.id),
+        test: (p: Player) => playerMeetsAchievement(p, selectedAch.id, seasonIndex),
       };
       
       // Mark season achievement as used
@@ -867,7 +867,7 @@ function generateGridSeeded(leagueData: LeagueData): {
               achievementId: ach.id,
               label: ach.label,
               key: `achievement-${ach.id}`,
-              test: (p: Player) => playerMeetsAchievement(p, ach.id),
+              test: (p: Player) => playerMeetsAchievement(p, ach.id, seasonIndex),
             };
             
             console.log(`     Selected achievement: ${ach.label} (attempt ${attempt + 1})`);
@@ -988,7 +988,7 @@ function generateGridSeeded(leagueData: LeagueData): {
               achievementId: ach.id,
               label: ach.label,
               key: `achievement-${ach.id}`,
-              test: (p: Player) => playerMeetsAchievement(p, ach.id),
+              test: (p: Player) => playerMeetsAchievement(p, ach.id, seasonIndex),
             };
             
             console.log(`     Selected achievement: ${ach.label} (attempt ${attempt + 1})`);
@@ -1126,17 +1126,17 @@ function calculateIntersectionSimple(
   } else if (rowConstraint.type === 'team' && colConstraint.type === 'achievement' && !colIsSeasonAchievement) {
     // Team × career achievement
     return players.filter(p => {
-      return p.teamsPlayed.has(rowConstraint.tid) && playerMeetsAchievement(p, colConstraint.achievementId);
+      return p.teamsPlayed.has(rowConstraint.tid) && playerMeetsAchievement(p, colConstraint.achievementId, seasonIndex);
     });
   } else if (rowConstraint.type === 'achievement' && !rowIsSeasonAchievement && colConstraint.type === 'team') {
     // Career achievement × team
     return players.filter(p => {
-      return playerMeetsAchievement(p, rowConstraint.achievementId) && p.teamsPlayed.has(colConstraint.tid);
+      return playerMeetsAchievement(p, rowConstraint.achievementId, seasonIndex) && p.teamsPlayed.has(colConstraint.tid);
     });
   } else if (rowConstraint.type === 'achievement' && !rowIsSeasonAchievement && colConstraint.type === 'achievement' && !colIsSeasonAchievement) {
     // Career achievement × career achievement
     return players.filter(p => {
-      return playerMeetsAchievement(p, rowConstraint.achievementId) && playerMeetsAchievement(p, colConstraint.achievementId);
+      return playerMeetsAchievement(p, rowConstraint.achievementId, seasonIndex) && playerMeetsAchievement(p, colConstraint.achievementId, seasonIndex);
     });
   } else if (rowConstraint.type === 'achievement' && !rowIsSeasonAchievement && colConstraint.type === 'achievement' && colIsSeasonAchievement) {
     // Career achievement × season achievement
@@ -1144,7 +1144,7 @@ function calculateIntersectionSimple(
     
     // Find players who meet the career achievement AND have the season achievement
     return players.filter(p => {
-      if (!playerMeetsAchievement(p, rowConstraint.achievementId)) return false;
+      if (!playerMeetsAchievement(p, rowConstraint.achievementId, seasonIndex)) return false;
       
       // Check if this player has the season achievement in any season/team
       for (const seasonStr of Object.keys(seasonIndex)) {
@@ -1167,7 +1167,7 @@ function calculateIntersectionSimple(
     
     // Find players who meet the career achievement AND have the season achievement
     return players.filter(p => {
-      if (!playerMeetsAchievement(p, colConstraint.achievementId)) return false;
+      if (!playerMeetsAchievement(p, colConstraint.achievementId, seasonIndex)) return false;
       
       // Check if this player has the season achievement in any season/team
       for (const seasonStr of Object.keys(seasonIndex)) {
@@ -1210,7 +1210,7 @@ function buildOppositeAxisForSeed(
     label: seedAchievement.name,
     achievementId: seedAchievement.id,
     type: 'achievement',
-    test: (p: Player) => playerMeetsAchievement(p, seedAchievement.id),
+    test: (p: Player) => playerMeetsAchievement(p, seedAchievement.id, seasonIndex),
   };
   
   if (seedSlot.axis === 'row') {
@@ -1291,7 +1291,7 @@ function buildOppositeAxisForSeed(
   
   const availableSeasonAchievements = sportFilteredAchievements.map(ach => 
     SEASON_ACHIEVEMENTS.find(sa => sa.id === ach.id)
-  ).filter(sa => sa && sa.id !== seedAchievement.id);
+  ).filter((sa): sa is NonNullable<typeof sa> => sa && sa.id !== seedAchievement.id);
   
   // Helper function to find an unused fallback achievement
   const findUnusedFallbackAchievement = (usedIds: Set<string>): CatTeam => {
@@ -1303,7 +1303,7 @@ function buildOppositeAxisForSeed(
           label: sa.label || sa.id,
           achievementId: sa.id,
           type: 'achievement',
-          test: (p: Player) => playerMeetsAchievement(p, sa.id),
+          test: (p: Player) => playerMeetsAchievement(p, sa.id, seasonIndex),
         };
       }
     }
@@ -1324,7 +1324,7 @@ function buildOppositeAxisForSeed(
           label: ca.label,
           achievementId: ca.id,
           type: 'achievement',
-          test: (p: Player) => playerMeetsAchievement(p, ca.id),
+          test: (p: Player) => playerMeetsAchievement(p, ca.id, seasonIndex),
         };
       }
     }
@@ -1338,7 +1338,7 @@ function buildOppositeAxisForSeed(
     label: 'Played 10+ Seasons',
     achievementId: 'played10PlusSeasons',
     type: 'achievement',
-    test: (p: Player) => playerMeetsAchievement(p, 'played10PlusSeasons'),
+    test: (p: Player) => playerMeetsAchievement(p, 'played10PlusSeasons', seasonIndex),
   };
   
   // Now fill all achievement slots
@@ -1354,17 +1354,17 @@ function buildOppositeAxisForSeed(
   for (let i = 0; i < 3; i++) {
     if (layout.rows[i] === 'A' && !rows[i]) {
       while (availableAchievementIndex < availableSeasonAchievements.length &&
-             usedAchievementIds.has(availableSeasonAchievements[availableAchievementIndex].id)) {
+             usedAchievementIds.has(availableSeasonAchievements[availableAchievementIndex]!.id)) {
         availableAchievementIndex++;
       }
       if (availableAchievementIndex < availableSeasonAchievements.length) {
-        const achievement = availableSeasonAchievements[availableAchievementIndex];
+        const achievement = availableSeasonAchievements[availableAchievementIndex]!;
         rows[i] = {
           key: `achievement-${achievement.id}`,
           label: achievement.label || achievement.id,
           achievementId: achievement.id,
           type: 'achievement',
-          test: (p: Player) => playerMeetsAchievement(p, achievement.id),
+          test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex),
         };
         usedAchievementIds.add(achievement.id);
         console.log(`Filled row ${i} with achievement: ${achievement.label || achievement.id}`);
@@ -1383,17 +1383,17 @@ function buildOppositeAxisForSeed(
   for (let i = 0; i < 3; i++) {
     if (layout.cols[i] === 'A' && !cols[i]) {
       while (availableAchievementIndex < availableSeasonAchievements.length &&
-             usedAchievementIds.has(availableSeasonAchievements[availableAchievementIndex].id)) {
+             usedAchievementIds.has(availableSeasonAchievements[availableAchievementIndex]!.id)) {
         availableAchievementIndex++;
       }
       if (availableAchievementIndex < availableSeasonAchievements.length) {
-        const achievement = availableSeasonAchievements[availableAchievementIndex];
+        const achievement = availableSeasonAchievements[availableAchievementIndex]!;
         cols[i] = {
           key: `achievement-${achievement.id}`,
           label: achievement.label || achievement.id,
           achievementId: achievement.id,
           type: 'achievement',
-          test: (p: Player) => playerMeetsAchievement(p, achievement.id),
+          test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex),
         };
         usedAchievementIds.add(achievement.id);
         console.log(`Filled col ${i} with achievement: ${achievement.label || achievement.id}`);

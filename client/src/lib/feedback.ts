@@ -1978,7 +1978,7 @@ function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, a
   // Check if this achievement requires same-season alignment
   if (!SEASON_ALIGNED_ACHIEVEMENTS.has(achievementId)) {
     // Career-based achievements: just check if player ever played for team AND has the achievement
-    return playerPlayedForTeam(player, teamTid) && playerMeetsAchievement(player, achievementId);
+    return playerPlayedForTeam(player, teamTid) && playerMeetsAchievement(player, achievementId, undefined);
   }
 
   // For new statistical leader achievements, we need to use the season index approach
@@ -2036,7 +2036,7 @@ function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, a
     case 'season20RushTDs':
     default:
       // Fallback to career-based check for unrecognized achievements
-      return playerPlayedForTeam(player, teamTid) && playerMeetsAchievement(player, achievementId);
+      return playerPlayedForTeam(player, teamTid) && playerMeetsAchievement(player, achievementId, undefined);
   }
 
   // Check if there's any season where player both played for the team AND achieved the accomplishment
@@ -2057,7 +2057,7 @@ function evaluateConstraint(player: Player, constraint: GridConstraint): boolean
   if (constraint.type === 'team') {
     return playerPlayedForTeam(player, constraint.tid!);
   } else if (constraint.type === 'achievement') {
-    return playerMeetsAchievement(player, constraint.achievementId!);
+    return playerMeetsAchievement(player, constraint.achievementId!, undefined);
   }
   return false;
 }
