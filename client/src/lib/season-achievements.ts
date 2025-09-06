@@ -497,6 +497,8 @@ export function buildSeasonIndex(
   let totalIndexed = 0;
   let skippedEntries = 0;
 
+  console.log(`🏀 Building season index for sport: ${sport}`);
+  
   // Process traditional award-based achievements
   for (const player of players) {
     if (!player.awards || player.awards.length === 0) continue;
@@ -506,6 +508,11 @@ export function buildSeasonIndex(
       if (!achievementId) {
         skippedEntries++;
         continue;
+      }
+      
+      // Debug: log first few mappings for baseball
+      if (sport === 'baseball' && totalIndexed < 5) {
+        console.log(`🏀 Baseball award mapping: "${award.type}" -> ${achievementId}`);
       }
 
       const season = award.season;
