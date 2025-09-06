@@ -373,7 +373,7 @@ export const SEASON_ALIGNED_ACHIEVEMENTS = new Set([
   'ledScoringAny', 'ledRebAny', 'ledAstAny'
 ]);
 
-// Check if a player meets a specific achievement
+// Check if a player meets a specific achievement criteria
 export function playerMeetsAchievement(player: Player, achievementId: string, seasonIndex?: SeasonIndex): boolean {
   // First, check if it's a statistical leader achievement that needs season index
   const statisticalLeaders = ['PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader'];
