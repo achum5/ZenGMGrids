@@ -395,19 +395,56 @@ export function playerMeetsAchievement(player: Player, achievementId: string, se
   // Check if it's a season-specific achievement (like SMOY, MVP, etc.)
   const seasonAchievement = SEASON_ACHIEVEMENTS.find(sa => sa.id === achievementId);
   if (seasonAchievement) {
-    // For traditional award-based achievements, check player awards
+    // For traditional award-based achievements, check player awards using the same mapping logic as season index building
     return player.awards?.some(award => {
       const normalizedType = award.type.toLowerCase().trim();
-      return achievementId === 'AllStar' && normalizedType.includes('all-star') ||
-             achievementId === 'MVP' && normalizedType.includes('most valuable player') ||
-             achievementId === 'DPOY' && normalizedType.includes('defensive player') ||
-             achievementId === 'ROY' && normalizedType.includes('rookie of the year') ||
-             achievementId === 'SMOY' && normalizedType.includes('sixth man') ||
-             achievementId === 'MIP' && normalizedType.includes('most improved') ||
-             achievementId === 'FinalsMVP' && normalizedType.includes('finals mvp') ||
-             achievementId === 'AllLeagueAny' && (normalizedType.includes('all-league') || normalizedType.includes('allleague')) ||
-             achievementId === 'AllDefAny' && normalizedType.includes('all-defensive') ||
-             achievementId === 'AllRookieAny' && normalizedType.includes('all-rookie');
+      
+      // Basketball achievements
+      if (achievementId === 'AllStar' && normalizedType.includes('all-star')) return true;
+      if (achievementId === 'MVP' && normalizedType.includes('most valuable player')) return true;
+      if (achievementId === 'DPOY' && normalizedType.includes('defensive player')) return true;
+      if (achievementId === 'ROY' && normalizedType.includes('rookie of the year')) return true;
+      if (achievementId === 'SMOY' && normalizedType.includes('sixth man')) return true;
+      if (achievementId === 'MIP' && normalizedType.includes('most improved')) return true;
+      if (achievementId === 'FinalsMVP' && normalizedType.includes('finals mvp')) return true;
+      if (achievementId === 'AllLeagueAny' && (normalizedType.includes('all-league') || normalizedType.includes('allleague'))) return true;
+      if (achievementId === 'AllDefAny' && normalizedType.includes('all-defensive')) return true;
+      if (achievementId === 'AllRookieAny' && normalizedType.includes('all-rookie')) return true;
+      
+      // Football achievements (case-sensitive exact matches)
+      if (achievementId === 'FBAllStar' && award.type === 'All-Star') return true;
+      if (achievementId === 'FBMVP' && award.type === 'Most Valuable Player') return true;
+      if (achievementId === 'FBDPOY' && award.type === 'Defensive Player of the Year') return true;
+      if (achievementId === 'FBOffROY' && award.type === 'Offensive Rookie of the Year') return true;
+      if (achievementId === 'FBDefROY' && award.type === 'Defensive Rookie of the Year') return true;
+      if (achievementId === 'FBChampion' && award.type === 'Won Championship') return true;
+      if (achievementId === 'FBAllRookie' && award.type === 'All-Rookie Team') return true;
+      if (achievementId === 'FBAllLeague' && (award.type === 'First Team All-League' || award.type === 'Second Team All-League')) return true;
+      if (achievementId === 'FBFinalsMVP' && award.type === 'Finals MVP') return true;
+      
+      // Hockey achievements (case-sensitive exact matches)
+      if (achievementId === 'HKAllStar' && award.type === 'All-Star Game') return true;
+      if (achievementId === 'HKMVP' && award.type === 'MVP') return true;
+      if (achievementId === 'HKDefenseman' && award.type === 'Best Defenseman') return true;
+      if (achievementId === 'HKROY' && award.type === 'Rookie of the Year') return true;
+      if (achievementId === 'HKChampion' && award.type === 'Championship') return true;
+      if (achievementId === 'HKPlayoffsMVP' && award.type === 'Playoffs MVP') return true;
+      if (achievementId === 'HKFinalsMVP' && award.type === 'Finals MVP') return true;
+      if (achievementId === 'HKAllRookie' && award.type === 'All-Rookie Team') return true;
+      if (achievementId === 'HKAllLeague' && award.type === 'All-League Team') return true;
+      if (achievementId === 'HKAllStarMVP' && award.type === 'All-Star Game MVP') return true;
+      if (achievementId === 'HKAssistsLeader' && award.type === 'Assists Leader') return true;
+      
+      // Baseball achievements
+      if (achievementId === 'BBAllStar' && award.type === 'All-Star') return true;
+      if (achievementId === 'BBMVP' && award.type === 'Most Valuable Player') return true;
+      if (achievementId === 'BBROY' && award.type === 'Rookie of the Year') return true;
+      if (achievementId === 'BBChampion' && award.type === 'Won Championship') return true;
+      if (achievementId === 'BBAllRookie' && award.type === 'All-Rookie Team') return true;
+      if (achievementId === 'BBAllLeague' && (award.type === 'First Team All-League' || award.type === 'Second Team All-League')) return true;
+      if (achievementId === 'BBPlayoffsMVP' && award.type === 'Playoffs MVP') return true;
+      
+      return false;
     }) || false;
   }
   
