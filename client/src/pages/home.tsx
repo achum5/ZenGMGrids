@@ -6,6 +6,7 @@ import { PlayerModal } from '@/components/PlayerModal';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { RulesModal } from '@/components/RulesModal';
 import { GridSharingModal } from '@/components/grid-sharing-modal';
+import { CustomGridModal } from '@/components/custom-grid-modal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Home as HomeIcon } from 'lucide-react';
@@ -99,6 +100,9 @@ export default function Home() {
   
   // Grid sharing state
   const [gridSharingModalOpen, setGridSharingModalOpen] = useState(false);
+  
+  // Custom grid state
+  const [customGridModalOpen, setCustomGridModalOpen] = useState(false);
 
   // Helper function to build and cache player rankings for a cell
   const buildRankCacheForCell = useCallback((cellKey: string): Array<{player: Player, rarity: number}> => {
@@ -318,6 +322,61 @@ export default function Home() {
       toast({
         title: 'Error importing grid',
         description: error instanceof Error ? error.message : 'Failed to import shared grid',
+        variant: 'destructive',
+      });
+    }
+  }, [leagueData, toast]);
+
+  // Handle creating a custom grid
+  const handleCreateCustomGrid = useCallback((customRows: CatTeam[], customCols: CatTeam[]) => {
+    if (!leagueData) return;
+    
+    try {
+      // Set the custom grid structure
+      setRows(customRows);
+      setCols(customCols);
+      
+      // Generate intersections for the custom grid
+      const allCellKeys = customRows.flatMap(row => 
+        customCols.map(col => cellKey(row.key, col.key))
+      );
+      
+      const newIntersections: Record<string, number[]> = {};
+      
+      for (const key of allCellKeys) {
+        const [rowKey, colKey] = key.split('|');
+        const row = customRows.find(r => r.key === rowKey);
+        const col = customCols.find(c => c.key === colKey);
+        
+        if (row && col) {
+          const eligible = leagueData.players.filter(p => row.test(p) && col.test(p));
+          newIntersections[key] = eligible.map(p => p.pid);
+        }
+      }
+      
+      setIntersections(newIntersections);
+      setCells({}); // Reset all answers
+      setUsedPids(new Set()); // Reset used players
+      setRankCache({}); // Reset cached rankings
+      
+      // Initialize grid tracking for custom grid
+      const gridId = `custom-${customRows.map(r => r.key).join('-')}_${customCols.map(c => c.key).join('-')}`;
+      setCurrentGridId(gridId);
+      
+      // Start fresh with custom grid
+      setAttemptCount(1);
+      storeAttemptCount(gridId, 1);
+      
+      toast({
+        title: 'Custom grid created!',
+        description: 'Your custom grid is ready to play.',
+      });
+      
+    } catch (error) {
+      console.error('Error creating custom grid:', error);
+      toast({
+        title: 'Error creating custom grid',
+        description: error instanceof Error ? error.message : 'Failed to create custom grid',
         variant: 'destructive',
       });
     }
@@ -695,6 +754,7 @@ export default function Home() {
           onGiveUp={handleGiveUp}
           onRetryGrid={handleRetryGrid}
           onShareGrid={() => setGridSharingModalOpen(true)}
+          onCustomGrid={() => setCustomGridModalOpen(true)}
           isGenerating={isGenerating}
           teams={leagueData?.teams || []}
           sport={leagueData?.sport}
@@ -733,6 +793,16 @@ export default function Home() {
           cols={cols}
           leagueData={leagueData}
           onImportGrid={handleImportGrid}
+        />
+        
+        <CustomGridModal
+          isOpen={customGridModalOpen}
+          onClose={() => setCustomGridModalOpen(false)}
+          onCreateGrid={handleCreateCustomGrid}
+          players={leagueData?.players || []}
+          teams={leagueData?.teams || []}
+          sport={leagueData?.sport || 'basketball'}
+          seasonIndex={leagueData?.seasonIndex}
         />
       </main>
     </div>
