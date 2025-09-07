@@ -1076,7 +1076,7 @@ function getTeamsForAchievement(seasonIndex: SeasonIndex, achievementId: SeasonA
   return teams;
 }
 
-// Helper function to validate achievement × achievement intersection has sufficient players
+// Helper function to validate achievement × achievement intersection has sufficient players 
 function validateAchievementIntersection(
   achievement1: string,
   achievement2: string,
