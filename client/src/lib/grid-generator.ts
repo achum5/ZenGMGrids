@@ -854,6 +854,14 @@ function generateGridSeeded(leagueData: LeagueData): {
             const colConstraint = cols[colIdx];
             if (!colConstraint) continue; // Skip empty columns
             
+            // Special validation for achievement × achievement intersections
+            if (colConstraint.type === 'achievement') {
+              if (!validateAchievementIntersection(ach.id, colConstraint.achievementId!, players, seasonIndex, 3)) {
+                validForAllCols = false;
+                break;
+              }
+            }
+            
             const intersection = calculateIntersectionSimple(
               { type: 'achievement', achievementId: ach.id, label: ach.label },
               colConstraint,
@@ -975,6 +983,14 @@ function generateGridSeeded(leagueData: LeagueData): {
             const rowConstraint = rows[rowIdx];
             if (!rowConstraint) continue; // Skip empty rows
             
+            // Special validation for achievement × achievement intersections
+            if (rowConstraint.type === 'achievement') {
+              if (!validateAchievementIntersection(rowConstraint.achievementId!, ach.id, players, seasonIndex, 3)) {
+                validForAllRows = false;
+                break;
+              }
+            }
+            
             const intersection = calculateIntersectionSimple(
               rowConstraint,
               { type: 'achievement', achievementId: ach.id, label: ach.label },
@@ -1075,6 +1091,28 @@ function getTeamsForAchievement(seasonIndex: SeasonIndex, achievementId: SeasonA
   }
   
   return teams;
+}
+
+// Helper function to validate achievement × achievement intersection has sufficient players
+function validateAchievementIntersection(
+  achievement1: string,
+  achievement2: string,
+  players: Player[],
+  seasonIndex?: SeasonIndex,
+  minPlayers: number = 3
+): boolean {
+  if (achievement1 === achievement2) {
+    // Same achievement - just check if enough players have it
+    return players.filter(p => playerMeetsAchievement(p, achievement1, seasonIndex)).length >= minPlayers;
+  }
+  
+  // Different achievements - check for players who have both
+  const eligiblePlayers = players.filter(p => 
+    playerMeetsAchievement(p, achievement1, seasonIndex) && 
+    playerMeetsAchievement(p, achievement2, seasonIndex)
+  );
+  
+  return eligiblePlayers.length >= minPlayers;
 }
 
 // Helper function to calculate intersection between two constraints (simplified version)
