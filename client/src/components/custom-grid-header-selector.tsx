@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { X } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { X, Users, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { HeaderConfig, TeamOption, AchievementOption } from '@/lib/custom-grid-utils';
 
@@ -67,110 +69,132 @@ export function CustomGridHeaderSelector({
   };
 
   return (
-    <div 
-      className={cn(
-        "bg-secondary dark:bg-slate-700 p-3 rounded-lg border border-border dark:border-slate-600",
-        className
-      )}
-      data-testid={`header-selector-${position}`}
-    >
-      {/* Type Selection */}
-      {!localType && (
-        <div className="space-y-2">
-          <Button
-            onClick={() => handleTypeChange('team')}
-            variant="outline"
-            className="w-full text-xs dark:bg-slate-600 dark:hover:bg-slate-500"
-            data-testid={`button-select-team-${position}`}
-          >
-            Team
-          </Button>
-          <Button
-            onClick={() => handleTypeChange('achievement')}
-            variant="outline"
-            className="w-full text-xs dark:bg-slate-600 dark:hover:bg-slate-500"
-            data-testid={`button-select-achievement-${position}`}
-          >
-            Achievement
-          </Button>
-        </div>
-      )}
+    <Card className={cn("shadow-lg hover:shadow-xl transition-all duration-200", className)}>
+      <CardContent className="p-4">
+        <div 
+          className="space-y-3"
+          data-testid={`header-selector-${position}`}
+        >
+          {/* Type Selection */}
+          {!localType && (
+            <div className="space-y-3">
+              <div className="text-center">
+                <h4 className="text-sm font-medium text-muted-foreground mb-3">Choose Type</h4>
+              </div>
+              <div className="space-y-2">
+                <Button
+                  onClick={() => handleTypeChange('team')}
+                  variant="outline"
+                  className="w-full h-12 text-sm font-medium hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
+                  data-testid={`button-select-team-${position}`}
+                >
+                  <Users className="mr-2 h-4 w-4" />
+                  Team
+                </Button>
+                <Button
+                  onClick={() => handleTypeChange('achievement')}
+                  variant="outline"
+                  className="w-full h-12 text-sm font-medium hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
+                  data-testid={`button-select-achievement-${position}`}
+                >
+                  <Trophy className="mr-2 h-4 w-4" />
+                  Achievement
+                </Button>
+              </div>
+            </div>
+          )}
 
-      {/* Selection Display & Dropdown */}
-      {localType && !config.selectedLabel && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">
-              {localType === 'team' ? 'Team' : 'Achievement'}
-            </span>
-            <Button
-              onClick={handleClear}
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 hover:bg-destructive/20"
-              data-testid={`button-clear-type-${position}`}
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          </div>
-          
-          <Select onValueChange={handleSelectionChange} data-testid={`select-${localType}-${position}`}>
-            <SelectTrigger className="w-full text-xs dark:bg-slate-600">
-              <SelectValue placeholder={`Select ${localType}`} />
-            </SelectTrigger>
-            <SelectContent className="max-h-60 dark:bg-slate-700">
-              {localType === 'team' 
-                ? teamOptions.map(team => (
-                    <SelectItem 
-                      key={team.id} 
-                      value={team.id.toString()}
-                      className="text-xs dark:hover:bg-slate-600"
-                      data-testid={`option-team-${team.id}`}
-                    >
-                      {team.label}
-                    </SelectItem>
-                  ))
-                : achievementOptions.map(achievement => (
-                    <SelectItem 
-                      key={achievement.id} 
-                      value={achievement.id}
-                      className="text-xs dark:hover:bg-slate-600"
-                      data-testid={`option-achievement-${achievement.id}`}
-                    >
-                      {achievement.label}
-                    </SelectItem>
-                  ))
-              }
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+          {/* Selection Display & Dropdown */}
+          {localType && !config.selectedLabel && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {localType === 'team' ? (
+                    <Users className="h-4 w-4 text-blue-500" />
+                  ) : (
+                    <Trophy className="h-4 w-4 text-amber-500" />
+                  )}
+                  <span className="text-sm font-medium">
+                    {localType === 'team' ? 'Team' : 'Achievement'}
+                  </span>
+                </div>
+                <Button
+                  onClick={handleClear}
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 hover:bg-destructive/20 rounded-full"
+                  data-testid={`button-clear-type-${position}`}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+              
+              <Select onValueChange={handleSelectionChange} data-testid={`select-${localType}-${position}`}>
+                <SelectTrigger className="w-full h-11 text-sm border-2 hover:border-primary/50 transition-colors">
+                  <SelectValue placeholder={`Select ${localType}...`} />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  {localType === 'team' 
+                    ? teamOptions.map(team => (
+                        <SelectItem 
+                          key={team.id} 
+                          value={team.id.toString()}
+                          className="text-sm hover:bg-primary/10"
+                          data-testid={`option-team-${team.id}`}
+                        >
+                          {team.label}
+                        </SelectItem>
+                      ))
+                    : achievementOptions.map(achievement => (
+                        <SelectItem 
+                          key={achievement.id} 
+                          value={achievement.id}
+                          className="text-sm hover:bg-primary/10"
+                          data-testid={`option-achievement-${achievement.id}`}
+                        >
+                          {achievement.label}
+                        </SelectItem>
+                      ))
+                  }
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
-      {/* Selected Item Display */}
-      {config.selectedLabel && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">
-              {config.type === 'team' ? 'Team' : 'Achievement'}
-            </span>
-            <Button
-              onClick={handleClear}
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 hover:bg-destructive/20"
-              data-testid={`button-clear-selection-${position}`}
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          </div>
-          
-          <div className="bg-primary/10 dark:bg-primary/20 rounded p-2 border border-primary/20">
-            <span className="text-xs font-medium text-primary dark:text-primary-foreground">
-              {config.selectedLabel}
-            </span>
-          </div>
+          {/* Selected Item Display */}
+          {config.selectedLabel && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {config.type === 'team' ? (
+                    <Users className="h-4 w-4 text-blue-500" />
+                  ) : (
+                    <Trophy className="h-4 w-4 text-amber-500" />
+                  )}
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    {config.type === 'team' ? 'Team' : 'Achievement'}
+                  </span>
+                </div>
+                <Button
+                  onClick={handleClear}
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 hover:bg-destructive/20 rounded-full"
+                  data-testid={`button-clear-selection-${position}`}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+              
+              <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg p-3 border border-primary/20">
+                <span className="text-sm font-semibold text-foreground leading-relaxed">
+                  {config.selectedLabel}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
-      )}
-    </div>
+      </CardContent>
+    </Card>
   );
 }
