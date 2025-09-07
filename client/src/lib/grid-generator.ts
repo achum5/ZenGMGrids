@@ -1063,30 +1063,13 @@ function getTeamsForAchievement(seasonIndex: SeasonIndex, achievementId: SeasonA
   const teams = new Set<number>();
   const activeTeamIds = new Set(allTeams.filter(t => !t.disabled).map(t => t.tid));
   
-  // Debug for baseball specifically
-  let totalPlayersFound = 0;
-  let seasonsChecked = 0;
-  
   for (const season of Object.values(seasonIndex)) {
-    seasonsChecked++;
     for (const [teamId, teamData] of Object.entries(season)) {
       const tid = parseInt(teamId);
       // Only include if team is currently active and has players for this achievement
       if (activeTeamIds.has(tid) && teamData[achievementId] && teamData[achievementId].size > 0) {
         teams.add(tid);
-        totalPlayersFound += teamData[achievementId].size;
       }
-    }
-  }
-  
-  // Debug logging for baseball
-  if (achievementId.startsWith('BB') || ['PointsLeader', 'ReboundsLeader', 'AssistsLeader'].includes(achievementId)) {
-    console.log(`🏀 DEBUG ${achievementId}: checked ${seasonsChecked} seasons, found ${totalPlayersFound} total players, ${teams.size} teams`);
-    if (teams.size === 0 && Object.keys(seasonIndex).length > 0) {
-      // Check what's actually in the season index
-      const firstSeason = Object.values(seasonIndex)[0];
-      const firstTeam = Object.values(firstSeason)[0];
-      console.log(`🏀 Season index sample:`, Object.keys(firstTeam || {}));
     }
   }
   
