@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { X } from 'lucide-react';
 import { CustomGridHeaderSelector } from './custom-grid-header-selector';
 import { CustomGridCell } from './custom-grid-cell';
@@ -99,6 +99,10 @@ export function CustomGridModal({
               <X className="h-4 w-4" />
             </Button>
           </DialogTitle>
+          <DialogDescription>
+            Design your own custom grid by selecting teams and achievements for each row and column. 
+            All cells must have at least one eligible player for the grid to be playable.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 p-4">
@@ -121,30 +125,28 @@ export function CustomGridModal({
             ))}
 
             {/* Grid Rows */}
-            {gridState.rows.map((rowConfig, rowIndex) => (
-              <>
-                {/* Row Header */}
-                <CustomGridHeaderSelector
-                  key={`row-${rowIndex}`}
-                  config={rowConfig}
-                  teamOptions={teamOptions}
-                  achievementOptions={achievementOptions}
-                  onConfigChange={(newConfig) => handleRowConfigChange(rowIndex, newConfig)}
-                  position={`row-${rowIndex}`}
-                  className="min-h-[120px]"
-                />
+            {gridState.rows.map((rowConfig, rowIndex) => [
+              /* Row Header */
+              <CustomGridHeaderSelector
+                key={`row-${rowIndex}`}
+                config={rowConfig}
+                teamOptions={teamOptions}
+                achievementOptions={achievementOptions}
+                onConfigChange={(newConfig) => handleRowConfigChange(rowIndex, newConfig)}
+                position={`row-${rowIndex}`}
+                className="min-h-[120px]"
+              />,
 
-                {/* Grid Cells for this row */}
-                {gridState.cols.map((_, colIndex) => (
-                  <CustomGridCell
-                    key={`cell-${rowIndex}-${colIndex}`}
-                    playerCount={gridState.cellResults[rowIndex][colIndex]}
-                    row={rowIndex}
-                    col={colIndex}
-                  />
-                ))}
-              </>
-            ))}
+              /* Grid Cells for this row */
+              ...gridState.cols.map((_, colIndex) => (
+                <CustomGridCell
+                  key={`cell-${rowIndex}-${colIndex}`}
+                  playerCount={gridState.cellResults[rowIndex][colIndex]}
+                  row={rowIndex}
+                  col={colIndex}
+                />
+              ))
+            ])}
           </div>
 
           {/* Grid Status */}
