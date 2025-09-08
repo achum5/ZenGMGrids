@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { X } from 'lucide-react';
 import { CustomGridHeaderSelector } from './custom-grid-header-selector';
@@ -92,61 +93,72 @@ export function CustomGridModal({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 p-4">
-          {/* Grid Layout - Match normal grid styling */}
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-border/60 dark:bg-slate-600/90 rounded-2xl p-[2px] md:p-[3px] overflow-hidden">
-              <div className="grid grid-cols-4 gap-[2px] md:gap-[3px] w-full">
-                {/* Top-left corner - empty */}
-                <div className="aspect-square bg-secondary dark:bg-slate-700 rounded-tl-2xl" />
-                
-                {/* Column Headers */}
-                {gridState.cols.map((colConfig, index) => (
-                  <CustomGridHeaderSelector
-                    key={`col-${index}`}
-                    config={colConfig}
-                    teamOptions={teamOptions}
-                    achievementOptions={achievementOptions}
-                    onConfigChange={(newConfig) => handleColConfigChange(index, newConfig)}
-                    position={`col-${index}`}
-                    className={`aspect-square ${
-                      index === gridState.cols.length - 1 ? 'rounded-tr-2xl' : ''
-                    }`}
-                  />
-                ))}
-
-                {/* Grid Rows */}
-                {gridState.rows.map((rowConfig, rowIndex) => [
-                  // Row Header
-                  <CustomGridHeaderSelector
-                    key={`row-${rowIndex}`}
-                    config={rowConfig}
-                    teamOptions={teamOptions}
-                    achievementOptions={achievementOptions}
-                    onConfigChange={(newConfig) => handleRowConfigChange(rowIndex, newConfig)}
-                    position={`row-${rowIndex}`}
-                    className={`aspect-square ${
-                      rowIndex === gridState.rows.length - 1 ? 'rounded-bl-2xl' : ''
-                    }`}
-                  />,
-
-                  // Grid Cells for this row
-                  ...gridState.cols.map((_, colIndex) => {
-                    const isBottomRight = rowIndex === gridState.rows.length - 1 && colIndex === gridState.cols.length - 1;
-                    return (
-                      <CustomGridCell
-                        key={`cell-${rowIndex}-${colIndex}`}
-                        playerCount={gridState.cellResults[rowIndex][colIndex]}
-                        row={rowIndex}
-                        col={colIndex}
-                        className={isBottomRight ? 'rounded-br-2xl' : ''}
+        <div className="space-y-6">
+          {/* Grid Card - Exact copy of normal grid layout */}
+          <Card>
+            <CardContent className="p-3 md:p-6">
+              <div className="max-w-4xl mx-auto">
+                <div className="bg-border/60 dark:bg-slate-600/90 rounded-2xl p-[2px] md:p-[3px] overflow-hidden">
+                  <div className="grid grid-cols-4 gap-[2px] md:gap-[3px] w-full">
+                    {/* Empty corner - matches normal grid */}
+                    <div className="aspect-square flex flex-col items-center justify-center bg-secondary dark:bg-slate-700 rounded-tl-2xl overflow-hidden">
+                      <div className="text-xs sm:text-sm md:text-base font-medium text-muted-foreground dark:text-gray-400">
+                        Custom
+                      </div>
+                      <div className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold leading-none text-foreground dark:text-white">
+                        Grid
+                      </div>
+                    </div>
+                    
+                    {/* Column Headers */}
+                    {gridState.cols.map((colConfig, index) => (
+                      <CustomGridHeaderSelector
+                        key={`col-${index}`}
+                        config={colConfig}
+                        teamOptions={teamOptions}
+                        achievementOptions={achievementOptions}
+                        onConfigChange={(newConfig) => handleColConfigChange(index, newConfig)}
+                        position={`col-${index}`}
+                        className={`aspect-square bg-secondary dark:bg-slate-700 p-2 md:p-3 overflow-hidden ${
+                          index === gridState.cols.length - 1 ? 'rounded-tr-2xl' : ''
+                        }`}
                       />
-                    );
-                  })
-                ])}
+                    ))}
+
+                    {/* Grid Rows */}
+                    {gridState.rows.map((rowConfig, rowIndex) => [
+                      // Row Header
+                      <CustomGridHeaderSelector
+                        key={`row-${rowIndex}`}
+                        config={rowConfig}
+                        teamOptions={teamOptions}
+                        achievementOptions={achievementOptions}
+                        onConfigChange={(newConfig) => handleRowConfigChange(rowIndex, newConfig)}
+                        position={`row-${rowIndex}`}
+                        className={`aspect-square bg-secondary dark:bg-slate-700 p-2 md:p-3 overflow-hidden ${
+                          rowIndex === gridState.rows.length - 1 ? 'rounded-bl-2xl' : ''
+                        }`}
+                      />,
+
+                      // Grid Cells for this row
+                      ...gridState.cols.map((_, colIndex) => {
+                        const isBottomRight = rowIndex === gridState.rows.length - 1 && colIndex === gridState.cols.length - 1;
+                        return (
+                          <CustomGridCell
+                            key={`cell-${rowIndex}-${colIndex}`}
+                            playerCount={gridState.cellResults[rowIndex][colIndex]}
+                            row={rowIndex}
+                            col={colIndex}
+                            className={isBottomRight ? 'rounded-br-2xl' : ''}
+                          />
+                        );
+                      })
+                    ])}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Grid Status */}
           <div className="bg-muted/50 dark:bg-slate-700/50 rounded-lg p-4 space-y-2">

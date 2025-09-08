@@ -69,7 +69,7 @@ export function CustomGridHeaderSelector({
   return (
     <div 
       className={cn(
-        "bg-secondary dark:bg-slate-700 p-2 md:p-3 overflow-hidden flex flex-col items-center justify-center",
+        "flex flex-col items-center justify-center",
         className
       )}
       data-testid={`header-selector-${position}`}
