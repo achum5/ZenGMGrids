@@ -332,7 +332,43 @@ export function updateCustomGridState(
   };
 }
 
-// Simple, fast auto-fill that just tries common combinations
+// Helper function to validate if a configuration would have eligible players
+function validateGridConfig(
+  testState: CustomGridState,
+  players: Player[],
+  teams: Team[],
+  sport?: string,
+  seasonIndex?: SeasonIndex
+): boolean {
+  // Check if all non-empty cells would have at least 1 eligible player
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 3; col++) {
+      const rowConfig = testState.rows[row];
+      const colConfig = testState.cols[col];
+      
+      // Skip if either is empty
+      if (!rowConfig.selectedId || !colConfig.selectedId) continue;
+      
+      // Check if this intersection has eligible players
+      const count = calculateCustomCellIntersection(
+        rowConfig,
+        colConfig, 
+        players,
+        teams,
+        sport,
+        seasonIndex
+      );
+      
+      if (count === 0) {
+        return false; // Invalid configuration - no eligible players for this cell
+      }
+    }
+  }
+  
+  return true; // All cells have eligible players
+}
+
+// Intelligent auto-fill that validates eligible players exist
 export function autoFillGrid(
   currentState: CustomGridState,
   players: Player[],
@@ -453,41 +489,89 @@ export function autoFillGrid(
     }
     
     if (shouldUseTeam) {
-      // Try to use team first
-      const team = pickRandomTeam();
-      if (team) {
-        newState.rows[rowIndex] = {
+      // Try teams and validate each one has eligible players
+      const availableTeams = [...availableTeamPool];
+      for (let attempt = 0; attempt < availableTeams.length; attempt++) {
+        const team = pickRandomTeam();
+        if (!team) break;
+        
+        // Test this configuration
+        const testState = { ...newState };
+        testState.rows[rowIndex] = {
           type: 'team',
           selectedId: team.id,
           selectedLabel: team.label
         };
-        continue;
+        
+        // Validate that this configuration would have eligible players
+        if (validateGridConfig(testState, players, teams, sport, seasonIndex)) {
+          newState.rows[rowIndex] = {
+            type: 'team',
+            selectedId: team.id,
+            selectedLabel: team.label
+          };
+          break; // Success - exit the loop
+        }
+        // If validation failed, try next team
       }
+      if (newState.rows[rowIndex].selectedId) continue; // Successfully filled
     }
     
     // Try achievement if allowed and available (or if we're forced to use achievements-only)
     if ((canAddMoreAchievements && (!shouldLimitAchievements || achievementsAdded < 1)) ||
         fillType === 'achievements-only') {
-      const achievement = pickRandomAchievement();
-      if (achievement) {
-        newState.rows[rowIndex] = {
+      const availableAchievements = [...availableAchievementPool];
+      for (let attempt = 0; attempt < availableAchievements.length; attempt++) {
+        const achievement = pickRandomAchievement();
+        if (!achievement) break;
+        
+        // Test this configuration
+        const testState = { ...newState };
+        testState.rows[rowIndex] = {
           type: 'achievement',
           selectedId: achievement.id,
           selectedLabel: achievement.label
         };
-        achievementsAdded++;
-        continue;
+        
+        // Validate that this configuration would have eligible players
+        if (validateGridConfig(testState, players, teams, sport, seasonIndex)) {
+          newState.rows[rowIndex] = {
+            type: 'achievement',
+            selectedId: achievement.id,
+            selectedLabel: achievement.label
+          };
+          achievementsAdded++;
+          break; // Success - exit the loop
+        }
+        // If validation failed, try next achievement
       }
+      if (newState.rows[rowIndex].selectedId) continue; // Successfully filled
     }
     
-    // Fallback to team if achievement didn't work
-    const team = pickRandomTeam();
-    if (team) {
-      newState.rows[rowIndex] = {
+    // Fallback to team if achievement didn't work - validate this too
+    const remainingTeams = [...availableTeamPool];
+    for (let attempt = 0; attempt < remainingTeams.length; attempt++) {
+      const team = pickRandomTeam();
+      if (!team) break;
+      
+      // Test this configuration
+      const testState = { ...newState };
+      testState.rows[rowIndex] = {
         type: 'team',
         selectedId: team.id,
         selectedLabel: team.label
       };
+      
+      // Validate that this configuration would have eligible players
+      if (validateGridConfig(testState, players, teams, sport, seasonIndex)) {
+        newState.rows[rowIndex] = {
+          type: 'team',
+          selectedId: team.id,
+          selectedLabel: team.label
+        };
+        break; // Success - exit the loop
+      }
+      // If validation failed, try next team
     }
   }
   
@@ -510,41 +594,89 @@ export function autoFillGrid(
     }
     
     if (shouldUseTeam) {
-      // Try to use team first
+      // Try teams and validate each one has eligible players (columns)
+      const availableTeams = [...availableTeamPool];
+      for (let attempt = 0; attempt < availableTeams.length; attempt++) {
+        const team = pickRandomTeam();
+        if (!team) break;
+        
+        // Test this configuration
+        const testState = { ...newState };
+        testState.cols[colIndex] = {
+          type: 'team',
+          selectedId: team.id,
+          selectedLabel: team.label
+        };
+        
+        // Validate that this configuration would have eligible players
+        if (validateGridConfig(testState, players, teams, sport, seasonIndex)) {
+          newState.cols[colIndex] = {
+            type: 'team',
+            selectedId: team.id,
+            selectedLabel: team.label
+          };
+          break; // Success - exit the loop
+        }
+        // If validation failed, try next team
+      }
+      if (newState.cols[colIndex].selectedId) continue; // Successfully filled
+    }
+    
+    // Try achievement if allowed and available (or if we're forced to use achievements-only)  
+    if ((canAddMoreAchievements && (!shouldLimitAchievements || achievementsAdded < 1)) ||
+        fillType === 'achievements-only') {
+      const availableAchievements = [...availableAchievementPool];
+      for (let attempt = 0; attempt < availableAchievements.length; attempt++) {
+        const achievement = pickRandomAchievement();
+        if (!achievement) break;
+        
+        // Test this configuration
+        const testState = { ...newState };
+        testState.cols[colIndex] = {
+          type: 'achievement',
+          selectedId: achievement.id,
+          selectedLabel: achievement.label
+        };
+        
+        // Validate that this configuration would have eligible players
+        if (validateGridConfig(testState, players, teams, sport, seasonIndex)) {
+          newState.cols[colIndex] = {
+            type: 'achievement',
+            selectedId: achievement.id,
+            selectedLabel: achievement.label
+          };
+          achievementsAdded++;
+          break; // Success - exit the loop
+        }
+        // If validation failed, try next achievement
+      }
+      if (newState.cols[colIndex].selectedId) continue; // Successfully filled
+    }
+    
+    // Fallback to team if achievement didn't work - validate this too
+    const remainingTeams = [...availableTeamPool];
+    for (let attempt = 0; attempt < remainingTeams.length; attempt++) {
       const team = pickRandomTeam();
-      if (team) {
+      if (!team) break;
+      
+      // Test this configuration
+      const testState = { ...newState };
+      testState.cols[colIndex] = {
+        type: 'team',
+        selectedId: team.id,
+        selectedLabel: team.label
+      };
+      
+      // Validate that this configuration would have eligible players
+      if (validateGridConfig(testState, players, teams, sport, seasonIndex)) {
         newState.cols[colIndex] = {
           type: 'team',
           selectedId: team.id,
           selectedLabel: team.label
         };
-        continue;
+        break; // Success - exit the loop
       }
-    }
-    
-    // Try achievement if allowed and available (or if we're forced to use achievements-only)
-    if ((canAddMoreAchievements && (!shouldLimitAchievements || achievementsAdded < 1)) ||
-        fillType === 'achievements-only') {
-      const achievement = pickRandomAchievement();
-      if (achievement) {
-        newState.cols[colIndex] = {
-          type: 'achievement',
-          selectedId: achievement.id,
-          selectedLabel: achievement.label
-        };
-        achievementsAdded++;
-        continue;
-      }
-    }
-    
-    // Fallback to team if achievement didn't work
-    const team = pickRandomTeam();
-    if (team) {
-      newState.cols[colIndex] = {
-        type: 'team',
-        selectedId: team.id,
-        selectedLabel: team.label
-      };
+      // If validation failed, try next team
     }
   }
   
