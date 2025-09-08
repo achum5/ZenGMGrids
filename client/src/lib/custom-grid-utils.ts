@@ -290,8 +290,16 @@ function validateCustomIntersection(
     return [];
   }
 
+  // DEBUG: Log what we're calculating
+  console.log(`🔍 Custom Grid Debug: ${rowConstraint.label} × ${colConstraint.label}`);
+  console.log(`   Row: ${rowConstraint.type} (${rowConstraint.achievementId || rowConstraint.tid})`);
+  console.log(`   Col: ${colConstraint.type} (${colConstraint.achievementId || colConstraint.tid})`);
+
   // Use the exact same function that normal grids use
-  return calculateIntersectionSimple(rowConstraint, colConstraint, players, seasonIndex);
+  const result = calculateIntersectionSimple(rowConstraint, colConstraint, players, seasonIndex);
+  console.log(`   Result: ${result.length} eligible players`);
+  
+  return result;
 }
 
 // Get eligible players for a single cell using exact same logic as regular grids
