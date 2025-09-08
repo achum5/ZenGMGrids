@@ -108,7 +108,9 @@ export default function Home() {
   const buildRankCacheForCell = useCallback((cellKey: string): Array<{player: Player, rarity: number}> => {
     if (!leagueData || !rows.length || !cols.length) return [];
     
-    const [rowKey, colKey] = cellKey.split('|');
+    // Handle both position-based keys (custom grids) and regular keys
+    const [baseKey] = cellKey.split('@'); // Remove position info if present
+    const [rowKey, colKey] = baseKey.split('|');
     const rowConstraint = rows.find(r => r.key === rowKey);
     const colConstraint = cols.find(c => c.key === colKey);
     
@@ -541,7 +543,27 @@ export default function Home() {
     if (!leagueData) return;
     
     // Find all empty cells in stable order (row-major: top→bottom, left→right)
-    const allCellKeys = rows.flatMap(row => cols.map(col => `${row.key}|${col.key}`));
+    // Check if we're dealing with custom grids (position-based keys) or regular grids
+    const existingKeys = Object.keys(cells);
+    const hasPositionKeys = existingKeys.some(key => key.includes('@'));
+    
+    let allCellKeys: string[];
+    if (hasPositionKeys) {
+      // Custom grid with position-based keys
+      allCellKeys = [];
+      for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+        for (let colIndex = 0; colIndex < cols.length; colIndex++) {
+          const row = rows[rowIndex];
+          const col = cols[colIndex];
+          const key = `${row.key}|${col.key}@${rowIndex}-${colIndex}`;
+          allCellKeys.push(key);
+        }
+      }
+    } else {
+      // Regular grid with simple keys
+      allCellKeys = rows.flatMap(row => cols.map(col => `${row.key}|${col.key}`));
+    }
+    
     const emptyCells = allCellKeys.filter(key => !cells[key]?.name);
     
     if (emptyCells.length === 0) return;
