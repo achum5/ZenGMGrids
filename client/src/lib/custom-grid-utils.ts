@@ -276,22 +276,39 @@ export function autoFillGrid(
     }
   }
   
-  // Get available options
-  const availableTeams = teamOptions.filter(t => !usedTeams.has(t.id)).slice(0, 10); // Limit to first 10 for speed
-  const availableAchievements = achievementOptions.filter(a => !usedAchievements.has(a.id)).slice(0, 10);
+  // Helper function to shuffle an array
+  const shuffleArray = <T>(array: T[]): T[] => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+
+  // Get available options and shuffle them for variety
+  const shuffledTeams = shuffleArray(teamOptions.filter(t => !usedTeams.has(t.id)));
+  const shuffledAchievements = shuffleArray(achievementOptions.filter(a => !usedAchievements.has(a.id)));
   
-  // Simple strategy: fill with popular teams and achievements that usually work
+  const availableTeams = shuffledTeams.slice(0, 15); // Increased from 10 for more variety
+  const availableAchievements = shuffledAchievements.slice(0, 15);
+  
+  // Strategy: mix popular and random teams/achievements for variety
   const popularTeams = availableTeams.filter(t => 
     ['Lakers', 'Celtics', 'Warriors', 'Heat', 'Bulls', 'Spurs', 'Knicks'].some(name => 
       t.label.includes(name)
     )
-  ).concat(availableTeams.slice(0, 3));
+  );
+  const randomTeams = availableTeams.filter(t => !popularTeams.includes(t));
+  const mixedTeams = shuffleArray([...popularTeams, ...randomTeams.slice(0, 8)]);
   
   const popularAchievements = availableAchievements.filter(a =>
     ['Hall of Fame', 'First Round', 'Played 15+', '20,000+'].some(phrase =>
       a.label.includes(phrase)
     )
-  ).concat(availableAchievements.slice(0, 3));
+  );
+  const randomAchievements = availableAchievements.filter(a => !popularAchievements.includes(a));
+  const mixedAchievements = shuffleArray([...popularAchievements, ...randomAchievements.slice(0, 8)]);
   
   // Achievement limit logic
   const maxAllowedAchievements = 3;
@@ -299,41 +316,65 @@ export function autoFillGrid(
   const shouldAvoidAchievements = currentAchievementCount >= 3;
   const shouldLimitAchievements = currentAchievementCount === 2; // Only add max 1 more if we have 2
   
-  let teamIndex = 0;
-  let achievementIndex = 0;
+  // Create pools of available options and track usage
+  const availableTeamPool = [...mixedTeams];
+  const availableAchievementPool = [...mixedAchievements];
   let achievementsAdded = 0;
   
-  // Fill empty rows with smart achievement limiting
+  // Helper to randomly pick and remove from pool
+  const pickRandomTeam = () => {
+    if (availableTeamPool.length === 0) return null;
+    const randomIndex = Math.floor(Math.random() * availableTeamPool.length);
+    return availableTeamPool.splice(randomIndex, 1)[0];
+  };
+  
+  const pickRandomAchievement = () => {
+    if (availableAchievementPool.length === 0) return null;
+    const randomIndex = Math.floor(Math.random() * availableAchievementPool.length);
+    return availableAchievementPool.splice(randomIndex, 1)[0];
+  };
+  
+  // Fill empty rows with smart achievement limiting and randomization
   for (let i = 0; i < emptyRows.length; i++) {
     const rowIndex = emptyRows[i];
     
-    // Decide whether to use team or achievement based on current count
+    // Add some randomness to the decision, not just strict alternating
+    const useTeamBias = Math.random() > 0.4; // 60% chance to prefer team
     const shouldUseTeam = shouldAvoidAchievements || 
                          (shouldLimitAchievements && achievementsAdded >= 1) ||
-                         (i % 2 === 0); // Still alternate when possible
+                         useTeamBias;
     
-    if (shouldUseTeam && teamIndex < popularTeams.length) {
-      // Use team
-      const team = popularTeams[teamIndex++];
-      newState.rows[rowIndex] = {
-        type: 'team',
-        selectedId: team.id,
-        selectedLabel: team.label
-      };
-    } else if (canAddMoreAchievements && 
-               (!shouldLimitAchievements || achievementsAdded < 1) && 
-               achievementIndex < popularAchievements.length) {
-      // Use achievement (only if we're allowed)
-      const achievement = popularAchievements[achievementIndex++];
-      newState.rows[rowIndex] = {
-        type: 'achievement',
-        selectedId: achievement.id,
-        selectedLabel: achievement.label
-      };
-      achievementsAdded++;
-    } else if (teamIndex < popularTeams.length) {
-      // Fallback to team
-      const team = popularTeams[teamIndex++];
+    if (shouldUseTeam) {
+      // Try to use team first
+      const team = pickRandomTeam();
+      if (team) {
+        newState.rows[rowIndex] = {
+          type: 'team',
+          selectedId: team.id,
+          selectedLabel: team.label
+        };
+        continue;
+      }
+    }
+    
+    // Try achievement if allowed and available
+    if (canAddMoreAchievements && 
+        (!shouldLimitAchievements || achievementsAdded < 1)) {
+      const achievement = pickRandomAchievement();
+      if (achievement) {
+        newState.rows[rowIndex] = {
+          type: 'achievement',
+          selectedId: achievement.id,
+          selectedLabel: achievement.label
+        };
+        achievementsAdded++;
+        continue;
+      }
+    }
+    
+    // Fallback to team if achievement didn't work
+    const team = pickRandomTeam();
+    if (team) {
       newState.rows[rowIndex] = {
         type: 'team',
         selectedId: team.id,
@@ -342,37 +383,47 @@ export function autoFillGrid(
     }
   }
   
-  // Fill empty columns with smart achievement limiting
+  // Fill empty columns with smart achievement limiting and randomization
   for (let i = 0; i < emptyCols.length; i++) {
     const colIndex = emptyCols[i];
     
-    // Decide whether to use team or achievement based on current count
+    // Add some randomness to the decision with slight opposite bias from rows
+    const useTeamBias = Math.random() > 0.3; // 70% chance to prefer team for balance
     const shouldUseTeam = shouldAvoidAchievements || 
                          (shouldLimitAchievements && achievementsAdded >= 1) ||
-                         (i % 2 === 1); // Opposite pattern from rows
+                         useTeamBias;
     
-    if (shouldUseTeam && teamIndex < popularTeams.length) {
-      // Use team
-      const team = popularTeams[teamIndex++];
-      newState.cols[colIndex] = {
-        type: 'team',
-        selectedId: team.id,
-        selectedLabel: team.label
-      };
-    } else if (canAddMoreAchievements && 
-               (!shouldLimitAchievements || achievementsAdded < 1) && 
-               achievementIndex < popularAchievements.length) {
-      // Use achievement (only if we're allowed)
-      const achievement = popularAchievements[achievementIndex++];
-      newState.cols[colIndex] = {
-        type: 'achievement',
-        selectedId: achievement.id,
-        selectedLabel: achievement.label
-      };
-      achievementsAdded++;
-    } else if (teamIndex < popularTeams.length) {
-      // Fallback to team
-      const team = popularTeams[teamIndex++];
+    if (shouldUseTeam) {
+      // Try to use team first
+      const team = pickRandomTeam();
+      if (team) {
+        newState.cols[colIndex] = {
+          type: 'team',
+          selectedId: team.id,
+          selectedLabel: team.label
+        };
+        continue;
+      }
+    }
+    
+    // Try achievement if allowed and available
+    if (canAddMoreAchievements && 
+        (!shouldLimitAchievements || achievementsAdded < 1)) {
+      const achievement = pickRandomAchievement();
+      if (achievement) {
+        newState.cols[colIndex] = {
+          type: 'achievement',
+          selectedId: achievement.id,
+          selectedLabel: achievement.label
+        };
+        achievementsAdded++;
+        continue;
+      }
+    }
+    
+    // Fallback to team if achievement didn't work
+    const team = pickRandomTeam();
+    if (team) {
       newState.cols[colIndex] = {
         type: 'team',
         selectedId: team.id,
