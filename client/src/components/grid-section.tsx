@@ -236,7 +236,7 @@ export function GridSection({
                 
                 return (
                   <div 
-                    key={`${col.key}-header-${index}`} 
+                    key={`${col.key}-header-${colIndex}`} 
                     className={cn(
                       "aspect-square bg-secondary dark:bg-slate-700 p-2 md:p-3 overflow-hidden",
                       headerRadius
