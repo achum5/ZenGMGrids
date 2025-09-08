@@ -270,82 +270,116 @@ export function autoFillGrid(
   const availableTeams = teamOptions.filter(t => !usedTeams.has(t.id));
   const availableAchievements = achievementOptions.filter(a => !usedAchievements.has(a.id));
   
-  // Simple strategy: fill with mix of teams and achievements
-  const emptyPositions: Array<{type: 'row' | 'col', index: number}> = [];
+  // Identify empty positions
+  const emptyRows: number[] = [];
+  const emptyCols: number[] = [];
   
   for (let i = 0; i < 3; i++) {
-    if (!filledPositions.has(`row-${i}`)) {
-      emptyPositions.push({type: 'row', index: i});
-    }
-    if (!filledPositions.has(`col-${i}`)) {
-      emptyPositions.push({type: 'col', index: i});
-    }
+    if (!filledPositions.has(`row-${i}`)) emptyRows.push(i);
+    if (!filledPositions.has(`col-${i}`)) emptyCols.push(i);
   }
   
-  // Fill empty positions alternating between teams and achievements
+  // Smart filling strategy - try to ensure all intersections have players
   let teamIndex = 0;
   let achievementIndex = 0;
-  let useTeam = true;
   
-  for (const pos of emptyPositions) {
-    if (useTeam && teamIndex < availableTeams.length) {
+  // Fill rows first
+  for (const rowIndex of emptyRows) {
+    // Alternate between teams and achievements for variety
+    if (rowIndex % 2 === 0 && teamIndex < availableTeams.length) {
+      // Use team for even rows
       const team = availableTeams[teamIndex++];
-      const config: HeaderConfig = {
+      newState.rows[rowIndex] = {
         type: 'team',
         selectedId: team.id,
         selectedLabel: team.label
       };
-      
-      if (pos.type === 'row') {
-        newState.rows[pos.index] = config;
-      } else {
-        newState.cols[pos.index] = config;
-      }
-    } else if (!useTeam && achievementIndex < availableAchievements.length) {
+    } else if (achievementIndex < availableAchievements.length) {
+      // Use achievement for odd rows or if no teams left
       const achievement = availableAchievements[achievementIndex++];
-      const config: HeaderConfig = {
+      newState.rows[rowIndex] = {
         type: 'achievement',
         selectedId: achievement.id,
         selectedLabel: achievement.label
       };
-      
-      if (pos.type === 'row') {
-        newState.rows[pos.index] = config;
-      } else {
-        newState.cols[pos.index] = config;
-      }
-    } else {
-      // Fallback: use whatever is available
+    } else if (teamIndex < availableTeams.length) {
+      // Fallback to team if no achievements left
+      const team = availableTeams[teamIndex++];
+      newState.rows[rowIndex] = {
+        type: 'team',
+        selectedId: team.id,
+        selectedLabel: team.label
+      };
+    }
+  }
+  
+  // Fill columns
+  for (const colIndex of emptyCols) {
+    // Alternate the opposite way for columns
+    if (colIndex % 2 === 1 && teamIndex < availableTeams.length) {
+      // Use team for odd columns
+      const team = availableTeams[teamIndex++];
+      newState.cols[colIndex] = {
+        type: 'team',
+        selectedId: team.id,
+        selectedLabel: team.label
+      };
+    } else if (achievementIndex < availableAchievements.length) {
+      // Use achievement for even columns or if no teams left
+      const achievement = availableAchievements[achievementIndex++];
+      newState.cols[colIndex] = {
+        type: 'achievement',
+        selectedId: achievement.id,
+        selectedLabel: achievement.label
+      };
+    } else if (teamIndex < availableTeams.length) {
+      // Fallback to team if no achievements left
+      const team = availableTeams[teamIndex++];
+      newState.cols[colIndex] = {
+        type: 'team',
+        selectedId: team.id,
+        selectedLabel: team.label
+      };
+    }
+  }
+  
+  // If we still have empty positions, fill with whatever is available
+  for (let i = 0; i < 3; i++) {
+    if (!newState.rows[i].selectedId) {
       if (teamIndex < availableTeams.length) {
         const team = availableTeams[teamIndex++];
-        const config: HeaderConfig = {
+        newState.rows[i] = {
           type: 'team',
           selectedId: team.id,
           selectedLabel: team.label
         };
-        
-        if (pos.type === 'row') {
-          newState.rows[pos.index] = config;
-        } else {
-          newState.cols[pos.index] = config;
-        }
       } else if (achievementIndex < availableAchievements.length) {
         const achievement = availableAchievements[achievementIndex++];
-        const config: HeaderConfig = {
+        newState.rows[i] = {
           type: 'achievement',
           selectedId: achievement.id,
           selectedLabel: achievement.label
         };
-        
-        if (pos.type === 'row') {
-          newState.rows[pos.index] = config;
-        } else {
-          newState.cols[pos.index] = config;
-        }
       }
     }
     
-    useTeam = !useTeam; // Alternate between teams and achievements
+    if (!newState.cols[i].selectedId) {
+      if (achievementIndex < availableAchievements.length) {
+        const achievement = availableAchievements[achievementIndex++];
+        newState.cols[i] = {
+          type: 'achievement',
+          selectedId: achievement.id,
+          selectedLabel: achievement.label
+        };
+      } else if (teamIndex < availableTeams.length) {
+        const team = availableTeams[teamIndex++];
+        newState.cols[i] = {
+          type: 'team',
+          selectedId: team.id,
+          selectedLabel: team.label
+        };
+      }
+    }
   }
   
   return updateCustomGridState(newState, players, teams, seasonIndex);
