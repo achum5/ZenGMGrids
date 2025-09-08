@@ -18,10 +18,10 @@ export function CustomGridCell({
   return (
     <div
       className={cn(
-        "aspect-square flex items-center justify-center border border-border dark:border-slate-600 rounded-lg transition-all duration-200",
+        "aspect-square flex items-center justify-center transition-all duration-200",
         isValid 
-          ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 border-green-300 dark:border-green-700" 
-          : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 border-red-300 dark:border-red-700",
+          ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200" 
+          : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200",
         className
       )}
       data-testid={`custom-cell-${row}-${col}`}
