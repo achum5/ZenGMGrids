@@ -2016,6 +2016,8 @@ function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, a
     case 'hasAllLeague': achievementSeasons = player.achievementSeasons.allLeagueTeam; break;
     case 'AllDefAny':
     case 'hasAllDef': achievementSeasons = player.achievementSeasons.allDefensiveTeam; break;
+    case 'AllRookieAny':
+    case 'hasAllRookie': achievementSeasons = player.achievementSeasons.allRookieTeam; break;
     case 'AllStar':
     case 'hasAllStar': achievementSeasons = player.achievementSeasons.allStarSelection; break;
     case 'MVP': achievementSeasons = player.achievementSeasons.mvpWinner; break;
