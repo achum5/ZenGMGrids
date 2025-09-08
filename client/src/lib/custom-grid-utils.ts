@@ -131,6 +131,27 @@ export function headerConfigToGridConstraint(
   }
 }
 
+// Get eligible players for a single cell with proper season alignment  
+export function getCustomCellEligiblePlayers(
+  rowConfig: HeaderConfig,
+  colConfig: HeaderConfig,
+  players: Player[],
+  teams: Team[]
+): Player[] {
+  // Convert to GridConstraint objects for proper validation
+  const rowConstraint = headerConfigToGridConstraint(rowConfig, teams);
+  const colConstraint = headerConfigToGridConstraint(colConfig, teams);
+  
+  if (!rowConstraint || !colConstraint) {
+    return [];
+  }
+
+  // Use the same validation logic as regular grids with proper season alignment
+  return players.filter(player => 
+    evaluateConstraintPair(player, rowConstraint, colConstraint)
+  );
+}
+
 // Calculate intersection for a single cell with proper season alignment
 export function calculateCustomCellIntersection(
   rowConfig: HeaderConfig,
@@ -139,20 +160,7 @@ export function calculateCustomCellIntersection(
   teams: Team[],
   seasonIndex?: SeasonIndex
 ): number {
-  // Convert to GridConstraint objects for proper validation
-  const rowConstraint = headerConfigToGridConstraint(rowConfig, teams);
-  const colConstraint = headerConfigToGridConstraint(colConfig, teams);
-  
-  if (!rowConstraint || !colConstraint) {
-    return 0;
-  }
-
-  // Use the same validation logic as regular grids with proper season alignment
-  const eligiblePlayers = players.filter(player => 
-    evaluateConstraintPair(player, rowConstraint, colConstraint)
-  );
-
-  return eligiblePlayers.length;
+  return getCustomCellEligiblePlayers(rowConfig, colConfig, players, teams).length;
 }
 
 // Update cell results for entire grid
@@ -205,14 +213,12 @@ export function isGridSolvable(
   for (let row = 0; row < 3; row++) {
     for (let col = 0; col < 3; col++) {
       if (state.cellResults[row][col] === 1) {
-        // Find the single eligible player for this cell
-        const rowConstraint = headerConfigToCatTeam(state.rows[row], teams, seasonIndex);
-        const colConstraint = headerConfigToCatTeam(state.cols[col], teams, seasonIndex);
+        // Find the single eligible player for this cell using proper season alignment
+        const rowConstraint = headerConfigToGridConstraint(state.rows[row], teams);
+        const colConstraint = headerConfigToGridConstraint(state.cols[col], teams);
         
         if (rowConstraint && colConstraint) {
-          const eligiblePlayers = players.filter(player => 
-            rowConstraint.test(player) && colConstraint.test(player)
-          );
+          const eligiblePlayers = getCustomCellEligiblePlayers(state.rows[row], state.cols[col], players, teams);
           
           if (eligiblePlayers.length === 1) {
             singlePlayerCells.push({
