@@ -336,19 +336,19 @@ export default function Home() {
       setRows(customRows);
       setCols(customCols);
       
-      // Generate intersections for the custom grid
-      const allCellKeys = customRows.flatMap(row => 
-        customCols.map(col => cellKey(row.key, col.key))
-      );
-      
+      // Generate intersections for the custom grid with unique position-based keys
+      const allCellKeys: string[] = [];
       const newIntersections: Record<string, number[]> = {};
       
-      for (const key of allCellKeys) {
-        const [rowKey, colKey] = key.split('|');
-        const row = customRows.find(r => r.key === rowKey);
-        const col = customCols.find(c => c.key === colKey);
-        
-        if (row && col) {
+      for (let rowIndex = 0; rowIndex < customRows.length; rowIndex++) {
+        for (let colIndex = 0; colIndex < customCols.length; colIndex++) {
+          const row = customRows[rowIndex];
+          const col = customCols[colIndex];
+          
+          // Create unique key that includes position to avoid conflicts when constraints are identical
+          const key = `${row.key}|${col.key}@${rowIndex}-${colIndex}`;
+          allCellKeys.push(key);
+          
           const eligible = leagueData.players.filter(p => row.test(p) && col.test(p));
           newIntersections[key] = eligible.map(p => p.pid);
         }
@@ -378,7 +378,15 @@ export default function Home() {
   }, [leagueData, toast]);
 
   const handleCellClick = useCallback((rowKey: string, colKey: string) => {
-    const key = cellKey(rowKey, colKey);
+    // For custom grids, find the cell key that matches the row and column and has the position info
+    let key = cellKey(rowKey, colKey);
+    
+    // Check if this is a custom grid with position-based keys
+    const customKey = Object.keys(cells).find(k => k.startsWith(`${rowKey}|${colKey}@`));
+    if (customKey) {
+      key = customKey;
+    }
+    
     const cellState = cells[key];
     
     // If cell is locked and has a player, open player modal
