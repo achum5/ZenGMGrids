@@ -97,6 +97,11 @@ export function CustomGridModal({
     setGridState(autoFilledState);
   };
 
+  const handleClearAll = () => {
+    const clearedState = createEmptyCustomGrid();
+    setGridState(clearedState);
+  };
+
   const isCreateEnabled = gridState.isValid && gridState.isSolvable;
 
   return (
@@ -192,7 +197,16 @@ export function CustomGridModal({
           )}
 
           {/* Action Buttons */}
-          <div className="flex justify-between">
+          <div className="flex justify-between gap-3">
+            <Button
+              onClick={handleClearAll}
+              variant="outline"
+              className="dark:bg-slate-700 dark:hover:bg-slate-600"
+              data-testid="button-clear-all-grid"
+            >
+              Clear All
+            </Button>
+            
             <Button
               onClick={handleAutoFill}
               variant="outline"
