@@ -61,7 +61,7 @@ export function CustomGridModal({
   // Update grid state when any configuration changes
   useEffect(() => {
     if (isOpen && players.length > 0) {
-      const newState = updateCustomGridState(gridState, players, teams, seasonIndex);
+      const newState = updateCustomGridState(gridState, players, teams, sport, seasonIndex);
       setGridState(newState);
     }
   }, [gridState.rows, gridState.cols, isOpen, players, teams, seasonIndex]);
@@ -93,6 +93,7 @@ export function CustomGridModal({
       teams, 
       teamOptions, 
       achievementOptions, 
+      sport,
       seasonIndex,
       fillType
     );
