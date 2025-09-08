@@ -386,13 +386,14 @@ export default function Home() {
     // Check if this is a custom grid with position-based keys
     if (rowIndex !== undefined && colIndex !== undefined) {
       const positionKey = `${rowKey}|${colKey}@${rowIndex}-${colIndex}`;
-      if (Object.keys(cells).includes(positionKey)) {
+      // Check intersections instead of cells since cells starts empty but intersections has our keys
+      if (Object.keys(intersections).includes(positionKey)) {
         key = positionKey;
         console.log(`🎯 Custom grid cell clicked: Using position key ${key}`);
       }
     } else {
       // Fallback for regular grids or when position is not provided
-      const customKey = Object.keys(cells).find(k => k.startsWith(`${rowKey}|${colKey}@`));
+      const customKey = Object.keys(intersections).find(k => k.startsWith(`${rowKey}|${colKey}@`));
       if (customKey) {
         key = customKey;
         console.log(`🎯 Custom grid fallback: Using key ${key}`);
@@ -455,6 +456,7 @@ export default function Home() {
     const isCorrect = eligiblePids.includes(player.pid);
     
     console.log(`🎯 Checking eligibility for ${currentCellKey}: ${eligiblePids.length} eligible players, isCorrect: ${isCorrect}`);
+    console.log(`🎯 Available intersection keys:`, Object.keys(intersections).filter(k => k.includes(currentCellKey.split('@')[0])));
     
     // Compute rarity if correct
     let rarity = 0;
