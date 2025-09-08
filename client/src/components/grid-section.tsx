@@ -65,15 +65,11 @@ export function GridSection({
   const getCellContent = (rowKey: string, colKey: string, rowIndex?: number, colIndex?: number) => {
     let key = getCellKey(rowKey, colKey);
     
-    // Check if this is a custom grid with position-based keys
-    const customKey = Object.keys(cells).find(k => k.startsWith(`${rowKey}|${colKey}@`));
-    if (customKey && rowIndex !== undefined && colIndex !== undefined) {
-      // Find the specific position-based key
+    // For custom grids with position-based keys, use the exact position key
+    if (rowIndex !== undefined && colIndex !== undefined) {
       const expectedPositionKey = `${rowKey}|${colKey}@${rowIndex}-${colIndex}`;
       if (Object.keys(cells).includes(expectedPositionKey)) {
         key = expectedPositionKey;
-      } else {
-        key = customKey;
       }
     }
     
