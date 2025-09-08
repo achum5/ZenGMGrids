@@ -62,8 +62,21 @@ export function GridSection({
   const totalScore = calculateScore(cells);
   const getCellKey = (rowKey: string, colKey: string) => `${rowKey}|${colKey}`;
 
-  const getCellContent = (rowKey: string, colKey: string) => {
-    const key = getCellKey(rowKey, colKey);
+  const getCellContent = (rowKey: string, colKey: string, rowIndex?: number, colIndex?: number) => {
+    let key = getCellKey(rowKey, colKey);
+    
+    // Check if this is a custom grid with position-based keys
+    const customKey = Object.keys(cells).find(k => k.startsWith(`${rowKey}|${colKey}@`));
+    if (customKey && rowIndex !== undefined && colIndex !== undefined) {
+      // Find the specific position-based key
+      const expectedPositionKey = `${rowKey}|${colKey}@${rowIndex}-${colIndex}`;
+      if (Object.keys(cells).includes(expectedPositionKey)) {
+        key = expectedPositionKey;
+      } else {
+        key = customKey;
+      }
+    }
+    
     const cellState = cells[key];
     
     if (!cellState?.name) {
@@ -223,7 +236,7 @@ export function GridSection({
                 
                 return (
                   <div 
-                    key={col.key} 
+                    key={`${col.key}-header-${index}`} 
                     className={cn(
                       "aspect-square bg-secondary dark:bg-slate-700 p-2 md:p-3 overflow-hidden",
                       headerRadius
@@ -257,7 +270,7 @@ export function GridSection({
                     
                     return (
                       <div 
-                        key={`${row.key}-header`}
+                        key={`${row.key}-header-${rowIndex}`}
                         className={cn(
                           "aspect-square bg-secondary dark:bg-slate-700 p-2 md:p-3 overflow-hidden",
                           rowIndex === rows.length - 1 ? 'rounded-bl-2xl' : ''
@@ -279,7 +292,7 @@ export function GridSection({
                   
                   // Grid Cells for this row
                   ...cols.map((col, colIndex) => {
-                    const cellContent = getCellContent(row.key, col.key);
+                    const cellContent = getCellContent(row.key, col.key, rowIndex, colIndex);
                     
                     // Determine corner radius based on position in the game grid (3x3 within the 4x4 layout)
                     const isTopLeft = rowIndex === 0 && colIndex === 0;
@@ -295,7 +308,7 @@ export function GridSection({
                     
                     return (
                       <button
-                        key={`${row.key}-${col.key}`}
+                        key={`${row.key}-${col.key}-${rowIndex}-${colIndex}`}
                         className={cn(
                           'aspect-square w-full flex items-center justify-center text-center relative overflow-hidden transition-all duration-200 hover:brightness-110 hover:contrast-110 hover:shadow-md',
                           cornerRadius,
