@@ -233,6 +233,124 @@ export function updateCustomGridState(
   };
 }
 
+// Auto-fill remaining empty headers intelligently
+export function autoFillGrid(
+  currentState: CustomGridState,
+  players: Player[],
+  teams: Team[],
+  teamOptions: TeamOption[],
+  achievementOptions: AchievementOption[],
+  seasonIndex?: SeasonIndex
+): CustomGridState {
+  const newState = { ...currentState };
+  
+  // Identify which positions are already filled
+  const filledPositions = new Set<string>();
+  const usedTeams = new Set<number>();
+  const usedAchievements = new Set<string>();
+  
+  // Track what's already selected
+  newState.rows.forEach((row, i) => {
+    if (row.selectedId) {
+      filledPositions.add(`row-${i}`);
+      if (row.type === 'team') usedTeams.add(row.selectedId as number);
+      if (row.type === 'achievement') usedAchievements.add(row.selectedId as string);
+    }
+  });
+  
+  newState.cols.forEach((col, i) => {
+    if (col.selectedId) {
+      filledPositions.add(`col-${i}`);
+      if (col.type === 'team') usedTeams.add(col.selectedId as number);
+      if (col.type === 'achievement') usedAchievements.add(col.selectedId as string);
+    }
+  });
+  
+  // Get available options
+  const availableTeams = teamOptions.filter(t => !usedTeams.has(t.id));
+  const availableAchievements = achievementOptions.filter(a => !usedAchievements.has(a.id));
+  
+  // Simple strategy: fill with mix of teams and achievements
+  const emptyPositions: Array<{type: 'row' | 'col', index: number}> = [];
+  
+  for (let i = 0; i < 3; i++) {
+    if (!filledPositions.has(`row-${i}`)) {
+      emptyPositions.push({type: 'row', index: i});
+    }
+    if (!filledPositions.has(`col-${i}`)) {
+      emptyPositions.push({type: 'col', index: i});
+    }
+  }
+  
+  // Fill empty positions alternating between teams and achievements
+  let teamIndex = 0;
+  let achievementIndex = 0;
+  let useTeam = true;
+  
+  for (const pos of emptyPositions) {
+    if (useTeam && teamIndex < availableTeams.length) {
+      const team = availableTeams[teamIndex++];
+      const config: HeaderConfig = {
+        type: 'team',
+        selectedId: team.id,
+        selectedLabel: team.label
+      };
+      
+      if (pos.type === 'row') {
+        newState.rows[pos.index] = config;
+      } else {
+        newState.cols[pos.index] = config;
+      }
+    } else if (!useTeam && achievementIndex < availableAchievements.length) {
+      const achievement = availableAchievements[achievementIndex++];
+      const config: HeaderConfig = {
+        type: 'achievement',
+        selectedId: achievement.id,
+        selectedLabel: achievement.label
+      };
+      
+      if (pos.type === 'row') {
+        newState.rows[pos.index] = config;
+      } else {
+        newState.cols[pos.index] = config;
+      }
+    } else {
+      // Fallback: use whatever is available
+      if (teamIndex < availableTeams.length) {
+        const team = availableTeams[teamIndex++];
+        const config: HeaderConfig = {
+          type: 'team',
+          selectedId: team.id,
+          selectedLabel: team.label
+        };
+        
+        if (pos.type === 'row') {
+          newState.rows[pos.index] = config;
+        } else {
+          newState.cols[pos.index] = config;
+        }
+      } else if (achievementIndex < availableAchievements.length) {
+        const achievement = availableAchievements[achievementIndex++];
+        const config: HeaderConfig = {
+          type: 'achievement',
+          selectedId: achievement.id,
+          selectedLabel: achievement.label
+        };
+        
+        if (pos.type === 'row') {
+          newState.rows[pos.index] = config;
+        } else {
+          newState.cols[pos.index] = config;
+        }
+      }
+    }
+    
+    useTeam = !useTeam; // Alternate between teams and achievements
+  }
+  
+  return updateCustomGridState(newState, players, teams, seasonIndex);
+}
+
 // Convert custom grid state to grid generation format
 export function customGridToGenerated(
   state: CustomGridState,

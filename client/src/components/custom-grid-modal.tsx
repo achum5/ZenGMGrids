@@ -18,6 +18,7 @@ import {
   getAchievementOptions,
   updateCustomGridState,
   customGridToGenerated,
+  autoFillGrid,
   type CustomGridState,
   type HeaderConfig,
   type TeamOption,
@@ -82,6 +83,18 @@ export function CustomGridModal({
       onCreateGrid(generated.rows, generated.cols);
       onClose();
     }
+  };
+
+  const handleAutoFill = () => {
+    const autoFilledState = autoFillGrid(
+      gridState, 
+      players, 
+      teams, 
+      teamOptions, 
+      achievementOptions, 
+      seasonIndex
+    );
+    setGridState(autoFilledState);
   };
 
   const isCreateEnabled = gridState.isValid && gridState.isSolvable;
@@ -169,47 +182,15 @@ export function CustomGridModal({
             </CardContent>
           </Card>
 
-          {/* Grid Status */}
-          <div className="bg-muted/50 dark:bg-slate-700/50 rounded-lg p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium dark:text-white">Grid Status:</span>
-              <div className="flex gap-2">
-                <span className={`text-xs px-2 py-1 rounded ${
-                  gridState.isValid 
-                    ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200' 
-                    : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200'
-                }`}>
-                  {gridState.isValid ? 'All cells have players' : 'Some cells have no players'}
-                </span>
-                {gridState.isValid && (
-                  <span className={`text-xs px-2 py-1 rounded ${
-                    gridState.isSolvable 
-                      ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200' 
-                      : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200'
-                  }`}>
-                    {gridState.isSolvable ? 'Grid is solvable' : 'Grid may be unsolvable'}
-                  </span>
-                )}
-              </div>
-            </div>
-            
-            {!gridState.isSolvable && gridState.isValid && (
-              <p className="text-xs text-muted-foreground dark:text-gray-400">
-                Warning: Some cells may require the same player, making the grid unsolvable. 
-                Try adjusting your selections.
-              </p>
-            )}
-          </div>
-
           {/* Action Buttons */}
           <div className="flex justify-between">
             <Button
-              onClick={onClose}
+              onClick={handleAutoFill}
               variant="outline"
               className="dark:bg-slate-700 dark:hover:bg-slate-600"
-              data-testid="button-cancel-custom-grid"
+              data-testid="button-auto-fill-grid"
             >
-              Cancel
+              Auto Fill In
             </Button>
             
             <Button
