@@ -154,8 +154,23 @@ function validateCustomIntersection(
     return [];
   }
 
-  // FIXED: Always use evaluateConstraintPair for consistency with regular grids
-  // This ensures identical validation logic for all achievement types including MIP, MVP, etc.
+  // Handle season achievements using season index (where data actually exists)
+  const achievementConstraint = rowConstraint.type === 'achievement' ? rowConstraint : 
+                               colConstraint.type === 'achievement' ? colConstraint : null;
+  const teamConstraint = rowConstraint.type === 'team' ? rowConstraint :
+                        colConstraint.type === 'team' ? colConstraint : null;
+
+  if (achievementConstraint && teamConstraint && seasonIndex) {
+    const seasonAchievements = ['AllLeagueAny', 'AllDefAny', 'AllRookieAny', 'AllStar', 'MVP', 'DPOY', 'ROY', 'SMOY', 'MIP', 'FinalsMVP'];
+    if (seasonAchievements.includes(achievementConstraint.achievementId!)) {
+      // Use season index for these achievements since player.achievementSeasons is not populated
+      const seasonAchievementId = achievementConstraint.achievementId as SeasonAchievementId;
+      const eligiblePids = getSeasonEligiblePlayers(seasonIndex, teamConstraint.tid!, seasonAchievementId);
+      return players.filter(p => eligiblePids.has(p.pid));
+    }
+  }
+
+  // For other achievements, use evaluateConstraintPair
   const rowGridConstraint: GridConstraint = {
     type: rowConstraint.type,
     tid: rowConstraint.tid,
