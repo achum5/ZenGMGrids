@@ -1,6 +1,8 @@
 import type { Player, Team, CatTeam, LeagueData } from '@/types/bbgm';
 import type { SeasonIndex } from '@/lib/season-achievements';
 import { getAchievements, playerMeetsAchievement } from '@/lib/achievements';
+import type { GridConstraint } from '@/types/game';
+import { evaluateConstraintPair } from '@/lib/feedback';
 
 export interface HeaderConfig {
   type: 'team' | 'achievement' | null;
@@ -105,7 +107,31 @@ export function headerConfigToCatTeam(
   }
 }
 
-// Calculate intersection for a single cell
+// Convert header config to GridConstraint for proper season alignment validation
+export function headerConfigToGridConstraint(
+  config: HeaderConfig,
+  teams: Team[]
+): GridConstraint | null {
+  if (!config.type || !config.selectedId || !config.selectedLabel) {
+    return null;
+  }
+
+  if (config.type === 'team') {
+    return {
+      type: 'team',
+      tid: config.selectedId as number,
+      label: config.selectedLabel
+    };
+  } else {
+    return {
+      type: 'achievement', 
+      achievementId: config.selectedId as string,
+      label: config.selectedLabel
+    };
+  }
+}
+
+// Calculate intersection for a single cell with proper season alignment
 export function calculateCustomCellIntersection(
   rowConfig: HeaderConfig,
   colConfig: HeaderConfig,
@@ -113,15 +139,17 @@ export function calculateCustomCellIntersection(
   teams: Team[],
   seasonIndex?: SeasonIndex
 ): number {
-  const rowConstraint = headerConfigToCatTeam(rowConfig, teams, seasonIndex);
-  const colConstraint = headerConfigToCatTeam(colConfig, teams, seasonIndex);
+  // Convert to GridConstraint objects for proper validation
+  const rowConstraint = headerConfigToGridConstraint(rowConfig, teams);
+  const colConstraint = headerConfigToGridConstraint(colConfig, teams);
   
   if (!rowConstraint || !colConstraint) {
     return 0;
   }
 
+  // Use the same validation logic as regular grids with proper season alignment
   const eligiblePlayers = players.filter(player => 
-    rowConstraint.test(player) && colConstraint.test(player)
+    evaluateConstraintPair(player, rowConstraint, colConstraint)
   );
 
   return eligiblePlayers.length;
