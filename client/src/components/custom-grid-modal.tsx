@@ -182,6 +182,15 @@ export function CustomGridModal({
             </CardContent>
           </Card>
 
+          {/* Error Message */}
+          {gridState.autoFillError && (
+            <div className="bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-3">
+              <p className="text-sm text-red-800 dark:text-red-200">
+                {gridState.autoFillError}
+              </p>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="flex justify-between">
             <Button
