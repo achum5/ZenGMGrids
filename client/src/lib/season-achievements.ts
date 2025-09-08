@@ -54,7 +54,7 @@ export type SeasonAchievementId =
   | 'BBAllLeague'
   | 'BBPlayoffsMVP'
   // Special handling achievements
-  | 'SFMVP'; // Requires special team resolution logic
+;
 
 // Type for the season index - maps season -> teamId -> achievementId -> Set of player IDs
 export type SeasonIndex = Record<number, Record<number, Record<SeasonAchievementId, Set<number>>>>;
@@ -154,7 +154,6 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId | null> = {
   'Assists Leader': 'HKAssistsLeader',
   
   // Special handling for certain achievements
-  'Superstar Finals MVP': 'SFMVP', // Requires special team resolution
 };
 
 /**
@@ -466,38 +465,7 @@ function resolveFinalsMVPTeam(player: Player, season: number): number | null {
   return bestTeam;
 }
 
-/**
- * Resolve Superstar Finals MVP team using regular season stats
- * This is a special achievement that uses regular season performance
- */
-function resolveSFMVPTeam(player: Player, season: number): number | null {
-  if (!player.stats) return null;
-  
-  const regularStats = player.stats.filter(s => 
-    s.season === season && !s.playoffs
-  );
-  
-  if (regularStats.length === 0) return null;
-  
-  // If only one regular season team, use that
-  if (regularStats.length === 1) {
-    return regularStats[0].tid;
-  }
-  
-  // Multiple regular season teams - pick the one with most minutes
-  let bestTeam = regularStats[0].tid;
-  let maxMinutes = regularStats[0].min || 0;
-  
-  for (const stat of regularStats.slice(1)) {
-    const minutes = stat.min || 0;
-    if (minutes > maxMinutes) {
-      maxMinutes = minutes;
-      bestTeam = stat.tid;
-    }
-  }
-  
-  return bestTeam;
-}
+// REMOVED: resolveSFMVPTeam function (fake achievement)
 
 /**
  * Build comprehensive season achievement index from player data
@@ -542,20 +510,7 @@ export function buildSeasonIndex(
         continue;
       }
       
-      if (achievementId === 'SFMVP') {
-        const playoffsTeam = resolveSFMVPTeam(player, season);
-        if (playoffsTeam !== null) {
-          if (!seasonIndex[season]) seasonIndex[season] = {};
-          if (!seasonIndex[season][playoffsTeam]) seasonIndex[season][playoffsTeam] = {} as Record<SeasonAchievementId, Set<number>>;
-          if (!seasonIndex[season][playoffsTeam][achievementId]) seasonIndex[season][playoffsTeam][achievementId] = new Set();
-          
-          seasonIndex[season][playoffsTeam][achievementId].add(player.pid);
-          totalIndexed++;
-        } else {
-          skippedEntries++;
-        }
-        continue;
-      }
+      // REMOVED: SFMVP handling (fake achievement)
       
       // Handle all other awards (multi-team rule)
       const seasonTeams = getSeasonTeams(player, season);
@@ -933,10 +888,4 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
   },
   
   // Special handling achievements
-  {
-    id: 'SFMVP',
-    label: 'Superstar Finals MVP',
-    isSeasonSpecific: true,
-    minPlayers: 3
-  }
 ];
