@@ -101,7 +101,7 @@ export function CustomGridHeaderSelector({
 
       {/* Selection Display & Dropdown */}
       {localType && !config.selectedLabel && (
-        <div className="w-full h-full flex flex-col justify-center p-1">
+        <div className="w-full h-full flex flex-col p-1">
           <div className="flex items-center justify-between mb-1">
             <span className="text-[9px] xs:text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground">
               {localType === 'team' ? 'Team' : 'Achievement'}
@@ -117,35 +117,37 @@ export function CustomGridHeaderSelector({
             </Button>
           </div>
           
-          <Select onValueChange={handleSelectionChange} data-testid={`select-${localType}-${position}`}>
-            <SelectTrigger className="w-full text-[8px] xs:text-[9px] sm:text-[10px] md:text-xs dark:bg-slate-600 h-8">
-              <SelectValue placeholder={`Select ${localType === 'team' ? 'Team' : 'Achievement'}`} />
-            </SelectTrigger>
-            <SelectContent className="max-h-[30rem] dark:bg-slate-700">
-              {localType === 'team' 
-                ? teamOptions.map(team => (
-                    <SelectItem 
-                      key={team.id} 
-                      value={team.id.toString()}
-                      className="text-xs dark:hover:bg-slate-600"
-                      data-testid={`option-team-${team.id}`}
-                    >
-                      {team.label}
-                    </SelectItem>
-                  ))
-                : achievementOptions.map(achievement => (
-                    <SelectItem 
-                      key={achievement.id} 
-                      value={achievement.id}
-                      className="text-xs dark:hover:bg-slate-600"
-                      data-testid={`option-achievement-${achievement.id}`}
-                    >
-                      {achievement.label}
-                    </SelectItem>
-                  ))
-              }
-            </SelectContent>
-          </Select>
+          <div className="flex-1 flex items-center justify-center">
+            <Select onValueChange={handleSelectionChange} data-testid={`select-${localType}-${position}`}>
+              <SelectTrigger className="w-full text-[8px] xs:text-[9px] sm:text-[10px] md:text-xs dark:bg-slate-600 h-8">
+                <SelectValue placeholder={`Select ${localType === 'team' ? 'Team' : 'Achievement'}`} />
+              </SelectTrigger>
+              <SelectContent className="max-h-[30rem] dark:bg-slate-700">
+                {localType === 'team' 
+                  ? teamOptions.map(team => (
+                      <SelectItem 
+                        key={team.id} 
+                        value={team.id.toString()}
+                        className="text-xs dark:hover:bg-slate-600"
+                        data-testid={`option-team-${team.id}`}
+                      >
+                        {team.label}
+                      </SelectItem>
+                    ))
+                  : achievementOptions.map(achievement => (
+                      <SelectItem 
+                        key={achievement.id} 
+                        value={achievement.id}
+                        className="text-xs dark:hover:bg-slate-600"
+                        data-testid={`option-achievement-${achievement.id}`}
+                      >
+                        {achievement.label}
+                      </SelectItem>
+                    ))
+                }
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       )}
 
