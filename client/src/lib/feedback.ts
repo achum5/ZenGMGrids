@@ -1985,6 +1985,14 @@ function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, a
     return false;
   }
 
+  // For season achievements stored in the global season index, use that instead
+  const seasonAchievements = ['AllLeagueAny', 'AllDefAny', 'AllRookieAny', 'AllStar', 'MVP', 'DPOY', 'ROY', 'SMOY', 'MIP', 'FinalsMVP'];
+  if (seasonAchievements.includes(achievementId)) {
+    // Use the season index which has the correct data
+    // This logic will be handled by the grid's season index approach
+    return false; // Let the grid generator handle these with proper season index
+  }
+
   // Season-aligned achievements: need intersection of team seasons and achievement seasons
   if (!player.teamSeasonsPaired || !player.achievementSeasons) {
     return false;
