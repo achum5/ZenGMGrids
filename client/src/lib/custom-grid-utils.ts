@@ -234,55 +234,7 @@ export function updateCustomGridState(
   };
 }
 
-// Test if a complete grid configuration has all cells with eligible players
-function testGridConfiguration(
-  rows: HeaderConfig[],
-  cols: HeaderConfig[],
-  players: Player[],
-  teams: Team[],
-  seasonIndex?: SeasonIndex
-): boolean {
-  // Check each intersection
-  for (let r = 0; r < 3; r++) {
-    for (let c = 0; c < 3; c++) {
-      const rowConstraint = headerConfigToCatTeam(rows[r], teams, seasonIndex);
-      const colConstraint = headerConfigToCatTeam(cols[c], teams, seasonIndex);
-      
-      if (!rowConstraint || !colConstraint) return false;
-      
-      // Count eligible players for this intersection  
-      const eligiblePlayers = players.filter(player => 
-        rowConstraint.test(player) && colConstraint.test(player)
-      );
-      const eligibleCount = eligiblePlayers.length;
-      if (eligibleCount === 0) return false;
-    }
-  }
-  return true;
-}
-
-// Generate all possible combinations for empty positions
-function generateCombinations<T>(
-  items: T[],
-  count: number
-): T[][] {
-  if (count === 0) return [[]];
-  if (count > items.length) return [];
-  
-  const result: T[][] = [];
-  for (let i = 0; i <= items.length - count; i++) {
-    const item = items[i];
-    const remaining = items.slice(i + 1);
-    const subCombinations = generateCombinations(remaining, count - 1);
-    
-    for (const subCombination of subCombinations) {
-      result.push([item, ...subCombination]);
-    }
-  }
-  return result;
-}
-
-// Auto-fill remaining empty headers with exhaustive testing
+// Smart auto-fill using backtracking (much more efficient)
 export function autoFillGrid(
   currentState: CustomGridState,
   players: Player[],
@@ -293,97 +245,136 @@ export function autoFillGrid(
 ): CustomGridState {
   const newState = { ...currentState };
   
-  // Identify which positions are already filled by user
-  const emptyRowIndices: number[] = [];
-  const emptyColIndices: number[] = [];
+  // Identify empty positions and used options
+  const emptyPositions: Array<{type: 'row' | 'col', index: number}> = [];
   const usedTeams = new Set<number>();
   const usedAchievements = new Set<string>();
   
   // Track what's already selected and what's empty
   for (let i = 0; i < 3; i++) {
     if (!newState.rows[i].selectedId) {
-      emptyRowIndices.push(i);
+      emptyPositions.push({type: 'row', index: i});
     } else {
       if (newState.rows[i].type === 'team') usedTeams.add(newState.rows[i].selectedId as number);
       if (newState.rows[i].type === 'achievement') usedAchievements.add(newState.rows[i].selectedId as string);
     }
     
     if (!newState.cols[i].selectedId) {
-      emptyColIndices.push(i);
+      emptyPositions.push({type: 'col', index: i});
     } else {
       if (newState.cols[i].type === 'team') usedTeams.add(newState.cols[i].selectedId as number);
       if (newState.cols[i].type === 'achievement') usedAchievements.add(newState.cols[i].selectedId as string);
     }
   }
   
-  // Get available options (excluding already used)
-  const availableTeams = teamOptions.filter(t => !usedTeams.has(t.id));
-  const availableAchievements = achievementOptions.filter(a => !usedAchievements.has(a.id));
-  const allAvailableOptions = [
-    ...availableTeams.map(t => ({ type: 'team' as const, id: t.id, label: t.label })),
-    ...availableAchievements.map(a => ({ type: 'achievement' as const, id: a.id, label: a.label }))
-  ];
-  
-  const totalEmpty = emptyRowIndices.length + emptyColIndices.length;
-  
-  if (totalEmpty === 0) {
-    // Nothing to fill
+  if (emptyPositions.length === 0) {
     return updateCustomGridState(newState, players, teams, seasonIndex);
   }
   
-  if (allAvailableOptions.length < totalEmpty) {
-    // Not enough options to fill all empty positions
-    return newState;
-  }
+  // Get available options
+  const availableTeams = teamOptions.filter(t => !usedTeams.has(t.id));
+  const availableAchievements = achievementOptions.filter(a => !usedAchievements.has(a.id));
   
-  // Try all possible combinations of available options for empty positions
-  const combinations = generateCombinations(allAvailableOptions, totalEmpty);
+  // Create shuffled options list for variety
+  const shuffledOptions = [
+    ...availableTeams.map(t => ({ type: 'team' as const, id: t.id, label: t.label })),
+    ...availableAchievements.map(a => ({ type: 'achievement' as const, id: a.id, label: a.label }))
+  ].sort(() => Math.random() - 0.5);
   
-  for (const combination of combinations) {
-    // Create a test configuration
-    const testRows = [...newState.rows];
-    const testCols = [...newState.cols];
+  // Backtracking function to fill positions one by one
+  function tryFillPosition(positionIndex: number): boolean {
+    if (positionIndex >= emptyPositions.length) {
+      // All positions filled - check if grid is valid
+      return isCurrentGridValid();
+    }
     
-    // Fill empty positions with this combination
-    let comboIndex = 0;
+    const position = emptyPositions[positionIndex];
     
-    // Fill empty rows first
-    for (const rowIndex of emptyRowIndices) {
-      const option = combination[comboIndex++];
-      testRows[rowIndex] = {
+    // Try each available option for this position
+    for (const option of shuffledOptions) {
+      // Check if this option is already used
+      if ((option.type === 'team' && usedTeams.has(option.id as number)) ||
+          (option.type === 'achievement' && usedAchievements.has(option.id as string))) {
+        continue;
+      }
+      
+      // Apply this option
+      const config: HeaderConfig = {
         type: option.type,
         selectedId: option.id,
         selectedLabel: option.label
       };
+      
+      if (position.type === 'row') {
+        newState.rows[position.index] = config;
+      } else {
+        newState.cols[position.index] = config;
+      }
+      
+      // Mark as used
+      if (option.type === 'team') {
+        usedTeams.add(option.id as number);
+      } else {
+        usedAchievements.add(option.id as string);
+      }
+      
+      // Recursively try to fill remaining positions
+      if (tryFillPosition(positionIndex + 1)) {
+        return true; // Found valid solution
+      }
+      
+      // Backtrack - remove this option
+      if (position.type === 'row') {
+        newState.rows[position.index] = { type: null, selectedId: null, selectedLabel: null };
+      } else {
+        newState.cols[position.index] = { type: null, selectedId: null, selectedLabel: null };
+      }
+      
+      if (option.type === 'team') {
+        usedTeams.delete(option.id as number);
+      } else {
+        usedAchievements.delete(option.id as string);
+      }
     }
     
-    // Then fill empty columns
-    for (const colIndex of emptyColIndices) {
-      const option = combination[comboIndex++];
-      testCols[colIndex] = {
-        type: option.type,
-        selectedId: option.id,
-        selectedLabel: option.label
-      };
-    }
-    
-    // Test if this configuration works (all cells have eligible players)
-    if (testGridConfiguration(testRows, testCols, players, teams, seasonIndex)) {
-      // Found a valid configuration! Apply it
-      newState.rows = testRows as [HeaderConfig, HeaderConfig, HeaderConfig];
-      newState.cols = testCols as [HeaderConfig, HeaderConfig, HeaderConfig];
-      return updateCustomGridState(newState, players, teams, seasonIndex);
-    }
+    return false; // No valid option found for this position
   }
   
-  // No valid configuration found after trying all combinations
-  // Return original state with an error indicator
-  return {
-    ...newState,
-    isValid: false,
-    isSolvable: false,
-    autoFillError: 'No valid combination found. Try changing your selections.'
-  };
+  // Check if current grid state is valid (all cells have players)
+  function isCurrentGridValid(): boolean {
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 3; c++) {
+        if (!newState.rows[r].selectedId || !newState.cols[c].selectedId) {
+          continue; // Skip unfilled positions
+        }
+        
+        const count = calculateCustomCellIntersection(
+          newState.rows[r],
+          newState.cols[c],
+          players,
+          teams,
+          seasonIndex
+        );
+        
+        if (count === 0) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+  
+  // Try to fill all empty positions
+  if (tryFillPosition(0)) {
+    // Success! Return updated state
+    return updateCustomGridState(newState, players, teams, seasonIndex);
+  } else {
+    // Failed to find valid configuration
+    return {
+      ...currentState,
+      autoFillError: 'No valid combination found. Try changing your selections.'
+    };
+  }
 }
 
 // Convert custom grid state to grid generation format
