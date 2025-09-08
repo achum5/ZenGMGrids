@@ -24,14 +24,6 @@ export function CustomGridCell({
     return "bg-green-400 dark:bg-green-600/60 text-green-950 dark:text-green-50";
   };
   
-  const getBadgeClass = (count: number) => {
-    if (count === 0) return "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300";
-    if (count <= 5) return "bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200";
-    if (count <= 20) return "bg-green-300 dark:bg-green-700 text-green-900 dark:text-green-100";
-    if (count <= 50) return "bg-green-400 dark:bg-green-600 text-green-950 dark:text-green-50";
-    return "bg-green-500 dark:bg-green-500 text-white dark:text-white";
-  };
-  
   return (
     <div
       className={cn(
@@ -42,17 +34,13 @@ export function CustomGridCell({
       )}
       data-testid={`custom-cell-${row}-${col}`}
     >
-      <div className="text-lg font-bold leading-none mb-2">
-        {playerCount}
-      </div>
-      
-      {/* Pill Badge */}
-      <div className={cn(
-        "px-2 py-1 rounded-full text-[8px] xs:text-[9px] sm:text-[10px] font-medium",
-        "border border-current/20 shadow-sm",
-        getBadgeClass(playerCount)
-      )}>
-        eligible player{playerCount !== 1 ? 's' : ''}
+      <div className="text-center">
+        <div className="text-lg font-bold leading-none mb-1">
+          {playerCount}
+        </div>
+        <div className="text-[8px] xs:text-[9px] sm:text-[10px] font-medium opacity-90">
+          eligible player{playerCount !== 1 ? 's' : ''}
+        </div>
       </div>
     </div>
   );
