@@ -2,6 +2,11 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+// Import sport icon images
+import basketballIcon from '@/assets/basketball.png';
+import footballIcon from '@/assets/football.png';
+import hockeyIcon from '@/assets/hockey.png';
+import baseballIcon from '@/assets/baseball.png';
 import { X } from 'lucide-react';
 import { CustomGridHeaderSelector } from './custom-grid-header-selector';
 import { CustomGridCell } from './custom-grid-cell';
@@ -100,14 +105,18 @@ export function CustomGridModal({
               <div className="max-w-4xl mx-auto">
                 <div className="bg-border/60 dark:bg-slate-600/90 rounded-2xl p-[2px] md:p-[3px] overflow-hidden">
                   <div className="grid grid-cols-4 gap-[2px] md:gap-[3px] w-full">
-                    {/* Empty corner - matches normal grid */}
+                    {/* Sport icon corner */}
                     <div className="aspect-square flex flex-col items-center justify-center bg-secondary dark:bg-slate-700 rounded-tl-2xl overflow-hidden">
-                      <div className="text-xs sm:text-sm md:text-base font-medium text-muted-foreground dark:text-gray-400">
-                        Custom
-                      </div>
-                      <div className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold leading-none text-foreground dark:text-white">
-                        Grid
-                      </div>
+                      <img 
+                        src={
+                          sport === 'football' ? footballIcon :
+                          sport === 'hockey' ? hockeyIcon :
+                          sport === 'baseball' ? baseballIcon :
+                          basketballIcon
+                        }
+                        alt={`${sport} icon`}
+                        className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-16 lg:h-16 object-contain"
+                      />
                     </div>
                     
                     {/* Column Headers */}
