@@ -552,7 +552,8 @@ export default function Home() {
     
     // Find all empty cells in stable order (row-major: top→bottom, left→right)
     // Check if we're dealing with custom grids (position-based keys) or regular grids
-    const existingKeys = Object.keys(cells);
+    // Check intersections instead of cells since cells may be empty but intersections is always populated
+    const existingKeys = Object.keys(intersections);
     const hasPositionKeys = existingKeys.some(key => key.includes('@'));
     
     let allCellKeys: string[];
