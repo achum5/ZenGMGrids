@@ -88,9 +88,9 @@ export function PlayerSearchModal({
           (queryWithPeriods.length > 2 && sp.lastFolded.includes(queryWithPeriods)) ||
           (queryWithPeriods.length > 2 && sp.nameFolded.includes(queryWithPeriods)) ||
           // Handle apostrophe cases: "dd oc" should match "ddoconnor" (from "D.D. O'Connor")
-          sp.firstFolded.includes(queryNoSpaces) || 
-          sp.lastFolded.includes(queryNoSpaces) ||
-          sp.nameFolded.includes(queryNoSpaces)) {
+          sp.firstFolded.replace(/[\.\s]/g, '').includes(queryNoSpaces) || 
+          sp.lastFolded.replace(/[\.\s]/g, '').includes(queryNoSpaces) ||
+          sp.nameFolded.replace(/[\.\s]/g, '').includes(queryNoSpaces)) {
         matches.push(sp);
       }
     }
