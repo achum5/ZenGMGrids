@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 // Import sport icon images
 import basketballIcon from '@/assets/basketball.png';
 import footballIcon from '@/assets/football.png';
 import hockeyIcon from '@/assets/hockey.png';
 import baseballIcon from '@/assets/baseball.png';
-import { X } from 'lucide-react';
+import { X, ChevronDown } from 'lucide-react';
 import { CustomGridHeaderSelector } from './custom-grid-header-selector';
 import { CustomGridCell } from './custom-grid-cell';
 import type { Player, Team } from '@/types/bbgm';
@@ -85,17 +86,22 @@ export function CustomGridModal({
     }
   };
 
-  const handleAutoFill = () => {
+  const handleAutoFill = (fillType: 'mixed' | 'teams-only' | 'achievements-only' = 'mixed') => {
     const autoFilledState = autoFillGrid(
       gridState, 
       players, 
       teams, 
       teamOptions, 
       achievementOptions, 
-      seasonIndex
+      seasonIndex,
+      fillType
     );
     setGridState(autoFilledState);
   };
+
+  const handleAutoFillMixed = () => handleAutoFill('mixed');
+  const handleAutoFillTeamsOnly = () => handleAutoFill('teams-only');
+  const handleAutoFillAchievementsOnly = () => handleAutoFill('achievements-only');
 
   const handleClearAll = () => {
     const clearedState = createEmptyCustomGrid();
@@ -207,14 +213,29 @@ export function CustomGridModal({
               Clear All
             </Button>
             
-            <Button
-              onClick={handleAutoFill}
-              variant="outline"
-              className="dark:bg-slate-700 dark:hover:bg-slate-600"
-              data-testid="button-auto-fill-grid"
-            >
-              Auto Fill In
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="dark:bg-slate-700 dark:hover:bg-slate-600 flex items-center gap-2"
+                  data-testid="button-auto-fill-grid"
+                >
+                  Auto Fill In
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={handleAutoFillMixed}>
+                  Mixed (default)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleAutoFillTeamsOnly}>
+                  Auto Fill In Teams
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleAutoFillAchievementsOnly}>
+                  Auto Fill In Achievements
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             
             <Button
               onClick={handleCreateGrid}

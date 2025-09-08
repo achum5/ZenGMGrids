@@ -241,7 +241,8 @@ export function autoFillGrid(
   teams: Team[],
   teamOptions: TeamOption[],
   achievementOptions: AchievementOption[],
-  seasonIndex?: SeasonIndex
+  seasonIndex?: SeasonIndex,
+  fillType: 'mixed' | 'teams-only' | 'achievements-only' = 'mixed'
 ): CustomGridState {
   const newState = { ...currentState };
   
@@ -338,11 +339,19 @@ export function autoFillGrid(
   for (let i = 0; i < emptyRows.length; i++) {
     const rowIndex = emptyRows[i];
     
-    // Add some randomness to the decision, not just strict alternating
-    const useTeamBias = Math.random() > 0.4; // 60% chance to prefer team
-    const shouldUseTeam = shouldAvoidAchievements || 
-                         (shouldLimitAchievements && achievementsAdded >= 1) ||
-                         useTeamBias;
+    // Determine what to use based on fillType and randomness
+    let shouldUseTeam: boolean;
+    if (fillType === 'teams-only') {
+      shouldUseTeam = true;
+    } else if (fillType === 'achievements-only') {
+      shouldUseTeam = false;
+    } else {
+      // Mixed mode - add some randomness to the decision, not just strict alternating
+      const useTeamBias = Math.random() > 0.4; // 60% chance to prefer team
+      shouldUseTeam = shouldAvoidAchievements || 
+                      (shouldLimitAchievements && achievementsAdded >= 1) ||
+                      useTeamBias;
+    }
     
     if (shouldUseTeam) {
       // Try to use team first
@@ -357,9 +366,9 @@ export function autoFillGrid(
       }
     }
     
-    // Try achievement if allowed and available
-    if (canAddMoreAchievements && 
-        (!shouldLimitAchievements || achievementsAdded < 1)) {
+    // Try achievement if allowed and available (or if we're forced to use achievements-only)
+    if ((canAddMoreAchievements && (!shouldLimitAchievements || achievementsAdded < 1)) ||
+        fillType === 'achievements-only') {
       const achievement = pickRandomAchievement();
       if (achievement) {
         newState.rows[rowIndex] = {
@@ -387,11 +396,19 @@ export function autoFillGrid(
   for (let i = 0; i < emptyCols.length; i++) {
     const colIndex = emptyCols[i];
     
-    // Add some randomness to the decision with slight opposite bias from rows
-    const useTeamBias = Math.random() > 0.3; // 70% chance to prefer team for balance
-    const shouldUseTeam = shouldAvoidAchievements || 
-                         (shouldLimitAchievements && achievementsAdded >= 1) ||
-                         useTeamBias;
+    // Determine what to use based on fillType and randomness (column logic)
+    let shouldUseTeam: boolean;
+    if (fillType === 'teams-only') {
+      shouldUseTeam = true;
+    } else if (fillType === 'achievements-only') {
+      shouldUseTeam = false;
+    } else {
+      // Mixed mode - add some randomness to the decision with slight opposite bias from rows
+      const useTeamBias = Math.random() > 0.3; // 70% chance to prefer team for balance
+      shouldUseTeam = shouldAvoidAchievements || 
+                      (shouldLimitAchievements && achievementsAdded >= 1) ||
+                      useTeamBias;
+    }
     
     if (shouldUseTeam) {
       // Try to use team first
@@ -406,9 +423,9 @@ export function autoFillGrid(
       }
     }
     
-    // Try achievement if allowed and available
-    if (canAddMoreAchievements && 
-        (!shouldLimitAchievements || achievementsAdded < 1)) {
+    // Try achievement if allowed and available (or if we're forced to use achievements-only)
+    if ((canAddMoreAchievements && (!shouldLimitAchievements || achievementsAdded < 1)) ||
+        fillType === 'achievements-only') {
       const achievement = pickRandomAchievement();
       if (achievement) {
         newState.cols[colIndex] = {
