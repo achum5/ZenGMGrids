@@ -351,7 +351,14 @@ export function GridSection({
                                 sport={sport}
                               />
                               {(() => {
-                                const cellKey = getCellKey(row.key, col.key);
+                                // Use the same key logic as getCellContent for position-based keys
+                                let cellKey = getCellKey(row.key, col.key);
+                                if (rowIndex !== undefined && colIndex !== undefined) {
+                                  const expectedPositionKey = `${row.key}|${col.key}@${rowIndex}-${colIndex}`;
+                                  if (Object.keys(cells).includes(expectedPositionKey)) {
+                                    cellKey = expectedPositionKey;
+                                  }
+                                }
                                 const cellState = cells[cellKey];
                                 return cellState?.correct && cellState?.rarity && (
                                   <div className="absolute top-1 left-1 z-10">
