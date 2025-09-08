@@ -101,9 +101,9 @@ export function CustomGridHeaderSelector({
 
       {/* Selection Display & Dropdown */}
       {localType && !config.selectedLabel && (
-        <div className="w-full h-full flex flex-col p-1">
+        <div className="w-full h-full flex flex-col justify-center p-1">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[8px] xs:text-[9px] sm:text-[10px] md:text-xs font-medium text-muted-foreground">
+            <span className="text-[9px] xs:text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground">
               {localType === 'team' ? 'Team' : 'Achievement'}
             </span>
             <Button
