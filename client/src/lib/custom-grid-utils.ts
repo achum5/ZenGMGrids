@@ -154,32 +154,8 @@ function validateCustomIntersection(
     return [];
   }
 
-  // If either constraint is an achievement, check for season-specific logic
-  const achievementConstraint = rowConstraint.type === 'achievement' ? rowConstraint : 
-                               colConstraint.type === 'achievement' ? colConstraint : null;
-  const teamConstraint = rowConstraint.type === 'team' ? rowConstraint :
-                        colConstraint.type === 'team' ? colConstraint : null;
-
-  // Handle Team × Achievement intersections using the exact same logic as regular grids
-  if (achievementConstraint && teamConstraint) {
-    // Check if this is a season-specific achievement (copied from preValidateIntersection)
-    const isSeasonAchievement = SEASON_ACHIEVEMENTS.some(sa => sa.id === achievementConstraint.achievementId);
-    
-    if (isSeasonAchievement && seasonIndex && sport === 'basketball') {
-      // Use season harmonization for season-specific achievements (exact copy from regular grids)
-      const seasonAchievementId = achievementConstraint.achievementId as SeasonAchievementId;
-      const eligiblePids = getSeasonEligiblePlayers(seasonIndex, teamConstraint.tid!, seasonAchievementId);
-      return players.filter(p => eligiblePids.has(p.pid));
-    } else {
-      // Use traditional validation for career achievements (exact copy from regular grids)
-      return players.filter(p => 
-        playerMeetsAchievement(p, achievementConstraint.achievementId!, seasonIndex) && 
-        p.teamsPlayed.has(teamConstraint.tid!)
-      );
-    }
-  }
-
-  // For any other combination, use the evaluateConstraintPair logic from feedback.ts
+  // FIXED: Always use evaluateConstraintPair for consistency with regular grids
+  // This ensures identical validation logic for all achievement types including MIP, MVP, etc.
   const rowGridConstraint: GridConstraint = {
     type: rowConstraint.type,
     tid: rowConstraint.tid,
