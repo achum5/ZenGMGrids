@@ -76,10 +76,10 @@ export function CustomGridHeaderSelector({
     >
       {/* Type Selection */}
       {!localType && (
-        <div className="w-full h-full flex">
+        <div className="w-full h-full flex flex-col">
           <button
             onClick={() => handleTypeChange('team')}
-            className="flex-1 flex items-center justify-center text-[8px] xs:text-[9px] sm:text-[10px] md:text-xs font-medium text-secondary-foreground dark:text-white hover:bg-secondary/80 dark:hover:bg-slate-600 transition-colors border-r border-border dark:border-slate-600"
+            className="flex-1 flex items-center justify-center text-[8px] xs:text-[9px] sm:text-[10px] md:text-xs font-medium text-secondary-foreground dark:text-white hover:bg-secondary/80 dark:hover:bg-slate-600 transition-colors border-b border-border dark:border-slate-600"
             data-testid={`button-select-team-${position}`}
           >
             Team
