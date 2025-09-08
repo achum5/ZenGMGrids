@@ -23,7 +23,7 @@ interface GridSectionProps {
   rows: CatTeam[];
   cols: CatTeam[];
   cells: Record<string, CellState>;
-  onCellClick: (rowKey: string, colKey: string) => void;
+  onCellClick: (rowKey: string, colKey: string, rowIndex?: number, colIndex?: number) => void;
   onGenerateNewGrid: () => void;
   onGiveUp: () => void;
   onRetryGrid: () => void;
@@ -317,17 +317,17 @@ export function GridSection({
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          onCellClick(row.key, col.key);
+                          onCellClick(row.key, col.key, rowIndex, colIndex);
                         }}
                         onTouchEnd={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          onCellClick(row.key, col.key);
+                          onCellClick(row.key, col.key, rowIndex, colIndex);
                         }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault();
-                            onCellClick(row.key, col.key);
+                            onCellClick(row.key, col.key, rowIndex, colIndex);
                           }
                         }}
                         disabled={cellContent.disabled}
