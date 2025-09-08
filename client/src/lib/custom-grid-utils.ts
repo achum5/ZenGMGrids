@@ -1,8 +1,13 @@
 import type { Player, Team, CatTeam, LeagueData } from '@/types/bbgm';
 import type { SeasonIndex } from '@/lib/season-achievements';
-import { getAchievements, playerMeetsAchievement } from '@/lib/achievements';
-import type { GridConstraint } from '@/types/game';
-import { evaluateConstraintPair } from '@/lib/feedback';
+import { getAchievements, playerMeetsAchievement, SEASON_ALIGNED_ACHIEVEMENTS } from '@/lib/achievements';
+
+export interface GridConstraint {
+  type: 'team' | 'achievement';
+  tid?: number;
+  achievementId?: string;
+  label: string;
+}
 
 export interface HeaderConfig {
   type: 'team' | 'achievement' | null;
@@ -131,6 +136,104 @@ export function headerConfigToGridConstraint(
   }
 }
 
+// Helper function to check if player played for team (copied from feedback.ts)
+function playerPlayedForTeam(player: Player, tid: number): boolean {
+  if (!player.stats || !Array.isArray(player.stats)) return false;
+  
+  return player.stats.some(stat => stat.tid === tid && !stat.playoffs && (stat.gp || 0) > 0);
+}
+
+// Core validation logic copied directly from regular grid logic
+function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, achievementId: string): boolean {
+  // Check if this achievement requires same-season alignment
+  if (!SEASON_ALIGNED_ACHIEVEMENTS.has(achievementId)) {
+    // Career-based achievements: just check if player ever played for team AND has the achievement
+    return playerPlayedForTeam(player, teamTid) && playerMeetsAchievement(player, achievementId, undefined);
+  }
+
+  // For new statistical leader achievements, we need to use the season index approach
+  // These achievements are not stored in player.achievementSeasons but in the global season index
+  const statisticalLeaders = ['PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader'];
+  if (statisticalLeaders.includes(achievementId)) {
+    // This will be handled by the grid generator's season index logic
+    // For now, return false here since the grid generator handles this case differently
+    return false;
+  }
+
+  // Season-aligned achievements: need intersection of team seasons and achievement seasons
+  if (!player.teamSeasonsPaired || !player.achievementSeasons) {
+    return false;
+  }
+
+  // Get seasons when player achieved this specific achievement
+  let achievementSeasons: Set<number>;
+  
+  // Map achievement IDs to their season data (handle existing vs new naming)
+  switch (achievementId) {
+    case 'season30ppg': achievementSeasons = player.achievementSeasons.season30ppg; break;
+    case 'season10apg': achievementSeasons = player.achievementSeasons.season10apg; break;
+    case 'season15rpg': achievementSeasons = player.achievementSeasons.season15rpg; break;
+    case 'season3bpg': achievementSeasons = player.achievementSeasons.season3bpg; break;
+    case 'season25spg': achievementSeasons = player.achievementSeasons.season25spg; break;
+    case 'season504090': achievementSeasons = player.achievementSeasons.season504090; break;
+    case 'ledScoringAny': achievementSeasons = player.achievementSeasons.ledScoringAny; break;
+    case 'ledRebAny': achievementSeasons = player.achievementSeasons.ledRebAny; break;
+    case 'ledAstAny': achievementSeasons = player.achievementSeasons.ledAstAny; break;
+    case 'ledStlAny': achievementSeasons = player.achievementSeasons.ledStlAny; break;
+    case 'ledBlkAny': achievementSeasons = player.achievementSeasons.ledBlkAny; break;
+    case 'hasMVP': achievementSeasons = player.achievementSeasons.mvpWinner; break;
+    case 'hasDPOY': achievementSeasons = player.achievementSeasons.dpoyWinner; break;
+    case 'hasROY': achievementSeasons = player.achievementSeasons.royWinner; break;
+    case 'hasSMOY': achievementSeasons = player.achievementSeasons.smoyWinner; break;
+    case 'hasMIP': achievementSeasons = player.achievementSeasons.mipWinner; break;
+    case 'hasFinalsMVP': achievementSeasons = player.achievementSeasons.fmvpWinner; break;
+    case 'hasAllStar': achievementSeasons = player.achievementSeasons.allStarSelection; break;
+    case 'AllLeagueAny': achievementSeasons = player.achievementSeasons.allLeagueTeam; break;
+    case 'AllDefAny': achievementSeasons = player.achievementSeasons.allDefensiveTeam; break;
+    default:
+      // Fallback for unknown achievements
+      return playerPlayedForTeam(player, teamTid) && playerMeetsAchievement(player, achievementId, undefined);
+  }
+
+  if (!achievementSeasons || achievementSeasons.size === 0) {
+    return false;
+  }
+
+  // Check if there's any season where player both played for the team AND achieved the accomplishment
+  for (const season of Array.from(achievementSeasons)) {
+    const teamSeasonKey = `${season}|${teamTid}`;
+    if (player.teamSeasonsPaired.has(teamSeasonKey)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// Core constraint pair evaluation logic copied from regular grids
+function evaluateCustomConstraintPair(player: Player, rowConstraint: GridConstraint, colConstraint: GridConstraint): boolean {
+  // If both constraints are teams, check both separately
+  if (rowConstraint.type === 'team' && colConstraint.type === 'team') {
+    return playerPlayedForTeam(player, rowConstraint.tid!) && playerPlayedForTeam(player, colConstraint.tid!);
+  }
+  
+  // If both are achievements, check both separately  
+  if (rowConstraint.type === 'achievement' && colConstraint.type === 'achievement') {
+    return playerMeetsAchievement(player, rowConstraint.achievementId!) && playerMeetsAchievement(player, colConstraint.achievementId!);
+  }
+  
+  // Team × Achievement case: use same-season alignment
+  if (rowConstraint.type === 'team' && colConstraint.type === 'achievement') {
+    return evaluateTeamAchievementWithAlignment(player, rowConstraint.tid!, colConstraint.achievementId!);
+  }
+  
+  if (rowConstraint.type === 'achievement' && colConstraint.type === 'team') {
+    return evaluateTeamAchievementWithAlignment(player, colConstraint.tid!, rowConstraint.achievementId!);
+  }
+  
+  return false;
+}
+
 // Get eligible players for a single cell with proper season alignment  
 export function getCustomCellEligiblePlayers(
   rowConfig: HeaderConfig,
@@ -148,7 +251,7 @@ export function getCustomCellEligiblePlayers(
 
   // Use the same validation logic as regular grids with proper season alignment
   return players.filter(player => 
-    evaluateConstraintPair(player, rowConstraint, colConstraint)
+    evaluateCustomConstraintPair(player, rowConstraint, colConstraint)
   );
 }
 
