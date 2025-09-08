@@ -83,7 +83,7 @@ export function CustomGridHeaderSelector({
             className="w-full text-xs dark:bg-slate-600 dark:hover:bg-slate-500"
             data-testid={`button-select-team-${position}`}
           >
-            Team
+            🏟️
           </Button>
           <Button
             onClick={() => handleTypeChange('achievement')}
@@ -91,7 +91,7 @@ export function CustomGridHeaderSelector({
             className="w-full text-xs dark:bg-slate-600 dark:hover:bg-slate-500"
             data-testid={`button-select-achievement-${position}`}
           >
-            Achievement
+            🏆
           </Button>
         </div>
       )}
@@ -101,7 +101,7 @@ export function CustomGridHeaderSelector({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">
-              {localType === 'team' ? 'Team' : 'Achievement'}
+              {localType === 'team' ? '🏟️' : '🏆'}
             </span>
             <Button
               onClick={handleClear}
@@ -116,7 +116,7 @@ export function CustomGridHeaderSelector({
           
           <Select onValueChange={handleSelectionChange} data-testid={`select-${localType}-${position}`}>
             <SelectTrigger className="w-full text-xs dark:bg-slate-600">
-              <SelectValue placeholder={`Select ${localType}`} />
+              <SelectValue placeholder={`Select ${localType === 'team' ? '🏟️' : '🏆'}`} />
             </SelectTrigger>
             <SelectContent className="max-h-60 dark:bg-slate-700">
               {localType === 'team' 
@@ -151,7 +151,7 @@ export function CustomGridHeaderSelector({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">
-              {config.type === 'team' ? 'Team' : 'Achievement'}
+              {config.type === 'team' ? '🏟️' : '🏆'}
             </span>
             <Button
               onClick={handleClear}
