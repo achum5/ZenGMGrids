@@ -121,7 +121,7 @@ export function CustomGridHeaderSelector({
             <SelectTrigger className="w-full text-[8px] xs:text-[9px] sm:text-[10px] md:text-xs dark:bg-slate-600 h-8">
               <SelectValue placeholder={`Select ${localType === 'team' ? 'Team' : 'Achievement'}`} />
             </SelectTrigger>
-            <SelectContent className="max-h-60 dark:bg-slate-700">
+            <SelectContent className="max-h-[30rem] dark:bg-slate-700">
               {localType === 'team' 
                 ? teamOptions.map(team => (
                     <SelectItem 
