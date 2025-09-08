@@ -213,29 +213,38 @@ export function CustomGridModal({
               Clear All
             </Button>
             
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="dark:bg-slate-700 dark:hover:bg-slate-600 flex items-center gap-2"
-                  data-testid="button-auto-fill-grid"
-                >
-                  Auto Fill In
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem onClick={handleAutoFillMixed}>
-                  Mixed (default)
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleAutoFillTeamsOnly}>
-                  Auto Fill In Teams
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleAutoFillAchievementsOnly}>
-                  Auto Fill In Achievements
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex">
+              <Button
+                onClick={handleAutoFillMixed}
+                variant="outline"
+                className="dark:bg-slate-700 dark:hover:bg-slate-600 rounded-r-none border-r-0 flex-1"
+                data-testid="button-auto-fill-grid"
+              >
+                Auto Fill In
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="dark:bg-slate-700 dark:hover:bg-slate-600 rounded-l-none px-2 border-l border-gray-300 dark:border-gray-600"
+                    data-testid="button-auto-fill-dropdown"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem onClick={handleAutoFillMixed}>
+                    Mixed (default)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleAutoFillTeamsOnly}>
+                    Auto Fill In Teams
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleAutoFillAchievementsOnly}>
+                    Auto Fill In Achievements
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
             
             <Button
               onClick={handleCreateGrid}
