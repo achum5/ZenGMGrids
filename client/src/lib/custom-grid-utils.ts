@@ -301,7 +301,7 @@ export function autoFillGrid(
     )
   );
   const randomTeams = availableTeams.filter(t => !popularTeams.includes(t));
-  const mixedTeams = shuffleArray([...popularTeams, ...randomTeams.slice(0, 8)]);
+  const mixedTeams = shuffleArray([...popularTeams, ...randomTeams.slice(0, 16)]);
   
   const popularAchievements = availableAchievements.filter(a =>
     ['Hall of Fame', 'First Round', 'Played 15+', '20,000+'].some(phrase =>
@@ -309,7 +309,7 @@ export function autoFillGrid(
     )
   );
   const randomAchievements = availableAchievements.filter(a => !popularAchievements.includes(a));
-  const mixedAchievements = shuffleArray([...popularAchievements, ...randomAchievements.slice(0, 8)]);
+  const mixedAchievements = shuffleArray([...popularAchievements, ...randomAchievements.slice(0, 16)]);
   
   // Achievement limit logic
   const maxAllowedAchievements = 3;
