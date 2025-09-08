@@ -389,18 +389,14 @@ export default function Home() {
       // Check intersections instead of cells since cells starts empty but intersections has our keys
       if (Object.keys(intersections).includes(positionKey)) {
         key = positionKey;
-        console.log(`🎯 Custom grid cell clicked: Using position key ${key}`);
       }
     } else {
       // Fallback for regular grids or when position is not provided
       const customKey = Object.keys(intersections).find(k => k.startsWith(`${rowKey}|${colKey}@`));
       if (customKey) {
         key = customKey;
-        console.log(`🎯 Custom grid fallback: Using key ${key}`);
       }
     }
-    
-    console.log(`🎯 Cell clicked: ${rowKey} × ${colKey} (${rowIndex},${colIndex}) → Key: ${key}`);
     const cellState = cells[key];
     
     // If cell is locked and has a player, open player modal
@@ -429,15 +425,12 @@ export default function Home() {
     }
     
     // Open search modal for empty cells
-    console.log(`🎯 Setting currentCellKey to: ${key}`);
     setCurrentCellKey(key);
     setSearchModalOpen(true);
   }, [cells, rows, cols, intersections, leagueData]);
 
   const handleSelectPlayer = useCallback((player: Player) => {
     if (!currentCellKey) return;
-    
-    console.log(`🎯 Player selected: ${player.name} for cell key: ${currentCellKey}`);
     
     // Check if player already used
     if (usedPids.has(player.pid)) {
@@ -454,9 +447,6 @@ export default function Home() {
     // Validate eligibility
     const eligiblePids = intersections[currentCellKey] || [];
     const isCorrect = eligiblePids.includes(player.pid);
-    
-    console.log(`🎯 Checking eligibility for ${currentCellKey}: ${eligiblePids.length} eligible players, isCorrect: ${isCorrect}`);
-    console.log(`🎯 Available intersection keys:`, Object.keys(intersections).filter(k => k.includes(currentCellKey.split('@')[0])));
     
     // Compute rarity if correct
     let rarity = 0;
@@ -498,26 +488,18 @@ export default function Home() {
     }
     
     // Update cell state with locking
-    console.log(`🎯 Updating cell with key: ${currentCellKey} to player: ${player.name}`);
-    console.log(`🎯 Before update - cell keys in state:`, Object.keys(cells));
-    
-    setCells(prev => {
-      const newState = {
-        ...prev,
-        [currentCellKey]: {
-          name: player.name,
-          correct: isCorrect,
-          locked: true,
-          guessed: true,
-          player: player,
-          rarity: isCorrect ? rarity : undefined,
-          points: isCorrect ? points : undefined,
-        },
-      };
-      
-      console.log(`🎯 After update - updated cells:`, Object.keys(newState).filter(k => newState[k].player?.pid === player.pid));
-      return newState;
-    });
+    setCells(prev => ({
+      ...prev,
+      [currentCellKey]: {
+        name: player.name,
+        correct: isCorrect,
+        locked: true,
+        guessed: true,
+        player: player,
+        rarity: isCorrect ? rarity : undefined,
+        points: isCorrect ? points : undefined,
+      },
+    }));
     
     // Add to used players (regardless of correctness to prevent reuse)
     setUsedPids(prev => new Set([...Array.from(prev), player.pid]));
