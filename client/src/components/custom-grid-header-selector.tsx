@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { X } from 'lucide-react';
@@ -23,6 +23,11 @@ export function CustomGridHeaderSelector({
   className
 }: CustomGridHeaderSelectorProps) {
   const [localType, setLocalType] = useState<'team' | 'achievement' | null>(config.type);
+
+  // Sync local state with external config changes (like auto-fill)
+  useEffect(() => {
+    setLocalType(config.type);
+  }, [config.type]);
 
   const handleTypeChange = (newType: 'team' | 'achievement') => {
     setLocalType(newType);
