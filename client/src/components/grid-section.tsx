@@ -128,7 +128,20 @@ export function GridSection({
   const totalCells = 9;
   
   // Check if all cells are filled (either guessed or auto-filled)
-  const allCellKeys = rows.flatMap(row => cols.map(col => getCellKey(row.key, col.key)));
+  // For custom grids, we need to use position-based keys like getCellContent does
+  const allCellKeys = rows.flatMap((row, rowIndex) => 
+    cols.map((col, colIndex) => {
+      let key = getCellKey(row.key, col.key);
+      
+      // For custom grids with position-based keys, use the exact position key
+      const expectedPositionKey = `${row.key}|${col.key}@${rowIndex}-${colIndex}`;
+      if (Object.keys(cells).includes(expectedPositionKey)) {
+        key = expectedPositionKey;
+      }
+      
+      return key;
+    })
+  );
   const filledCells = allCellKeys.filter(key => cells[key]?.name).length;
   const isGridComplete = filledCells === totalCells;
   
