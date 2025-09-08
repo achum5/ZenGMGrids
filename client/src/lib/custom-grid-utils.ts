@@ -250,20 +250,29 @@ export function autoFillGrid(
   const usedAchievements = new Set<string>();
   const emptyRows: number[] = [];
   const emptyCols: number[] = [];
+  let currentAchievementCount = 0;
   
   for (let i = 0; i < 3; i++) {
     if (!newState.rows[i].selectedId) {
       emptyRows.push(i);
     } else {
-      if (newState.rows[i].type === 'team') usedTeams.add(newState.rows[i].selectedId as number);
-      if (newState.rows[i].type === 'achievement') usedAchievements.add(newState.rows[i].selectedId as string);
+      if (newState.rows[i].type === 'team') {
+        usedTeams.add(newState.rows[i].selectedId as number);
+      } else {
+        usedAchievements.add(newState.rows[i].selectedId as string);
+        currentAchievementCount++;
+      }
     }
     
     if (!newState.cols[i].selectedId) {
       emptyCols.push(i);
     } else {
-      if (newState.cols[i].type === 'team') usedTeams.add(newState.cols[i].selectedId as number);
-      if (newState.cols[i].type === 'achievement') usedAchievements.add(newState.cols[i].selectedId as string);
+      if (newState.cols[i].type === 'team') {
+        usedTeams.add(newState.cols[i].selectedId as number);
+      } else {
+        usedAchievements.add(newState.cols[i].selectedId as string);
+        currentAchievementCount++;
+      }
     }
   }
   
@@ -284,14 +293,26 @@ export function autoFillGrid(
     )
   ).concat(availableAchievements.slice(0, 3));
   
+  // Achievement limit logic
+  const maxAllowedAchievements = 3;
+  const canAddMoreAchievements = currentAchievementCount < maxAllowedAchievements;
+  const shouldAvoidAchievements = currentAchievementCount >= 3;
+  const shouldLimitAchievements = currentAchievementCount === 2; // Only add max 1 more if we have 2
+  
   let teamIndex = 0;
   let achievementIndex = 0;
+  let achievementsAdded = 0;
   
-  // Fill empty rows (alternate between teams and achievements)
+  // Fill empty rows with smart achievement limiting
   for (let i = 0; i < emptyRows.length; i++) {
     const rowIndex = emptyRows[i];
     
-    if (i % 2 === 0 && teamIndex < popularTeams.length) {
+    // Decide whether to use team or achievement based on current count
+    const shouldUseTeam = shouldAvoidAchievements || 
+                         (shouldLimitAchievements && achievementsAdded >= 1) ||
+                         (i % 2 === 0); // Still alternate when possible
+    
+    if (shouldUseTeam && teamIndex < popularTeams.length) {
       // Use team
       const team = popularTeams[teamIndex++];
       newState.rows[rowIndex] = {
@@ -299,14 +320,17 @@ export function autoFillGrid(
         selectedId: team.id,
         selectedLabel: team.label
       };
-    } else if (achievementIndex < popularAchievements.length) {
-      // Use achievement
+    } else if (canAddMoreAchievements && 
+               (!shouldLimitAchievements || achievementsAdded < 1) && 
+               achievementIndex < popularAchievements.length) {
+      // Use achievement (only if we're allowed)
       const achievement = popularAchievements[achievementIndex++];
       newState.rows[rowIndex] = {
         type: 'achievement',
         selectedId: achievement.id,
         selectedLabel: achievement.label
       };
+      achievementsAdded++;
     } else if (teamIndex < popularTeams.length) {
       // Fallback to team
       const team = popularTeams[teamIndex++];
@@ -318,11 +342,16 @@ export function autoFillGrid(
     }
   }
   
-  // Fill empty columns (opposite pattern for variety)
+  // Fill empty columns with smart achievement limiting
   for (let i = 0; i < emptyCols.length; i++) {
     const colIndex = emptyCols[i];
     
-    if (i % 2 === 1 && teamIndex < popularTeams.length) {
+    // Decide whether to use team or achievement based on current count
+    const shouldUseTeam = shouldAvoidAchievements || 
+                         (shouldLimitAchievements && achievementsAdded >= 1) ||
+                         (i % 2 === 1); // Opposite pattern from rows
+    
+    if (shouldUseTeam && teamIndex < popularTeams.length) {
       // Use team
       const team = popularTeams[teamIndex++];
       newState.cols[colIndex] = {
@@ -330,14 +359,17 @@ export function autoFillGrid(
         selectedId: team.id,
         selectedLabel: team.label
       };
-    } else if (achievementIndex < popularAchievements.length) {
-      // Use achievement
+    } else if (canAddMoreAchievements && 
+               (!shouldLimitAchievements || achievementsAdded < 1) && 
+               achievementIndex < popularAchievements.length) {
+      // Use achievement (only if we're allowed)
       const achievement = popularAchievements[achievementIndex++];
       newState.cols[colIndex] = {
         type: 'achievement',
         selectedId: achievement.id,
         selectedLabel: achievement.label
       };
+      achievementsAdded++;
     } else if (teamIndex < popularTeams.length) {
       // Fallback to team
       const team = popularTeams[teamIndex++];
