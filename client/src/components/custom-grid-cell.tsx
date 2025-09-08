@@ -15,13 +15,10 @@ export function CustomGridCell({
 }: CustomGridCellProps) {
   const isValid = playerCount > 0;
   
-  // Dynamic intensity based on player count
+  // Simple color scheme - same green for all valid cells
   const getIntensityClass = (count: number) => {
     if (count === 0) return "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400";
-    if (count <= 5) return "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300";
-    if (count <= 20) return "bg-green-200 dark:bg-green-800/40 text-green-800 dark:text-green-200";
-    if (count <= 50) return "bg-green-300 dark:bg-green-700/50 text-green-900 dark:text-green-100";
-    return "bg-green-400 dark:bg-green-600/60 text-green-950 dark:text-green-50";
+    return "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200";
   };
   
   return (
