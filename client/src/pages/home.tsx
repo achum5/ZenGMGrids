@@ -379,14 +379,22 @@ export default function Home() {
     }
   }, [leagueData, toast]);
 
-  const handleCellClick = useCallback((rowKey: string, colKey: string) => {
-    // For custom grids, find the cell key that matches the row and column and has the position info
+  const handleCellClick = useCallback((rowKey: string, colKey: string, rowIndex?: number, colIndex?: number) => {
+    // For custom grids, use position-based keys to target the exact cell
     let key = cellKey(rowKey, colKey);
     
     // Check if this is a custom grid with position-based keys
-    const customKey = Object.keys(cells).find(k => k.startsWith(`${rowKey}|${colKey}@`));
-    if (customKey) {
-      key = customKey;
+    if (rowIndex !== undefined && colIndex !== undefined) {
+      const positionKey = `${rowKey}|${colKey}@${rowIndex}-${colIndex}`;
+      if (Object.keys(cells).includes(positionKey)) {
+        key = positionKey;
+      }
+    } else {
+      // Fallback for regular grids or when position is not provided
+      const customKey = Object.keys(cells).find(k => k.startsWith(`${rowKey}|${colKey}@`));
+      if (customKey) {
+        key = customKey;
+      }
     }
     
     const cellState = cells[key];
