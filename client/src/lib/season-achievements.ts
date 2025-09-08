@@ -611,11 +611,14 @@ export function getSeasonEligiblePlayers(
 ): Set<number> {
   const allPlayers = new Set<number>();
   
-  // Search across all seasons for this team-achievement combination
+  // FIXED: This function was incorrectly aggregating across all seasons
+  // The seasonIndex already properly stores team-season-achievement combinations
+  // We should return exactly what's indexed for this team-achievement pair
   for (const seasonStr of Object.keys(seasonIndex)) {
     const season = parseInt(seasonStr);
     const seasonData = seasonIndex[season];
     if (seasonData[teamId] && seasonData[teamId][achievementId]) {
+      // Only add players who actually achieved this while playing for this team
       for (const pid of Array.from(seasonData[teamId][achievementId])) {
         allPlayers.add(pid);
       }
