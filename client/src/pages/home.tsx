@@ -341,9 +341,39 @@ export default function Home() {
     if (cellState?.locked && cellState?.player) {
       setModalPlayer(cellState.player);
       
-      // Get eligible players for this cell to show in modal
-      const eligiblePids = intersections[key] || [];
-      const eligiblePlayers = leagueData?.players.filter(p => eligiblePids.includes(p.pid)) || [];
+      // Get eligible players for this cell using canonical index - SINGLE SOURCE OF TRUTH
+      const [modalRowKey, modalColKey] = key.split('|');
+      const modalRowConstraint = rows.find(r => r.key === modalRowKey);
+      const modalColConstraint = cols.find(c => c.key === modalColKey);
+      
+      let modalEligiblePids: number[] = [];
+      
+      if (canonicalIndex && modalRowConstraint && modalColConstraint) {
+        // Use canonical index for Team × Achievement combinations
+        if (modalRowConstraint.type === 'team' && modalColConstraint.type === 'achievement' && modalColConstraint.achievementId) {
+          const teamId = modalRowConstraint.tid!;
+          const achId = modalColConstraint.achievementId;
+          const team = leagueData?.teams.find(t => t.tid === teamId);
+          const franchiseId = (team as any)?.franchiseId || teamId;
+          const eligiblePidSet = getCanonicalEligiblePlayers(canonicalIndex, achId, franchiseId);
+          modalEligiblePids = Array.from(eligiblePidSet);
+        } else if (modalColConstraint.type === 'team' && modalRowConstraint.type === 'achievement' && modalRowConstraint.achievementId) {
+          const teamId = modalColConstraint.tid!;
+          const achId = modalRowConstraint.achievementId;
+          const team = leagueData?.teams.find(t => t.tid === teamId);
+          const franchiseId = (team as any)?.franchiseId || teamId;
+          const eligiblePidSet = getCanonicalEligiblePlayers(canonicalIndex, achId, franchiseId);
+          modalEligiblePids = Array.from(eligiblePidSet);
+        } else {
+          // Fall back to intersections for non-canonical cases
+          modalEligiblePids = intersections[key] || [];
+        }
+      } else {
+        // Fallback to intersections if canonical index not available
+        modalEligiblePids = intersections[key] || [];
+      }
+      
+      const eligiblePlayers = leagueData?.players.filter(p => modalEligiblePids.includes(p.pid)) || [];
       setModalEligiblePlayers(eligiblePlayers);
       
       // Set puzzle seed for consistent rarity calculations
@@ -353,7 +383,7 @@ export default function Home() {
       // Set the cell key for feedback generation
       setModalCellKey(key);
       
-      setPlayerModalOpen(true);
+        setPlayerModalOpen(true);
       return;
     }
     
@@ -365,7 +395,7 @@ export default function Home() {
     // Open search modal for empty cells
     setCurrentCellKey(key);
     setSearchModalOpen(true);
-  }, [cells, rows, cols, intersections, leagueData]);
+  }, [cells, rows, cols, intersections, leagueData, canonicalIndex]);
 
   const handleSelectPlayer = useCallback((player: Player) => {
     if (!currentCellKey) return;
