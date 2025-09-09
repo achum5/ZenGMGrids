@@ -370,9 +370,7 @@ export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | '
 
 // Season-aligned achievements that need same-season matching for Team × Achievement cells
 export const SEASON_ALIGNED_ACHIEVEMENTS = new Set([
-  'ledScoringAny', 'ledRebAny', 'ledAstAny',
-  'AllLeagueAny', 'AllDefAny', 'AllRookieAny', 'AllStar',
-  'MVP', 'DPOY', 'ROY', 'SMOY', 'MIP', 'FinalsMVP'
+  'ledScoringAny', 'ledRebAny', 'ledAstAny'
 ]);
 
 // Check if a player meets a specific achievement criteria

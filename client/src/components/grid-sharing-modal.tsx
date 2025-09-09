@@ -191,6 +191,9 @@ export function GridSharingModal({
                 >
                   Import Grid
                 </Button>
+                <p className="text-sm text-muted-foreground">
+                  This will replace your current grid with the shared one. Make sure you have the same league file for best results.
+                </p>
               </div>
             ) : (
               <p className="text-muted-foreground">

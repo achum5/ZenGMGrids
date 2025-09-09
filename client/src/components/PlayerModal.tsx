@@ -56,9 +56,7 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
         return null;
       }
 
-      // Handle custom grid keys with position info (e.g., "team-37|achievement-isHallOfFamer@0-0")
-      const [rowKey, colKeyWithPosition] = currentCellKey.split('|');
-      const colKey = colKeyWithPosition.includes('@') ? colKeyWithPosition.split('@')[0] : colKeyWithPosition;
+      const [rowKey, colKey] = currentCellKey.split('|');
       const rowConstraint = rows.find(r => r.key === rowKey);
       const colConstraint = cols.find(c => c.key === colKey);
       
