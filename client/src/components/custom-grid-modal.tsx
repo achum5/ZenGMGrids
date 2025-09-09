@@ -177,20 +177,9 @@ export function CustomGridModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl w-full max-h-[90vh] overflow-hidden p-0 dark:bg-slate-800">
         <DialogHeader className="px-6 py-4 border-b border-border dark:border-slate-700">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-bold dark:text-white">
-              Create Custom Grid
-            </DialogTitle>
-            <Button
-              onClick={onClose}
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0"
-              data-testid="button-close-custom-grid"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+          <DialogTitle className="text-xl font-bold dark:text-white">
+            Create Custom Grid
+          </DialogTitle>
         </DialogHeader>
 
         <div className="p-6 overflow-auto">
