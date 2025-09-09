@@ -1987,81 +1987,8 @@ function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, a
     return result;
   }
 
-  // Fallback for statistical leaders or when season index is not available
-  const statisticalLeaders = ['PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader'];
-  if (statisticalLeaders.includes(achievementId)) {
-    // This will be handled by the grid generator's season index logic
-    // For now, return false here since the grid generator handles this case differently
-    return false;
-  }
-
-  // Season-aligned achievements: need intersection of team seasons and achievement seasons
-  if (!player.teamSeasonsPaired || !player.achievementSeasons) {
-    return false;
-  }
-
-  // Get seasons when player achieved this specific achievement
-  let achievementSeasons: Set<number>;
-  
-  // Map achievement IDs to their season data (handle existing vs new naming)
-  switch (achievementId) {
-    case 'season30ppg': achievementSeasons = player.achievementSeasons.season30ppg; break;
-    case 'season10apg': achievementSeasons = player.achievementSeasons.season10apg; break;
-    case 'season15rpg': achievementSeasons = player.achievementSeasons.season15rpg; break;
-    case 'season3bpg': achievementSeasons = player.achievementSeasons.season3bpg; break;
-    case 'season25spg': achievementSeasons = player.achievementSeasons.season25spg; break;
-    case 'season504090': achievementSeasons = player.achievementSeasons.season504090; break;
-    case 'ledScoringAny': achievementSeasons = player.achievementSeasons.ledScoringAny; break;
-    case 'ledRebAny': achievementSeasons = player.achievementSeasons.ledRebAny; break;
-    case 'ledAstAny': achievementSeasons = player.achievementSeasons.ledAstAny; break;
-    case 'ledStlAny': achievementSeasons = player.achievementSeasons.ledStlAny; break;
-    case 'ledBlkAny': achievementSeasons = player.achievementSeasons.ledBlkAny; break;
-    case 'hasMVP': achievementSeasons = player.achievementSeasons.mvpWinner; break;
-    case 'hasDPOY': achievementSeasons = player.achievementSeasons.dpoyWinner; break;
-    case 'hasROY': achievementSeasons = player.achievementSeasons.royWinner; break;
-    case 'hasSixthMan': achievementSeasons = player.achievementSeasons.smoyWinner; break;
-    case 'hasMIP': achievementSeasons = player.achievementSeasons.mipWinner; break;
-    case 'hasFMVP': achievementSeasons = player.achievementSeasons.fmvpWinner; break;
-    case 'hasAllLeague': achievementSeasons = player.achievementSeasons.allLeagueTeam; break;
-    case 'hasAllDef': achievementSeasons = player.achievementSeasons.allDefensiveTeam; break;
-    case 'hasAllStar': achievementSeasons = player.achievementSeasons.allStarSelection; break;
-    case 'hasChampion': achievementSeasons = player.achievementSeasons.champion; break;
-    // Add missing season-aligned achievement mappings
-    case 'AllLeagueAny': achievementSeasons = player.achievementSeasons.allLeagueTeam; break;
-    case 'AllDefAny': achievementSeasons = player.achievementSeasons.allDefensiveTeam; break;
-    case 'AllRookieAny': achievementSeasons = player.achievementSeasons.allRookieTeam; break;
-    case 'AllStar': achievementSeasons = player.achievementSeasons.allStarSelection; break;
-    case 'MVP': achievementSeasons = player.achievementSeasons.mvpWinner; break;
-    case 'DPOY': achievementSeasons = player.achievementSeasons.dpoyWinner; break;
-    case 'ROY': achievementSeasons = player.achievementSeasons.royWinner; break;
-    case 'SMOY': achievementSeasons = player.achievementSeasons.smoyWinner; break;
-    case 'MIP': achievementSeasons = player.achievementSeasons.mipWinner; break;
-    case 'FinalsMVP': achievementSeasons = player.achievementSeasons.fmvpWinner; break;
-    case 'allStar35Plus': achievementSeasons = player.achievementSeasons.allStar35Plus; break;
-    // Football achievements that should use career-based check
-    case 'wonMVP':
-    case 'wonOPOY': 
-    case 'wonDPOY':
-    case 'wonROY':
-    case 'season35PassTDs':
-    case 'season1400RecYds':
-    case 'season15RecTDs':
-    case 'season15Sacks':
-    case 'season8Ints':
-    case 'season1800RushYds':
-    case 'season20RushTDs':
-    default:
-      // Fallback to career-based check for unrecognized achievements
-      return playerPlayedForTeam(player, teamTid) && playerMeetsAchievement(player, achievementId, undefined);
-  }
-
-  // Check if there's any season where player both played for the team AND achieved the accomplishment
-  for (const season of Array.from(achievementSeasons)) {
-    const teamSeasonKey = `${season}|${teamTid}`;
-    if (player.teamSeasonsPaired.has(teamSeasonKey)) {
-      return true;
-    }
-  }
+  // For non-season achievements or when season index is not available, fall back to career-based check
+  return playerPlayedForTeam(player, teamTid) && playerMeetsAchievement(player, achievementId, seasonIndex);
 
   return false;
 }
