@@ -145,7 +145,7 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId | null> = {
   'Rookie of the Year': 'HKROY',
   'Championship': 'HKChampion',
   'Playoffs MVP': 'HKPlayoffsMVP',
-  'Finals MVP': 'HKFinalsMVP',
+  'Finals MVP': 'HKFinalsMVP', 
   'All-Rookie Team': 'HKAllRookie',
   'All-League Team': 'HKAllLeague',
   'All-Star Game MVP': 'HKAllStarMVP',
