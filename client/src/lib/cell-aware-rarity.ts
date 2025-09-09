@@ -104,8 +104,7 @@ const SEASON_ALIGNED = new Set([
 
 // Draft/Special achievements (no season alignment)
 const DRAFT_HOF_SPECIAL = new Set([
-  'isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 
-  'draftedTeen',
+  'isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted',
   'isHallOfFamer', 'played15PlusSeasons'
 ]);
 

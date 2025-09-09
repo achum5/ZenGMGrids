@@ -36,12 +36,6 @@ export const COMMON_ACHIEVEMENTS: Achievement[] = [
     test: (p: Player) => p.achievements?.isUndrafted || false,
     minPlayers: 5
   },
-  {
-    id: 'draftedTeen',
-    label: 'Drafted as Teenager',
-    test: (p: Player) => p.achievements?.draftedTeen || false,
-    minPlayers: 5
-  },
   // Special
   {
     id: 'isHallOfFamer',
@@ -326,9 +320,8 @@ export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | '
   const common = COMMON_ACHIEVEMENTS;
   
   if (sport === 'football') {
-    // Exclude draftedTeen for football
-    const footballCommon = common.filter(a => a.id !== 'draftedTeen');
-    const footballAchievements = [...footballCommon, ...FOOTBALL_ACHIEVEMENTS];
+    // Use common achievements for football
+    const footballAchievements = [...common, ...FOOTBALL_ACHIEVEMENTS];
     // Add season-specific achievements for football if season index is available
     if (seasonIndex) {
       const seasonAchievements = createSeasonAchievementTests(seasonIndex, 'football');
@@ -789,7 +782,6 @@ function calculateCommonAchievements(player: Player, achievements: any): void {
     const draftYear = draft.year;
     const birthYear = player.born?.year;
     if (draftYear && birthYear) {
-      achievements.draftedTeen = (draftYear - birthYear) <= 19;
     }
   } else {
     achievements.isUndrafted = true;
@@ -850,7 +842,6 @@ export function calculateTeamSeasonsAndAchievementSeasons(player: Player, leader
       isFirstRoundPick: new Set<number>(),
       isSecondRoundPick: new Set<number>(),
       isUndrafted: new Set<number>(),
-      draftedTeen: new Set<number>(),
       allStar35Plus: new Set<number>(),
       oneTeamOnly: new Set<number>(),
       isHallOfFamer: new Set<number>()
