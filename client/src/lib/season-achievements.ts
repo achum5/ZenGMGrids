@@ -159,7 +159,7 @@ function mapAwardToAchievement(awardType: string, sport?: 'basketball' | 'footba
  * Calculate Basketball GM season leaders (Points, Rebounds, Assists, Steals, Blocks)
  * Following the exact specification provided by the user
  */
-function calculateBBGMSeasonLeaders(
+export function calculateBBGMSeasonLeaders(
   players: Player[], 
   season: number, 
   gameAttributes: any
