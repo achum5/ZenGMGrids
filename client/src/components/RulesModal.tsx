@@ -10,7 +10,6 @@ interface RulesModalProps {
 const welcomeInfo = {
   title: "Welcome to ZenGM Grids",
   description: "Upload any ZenGM league (Basketball, Football, Hockey, Baseball) as a .json / .json.gz file or paste a public URL (Dropbox, GitHub, etc.).",
-  personal: "I'm just a longtime ZenGM fan building something for the community.",
   bugReport: "Bugs or ideas? Reach out:",
   contacts: [
     {
@@ -219,11 +218,6 @@ export function RulesModal({ sport }: RulesModalProps) {
               {/* Description */}
               <div>
                 <p className="text-base mb-4">{welcomeInfo.description}</p>
-              </div>
-
-              {/* Personal message */}
-              <div>
-                <p className="mb-4">{welcomeInfo.personal}</p>
               </div>
 
               {/* Bug report message */}
