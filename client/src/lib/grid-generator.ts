@@ -448,6 +448,7 @@ export function generateGridSeeded(leagueData: LeagueData): GridGenerationResult
         usedSeasonAchievements.add(selectedAch.id as SeasonAchievementId);
       }
       
+      
       console.log(`   Filled ${oppositeAxis} ${i} with achievement: ${selectedAch.label}`);
     }
   }
@@ -456,8 +457,20 @@ export function generateGridSeeded(leagueData: LeagueData): GridGenerationResult
   console.log(`✅ Step 4: Filling remaining slots old-style`);
   
   // Only use career achievements for old-style fill to avoid season harmonization conflicts
-  const allAchievements = getAchievements('basketball')
+  const allAchievements = getAchievements(sport)
     .filter(ach => !ach.isSeasonSpecific);
+  
+  // Mutual exclusion: career seasons constraint (same as greedy generator)
+  const careerSeasonsGroup = ["Played 10+ Seasons", "Played 15+ Seasons"];
+  const usedAchievements = new Set<string>();
+  
+  // Check if any career seasons achievements were already selected in step 3
+  const existingAchievements = [...rows, ...cols].filter(item => item?.type === 'achievement');
+  for (const item of existingAchievements) {
+    if (item.achievementId) {
+      usedAchievements.add(item.achievementId);
+    }
+  }
   
   // Filter out disabled teams for old-style fill
   const activeTeams = teams.filter(team => !team.disabled);
@@ -524,6 +537,18 @@ export function generateGridSeeded(leagueData: LeagueData): GridGenerationResult
           const achIndex = simpleHash(gridId + '_rowach' + i + '_' + attempt) % allAchievements.length;
           const ach = allAchievements[achIndex];
           
+          // Check career seasons mutual exclusion
+          if (careerSeasonsGroup.includes(ach.label)) {
+            const hasCareerSeasons = Array.from(usedAchievements).some(achId => {
+              const usedAch = allAchievements.find(a => a.id === achId);
+              return usedAch && careerSeasonsGroup.includes(usedAch.label);
+            });
+            if (hasCareerSeasons) continue; // Skip if we already have one
+          }
+          
+          // Skip if this achievement ID is already used
+          if (usedAchievements.has(ach.id)) continue;
+          
           // Check if this achievement creates valid intersections with all columns
           let validForAllCols = true;
           
@@ -551,6 +576,7 @@ export function generateGridSeeded(leagueData: LeagueData): GridGenerationResult
               test: (p: Player) => playerMeetsAchievement(p, ach.id, seasonIndex),
             };
             
+            usedAchievements.add(ach.id); // Track used achievement
             console.log(`     Selected achievement: ${ach.label} (attempt ${attempt + 1})`);
             found = true;
             break;
@@ -623,6 +649,18 @@ export function generateGridSeeded(leagueData: LeagueData): GridGenerationResult
           const achIndex = simpleHash(gridId + '_colach' + i + '_' + attempt) % allAchievements.length;
           const ach = allAchievements[achIndex];
           
+          // Check career seasons mutual exclusion
+          if (careerSeasonsGroup.includes(ach.label)) {
+            const hasCareerSeasons = Array.from(usedAchievements).some(achId => {
+              const usedAch = allAchievements.find(a => a.id === achId);
+              return usedAch && careerSeasonsGroup.includes(usedAch.label);
+            });
+            if (hasCareerSeasons) continue; // Skip if we already have one
+          }
+          
+          // Skip if this achievement ID is already used
+          if (usedAchievements.has(ach.id)) continue;
+          
           // Check if this achievement creates valid intersections with all rows
           let validForAllRows = true;
           
@@ -650,6 +688,7 @@ export function generateGridSeeded(leagueData: LeagueData): GridGenerationResult
               test: (p: Player) => playerMeetsAchievement(p, ach.id, seasonIndex),
             };
             
+            usedAchievements.add(ach.id); // Track used achievement
             console.log(`     Selected achievement: ${ach.label} (attempt ${attempt + 1})`);
             found = true;
             break;
