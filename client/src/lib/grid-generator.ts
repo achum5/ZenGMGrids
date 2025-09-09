@@ -1122,6 +1122,24 @@ function calculateIntersectionSimple(
     if (!seasonIndex) return [];
     // Use franchiseId for proper team continuity - season index is built with franchiseId
     const teamFranchiseId = rowConstraint.tid!; // In season index, franchiseId = tid for current teams
+    
+    // DEBUG: Log what we're looking for
+    if (colConstraint.achievementId === 'AllLeagueAny' && teamFranchiseId === 1) {
+      console.log(`🔥 CELTICS ALL-LEAGUE DEBUG: Looking for teamId=${teamFranchiseId}, achievement=${colConstraint.achievementId}`);
+      
+      // Check what's actually in the season index
+      let totalFound = 0;
+      for (const season of Object.keys(seasonIndex)) {
+        const seasonData = seasonIndex[parseInt(season)];
+        if (seasonData[teamFranchiseId] && seasonData[teamFranchiseId][colConstraint.achievementId as SeasonAchievementId]) {
+          const pids = seasonData[teamFranchiseId][colConstraint.achievementId as SeasonAchievementId];
+          totalFound += pids.size;
+          console.log(`🔥 Season ${season}: ${pids.size} players`, Array.from(pids));
+        }
+      }
+      console.log(`🔥 TOTAL FOUND: ${totalFound} players`);
+    }
+    
     const eligiblePids = getSeasonEligiblePlayers(seasonIndex, teamFranchiseId, colConstraint.achievementId as SeasonAchievementId);
     return players.filter(p => eligiblePids.has(p.pid));
   } else if (rowIsSeasonAchievement && colIsSeasonAchievement) {
