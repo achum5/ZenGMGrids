@@ -2014,6 +2014,17 @@ function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, a
     case 'hasAllDef': achievementSeasons = player.achievementSeasons.allDefensiveTeam; break;
     case 'hasAllStar': achievementSeasons = player.achievementSeasons.allStarSelection; break;
     case 'hasChampion': achievementSeasons = player.achievementSeasons.champion; break;
+    // Add missing season-aligned achievement mappings
+    case 'AllLeagueAny': achievementSeasons = player.achievementSeasons.allLeagueTeam; break;
+    case 'AllDefAny': achievementSeasons = player.achievementSeasons.allDefensiveTeam; break;
+    case 'AllRookieAny': achievementSeasons = player.achievementSeasons.allRookieTeam; break;
+    case 'AllStar': achievementSeasons = player.achievementSeasons.allStarSelection; break;
+    case 'MVP': achievementSeasons = player.achievementSeasons.mvpWinner; break;
+    case 'DPOY': achievementSeasons = player.achievementSeasons.dpoyWinner; break;
+    case 'ROY': achievementSeasons = player.achievementSeasons.royWinner; break;
+    case 'SMOY': achievementSeasons = player.achievementSeasons.smoyWinner; break;
+    case 'MIP': achievementSeasons = player.achievementSeasons.mipWinner; break;
+    case 'FinalsMVP': achievementSeasons = player.achievementSeasons.fmvpWinner; break;
     case 'allStar35Plus': achievementSeasons = player.achievementSeasons.allStar35Plus; break;
     // Football achievements that should use career-based check
     case 'wonMVP':
