@@ -71,15 +71,27 @@ export function CustomGridModal({
 
   const handleUndo = useCallback(() => {
     if (previousGridState) {
-      updateGrid(previousGridState);
+      // Create a deep copy to avoid reference issues
+      const restoredState = {
+        ...previousGridState,
+        rows: previousGridState.rows.map(row => ({ ...row })) as [HeaderConfig, HeaderConfig, HeaderConfig],
+        cols: previousGridState.cols.map(col => ({ ...col })) as [HeaderConfig, HeaderConfig, HeaderConfig],
+        cellResults: previousGridState.cellResults.map(row => [...row])
+      };
+      updateGrid(restoredState);
       setPreviousGridState(null);
       setShowUndo(false);
     }
   }, [previousGridState, updateGrid]);
 
   const handleAutoFill = useCallback(async () => {
-    // Store current state for undo
-    setPreviousGridState({ ...gridState });
+    // Store current state for undo (deep copy)
+    setPreviousGridState({
+      ...gridState,
+      rows: gridState.rows.map(row => ({ ...row })) as [HeaderConfig, HeaderConfig, HeaderConfig],
+      cols: gridState.cols.map(col => ({ ...col })) as [HeaderConfig, HeaderConfig, HeaderConfig],
+      cellResults: gridState.cellResults.map(row => [...row])
+    });
     setShowUndo(true);
     
     // Count what's already filled
