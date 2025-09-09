@@ -57,7 +57,7 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
     let completedCells = 0;
     for (let row = 0; row < 3; row++) {
       for (let col = 0; col < 3; col++) {
-        const key = cellKey(rows[row].key, cols[col].key);
+        const key = `${rows[row].key}|${cols[col].key}`;
         const cellState = cells[key];
         // Cell is complete if it's either guessed (locked) or given up (has a name but not locked means given up)
         if (cellState && (cellState.locked || cellState.name)) {

@@ -292,6 +292,101 @@ export function getPlayerAchievementSeasons(
 }
 
 /**
+ * Get eligible players for any cell type using canonical indexes
+ * Single source of truth for modal, validation, and grid generation
+ */
+export function getEligiblePlayersForCell(
+  index: CanonicalAchievementIndex,
+  rowConstraint: { type: string; tid?: number; achievementId?: string; label: string },
+  colConstraint: { type: string; tid?: number; achievementId?: string; label: string },
+  teams: Team[]
+): Set<number> {
+  const eligiblePids = new Set<number>();
+  
+  // Team × Achievement
+  if (rowConstraint.type === 'team' && colConstraint.type === 'achievement' && colConstraint.achievementId) {
+    const teamId = rowConstraint.tid!;
+    const achId = colConstraint.achievementId;
+    const team = teams.find(t => t.tid === teamId);
+    const franchiseId = (team as any)?.franchiseId || teamId;
+    const teamEligible = getCanonicalEligiblePlayers(index, achId, franchiseId);
+    teamEligible.forEach(pid => eligiblePids.add(pid));
+  }
+  // Achievement × Team  
+  else if (colConstraint.type === 'team' && rowConstraint.type === 'achievement' && rowConstraint.achievementId) {
+    const teamId = colConstraint.tid!;
+    const achId = rowConstraint.achievementId;
+    const team = teams.find(t => t.tid === teamId);
+    const franchiseId = (team as any)?.franchiseId || teamId;
+    const teamEligible = getCanonicalEligiblePlayers(index, achId, franchiseId);
+    teamEligible.forEach(pid => eligiblePids.add(pid));
+  }
+  // Achievement × Achievement
+  else if (rowConstraint.type === 'achievement' && colConstraint.type === 'achievement' && 
+           rowConstraint.achievementId && colConstraint.achievementId) {
+    const achId1 = rowConstraint.achievementId;
+    const achId2 = colConstraint.achievementId;
+    
+    if (achId1 === achId2) {
+      // Same achievement - get all players who have it across all teams
+      for (const teamId of Object.keys(index.awardByTeamAnySeason[achId1] || {})) {
+        const teamPids = index.awardByTeamAnySeason[achId1][parseInt(teamId)];
+        if (teamPids) {
+          teamPids.forEach(pid => eligiblePids.add(pid));
+        }
+      }
+    } else {
+      // Different achievements - find players who have both
+      const ach1PlayersByTeam = index.awardByTeamAnySeason[achId1] || {};
+      const ach2PlayersByTeam = index.awardByTeamAnySeason[achId2] || {};
+      
+      // For season achievements, we need same-season overlap
+      if (index.awardByTeamSeason[achId1] && index.awardByTeamSeason[achId2]) {
+        // Check season-by-season for overlap
+        for (const seasonStr of Object.keys(index.awardByTeamSeason[achId1])) {
+          const season = parseInt(seasonStr);
+          for (const teamStr of Object.keys(index.awardByTeamSeason[achId1][season] || {})) {
+            const teamId = parseInt(teamStr);
+            const ach1Pids = index.awardByTeamSeason[achId1][season]?.[teamId] || new Set();
+            const ach2Pids = index.awardByTeamSeason[achId2][season]?.[teamId] || new Set();
+            
+            // Find intersection for this team in this season
+            ach1Pids.forEach(pid => {
+              if (ach2Pids.has(pid)) {
+                eligiblePids.add(pid);
+              }
+            });
+          }
+        }
+      } else {
+        // Career achievements or mixed - simple intersection
+        const ach1Pids = new Set<number>();
+        for (const teamPids of Object.values(ach1PlayersByTeam)) {
+          teamPids.forEach(pid => ach1Pids.add(pid));
+        }
+        
+        for (const teamPids of Object.values(ach2PlayersByTeam)) {
+          teamPids.forEach(pid => {
+            if (ach1Pids.has(pid)) {
+              eligiblePids.add(pid);
+            }
+          });
+        }
+      }
+    }
+  }
+  // Team × Team
+  else if (rowConstraint.type === 'team' && colConstraint.type === 'team') {
+    // This would need team membership logic - not implemented in canonical index yet
+    // Fall back to empty set for now
+  }
+  
+  console.log(`🔍 CELL ELIGIBILITY: ${rowConstraint.label} × ${colConstraint.label} = ${eligiblePids.size} players`);
+  
+  return eligiblePids;
+}
+
+/**
  * Comprehensive acceptance criteria verification for FBGM
  */
 export function verifyAcceptanceCriteria(
