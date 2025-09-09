@@ -1,67 +1,73 @@
-// Season-specific achievement definitions
+// Season achievement constants and utility functions for Immaculate Grid
+
+/**
+ * Configuration for minimum games played requirement 
+ * These values ensure statistical leader calculations are meaningful
+ */
+export const MIN_GAMES_MULTIPLIER = 0.7; // Player must play 70% of season games
+export const DEFAULT_SEASON_GAMES = 82; // Default NBA season length
+
+/**
+ * Type definitions for season achievement system
+ */
 export interface SeasonAchievement {
   id: SeasonAchievementId;
   label: string;
-  isSeasonSpecific: true;
+  isSeasonSpecific: boolean;
   minPlayers: number;
 }
 
 export type SeasonAchievementId = 
   // Basketball GM achievements
-  | 'AllStar'
-  | 'MVP'
-  | 'DPOY'
-  | 'ROY'
-  | 'SMOY'
-  | 'MIP'
-  | 'FinalsMVP'
-  | 'AllLeagueAny'
-  | 'AllDefAny'
-  | 'AllRookieAny'
-  | 'PointsLeader'
-  | 'ReboundsLeader'
-  | 'AssistsLeader'
-  | 'StealsLeader'
-  | 'BlocksLeader'
+  | 'AllStar' | 'MVP' | 'DPOY' | 'ROY' | 'SMOY' | 'MIP' | 'FinalsMVP'
+  | 'AllLeagueAny' | 'AllDefAny' | 'AllRookieAny'
+  | 'PointsLeader' | 'ReboundsLeader' | 'AssistsLeader' | 'StealsLeader' | 'BlocksLeader'
+  
   // Football GM achievements
-  | 'FBAllStar'
-  | 'FBMVP'
-  | 'FBDPOY'
-  | 'FBOffROY'
-  | 'FBDefROY'
-  | 'FBChampion'
-  | 'FBAllRookie'
-  | 'FBAllLeague'
-  | 'FBFinalsMVP'
-  // Hockey achievements
-  | 'HKAllStar'
-  | 'HKMVP'
-  | 'HKDefenseman'
-  | 'HKROY'
-  | 'HKChampion'
-  | 'HKPlayoffsMVP'
-  | 'HKFinalsMVP'
-  | 'HKAllRookie'
-  | 'HKAllLeague'
-  | 'HKAllStarMVP'
-  | 'HKAssistsLeader'
-  // Baseball achievements
-  | 'BBAllStar'
-  | 'BBMVP'
-  | 'BBROY'
-  | 'BBChampion'
-  | 'BBAllRookie'
-  | 'BBAllLeague'
-  | 'BBPlayoffsMVP';
+  | 'FBAllStar' | 'FBMVP' | 'FBDPOY' | 'FBOffROY' | 'FBDefROY' | 'FBChampion'
+  | 'FBAllRookie' | 'FBAllLeague' | 'FBFinalsMVP'
+  
+  // Hockey GM achievements  
+  | 'HKAllStar' | 'HKMVP' | 'HKDefenseman' | 'HKROY' | 'HKChampion' 
+  | 'HKPlayoffsMVP' | 'HKFinalsMVP' | 'HKAllRookie' | 'HKAllLeague'
+  | 'HKAllStarMVP' | 'HKAssistsLeader'
+  
+  // Baseball GM achievements
+  | 'BBAllStar' | 'BBMVP' | 'BBROY' | 'BBChampion' | 'BBAllRookie' 
+  | 'BBAllLeague' | 'BBPlayoffsMVP' | 'BBAllStarMVP' | 'BBPitcherOTY'
+  | 'BBGoldGlove' | 'BBSilverSlugger'
+  | 'BBBattingAvgLeader' | 'BBHomeRunLeader' | 'BBRBILeader' | 'BBStolenBaseLeader'
+  | 'BBOBPLeader' | 'BBSluggingLeader' | 'BBOPSLeader' | 'BBHitsLeader'
+  | 'BBERALeader' | 'BBStrikeoutsLeader' | 'BBSavesLeader' | 'BBReliefPitcherOTY';
 
-// Type for the season index - maps season -> teamId -> achievementId -> Set of player IDs
+/**
+ * Type for the season index data structure
+ * Maps season -> franchiseId -> achievement -> set of player IDs
+ */
 export type SeasonIndex = Record<number, Record<number, Record<SeasonAchievementId, Set<number>>>>;
 
 import type { Player } from "@/types/bbgm";
 
-// Award type mapping for different sports and naming conventions
-const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId | null> = {
-  // Basketball GM specific awards (case-sensitive exact matches from BBGM)
+// Award type mapping for Basketball GM - exact strings only
+const BASKETBALL_AWARD_MAPPING: Record<string, SeasonAchievementId | null> = {
+  // Exact Basketball GM award strings (case-sensitive)
+  'All-Star': 'AllStar',
+  'Most Valuable Player': 'MVP',
+  'Defensive Player of the Year': 'DPOY',
+  'Rookie of the Year': 'ROY',
+  'Sixth Man of the Year': 'SMOY',
+  'Most Improved Player': 'MIP',
+  'Finals MVP': 'FinalsMVP',
+  'All-League Team': 'AllLeagueAny',
+  'First Team All-League': 'AllLeagueAny',
+  'Second Team All-League': 'AllLeagueAny',
+  'Third Team All-League': 'AllLeagueAny',
+  'All-Defensive Team': 'AllDefAny',
+  'First Team All-Defensive': 'AllDefAny',
+  'Second Team All-Defensive': 'AllDefAny',
+  'All-Rookie Team': 'AllRookieAny',
+  
+  // Lowercase variants
   'all-star': 'AllStar',
   'most valuable player': 'MVP',
   'defensive player of the year': 'DPOY',
@@ -70,88 +76,13 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId | null> = {
   'most improved player': 'MIP',
   'finals mvp': 'FinalsMVP',
   'all-league team': 'AllLeagueAny',
-  'all-league': 'AllLeagueAny',
   'first team all-league': 'AllLeagueAny',
   'second team all-league': 'AllLeagueAny',
   'third team all-league': 'AllLeagueAny',
-  'first-team all-league': 'AllLeagueAny',
-  'second-team all-league': 'AllLeagueAny',
-  'third-team all-league': 'AllLeagueAny',
-  '1st team all-league': 'AllLeagueAny',
-  '2nd team all-league': 'AllLeagueAny',
-  '3rd team all-league': 'AllLeagueAny',
   'all-defensive team': 'AllDefAny',
   'first team all-defensive': 'AllDefAny',
   'second team all-defensive': 'AllDefAny',
-  'all-rookie team': 'AllRookieAny',
-
-  // Alternative Basketball GM naming
-  'bbgm all-star': 'AllStar',
-  'basketball all-star': 'AllStar',
-  'bbgm mvp': 'MVP',
-  'basketball mvp': 'MVP',
-  'bbgm most valuable player': 'MVP',
-  'basketball most valuable player': 'MVP',
-  'bbgm defensive player of the year': 'DPOY',
-  'basketball defensive player of the year': 'DPOY',
-  'bbgm rookie of the year': 'ROY',
-  'basketball rookie of the year': 'ROY',
-  'bbgm sixth man of the year': 'SMOY',
-  'basketball sixth man of the year': 'SMOY',
-  'bbgm most improved player': 'MIP',
-  'basketball most improved player': 'MIP',
-  'bbgm finals mvp': 'FinalsMVP',
-  'basketball finals mvp': 'FinalsMVP',
-  'bbgm all-league team': 'AllLeagueAny',
-  'basketball all-league team': 'AllLeagueAny',
-  'bbgm first team all-league': 'AllLeagueAny',
-  'basketball first team all-league': 'AllLeagueAny', 
-  'bbgm second team all-league': 'AllLeagueAny',
-  'basketball second team all-league': 'AllLeagueAny',
-  'bbgm third team all-league': 'AllLeagueAny',
-  'basketball third team all-league': 'AllLeagueAny',
-  // Additional potential Basketball GM All-League variations
-  'all league': 'AllLeagueAny',
-  'allleague': 'AllLeagueAny',
-  'first team all league': 'AllLeagueAny',
-  'second team all league': 'AllLeagueAny', 
-  'third team all league': 'AllLeagueAny',
-  'bbgm all-defensive team': 'AllDefAny',
-  'basketball all-defensive team': 'AllDefAny',
-  'bbgm all-rookie team': 'AllRookieAny',
-  'basketball all-rookie team': 'AllRookieAny',
-
-  // Statistical leader achievements
-  'bbgm points leader': 'PointsLeader',
-  'basketball points leader': 'PointsLeader',
-  'bbgm rebounds leader': 'ReboundsLeader',
-  'basketball rebounds leader': 'ReboundsLeader',
-  'bbgm assists leader': 'AssistsLeader',
-  'basketball assists leader': 'AssistsLeader',
-  'bbgm steals leader': 'StealsLeader',
-  'basketball steals leader': 'StealsLeader',
-  'bbgm blocks leader': 'BlocksLeader',
-  'basketball blocks leader': 'BlocksLeader',
-  
-  // Football GM specific awards (case-sensitive exact matches from FBGM)
-  'All-Star': 'FBAllStar',
-  'Most Valuable Player': 'FBMVP',
-  'Defensive Player of the Year': 'FBDPOY',
-  'Offensive Rookie of the Year': 'FBOffROY',
-  'Defensive Rookie of the Year': 'FBDefROY',
-  'Won Championship': 'FBChampion',
-  'First Team All-League': 'FBAllLeague',
-  'Second Team All-League': 'FBAllLeague',
-  
-  // Hockey GM (ZGMH) awards
-  'All-Star Game': 'HKAllStar',
-  'Best Defenseman': 'HKDefenseman',
-  'Championship': 'HKChampion',
-  'Playoffs MVP': 'HKPlayoffsMVP',
-  'All-League Team': 'HKAllLeague',
-  'All-Star Game MVP': 'HKAllStarMVP',
-  'Assists Leader': 'HKAssistsLeader',
-  
+  'all-rookie team': 'AllRookieAny'
 };
 
 /**
@@ -200,12 +131,9 @@ function mapAwardToAchievement(awardType: string, sport?: 'basketball' | 'footba
     if (awardType === 'Assists Leader') return 'HKAssistsLeader';
   }
   
-  // Try normalized version for Basketball GM
-  const normalized = awardType.toLowerCase().trim();
-  
-  // Direct exact match from global mapping (for Basketball and missed cases)
-  if (AWARD_TYPE_MAPPING[awardType]) {
-    return AWARD_TYPE_MAPPING[awardType];
+  // Default to Basketball GM mapping (for basketball sport or no sport specified)
+  if (BASKETBALL_AWARD_MAPPING[awardType]) {
+    return BASKETBALL_AWARD_MAPPING[awardType];
   }
   
   // Handle Basketball GM All-League variations with additional pattern matching
@@ -223,7 +151,8 @@ function mapAwardToAchievement(awardType: string, sport?: 'basketball' | 'footba
   }
   
   // Fall back to normalized mapping
-  return AWARD_TYPE_MAPPING[normalized] || null;
+  const normalized = awardType.toLowerCase().trim();
+  return BASKETBALL_AWARD_MAPPING[normalized] || null;
 }
 
 /**
@@ -284,152 +213,89 @@ function calculateBBGMSeasonLeaders(
 
     if (regularSeasonStats.length === 0) continue;
 
-    // Aggregate across teams
-    let gpS = 0, ptsS = 0, trbS = 0, astS = 0, stlS = 0, blkS = 0;
-    const teamsS = new Set<number>();
+    // Aggregate stats and track teams
+    let totalPts = 0, totalTrb = 0, totalAst = 0, totalStl = 0, totalBlk = 0, totalGp = 0;
+    const teams = new Set<number>();
 
     for (const stat of regularSeasonStats) {
-      const gp = stat.gp || 0;
-      if (gp > 0) {
-        gpS += gp;
-        ptsS += (stat.pts || 0);
-        
-        // Handle different rebound field names (trb, reb, or orb+drb)
-        const statAny = stat as any;
-        trbS += (stat.trb || statAny.reb || ((statAny.orb || 0) + (statAny.drb || 0)) || 0);
-        
-        astS += (stat.ast || 0);
-        stlS += (stat.stl || 0);
-        blkS += (stat.blk || 0);
-        teamsS.add(stat.tid);
+      if ((stat.gp || 0) > 0) {
+        totalPts += stat.pts || 0;
+        totalTrb += (stat.trb || 0) + (stat.orb || 0) + (stat.drb || 0); // Handle different rebound field formats
+        totalAst += stat.ast || 0;
+        totalStl += stat.stl || 0;
+        totalBlk += stat.blk || 0;
+        totalGp += stat.gp || 0;
+        teams.add(stat.tid);
       }
     }
 
-    // Step 3: Eligibility filter - skip players with gpS == 0 or below threshold
-    if (gpS === 0 || gpS < minGames) continue;
-
-    playerSeasonStats.push({
-      pid: player.pid,
-      pts: ptsS,
-      trb: trbS,
-      ast: astS,
-      stl: stlS,
-      blk: blkS,
-      gp: gpS,
-      teams: teamsS
-    });
+    if (totalGp >= minGames) {
+      playerSeasonStats.push({
+        pid: player.pid,
+        pts: totalPts,
+        trb: totalTrb,
+        ast: totalAst,
+        stl: totalStl,
+        blk: totalBlk,
+        gp: totalGp,
+        teams
+      });
+    }
   }
 
-  if (playerSeasonStats.length === 0) return leaders;
+  // Step 3: Find leaders for each category
+  const categories = [
+    { key: 'PointsLeader', stat: 'pts' },
+    { key: 'ReboundsLeader', stat: 'trb' },
+    { key: 'AssistsLeader', stat: 'ast' },
+    { key: 'StealsLeader', stat: 'stl' },
+    { key: 'BlocksLeader', stat: 'blk' }
+  ] as const;
 
-  try {
-    // Step 4: Find leaders for each category using 1e-9 epsilon and tie-breaking by totals
+  for (const { key, stat } of categories) {
+    if (playerSeasonStats.length === 0) continue;
+
+    // Calculate per-game averages and find maximum
+    const playerAverages = playerSeasonStats.map(p => ({
+      pid: p.pid,
+      avg: (p[stat] as number) / p.gp
+    }));
+
+    const maxAvg = Math.max(...playerAverages.map(p => p.avg));
     
-    // Points Leader - exclude players with 0 total points (early seasons might not track points properly)
-    const playersWithPoints = playerSeasonStats.filter(p => p.pts > 0);
-    if (playersWithPoints.length > 0) {
-      const maxPPG = Math.max(...playersWithPoints.map(p => p.pts / p.gp));
-      const pointsLeaderCandidates = playersWithPoints.filter(p => 
-        Math.abs((p.pts / p.gp) - maxPPG) < 1e-9
-      );
-      
-      // Break ties by higher total points
-      if (pointsLeaderCandidates.length > 1) {
-        const maxPts = Math.max(...pointsLeaderCandidates.map(p => p.pts));
-        leaders.PointsLeader = pointsLeaderCandidates
-          .filter(p => p.pts === maxPts)
-          .map(p => p.pid);
-      } else {
-        leaders.PointsLeader = pointsLeaderCandidates.map(p => p.pid);
-      }
-    }
+    // Find all players with the maximum average (handle ties)
+    const leaderPids = playerAverages
+      .filter(p => Math.abs(p.avg - maxAvg) < 0.0001) // Handle floating point precision
+      .map(p => p.pid);
 
-    // Rebounds Leader - exclude players with 0 total rebounds (early seasons didn't track rebounds)
-    const playersWithRebounds = playerSeasonStats.filter(p => p.trb > 0);
-    if (playersWithRebounds.length > 0) {
-      const maxRPG = Math.max(...playersWithRebounds.map(p => p.trb / p.gp));
-      const reboundsLeaderCandidates = playersWithRebounds.filter(p => 
-        Math.abs((p.trb / p.gp) - maxRPG) < 1e-9
-      );
-      
-      // Break ties by higher total rebounds
-      if (reboundsLeaderCandidates.length > 1) {
-        const maxTrb = Math.max(...reboundsLeaderCandidates.map(p => p.trb));
-        leaders.ReboundsLeader = reboundsLeaderCandidates
-          .filter(p => p.trb === maxTrb)
-          .map(p => p.pid);
-      } else {
-        leaders.ReboundsLeader = reboundsLeaderCandidates.map(p => p.pid);
-      }
-    }
-
-    // Assists Leader - exclude players with 0 total assists (early seasons didn't track assists)
-    const playersWithAssists = playerSeasonStats.filter(p => p.ast > 0);
-    if (playersWithAssists.length > 0) {
-      const maxAPG = Math.max(...playersWithAssists.map(p => p.ast / p.gp));
-      const assistsLeaderCandidates = playersWithAssists.filter(p => 
-        Math.abs((p.ast / p.gp) - maxAPG) < 1e-9
-      );
-      
-      // Break ties by higher total assists
-      if (assistsLeaderCandidates.length > 1) {
-        const maxAst = Math.max(...assistsLeaderCandidates.map(p => p.ast));
-        leaders.AssistsLeader = assistsLeaderCandidates
-          .filter(p => p.ast === maxAst)
-          .map(p => p.pid);
-      } else {
-        leaders.AssistsLeader = assistsLeaderCandidates.map(p => p.pid);
-      }
-    }
-
-    // Steals Leader - exclude players with 0 total steals (early seasons didn't track steals)
-    const playersWithSteals = playerSeasonStats.filter(p => p.stl > 0);
-    if (playersWithSteals.length > 0) {
-      const maxSPG = Math.max(...playersWithSteals.map(p => p.stl / p.gp));
-      const stealsLeaderCandidates = playersWithSteals.filter(p => 
-        Math.abs((p.stl / p.gp) - maxSPG) < 1e-9
-      );
-      
-      // Break ties by higher total steals
-      if (stealsLeaderCandidates.length > 1) {
-        const maxStl = Math.max(...stealsLeaderCandidates.map(p => p.stl));
-        leaders.StealsLeader = stealsLeaderCandidates
-          .filter(p => p.stl === maxStl)
-          .map(p => p.pid);
-      } else {
-        leaders.StealsLeader = stealsLeaderCandidates.map(p => p.pid);
-      }
-    }
-
-    // Blocks Leader - exclude players with 0 total blocks (early seasons didn't track blocks)
-    const playersWithBlocks = playerSeasonStats.filter(p => p.blk > 0);
-    if (playersWithBlocks.length > 0) {
-      const maxBPG = Math.max(...playersWithBlocks.map(p => p.blk / p.gp));
-      const blocksLeaderCandidates = playersWithBlocks.filter(p => 
-        Math.abs((p.blk / p.gp) - maxBPG) < 1e-9
-      );
-      
-      // Break ties by higher total blocks
-      if (blocksLeaderCandidates.length > 1) {
-        const maxBlk = Math.max(...blocksLeaderCandidates.map(p => p.blk));
-        leaders.BlocksLeader = blocksLeaderCandidates
-          .filter(p => p.blk === maxBlk)
-          .map(p => p.pid);
-      } else {
-        leaders.BlocksLeader = blocksLeaderCandidates.map(p => p.pid);
-      }
-    }
-
-  } catch (error) {
-    console.warn('Error calculating season leaders:', error);
-    return leaders;
+    leaders[key] = leaderPids;
   }
 
   return leaders;
 }
 
 /**
- * Get teams a player appeared for in a given season (gp > 0 or min > 0)
+ * Get franchises a player appeared for in a given season (gp > 0 or min > 0)
+ * Uses franchiseId for proper franchise continuity across relocations/renames
+ */
+function getSeasonFranchises(player: Player, season: number): Set<number> {
+  const franchises = new Set<number>();
+  
+  if (!player.stats) return franchises;
+  
+  for (const stat of player.stats) {
+    if (stat.season === season && !stat.playoffs && ((stat.gp || 0) > 0 || (stat.min || 0) > 0)) {
+      // Use franchiseId if available, fallback to tid
+      const franchiseId = (stat as any).franchiseId ?? stat.tid;
+      franchises.add(franchiseId);
+    }
+  }
+  
+  return franchises;
+}
+
+/**
+ * Get teams a player appeared for in a given season (gp > 0 or min > 0) - legacy function
  */
 function getSeasonTeams(player: Player, season: number): Set<number> {
   const teams = new Set<number>();
@@ -452,25 +318,21 @@ function getSeasonTeams(player: Player, season: number): Set<number> {
 function resolveFinalsMVPTeam(player: Player, season: number): number | null {
   if (!player.stats) return null;
   
+  // Look for playoffs stats in the Finals MVP season
   const playoffStats = player.stats.filter(s => 
-    s.season === season && s.playoffs
+    s.season === season && s.playoffs && (s.gp || 0) > 0
   );
   
   if (playoffStats.length === 0) return null;
   
-  // If only one playoffs team, use that
-  if (playoffStats.length === 1) {
-    return playoffStats[0].tid;
-  }
+  // Use the team with the most playoff games played (in case of trades)
+  let maxGames = 0;
+  let bestTeam: number | null = null;
   
-  // Multiple playoff teams - pick the one with most minutes
-  let bestTeam = playoffStats[0].tid;
-  let maxMinutes = playoffStats[0].min || 0;
-  
-  for (const stat of playoffStats.slice(1)) {
-    const minutes = stat.min || 0;
-    if (minutes > maxMinutes) {
-      maxMinutes = minutes;
+  for (const stat of playoffStats) {
+    const games = stat.gp || 0;
+    if (games > maxGames) {
+      maxGames = games;
       bestTeam = stat.tid;
     }
   }
@@ -493,34 +355,16 @@ export function buildSeasonIndex(
   // Process traditional award-based achievements
   for (const player of players) {
     if (!player.awards || player.awards.length === 0) continue;
-    
-    // Debug all awards for Jaylen Brown (PID 559)
-    if (player.pid === 559) {
-      console.log(`🔍 JB DEBUG: Found ${player.awards.length} awards for Jaylen Brown:`, 
-        player.awards.map(a => `"${a.type}" (${a.season})`));
-    }
 
     for (const award of player.awards) {
       const achievementId = mapAwardToAchievement(award.type, sport);
       if (!achievementId) {
-        // Debug Jaylen Brown PID 559 specifically for All-League awards
-        if (player.pid === 559 && award.type && award.type.toLowerCase().includes('league')) {
-          console.log(`🔍 JB DEBUG: Award "${award.type}" not mapped to achievement`);
-        }
         skippedEntries++;
         continue;
-      }
-      
-      // Debug Jaylen Brown PID 559 All-League mapping
-      if (player.pid === 559 && achievementId === 'AllLeagueAny') {
-        console.log(`🔍 JB DEBUG: Award "${award.type}" → ${achievementId} for season ${award.season}`);
       }
 
       const season = award.season;
       if (!season) {
-        if (player.pid === 559 && achievementId === 'AllLeagueAny') {
-          console.log(`🔍 JB DEBUG: No season for award "${award.type}"`);
-        }
         skippedEntries++;
         continue;
       }
@@ -541,34 +385,22 @@ export function buildSeasonIndex(
       }
       
       
-      // Handle all other awards (multi-team rule)
-      const seasonTeams = getSeasonTeams(player, season);
+      // Handle all other awards (multi-team rule) - use franchiseId mapping
+      const seasonFranchises = getSeasonFranchises(player, season);
       
-      if (player.pid === 559 && achievementId === 'AllLeagueAny') {
-        console.log(`🔍 JB DEBUG: Season ${season} teams:`, Array.from(seasonTeams));
-      }
-      
-      if (seasonTeams.size === 0) {
+      if (seasonFranchises.size === 0) {
         // No regular season stats for this award season, skip
-        if (player.pid === 559 && achievementId === 'AllLeagueAny') {
-          console.log(`🔍 JB DEBUG: No season teams for ${season}, skipping`);
-        }
         skippedEntries++;
         continue;
       }
       
-      // Add to all teams the player appeared for in this season
-      for (const tid of Array.from(seasonTeams)) {
+      // Add to all franchises the player appeared for in this season
+      for (const franchiseId of Array.from(seasonFranchises)) {
         if (!seasonIndex[season]) seasonIndex[season] = {};
-        if (!seasonIndex[season][tid]) seasonIndex[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
-        if (!seasonIndex[season][tid][achievementId]) seasonIndex[season][tid][achievementId] = new Set();
+        if (!seasonIndex[season][franchiseId]) seasonIndex[season][franchiseId] = {} as Record<SeasonAchievementId, Set<number>>;
+        if (!seasonIndex[season][franchiseId][achievementId]) seasonIndex[season][franchiseId][achievementId] = new Set();
         
-        seasonIndex[season][tid][achievementId].add(player.pid);
-        
-        if (player.pid === 559 && achievementId === 'AllLeagueAny') {
-          console.log(`🔍 JB DEBUG: Added to seasonIndex[${season}][${tid}]['AllLeagueAny'] (Celtics tid=1)`);
-        }
-        
+        seasonIndex[season][franchiseId][achievementId].add(player.pid);
         totalIndexed++;
       }
     }
@@ -581,11 +413,11 @@ export function buildSeasonIndex(
     
     // Get all seasons from existing index or detect from players
     const allSeasons = new Set<number>();
-    for (const season of Object.keys(seasonIndex)) {
-      allSeasons.add(parseInt(season));
+    for (const seasonStr of Object.keys(seasonIndex)) {
+      allSeasons.add(parseInt(seasonStr));
     }
     
-    // Also detect seasons from player stats
+    // Also check player stats for any additional seasons
     for (const player of players) {
       if (player.stats) {
         for (const stat of player.stats) {
@@ -597,30 +429,24 @@ export function buildSeasonIndex(
     }
     
     // Calculate leaders for each season
-    for (const season of Array.from(allSeasons)) {
-      // Get gameAttributes for this season (simplified)
-      const gameAttributes = { numGames: 82 }; // Default to 82, could be enhanced
+    for (const season of Array.from(allSeasons).sort((a, b) => a - b)) {
+      const seasonLeaders = calculateBBGMSeasonLeaders(players, season, null);
       
-      const seasonLeaders = calculateBBGMSeasonLeaders(players, season, gameAttributes);
-      
-      // Add leaders to season index with proper team attachment
-      for (const [leaderId, playerIds] of Object.entries(seasonLeaders)) {
-        const achievementId = leaderId as SeasonAchievementId;
-        
+      for (const [achievementId, playerIds] of Object.entries(seasonLeaders)) {
         for (const pid of playerIds) {
           const player = players.find(p => p.pid === pid);
           if (!player) continue;
           
-          // Get all teams this player played for in this season
-          const seasonTeams = getSeasonTeams(player, season);
+          // Get all franchises this player played for in this season
+          const seasonFranchises = getSeasonFranchises(player, season);
           
-          // Attach leader achievement to all teams they played for
-          for (const tid of Array.from(seasonTeams)) {
+          // Attach leader achievement to all franchises they played for
+          for (const franchiseId of Array.from(seasonFranchises)) {
             if (!seasonIndex[season]) seasonIndex[season] = {};
-            if (!seasonIndex[season][tid]) seasonIndex[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
-            if (!seasonIndex[season][tid][achievementId]) seasonIndex[season][tid][achievementId] = new Set();
+            if (!seasonIndex[season][franchiseId]) seasonIndex[season][franchiseId] = {} as Record<SeasonAchievementId, Set<number>>;
+            if (!seasonIndex[season][franchiseId][achievementId]) seasonIndex[season][franchiseId][achievementId] = new Set();
             
-            seasonIndex[season][tid][achievementId].add(pid);
+            seasonIndex[season][franchiseId][achievementId].add(pid);
             leaderEntriesAdded++;
           }
         }
@@ -632,12 +458,13 @@ export function buildSeasonIndex(
   
   // Log statistics
   const seasons = Object.keys(seasonIndex).length;
-  const achievements = Object.values(seasonIndex).flatMap(season => 
+  const achievements = Object.values(seasonIndex).flatMap(season =>
     Object.values(season).flatMap(team => Object.keys(team))
-  ).length;
+  );
+  const uniqueAchievements = new Set(achievements).size;
   
-  console.log(`✅ Season index built: ${totalIndexed} entries indexed, ${skippedEntries} skipped`);
-  console.log(`📊 Coverage: ${seasons} seasons, ${achievements} team-achievement combinations`);
+  console.log(`✅ Season index built: ${totalIndexed} entries across ${seasons} seasons, ${uniqueAchievements} unique achievements`);
+  console.log(`⚠️ Skipped ${skippedEntries} entries due to missing data`);
   
   return seasonIndex;
 }
@@ -653,9 +480,12 @@ export function getSeasonEligiblePlayers(
   const allPlayers = new Set<number>();
   
   // Search across all seasons for this team-achievement combination
+  // Use franchiseId first, fallback to tid for compatibility
   for (const seasonStr of Object.keys(seasonIndex)) {
     const season = parseInt(seasonStr);
     const seasonData = seasonIndex[season];
+    
+    // Try franchiseId first (should match teamId for franchise continuity)
     if (seasonData[teamId] && seasonData[teamId][achievementId]) {
       for (const pid of Array.from(seasonData[teamId][achievementId])) {
         allPlayers.add(pid);
@@ -765,7 +595,7 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
     id: 'FBAllStar',
     label: 'All-Star',
     isSeasonSpecific: true,
-    minPlayers: 5
+    minPlayers: 3
   },
   {
     id: 'FBMVP',
@@ -792,12 +622,6 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
     minPlayers: 3
   },
   {
-    id: 'FBChampion',
-    label: 'Won Championship',
-    isSeasonSpecific: true,
-    minPlayers: 5
-  },
-  {
     id: 'FBAllRookie',
     label: 'All-Rookie Team',
     isSeasonSpecific: true,
@@ -815,13 +639,19 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
     isSeasonSpecific: true,
     minPlayers: 3
   },
+  {
+    id: 'FBChampion',
+    label: 'Won Championship',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
   
-  // Hockey GM (ZGMH) achievements
+  // Hockey GM achievements
   {
     id: 'HKAllStar',
     label: 'All-Star',
     isSeasonSpecific: true,
-    minPlayers: 5
+    minPlayers: 3
   },
   {
     id: 'HKMVP',
@@ -842,10 +672,16 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
     minPlayers: 3
   },
   {
-    id: 'HKChampion',
-    label: 'Won Championship',
+    id: 'HKAllRookie',
+    label: 'All-Rookie Team',
     isSeasonSpecific: true,
-    minPlayers: 5
+    minPlayers: 3
+  },
+  {
+    id: 'HKAllLeague',
+    label: 'All-League Team',
+    isSeasonSpecific: true,
+    minPlayers: 3
   },
   {
     id: 'HKPlayoffsMVP',
@@ -860,16 +696,10 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
     minPlayers: 3
   },
   {
-    id: 'HKAllRookie',
-    label: 'All-Rookie Team',
+    id: 'HKChampion',
+    label: 'Won Championship',
     isSeasonSpecific: true,
     minPlayers: 3
-  },
-  {
-    id: 'HKAllLeague',
-    label: 'All-League Team',
-    isSeasonSpecific: true,
-    minPlayers: 5
   },
   {
     id: 'HKAllStarMVP',
@@ -879,17 +709,23 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
   },
   {
     id: 'HKAssistsLeader',
-    label: 'Assists Leader',
+    label: 'League Assists Leader',
     isSeasonSpecific: true,
     minPlayers: 3
   },
   
-  // Baseball achievements
+  // Baseball GM achievements
   {
     id: 'BBAllStar',
     label: 'All-Star',
     isSeasonSpecific: true,
-    minPlayers: 5
+    minPlayers: 3
+  },
+  {
+    id: 'BBAllStarMVP',
+    label: 'All-Star MVP',
+    isSeasonSpecific: true,
+    minPlayers: 3
   },
   {
     id: 'BBMVP',
@@ -898,16 +734,16 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
     minPlayers: 3
   },
   {
-    id: 'BBROY',
-    label: 'Rookie of the Year',
+    id: 'BBPitcherOTY',
+    label: 'Pitcher of the Year',
     isSeasonSpecific: true,
     minPlayers: 3
   },
   {
-    id: 'BBChampion',
-    label: 'Won Championship',
+    id: 'BBROY',
+    label: 'Rookie of the Year',
     isSeasonSpecific: true,
-    minPlayers: 5
+    minPlayers: 3
   },
   {
     id: 'BBAllRookie',
@@ -919,7 +755,19 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
     id: 'BBAllLeague',
     label: 'All-League Team',
     isSeasonSpecific: true,
-    minPlayers: 5
+    minPlayers: 3
+  },
+  {
+    id: 'BBGoldGlove',
+    label: 'Gold Glove',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSilverSlugger',
+    label: 'Silver Slugger',
+    isSeasonSpecific: true,
+    minPlayers: 3
   },
   {
     id: 'BBPlayoffsMVP',
@@ -927,5 +775,10 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
     isSeasonSpecific: true,
     minPlayers: 3
   },
-  
+  {
+    id: 'BBChampion',
+    label: 'Won Championship',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  }
 ];
