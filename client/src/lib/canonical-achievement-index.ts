@@ -311,6 +311,31 @@ function calculateCareerAchievements(
     }
   }
   
+  // Basketball-specific career achievements
+  if (sport === 'basketball' && player.stats) {
+    let careerPts = 0, careerTrb = 0, careerAst = 0;
+    let careerStl = 0, careerBlk = 0, career3PM = 0;
+    
+    player.stats.forEach(stat => {
+      if (stat.playoffs) return; // Only regular season
+      
+      careerPts += stat.pts || 0;
+      careerTrb += (stat.trb || 0) + (stat.orb || 0) + (stat.drb || 0); // Handle different rebound formats
+      careerAst += stat.ast || 0;
+      careerStl += stat.stl || 0;
+      careerBlk += stat.blk || 0;
+      career3PM += stat.tp || stat.fg3 || 0; // 3-pointers made
+    });
+    
+    // Apply basketball career thresholds
+    if (careerPts >= 20000) careerAch.career20kPoints.add(player.pid);
+    if (careerTrb >= 10000) careerAch.career10kRebounds.add(player.pid);
+    if (careerAst >= 5000) careerAch.career5kAssists.add(player.pid);
+    if (careerStl >= 2000) careerAch.career2kSteals.add(player.pid);
+    if (careerBlk >= 1500) careerAch.career1500Blocks.add(player.pid);
+    if (career3PM >= 2000) careerAch.career2k3PM.add(player.pid);
+  }
+  
   // Football-specific career achievements
   if (sport === 'football' && player.stats) {
     let careerPassTDs = 0, careerRushYds = 0, careerRushTDs = 0;
