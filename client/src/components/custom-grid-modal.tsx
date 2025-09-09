@@ -38,7 +38,7 @@ export function CustomGridModal({
   const [autoFillMode, setAutoFillMode] = useState<AutoFillMode>('mixed');
   
   const teamOptions = getTeamOptions(teams);
-  const achievementOptions = getAchievementOptions(sport, seasonIndex);
+  const achievementOptions = getAchievementOptions(sport || 'basketball', seasonIndex);
 
   // Update grid state when configurations change
   const updateGrid = useCallback((newState: CustomGridState) => {

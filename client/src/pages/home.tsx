@@ -6,6 +6,7 @@ import { PlayerModal } from '@/components/PlayerModal';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { RulesModal } from '@/components/RulesModal';
 import { GridSharingModal } from '@/components/grid-sharing-modal';
+import { CustomGridModal } from '@/components/custom-grid-modal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Home as HomeIcon } from 'lucide-react';
@@ -99,6 +100,9 @@ export default function Home() {
   
   // Grid sharing state
   const [gridSharingModalOpen, setGridSharingModalOpen] = useState(false);
+  
+  // Custom grid state
+  const [customGridModalOpen, setCustomGridModalOpen] = useState(false);
 
   // Helper function to build and cache player rankings for a cell
   const buildRankCacheForCell = useCallback((cellKey: string): Array<{player: Player, rarity: number}> => {
@@ -593,6 +597,59 @@ export default function Home() {
     // Keep the same rows, cols, and intersections (same puzzle)
   }, [currentGridId, attemptCount]);
 
+  // Handle custom grid creation
+  const handleCustomGridCreated = useCallback((customRows: CatTeam[], customCols: CatTeam[]) => {
+    if (!leagueData) return;
+    
+    try {
+      // Calculate intersections for the custom grid
+      const newIntersections: Record<string, number[]> = {};
+      
+      customRows.forEach((row, rowIndex) => {
+        customCols.forEach((col, colIndex) => {
+          const key = cellKey(row.key, col.key);
+          
+          // Filter players that match both row and column constraints
+          const eligiblePlayers = leagueData.players.filter(player => 
+            row.test(player) && col.test(player)
+          );
+          
+          newIntersections[key] = eligiblePlayers.map(p => p.pid);
+        });
+      });
+      
+      // Update state with custom grid
+      setRows(customRows);
+      setCols(customCols);
+      setIntersections(newIntersections);
+      setCells({}); // Reset all answers
+      setUsedPids(new Set()); // Reset used players
+      setRankCache({}); // Reset cached rankings
+      
+      // Initialize new grid tracking
+      const gridId = `custom_${customRows.map(r => r.key).join('-')}_${customCols.map(c => c.key).join('-')}`;
+      setCurrentGridId(gridId);
+      
+      // Reset attempt count for new grid
+      setAttemptCount(1);
+      storeAttemptCount(gridId, 1);
+      
+      toast({
+        title: 'Custom grid created!',
+        description: 'Your custom grid is ready to play.',
+        variant: 'default',
+      });
+      
+    } catch (error) {
+      console.error('Error creating custom grid:', error);
+      toast({
+        title: 'Error creating custom grid',
+        description: error instanceof Error ? error.message : 'Failed to create custom grid',
+        variant: 'destructive',
+      });
+    }
+  }, [leagueData, toast]);
+
   // Show upload section if no league data
   if (!leagueData) {
     return (
@@ -695,6 +752,7 @@ export default function Home() {
           onGiveUp={handleGiveUp}
           onRetryGrid={handleRetryGrid}
           onShareGrid={() => setGridSharingModalOpen(true)}
+          onCustomGrid={() => setCustomGridModalOpen(true)}
           isGenerating={isGenerating}
           teams={leagueData?.teams || []}
           sport={leagueData?.sport}
@@ -733,6 +791,13 @@ export default function Home() {
           cols={cols}
           leagueData={leagueData}
           onImportGrid={handleImportGrid}
+        />
+        
+        <CustomGridModal
+          isOpen={customGridModalOpen}
+          onClose={() => setCustomGridModalOpen(false)}
+          leagueData={leagueData}
+          onCreateGrid={handleCustomGridCreated}
         />
       </main>
     </div>

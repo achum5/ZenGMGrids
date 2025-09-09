@@ -28,6 +28,7 @@ interface GridSectionProps {
   onGiveUp: () => void;
   onRetryGrid: () => void;
   onShareGrid?: () => void;
+  onCustomGrid?: () => void;
   isGenerating: boolean;
   teams: Team[]; // Add teams for jersey styling
   sport?: string;
@@ -51,6 +52,7 @@ export function GridSection({
   onGiveUp,
   onRetryGrid,
   onShareGrid,
+  onCustomGrid,
   isGenerating,
   teams,
   sport,
@@ -364,18 +366,46 @@ export function GridSection({
         </CardContent>
       </Card>
 
-      {/* Share/Import Grid button below the grid */}
-      {onShareGrid && rows.length > 0 && cols.length > 0 && (
-        <div className="flex justify-start mt-4">
-          <Button
-            onClick={onShareGrid}
-            variant="outline"
-            className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg"
-            data-testid="button-share-import-grid"
-          >
-            <Share2 className="mr-2 h-4 w-4" />
-            Share/Import Grid
-          </Button>
+      {/* Bottom buttons: Share/Import Grid (left) and Create Custom Grid (right) */}
+      {(onShareGrid || onCustomGrid) && rows.length > 0 && cols.length > 0 && (
+        <div className="flex justify-between items-center mt-4">
+          {/* Share/Import Grid button - Left */}
+          {onShareGrid ? (
+            <Button
+              onClick={onShareGrid}
+              variant="outline"
+              className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg"
+              data-testid="button-share-import-grid"
+            >
+              <Share2 className="mr-2 h-4 w-4" />
+              Share/Import Grid
+            </Button>
+          ) : (
+            <div>{/* Empty div to maintain spacing */}</div>
+          )}
+
+          {/* Create Custom Grid button - Right */}
+          {onCustomGrid && (
+            <Button
+              onClick={onCustomGrid}
+              variant="outline"
+              className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg"
+              data-testid="button-create-custom-grid"
+            >
+              <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="6" height="6" />
+                <rect x="9" y="3" width="6" height="6" />
+                <rect x="15" y="3" width="6" height="6" />
+                <rect x="3" y="9" width="6" height="6" />
+                <rect x="9" y="9" width="6" height="6" />
+                <rect x="15" y="9" width="6" height="6" />
+                <rect x="3" y="15" width="6" height="6" />
+                <rect x="9" y="15" width="6" height="6" />
+                <rect x="15" y="15" width="6" height="6" />
+              </svg>
+              Create Custom Grid
+            </Button>
+          )}
         </div>
       )}
     </div>
