@@ -255,11 +255,15 @@ function calculateBBGMSeasonLeaders(
   for (const { key, stat } of categories) {
     if (playerSeasonStats.length === 0) continue;
 
-    // Calculate per-game averages and find maximum
-    const playerAverages = playerSeasonStats.map(p => ({
-      pid: p.pid,
-      avg: (p[stat] as number) / p.gp
-    }));
+    // Calculate per-game averages and find maximum, but only for players with >0 in that stat
+    const playerAverages = playerSeasonStats
+      .filter(p => (p[stat] as number) > 0) // Must have recorded >0 in this stat category
+      .map(p => ({
+        pid: p.pid,
+        avg: (p[stat] as number) / p.gp
+      }));
+
+    if (playerAverages.length === 0) continue; // No players had this stat recorded in this season
 
     const maxAvg = Math.max(...playerAverages.map(p => p.avg));
     
