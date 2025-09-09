@@ -193,22 +193,31 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
 
   // Extract seasons and format
   const seasonsWithTeam: string[] = [];
+  const seenSeasons = new Set<string>(); // Track seen season entries to prevent duplicates
   
   for (const award of matchingAwards) {
     if (award.season) {
+      let seasonEntry: string;
+      
       // For Finals MVP, Championship, and Playoffs MVP, try to include team abbreviation
       if (achievementId === 'FinalsMVP' || achievementId === 'FBFinalsMVP' || 
           achievementId === 'HKPlayoffsMVP' || achievementId === 'BBPlayoffsMVP' || 
           achievementId === 'FBChampion' || achievementId === 'HKChampion' || achievementId === 'BBChampion') {
         const playoffTeam = getBulletPlayoffTeam(player, award.season, teams);
         if (playoffTeam) {
-          seasonsWithTeam.push(`${award.season} ${playoffTeam}`);
+          seasonEntry = `${award.season} ${playoffTeam}`;
         } else {
           // If we can't resolve playoff team, just show the year without team
-          seasonsWithTeam.push(`${award.season}`);
+          seasonEntry = `${award.season}`;
         }
       } else {
-        seasonsWithTeam.push(`${award.season}`);
+        seasonEntry = `${award.season}`;
+      }
+      
+      // Only add if we haven't seen this exact season entry before
+      if (!seenSeasons.has(seasonEntry)) {
+        seasonsWithTeam.push(seasonEntry);
+        seenSeasons.add(seasonEntry);
       }
     }
   }
