@@ -22,6 +22,7 @@ type Props = {
   cols?: CatTeam[];
   currentCellKey?: string;
   sport?: string;
+  cells?: Record<string, any>; // Grid cell states to check completion
 };
 
 // Helper function to get team name at a specific season
