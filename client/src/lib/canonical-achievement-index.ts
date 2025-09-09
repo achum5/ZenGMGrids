@@ -10,6 +10,12 @@ export interface CanonicalAchievementIndex {
   
   // awardByTeamAnySeason[achId][franchiseId] -> Set<pid> (union across all seasons)
   awardByTeamAnySeason: Record<string, Record<number, Set<number>>>;
+  
+  // careerAch[achId] -> Set<pid> (team-agnostic achievements like draft, career stats, HOF)
+  careerAch: Record<string, Set<number>>;
+  
+  // playedForTeam[franchiseId] -> Set<pid> (all players who ever appeared for that franchise)
+  playedForTeam: Record<number, Set<number>>;
 }
 
 // Sport-specific award type normalization mappings
@@ -130,12 +136,24 @@ export function buildCanonicalAchievementIndex(
   
   const awardByTeamSeason: Record<string, Record<number, Record<number, Set<number>>>> = {};
   const awardByTeamAnySeason: Record<string, Record<number, Set<number>>> = {};
+  const careerAch: Record<string, Set<number>> = {};
+  const playedForTeam: Record<number, Set<number>> = {};
   
   // Initialize achievement structures
   for (const achId of Object.values(CANONICAL_ACHIEVEMENT_IDS)) {
     awardByTeamSeason[achId] = {};
     awardByTeamAnySeason[achId] = {};
   }
+  
+  // Initialize career achievements  
+  const careerAchievementIds = ['isPick1Overall', 'isFirstRoundPick', 'isUndrafted', 'isHallOfFamer', 'played10PlusSeasons', 'played15PlusSeasons'];
+  if (sport === 'football') {
+    careerAchievementIds.push('career300PassTDs', 'career12kRushYds', 'career100RushTDs', 'career12kRecYds', 'career100RecTDs', 'career100Sacks', 'career20Ints');
+  }
+  
+  careerAchievementIds.forEach(id => {
+    careerAch[id] = new Set();
+  });
   
   // Build franchise ID mapping for team continuity
   const franchiseIdMap = new Map<number, number>();
@@ -204,9 +222,32 @@ export function buildCanonicalAchievementIndex(
       
       processedAwards++;
     }
+    
+    // Build career achievements and playedForTeam mappings
+    calculateCareerAchievements(player, careerAch, sport);
+    
+    // Track which teams this player appeared for
+    if (player.stats) {
+      for (const stat of player.stats) {
+        if (!stat.playoffs && (stat.gp || 0) > 0) {
+          const franchiseId = franchiseIdMap.get(stat.tid) || stat.tid;
+          if (!playedForTeam[franchiseId]) {
+            playedForTeam[franchiseId] = new Set();
+          }
+          playedForTeam[franchiseId].add(player.pid);
+        }
+      }
+    }
   }
   
   console.log(`✅ Canonical index built: ${processedAwards} awards processed, ${skippedAwards} skipped`);
+  
+  // Log career achievement summary
+  for (const [achId, playerSet] of Object.entries(careerAch)) {
+    if (playerSet.size > 0) {
+      console.log(`📊 Career ${achId}: ${playerSet.size} players`);
+    }
+  }
   
   // Log summary for diagnostics
   for (const [achId, teams] of Object.entries(awardByTeamAnySeason)) {
@@ -219,8 +260,82 @@ export function buildCanonicalAchievementIndex(
   
   return {
     awardByTeamSeason,
-    awardByTeamAnySeason
+    awardByTeamAnySeason,
+    careerAch,
+    playedForTeam
   };
+}
+
+/**
+ * Calculate career achievements for a player according to FBGM specification
+ */
+function calculateCareerAchievements(
+  player: Player,
+  careerAch: Record<string, Set<number>>,
+  sport: string
+): void {
+  // Draft achievements
+  if (player.draft) {
+    if (player.draft.pick === 1 && player.draft.round === 1) {
+      careerAch.isPick1Overall.add(player.pid);
+    }
+    if (player.draft.round === 1) {
+      careerAch.isFirstRoundPick.add(player.pid);
+    }
+  } else {
+    // No draft data means undrafted (round === 0 or missing)
+    careerAch.isUndrafted.add(player.pid);
+  }
+  
+  // Hall of Fame - check both hof property and award
+  if (player.hof === true || player.awards?.some(a => a.type === 'Inducted into the Hall of Fame')) {
+    careerAch.isHallOfFamer.add(player.pid);
+  }
+  
+  // Seasons played (count distinct regular season years with games played)
+  if (player.stats) {
+    const seasonsPlayed = new Set<number>();
+    player.stats.forEach(stat => {
+      if (!stat.playoffs && (stat.gp || 0) > 0) {
+        seasonsPlayed.add(stat.season);
+      }
+    });
+    
+    if (seasonsPlayed.size >= 10) {
+      careerAch.played10PlusSeasons.add(player.pid);
+    }
+    if (seasonsPlayed.size >= 15) {
+      careerAch.played15PlusSeasons.add(player.pid);
+    }
+  }
+  
+  // Football-specific career achievements
+  if (sport === 'football' && player.stats) {
+    let careerPassTDs = 0, careerRushYds = 0, careerRushTDs = 0;
+    let careerRecYds = 0, careerRecTDs = 0, careerSacks = 0, careerInts = 0;
+    
+    player.stats.forEach(stat => {
+      if (stat.playoffs) return; // Only regular season
+      
+      // Field names from specification - use tolerant lookup
+      careerPassTDs += stat.psTD || stat.passTD || 0;
+      careerRushYds += stat.ruYds || stat.rushYds || 0;
+      careerRushTDs += stat.ruTD || stat.rushTD || 0;
+      careerRecYds += stat.recYds || 0;
+      careerRecTDs += stat.recTD || 0;
+      careerSacks += stat.sk || stat.sacks || 0;
+      careerInts += stat.int || stat.defInt || 0;
+    });
+    
+    // Apply thresholds from specification
+    if (careerPassTDs >= 150) careerAch.career300PassTDs.add(player.pid);
+    if (careerRushYds >= 8000) careerAch.career12kRushYds.add(player.pid);
+    if (careerRushTDs >= 40) careerAch.career100RushTDs.add(player.pid);
+    if (careerRecYds >= 6000) careerAch.career12kRecYds.add(player.pid);
+    if (careerRecTDs >= 40) careerAch.career100RecTDs.add(player.pid);
+    if (careerSacks >= 60) careerAch.career100Sacks.add(player.pid);
+    if (careerInts >= 20) careerAch.career20Ints.add(player.pid);
+  }
 }
 
 /**
@@ -264,6 +379,22 @@ export function getCanonicalEligiblePlayers(
   achievementId: string,
   franchiseId: number
 ): Set<number> {
+  // Check if this is a career achievement
+  if (index.careerAch[achievementId]) {
+    const careerPlayers = index.careerAch[achievementId];
+    const teamPlayers = index.playedForTeam[franchiseId] || new Set();
+    
+    // Intersection: players who have career achievement AND played for this team
+    const eligible = new Set<number>();
+    for (const pid of careerPlayers) {
+      if (teamPlayers.has(pid)) {
+        eligible.add(pid);
+      }
+    }
+    return eligible;
+  }
+  
+  // For season-specific achievements
   const teamData = index.awardByTeamAnySeason[achievementId];
   if (!teamData || !teamData[franchiseId]) {
     return new Set();
