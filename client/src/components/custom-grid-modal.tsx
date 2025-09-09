@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { X, ChevronDown } from 'lucide-react';
+import { X, ChevronDown, Undo2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 // Import sport icon images
 import basketballIcon from '@/assets/basketball.png';
@@ -41,6 +41,8 @@ export function CustomGridModal({
   const { teams, players, sport, seasonIndex } = leagueData;
   const [gridState, setGridState] = useState<CustomGridState>(createEmptyCustomGrid());
   const [autoFillMode, setAutoFillMode] = useState<AutoFillMode>('mixed');
+  const [previousGridState, setPreviousGridState] = useState<CustomGridState | null>(null);
+  const [showUndo, setShowUndo] = useState(false);
   
   const teamOptions = getTeamOptions(teams);
   const achievementOptions = getAchievementOptions(sport || 'basketball', seasonIndex);
@@ -62,10 +64,24 @@ export function CustomGridModal({
   }, [gridState, updateGrid]);
 
   const handleClearAll = useCallback(() => {
+    setPreviousGridState(null);
+    setShowUndo(false);
     updateGrid(createEmptyCustomGrid());
   }, [updateGrid]);
 
+  const handleUndo = useCallback(() => {
+    if (previousGridState) {
+      setGridState(previousGridState);
+      setPreviousGridState(null);
+      setShowUndo(false);
+    }
+  }, [previousGridState]);
+
   const handleAutoFill = useCallback(async () => {
+    // Store current state for undo
+    setPreviousGridState({ ...gridState });
+    setShowUndo(true);
+    
     // Count what's already filled
     const filledRows = gridState.rows.filter(row => row.selectedId !== null).length;
     const filledCols = gridState.cols.filter(col => col.selectedId !== null).length;
@@ -261,15 +277,16 @@ export function CustomGridModal({
             </Button>
 
             {/* Auto Fill - Center with Dropdown */}
-            <div className="flex items-center">
-              <Button
-                onClick={handleAutoFill}
-                variant="secondary"
-                className="rounded-r-none dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white px-6"
-                data-testid="button-auto-fill"
-              >
-                Auto Fill
-              </Button>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center">
+                <Button
+                  onClick={handleAutoFill}
+                  variant="secondary"
+                  className="rounded-r-none dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white px-6"
+                  data-testid="button-auto-fill"
+                >
+                  Auto Fill
+                </Button>
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -398,6 +415,20 @@ export function CustomGridModal({
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              </div>
+              
+              {/* Undo Button - Only show after Auto Fill */}
+              {showUndo && (
+                <Button
+                  onClick={handleUndo}
+                  variant="outline"
+                  size="sm"
+                  className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white"
+                  data-testid="button-undo"
+                >
+                  <Undo2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
 
             {/* Create Grid - Right */}
@@ -417,11 +448,6 @@ export function CustomGridModal({
           </div>
 
           {/* Validation Status */}
-          {!gridState.isValid && (
-            <div className="mt-4 text-center text-sm text-muted-foreground">
-              Fill all headers to enable grid creation
-            </div>
-          )}
           {gridState.isValid && !gridState.isSolvable && (
             <div className="mt-4 text-center text-sm text-destructive">
               Grid is unsolvable - some cells require the same unique player
