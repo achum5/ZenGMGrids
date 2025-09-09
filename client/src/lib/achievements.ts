@@ -370,7 +370,26 @@ export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | '
 
 // Season-aligned achievements that need same-season matching for Team × Achievement cells
 export const SEASON_ALIGNED_ACHIEVEMENTS = new Set([
-  'ledScoringAny', 'ledRebAny', 'ledAstAny'
+  // Legacy season achievements  
+  'ledScoringAny', 'ledRebAny', 'ledAstAny',
+  
+  // Basketball GM season achievements
+  'AllStar', 'MVP', 'DPOY', 'ROY', 'SMOY', 'MIP', 'FinalsMVP',
+  'AllLeagueAny', 'AllDefAny', 'AllRookieAny',
+  'PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader',
+  
+  // Football GM season achievements
+  'FBAllStar', 'FBMVP', 'FBDPOY', 'FBOffROY', 'FBDefROY', 'FBChampion',
+  'FBAllRookie', 'FBAllLeague', 'FBFinalsMVP',
+  
+  // Hockey GM season achievements  
+  'HKAllStar', 'HKMVP', 'HKDefenseman', 'HKROY', 'HKChampion', 
+  'HKPlayoffsMVP', 'HKFinalsMVP', 'HKAllRookie', 'HKAllLeague',
+  'HKAllStarMVP', 'HKAssistsLeader',
+  
+  // Baseball GM season achievements
+  'BBAllStar', 'BBMVP', 'BBROY', 'BBChampion', 'BBAllRookie', 
+  'BBAllLeague', 'BBPlayoffsMVP'
 ]);
 
 // Check if a player meets a specific achievement criteria
