@@ -147,7 +147,9 @@ export function buildCanonicalAchievementIndex(
   
   // Initialize career achievements  
   const careerAchievementIds = ['isPick1Overall', 'isFirstRoundPick', 'isUndrafted', 'isHallOfFamer', 'played10PlusSeasons', 'played15PlusSeasons'];
-  if (sport === 'football') {
+  if (sport === 'basketball') {
+    careerAchievementIds.push('career20kPoints', 'career10kRebounds', 'career5kAssists', 'career2kSteals', 'career1500Blocks', 'career2k3PM');
+  } else if (sport === 'football') {
     careerAchievementIds.push('career300PassTDs', 'career12kRushYds', 'career100RushTDs', 'career12kRecYds', 'career100RecTDs', 'career100Sacks', 'career20Ints');
   }
   
