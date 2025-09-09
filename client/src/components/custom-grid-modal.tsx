@@ -4,6 +4,11 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { X, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+// Import sport icon images
+import basketballIcon from '@/assets/basketball.png';
+import footballIcon from '@/assets/football.png';
+import hockeyIcon from '@/assets/hockey.png';
+import baseballIcon from '@/assets/baseball.png';
 import { CustomGridHeaderSelector } from './custom-grid-header-selector';
 import { CustomGridCell } from './custom-grid-cell';
 import type { Team, Player, CatTeam, LeagueData } from '@/types/bbgm';
@@ -194,9 +199,19 @@ export function CustomGridModal({
             <div className="bg-border/60 dark:bg-slate-600/90 rounded-2xl p-[2px] md:p-[3px] overflow-hidden">
               <div className="grid grid-cols-4 gap-[2px] md:gap-[3px] w-full">
                 
-                {/* Basketball icon in top-left corner (like score position) */}
+                {/* Sport icon in top-left corner (like score position) */}
                 <div className="aspect-square flex items-center justify-center bg-secondary dark:bg-slate-700 rounded-tl-2xl overflow-hidden">
-                  <div className="text-4xl">🏀</div>
+                  <img 
+                    src={
+                      sport === 'basketball' ? basketballIcon :
+                      sport === 'football' ? footballIcon :
+                      sport === 'hockey' ? hockeyIcon :
+                      sport === 'baseball' ? baseballIcon :
+                      basketballIcon // fallback
+                    }
+                    alt={`${sport || 'Sport'} icon`} 
+                    className="w-8 h-8 object-contain"
+                  />
                 </div>
                 
                 {/* Column Headers */}
