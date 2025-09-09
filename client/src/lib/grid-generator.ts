@@ -1058,39 +1058,38 @@ function pickHeaders(
   const shuffledTeams = [...activeTeams].sort(() => Math.random() - 0.5);
   const shuffledAchievements = [...availableAchievements].sort(() => Math.random() - 0.5);
   
-  let teamIndex = 0;
-  let achievementIndex = 0;
+  // Global tracking to prevent duplicates across entire grid
   const usedAchievements = new Set<string>();
   const usedTeams = new Set<number>();
   
   // Fill rows
   for (let i = 0; i < 3; i++) {
     if (layout.rows[i] === 'T') {
-      // Add team
-      while (teamIndex < shuffledTeams.length && usedTeams.has(shuffledTeams[teamIndex].tid)) {
-        teamIndex++;
-      }
-      if (teamIndex >= shuffledTeams.length) {
-        throw new Error('Not enough teams available');
+      // Find next available team not already used
+      let foundTeam = false;
+      for (const team of shuffledTeams) {
+        if (!usedTeams.has(team.tid)) {
+          rows.push({
+            type: 'team',
+            tid: team.tid,
+            label: team.name || `Team ${team.tid}`,
+            key: `team-${team.tid}`,
+            test: (p: Player) => p.teamsPlayed.has(team.tid),
+          });
+          usedTeams.add(team.tid);
+          foundTeam = true;
+          break;
+        }
       }
       
-      const team = shuffledTeams[teamIndex];
-      rows.push({
-        type: 'team',
-        tid: team.tid,
-        label: team.name || `Team ${team.tid}`,
-        key: `team-${team.tid}`,
-        test: (p: Player) => p.teamsPlayed.has(team.tid),
-      });
-      usedTeams.add(team.tid);
-      teamIndex++;
+      if (!foundTeam) {
+        throw new Error('Not enough unique teams available for grid');
+      }
       
     } else if (layout.rows[i] === 'A') {
-      // Add achievement with mutual exclusion
-      let found = false;
-      for (let j = achievementIndex; j < shuffledAchievements.length; j++) {
-        const ach = shuffledAchievements[j];
-        
+      // Find next available achievement not already used
+      let foundAchievement = false;
+      for (const ach of shuffledAchievements) {
         if (usedAchievements.has(ach.id)) continue;
         
         // Check career seasons mutual exclusion
@@ -1110,45 +1109,44 @@ function pickHeaders(
           test: (p: Player) => playerMeetsAchievement(p, ach.id, seasonIndex),
         });
         usedAchievements.add(ach.id);
-        achievementIndex = j + 1;
-        found = true;
+        foundAchievement = true;
         break;
       }
       
-      if (!found) {
-        throw new Error('Not enough compatible achievements available');
+      if (!foundAchievement) {
+        throw new Error('Not enough compatible unique achievements available');
       }
     }
   }
   
-  // Fill columns (continue from where we left off for teams/achievements)
+  // Fill columns (ensuring no duplicates from rows)
   for (let i = 0; i < 3; i++) {
     if (layout.cols[i] === 'T') {
-      // Add team
-      while (teamIndex < shuffledTeams.length && usedTeams.has(shuffledTeams[teamIndex].tid)) {
-        teamIndex++;
-      }
-      if (teamIndex >= shuffledTeams.length) {
-        throw new Error('Not enough teams available');
+      // Find next available team not already used anywhere in grid
+      let foundTeam = false;
+      for (const team of shuffledTeams) {
+        if (!usedTeams.has(team.tid)) {
+          cols.push({
+            type: 'team',
+            tid: team.tid,
+            label: team.name || `Team ${team.tid}`,
+            key: `team-${team.tid}`,
+            test: (p: Player) => p.teamsPlayed.has(team.tid),
+          });
+          usedTeams.add(team.tid);
+          foundTeam = true;
+          break;
+        }
       }
       
-      const team = shuffledTeams[teamIndex];
-      cols.push({
-        type: 'team',
-        tid: team.tid,
-        label: team.name || `Team ${team.tid}`,
-        key: `team-${team.tid}`,
-        test: (p: Player) => p.teamsPlayed.has(team.tid),
-      });
-      usedTeams.add(team.tid);
-      teamIndex++;
+      if (!foundTeam) {
+        throw new Error('Not enough unique teams available for grid');
+      }
       
     } else if (layout.cols[i] === 'A') {
-      // Add achievement with mutual exclusion
-      let found = false;
-      for (let j = achievementIndex; j < shuffledAchievements.length; j++) {
-        const ach = shuffledAchievements[j];
-        
+      // Find next available achievement not already used anywhere in grid
+      let foundAchievement = false;
+      for (const ach of shuffledAchievements) {
         if (usedAchievements.has(ach.id)) continue;
         
         // Check career seasons mutual exclusion
@@ -1168,13 +1166,12 @@ function pickHeaders(
           test: (p: Player) => playerMeetsAchievement(p, ach.id, seasonIndex),
         });
         usedAchievements.add(ach.id);
-        achievementIndex = j + 1;
-        found = true;
+        foundAchievement = true;
         break;
       }
       
-      if (!found) {
-        throw new Error('Not enough compatible achievements available');
+      if (!foundAchievement) {
+        throw new Error('Not enough compatible unique achievements available');
       }
     }
   }
