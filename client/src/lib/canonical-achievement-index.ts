@@ -288,7 +288,7 @@ function calculateCareerAchievements(
   }
   
   // Hall of Fame - check both hof property and award
-  if (player.hof === true || player.awards?.some(a => a.type === 'Inducted into the Hall of Fame')) {
+  if ((player as any).hof === true || player.awards?.some(a => a.type === 'Inducted into the Hall of Fame')) {
     careerAch.isHallOfFamer.add(player.pid);
   }
   
@@ -317,14 +317,15 @@ function calculateCareerAchievements(
     player.stats.forEach(stat => {
       if (stat.playoffs) return; // Only regular season
       
-      // Field names from specification - use tolerant lookup
-      careerPassTDs += stat.psTD || stat.passTD || 0;
-      careerRushYds += stat.ruYds || stat.rushYds || 0;
-      careerRushTDs += stat.ruTD || stat.rushTD || 0;
-      careerRecYds += stat.recYds || 0;
-      careerRecTDs += stat.recTD || 0;
-      careerSacks += stat.sk || stat.sacks || 0;
-      careerInts += stat.int || stat.defInt || 0;
+      // Field names from specification - use tolerant lookup with type casting
+      const s = stat as any;
+      careerPassTDs += s.psTD || s.passTD || 0;
+      careerRushYds += s.ruYds || s.rushYds || 0;
+      careerRushTDs += s.ruTD || s.rushTD || 0;
+      careerRecYds += s.recYds || 0;
+      careerRecTDs += s.recTD || 0;
+      careerSacks += s.sk || s.sacks || 0;
+      careerInts += s.int || s.defInt || 0;
     });
     
     // Apply thresholds from specification
@@ -386,11 +387,11 @@ export function getCanonicalEligiblePlayers(
     
     // Intersection: players who have career achievement AND played for this team
     const eligible = new Set<number>();
-    for (const pid of careerPlayers) {
+    careerPlayers.forEach(pid => {
       if (teamPlayers.has(pid)) {
         eligible.add(pid);
       }
-    }
+    });
     return eligible;
   }
   
