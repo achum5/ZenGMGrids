@@ -20,7 +20,7 @@ import { parseLeagueFile, parseLeagueUrl, buildSearchIndex } from '@/lib/bbgm-pa
 import { generateTeamsGrid, cellKey } from '@/lib/grid-generator';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
 import { useToast } from '@/hooks/use-toast';
-import { buildCanonicalAchievementIndex, getCanonicalEligiblePlayers, validateGuessCanonical, logCanonicalDiagnostics, verifyAcceptanceCriteria, CANONICAL_ACHIEVEMENT_IDS, type CanonicalAchievementIndex } from '@/lib/canonical-achievement-index';
+import { buildCanonicalAchievementIndex, getCanonicalEligiblePlayers, validateGuessCanonical, logCanonicalDiagnostics, verifyAcceptanceCriteria, getEligiblePlayersForCell, CANONICAL_ACHIEVEMENT_IDS, type CanonicalAchievementIndex } from '@/lib/canonical-achievement-index';
 import type { LeagueData, CatTeam, CellState, Player, SearchablePlayer } from '@/types/bbgm';
 
 // Helper functions for attempt tracking
@@ -353,85 +353,22 @@ export default function Home() {
       
       let modalEligiblePids: number[] = [];
       
-      if (canonicalIndex && modalRowConstraint && modalColConstraint) {
-        // Handle Team × Achievement cases using canonical index
-        if (modalRowConstraint.type === 'team' && modalColConstraint.type === 'achievement' && modalColConstraint.achievementId) {
-          const teamId = modalRowConstraint.tid!;
-          const achId = modalColConstraint.achievementId;
-          const team = leagueData?.teams.find(t => t.tid === teamId);
-          const franchiseId = (team as any)?.franchiseId || teamId;
-          const eligiblePidSet = getCanonicalEligiblePlayers(canonicalIndex, achId, franchiseId);
-          modalEligiblePids = Array.from(eligiblePidSet);
-        } else if (modalColConstraint.type === 'team' && modalRowConstraint.type === 'achievement' && modalRowConstraint.achievementId) {
-          const teamId = modalColConstraint.tid!;
-          const achId = modalRowConstraint.achievementId;
-          const team = leagueData?.teams.find(t => t.tid === teamId);
-          const franchiseId = (team as any)?.franchiseId || teamId;
-          const eligiblePidSet = getCanonicalEligiblePlayers(canonicalIndex, achId, franchiseId);
-          modalEligiblePids = Array.from(eligiblePidSet);
-        } else if (modalRowConstraint.type === 'achievement' && modalColConstraint.type === 'achievement' && 
-                   modalRowConstraint.achievementId && modalColConstraint.achievementId) {
-          // Handle Achievement × Achievement cases using canonical index
-          const achId1 = modalRowConstraint.achievementId;
-          const achId2 = modalColConstraint.achievementId;
-          
-          if (achId1 === achId2) {
-            // Same achievement - get all players who have it across all teams
-            const allEligiblePids = new Set<number>();
-            for (const teamId of Object.keys(canonicalIndex.awardByTeamAnySeason[achId1] || {})) {
-              const teamPids = canonicalIndex.awardByTeamAnySeason[achId1][parseInt(teamId)];
-              if (teamPids) {
-                teamPids.forEach(pid => allEligiblePids.add(pid));
-              }
-            }
-            modalEligiblePids = Array.from(allEligiblePids);
-          } else {
-            // Different achievements - find players who have both
-            const allEligiblePids = new Set<number>();
-            
-            // Get all players for first achievement
-            const ach1PlayersByTeam = canonicalIndex.awardByTeamAnySeason[achId1] || {};
-            const ach2PlayersByTeam = canonicalIndex.awardByTeamAnySeason[achId2] || {};
-            
-            // For season achievements, we need same-season overlap
-            if (canonicalIndex.awardByTeamSeason[achId1] && canonicalIndex.awardByTeamSeason[achId2]) {
-              // Check season-by-season for overlap
-              for (const seasonStr of Object.keys(canonicalIndex.awardByTeamSeason[achId1])) {
-                const season = parseInt(seasonStr);
-                for (const teamStr of Object.keys(canonicalIndex.awardByTeamSeason[achId1][season] || {})) {
-                  const teamId = parseInt(teamStr);
-                  const ach1Pids = canonicalIndex.awardByTeamSeason[achId1][season]?.[teamId] || new Set();
-                  const ach2Pids = canonicalIndex.awardByTeamSeason[achId2][season]?.[teamId] || new Set();
-                  
-                  // Find intersection for this team in this season
-                  for (const pid of ach1Pids) {
-                    if (ach2Pids.has(pid)) {
-                      allEligiblePids.add(pid);
-                    }
-                  }
-                }
-              }
-            } else {
-              // Career achievements - simple intersection
-              const ach1Pids = new Set<number>();
-              for (const teamPids of Object.values(ach1PlayersByTeam)) {
-                teamPids.forEach(pid => ach1Pids.add(pid));
-              }
-              
-              for (const teamPids of Object.values(ach2PlayersByTeam)) {
-                teamPids.forEach(pid => {
-                  if (ach1Pids.has(pid)) {
-                    allEligiblePids.add(pid);
-                  }
-                });
-              }
-            }
-            
-            modalEligiblePids = Array.from(allEligiblePids);
-          }
-        } else {
-          // Fall back to intersections for Team × Team or other cases
-          modalEligiblePids = intersections[key] || [];
+      if (canonicalIndex && modalRowConstraint && modalColConstraint && leagueData?.teams) {
+        // Use the new helper function for single source of truth
+        const eligiblePidSet = getEligiblePlayersForCell(
+          canonicalIndex,
+          modalRowConstraint,
+          modalColConstraint,
+          leagueData.teams
+        );
+        modalEligiblePids = Array.from(eligiblePidSet);
+        
+        // Add diagnostics to verify the count matches
+        const gridCount = intersections[key]?.length || 0;
+        console.log(`🔍 MODAL DIAGNOSTICS: ${modalRowConstraint.label} × ${modalColConstraint.label}`);
+        console.log(`   Grid count: ${gridCount}, Modal count: ${modalEligiblePids.length}`);
+        if (gridCount !== modalEligiblePids.length) {
+          console.warn(`⚠️ COUNT MISMATCH: Grid shows ${gridCount} but modal shows ${modalEligiblePids.length}`);
         }
       } else {
         // Fallback to intersections if canonical index not available
