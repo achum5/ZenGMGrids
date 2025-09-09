@@ -155,8 +155,11 @@ export function calculateCustomCellIntersection(
       }
       eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
     } else {
-      // Different achievements - find players who have both in the same season
-      const eligiblePids = new Set<number>();
+      // Different achievements - find players who have BOTH achievements across ANY seasons (no season alignment)
+      const rowEligiblePids = new Set<number>();
+      const colEligiblePids = new Set<number>();
+      
+      // Collect all players who have the row achievement in any season
       for (const seasonStr of Object.keys(seasonIndex)) {
         const season = parseInt(seasonStr);
         const seasonData = seasonIndex[season];
@@ -164,16 +167,30 @@ export function calculateCustomCellIntersection(
           const teamId = parseInt(teamStr);
           const teamData = seasonData[teamId];
           const rowAchievementPids = teamData[rowConstraint.achievementId as SeasonAchievementId] || new Set();
-          const colAchievementPids = teamData[colConstraint.achievementId as SeasonAchievementId] || new Set();
-          
-          // Find intersection of both achievements in this season
-          rowAchievementPids.forEach(pid => {
-            if (colAchievementPids.has(pid)) {
-              eligiblePids.add(pid);
-            }
-          });
+          rowAchievementPids.forEach(pid => rowEligiblePids.add(pid));
         }
       }
+      
+      // Collect all players who have the column achievement in any season
+      for (const seasonStr of Object.keys(seasonIndex)) {
+        const season = parseInt(seasonStr);
+        const seasonData = seasonIndex[season];
+        for (const teamStr of Object.keys(seasonData)) {
+          const teamId = parseInt(teamStr);
+          const teamData = seasonData[teamId];
+          const colAchievementPids = teamData[colConstraint.achievementId as SeasonAchievementId] || new Set();
+          colAchievementPids.forEach(pid => colEligiblePids.add(pid));
+        }
+      }
+      
+      // Find intersection of players who have both achievements (across any seasons)
+      const eligiblePids = new Set<number>();
+      rowEligiblePids.forEach(pid => {
+        if (colEligiblePids.has(pid)) {
+          eligiblePids.add(pid);
+        }
+      });
+      
       eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
     }
   } else {

@@ -2061,20 +2061,24 @@ export function evaluateConstraintPair(player: Player, rowConstraint: GridConstr
     const colIsSeasonSpecific = SEASON_ALIGNED_ACHIEVEMENTS.has(colConstraint.achievementId!);
     
     if (rowIsSeasonSpecific && colIsSeasonSpecific) {
-      // Both season-specific: player must have both in the same season (if seasonIndex available)
+      // Both season-specific: player must have both achievements at ANY point in career (no season alignment)
       if (seasonIndex) {
-        // Use season index to check if player achieved both in same season
+        // Use season index to check if player achieved both across any seasons
+        let hasRow = false;
+        let hasCol = false;
+        
         for (const seasonStr of Object.keys(seasonIndex)) {
           const seasonData = seasonIndex[parseInt(seasonStr)];
           for (const teamData of Object.values(seasonData)) {
-            const hasRow = teamData[rowConstraint.achievementId! as keyof typeof teamData]?.has(player.pid);
-            const hasCol = teamData[colConstraint.achievementId! as keyof typeof teamData]?.has(player.pid);
-            if (hasRow && hasCol) {
-              return true;
+            if (teamData[rowConstraint.achievementId! as keyof typeof teamData]?.has(player.pid)) {
+              hasRow = true;
+            }
+            if (teamData[colConstraint.achievementId! as keyof typeof teamData]?.has(player.pid)) {
+              hasCol = true;
             }
           }
         }
-        return false;
+        return hasRow && hasCol;
       } else {
         // No season index: fall back to basic check
         return evaluateConstraint(player, rowConstraint) && evaluateConstraint(player, colConstraint);
