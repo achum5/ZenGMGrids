@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { X, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { HeaderConfig, TeamOption, AchievementOption } from '@/lib/custom-grid-utils';
@@ -104,25 +103,18 @@ export function CustomGridHeaderSelector({
         </Button>
         
         {showTeamDropdown && (
-          <div className="absolute top-full left-0 z-50 w-64 max-h-60 bg-popover dark:bg-slate-700 border border-border dark:border-slate-600 rounded-md shadow-lg overflow-hidden">
-            <div className="p-2">
-              <Select onValueChange={handleTeamSelect} open={true} onOpenChange={() => {}}>
-                <SelectTrigger className="w-full text-xs dark:bg-slate-600 border-none">
-                  <SelectValue placeholder="Select Team" />
-                </SelectTrigger>
-                <SelectContent className="max-h-48 dark:bg-slate-700 relative z-50" position="item-aligned">
-                  {teamOptions.map(team => (
-                    <SelectItem 
-                      key={team.id} 
-                      value={team.id.toString()}
-                      className="text-xs dark:hover:bg-slate-600 cursor-pointer"
-                      data-testid={`option-team-${team.id}`}
-                    >
-                      {team.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="absolute top-full left-0 z-50 w-64 max-h-60 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-md shadow-xl overflow-hidden">
+            <div className="max-h-60 overflow-y-auto">
+              {teamOptions.map(team => (
+                <button
+                  key={team.id}
+                  onClick={() => handleTeamSelect(team.id.toString())}
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-blue-50 dark:hover:bg-slate-700 border-b border-gray-100 dark:border-slate-700 last:border-b-0 transition-colors"
+                  data-testid={`option-team-${team.id}`}
+                >
+                  {team.label}
+                </button>
+              ))}
             </div>
           </div>
         )}
@@ -140,25 +132,18 @@ export function CustomGridHeaderSelector({
         </Button>
         
         {showAchievementDropdown && (
-          <div className="absolute bottom-full left-0 z-50 w-64 max-h-60 bg-popover dark:bg-slate-700 border border-border dark:border-slate-600 rounded-md shadow-lg overflow-hidden">
-            <div className="p-2">
-              <Select onValueChange={handleAchievementSelect} open={true} onOpenChange={() => {}}>
-                <SelectTrigger className="w-full text-xs dark:bg-slate-600 border-none">
-                  <SelectValue placeholder="Select Achievement" />
-                </SelectTrigger>
-                <SelectContent className="max-h-48 dark:bg-slate-700 relative z-50" position="item-aligned">
-                  {achievementOptions.map(achievement => (
-                    <SelectItem 
-                      key={achievement.id} 
-                      value={achievement.id}
-                      className="text-xs dark:hover:bg-slate-600 cursor-pointer"
-                      data-testid={`option-achievement-${achievement.id}`}
-                    >
-                      {achievement.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="absolute bottom-full left-0 z-50 w-64 max-h-60 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-md shadow-xl overflow-hidden">
+            <div className="max-h-60 overflow-y-auto">
+              {achievementOptions.map(achievement => (
+                <button
+                  key={achievement.id}
+                  onClick={() => handleAchievementSelect(achievement.id)}
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-blue-50 dark:hover:bg-slate-700 border-b border-gray-100 dark:border-slate-700 last:border-b-0 transition-colors"
+                  data-testid={`option-achievement-${achievement.id}`}
+                >
+                  {achievement.label}
+                </button>
+              ))}
             </div>
           </div>
         )}
