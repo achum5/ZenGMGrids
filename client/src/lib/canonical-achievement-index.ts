@@ -96,7 +96,7 @@ export function buildCanonicalAchievementIndex(
   // Build franchise ID mapping for team continuity
   const franchiseIdMap = new Map<number, number>();
   for (const team of teams) {
-    franchiseIdMap.set(team.tid, team.franchiseId || team.tid);
+    franchiseIdMap.set(team.tid, (team as any).franchiseId || team.tid);
   }
   
   // Process each player's awards and map to team-season combinations
@@ -129,7 +129,7 @@ export function buildCanonicalAchievementIndex(
       // Special handling for Finals MVP - attach to playoffs team only
       if (normalizedType === 'FINALS_MVP') {
         const playoffsStats = player.stats.find(s => 
-          s.season === season && s.playoffs === true && s.gp > 0
+          s.season === season && s.playoffs === true && (s.gp || 0) > 0
         );
         
         if (playoffsStats) {
@@ -144,7 +144,7 @@ export function buildCanonicalAchievementIndex(
       
       // For all other awards - attach to all regular season teams in that season
       const regularSeasonStats = player.stats.filter(s => 
-        s.season === season && s.playoffs === false && s.gp > 0
+        s.season === season && s.playoffs === false && (s.gp || 0) > 0
       );
       
       if (regularSeasonStats.length === 0) {

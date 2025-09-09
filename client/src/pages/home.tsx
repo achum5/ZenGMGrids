@@ -20,6 +20,7 @@ import { parseLeagueFile, parseLeagueUrl, buildSearchIndex } from '@/lib/bbgm-pa
 import { generateTeamsGrid, cellKey } from '@/lib/grid-generator';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
 import { useToast } from '@/hooks/use-toast';
+import { buildCanonicalAchievementIndex, getCanonicalEligiblePlayers, validateGuessCanonical, logCanonicalDiagnostics, CANONICAL_ACHIEVEMENT_IDS, type CanonicalAchievementIndex } from '@/lib/canonical-achievement-index';
 import type { LeagueData, CatTeam, CellState, Player, SearchablePlayer } from '@/types/bbgm';
 
 // Helper functions for attempt tracking
@@ -68,6 +69,7 @@ export default function Home() {
   
   // Core state
   const [leagueData, setLeagueData] = useState<LeagueData | null>(null);
+  const [canonicalIndex, setCanonicalIndex] = useState<CanonicalAchievementIndex | null>(null);
   const [rows, setRows] = useState<CatTeam[]>([]);
   const [cols, setCols] = useState<CatTeam[]>([]);
   const [cells, setCells] = useState<Record<string, CellState>>({});
@@ -216,6 +218,10 @@ export default function Home() {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     
+    // Build canonical achievement index - SINGLE SOURCE OF TRUTH
+    const canonicalIdx = buildCanonicalAchievementIndex(data.players, data.teams);
+    setCanonicalIndex(canonicalIdx);
+    
     // Build search indices
     const indices = buildSearchIndex(data.players, data.teams);
     setByName(indices.byName);
@@ -242,7 +248,7 @@ export default function Home() {
   }, [toast]);
 
   const handleGenerateNewGrid = useCallback(() => {
-    if (!leagueData) return;
+    if (!leagueData || !canonicalIndex) return;
     
     setIsGenerating(true);
     
@@ -376,9 +382,53 @@ export default function Home() {
     
     // currentCellKey now uses key format: "key1|key2"
     
-    // Validate eligibility
-    const eligiblePids = intersections[currentCellKey] || [];
-    const isCorrect = eligiblePids.includes(player.pid);
+    // Validate eligibility using canonical index - SINGLE SOURCE OF TRUTH
+    const [rowKey, colKey] = currentCellKey.split('|');
+    const rowConstraint = rows.find(r => r.key === rowKey);
+    const colConstraint = cols.find(c => c.key === colKey);
+    
+    let isCorrect = false;
+    let eligiblePids: number[] = [];
+    
+    if (canonicalIndex && rowConstraint && colConstraint) {
+      // Use canonical validation for Team × Achievement combinations
+      if (rowConstraint.type === 'team' && colConstraint.type === 'achievement' && colConstraint.achievementId) {
+        const teamId = rowConstraint.tid!;
+        const achId = colConstraint.achievementId;
+        // Get franchise ID for team continuity
+        const team = leagueData?.teams.find(t => t.tid === teamId);
+        const franchiseId = (team as any)?.franchiseId || teamId;
+        
+        // Log diagnostics for Celtics × All-League cases
+        if (franchiseId === 1 && achId === 'AllLeagueAny') {
+          logCanonicalDiagnostics(canonicalIndex, achId, franchiseId, leagueData?.players || [], 'Celtics');
+        }
+        
+        isCorrect = validateGuessCanonical(canonicalIndex, player.pid, achId, franchiseId);
+        const eligiblePidSet = getCanonicalEligiblePlayers(canonicalIndex, achId, franchiseId);
+        eligiblePids = Array.from(eligiblePidSet);
+      } else if (colConstraint.type === 'team' && rowConstraint.type === 'achievement' && rowConstraint.achievementId) {
+        const teamId = colConstraint.tid!;
+        const achId = rowConstraint.achievementId;
+        // Get franchise ID for team continuity
+        const team = leagueData?.teams.find(t => t.tid === teamId);
+        const franchiseId = (team as any)?.franchiseId || teamId;
+        
+        isCorrect = validateGuessCanonical(canonicalIndex, player.pid, achId, franchiseId);
+        const eligiblePidSet = getCanonicalEligiblePlayers(canonicalIndex, achId, franchiseId);
+        eligiblePids = Array.from(eligiblePidSet);
+      } else {
+        // Fall back to original validation for non-canonical cases (Team × Team, etc.)
+        const originalEligiblePids = intersections[currentCellKey] || [];
+        isCorrect = originalEligiblePids.includes(player.pid);
+        eligiblePids = originalEligiblePids;
+      }
+    } else {
+      // Fallback to original validation if canonical index not available
+      const originalEligiblePids = intersections[currentCellKey] || [];
+      isCorrect = originalEligiblePids.includes(player.pid);
+      eligiblePids = originalEligiblePids;
+    }
     
     
     // Compute rarity if correct
@@ -390,10 +440,7 @@ export default function Home() {
       const guessedPlayer = playerToEligibleLite(player);
       const puzzleSeed = `${rows.map(r => r.key).join('-')}_${cols.map(c => c.key).join('-')}`;
       
-      // Get row and column constraints for cell context
-      const [rowKey, colKey] = currentCellKey.split('|');
-      const rowConstraint = rows.find(r => r.key === rowKey);
-      const colConstraint = cols.find(c => c.key === colKey);
+      // Row and column constraints already extracted above
       const teamsMap = new Map(leagueData.teams.map(t => [t.tid, t]));
       
       rarity = computeRarityForGuess({
@@ -439,7 +486,7 @@ export default function Home() {
     
     setCurrentCellKey(null);
     setSearchModalOpen(false);
-  }, [currentCellKey, intersections, usedPids, toast]);
+  }, [currentCellKey, intersections, usedPids, toast, canonicalIndex, rows, cols, leagueData]);
 
   const getCurrentCellDescription = () => {
     if (!currentCellKey || !rows || !cols) return '';
