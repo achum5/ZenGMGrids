@@ -1989,8 +1989,6 @@ function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, a
 
   // For non-season achievements or when season index is not available, fall back to career-based check
   return playerPlayedForTeam(player, teamTid) && playerMeetsAchievement(player, achievementId, seasonIndex);
-
-  return false;
 }
 
 /**
