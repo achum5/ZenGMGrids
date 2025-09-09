@@ -855,6 +855,7 @@ export default function Home() {
           currentCellKey={modalCellKey}
           sport={leagueData?.sport}
           cells={cells}
+          seasonIndex={leagueData?.seasonIndex}
         />
         
         <GridSharingModal
