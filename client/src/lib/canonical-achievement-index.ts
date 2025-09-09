@@ -12,51 +12,47 @@ export interface CanonicalAchievementIndex {
   awardByTeamAnySeason: Record<string, Record<number, Set<number>>>;
 }
 
-// Award type normalization mapping
-const AWARD_TYPE_MAPPING: Record<string, string> = {
-  // All-Star variants
+// Sport-specific award type normalization mappings
+const BASKETBALL_AWARD_MAPPING: Record<string, string> = {
   'All-Star': 'ALL_STAR',
-  
-  // MVP variants  
   'Most Valuable Player': 'MVP',
   'MVP': 'MVP',
-  
-  // Defensive Player of the Year
   'Defensive Player of the Year': 'DPOY',
   'DPOY': 'DPOY',
-  
-  // Rookie of the Year
   'Rookie of the Year': 'ROY',
   'ROY': 'ROY',
-  
-  // Sixth Man of the Year
   'Sixth Man of the Year': 'SMOY',
   'SMOY': 'SMOY',
-  
-  // Most Improved Player
   'Most Improved Player': 'MIP',
   'MIP': 'MIP',
-  
-  // All-League Team variants (combined)
   'All-League Team': 'ALL_LEAGUE',
   'First Team All-League': 'ALL_LEAGUE',
   'Second Team All-League': 'ALL_LEAGUE', 
   'Third Team All-League': 'ALL_LEAGUE',
-  
-  // All-Defensive Team variants (combined)
   'All-Defensive Team': 'ALL_DEFENSIVE',
   'First Team All-Defensive': 'ALL_DEFENSIVE',
   'Second Team All-Defensive': 'ALL_DEFENSIVE',
-  
-  // All-Rookie Team
   'All-Rookie Team': 'ALL_ROOKIE',
-  
-  // Finals MVP
   'Finals MVP': 'FINALS_MVP',
+};
+
+const FOOTBALL_AWARD_MAPPING: Record<string, string> = {
+  'All-Star': 'FB_ALL_STAR',
+  'Most Valuable Player': 'FB_MVP',
+  'Defensive Player of the Year': 'FB_DPOY',
+  'Offensive Rookie of the Year': 'FB_OFF_ROY',
+  'Defensive Rookie of the Year': 'FB_DEF_ROY',
+  'All-Rookie Team': 'FB_ALL_ROOKIE',
+  'All-League Team': 'FB_ALL_LEAGUE',
+  'First Team All-League': 'FB_ALL_LEAGUE',
+  'Second Team All-League': 'FB_ALL_LEAGUE',
+  'Finals MVP': 'FB_FINALS_MVP',
+  'Won Championship': 'FB_CHAMPION',
 };
 
 // Achievement ID mapping for consistency with existing system
 export const CANONICAL_ACHIEVEMENT_IDS = {
+  // Basketball GM
   ALL_STAR: 'AllStar',
   MVP: 'MVP', 
   DPOY: 'DPOY',
@@ -71,8 +67,51 @@ export const CANONICAL_ACHIEVEMENT_IDS = {
   REBOUNDS_LEADER: 'ReboundsLeader',
   ASSISTS_LEADER: 'AssistsLeader',
   STEALS_LEADER: 'StealsLeader',
-  BLOCKS_LEADER: 'BlocksLeader'
+  BLOCKS_LEADER: 'BlocksLeader',
+  
+  // Football GM specific  
+  FB_ALL_STAR: 'FBAllStar',
+  FB_MVP: 'FBMVP',
+  FB_DPOY: 'FBDPOY',
+  FB_OFF_ROY: 'FBOffROY',
+  FB_DEF_ROY: 'FBDefROY',
+  FB_ALL_ROOKIE: 'FBAllRookie',
+  FB_ALL_LEAGUE: 'FBAllLeague',
+  FB_FINALS_MVP: 'FBFinalsMVP',
+  FB_CHAMPION: 'FBChampion'
 } as const;
+
+/**
+ * Detect sport from player data to determine correct award mapping
+ */
+function detectSport(players: Player[]): 'basketball' | 'football' | 'hockey' | 'baseball' {
+  // Check for football-specific awards in first few players
+  for (let i = 0; i < Math.min(players.length, 10); i++) {
+    const player = players[i];
+    if (player.awards) {
+      for (const award of player.awards) {
+        if (award.type === 'Offensive Rookie of the Year' || award.type === 'Defensive Rookie of the Year') {
+          return 'football';
+        }
+      }
+    }
+  }
+  
+  // Default to basketball (could be enhanced with more detection logic)
+  return 'basketball';
+}
+
+/**
+ * Get appropriate award mapping based on sport
+ */
+function getAwardMapping(sport: string): Record<string, string> {
+  switch (sport) {
+    case 'football':
+      return FOOTBALL_AWARD_MAPPING;
+    default:
+      return BASKETBALL_AWARD_MAPPING;
+  }
+}
 
 /**
  * Build the canonical achievement index from player data
@@ -83,6 +122,11 @@ export function buildCanonicalAchievementIndex(
   teams: Team[]
 ): CanonicalAchievementIndex {
   console.log('🏗️ Building canonical achievement index...');
+  
+  // Detect sport to use appropriate award mapping
+  const sport = detectSport(players);
+  const awardMapping = getAwardMapping(sport);
+  console.log(`🏈 Detected sport: ${sport}`);
   
   const awardByTeamSeason: Record<string, Record<number, Record<number, Set<number>>>> = {};
   const awardByTeamAnySeason: Record<string, Record<number, Set<number>>> = {};
@@ -108,7 +152,7 @@ export function buildCanonicalAchievementIndex(
     
     // Process each award
     for (const award of player.awards) {
-      const normalizedType = AWARD_TYPE_MAPPING[award.type];
+      const normalizedType = awardMapping[award.type];
       if (!normalizedType) {
         skippedAwards++;
         continue;
@@ -126,8 +170,8 @@ export function buildCanonicalAchievementIndex(
         continue;
       }
       
-      // Special handling for Finals MVP - attach to playoffs team only
-      if (normalizedType === 'FINALS_MVP') {
+      // Special handling for Finals MVP and Championship - attach to playoffs team only
+      if (normalizedType === 'FINALS_MVP' || normalizedType === 'FB_FINALS_MVP' || normalizedType === 'FB_CHAMPION') {
         const playoffsStats = player.stats.find(s => 
           s.season === season && s.playoffs === true && (s.gp || 0) > 0
         );
