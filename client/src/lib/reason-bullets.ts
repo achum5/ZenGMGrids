@@ -577,7 +577,7 @@ function generateAchievementBullet(
   sport: string
 ): ReasonBullet | null {
   // Draft achievements
-  if (['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen'].includes(achievementId)) {
+  if (['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted'].includes(achievementId)) {
     return generateDraftBullet(player, achievementId);
   }
   
@@ -617,7 +617,6 @@ function generateDraftBullet(player: Player, achievementId: string): ReasonBulle
     isFirstRoundPick: 'First-Round Pick', 
     isSecondRoundPick: 'Second-Round Pick',
     isUndrafted: 'Undrafted',
-    draftedTeen: 'Drafted as Teenager'
   };
   
   const label = draftLabels[achievementId];

@@ -1682,7 +1682,6 @@ function getAchievementPositiveMessage(achievementId: string, player?: Player): 
     isFirstRoundPick: "was a first-round pick",
     isSecondRoundPick: "was a second-round pick",
     isUndrafted: "went undrafted",
-    draftedTeen: "was drafted as a teenager (19 or younger)",
     
     // Special
     allStar35Plus: "made an All-Star team at age 35+",
@@ -1793,7 +1792,6 @@ function getAchievementNegativeMessage(achievementId: string, player?: Player): 
     isFirstRoundPick: "",
     isSecondRoundPick: "",
     isUndrafted: "",
-    draftedTeen: "",
     
     // Special
     allStar35Plus: "never made an All-Star team at age 35+",
@@ -1862,7 +1860,7 @@ function getAchievementNegativeMessage(achievementId: string, player?: Player): 
   };
   
   // Handle draft achievements specially
-  if (['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen'].includes(achievementId) && player) {
+  if (['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted'].includes(achievementId) && player) {
     return getDraftNegativeMessage(player, achievementId);
   }
   
@@ -2170,13 +2168,6 @@ function getOrdinalNumber(num: number): string {
 
 function getDraftNegativeMessage(player: Player, achievementId: string): string {
   // Handle new non-draft-specific achievements
-  if (achievementId === 'draftedTeen') {
-    if (!player.born?.year || !player.draft?.year) {
-      return "draft age information unavailable";
-    }
-    const ageAtDraft = player.draft.year - player.born.year;
-    return `was ${ageAtDraft} years old when drafted (not a teenager)`;
-  }
   
   
   if (!player.draft) {
