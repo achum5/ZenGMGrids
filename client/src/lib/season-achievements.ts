@@ -476,8 +476,17 @@ export function buildSeasonIndex(
     for (const award of player.awards) {
       const achievementId = mapAwardToAchievement(award.type, sport);
       if (!achievementId) {
+        // Debug Jaylen Brown's awards specifically
+        if (player.pid === 2481 && award.type && award.type.toLowerCase().includes('league')) {
+          console.log(`⚠️ DEBUG: Jaylen Brown (${player.pid}) award "${award.type}" not mapped to any achievement`);
+        }
         skippedEntries++;
         continue;
+      }
+      
+      // Debug Jaylen Brown's All-League mapping
+      if (player.pid === 2481 && achievementId === 'AllLeagueAny') {
+        console.log(`✅ DEBUG: Jaylen Brown (${player.pid}) award "${award.type}" mapped to ${achievementId} for season ${award.season}`);
       }
 
       const season = award.season;
@@ -507,6 +516,9 @@ export function buildSeasonIndex(
       
       if (seasonTeams.size === 0) {
         // No regular season stats for this award season, skip
+        if (achievementId === 'AllLeagueAny' && player.pid === 2481) {
+          console.log(`⚠️ DEBUG: Jaylen Brown (${player.pid}) has no season teams for ${achievementId} in ${season}`);
+        }
         skippedEntries++;
         continue;
       }
@@ -518,6 +530,9 @@ export function buildSeasonIndex(
         if (!seasonIndex[season][tid][achievementId]) seasonIndex[season][tid][achievementId] = new Set();
         
         seasonIndex[season][tid][achievementId].add(player.pid);
+        if (achievementId === 'AllLeagueAny' && player.pid === 2481) {
+          console.log(`✅ DEBUG: Added Jaylen Brown (${player.pid}) to seasonIndex[${season}][${tid}][${achievementId}]`);
+        }
         totalIndexed++;
       }
     }
