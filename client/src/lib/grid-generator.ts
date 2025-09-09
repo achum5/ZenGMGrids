@@ -1,7 +1,7 @@
 // Grid generator utilities and functions for Basketball GM Immaculate Grid
 
 import type { Player, Team } from '@/types/bbgm';
-import { playerMeetsAchievement, getAchievements } from '@/lib/achievements';
+import { playerMeetsAchievement, getAchievements, SEASON_ALIGNED_ACHIEVEMENTS } from '@/lib/achievements';
 import { SEASON_ACHIEVEMENTS, type SeasonAchievementId, type SeasonIndex, getSeasonEligiblePlayers } from './season-achievements';
 import { evaluateConstraintPair } from './feedback';
 
@@ -745,9 +745,9 @@ function calculateIntersectionSimple(
   // Use the exact same logic as custom grids for proper Team × Achievement alignment
   let eligiblePlayers: Player[];
   
-  // Check if either constraint is a season achievement
-  const rowIsSeasonAchievement = rowConstraint.type === 'achievement' && SEASON_ACHIEVEMENTS.some(sa => sa.id === rowConstraint.achievementId);
-  const colIsSeasonAchievement = colConstraint.type === 'achievement' && SEASON_ACHIEVEMENTS.some(sa => sa.id === colConstraint.achievementId);
+  // Check if either constraint is a season achievement (use SEASON_ALIGNED_ACHIEVEMENTS for consistency)
+  const rowIsSeasonAchievement = rowConstraint.type === 'achievement' && SEASON_ALIGNED_ACHIEVEMENTS.has(rowConstraint.achievementId!);
+  const colIsSeasonAchievement = colConstraint.type === 'achievement' && SEASON_ALIGNED_ACHIEVEMENTS.has(colConstraint.achievementId!);
   
   if (rowIsSeasonAchievement && colConstraint.type === 'team' && seasonIndex) {
     // Season achievement × team
