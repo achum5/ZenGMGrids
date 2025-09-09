@@ -7,24 +7,29 @@ interface RulesModalProps {
   sport?: Sport;
 }
 
-const generalRules = {
-  goal: "Fill the grid. Each cell needs one player who satisfies both labels (row × column).",
-  whatCounts: [
-    "Team × Team: The player must have appeared (GP > 0) for both teams (any seasons).",
-    "Team × Category (career): The player must meet the career requirement and have GP > 0 for that team in any season.",
-    "Team × Award: The player must have earned that award while on that team in that season.",
-    "Category × Category: The player must satisfy both categories; team doesn't matter."
-  ],
-  oneUse: "A player can be used only once per grid (no duplicates across cells).",
-  scoring: [
-    "1. Team fit: How much the player truly belongs to the team(s) in the square—played real minutes/games and had impact, not just a cameo.",
-    "2. Category fit: How strongly the player matches the stat/award—e.g., cleared the threshold (20k points) or actually won MVP that year.",
-    "3. Fame: How well-known the player is overall—Hall of Fame status, MVPs, All-Star selections, and big career volume.",
-    "Common picks → lower score.",
-    "Rare picks → higher score.",
-    "Very small answer pools can add a small bonus—but only if your pick wasn't the obvious one."
-  ],
-  giveUp: "Fills every remaining cell with the most common valid answer for that cell, without duplicates. Those cells are marked in red."
+const welcomeInfo = {
+  title: "Welcome to ZenGM Grids",
+  description: "Upload any ZenGM league (Basketball, Football, Hockey, Baseball) as a .json / .json.gz file or paste a public URL (Dropbox, GitHub, etc.).",
+  personal: "I'm just a longtime ZenGM fan building something for the community.",
+  bugReport: "Bugs or ideas? Reach out:",
+  contacts: [
+    {
+      label: "Reddit: u/achum5",
+      url: "https://www.reddit.com/user/achum5/"
+    },
+    {
+      label: "Discord: Chum — find me in the BBGM/ZenGM server",
+      url: "https://discord.gg/basketball-gm-and-zengm-290013534023057409"
+    },
+    {
+      label: "Instagram: @alexguess_",
+      url: "https://www.instagram.com/alexguess_/"
+    },
+    {
+      label: "Twitter/X: @alexguess_",
+      url: "https://x.com/alexguess_"
+    }
+  ]
 };
 
 const sportSpecificRules = {
@@ -204,55 +209,43 @@ export function RulesModal({ sport }: RulesModalProps) {
       <DialogContent className="max-w-2xl max-h-[85vh] sm:max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {isGeneralRules ? "ZenGM Grids - General Rules" : sportRules?.title}
+            {isGeneralRules ? welcomeInfo.title : sportRules?.title}
           </DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4 text-sm">
           {isGeneralRules ? (
             <div className="space-y-6">
-              {/* Goal */}
+              {/* Description */}
               <div>
-                <h3 className="font-semibold mb-2 text-base">Goal</h3>
-                <p>{generalRules.goal}</p>
+                <p className="text-base mb-4">{welcomeInfo.description}</p>
               </div>
 
-              {/* What counts as a match */}
+              {/* Personal message */}
               <div>
-                <h3 className="font-semibold mb-3 text-base">What counts as a match</h3>
-                <ul className="space-y-2">
-                  {generalRules.whatCounts.map((rule, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <span className="text-primary">•</span>
-                      <span>{rule}</span>
-                    </li>
-                  ))}
-                </ul>
+                <p className="mb-4">{welcomeInfo.personal}</p>
               </div>
 
-              {/* One-use rule */}
+              {/* Bug report message */}
               <div>
-                <h3 className="font-semibold mb-2 text-base">One-use rule</h3>
-                <p>{generalRules.oneUse}</p>
+                <p className="font-medium mb-3">{welcomeInfo.bugReport}</p>
               </div>
 
-              {/* Scoring */}
-              <div>
-                <h3 className="font-semibold mb-3 text-base">Scoring</h3>
-                <ul className="space-y-2">
-                  {generalRules.scoring.map((rule, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <span className="text-primary">•</span>
-                      <span>{rule}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Give Up */}
-              <div>
-                <h3 className="font-semibold mb-2 text-base">Give Up</h3>
-                <p>{generalRules.giveUp}</p>
+              {/* Contact links */}
+              <div className="space-y-3">
+                {welcomeInfo.contacts.map((contact, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <span className="text-primary">•</span>
+                    <a 
+                      href={contact.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline"
+                    >
+                      {contact.label}
+                    </a>
+                  </div>
+                ))}
               </div>
             </div>
           ) : sportRules ? (
