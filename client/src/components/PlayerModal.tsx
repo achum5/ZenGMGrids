@@ -23,6 +23,7 @@ type Props = {
   currentCellKey?: string;
   sport?: string;
   cells?: Record<string, any>; // Grid cell states to check completion
+  seasonIndex?: any; // SeasonIndex type for season-specific validation
 };
 
 // Helper function to get team name at a specific season
@@ -44,7 +45,7 @@ function teamNameAtSeason(teamsByTid: Map<number, Team>, tid: number, season: nu
   return region ? `${region} ${name}` : name;
 }
 
-export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers = [], puzzleSeed = "", rows = [], cols = [], currentCellKey = "", sport, cells = {} }: Props) {
+export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers = [], puzzleSeed = "", rows = [], cols = [], currentCellKey = "", sport, cells = {}, seasonIndex }: Props) {
   if (!player) return null;
 
   // Create team lookup map for efficient lookups - defensive check for teams array
@@ -153,7 +154,8 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
           achievementId: colConstraint.achievementId,
           label: colConstraint.label
         },
-        Array.isArray(teams) ? teams : []
+        Array.isArray(teams) ? teams : [],
+        seasonIndex
       );
 
       return {
