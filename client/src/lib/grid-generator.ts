@@ -843,7 +843,7 @@ function getViableTeamPairs(players: Player[], teams: Team[], minShared: number 
 
 /**
  * Generate structured 3×3 grids for smaller leagues (< 20 seasons)
- * Uses patterns like 2-1x1-2 or 1-2x2-1 with teams on one axis, achievements on the other
+ * Follows exact specification: teams always first, 2-3 achievements total, specific patterns only
  */
 export function generateGridGreedy(
   players: Player[], 
@@ -851,160 +851,72 @@ export function generateGridGreedy(
   sport: 'basketball' | 'football' | 'hockey' | 'baseball',
   seasonIndex?: SeasonIndex
 ): GridGenerationResult {
-  console.log('🎯 Using structured grid generation for smaller leagues');
+  console.log('🎯 Using low-season grid generator (< 20 seasons)');
   
+  // Get non-season achievements (draft, career stats, milestones)
   const achievements = getAchievements(sport, seasonIndex);
+  const nonSeasonAchievements = achievements.filter(a => !a.isSeasonSpecific);
   const activeTeams = teams.filter(team => !team.disabled);
   
-  if (activeTeams.length < 2) {
+  if (activeTeams.length < 3) {
     throw new Error('Not enough teams for grid generation');
   }
   
-  // Choose whether teams go on rows or columns (50/50 chance)
-  const teamsOnRows = Math.random() > 0.5;
-  
-  // Choose patterns for each axis
-  const patterns = [
-    { teams: 2, achievements: 1 }, // 2-1 pattern
-    { teams: 1, achievements: 2 }, // 1-2 pattern
+  // Define the 5 allowed layouts (teams always first on each axis)
+  const allowedLayouts = [
+    { name: '1T2A × 3T', rows: ['T', 'A', 'A'], cols: ['T', 'T', 'T'], totalAchievements: 2 },
+    { name: '3T × 1T2A', rows: ['T', 'T', 'T'], cols: ['T', 'A', 'A'], totalAchievements: 2 },
+    { name: '2T1A × 2T1A', rows: ['T', 'T', 'A'], cols: ['T', 'T', 'A'], totalAchievements: 2 },
+    { name: '2T1A × 1T2A', rows: ['T', 'T', 'A'], cols: ['T', 'A', 'A'], totalAchievements: 3 },
+    { name: '1T2A × 2T1A', rows: ['T', 'A', 'A'], cols: ['T', 'T', 'A'], totalAchievements: 3 }
   ];
   
-  const teamPattern = patterns[Math.floor(Math.random() * patterns.length)];
-  const achievementPattern = patterns[Math.floor(Math.random() * patterns.length)];
+  // Pick a random layout
+  const layout = allowedLayouts[Math.floor(Math.random() * allowedLayouts.length)];
+  console.log(`🎯 Selected layout: ${layout.name} (${layout.totalAchievements} achievements total)`);
   
-  console.log(`🎯 Pattern: Teams on ${teamsOnRows ? 'rows' : 'columns'} (${teamPattern.teams}-${teamPattern.achievements}), Achievements on ${teamsOnRows ? 'columns' : 'rows'} (${achievementPattern.achievements}-${achievementPattern.teams})`);
+  // Select teams for the grid (no duplicates across axes)
+  const teamsNeeded = Math.max(
+    layout.rows.filter(t => t === 'T').length,
+    layout.cols.filter(t => t === 'T').length
+  ) + Math.min(
+    layout.rows.filter(t => t === 'T').length,
+    layout.cols.filter(t => t === 'T').length
+  );
   
+  const selectedTeams = activeTeams
+    .sort(() => Math.random() - 0.5) // Shuffle
+    .slice(0, Math.min(teamsNeeded, activeTeams.length));
+  
+  // Select achievements (no duplicates)
+  const selectedAchievements = nonSeasonAchievements
+    .sort(() => Math.random() - 0.5) // Shuffle
+    .slice(0, layout.totalAchievements);
+  
+  if (selectedAchievements.length < layout.totalAchievements) {
+    throw new Error('Not enough non-season achievements available');
+  }
+  
+  // Build constraints following the exact pattern
   const rows: GridConstraint[] = [];
   const cols: GridConstraint[] = [];
   
-  // Select teams and achievements
-  const selectedTeams = activeTeams
-    .sort(() => Math.random() - 0.5) // Shuffle
-    .slice(0, Math.max(teamPattern.teams, achievementPattern.teams));
-    
-  const selectedAchievements = achievements
-    .sort(() => Math.random() - 0.5) // Shuffle  
-    .slice(0, Math.max(teamPattern.achievements, achievementPattern.achievements));
+  let teamIndex = 0;
+  let achievementIndex = 0;
   
-  if (teamsOnRows) {
-    // Teams on rows, achievements on columns
-    
-    // Fill rows with teams first, then achievements
-    let teamIndex = 0;
-    let achIndex = 0;
-    
-    for (let i = 0; i < 3; i++) {
-      if (teamIndex < teamPattern.teams && teamIndex < selectedTeams.length) {
-        const team = selectedTeams[teamIndex++];
-        rows.push({
-          type: 'team',
-          tid: team.tid,
-          label: team.name || `Team ${team.tid}`,
-          key: `team-${team.tid}`,
-          test: (p: Player) => p.teamsPlayed.has(team.tid),
-        });
-      } else if (achIndex < teamPattern.achievements && achIndex < selectedAchievements.length) {
-        const achievement = selectedAchievements[achIndex++];
-        rows.push({
-          type: 'achievement',
-          achievementId: achievement.id,
-          label: achievement.label,
-          key: `achievement-${achievement.id}`,
-          test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex),
-        });
-      }
-    }
-    
-    // Fill columns with achievements first, then teams
-    teamIndex = teamPattern.teams; // Start after teams used in rows
-    achIndex = teamPattern.achievements; // Start after achievements used in rows
-    
-    for (let i = 0; i < 3; i++) {
-      if (achIndex < selectedAchievements.length && cols.filter(c => c.type === 'achievement').length < achievementPattern.achievements) {
-        const achievement = selectedAchievements[achIndex++];
-        cols.push({
-          type: 'achievement',
-          achievementId: achievement.id,
-          label: achievement.label,
-          key: `achievement-${achievement.id}`,
-          test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex),
-        });
-      } else if (teamIndex < selectedTeams.length && cols.filter(c => c.type === 'team').length < achievementPattern.teams) {
-        const team = selectedTeams[teamIndex++];
-        cols.push({
-          type: 'team',
-          tid: team.tid,
-          label: team.name || `Team ${team.tid}`,
-          key: `team-${team.tid}`,
-          test: (p: Player) => p.teamsPlayed.has(team.tid),
-        });
-      }
-    }
-    
-  } else {
-    // Achievements on rows, teams on columns
-    
-    // Fill rows with achievements first, then teams
-    let teamIndex = 0;
-    let achIndex = 0;
-    
-    for (let i = 0; i < 3; i++) {
-      if (achIndex < achievementPattern.achievements && achIndex < selectedAchievements.length) {
-        const achievement = selectedAchievements[achIndex++];
-        rows.push({
-          type: 'achievement',
-          achievementId: achievement.id,
-          label: achievement.label,
-          key: `achievement-${achievement.id}`,
-          test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex),
-        });
-      } else if (teamIndex < achievementPattern.teams && teamIndex < selectedTeams.length) {
-        const team = selectedTeams[teamIndex++];
-        rows.push({
-          type: 'team',
-          tid: team.tid,
-          label: team.name || `Team ${team.tid}`,
-          key: `team-${team.tid}`,
-          test: (p: Player) => p.teamsPlayed.has(team.tid),
-        });
-      }
-    }
-    
-    // Fill columns with teams first, then achievements  
-    teamIndex = achievementPattern.teams; // Start after teams used in rows
-    achIndex = achievementPattern.achievements; // Start after achievements used in rows
-    
-    for (let i = 0; i < 3; i++) {
-      if (teamIndex < selectedTeams.length && cols.filter(c => c.type === 'team').length < teamPattern.teams) {
-        const team = selectedTeams[teamIndex++];
-        cols.push({
-          type: 'team',
-          tid: team.tid,
-          label: team.name || `Team ${team.tid}`,
-          key: `team-${team.tid}`,
-          test: (p: Player) => p.teamsPlayed.has(team.tid),
-        });
-      } else if (achIndex < selectedAchievements.length && cols.filter(c => c.type === 'achievement').length < teamPattern.achievements) {
-        const achievement = selectedAchievements[achIndex++];
-        cols.push({
-          type: 'achievement',
-          achievementId: achievement.id,
-          label: achievement.label,
-          key: `achievement-${achievement.id}`,
-          test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex),
-        });
-      }
-    }
-  }
-  
-  // Ensure we have exactly 3 constraints for each axis
-  while (rows.length < 3) {
-    const remaining = selectedAchievements.filter(a => 
-      !rows.some(r => r.type === 'achievement' && r.achievementId === a.id) &&
-      !cols.some(c => c.type === 'achievement' && c.achievementId === a.id)
-    );
-    if (remaining.length > 0) {
-      const achievement = remaining[0];
+  // Fill rows according to pattern
+  for (let i = 0; i < 3; i++) {
+    if (layout.rows[i] === 'T') {
+      const team = selectedTeams[teamIndex++];
+      rows.push({
+        type: 'team',
+        tid: team.tid,
+        label: team.name || `Team ${team.tid}`,
+        key: `team-${team.tid}`,
+        test: (p: Player) => p.teamsPlayed.has(team.tid),
+      });
+    } else { // 'A'
+      const achievement = selectedAchievements[achievementIndex++];
       rows.push({
         type: 'achievement',
         achievementId: achievement.id,
@@ -1012,29 +924,92 @@ export function generateGridGreedy(
         key: `achievement-${achievement.id}`,
         test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex),
       });
-    } else break;
+    }
   }
   
-  while (cols.length < 3) {
-    const remaining = selectedTeams.filter(t => 
-      !rows.some(r => r.type === 'team' && r.tid === t.tid) &&
-      !cols.some(c => c.type === 'team' && c.tid === t.tid)
-    );
-    if (remaining.length > 0) {
-      const team = remaining[0];
-      cols.push({
-        type: 'team',
-        tid: team.tid,
-        label: team.name || `Team ${team.tid}`,
-        key: `team-${team.tid}`,
-        test: (p: Player) => p.teamsPlayed.has(team.tid),
-      });
-    } else break;
+  // Fill columns according to pattern (continue with remaining teams/achievements)
+  for (let i = 0; i < 3; i++) {
+    if (layout.cols[i] === 'T') {
+      if (teamIndex < selectedTeams.length) {
+        const team = selectedTeams[teamIndex++];
+        cols.push({
+          type: 'team',
+          tid: team.tid,
+          label: team.name || `Team ${team.tid}`,
+          key: `team-${team.tid}`,
+          test: (p: Player) => p.teamsPlayed.has(team.tid),
+        });
+      } else {
+        // Need more teams - select from remaining
+        const usedTeamIds = new Set([...rows, ...cols]
+          .filter(c => c.type === 'team')
+          .map(c => c.tid));
+        const availableTeams = activeTeams.filter(t => !usedTeamIds.has(t.tid));
+        if (availableTeams.length > 0) {
+          const team = availableTeams[Math.floor(Math.random() * availableTeams.length)];
+          cols.push({
+            type: 'team',
+            tid: team.tid,
+            label: team.name || `Team ${team.tid}`,
+            key: `team-${team.tid}`,
+            test: (p: Player) => p.teamsPlayed.has(team.tid),
+          });
+        }
+      }
+    } else { // 'A'
+      if (achievementIndex < selectedAchievements.length) {
+        const achievement = selectedAchievements[achievementIndex++];
+        cols.push({
+          type: 'achievement',
+          achievementId: achievement.id,
+          label: achievement.label,
+          key: `achievement-${achievement.id}`,
+          test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex),
+        });
+      } else {
+        // Need more achievements - select from remaining
+        const usedAchievementIds = new Set([...rows, ...cols]
+          .filter(c => c.type === 'achievement')
+          .map(c => c.achievementId));
+        const availableAchievements = nonSeasonAchievements.filter(a => !usedAchievementIds.has(a.id));
+        if (availableAchievements.length > 0) {
+          const achievement = availableAchievements[Math.floor(Math.random() * availableAchievements.length)];
+          cols.push({
+            type: 'achievement',
+            achievementId: achievement.id,
+            label: achievement.label,
+            key: `achievement-${achievement.id}`,
+            test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex),
+          });
+        }
+      }
+    }
   }
   
-  console.log('🎯 Structured grid generated:');
-  console.log('  Rows:', rows.map(r => `${r.type === 'team' ? '🏀' : '🏆'} ${r.label}`));
-  console.log('  Cols:', cols.map(c => `${c.type === 'team' ? '🏀' : '🏆'} ${c.label}`));
+  // Ensure we have exactly 3 constraints for each axis
+  if (rows.length < 3 || cols.length < 3) {
+    throw new Error('Failed to generate complete grid constraints');
+  }
+  
+  console.log('🎯 Low-season grid generated:');
+  console.log('  Rows:', rows.map((r, i) => `${i+1}. ${r.type === 'team' ? '🏀' : '🏆'} ${r.label}`));
+  console.log('  Cols:', cols.map((c, i) => `${i+1}. ${c.type === 'team' ? '🏀' : '🏆'} ${c.label}`));
+  
+  // Validate header coverage (≥3 players per intersection)
+  let validationFailed = false;
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 3; col++) {
+      const eligiblePlayers = calculateIntersectionSimple(rows[row], cols[col], players, seasonIndex);
+      if (eligiblePlayers.length < 3) {
+        console.log(`⚠️ Low coverage: ${rows[row].label} × ${cols[col].label} = ${eligiblePlayers.length} players`);
+        validationFailed = true;
+      }
+    }
+  }
+  
+  if (validationFailed) {
+    throw new Error('Grid failed header coverage validation (some intersections have <3 players)');
+  }
   
   // Calculate intersections
   const intersections: Record<string, number[]> = {};
@@ -1046,6 +1021,7 @@ export function generateGridGreedy(
     }
   }
   
+  console.log('✅ Low-season grid validated and generated successfully');
   return { rows, cols, intersections };
 }
 
