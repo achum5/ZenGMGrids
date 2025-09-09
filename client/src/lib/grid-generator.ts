@@ -908,7 +908,7 @@ function enforceTeamFirst(headers: GridConstraint[]): GridConstraint[] {
 
 /**
  * Generate structured 3×3 grids for smaller leagues (< 20 seasons)
- * Follows exact specification: teams always first, 2-3 achievements total, specific patterns only
+ * Rebuilt with hard guarantees: all cells >1 players, team-first ordering, repair loops
  */
 export function generateGridGreedy(
   players: Player[], 
@@ -918,21 +918,18 @@ export function generateGridGreedy(
 ): GridGenerationResult {
   console.log('🎯 Using low-season grid generator (< 20 seasons)');
   
-  // Get non-season achievements (draft, career stats, milestones)
   const achievements = getAchievements(sport, seasonIndex);
-  const nonSeasonAchievements = achievements.filter(a => !a.isSeasonSpecific);
   const activeTeams = teams.filter(team => !team.disabled);
   
   if (activeTeams.length < 3) {
     throw new Error('Not enough teams for grid generation');
   }
   
-  // Mutual exclusion: career seasons constraint
+  // Mutual exclusion groups
   const careerSeasonsGroup = ["Played 10+ Seasons", "Played 15+ Seasons"];
-  const chosenAchIds = new Set<string>();
   
-  // Define the 5 allowed layouts (teams always first on each axis)
-  const allowedLayouts = [
+  // Tier A: Preferred layouts (2-3 achievements)
+  const tierALayouts = [
     { name: '1T2A × 3T', rows: ['T', 'A', 'A'], cols: ['T', 'T', 'T'], totalAchievements: 2 },
     { name: '3T × 1T2A', rows: ['T', 'T', 'T'], cols: ['T', 'A', 'A'], totalAchievements: 2 },
     { name: '2T1A × 2T1A', rows: ['T', 'T', 'A'], cols: ['T', 'T', 'A'], totalAchievements: 2 },
@@ -940,60 +937,144 @@ export function generateGridGreedy(
     { name: '1T2A × 2T1A', rows: ['T', 'A', 'A'], cols: ['T', 'T', 'A'], totalAchievements: 3 }
   ];
   
-  // Pick a random layout
-  const layout = allowedLayouts[Math.floor(Math.random() * allowedLayouts.length)];
-  console.log(`🎯 Selected layout: ${layout.name} (${layout.totalAchievements} achievements total)`);
+  // Tier B: Fallback layouts (1 achievement)
+  const tierBLayouts = [
+    { name: '3T × 2T1A', rows: ['T', 'T', 'T'], cols: ['T', 'T', 'A'], totalAchievements: 1 },
+    { name: '2T1A × 3T', rows: ['T', 'T', 'A'], cols: ['T', 'T', 'T'], totalAchievements: 1 }
+  ];
   
-  // Select teams for the grid (no duplicates across axes)
-  const teamsNeeded = Math.max(
-    layout.rows.filter(t => t === 'T').length,
-    layout.cols.filter(t => t === 'T').length
-  ) + Math.min(
-    layout.rows.filter(t => t === 'T').length,
-    layout.cols.filter(t => t === 'T').length
-  );
+  // Tier C: Last resort (0 achievements)
+  const tierCLayouts = [
+    { name: '3T × 3T', rows: ['T', 'T', 'T'], cols: ['T', 'T', 'T'], totalAchievements: 0 }
+  ];
   
-  const selectedTeams = activeTeams
-    .sort(() => Math.random() - 0.5) // Shuffle
-    .slice(0, Math.min(teamsNeeded, activeTeams.length));
-  
-  // Select achievements with mutual exclusion rules
-  const availableAchievements = [...nonSeasonAchievements];
-  const selectedAchievements: typeof achievements = [];
-  
-  // Shuffle and select achievements while respecting constraints
-  availableAchievements.sort(() => Math.random() - 0.5);
-  
-  for (const achievement of availableAchievements) {
-    if (selectedAchievements.length >= layout.totalAchievements) break;
+  // Try each tier in order
+  for (const tier of [
+    { name: 'A', layouts: tierALayouts, attempts: 25 },
+    { name: 'B', layouts: tierBLayouts, attempts: 15 },
+    { name: 'C', layouts: tierCLayouts, attempts: 5 }
+  ]) {
     
-    // Check career seasons mutual exclusion
-    if (careerSeasonsGroup.includes(achievement.label)) {
-      const hasCareerSeasons = Array.from(chosenAchIds).some(id => 
-        careerSeasonsGroup.includes(achievements.find(a => a.id === id)?.label || '')
-      );
-      if (hasCareerSeasons) continue; // Skip if we already have one
+    for (let tierAttempt = 0; tierAttempt < tier.attempts; tierAttempt++) {
+      
+      // Try each layout in this tier
+      for (const layout of tier.layouts) {
+        
+        try {
+          const result = attemptGrid(layout, players, activeTeams, achievements, seasonIndex, careerSeasonsGroup, sport);
+          if (result) {
+            console.log(`✅ Tier ${tier.name} grid generated using ${layout.name}`);
+            return result;
+          }
+        } catch (error) {
+          // Continue to next layout/attempt
+          continue;
+        }
+      }
     }
     
-    selectedAchievements.push(achievement);
-    chosenAchIds.add(achievement.id);
+    console.log(`⚠️ Tier ${tier.name} failed, trying next tier`);
   }
   
-  if (selectedAchievements.length < layout.totalAchievements) {
-    throw new Error('Not enough compatible non-season achievements available');
+  // Final fallback
+  throw new Error('Could not generate valid grid with guaranteed >1 players per cell');
+}
+
+/**
+ * Attempt to build a valid grid with the given layout
+ */
+function attemptGrid(
+  layout: any,
+  players: Player[],
+  activeTeams: any[],
+  achievements: any[],
+  seasonIndex: SeasonIndex | undefined,
+  careerSeasonsGroup: string[],
+  sport: string
+): GridGenerationResult | null {
+  
+  // Step 1: Pick headers pool-aware
+  const { rows, cols } = pickHeaders(layout, activeTeams, achievements, careerSeasonsGroup, seasonIndex);
+  
+  // Step 2: Build eligibility matrix
+  let eligibilityMatrix = buildEligibilityMatrix(rows, cols, players, seasonIndex);
+  
+  // Step 3: Validate hard guarantees
+  let violations = findViolations(eligibilityMatrix);
+  
+  // Step 4: Repair loop (max 10 attempts)
+  for (let repairAttempt = 0; repairAttempt < 10; repairAttempt++) {
+    
+    if (violations.zeros.length === 0 && violations.singletons.length === 0) {
+      // Success! Build final result
+      const intersections: Record<string, number[]> = {};
+      
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          const key = `${rows[r].key}|${cols[c].key}`;
+          intersections[key] = eligibilityMatrix[r][c].map(p => p.pid);
+        }
+      }
+      
+      console.log(`🎯 Selected layout: ${layout.name} (${layout.totalAchievements} achievements total)`);
+      logCellCounts(rows, cols, eligibilityMatrix);
+      
+      return { rows, cols, intersections };
+    }
+    
+    // Try to repair violations
+    const repaired = repairViolations(rows, cols, eligibilityMatrix, violations, activeTeams, achievements, careerSeasonsGroup);
+    if (!repaired) {
+      break; // Can't repair further
+    }
+    
+    // Rebuild matrix and check again
+    eligibilityMatrix = buildEligibilityMatrix(rows, cols, players, seasonIndex);
+    violations = findViolations(eligibilityMatrix);
   }
   
-  // Build constraints following the exact pattern
+  return null; // Failed to repair
+}
+
+/**
+ * Pick headers for the layout, respecting team-first ordering and mutual exclusion
+ */
+function pickHeaders(
+  layout: any,
+  activeTeams: any[],
+  achievements: any[],
+  careerSeasonsGroup: string[],
+  seasonIndex: SeasonIndex | undefined
+) {
   const rows: GridConstraint[] = [];
   const cols: GridConstraint[] = [];
   
+  // Get available achievements (prefer career over season for broader pools)
+  const careerAchievements = achievements.filter(a => !a.isSeasonSpecific);
+  const seasonAchievements = achievements.filter(a => a.isSeasonSpecific);
+  const availableAchievements = [...careerAchievements, ...seasonAchievements];
+  
+  // Shuffle teams and achievements
+  const shuffledTeams = [...activeTeams].sort(() => Math.random() - 0.5);
+  const shuffledAchievements = [...availableAchievements].sort(() => Math.random() - 0.5);
+  
   let teamIndex = 0;
   let achievementIndex = 0;
+  const usedAchievements = new Set<string>();
+  const usedTeams = new Set<number>();
   
-  // Fill rows according to pattern
+  // Fill rows
   for (let i = 0; i < 3; i++) {
     if (layout.rows[i] === 'T') {
-      const team = selectedTeams[teamIndex++];
+      // Add team
+      while (teamIndex < shuffledTeams.length && usedTeams.has(shuffledTeams[teamIndex].tid)) {
+        teamIndex++;
+      }
+      if (teamIndex >= shuffledTeams.length) {
+        throw new Error('Not enough teams available');
+      }
+      
+      const team = shuffledTeams[teamIndex];
       rows.push({
         type: 'team',
         tid: team.tid,
@@ -1001,134 +1082,276 @@ export function generateGridGreedy(
         key: `team-${team.tid}`,
         test: (p: Player) => p.teamsPlayed.has(team.tid),
       });
-    } else { // 'A'
-      const achievement = selectedAchievements[achievementIndex++];
-      rows.push({
-        type: 'achievement',
-        achievementId: achievement.id,
-        label: achievement.label,
-        key: `achievement-${achievement.id}`,
-        test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex),
-      });
+      usedTeams.add(team.tid);
+      teamIndex++;
+      
+    } else if (layout.rows[i] === 'A') {
+      // Add achievement with mutual exclusion
+      let found = false;
+      for (let j = achievementIndex; j < shuffledAchievements.length; j++) {
+        const ach = shuffledAchievements[j];
+        
+        if (usedAchievements.has(ach.id)) continue;
+        
+        // Check career seasons mutual exclusion
+        if (careerSeasonsGroup.includes(ach.label)) {
+          const hasCareerSeasons = Array.from(usedAchievements).some(id => {
+            const usedAch = achievements.find(a => a.id === id);
+            return usedAch && careerSeasonsGroup.includes(usedAch.label);
+          });
+          if (hasCareerSeasons) continue;
+        }
+        
+        rows.push({
+          type: 'achievement',
+          achievementId: ach.id,
+          label: ach.label,
+          key: `achievement-${ach.id}`,
+          test: (p: Player) => playerMeetsAchievement(p, ach.id, seasonIndex),
+        });
+        usedAchievements.add(ach.id);
+        achievementIndex = j + 1;
+        found = true;
+        break;
+      }
+      
+      if (!found) {
+        throw new Error('Not enough compatible achievements available');
+      }
     }
   }
   
-  // Fill columns according to pattern (continue with remaining teams/achievements)
+  // Fill columns (continue from where we left off for teams/achievements)
   for (let i = 0; i < 3; i++) {
     if (layout.cols[i] === 'T') {
-      if (teamIndex < selectedTeams.length) {
-        const team = selectedTeams[teamIndex++];
-        cols.push({
-          type: 'team',
-          tid: team.tid,
-          label: team.name || `Team ${team.tid}`,
-          key: `team-${team.tid}`,
-          test: (p: Player) => p.teamsPlayed.has(team.tid),
-        });
-      } else {
-        // Need more teams - select from remaining
-        const usedTeamIds = new Set([...rows, ...cols]
-          .filter(c => c.type === 'team')
-          .map(c => c.tid));
-        const availableTeams = activeTeams.filter(t => !usedTeamIds.has(t.tid));
-        if (availableTeams.length > 0) {
-          const team = availableTeams[Math.floor(Math.random() * availableTeams.length)];
-          cols.push({
-            type: 'team',
-            tid: team.tid,
-            label: team.name || `Team ${team.tid}`,
-            key: `team-${team.tid}`,
-            test: (p: Player) => p.teamsPlayed.has(team.tid),
-          });
-        }
+      // Add team
+      while (teamIndex < shuffledTeams.length && usedTeams.has(shuffledTeams[teamIndex].tid)) {
+        teamIndex++;
       }
-    } else { // 'A'
-      if (achievementIndex < selectedAchievements.length) {
-        const achievement = selectedAchievements[achievementIndex++];
+      if (teamIndex >= shuffledTeams.length) {
+        throw new Error('Not enough teams available');
+      }
+      
+      const team = shuffledTeams[teamIndex];
+      cols.push({
+        type: 'team',
+        tid: team.tid,
+        label: team.name || `Team ${team.tid}`,
+        key: `team-${team.tid}`,
+        test: (p: Player) => p.teamsPlayed.has(team.tid),
+      });
+      usedTeams.add(team.tid);
+      teamIndex++;
+      
+    } else if (layout.cols[i] === 'A') {
+      // Add achievement with mutual exclusion
+      let found = false;
+      for (let j = achievementIndex; j < shuffledAchievements.length; j++) {
+        const ach = shuffledAchievements[j];
+        
+        if (usedAchievements.has(ach.id)) continue;
+        
+        // Check career seasons mutual exclusion
+        if (careerSeasonsGroup.includes(ach.label)) {
+          const hasCareerSeasons = Array.from(usedAchievements).some(id => {
+            const usedAch = achievements.find(a => a.id === id);
+            return usedAch && careerSeasonsGroup.includes(usedAch.label);
+          });
+          if (hasCareerSeasons) continue;
+        }
+        
         cols.push({
           type: 'achievement',
-          achievementId: achievement.id,
-          label: achievement.label,
-          key: `achievement-${achievement.id}`,
-          test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex),
+          achievementId: ach.id,
+          label: ach.label,
+          key: `achievement-${ach.id}`,
+          test: (p: Player) => playerMeetsAchievement(p, ach.id, seasonIndex),
         });
-      } else {
-        // Need more achievements - select from remaining
-        const usedAchievementIds = new Set([...rows, ...cols]
-          .filter(c => c.type === 'achievement')
-          .map(c => c.achievementId));
-        const availableAchievements = nonSeasonAchievements.filter(a => !usedAchievementIds.has(a.id));
-        if (availableAchievements.length > 0) {
-          const achievement = availableAchievements[Math.floor(Math.random() * availableAchievements.length)];
-          cols.push({
-            type: 'achievement',
-            achievementId: achievement.id,
-            label: achievement.label,
-            key: `achievement-${achievement.id}`,
-            test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex),
-          });
-        }
+        usedAchievements.add(ach.id);
+        achievementIndex = j + 1;
+        found = true;
+        break;
+      }
+      
+      if (!found) {
+        throw new Error('Not enough compatible achievements available');
       }
     }
   }
   
-  // Ensure we have exactly 3 constraints for each axis
-  if (rows.length < 3 || cols.length < 3) {
-    throw new Error('Failed to generate complete grid constraints');
+  return { rows, cols };
+}
+
+/**
+ * Build 3x3 eligibility matrix using same validation logic as gameplay
+ */
+function buildEligibilityMatrix(
+  rows: GridConstraint[],
+  cols: GridConstraint[],
+  players: Player[],
+  seasonIndex?: SeasonIndex
+): Player[][][] {
+  const matrix: Player[][][] = [];
+  
+  for (let r = 0; r < 3; r++) {
+    matrix[r] = [];
+    for (let c = 0; c < 3; c++) {
+      matrix[r][c] = calculateIntersectionSimple(rows[r], cols[c], players, seasonIndex);
+    }
   }
   
-  // Enforce team-first rule on both axes
-  try {
-    const enforcedRows = enforceTeamFirst(rows);
-    const enforcedCols = enforceTeamFirst(cols);
-    rows.splice(0, rows.length, ...enforcedRows);
-    cols.splice(0, cols.length, ...enforcedCols);
-  } catch (error) {
-    throw new Error(`Failed to enforce team-first rule: ${error}`);
-  }
+  return matrix;
+}
+
+/**
+ * Find cells that violate hard guarantees (zeros or singletons)
+ */
+function findViolations(eligibilityMatrix: Player[][][]): { zeros: [number, number][], singletons: [number, number][] } {
+  const zeros: [number, number][] = [];
+  const singletons: [number, number][] = [];
   
-  console.log('🎯 Low-season grid generated:');
-  console.log('  Rows:', rows.map((r, i) => `${i+1}. ${r.type === 'team' ? '🏀' : '🏆'} ${r.label}`));
-  console.log('  Cols:', cols.map((c, i) => `${i+1}. ${c.type === 'team' ? '🏀' : '🏆'} ${c.label}`));
-  
-  // Validate mutual exclusion (sanity check)
-  const allAchievementLabels = [...rows, ...cols]
-    .filter(c => c.type === 'achievement')
-    .map(c => c.label);
-  const careerSeasonsFound = allAchievementLabels.filter(label => careerSeasonsGroup.includes(label));
-  if (careerSeasonsFound.length > 1) {
-    throw new Error(`Mutual exclusion violation: found both ${careerSeasonsFound.join(' and ')}`);
-  }
-  
-  // Validate header coverage (≥3 players per intersection) - but be more lenient for small leagues
-  let lowCoverageCount = 0;
-  for (let row = 0; row < 3; row++) {
-    for (let col = 0; col < 3; col++) {
-      const eligiblePlayers = calculateIntersectionSimple(rows[row], cols[col], players, seasonIndex);
-      if (eligiblePlayers.length < 3) {
-        console.log(`⚠️ Low coverage: ${rows[row].label} × ${cols[col].label} = ${eligiblePlayers.length} players`);
-        lowCoverageCount++;
+  for (let r = 0; r < 3; r++) {
+    for (let c = 0; c < 3; c++) {
+      const count = eligibilityMatrix[r][c].length;
+      if (count === 0) {
+        zeros.push([r, c]);
+      } else if (count === 1) {
+        singletons.push([r, c]);
       }
     }
   }
   
-  // Allow some low coverage intersections for small leagues, but not too many
-  if (lowCoverageCount > 6) { // More than 2/3 of intersections have low coverage
-    throw new Error('Grid failed header coverage validation (too many intersections have <3 players)');
-  }
+  return { zeros, singletons };
+}
+
+/**
+ * Attempt to repair violations by swapping headers for broader ones
+ */
+function repairViolations(
+  rows: GridConstraint[],
+  cols: GridConstraint[],
+  eligibilityMatrix: Player[][][],
+  violations: { zeros: [number, number][], singletons: [number, number][] },
+  activeTeams: any[],
+  achievements: any[],
+  careerSeasonsGroup: string[]
+): boolean {
   
-  // Calculate intersections
-  const intersections: Record<string, number[]> = {};
-  for (let row = 0; row < 3; row++) {
-    for (let col = 0; col < 3; col++) {
-      const key = `${rows[row].key}|${cols[col].key}`;
-      const eligiblePlayers = calculateIntersectionSimple(rows[row], cols[col], players, seasonIndex);
-      intersections[key] = eligiblePlayers.map((p: Player) => p.pid);
+  // Focus on zero cells first
+  if (violations.zeros.length > 0) {
+    // Find the axis contributing to most zeros
+    const rowZeroCounts = [0, 0, 0];
+    const colZeroCounts = [0, 0, 0];
+    
+    for (const [r, c] of violations.zeros) {
+      rowZeroCounts[r]++;
+      colZeroCounts[c]++;
+    }
+    
+    const maxRowZeros = Math.max(...rowZeroCounts);
+    const maxColZeros = Math.max(...colZeroCounts);
+    
+    if (maxRowZeros >= maxColZeros) {
+      // Try swapping the worst row
+      const worstRow = rowZeroCounts.indexOf(maxRowZeros);
+      return trySwapHeader(rows, worstRow, 'row', achievements, careerSeasonsGroup, activeTeams);
+    } else {
+      // Try swapping the worst column
+      const worstCol = colZeroCounts.indexOf(maxColZeros);
+      return trySwapHeader(cols, worstCol, 'col', achievements, careerSeasonsGroup, activeTeams);
     }
   }
   
+  // Handle singleton cells
+  if (violations.singletons.length > 0) {
+    // Try swapping any header contributing to singletons
+    const [r, c] = violations.singletons[0];
+    
+    // Try row first, then column
+    if (trySwapHeader(rows, r, 'row', achievements, careerSeasonsGroup, activeTeams)) {
+      return true;
+    }
+    return trySwapHeader(cols, c, 'col', achievements, careerSeasonsGroup, activeTeams);
+  }
+  
+  return false;
+}
+
+/**
+ * Try to swap a header for a broader alternative
+ */
+function trySwapHeader(
+  headers: GridConstraint[],
+  index: number,
+  axis: 'row' | 'col',
+  achievements: any[],
+  careerSeasonsGroup: string[],
+  activeTeams: any[]
+): boolean {
+  
+  const currentHeader = headers[index];
+  const usedIds = new Set(headers.map(h => h.type === 'team' ? h.tid : h.achievementId).filter(id => id !== undefined));
+  
+  if (currentHeader.type === 'achievement') {
+    // Try swapping for a broader achievement (prefer career over season)
+    const careerAchievements = achievements.filter(a => !a.isSeasonSpecific && !usedIds.has(a.id));
+    const seasonAchievements = achievements.filter(a => a.isSeasonSpecific && !usedIds.has(a.id));
+    const alternatives = [...careerAchievements, ...seasonAchievements];
+    
+    for (const ach of alternatives) {
+      // Check mutual exclusion
+      if (careerSeasonsGroup.includes(ach.label)) {
+        const hasCareerSeasons = headers.some(h => 
+          h.type === 'achievement' && h.achievementId !== currentHeader.achievementId &&
+          careerSeasonsGroup.includes(ach.label)
+        );
+        if (hasCareerSeasons) continue;
+      }
+      
+      // Swap it in
+      headers[index] = {
+        type: 'achievement',
+        achievementId: ach.id,
+        label: ach.label,
+        key: `achievement-${ach.id}`,
+        test: (p: Player) => playerMeetsAchievement(p, ach.id),
+      };
+      return true;
+    }
+    
+  } else if (currentHeader.type === 'team') {
+    // Try swapping for a different team
+    const availableTeams = activeTeams.filter(t => !usedIds.has(t.tid));
+    if (availableTeams.length > 0) {
+      const newTeam = availableTeams[Math.floor(Math.random() * availableTeams.length)];
+      headers[index] = {
+        type: 'team',
+        tid: newTeam.tid,
+        label: newTeam.name || `Team ${newTeam.tid}`,
+        key: `team-${newTeam.tid}`,
+        test: (p: Player) => p.teamsPlayed.has(newTeam.tid),
+      };
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Log cell counts for debugging
+ */
+function logCellCounts(rows: GridConstraint[], cols: GridConstraint[], eligibilityMatrix: Player[][][]) {
   console.log('✅ Low-season grid validated and generated successfully');
-  return { rows, cols, intersections };
+  
+  for (let r = 0; r < 3; r++) {
+    for (let c = 0; c < 3; c++) {
+      const count = eligibilityMatrix[r][c].length;
+      if (count <= 3) {
+        console.log(`⚠️ Low coverage: ${rows[r].label} × ${cols[c].label} = ${count} players`);
+      }
+    }
+  }
 }
 
 /**
@@ -1166,7 +1389,14 @@ export function generateGrid(leagueData: LeagueData): GridGenerationResult {
     
   } catch (error) {
     console.log(`⚠️ Grid generation failed: ${error}. Using fallback.`);
-    return generateGridFallback(players, teams, sport);
+    // Ultimate fallback: use Tier C (3T × 3T) 
+    const fallbackLayout = { name: '3T × 3T', rows: ['T', 'T', 'T'], cols: ['T', 'T', 'T'], totalAchievements: 0 };
+    const fallbackResult = attemptGrid(fallbackLayout, players, teams.filter(t => !t.disabled), [], seasonIndex, [], sport);
+    if (fallbackResult) {
+      console.log('✅ Used ultimate fallback (all teams)');
+      return fallbackResult;
+    }
+    throw new Error('Could not generate any valid grid');
   }
 }
 
