@@ -1968,10 +1968,21 @@ export function generateFeedbackMessage(
   * Check if a player satisfies a team × achievement constraint with same-season alignment
   */
 function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, achievementId: string, seasonIndex?: SeasonIndex): boolean {
+  // Debug Jaylen Brown specifically
+  if (player.pid === 2481 && achievementId === 'AllLeagueAny' && teamTid === 1) {
+    console.log(`🔍 DEBUG: Evaluating Jaylen Brown (${player.pid}) for Celtics (${teamTid}) × ${achievementId}`);
+    console.log(`🔍 DEBUG: SEASON_ALIGNED_ACHIEVEMENTS has ${achievementId}:`, SEASON_ALIGNED_ACHIEVEMENTS.has(achievementId));
+    console.log(`🔍 DEBUG: seasonIndex available:`, !!seasonIndex);
+  }
+
   // Check if this achievement requires same-season alignment
   if (!SEASON_ALIGNED_ACHIEVEMENTS.has(achievementId)) {
     // Career-based achievements: just check if player ever played for team AND has the achievement
-    return playerPlayedForTeam(player, teamTid) && playerMeetsAchievement(player, achievementId, seasonIndex);
+    const result = playerPlayedForTeam(player, teamTid) && playerMeetsAchievement(player, achievementId, seasonIndex);
+    if (player.pid === 2481 && achievementId === 'AllLeagueAny' && teamTid === 1) {
+      console.log(`🔍 DEBUG: Career-based path result:`, result);
+    }
+    return result;
   }
 
   // For season achievements that are in SEASON_ACHIEVEMENTS, use the season index approach if available
@@ -1979,7 +1990,14 @@ function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, a
   if (seasonAchievement && seasonIndex) {
     // Use the same logic as custom grids - check if player is eligible via season index
     const eligiblePids = getSeasonEligiblePlayers(seasonIndex, teamTid, achievementId as SeasonAchievementId);
-    return eligiblePids.has(player.pid);
+    const result = eligiblePids.has(player.pid);
+    
+    if (player.pid === 2481 && achievementId === 'AllLeagueAny' && teamTid === 1) {
+      console.log(`🔍 DEBUG: Season index path - eligible PIDs for Celtics × AllLeagueAny:`, Array.from(eligiblePids));
+      console.log(`🔍 DEBUG: Season index path result:`, result);
+    }
+    
+    return result;
   }
 
   // Fallback for statistical leaders or when season index is not available
