@@ -1877,7 +1877,8 @@ export function generateFeedbackMessage(
   player: Player,
   rowConstraint: GridConstraint,
   colConstraint: GridConstraint,
-  teams: Team[]
+  teams: Team[],
+  seasonIndex?: SeasonIndex
 ): string {
   const playerName = player.name;
   
@@ -1900,6 +1901,31 @@ export function generateFeedbackMessage(
   }
   
   // Fall back to original logic for other constraint combinations
+  // For Team × Career Achievement, check if it's being incorrectly evaluated
+  if ((rowConstraint.type === 'team' && colConstraint.type === 'achievement' && !SEASON_ALIGNED_ACHIEVEMENTS.has(colConstraint.achievementId!)) ||
+      (colConstraint.type === 'team' && rowConstraint.type === 'achievement' && !SEASON_ALIGNED_ACHIEVEMENTS.has(rowConstraint.achievementId!))) {
+    
+    // Team × Career Achievement case - use career achievement logic
+    const teamConstraint = rowConstraint.type === 'team' ? rowConstraint : colConstraint;
+    const achievementConstraint = rowConstraint.type === 'achievement' ? rowConstraint : colConstraint;
+    
+    const playedForTeam = playerPlayedForTeam(player, teamConstraint.tid!);
+    const hasAchievement = playerMeetsAchievement(player, achievementConstraint.achievementId!, seasonIndex);
+    
+    const teamName = getTeamNameWithThe(teams, teamConstraint.tid!);
+    
+    if (!playedForTeam && !hasAchievement) {
+      return `${playerName} never played for ${teamName} and ${getAchievementNegativeMessage(achievementConstraint.achievementId!, player)}.`;
+    } else if (!playedForTeam) {
+      return `${playerName} ${getAchievementPositiveMessage(achievementConstraint.achievementId!, player)}, but never played for ${teamName}.`;
+    } else if (!hasAchievement) {
+      return `${playerName} did play for ${teamName}, but ${getAchievementNegativeMessage(achievementConstraint.achievementId!, player)}.`;
+    } else {
+      // Both pass - this should only happen if the guess is actually correct
+      return `${playerName} did play for ${teamName} and ${getAchievementPositiveMessage(achievementConstraint.achievementId!, player)}.`;
+    }
+  }
+  
   // Get detailed evaluation for both constraints using actual achievement results
   const rowDetails = getConstraintDetails(player, rowConstraint);
   const colDetails = getConstraintDetails(player, colConstraint);
@@ -2012,7 +2038,7 @@ function getConstraintDetails(player: Player, constraint: GridConstraint) {
       failText: passed ? '' : `never played for team ${constraint.tid}` // Will be filled properly later
     };
   } else if (constraint.type === 'achievement') {
-    const passed = playerMeetsAchievement(player, constraint.achievementId!);
+    const passed = playerMeetsAchievement(player, constraint.achievementId!, undefined);
     return {
       passed,
       passText: passed ? getAchievementPositiveMessage(constraint.achievementId!, player) : '',
