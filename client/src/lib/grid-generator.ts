@@ -1113,12 +1113,16 @@ function calculateIntersectionSimple(
   if (rowIsSeasonAchievement && colConstraint.type === 'team') {
     // Season achievement × team
     if (!seasonIndex) return [];
-    const eligiblePids = getSeasonEligiblePlayers(seasonIndex, colConstraint.tid!, rowConstraint.achievementId as SeasonAchievementId);
+    // Use franchiseId for proper team continuity - season index is built with franchiseId
+    const teamFranchiseId = colConstraint.tid!; // In season index, franchiseId = tid for current teams
+    const eligiblePids = getSeasonEligiblePlayers(seasonIndex, teamFranchiseId, rowConstraint.achievementId as SeasonAchievementId);
     return players.filter(p => eligiblePids.has(p.pid));
   } else if (colIsSeasonAchievement && rowConstraint.type === 'team') {
     // Team × season achievement  
     if (!seasonIndex) return [];
-    const eligiblePids = getSeasonEligiblePlayers(seasonIndex, rowConstraint.tid!, colConstraint.achievementId as SeasonAchievementId);
+    // Use franchiseId for proper team continuity - season index is built with franchiseId
+    const teamFranchiseId = rowConstraint.tid!; // In season index, franchiseId = tid for current teams
+    const eligiblePids = getSeasonEligiblePlayers(seasonIndex, teamFranchiseId, colConstraint.achievementId as SeasonAchievementId);
     return players.filter(p => eligiblePids.has(p.pid));
   } else if (rowIsSeasonAchievement && colIsSeasonAchievement) {
     // Season achievement × season achievement
