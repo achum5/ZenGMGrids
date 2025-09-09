@@ -1,6 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Flag, Share2, Grid3X3 } from 'lucide-react';
+import { RefreshCw, Flag, Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CatTeam, CellState, Team } from '@/types/bbgm';
 import { PlayerFace } from '@/components/PlayerFace';
@@ -23,12 +23,11 @@ interface GridSectionProps {
   rows: CatTeam[];
   cols: CatTeam[];
   cells: Record<string, CellState>;
-  onCellClick: (rowKey: string, colKey: string, rowIndex?: number, colIndex?: number) => void;
+  onCellClick: (rowKey: string, colKey: string) => void;
   onGenerateNewGrid: () => void;
   onGiveUp: () => void;
   onRetryGrid: () => void;
   onShareGrid?: () => void;
-  onCustomGrid?: () => void;
   isGenerating: boolean;
   teams: Team[]; // Add teams for jersey styling
   sport?: string;
@@ -52,7 +51,6 @@ export function GridSection({
   onGiveUp,
   onRetryGrid,
   onShareGrid,
-  onCustomGrid,
   isGenerating,
   teams,
   sport,
@@ -62,17 +60,8 @@ export function GridSection({
   const totalScore = calculateScore(cells);
   const getCellKey = (rowKey: string, colKey: string) => `${rowKey}|${colKey}`;
 
-  const getCellContent = (rowKey: string, colKey: string, rowIndex?: number, colIndex?: number) => {
-    let key = getCellKey(rowKey, colKey);
-    
-    // For custom grids with position-based keys, use the exact position key
-    if (rowIndex !== undefined && colIndex !== undefined) {
-      const expectedPositionKey = `${rowKey}|${colKey}@${rowIndex}-${colIndex}`;
-      if (Object.keys(cells).includes(expectedPositionKey)) {
-        key = expectedPositionKey;
-      }
-    }
-    
+  const getCellContent = (rowKey: string, colKey: string) => {
+    const key = getCellKey(rowKey, colKey);
     const cellState = cells[key];
     
     if (!cellState?.name) {
@@ -128,20 +117,7 @@ export function GridSection({
   const totalCells = 9;
   
   // Check if all cells are filled (either guessed or auto-filled)
-  // For custom grids, we need to use position-based keys like getCellContent does
-  const allCellKeys = rows.flatMap((row, rowIndex) => 
-    cols.map((col, colIndex) => {
-      let key = getCellKey(row.key, col.key);
-      
-      // For custom grids with position-based keys, use the exact position key
-      const expectedPositionKey = `${row.key}|${col.key}@${rowIndex}-${colIndex}`;
-      if (Object.keys(cells).includes(expectedPositionKey)) {
-        key = expectedPositionKey;
-      }
-      
-      return key;
-    })
-  );
+  const allCellKeys = rows.flatMap(row => cols.map(col => getCellKey(row.key, col.key)));
   const filledCells = allCellKeys.filter(key => cells[key]?.name).length;
   const isGridComplete = filledCells === totalCells;
   
@@ -245,7 +221,7 @@ export function GridSection({
                 
                 return (
                   <div 
-                    key={`${col.key}-header-${colIndex}`} 
+                    key={col.key} 
                     className={cn(
                       "aspect-square bg-secondary dark:bg-slate-700 p-2 md:p-3 overflow-hidden",
                       headerRadius
@@ -279,7 +255,7 @@ export function GridSection({
                     
                     return (
                       <div 
-                        key={`${row.key}-header-${rowIndex}`}
+                        key={`${row.key}-header`}
                         className={cn(
                           "aspect-square bg-secondary dark:bg-slate-700 p-2 md:p-3 overflow-hidden",
                           rowIndex === rows.length - 1 ? 'rounded-bl-2xl' : ''
@@ -301,7 +277,7 @@ export function GridSection({
                   
                   // Grid Cells for this row
                   ...cols.map((col, colIndex) => {
-                    const cellContent = getCellContent(row.key, col.key, rowIndex, colIndex);
+                    const cellContent = getCellContent(row.key, col.key);
                     
                     // Determine corner radius based on position in the game grid (3x3 within the 4x4 layout)
                     const isTopLeft = rowIndex === 0 && colIndex === 0;
@@ -317,7 +293,7 @@ export function GridSection({
                     
                     return (
                       <button
-                        key={`${row.key}-${col.key}-${rowIndex}-${colIndex}`}
+                        key={`${row.key}-${col.key}`}
                         className={cn(
                           'aspect-square w-full flex items-center justify-center text-center relative overflow-hidden transition-all duration-200 hover:brightness-110 hover:contrast-110 hover:shadow-md',
                           cornerRadius,
@@ -326,17 +302,17 @@ export function GridSection({
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          onCellClick(row.key, col.key, rowIndex, colIndex);
+                          onCellClick(row.key, col.key);
                         }}
                         onTouchEnd={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          onCellClick(row.key, col.key, rowIndex, colIndex);
+                          onCellClick(row.key, col.key);
                         }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault();
-                            onCellClick(row.key, col.key, rowIndex, colIndex);
+                            onCellClick(row.key, col.key);
                           }
                         }}
                         disabled={cellContent.disabled}
@@ -364,14 +340,7 @@ export function GridSection({
                                 sport={sport}
                               />
                               {(() => {
-                                // Use the same key logic as getCellContent for position-based keys
-                                let cellKey = getCellKey(row.key, col.key);
-                                if (rowIndex !== undefined && colIndex !== undefined) {
-                                  const expectedPositionKey = `${row.key}|${col.key}@${rowIndex}-${colIndex}`;
-                                  if (Object.keys(cells).includes(expectedPositionKey)) {
-                                    cellKey = expectedPositionKey;
-                                  }
-                                }
+                                const cellKey = getCellKey(row.key, col.key);
                                 const cellState = cells[cellKey];
                                 return cellState?.correct && cellState?.rarity && (
                                   <div className="absolute top-1 left-1 z-10">
@@ -395,10 +364,9 @@ export function GridSection({
         </CardContent>
       </Card>
 
-      {/* Bottom buttons below the grid */}
-      <div className="flex justify-between mt-4">
-        {/* Share/Import Grid button on the left */}
-        {onShareGrid && rows.length > 0 && cols.length > 0 && (
+      {/* Share/Import Grid button below the grid */}
+      {onShareGrid && rows.length > 0 && cols.length > 0 && (
+        <div className="flex justify-start mt-4">
           <Button
             onClick={onShareGrid}
             variant="outline"
@@ -408,24 +376,8 @@ export function GridSection({
             <Share2 className="mr-2 h-4 w-4" />
             Share/Import Grid
           </Button>
-        )}
-        
-        {/* Spacer if no share button */}
-        {(!onShareGrid || rows.length === 0 || cols.length === 0) && <div />}
-        
-        {/* Create Custom Grid button on the right */}
-        {onCustomGrid && (
-          <Button
-            onClick={onCustomGrid}
-            variant="outline"
-            className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg"
-            data-testid="button-create-custom-grid"
-          >
-            <Grid3X3 className="mr-2 h-4 w-4" />
-            Create Custom Grid
-          </Button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

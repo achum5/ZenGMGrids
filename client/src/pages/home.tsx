@@ -6,7 +6,6 @@ import { PlayerModal } from '@/components/PlayerModal';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { RulesModal } from '@/components/RulesModal';
 import { GridSharingModal } from '@/components/grid-sharing-modal';
-import { CustomGridModal } from '@/components/custom-grid-modal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Home as HomeIcon } from 'lucide-react';
@@ -100,17 +99,12 @@ export default function Home() {
   
   // Grid sharing state
   const [gridSharingModalOpen, setGridSharingModalOpen] = useState(false);
-  
-  // Custom grid state
-  const [customGridModalOpen, setCustomGridModalOpen] = useState(false);
 
   // Helper function to build and cache player rankings for a cell
   const buildRankCacheForCell = useCallback((cellKey: string): Array<{player: Player, rarity: number}> => {
     if (!leagueData || !rows.length || !cols.length) return [];
     
-    // Handle both position-based keys (custom grids) and regular keys
-    const [baseKey] = cellKey.split('@'); // Remove position info if present
-    const [rowKey, colKey] = baseKey.split('|');
+    const [rowKey, colKey] = cellKey.split('|');
     const rowConstraint = rows.find(r => r.key === rowKey);
     const colConstraint = cols.find(c => c.key === colKey);
     
@@ -329,74 +323,8 @@ export default function Home() {
     }
   }, [leagueData, toast]);
 
-  // Handle creating a custom grid
-  const handleCreateCustomGrid = useCallback((customRows: CatTeam[], customCols: CatTeam[]) => {
-    if (!leagueData) return;
-    
-    try {
-      // Set the custom grid structure
-      setRows(customRows);
-      setCols(customCols);
-      
-      // Generate intersections for the custom grid with unique position-based keys
-      const allCellKeys: string[] = [];
-      const newIntersections: Record<string, number[]> = {};
-      
-      for (let rowIndex = 0; rowIndex < customRows.length; rowIndex++) {
-        for (let colIndex = 0; colIndex < customCols.length; colIndex++) {
-          const row = customRows[rowIndex];
-          const col = customCols[colIndex];
-          
-          // Create unique key that includes position to avoid conflicts when constraints are identical
-          const key = `${row.key}|${col.key}@${rowIndex}-${colIndex}`;
-          allCellKeys.push(key);
-          
-          const eligible = leagueData.players.filter(p => row.test(p) && col.test(p));
-          newIntersections[key] = eligible.map(p => p.pid);
-        }
-      }
-      
-      setIntersections(newIntersections);
-      setCells({}); // Reset all answers
-      setUsedPids(new Set()); // Reset used players
-      setRankCache({}); // Reset cached rankings
-      
-      // Initialize grid tracking for custom grid
-      const gridId = `custom-${customRows.map(r => r.key).join('-')}_${customCols.map(c => c.key).join('-')}`;
-      setCurrentGridId(gridId);
-      
-      // Start fresh with custom grid
-      setAttemptCount(1);
-      storeAttemptCount(gridId, 1);
-      
-    } catch (error) {
-      console.error('Error creating custom grid:', error);
-      toast({
-        title: 'Error creating custom grid',
-        description: error instanceof Error ? error.message : 'Failed to create custom grid',
-        variant: 'destructive',
-      });
-    }
-  }, [leagueData, toast]);
-
-  const handleCellClick = useCallback((rowKey: string, colKey: string, rowIndex?: number, colIndex?: number) => {
-    // For custom grids, use position-based keys to target the exact cell
-    let key = cellKey(rowKey, colKey);
-    
-    // Check if this is a custom grid with position-based keys
-    if (rowIndex !== undefined && colIndex !== undefined) {
-      const positionKey = `${rowKey}|${colKey}@${rowIndex}-${colIndex}`;
-      // Check intersections instead of cells since cells starts empty but intersections has our keys
-      if (Object.keys(intersections).includes(positionKey)) {
-        key = positionKey;
-      }
-    } else {
-      // Fallback for regular grids or when position is not provided
-      const customKey = Object.keys(intersections).find(k => k.startsWith(`${rowKey}|${colKey}@`));
-      if (customKey) {
-        key = customKey;
-      }
-    }
+  const handleCellClick = useCallback((rowKey: string, colKey: string) => {
+    const key = cellKey(rowKey, colKey);
     const cellState = cells[key];
     
     // If cell is locked and has a player, open player modal
@@ -442,7 +370,7 @@ export default function Home() {
       return;
     }
     
-    // currentCellKey now uses key format: "key1|key2" or "key1|key2@row-col"
+    // currentCellKey now uses key format: "key1|key2"
     
     // Validate eligibility
     const eligiblePids = intersections[currentCellKey] || [];
@@ -551,28 +479,7 @@ export default function Home() {
     if (!leagueData) return;
     
     // Find all empty cells in stable order (row-major: top→bottom, left→right)
-    // Check if we're dealing with custom grids (position-based keys) or regular grids
-    // Check intersections instead of cells since cells may be empty but intersections is always populated
-    const existingKeys = Object.keys(intersections);
-    const hasPositionKeys = existingKeys.some(key => key.includes('@'));
-    
-    let allCellKeys: string[];
-    if (hasPositionKeys) {
-      // Custom grid with position-based keys
-      allCellKeys = [];
-      for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-        for (let colIndex = 0; colIndex < cols.length; colIndex++) {
-          const row = rows[rowIndex];
-          const col = cols[colIndex];
-          const key = `${row.key}|${col.key}@${rowIndex}-${colIndex}`;
-          allCellKeys.push(key);
-        }
-      }
-    } else {
-      // Regular grid with simple keys
-      allCellKeys = rows.flatMap(row => cols.map(col => `${row.key}|${col.key}`));
-    }
-    
+    const allCellKeys = rows.flatMap(row => cols.map(col => `${row.key}|${col.key}`));
     const emptyCells = allCellKeys.filter(key => !cells[key]?.name);
     
     if (emptyCells.length === 0) return;
@@ -788,7 +695,6 @@ export default function Home() {
           onGiveUp={handleGiveUp}
           onRetryGrid={handleRetryGrid}
           onShareGrid={() => setGridSharingModalOpen(true)}
-          onCustomGrid={() => setCustomGridModalOpen(true)}
           isGenerating={isGenerating}
           teams={leagueData?.teams || []}
           sport={leagueData?.sport}
@@ -827,16 +733,6 @@ export default function Home() {
           cols={cols}
           leagueData={leagueData}
           onImportGrid={handleImportGrid}
-        />
-        
-        <CustomGridModal
-          isOpen={customGridModalOpen}
-          onClose={() => setCustomGridModalOpen(false)}
-          onCreateGrid={handleCreateCustomGrid}
-          players={leagueData?.players || []}
-          teams={leagueData?.teams || []}
-          sport={leagueData?.sport || 'basketball'}
-          seasonIndex={leagueData?.seasonIndex}
         />
       </main>
     </div>

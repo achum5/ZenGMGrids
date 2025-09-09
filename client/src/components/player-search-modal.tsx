@@ -60,8 +60,6 @@ export function PlayerSearchModal({
     // Create variations to handle period matching: "cj" should match "c.j."
     const queryWithPeriods = queryFolded.replace(/([a-z])([a-z])/g, '$1.$2.'); // "cj" -> "c.j."
     const queryNoPeriods = queryFolded.replace(/\./g, ''); // Remove any periods from query
-    // Handle apostrophe cases: "dd oc" should match "ddoconnor" (from "D.D. O'Connor")
-    const queryNoSpaces = queryFolded.replace(/ /g, ''); // Remove spaces to handle apostrophe word boundaries
     
     const matches: SearchablePlayer[] = [];
     const maxResults = 100;
@@ -86,11 +84,7 @@ export function PlayerSearchModal({
           sp.nameFolded.includes(queryNoPeriods) ||
           (queryWithPeriods.length > 2 && sp.firstFolded.includes(queryWithPeriods)) ||
           (queryWithPeriods.length > 2 && sp.lastFolded.includes(queryWithPeriods)) ||
-          (queryWithPeriods.length > 2 && sp.nameFolded.includes(queryWithPeriods)) ||
-          // Handle apostrophe cases: "dd oc" should match "ddoconnor" (from "D.D. O'Connor")
-          sp.firstFolded.replace(/[\.\s]/g, '').includes(queryNoSpaces) || 
-          sp.lastFolded.replace(/[\.\s]/g, '').includes(queryNoSpaces) ||
-          sp.nameFolded.replace(/[\.\s]/g, '').includes(queryNoSpaces)) {
+          (queryWithPeriods.length > 2 && sp.nameFolded.includes(queryWithPeriods))) {
         matches.push(sp);
       }
     }
