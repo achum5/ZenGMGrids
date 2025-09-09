@@ -476,17 +476,17 @@ export function buildSeasonIndex(
     for (const award of player.awards) {
       const achievementId = mapAwardToAchievement(award.type, sport);
       if (!achievementId) {
-        // Debug Jaylen Brown's awards specifically
-        if (player.pid === 2481 && award.type && award.type.toLowerCase().includes('league')) {
-          console.log(`⚠️ DEBUG: Jaylen Brown (${player.pid}) award "${award.type}" not mapped to any achievement`);
+        // Debug Jaylen Brown's awards specifically  
+        if (player.name.includes('Jaylen Brown') && award.type && award.type.toLowerCase().includes('league')) {
+          console.log(`⚠️ DEBUG: ${player.name} (PID ${player.pid}) award "${award.type}" not mapped to any achievement`);
         }
         skippedEntries++;
         continue;
       }
       
       // Debug Jaylen Brown's All-League mapping
-      if (player.pid === 2481 && achievementId === 'AllLeagueAny') {
-        console.log(`✅ DEBUG: Jaylen Brown (${player.pid}) award "${award.type}" mapped to ${achievementId} for season ${award.season}`);
+      if (player.name.includes('Jaylen Brown') && achievementId === 'AllLeagueAny') {
+        console.log(`✅ DEBUG: ${player.name} (PID ${player.pid}) award "${award.type}" mapped to ${achievementId} for season ${award.season}`);
       }
 
       const season = award.season;
@@ -516,8 +516,8 @@ export function buildSeasonIndex(
       
       if (seasonTeams.size === 0) {
         // No regular season stats for this award season, skip
-        if (achievementId === 'AllLeagueAny' && player.pid === 2481) {
-          console.log(`⚠️ DEBUG: Jaylen Brown (${player.pid}) has no season teams for ${achievementId} in ${season}`);
+        if (achievementId === 'AllLeagueAny' && player.name.includes('Jaylen Brown')) {
+          console.log(`⚠️ DEBUG: ${player.name} (PID ${player.pid}) has no season teams for ${achievementId} in ${season}`);
         }
         skippedEntries++;
         continue;
@@ -530,8 +530,8 @@ export function buildSeasonIndex(
         if (!seasonIndex[season][tid][achievementId]) seasonIndex[season][tid][achievementId] = new Set();
         
         seasonIndex[season][tid][achievementId].add(player.pid);
-        if (achievementId === 'AllLeagueAny' && player.pid === 2481) {
-          console.log(`✅ DEBUG: Added Jaylen Brown (${player.pid}) to seasonIndex[${season}][${tid}][${achievementId}]`);
+        if (achievementId === 'AllLeagueAny' && player.name.includes('Jaylen Brown')) {
+          console.log(`✅ DEBUG: Added ${player.name} (PID ${player.pid}) to seasonIndex[${season}][${tid}][${achievementId}]`);
         }
         totalIndexed++;
       }
