@@ -91,7 +91,7 @@ export function CustomGridHeaderSelector({
       <div className="relative h-1/2 border-b border-border/60 dark:border-slate-600/90">
         <Select onValueChange={handleTeamSelect}>
           <SelectTrigger className="w-full h-full text-xs font-medium border-none bg-transparent rounded-none hover:bg-accent/30 dark:hover:bg-accent/20 data-[state=open]:bg-accent/30 dark:data-[state=open]:bg-accent/20">
-            <SelectValue placeholder="Select Team" className="text-xs" />
+            <SelectValue placeholder="Team" className="text-xs" />
           </SelectTrigger>
           <SelectContent 
             className="w-64 max-h-60 bg-popover dark:bg-slate-800 border border-border dark:border-slate-600 shadow-md"
@@ -120,7 +120,7 @@ export function CustomGridHeaderSelector({
       <div className="relative h-1/2">
         <Select onValueChange={handleAchievementSelect}>
           <SelectTrigger className="w-full h-full text-xs font-medium border-none bg-transparent rounded-none hover:bg-accent/30 dark:hover:bg-accent/20 data-[state=open]:bg-accent/30 dark:data-[state=open]:bg-accent/20">
-            <SelectValue placeholder="Select Achievement" className="text-xs" />
+            <SelectValue placeholder="Achievement" className="text-xs" />
           </SelectTrigger>
           <SelectContent 
             className="w-64 max-h-60 bg-popover dark:bg-slate-800 border border-border dark:border-slate-600 shadow-md"
