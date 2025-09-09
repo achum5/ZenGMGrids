@@ -52,61 +52,176 @@ export function generateGridFallback(
   const achievements = getAchievements(sport);
   const activeTeams = teams.filter(team => !team.disabled);
   
-  const grid: GridConstraint[][] = [
-    [null, null, null],
-    [null, null, null],
-    [null, null, null]
-  ].map(row => row.map(() => null as GridConstraint | null));
+  // Separate tracking for row and column constraints to avoid duplicates
+  const usedRowTeams = new Set<number>();
+  const usedColTeams = new Set<number>();
+  const usedRowAchievements = new Set<string>();
+  const usedColAchievements = new Set<string>();
   
-  // Simple fallback: pick random teams and achievements
-  const usedTeams = new Set<number>();
-  const usedAchievements = new Set<string>();
+  // Generate constraints for each axis separately
+  const rows: GridConstraint[] = [];
+  const cols: GridConstraint[] = [];
   
-  // Fill with teams and achievements randomly
-  const positions = [
-    { row: 0, col: 0, type: 'team' },
-    { row: 0, col: 1, type: 'achievement' },
-    { row: 0, col: 2, type: 'team' },
-    { row: 1, col: 0, type: 'achievement' },
-    { row: 1, col: 1, type: 'team' },
-    { row: 1, col: 2, type: 'achievement' },
-    { row: 2, col: 0, type: 'team' },
-    { row: 2, col: 1, type: 'achievement' },
-    { row: 2, col: 2, type: 'team' }
-  ];
-  
-  for (const pos of positions) {
-    if (pos.type === 'team') {
-      const availableTeams = activeTeams.filter(t => !usedTeams.has(t.tid));
+  // Create diverse row constraints (mix of teams and achievements)
+  for (let i = 0; i < 3; i++) {
+    const useTeam = Math.random() > 0.5; // 50% chance for team vs achievement
+    
+    if (useTeam) {
+      const availableTeams = activeTeams.filter(t => !usedRowTeams.has(t.tid) && !usedColTeams.has(t.tid));
       if (availableTeams.length > 0) {
         const team = availableTeams[Math.floor(Math.random() * availableTeams.length)];
-        usedTeams.add(team.tid);
-        grid[pos.row][pos.col] = {
+        usedRowTeams.add(team.tid);
+        rows.push({
           type: 'team',
           tid: team.tid,
           label: team.name || `Team ${team.tid}`,
           key: `team-${team.tid}`,
           test: (p: Player) => p.teamsPlayed.has(team.tid),
-        };
+        });
+      } else {
+        // Fall back to achievement if no teams available
+        const availableAchievements = achievements.filter(a => !usedRowAchievements.has(a.id));
+        if (availableAchievements.length > 0) {
+          const achievement = availableAchievements[Math.floor(Math.random() * availableAchievements.length)];
+          usedRowAchievements.add(achievement.id);
+          rows.push({
+            type: 'achievement',
+            achievementId: achievement.id,
+            label: achievement.label,
+            key: `achievement-${achievement.id}`,
+            test: (p: Player) => playerMeetsAchievement(p, achievement.id),
+          });
+        }
       }
     } else {
-      const availableAchievements = achievements.filter(a => !usedAchievements.has(a.id));
+      const availableAchievements = achievements.filter(a => !usedRowAchievements.has(a.id) && !usedColAchievements.has(a.id));
       if (availableAchievements.length > 0) {
         const achievement = availableAchievements[Math.floor(Math.random() * availableAchievements.length)];
-        usedAchievements.add(achievement.id);
-        grid[pos.row][pos.col] = {
+        usedRowAchievements.add(achievement.id);
+        rows.push({
           type: 'achievement',
           achievementId: achievement.id,
           label: achievement.label,
           key: `achievement-${achievement.id}`,
           test: (p: Player) => playerMeetsAchievement(p, achievement.id),
-        };
+        });
+      } else {
+        // Fall back to team if no achievements available
+        const availableTeams = activeTeams.filter(t => !usedRowTeams.has(t.tid) && !usedColTeams.has(t.tid));
+        if (availableTeams.length > 0) {
+          const team = availableTeams[Math.floor(Math.random() * availableTeams.length)];
+          usedRowTeams.add(team.tid);
+          rows.push({
+            type: 'team',
+            tid: team.tid,
+            label: team.name || `Team ${team.tid}`,
+            key: `team-${team.tid}`,
+            test: (p: Player) => p.teamsPlayed.has(team.tid),
+          });
+        }
       }
     }
   }
   
-  const rows = [grid[0][0]!, grid[1][0]!, grid[2][0]!];
-  const cols = [grid[0][0]!, grid[0][1]!, grid[0][2]!];
+  // Create diverse column constraints (mix of teams and achievements, avoiding row duplicates)
+  for (let i = 0; i < 3; i++) {
+    const useTeam = Math.random() > 0.5; // 50% chance for team vs achievement
+    
+    if (useTeam) {
+      const availableTeams = activeTeams.filter(t => !usedColTeams.has(t.tid) && !usedRowTeams.has(t.tid));
+      if (availableTeams.length > 0) {
+        const team = availableTeams[Math.floor(Math.random() * availableTeams.length)];
+        usedColTeams.add(team.tid);
+        cols.push({
+          type: 'team',
+          tid: team.tid,
+          label: team.name || `Team ${team.tid}`,
+          key: `team-${team.tid}`,
+          test: (p: Player) => p.teamsPlayed.has(team.tid),
+        });
+      } else {
+        // Fall back to achievement if no teams available
+        const availableAchievements = achievements.filter(a => !usedColAchievements.has(a.id) && !usedRowAchievements.has(a.id));
+        if (availableAchievements.length > 0) {
+          const achievement = availableAchievements[Math.floor(Math.random() * availableAchievements.length)];
+          usedColAchievements.add(achievement.id);
+          cols.push({
+            type: 'achievement',
+            achievementId: achievement.id,
+            label: achievement.label,
+            key: `achievement-${achievement.id}`,
+            test: (p: Player) => playerMeetsAchievement(p, achievement.id),
+          });
+        }
+      }
+    } else {
+      const availableAchievements = achievements.filter(a => !usedColAchievements.has(a.id) && !usedRowAchievements.has(a.id));
+      if (availableAchievements.length > 0) {
+        const achievement = availableAchievements[Math.floor(Math.random() * availableAchievements.length)];
+        usedColAchievements.add(achievement.id);
+        cols.push({
+          type: 'achievement',
+          achievementId: achievement.id,
+          label: achievement.label,
+          key: `achievement-${achievement.id}`,
+          test: (p: Player) => playerMeetsAchievement(p, achievement.id),
+        });
+      } else {
+        // Fall back to team if no achievements available
+        const availableTeams = activeTeams.filter(t => !usedColTeams.has(t.tid) && !usedRowTeams.has(t.tid));
+        if (availableTeams.length > 0) {
+          const team = availableTeams[Math.floor(Math.random() * availableTeams.length)];
+          usedColTeams.add(team.tid);
+          cols.push({
+            type: 'team',
+            tid: team.tid,
+            label: team.name || `Team ${team.tid}`,
+            key: `team-${team.tid}`,
+            test: (p: Player) => p.teamsPlayed.has(team.tid),
+          });
+        }
+      }
+    }
+  }
+  
+  // Ensure we have 3 constraints for each axis (pad with remaining constraints if needed)
+  while (rows.length < 3) {
+    const availableTeams = activeTeams.filter(t => !usedRowTeams.has(t.tid) && !usedColTeams.has(t.tid));
+    if (availableTeams.length > 0) {
+      const team = availableTeams[Math.floor(Math.random() * availableTeams.length)];
+      usedRowTeams.add(team.tid);
+      rows.push({
+        type: 'team',
+        tid: team.tid,
+        label: team.name || `Team ${team.tid}`,
+        key: `team-${team.tid}`,
+        test: (p: Player) => p.teamsPlayed.has(team.tid),
+      });
+    } else {
+      break;
+    }
+  }
+  
+  while (cols.length < 3) {
+    const availableTeams = activeTeams.filter(t => !usedColTeams.has(t.tid) && !usedRowTeams.has(t.tid));
+    if (availableTeams.length > 0) {
+      const team = availableTeams[Math.floor(Math.random() * availableTeams.length)];
+      usedColTeams.add(team.tid);
+      cols.push({
+        type: 'team',
+        tid: team.tid,
+        label: team.name || `Team ${team.tid}`,
+        key: `team-${team.tid}`,
+        test: (p: Player) => p.teamsPlayed.has(team.tid),
+      });
+    } else {
+      break;
+    }
+  }
+  
+  console.log('🎯 Fallback grid generated:');
+  console.log('  Rows:', rows.map(r => r.label));
+  console.log('  Cols:', cols.map(c => c.label));
   
   // Calculate intersections
   const intersections: Record<string, number[]> = {};
