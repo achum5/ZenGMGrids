@@ -1968,20 +1968,11 @@ export function generateFeedbackMessage(
   * Check if a player satisfies a team × achievement constraint with same-season alignment
   */
 function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, achievementId: string, seasonIndex?: SeasonIndex): boolean {
-  // Debug Jaylen Brown specifically (broader search)
-  if (player.name.includes('Jaylen Brown') && achievementId === 'AllLeagueAny' && teamTid === 1) {
-    console.log(`🔍 DEBUG: Evaluating ${player.name} (PID ${player.pid}) for Celtics (${teamTid}) × ${achievementId}`);
-    console.log(`🔍 DEBUG: SEASON_ALIGNED_ACHIEVEMENTS has ${achievementId}:`, SEASON_ALIGNED_ACHIEVEMENTS.has(achievementId));
-    console.log(`🔍 DEBUG: seasonIndex available:`, !!seasonIndex);
-  }
 
   // Check if this achievement requires same-season alignment
   if (!SEASON_ALIGNED_ACHIEVEMENTS.has(achievementId)) {
     // Career-based achievements: just check if player ever played for team AND has the achievement
     const result = playerPlayedForTeam(player, teamTid) && playerMeetsAchievement(player, achievementId, seasonIndex);
-    if (player.name.includes('Jaylen Brown') && achievementId === 'AllLeagueAny' && teamTid === 1) {
-      console.log(`🔍 DEBUG: Career-based path result:`, result);
-    }
     return result;
   }
 
@@ -1992,10 +1983,6 @@ function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, a
     const eligiblePids = getSeasonEligiblePlayers(seasonIndex, teamTid, achievementId as SeasonAchievementId);
     const result = eligiblePids.has(player.pid);
     
-    if (player.name.includes('Jaylen Brown') && achievementId === 'AllLeagueAny' && teamTid === 1) {
-      console.log(`🔍 DEBUG: Season index path - eligible PIDs for Celtics × AllLeagueAny:`, Array.from(eligiblePids));
-      console.log(`🔍 DEBUG: Season index path result:`, result);
-    }
     
     return result;
   }
