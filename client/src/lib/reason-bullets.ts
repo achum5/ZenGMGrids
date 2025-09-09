@@ -233,16 +233,60 @@ function getBulletPlayoffTeam(player: Player, season: number, teams: Team[]): st
 }
 
 // Helper function to format season list for bullets
+// Helper function to format consecutive years as ranges
+function formatYearRanges(years: number[]): string {
+  if (years.length === 0) return '';
+  if (years.length === 1) return years[0].toString();
+  
+  const sortedYears = [...years].sort((a, b) => a - b);
+  const ranges: string[] = [];
+  let start = sortedYears[0];
+  let end = sortedYears[0];
+  
+  for (let i = 1; i < sortedYears.length; i++) {
+    if (sortedYears[i] === end + 1) {
+      // Consecutive year, extend the range
+      end = sortedYears[i];
+    } else {
+      // Gap found, close current range and start new one
+      if (start === end) {
+        ranges.push(start.toString());
+      } else {
+        ranges.push(`${start}-${end}`);
+      }
+      start = end = sortedYears[i];
+    }
+  }
+  
+  // Close the final range
+  if (start === end) {
+    ranges.push(start.toString());
+  } else {
+    ranges.push(`${start}-${end}`);
+  }
+  
+  return ranges.join(', ');
+}
+
 function formatBulletSeasonList(seasons: string[], isFinalsOrCFMVP: boolean = false): string {
   if (seasons.length === 0) return '';
   if (seasons.length === 1) return seasons[0];
   
   // For Finals MVP/CFMVP, use semicolon separator: "1994 HOU; 1995 HOU"
+  // These include team abbreviations so we can't format as ranges
   if (isFinalsOrCFMVP) {
     return seasons.join('; ');
   }
   
-  // For other awards, use comma separator: "2019, 2020, 2021"
+  // For other awards, try to format as year ranges if they're just years
+  const yearOnlySeasons = seasons.filter(season => /^\d{4}$/.test(season));
+  if (yearOnlySeasons.length === seasons.length) {
+    // All seasons are just years, we can format as ranges
+    const years = yearOnlySeasons.map(year => parseInt(year));
+    return formatYearRanges(years);
+  }
+  
+  // Mixed format or contains non-year data, use comma separator
   return seasons.join(', ');
 }
 
