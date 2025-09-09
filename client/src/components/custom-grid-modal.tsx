@@ -71,11 +71,11 @@ export function CustomGridModal({
 
   const handleUndo = useCallback(() => {
     if (previousGridState) {
-      setGridState(previousGridState);
+      updateGrid(previousGridState);
       setPreviousGridState(null);
       setShowUndo(false);
     }
-  }, [previousGridState]);
+  }, [previousGridState, updateGrid]);
 
   const handleAutoFill = useCallback(async () => {
     // Store current state for undo
