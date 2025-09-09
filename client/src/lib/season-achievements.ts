@@ -133,20 +133,14 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId | null> = {
   'Offensive Rookie of the Year': 'FBOffROY',
   'Defensive Rookie of the Year': 'FBDefROY',
   'Won Championship': 'FBChampion',
-  'All-Rookie Team': 'FBAllRookie',
   'First Team All-League': 'FBAllLeague',
   'Second Team All-League': 'FBAllLeague',
-  'Finals MVP': 'FBFinalsMVP',
   
   // Hockey GM (ZGMH) awards
   'All-Star Game': 'HKAllStar',
-  'MVP': 'HKMVP',
   'Best Defenseman': 'HKDefenseman',
-  'Rookie of the Year': 'HKROY',
   'Championship': 'HKChampion',
   'Playoffs MVP': 'HKPlayoffsMVP',
-  'Finals MVP': 'HKFinalsMVP', 
-  'All-Rookie Team': 'HKAllRookie',
   'All-League Team': 'HKAllLeague',
   'All-Star Game MVP': 'HKAllStarMVP',
   'Assists Leader': 'HKAssistsLeader',
@@ -171,6 +165,7 @@ function mapAwardToAchievement(awardType: string, sport?: 'basketball' | 'footba
     if (awardType === 'All-Rookie Team') return 'FBAllRookie';
     if (awardType === 'First Team All-League') return 'FBAllLeague';
     if (awardType === 'Second Team All-League') return 'FBAllLeague';
+    if (awardType === 'Finals MVP') return 'FBFinalsMVP';
   } else if (sport === 'baseball') {
     // Baseball-specific mappings (case-sensitive exact matches from ZGMB)
     if (awardType === 'All-Star') return 'BBAllStar';
