@@ -316,6 +316,9 @@ export function CustomGridModal({
                   <DropdownMenuItem
                     onClick={() => {
                       setAutoFillMode('teams');
+                      // Store current state for undo
+                      setPreviousGridState({ ...gridState });
+                      setShowUndo(true);
                       // Need to pass the mode directly since state update is async
                       setTimeout(() => {
                         const newState = { ...gridState };
@@ -366,6 +369,9 @@ export function CustomGridModal({
                   <DropdownMenuItem
                     onClick={() => {
                       setAutoFillMode('achievements');
+                      // Store current state for undo
+                      setPreviousGridState({ ...gridState });
+                      setShowUndo(true);
                       // Need to pass the mode directly since state update is async
                       setTimeout(() => {
                         const newState = { ...gridState };
