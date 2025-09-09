@@ -2,37 +2,36 @@ import { cn } from '@/lib/utils';
 
 interface CustomGridCellProps {
   playerCount: number;
-  row: number;
-  col: number;
+  rowIndex: number;
+  colIndex: number;
   className?: string;
 }
 
-export function CustomGridCell({ 
-  playerCount, 
-  row, 
-  col, 
-  className 
+export function CustomGridCell({
+  playerCount,
+  rowIndex,
+  colIndex,
+  className
 }: CustomGridCellProps) {
   const isValid = playerCount > 0;
   
   return (
     <div
       className={cn(
-        "aspect-square flex items-center justify-center border border-border dark:border-slate-600 rounded-lg transition-all duration-200",
+        'aspect-square w-full flex flex-col items-center justify-center text-center relative overflow-hidden',
+        'border border-border/60 dark:border-slate-600/90',
         isValid 
-          ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 border-green-300 dark:border-green-700" 
-          : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 border-red-300 dark:border-red-700",
+          ? 'bg-green-600/20 dark:bg-green-600/30 text-green-900 dark:text-green-100' 
+          : 'bg-red-600/20 dark:bg-red-600/30 text-red-900 dark:text-red-100',
         className
       )}
-      data-testid={`custom-cell-${row}-${col}`}
+      data-testid={`custom-cell-${rowIndex}-${colIndex}`}
     >
-      <div className="text-center">
-        <div className="text-lg font-bold">
-          {playerCount}
-        </div>
-        <div className="text-xs opacity-75">
-          eligible player{playerCount !== 1 ? 's' : ''}
-        </div>
+      <div className="text-xl md:text-2xl font-bold leading-none">
+        {playerCount}
+      </div>
+      <div className="text-xs text-muted-foreground mt-1">
+        eligible player{playerCount !== 1 ? 's' : ''}
       </div>
     </div>
   );
