@@ -1249,13 +1249,13 @@ function repairViolations(
     const maxColZeros = Math.max(...colZeroCounts);
     
     if (maxRowZeros >= maxColZeros) {
-      // Try swapping the worst row
+      // Try swapping the worst row - pass combined headers to check global duplicates
       const worstRow = rowZeroCounts.indexOf(maxRowZeros);
-      return trySwapHeader(rows, worstRow, 'row', achievements, careerSeasonsGroup, activeTeams);
+      return trySwapHeaderGlobal(rows, cols, worstRow, 'row', achievements, careerSeasonsGroup, activeTeams);
     } else {
-      // Try swapping the worst column
+      // Try swapping the worst column - pass combined headers to check global duplicates
       const worstCol = colZeroCounts.indexOf(maxColZeros);
-      return trySwapHeader(cols, worstCol, 'col', achievements, careerSeasonsGroup, activeTeams);
+      return trySwapHeaderGlobal(rows, cols, worstCol, 'col', achievements, careerSeasonsGroup, activeTeams);
     }
   }
   
@@ -1265,10 +1265,79 @@ function repairViolations(
     const [r, c] = violations.singletons[0];
     
     // Try row first, then column
-    if (trySwapHeader(rows, r, 'row', achievements, careerSeasonsGroup, activeTeams)) {
+    if (trySwapHeaderGlobal(rows, cols, r, 'row', achievements, careerSeasonsGroup, activeTeams)) {
       return true;
     }
-    return trySwapHeader(cols, c, 'col', achievements, careerSeasonsGroup, activeTeams);
+    return trySwapHeaderGlobal(rows, cols, c, 'col', achievements, careerSeasonsGroup, activeTeams);
+  }
+  
+  return false;
+}
+
+/**
+ * Try to swap a header while checking for duplicates across the entire grid
+ */
+function trySwapHeaderGlobal(
+  rows: GridConstraint[],
+  cols: GridConstraint[],
+  index: number,
+  axis: 'row' | 'col',
+  achievements: any[],
+  careerSeasonsGroup: string[],
+  activeTeams: any[]
+): boolean {
+  
+  const headers = axis === 'row' ? rows : cols;
+  const currentHeader = headers[index];
+  
+  // Get ALL used IDs across BOTH rows and cols (entire grid)
+  const allHeaders = [...rows, ...cols];
+  const usedIds = new Set(allHeaders.map(h => h.type === 'team' ? h.tid : h.achievementId).filter(id => id !== undefined));
+  
+  if (currentHeader.type === 'achievement') {
+    // Try swapping for a broader achievement (prefer career over season)
+    const careerAchievements = achievements.filter(a => !a.isSeasonSpecific);
+    const seasonAchievements = achievements.filter(a => a.isSeasonSpecific);
+    const alternatives = [...careerAchievements, ...seasonAchievements];
+    
+    for (const ach of alternatives) {
+      // Skip if this achievement is already used anywhere in the entire grid
+      if (usedIds.has(ach.id)) continue;
+      
+      // Check mutual exclusion
+      if (careerSeasonsGroup.includes(ach.label)) {
+        const hasCareerSeasons = allHeaders.some(h => 
+          h.type === 'achievement' && h.achievementId !== currentHeader.achievementId &&
+          careerSeasonsGroup.includes(ach.label)
+        );
+        if (hasCareerSeasons) continue;
+      }
+      
+      // Swap it in
+      headers[index] = {
+        type: 'achievement',
+        achievementId: ach.id,
+        label: ach.label,
+        key: `achievement-${ach.id}`,
+        test: (p: Player) => playerMeetsAchievement(p, ach.id),
+      };
+      return true;
+    }
+    
+  } else if (currentHeader.type === 'team') {
+    // Try swapping for a different team
+    const availableTeams = activeTeams.filter(t => !usedIds.has(t.tid));
+    if (availableTeams.length > 0) {
+      const newTeam = availableTeams[Math.floor(Math.random() * availableTeams.length)];
+      headers[index] = {
+        type: 'team',
+        tid: newTeam.tid,
+        label: newTeam.name || `Team ${newTeam.tid}`,
+        key: `team-${newTeam.tid}`,
+        test: (p: Player) => p.teamsPlayed.has(newTeam.tid),
+      };
+      return true;
+    }
   }
   
   return false;
@@ -1287,6 +1356,7 @@ function trySwapHeader(
 ): boolean {
   
   const currentHeader = headers[index];
+  // Get ALL used IDs across the ENTIRE grid (both rows and cols will be passed in)
   const usedIds = new Set(headers.map(h => h.type === 'team' ? h.tid : h.achievementId).filter(id => id !== undefined));
   
   if (currentHeader.type === 'achievement') {
@@ -1296,6 +1366,9 @@ function trySwapHeader(
     const alternatives = [...careerAchievements, ...seasonAchievements];
     
     for (const ach of alternatives) {
+      // Skip if this achievement is already used anywhere in the grid
+      if (usedIds.has(ach.id)) continue;
+      
       // Check mutual exclusion
       if (careerSeasonsGroup.includes(ach.label)) {
         const hasCareerSeasons = headers.some(h => 
