@@ -432,7 +432,6 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
         isSecondRoundPick: false,
         isUndrafted: false,
         draftedTeen: false,
-        bornOutsideUS50DC: false,
         // Special categories achievements
         allStar35Plus: false,
         oneTeamOnly: false,
@@ -474,7 +473,6 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
     isSecondRoundPick: 0,
     isUndrafted: 0,
     draftedTeen: 0,
-    bornOutsideUS50DC: 0,
     // Special categories achievements
     allStar35Plus: 0,
     oneTeamOnly: 0,
@@ -511,7 +509,6 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
       if (player.achievements.isSecondRoundPick) achievementCounts.isSecondRoundPick++;
       if (player.achievements.isUndrafted) achievementCounts.isUndrafted++;
       if (player.achievements.draftedTeen) achievementCounts.draftedTeen++;
-      if (player.achievements.bornOutsideUS50DC) achievementCounts.bornOutsideUS50DC++;
       // Special categories achievements
       if (player.achievements.allStar35Plus) achievementCounts.allStar35Plus++;
       if (player.achievements.oneTeamOnly) achievementCounts.oneTeamOnly++;
@@ -724,7 +721,7 @@ function analyzeTeamOverlaps(players: Player[], teams: Team[]): TeamOverlapData 
   // List of all possible achievement IDs to track
   const achievementIds = [
     'isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen',
-    'isHallOfFamer', 'played15PlusSeasons', 'played10PlusSeasons', 'bornOutsideUS50DC',
+    'isHallOfFamer', 'played15PlusSeasons', 'played10PlusSeasons',
     'career300PassTDs', 'season35PassTDs', 'career12kRushYds', 'career100RushTDs', 
     'season1800RushYds', 'season20RushTDs', 'career12kRecYds', 'career100RecTDs',
     'season1400RecYds', 'season15RecTDs', 'career100Sacks', 'career20Ints',

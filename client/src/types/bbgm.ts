@@ -186,7 +186,6 @@ export interface Player {
     isSecondRoundPick: boolean;
     isUndrafted: boolean;
     draftedTeen: boolean;
-    bornOutsideUS50DC: boolean;
     // Special categories achievements
     allStar35Plus: boolean;
     oneTeamOnly: boolean;
@@ -225,7 +224,6 @@ export interface Player {
     isSecondRoundPick: Set<number>;
     isUndrafted: Set<number>;
     draftedTeen: Set<number>;
-    bornOutsideUS50DC: Set<number>;
     // Special
     allStar35Plus: Set<number>;
     oneTeamOnly: Set<number>;

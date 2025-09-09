@@ -1683,7 +1683,6 @@ function getAchievementPositiveMessage(achievementId: string, player?: Player): 
     isSecondRoundPick: "was a second-round pick",
     isUndrafted: "went undrafted",
     draftedTeen: "was drafted as a teenager (19 or younger)",
-    bornOutsideUS50DC: getBornOutsidePositiveMessage(player),
     
     // Special
     allStar35Plus: "made an All-Star team at age 35+",
@@ -1795,7 +1794,6 @@ function getAchievementNegativeMessage(achievementId: string, player?: Player): 
     isSecondRoundPick: "",
     isUndrafted: "",
     draftedTeen: "",
-    bornOutsideUS50DC: "",
     
     // Special
     allStar35Plus: "never made an All-Star team at age 35+",
@@ -1864,7 +1862,7 @@ function getAchievementNegativeMessage(achievementId: string, player?: Player): 
   };
   
   // Handle draft achievements specially
-  if (['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen', 'bornOutsideUS50DC'].includes(achievementId) && player) {
+  if (['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen'].includes(achievementId) && player) {
     return getDraftNegativeMessage(player, achievementId);
   }
   
@@ -2050,56 +2048,6 @@ export function evaluateConstraintPair(player: Player, rowConstraint: GridConstr
   return false;
 }
 
-/**
-  * Format birthplace for players born outside the 50 U.S. states or D.C.
-  */
-function formatBirthPlaceForOutside(born: any): string {
-  if (!born || !born.loc) {
-    return '';
-  }
-
-  const fullLocation = born.loc.trim();
-  
-  // If born outside USA entirely
-  if (born.country && born.country !== "USA") {
-    // Use available parts: city, region/state (if present), country
-    const parts = [];
-    if (born.city) parts.push(born.city);
-    if (born.region || born.state) parts.push(born.region || born.state);
-    if (born.country) parts.push(born.country);
-    return parts.join(', ') || fullLocation;
-  }
-  
-  // If born in USA but not in the 50 states or DC (territories)
-  if (born.country === "USA") {
-    // Extract location without ", USA" suffix for territories
-    if (fullLocation.endsWith(', USA')) {
-      return fullLocation.slice(0, -5).trim(); // Remove ", USA"
-    }
-    return fullLocation;
-  }
-  
-  // Fallback to the full location string
-  return fullLocation;
-}
-
-/**
-  * Get positive message for bornOutsideUS50DC with birthplace in parentheses
-  */
-function getBornOutsidePositiveMessage(player?: Player): string {
-  if (!player || !player.born) {
-    return "was born outside the 50 U.S. states or D.C.";
-  }
-  
-  const birthplaceFormatted = formatBirthPlaceForOutside(player.born);
-  
-  if (birthplaceFormatted) {
-    return `was born outside the 50 U.S. states or D.C. (born in ${birthplaceFormatted})`;
-  }
-  
-  // Fallback if no birthplace info
-  return "was born outside the 50 U.S. states or D.C.";
-}
 
 /**
   * Count the number of seasons a player played (excludes playoffs)
@@ -2179,15 +2127,6 @@ function getDraftNegativeMessage(player: Player, achievementId: string): string 
     return `was ${ageAtDraft} years old when drafted (not a teenager)`;
   }
   
-  if (achievementId === 'bornOutsideUS50DC') {
-    if (!player.born?.loc) {
-      return "birthplace information unavailable";
-    }
-    
-    const birthplace = player.born.loc.trim();
-    // For wrong guesses on "Born outside 50 states + DC", show their actual birth location
-    return `was born in the US (${birthplace})`;
-  }
   
   if (!player.draft) {
     // Player went undrafted

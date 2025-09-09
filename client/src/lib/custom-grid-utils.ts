@@ -66,7 +66,6 @@ export function getTeamOptions(teams: Team[]): TeamOption[] {
 export function getAchievementOptions(sport: string, seasonIndex?: SeasonIndex): AchievementOption[] {
   const achievements = getAchievements(sport as any, seasonIndex);
   return achievements
-    .filter(achievement => achievement.id !== 'bornOutsideUS50DC') // Exclude problematic achievement
     .map(achievement => ({
       id: achievement.id,
       label: achievement.label

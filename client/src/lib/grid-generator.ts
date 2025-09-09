@@ -293,7 +293,6 @@ export function generateGridSeeded(leagueData: LeagueData): GridGenerationResult
       const achievements = getAchievements('basketball');
       for (const ach of achievements) {
         if (ach.isSeasonSpecific) continue;
-        if (ach.id === 'bornOutsideUS50DC') continue; // Temporarily remove born outside US achievement
         
         // Check if any player has both seed achievement (any season) and this career achievement
         const seedPlayerIds = new Set<number>();
@@ -343,8 +342,7 @@ export function generateGridSeeded(leagueData: LeagueData): GridGenerationResult
   
   // Only use career achievements for old-style fill to avoid season harmonization conflicts
   const allAchievements = getAchievements('basketball')
-    .filter(ach => !ach.isSeasonSpecific)
-    .filter(ach => ach.id !== 'bornOutsideUS50DC'); // Temporarily remove born outside US achievement
+    .filter(ach => !ach.isSeasonSpecific);
   
   // Filter out disabled teams for old-style fill
   const activeTeams = teams.filter(team => !team.disabled);
