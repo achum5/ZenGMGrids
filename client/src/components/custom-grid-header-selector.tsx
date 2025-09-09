@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { X, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { HeaderConfig, TeamOption, AchievementOption } from '@/lib/custom-grid-utils';
@@ -19,9 +20,6 @@ export function CustomGridHeaderSelector({
   onConfigChange,
   position
 }: CustomGridHeaderSelectorProps) {
-  const [showTeamDropdown, setShowTeamDropdown] = useState(false);
-  const [showAchievementDropdown, setShowAchievementDropdown] = useState(false);
-
   const handleTeamSelect = (value: string) => {
     const team = teamOptions.find(t => t.id.toString() === value);
     if (team) {
@@ -31,7 +29,6 @@ export function CustomGridHeaderSelector({
         selectedLabel: team.label
       });
     }
-    setShowTeamDropdown(false);
   };
 
   const handleAchievementSelect = (value: string) => {
@@ -43,7 +40,6 @@ export function CustomGridHeaderSelector({
         selectedLabel: achievement.label
       });
     }
-    setShowAchievementDropdown(false);
   };
 
   const handleClear = () => {
@@ -93,72 +89,51 @@ export function CustomGridHeaderSelector({
     >
       {/* Team Section (Top Half) */}
       <div className="relative h-1/2 border-b border-border/60 dark:border-slate-600/90">
-        <Button
-          onClick={() => setShowTeamDropdown(!showTeamDropdown)}
-          variant="ghost"
-          className="w-full h-full text-xs font-medium text-secondary-foreground dark:text-white hover:bg-accent/30 dark:hover:bg-accent/20 rounded-none"
-          data-testid={`button-select-team-${position}`}
-        >
-          Team
-        </Button>
-        
-        {showTeamDropdown && (
-          <div className="absolute top-full left-0 z-50 w-64 max-h-60 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-md shadow-xl overflow-hidden">
-            <div className="max-h-60 overflow-y-auto">
-              {teamOptions.map(team => (
-                <button
-                  key={team.id}
-                  onClick={() => handleTeamSelect(team.id.toString())}
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-blue-50 dark:hover:bg-slate-700 border-b border-gray-100 dark:border-slate-700 last:border-b-0 transition-colors"
-                  data-testid={`option-team-${team.id}`}
-                >
-                  {team.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        <Select onValueChange={handleTeamSelect}>
+          <SelectTrigger className="w-full h-full text-xs font-medium border-none bg-transparent rounded-none hover:bg-accent/30 dark:hover:bg-accent/20 data-[state=open]:bg-accent/30 dark:data-[state=open]:bg-accent/20">
+            <SelectValue placeholder="Team" className="text-xs" />
+          </SelectTrigger>
+          <SelectContent 
+            className="w-64 max-h-60 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 shadow-xl"
+            data-testid={`dropdown-teams-${position}`}
+          >
+            {teamOptions.map(team => (
+              <SelectItem 
+                key={team.id} 
+                value={team.id.toString()}
+                className="text-sm hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer px-3 py-2"
+                data-testid={`option-team-${team.id}`}
+              >
+                {team.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Achievement Section (Bottom Half) */}
       <div className="relative h-1/2">
-        <Button
-          onClick={() => setShowAchievementDropdown(!showAchievementDropdown)}
-          variant="ghost"
-          className="w-full h-full text-xs font-medium text-secondary-foreground dark:text-white hover:bg-accent/30 dark:hover:bg-accent/20 rounded-none"
-          data-testid={`button-select-achievement-${position}`}
-        >
-          Achievement
-        </Button>
-        
-        {showAchievementDropdown && (
-          <div className="absolute bottom-full left-0 z-50 w-64 max-h-60 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-md shadow-xl overflow-hidden">
-            <div className="max-h-60 overflow-y-auto">
-              {achievementOptions.map(achievement => (
-                <button
-                  key={achievement.id}
-                  onClick={() => handleAchievementSelect(achievement.id)}
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-blue-50 dark:hover:bg-slate-700 border-b border-gray-100 dark:border-slate-700 last:border-b-0 transition-colors"
-                  data-testid={`option-achievement-${achievement.id}`}
-                >
-                  {achievement.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        <Select onValueChange={handleAchievementSelect}>
+          <SelectTrigger className="w-full h-full text-xs font-medium border-none bg-transparent rounded-none hover:bg-accent/30 dark:hover:bg-accent/20 data-[state=open]:bg-accent/30 dark:data-[state=open]:bg-accent/20">
+            <SelectValue placeholder="Achievement" className="text-xs" />
+          </SelectTrigger>
+          <SelectContent 
+            className="w-64 max-h-60 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 shadow-xl"
+            data-testid={`dropdown-achievements-${position}`}
+          >
+            {achievementOptions.map(achievement => (
+              <SelectItem 
+                key={achievement.id} 
+                value={achievement.id}
+                className="text-sm hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer px-3 py-2"
+                data-testid={`option-achievement-${achievement.id}`}
+              >
+                {achievement.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
-
-      {/* Click outside to close dropdowns */}
-      {(showTeamDropdown || showAchievementDropdown) && (
-        <div 
-          className="fixed inset-0 z-40"
-          onClick={() => {
-            setShowTeamDropdown(false);
-            setShowAchievementDropdown(false);
-          }}
-        />
-      )}
     </div>
   );
 }
