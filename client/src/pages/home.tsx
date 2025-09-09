@@ -634,12 +634,6 @@ export default function Home() {
       setAttemptCount(1);
       storeAttemptCount(gridId, 1);
       
-      toast({
-        title: 'Custom grid created!',
-        description: 'Your custom grid is ready to play.',
-        variant: 'default',
-      });
-      
     } catch (error) {
       console.error('Error creating custom grid:', error);
       toast({
