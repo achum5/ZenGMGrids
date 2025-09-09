@@ -1,7 +1,7 @@
 import type { Player, Team } from '@/types/bbgm';
 import { SEASON_ALIGNED_ACHIEVEMENTS } from '@/lib/achievements';
 import { playerMeetsAchievement } from '@/lib/achievements';
-import { SEASON_ACHIEVEMENTS, type SeasonAchievementId } from './season-achievements';
+import { SEASON_ACHIEVEMENTS, type SeasonAchievementId, type SeasonIndex, getSeasonEligiblePlayers } from './season-achievements';
 
 // Season achievement metadata for modal copy
 const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
@@ -1967,15 +1967,22 @@ export function generateFeedbackMessage(
 /**
   * Check if a player satisfies a team × achievement constraint with same-season alignment
   */
-function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, achievementId: string): boolean {
+function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, achievementId: string, seasonIndex?: SeasonIndex): boolean {
   // Check if this achievement requires same-season alignment
   if (!SEASON_ALIGNED_ACHIEVEMENTS.has(achievementId)) {
     // Career-based achievements: just check if player ever played for team AND has the achievement
-    return playerPlayedForTeam(player, teamTid) && playerMeetsAchievement(player, achievementId, undefined);
+    return playerPlayedForTeam(player, teamTid) && playerMeetsAchievement(player, achievementId, seasonIndex);
   }
 
-  // For new statistical leader achievements, we need to use the season index approach
-  // These achievements are not stored in player.achievementSeasons but in the global season index
+  // For season achievements that are in SEASON_ACHIEVEMENTS, use the season index approach if available
+  const seasonAchievement = SEASON_ACHIEVEMENTS.find(sa => sa.id === achievementId);
+  if (seasonAchievement && seasonIndex) {
+    // Use the same logic as custom grids - check if player is eligible via season index
+    const eligiblePids = getSeasonEligiblePlayers(seasonIndex, teamTid, achievementId as SeasonAchievementId);
+    return eligiblePids.has(player.pid);
+  }
+
+  // Fallback for statistical leaders or when season index is not available
   const statisticalLeaders = ['PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader'];
   if (statisticalLeaders.includes(achievementId)) {
     // This will be handled by the grid generator's season index logic
@@ -2090,7 +2097,7 @@ function getConstraintDetails(player: Player, constraint: GridConstraint) {
 /**
   * Evaluate if a player meets both constraints with proper Team × Achievement alignment
   */
-export function evaluateConstraintPair(player: Player, rowConstraint: GridConstraint, colConstraint: GridConstraint): boolean {
+export function evaluateConstraintPair(player: Player, rowConstraint: GridConstraint, colConstraint: GridConstraint, seasonIndex?: SeasonIndex): boolean {
   // If both constraints are teams, check both separately
   if (rowConstraint.type === 'team' && colConstraint.type === 'team') {
     return evaluateConstraint(player, rowConstraint) && evaluateConstraint(player, colConstraint);
@@ -2103,11 +2110,11 @@ export function evaluateConstraintPair(player: Player, rowConstraint: GridConstr
   
   // Team × Achievement case: use same-season alignment
   if (rowConstraint.type === 'team' && colConstraint.type === 'achievement') {
-    return evaluateTeamAchievementWithAlignment(player, rowConstraint.tid!, colConstraint.achievementId!);
+    return evaluateTeamAchievementWithAlignment(player, rowConstraint.tid!, colConstraint.achievementId!, seasonIndex);
   }
   
   if (rowConstraint.type === 'achievement' && colConstraint.type === 'team') {
-    return evaluateTeamAchievementWithAlignment(player, colConstraint.tid!, rowConstraint.achievementId!);
+    return evaluateTeamAchievementWithAlignment(player, colConstraint.tid!, rowConstraint.achievementId!, seasonIndex);
   }
   
   return false;
