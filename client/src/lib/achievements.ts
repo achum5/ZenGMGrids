@@ -735,17 +735,41 @@ function calculateHockeyAchievements(player: Player, achievements: any): void {
 function calculateBasketballAchievements(player: Player, achievements: any): void {
   const stats = player.stats || [];
   
-  // Use the same career calculation logic as canonical index for consistency
-  const { calculateCareerTotals } = require('./canonical-achievement-index');
-  const careerTotals = calculateCareerTotals(stats);
+  // Career totals
+  let careerPts = 0, careerReb = 0, careerAst = 0, careerStl = 0, careerBlk = 0, careerThree = 0;
   
-  // Set career achievements using consistent totals
-  achievements.career20kPoints = careerTotals.pts >= 20000;
-  achievements.career10kRebounds = careerTotals.trb >= 10000;
-  achievements.career5kAssists = careerTotals.ast >= 5000;
-  achievements.career2kSteals = careerTotals.stl >= 2000;
-  achievements.career1500Blocks = careerTotals.blk >= 1500;
-  achievements.career2kThrees = careerTotals.threes >= 2000;
+  
+  stats.forEach((season: any) => {
+    if (season.playoffs) return; // Only regular season stats
+    
+    careerPts += season.pts || 0;
+    // Handle different rebound field names in BBGM files
+    let seasonRebounds = 0;
+    if (season.trb !== undefined) {
+      seasonRebounds = season.trb;
+    } else if (season.orb !== undefined || season.drb !== undefined) {
+      seasonRebounds = (season.orb || 0) + (season.drb || 0);
+    } else if (season.reb !== undefined) {
+      seasonRebounds = season.reb;
+    }
+    careerReb += seasonRebounds;
+    
+    careerAst += season.ast || 0;
+    careerStl += season.stl || 0;
+    careerBlk += season.blk || 0;
+    // Handle different three-pointer field names
+    const seasonThrees = season.tpm || season.tp || season.fg3 || 0;
+    careerThree += seasonThrees;
+    
+  });
+  
+  // Set career achievements
+  achievements.career20kPoints = careerPts >= 20000;
+  achievements.career10kRebounds = careerReb >= 10000;
+  achievements.career5kAssists = careerAst >= 5000;
+  achievements.career2kSteals = careerStl >= 2000;
+  achievements.career1500Blocks = careerBlk >= 1500;
+  achievements.career2kThrees = careerThree >= 2000;
   
   
   // Note: Single-season award calculations removed from game entirely

@@ -317,89 +317,6 @@ export function buildCanonicalAchievementIndex(
 }
 
 /**
- * Calculate career totals for a player with proper season deduplication
- */
-export function calculateCareerTotals(stats: any[]): {
-  pts: number;
-  trb: number;
-  ast: number;
-  stl: number;
-  blk: number;
-  threes: number;
-} {
-  let careerPts = 0, careerTrb = 0, careerAst = 0;
-  let careerStl = 0, careerBlk = 0, careerThrees = 0;
-  
-  // Group stats by season to handle deduplication
-  const statsBySeason = new Map<number, any[]>();
-  
-  for (const stat of stats) {
-    if (stat.playoffs) continue; // Only regular season
-    if (!stat.season) continue;
-    
-    if (!statsBySeason.has(stat.season)) {
-      statsBySeason.set(stat.season, []);
-    }
-    statsBySeason.get(stat.season)!.push(stat);
-  }
-  
-  // For each season, prefer season total row if available, otherwise sum team rows
-  for (const [season, seasonStats] of statsBySeason) {
-    // Look for season total row first (tid === -1 or team name contains "TOT")
-    const seasonTotalRow = seasonStats.find(s => 
-      s.tid === -1 || 
-      (typeof s.tid === 'string' && s.tid.includes('TOT')) ||
-      (s.abbrev && s.abbrev === 'TOT')
-    );
-    
-    let seasonPts = 0, seasonTrb = 0, seasonAst = 0;
-    let seasonStl = 0, seasonBlk = 0, seasonThrees = 0;
-    
-    if (seasonTotalRow) {
-      // Use season total row only
-      seasonPts = seasonTotalRow.pts || 0;
-      seasonTrb = (seasonTotalRow.trb || 0) + (seasonTotalRow.orb || 0) + (seasonTotalRow.drb || 0);
-      seasonAst = seasonTotalRow.ast || 0;
-      seasonStl = seasonTotalRow.stl || 0;
-      seasonBlk = seasonTotalRow.blk || 0;
-      // Tolerant three-pointers mapping: prefer tpm, then tp, then fg3, then threePm, then 3p
-      seasonThrees = seasonTotalRow.tpm || seasonTotalRow.tp || seasonTotalRow.fg3 || 
-                   seasonTotalRow.threePm || seasonTotalRow['3p'] || 0;
-    } else {
-      // Sum all team rows for this season
-      for (const teamStat of seasonStats) {
-        if ((teamStat.gp || 0) > 0) { // Only count if they played games
-          seasonPts += teamStat.pts || 0;
-          seasonTrb += (teamStat.trb || 0) + (teamStat.orb || 0) + (teamStat.drb || 0);
-          seasonAst += teamStat.ast || 0;
-          seasonStl += teamStat.stl || 0;
-          seasonBlk += teamStat.blk || 0;
-          // Tolerant three-pointers mapping
-          seasonThrees += teamStat.tpm || teamStat.tp || teamStat.fg3 || 
-                         teamStat.threePm || teamStat['3p'] || 0;
-        }
-      }
-    }
-    
-    careerPts += seasonPts;
-    careerTrb += seasonTrb;
-    careerAst += seasonAst;
-    careerStl += seasonStl;
-    careerBlk += seasonBlk;
-    careerThrees += seasonThrees;
-  }
-  
-  return {
-    pts: careerPts,
-    trb: careerTrb,
-    ast: careerAst,
-    stl: careerStl,
-    blk: careerBlk,
-    threes: careerThrees
-  };
-}
-
-/**
  * Calculate career achievements for a player according to FBGM specification
  */
 function calculateCareerAchievements(
@@ -444,15 +361,27 @@ function calculateCareerAchievements(
   
   // Basketball-specific career achievements
   if (sport === 'basketball' && player.stats) {
-    const careerTotals = calculateCareerTotals(player.stats);
+    let careerPts = 0, careerTrb = 0, careerAst = 0;
+    let careerStl = 0, careerBlk = 0, career3PM = 0;
+    
+    player.stats.forEach(stat => {
+      if (stat.playoffs) return; // Only regular season
+      
+      careerPts += stat.pts || 0;
+      careerTrb += (stat.trb || 0) + (stat.orb || 0) + (stat.drb || 0); // Handle different rebound formats
+      careerAst += stat.ast || 0;
+      careerStl += stat.stl || 0;
+      careerBlk += stat.blk || 0;
+      career3PM += stat.tp || stat.fg3 || 0; // 3-pointers made
+    });
     
     // Apply basketball career thresholds
-    if (careerTotals.pts >= 20000) careerAch.career20kPoints.add(player.pid);
-    if (careerTotals.trb >= 10000) careerAch.career10kRebounds.add(player.pid);
-    if (careerTotals.ast >= 5000) careerAch.career5kAssists.add(player.pid);
-    if (careerTotals.stl >= 2000) careerAch.career2kSteals.add(player.pid);
-    if (careerTotals.blk >= 1500) careerAch.career1500Blocks.add(player.pid);
-    if (careerTotals.threes >= 2000) careerAch.career2k3PM.add(player.pid);
+    if (careerPts >= 20000) careerAch.career20kPoints.add(player.pid);
+    if (careerTrb >= 10000) careerAch.career10kRebounds.add(player.pid);
+    if (careerAst >= 5000) careerAch.career5kAssists.add(player.pid);
+    if (careerStl >= 2000) careerAch.career2kSteals.add(player.pid);
+    if (careerBlk >= 1500) careerAch.career1500Blocks.add(player.pid);
+    if (career3PM >= 2000) careerAch.career2k3PM.add(player.pid);
   }
   
   // Football-specific career achievements
