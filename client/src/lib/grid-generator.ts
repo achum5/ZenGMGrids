@@ -470,7 +470,7 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
       }
       
       const eligiblePids = players
-        .filter(p => evaluateConstraintPair(p, rowConstraint, colConstraint))
+        .filter(p => evaluateConstraintPair(p, rowConstraint, colConstraint, seasonIndex))
         .map(p => p.pid);
       
       if (eligiblePids.length === 0) {
@@ -1544,7 +1544,7 @@ function buildOppositeAxisForSeed(
       } else {
         // Standard evaluation for career achievements or mixed career/season
         eligiblePlayers = players.filter(p => 
-          evaluateConstraintPair(p, rowConstraint, colConstraint)
+          evaluateConstraintPair(p, rowConstraint, colConstraint, seasonIndex)
         );
       }
       
