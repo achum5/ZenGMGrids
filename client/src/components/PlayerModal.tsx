@@ -44,11 +44,29 @@ function teamNameAtSeason(teamsByTid: Map<number, Team>, tid: number, season: nu
   return region ? `${region} ${name}` : name;
 }
 
-export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers = [], puzzleSeed = "", rows = [], cols = [], currentCellKey = "", sport }: Props) {
+export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers = [], puzzleSeed = "", rows = [], cols = [], currentCellKey = "", sport, cells = {} }: Props) {
   if (!player) return null;
 
   // Create team lookup map for efficient lookups - defensive check for teams array
   const teamsByTid = new Map(Array.isArray(teams) ? teams.map(team => [team.tid, team]) : []);
+
+  // Check if grid is complete (all 9 cells are either guessed or given up)
+  const isGridComplete = useMemo(() => {
+    if (!rows || !cols || rows.length !== 3 || cols.length !== 3) return false;
+    
+    let completedCells = 0;
+    for (let row = 0; row < 3; row++) {
+      for (let col = 0; col < 3; col++) {
+        const key = cellKey(rows[row].key, cols[col].key);
+        const cellState = cells[key];
+        // Cell is complete if it's either guessed (locked) or given up (has a name but not locked means given up)
+        if (cellState && (cellState.locked || cellState.name)) {
+          completedCells++;
+        }
+      }
+    }
+    return completedCells === 9;
+  }, [cells, rows, cols]);
 
   // Memoize expensive calculations
   const modalData = useMemo(() => {
@@ -482,7 +500,12 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                 })()}
               </h3>
               <div className="w-full rounded-md border p-3 overflow-y-auto" style={{ maxHeight: '12rem' }}>
-                <div className="space-y-1 text-sm">
+                {!isGridComplete ? (
+                  <div className="text-sm text-muted-foreground italic text-center py-4">
+                    Shown when grid is complete...
+                  </div>
+                ) : (
+                  <div className="space-y-1 text-sm">
                   {(() => {
                     // Calculate rarity for all eligible players
                     const eligiblePool = eligiblePlayers.map(p => playerToEligibleLite(p));
@@ -567,7 +590,8 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                       );
                     });
                   })()}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
