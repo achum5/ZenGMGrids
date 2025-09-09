@@ -20,7 +20,7 @@ import { parseLeagueFile, parseLeagueUrl, buildSearchIndex } from '@/lib/bbgm-pa
 import { generateTeamsGrid, cellKey } from '@/lib/grid-generator';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
 import { useToast } from '@/hooks/use-toast';
-import { buildCanonicalAchievementIndex, getCanonicalEligiblePlayers, validateGuessCanonical, logCanonicalDiagnostics, CANONICAL_ACHIEVEMENT_IDS, type CanonicalAchievementIndex } from '@/lib/canonical-achievement-index';
+import { buildCanonicalAchievementIndex, getCanonicalEligiblePlayers, validateGuessCanonical, logCanonicalDiagnostics, verifyAcceptanceCriteria, CANONICAL_ACHIEVEMENT_IDS, type CanonicalAchievementIndex } from '@/lib/canonical-achievement-index';
 import type { LeagueData, CatTeam, CellState, Player, SearchablePlayer } from '@/types/bbgm';
 
 // Helper functions for attempt tracking
@@ -221,6 +221,11 @@ export default function Home() {
     // Build canonical achievement index - SINGLE SOURCE OF TRUTH
     const canonicalIdx = buildCanonicalAchievementIndex(data.players, data.teams);
     setCanonicalIndex(canonicalIdx);
+    
+    // Run acceptance criteria verification for football
+    if (data.sport === 'football') {
+      verifyAcceptanceCriteria(canonicalIdx, data.players, data.teams);
+    }
     
     // Build search indices
     const indices = buildSearchIndex(data.players, data.teams);
