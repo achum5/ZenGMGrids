@@ -76,7 +76,8 @@ export function getAchievementOptions(sport: string, seasonIndex?: SeasonIndex):
 export function headerConfigToCatTeam(
   config: HeaderConfig,
   teams: Team[],
-  seasonIndex?: SeasonIndex
+  seasonIndex?: SeasonIndex,
+  position?: string // Add position parameter to make keys unique
 ): CatTeam | null {
   if (!config.type || !config.selectedId || !config.selectedLabel) {
     return null;
@@ -87,7 +88,7 @@ export function headerConfigToCatTeam(
     if (!team) return null;
     
     return {
-      key: `team-${config.selectedId}`,
+      key: position ? `team-${config.selectedId}-${position}` : `team-${config.selectedId}`,
       label: config.selectedLabel,
       tid: config.selectedId as number,
       type: 'team',
@@ -95,7 +96,7 @@ export function headerConfigToCatTeam(
     };
   } else {
     return {
-      key: `achievement-${config.selectedId}`,
+      key: position ? `achievement-${config.selectedId}-${position}` : `achievement-${config.selectedId}`,
       label: config.selectedLabel,
       achievementId: config.selectedId as string,
       type: 'achievement',
@@ -246,16 +247,16 @@ export function customGridToGenerated(
   const rows: CatTeam[] = [];
   const cols: CatTeam[] = [];
   
-  // Convert rows
+  // Convert rows with position information to ensure unique keys
   for (let i = 0; i < 3; i++) {
-    const constraint = headerConfigToCatTeam(state.rows[i], teams, seasonIndex);
+    const constraint = headerConfigToCatTeam(state.rows[i], teams, seasonIndex, `r${i}`);
     if (!constraint) return null;
     rows.push(constraint);
   }
   
-  // Convert cols
+  // Convert cols with position information to ensure unique keys
   for (let i = 0; i < 3; i++) {
-    const constraint = headerConfigToCatTeam(state.cols[i], teams, seasonIndex);
+    const constraint = headerConfigToCatTeam(state.cols[i], teams, seasonIndex, `c${i}`);
     if (!constraint) return null;
     cols.push(constraint);
   }
