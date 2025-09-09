@@ -328,8 +328,13 @@ export function CustomGridModal({
                   <DropdownMenuItem
                     onClick={() => {
                       setAutoFillMode('teams');
-                      // Store current state for undo
-                      setPreviousGridState({ ...gridState });
+                      // Store current state for undo (deep copy)
+                      setPreviousGridState({
+                        ...gridState,
+                        rows: gridState.rows.map(row => ({ ...row })) as [HeaderConfig, HeaderConfig, HeaderConfig],
+                        cols: gridState.cols.map(col => ({ ...col })) as [HeaderConfig, HeaderConfig, HeaderConfig],
+                        cellResults: gridState.cellResults.map(row => [...row])
+                      });
                       setShowUndo(true);
                       // Need to pass the mode directly since state update is async
                       setTimeout(() => {
@@ -381,8 +386,13 @@ export function CustomGridModal({
                   <DropdownMenuItem
                     onClick={() => {
                       setAutoFillMode('achievements');
-                      // Store current state for undo
-                      setPreviousGridState({ ...gridState });
+                      // Store current state for undo (deep copy)
+                      setPreviousGridState({
+                        ...gridState,
+                        rows: gridState.rows.map(row => ({ ...row })) as [HeaderConfig, HeaderConfig, HeaderConfig],
+                        cols: gridState.cols.map(col => ({ ...col })) as [HeaderConfig, HeaderConfig, HeaderConfig],
+                        cellResults: gridState.cellResults.map(row => [...row])
+                      });
                       setShowUndo(true);
                       // Need to pass the mode directly since state update is async
                       setTimeout(() => {
