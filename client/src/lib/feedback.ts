@@ -1958,8 +1958,8 @@ export function generateFeedbackMessage(
   }
   
   // Case 4: Both pass (shouldn't happen for wrong guesses, but handle gracefully)
-  // This might indicate a same-season alignment issue
-  return `${playerName} ${rowDetails.passText} and ${colDetails.passText}, but there may be a season alignment issue.`;
+  // This might indicate a logic error or edge case
+  return `${playerName} ${rowDetails.passText} and ${colDetails.passText}, but the combination doesn't meet the grid requirements.`;
 }
 
 /**
@@ -2031,9 +2031,34 @@ export function evaluateConstraintPair(player: Player, rowConstraint: GridConstr
     return evaluateConstraint(player, rowConstraint) && evaluateConstraint(player, colConstraint);
   }
   
-  // If both are achievements, check both separately  
+  // If both are achievements, check based on their season-specific nature
   if (rowConstraint.type === 'achievement' && colConstraint.type === 'achievement') {
-    return evaluateConstraint(player, rowConstraint) && evaluateConstraint(player, colConstraint);
+    const rowIsSeasonSpecific = SEASON_ALIGNED_ACHIEVEMENTS.has(rowConstraint.achievementId!);
+    const colIsSeasonSpecific = SEASON_ALIGNED_ACHIEVEMENTS.has(colConstraint.achievementId!);
+    
+    if (rowIsSeasonSpecific && colIsSeasonSpecific) {
+      // Both season-specific: player must have both in the same season (if seasonIndex available)
+      if (seasonIndex) {
+        // Use season index to check if player achieved both in same season
+        for (const seasonStr of Object.keys(seasonIndex)) {
+          const seasonData = seasonIndex[parseInt(seasonStr)];
+          for (const teamData of Object.values(seasonData)) {
+            const hasRow = teamData[rowConstraint.achievementId! as keyof typeof teamData]?.has(player.pid);
+            const hasCol = teamData[colConstraint.achievementId! as keyof typeof teamData]?.has(player.pid);
+            if (hasRow && hasCol) {
+              return true;
+            }
+          }
+        }
+        return false;
+      } else {
+        // No season index: fall back to basic check
+        return evaluateConstraint(player, rowConstraint) && evaluateConstraint(player, colConstraint);
+      }
+    } else {
+      // At least one is career: just check both separately (no season alignment needed)
+      return evaluateConstraint(player, rowConstraint) && evaluateConstraint(player, colConstraint);
+    }
   }
   
   // Team × Achievement case: use same-season alignment
