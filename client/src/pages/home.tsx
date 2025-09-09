@@ -248,7 +248,10 @@ export default function Home() {
   }, [toast]);
 
   const handleGenerateNewGrid = useCallback(() => {
-    if (!leagueData || !canonicalIndex) return;
+    if (!leagueData || !canonicalIndex) {
+      console.warn('Cannot generate grid: missing leagueData or canonicalIndex');
+      return;
+    }
     
     setIsGenerating(true);
     
@@ -281,7 +284,7 @@ export default function Home() {
     } finally {
       setIsGenerating(false);
     }
-  }, [leagueData, toast]);
+  }, [leagueData, canonicalIndex, toast]);
 
   // Handle importing a shared grid
   const handleImportGrid = useCallback((importedRows: CatTeam[], importedCols: CatTeam[]) => {
