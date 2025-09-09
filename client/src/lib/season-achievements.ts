@@ -70,9 +70,16 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId | null> = {
   'most improved player': 'MIP',
   'finals mvp': 'FinalsMVP',
   'all-league team': 'AllLeagueAny',
+  'all-league': 'AllLeagueAny',
   'first team all-league': 'AllLeagueAny',
   'second team all-league': 'AllLeagueAny',
   'third team all-league': 'AllLeagueAny',
+  'first-team all-league': 'AllLeagueAny',
+  'second-team all-league': 'AllLeagueAny',
+  'third-team all-league': 'AllLeagueAny',
+  '1st team all-league': 'AllLeagueAny',
+  '2nd team all-league': 'AllLeagueAny',
+  '3rd team all-league': 'AllLeagueAny',
   'all-defensive team': 'AllDefAny',
   'first team all-defensive': 'AllDefAny',
   'second team all-defensive': 'AllDefAny',
@@ -199,6 +206,20 @@ function mapAwardToAchievement(awardType: string, sport?: 'basketball' | 'footba
   // Direct exact match from global mapping (for Basketball and missed cases)
   if (AWARD_TYPE_MAPPING[awardType]) {
     return AWARD_TYPE_MAPPING[awardType];
+  }
+  
+  // Handle Basketball GM All-League variations with additional pattern matching
+  if (sport === 'basketball' || !sport) {
+    const lowerType = awardType.toLowerCase();
+    if (lowerType.includes('all-league') || lowerType.includes('all league')) {
+      return 'AllLeagueAny';
+    }
+    if (lowerType.includes('all-defensive') || lowerType.includes('all defensive')) {
+      return 'AllDefAny';
+    }
+    if (lowerType.includes('all-rookie') || lowerType.includes('all rookie')) {
+      return 'AllRookieAny';
+    }
   }
   
   // Fall back to normalized mapping
@@ -472,6 +493,12 @@ export function buildSeasonIndex(
   // Process traditional award-based achievements
   for (const player of players) {
     if (!player.awards || player.awards.length === 0) continue;
+    
+    // Debug all awards for Jaylen Brown (PID 559)
+    if (player.pid === 559) {
+      console.log(`🔍 JB DEBUG: Found ${player.awards.length} awards for Jaylen Brown:`, 
+        player.awards.map(a => `"${a.type}" (${a.season})`));
+    }
 
     for (const award of player.awards) {
       const achievementId = mapAwardToAchievement(award.type, sport);
