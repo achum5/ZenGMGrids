@@ -276,7 +276,6 @@ export function CustomGridModal({
               </div>
             </div>
           </div>
-
         </div>
         
         {/* Fixed bottom section with buttons */}
@@ -477,8 +476,6 @@ export function CustomGridModal({
             >
               Create Grid
             </Button>
-          </div>
-
           </div>
           
           {/* Validation Status */}
