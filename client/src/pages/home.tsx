@@ -380,6 +380,13 @@ export default function Home() {
     const eligiblePids = intersections[currentCellKey] || [];
     const isCorrect = eligiblePids.includes(player.pid);
     
+    // Debug Jaylen Brown specifically
+    if (player.pid === 2481 && currentCellKey.includes('team-1') && currentCellKey.includes('AllLeagueAny')) {
+      console.log(`🔍 DEBUG: Jaylen Brown (${player.pid}) guess validation for ${currentCellKey}`);
+      console.log(`🔍 DEBUG: Eligible PIDs:`, eligiblePids);
+      console.log(`🔍 DEBUG: Is correct:`, isCorrect);
+    }
+    
     // Compute rarity if correct
     let rarity = 0;
     let points = 0;
