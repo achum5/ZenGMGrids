@@ -278,6 +278,18 @@ function getCareerStats(player: Player, statTypes: string[]) {
           const seasonThrees = (season as any).tpm || (season as any).tp || (season as any).fg3 || 0;
           total += seasonThrees;
         } 
+        // Handle rebounds - try different field names used in BBGM files
+        else if (statType === 'trb') {
+          let seasonRebounds = 0;
+          if ((season as any).trb !== undefined) {
+            seasonRebounds = (season as any).trb;
+          } else if ((season as any).orb !== undefined || (season as any).drb !== undefined) {
+            seasonRebounds = ((season as any).orb || 0) + ((season as any).drb || 0);
+          } else if ((season as any).reb !== undefined) {
+            seasonRebounds = (season as any).reb;
+          }
+          total += seasonRebounds;
+        }
         // Handle hockey assists - calculate from component assists
         else if (statType === 'a') {
           // Hockey assists are the sum of even-strength, power-play, and short-handed assists
