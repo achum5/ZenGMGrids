@@ -20,7 +20,7 @@ import { parseLeagueFile, parseLeagueUrl, buildSearchIndex } from '@/lib/bbgm-pa
 import { generateTeamsGrid, cellKey } from '@/lib/grid-generator';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
 import { useToast } from '@/hooks/use-toast';
-import { buildCanonicalAchievementIndex, getCanonicalEligiblePlayers, validateGuessCanonical, logCanonicalDiagnostics, verifyAcceptanceCriteria, getEligiblePlayersForCell, CANONICAL_ACHIEVEMENT_IDS, type CanonicalAchievementIndex } from '@/lib/canonical-achievement-index';
+import { buildCanonicalAchievementIndex, getCanonicalEligiblePlayers, validateGuessCanonical, logCanonicalDiagnostics, CANONICAL_ACHIEVEMENT_IDS, type CanonicalAchievementIndex } from '@/lib/canonical-achievement-index';
 import type { LeagueData, CatTeam, CellState, Player, SearchablePlayer } from '@/types/bbgm';
 
 // Helper functions for attempt tracking
@@ -222,11 +222,6 @@ export default function Home() {
     const canonicalIdx = buildCanonicalAchievementIndex(data.players, data.teams);
     setCanonicalIndex(canonicalIdx);
     
-    // Run acceptance criteria verification for football
-    if (data.sport === 'football') {
-      verifyAcceptanceCriteria(canonicalIdx, data.players, data.teams);
-    }
-    
     // Build search indices
     const indices = buildSearchIndex(data.players, data.teams);
     setByName(indices.byName);
@@ -353,22 +348,25 @@ export default function Home() {
       
       let modalEligiblePids: number[] = [];
       
-      if (canonicalIndex && modalRowConstraint && modalColConstraint && leagueData?.teams) {
-        // Use the new helper function for single source of truth
-        const eligiblePidSet = getEligiblePlayersForCell(
-          canonicalIndex,
-          modalRowConstraint,
-          modalColConstraint,
-          leagueData.teams
-        );
-        modalEligiblePids = Array.from(eligiblePidSet);
-        
-        // Add diagnostics to verify the count matches
-        const gridCount = intersections[key]?.length || 0;
-        console.log(`🔍 MODAL DIAGNOSTICS: ${modalRowConstraint.label} × ${modalColConstraint.label}`);
-        console.log(`   Grid count: ${gridCount}, Modal count: ${modalEligiblePids.length}`);
-        if (gridCount !== modalEligiblePids.length) {
-          console.warn(`⚠️ COUNT MISMATCH: Grid shows ${gridCount} but modal shows ${modalEligiblePids.length}`);
+      if (canonicalIndex && modalRowConstraint && modalColConstraint) {
+        // Use canonical index for Team × Achievement combinations
+        if (modalRowConstraint.type === 'team' && modalColConstraint.type === 'achievement' && modalColConstraint.achievementId) {
+          const teamId = modalRowConstraint.tid!;
+          const achId = modalColConstraint.achievementId;
+          const team = leagueData?.teams.find(t => t.tid === teamId);
+          const franchiseId = (team as any)?.franchiseId || teamId;
+          const eligiblePidSet = getCanonicalEligiblePlayers(canonicalIndex, achId, franchiseId);
+          modalEligiblePids = Array.from(eligiblePidSet);
+        } else if (modalColConstraint.type === 'team' && modalRowConstraint.type === 'achievement' && modalRowConstraint.achievementId) {
+          const teamId = modalColConstraint.tid!;
+          const achId = modalRowConstraint.achievementId;
+          const team = leagueData?.teams.find(t => t.tid === teamId);
+          const franchiseId = (team as any)?.franchiseId || teamId;
+          const eligiblePidSet = getCanonicalEligiblePlayers(canonicalIndex, achId, franchiseId);
+          modalEligiblePids = Array.from(eligiblePidSet);
+        } else {
+          // Fall back to intersections for non-canonical cases
+          modalEligiblePids = intersections[key] || [];
         }
       } else {
         // Fallback to intersections if canonical index not available
