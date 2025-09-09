@@ -308,7 +308,47 @@ export function CustomGridModal({
                     Mixed (default)
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setAutoFillMode('teams')}
+                    onClick={() => {
+                      setAutoFillMode('teams');
+                      // Need to pass the mode directly since state update is async
+                      setTimeout(() => {
+                        const newState = { ...gridState };
+                        // Auto fill logic for teams only
+                        const filledRows = newState.rows.filter(row => row.selectedId !== null).length;
+                        const filledCols = newState.cols.filter(col => col.selectedId !== null).length;
+                        const totalFilled = filledRows + filledCols;
+                        const teamsNeeded = 6 - totalFilled;
+                        
+                        if (teamsNeeded > 0) {
+                          const usedTeamIds = [...newState.rows, ...newState.cols]
+                            .filter(item => item.type === 'team')
+                            .map(item => item.selectedId as number);
+                          const availableTeams = teamOptions.filter(t => !usedTeamIds.includes(t.id));
+                          const shuffledTeams = [...availableTeams].sort(() => Math.random() - 0.5);
+                          
+                          const emptySlots: { axis: 'rows' | 'cols', index: number }[] = [];
+                          for (let i = 0; i < 3; i++) {
+                            if (newState.rows[i].selectedId === null) emptySlots.push({ axis: 'rows', index: i });
+                            if (newState.cols[i].selectedId === null) emptySlots.push({ axis: 'cols', index: i });
+                          }
+                          
+                          let teamIndex = 0;
+                          for (const slot of emptySlots.slice(0, Math.min(teamsNeeded, shuffledTeams.length))) {
+                            const team = shuffledTeams[teamIndex];
+                            if (team) {
+                              newState[slot.axis][slot.index] = {
+                                type: 'team',
+                                selectedId: team.id,
+                                selectedLabel: team.label
+                              };
+                              teamIndex++;
+                            }
+                          }
+                          
+                          updateGrid(newState);
+                        }
+                      }, 0);
+                    }}
                     className={cn(
                       "dark:hover:bg-slate-600 cursor-pointer",
                       autoFillMode === 'teams' && "bg-primary/10 dark:bg-primary/20"
@@ -318,7 +358,47 @@ export function CustomGridModal({
                     Auto Fill In Teams
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setAutoFillMode('achievements')}
+                    onClick={() => {
+                      setAutoFillMode('achievements');
+                      // Need to pass the mode directly since state update is async
+                      setTimeout(() => {
+                        const newState = { ...gridState };
+                        // Auto fill logic for achievements only
+                        const filledRows = newState.rows.filter(row => row.selectedId !== null).length;
+                        const filledCols = newState.cols.filter(col => col.selectedId !== null).length;
+                        const totalFilled = filledRows + filledCols;
+                        const achievementsNeeded = 6 - totalFilled;
+                        
+                        if (achievementsNeeded > 0) {
+                          const usedAchievementIds = [...newState.rows, ...newState.cols]
+                            .filter(item => item.type === 'achievement')
+                            .map(item => item.selectedId as string);
+                          const availableAchievements = achievementOptions.filter(a => !usedAchievementIds.includes(a.id));
+                          const shuffledAchievements = [...availableAchievements].sort(() => Math.random() - 0.5);
+                          
+                          const emptySlots: { axis: 'rows' | 'cols', index: number }[] = [];
+                          for (let i = 0; i < 3; i++) {
+                            if (newState.rows[i].selectedId === null) emptySlots.push({ axis: 'rows', index: i });
+                            if (newState.cols[i].selectedId === null) emptySlots.push({ axis: 'cols', index: i });
+                          }
+                          
+                          let achievementIndex = 0;
+                          for (const slot of emptySlots.slice(0, Math.min(achievementsNeeded, shuffledAchievements.length))) {
+                            const achievement = shuffledAchievements[achievementIndex];
+                            if (achievement) {
+                              newState[slot.axis][slot.index] = {
+                                type: 'achievement',
+                                selectedId: achievement.id,
+                                selectedLabel: achievement.label
+                              };
+                              achievementIndex++;
+                            }
+                          }
+                          
+                          updateGrid(newState);
+                        }
+                      }, 0);
+                    }}
                     className={cn(
                       "dark:hover:bg-slate-600 cursor-pointer",
                       autoFillMode === 'achievements' && "bg-primary/10 dark:bg-primary/20"
