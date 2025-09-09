@@ -203,14 +203,15 @@ export function CustomGridModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl w-full max-h-[90vh] overflow-hidden p-0 dark:bg-slate-800">
+      <DialogContent className="max-w-6xl w-full max-h-[95vh] flex flex-col p-0 dark:bg-slate-800">
         <DialogHeader className="px-6 py-4 border-b border-border dark:border-slate-700">
           <DialogTitle className="text-xl font-bold dark:text-white">
             Create Custom Grid
           </DialogTitle>
         </DialogHeader>
 
-        <div className="p-6 overflow-auto">
+        {/* Scrollable content area */}
+        <div className="flex-1 p-6 overflow-y-auto">
           {/* Grid Container matching current design */}
           <div className="max-w-4xl mx-auto mb-6">
             <div className="bg-border/60 dark:bg-slate-600/90 rounded-2xl p-[2px] md:p-[3px] overflow-hidden">
@@ -276,7 +277,10 @@ export function CustomGridModal({
             </div>
           </div>
 
-          {/* Bottom Buttons */}
+        </div>
+        
+        {/* Fixed bottom section with buttons */}
+        <div className="flex-shrink-0 border-t border-border dark:border-slate-700 p-6">
           <div className="flex items-center justify-between gap-4">
             {/* Clear All - Left */}
             <Button
@@ -475,6 +479,8 @@ export function CustomGridModal({
             </Button>
           </div>
 
+          </div>
+          
           {/* Validation Status */}
           {gridState.isValid && !gridState.isSolvable && (
             <div className="mt-4 text-center text-sm text-destructive">
