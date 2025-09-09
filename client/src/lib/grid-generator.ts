@@ -842,6 +842,32 @@ function getViableTeamPairs(players: Player[], teams: Team[], minShared: number 
 }
 
 /**
+ * Enforce team-first rule: move first team to index 0, keeping relative order
+ */
+function enforceTeamFirst(headers: GridConstraint[]): GridConstraint[] {
+  const teamCount = headers.filter(h => h.type === 'team').length;
+  const achievementCount = headers.filter(h => h.type === 'achievement').length;
+  
+  // Reject invalid compositions
+  if (teamCount === 0 || teamCount === 3 || achievementCount === 3) {
+    throw new Error(`Invalid axis composition: ${teamCount}T/${achievementCount}A. Only 1T2A or 2T1A allowed.`);
+  }
+  
+  // Find first team and move to index 0
+  const firstTeamIndex = headers.findIndex(h => h.type === 'team');
+  if (firstTeamIndex === 0) {
+    return headers; // Already correct
+  }
+  
+  // Move first team to front, keep relative order of others
+  const result = [...headers];
+  const team = result.splice(firstTeamIndex, 1)[0];
+  result.unshift(team);
+  
+  return result;
+}
+
+/**
  * Generate structured 3×3 grids for smaller leagues (< 20 seasons)
  * Follows exact specification: teams always first, 2-3 achievements total, specific patterns only
  */
@@ -861,6 +887,10 @@ export function generateGridGreedy(
   if (activeTeams.length < 3) {
     throw new Error('Not enough teams for grid generation');
   }
+  
+  // Mutual exclusion: career seasons constraint
+  const careerSeasonsGroup = ["Played 10+ Seasons", "Played 15+ Seasons"];
+  const chosenAchIds = new Set<string>();
   
   // Define the 5 allowed layouts (teams always first on each axis)
   const allowedLayouts = [
@@ -888,13 +918,30 @@ export function generateGridGreedy(
     .sort(() => Math.random() - 0.5) // Shuffle
     .slice(0, Math.min(teamsNeeded, activeTeams.length));
   
-  // Select achievements (no duplicates)
-  const selectedAchievements = nonSeasonAchievements
-    .sort(() => Math.random() - 0.5) // Shuffle
-    .slice(0, layout.totalAchievements);
+  // Select achievements with mutual exclusion rules
+  const availableAchievements = [...nonSeasonAchievements];
+  const selectedAchievements: typeof achievements = [];
+  
+  // Shuffle and select achievements while respecting constraints
+  availableAchievements.sort(() => Math.random() - 0.5);
+  
+  for (const achievement of availableAchievements) {
+    if (selectedAchievements.length >= layout.totalAchievements) break;
+    
+    // Check career seasons mutual exclusion
+    if (careerSeasonsGroup.includes(achievement.label)) {
+      const hasCareerSeasons = Array.from(chosenAchIds).some(id => 
+        careerSeasonsGroup.includes(achievements.find(a => a.id === id)?.label || '')
+      );
+      if (hasCareerSeasons) continue; // Skip if we already have one
+    }
+    
+    selectedAchievements.push(achievement);
+    chosenAchIds.add(achievement.id);
+  }
   
   if (selectedAchievements.length < layout.totalAchievements) {
-    throw new Error('Not enough non-season achievements available');
+    throw new Error('Not enough compatible non-season achievements available');
   }
   
   // Build constraints following the exact pattern
@@ -991,24 +1038,44 @@ export function generateGridGreedy(
     throw new Error('Failed to generate complete grid constraints');
   }
   
+  // Enforce team-first rule on both axes
+  try {
+    const enforcedRows = enforceTeamFirst(rows);
+    const enforcedCols = enforceTeamFirst(cols);
+    rows.splice(0, rows.length, ...enforcedRows);
+    cols.splice(0, cols.length, ...enforcedCols);
+  } catch (error) {
+    throw new Error(`Failed to enforce team-first rule: ${error}`);
+  }
+  
   console.log('🎯 Low-season grid generated:');
   console.log('  Rows:', rows.map((r, i) => `${i+1}. ${r.type === 'team' ? '🏀' : '🏆'} ${r.label}`));
   console.log('  Cols:', cols.map((c, i) => `${i+1}. ${c.type === 'team' ? '🏀' : '🏆'} ${c.label}`));
   
-  // Validate header coverage (≥3 players per intersection)
-  let validationFailed = false;
+  // Validate mutual exclusion (sanity check)
+  const allAchievementLabels = [...rows, ...cols]
+    .filter(c => c.type === 'achievement')
+    .map(c => c.label);
+  const careerSeasonsFound = allAchievementLabels.filter(label => careerSeasonsGroup.includes(label));
+  if (careerSeasonsFound.length > 1) {
+    throw new Error(`Mutual exclusion violation: found both ${careerSeasonsFound.join(' and ')}`);
+  }
+  
+  // Validate header coverage (≥3 players per intersection) - but be more lenient for small leagues
+  let lowCoverageCount = 0;
   for (let row = 0; row < 3; row++) {
     for (let col = 0; col < 3; col++) {
       const eligiblePlayers = calculateIntersectionSimple(rows[row], cols[col], players, seasonIndex);
       if (eligiblePlayers.length < 3) {
         console.log(`⚠️ Low coverage: ${rows[row].label} × ${cols[col].label} = ${eligiblePlayers.length} players`);
-        validationFailed = true;
+        lowCoverageCount++;
       }
     }
   }
   
-  if (validationFailed) {
-    throw new Error('Grid failed header coverage validation (some intersections have <3 players)');
+  // Allow some low coverage intersections for small leagues, but not too many
+  if (lowCoverageCount > 6) { // More than 2/3 of intersections have low coverage
+    throw new Error('Grid failed header coverage validation (too many intersections have <3 players)');
   }
   
   // Calculate intersections
