@@ -52,12 +52,6 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     verbTeam: 'won a Finals MVP',
     verbGeneric: 'won a Finals MVP'
   },
-  SFMVP: {
-    label: 'Conference Finals MVP',
-    short: 'CFMVP',
-    verbTeam: 'won a Conference Finals MVP',
-    verbGeneric: 'won a Conference Finals MVP'
-  },
   AllLeagueAny: {
     label: 'All-League Team',
     short: 'All-League',
@@ -439,7 +433,6 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     SMOY: ['SMOY', 'Sixth Man of the Year', 'sixth man of the year', '6MOY', '6th man'],
     MIP: ['MIP', 'Most Improved Player', 'most improved player'],
     FinalsMVP: ['Finals MVP', 'finals mvp', 'championship mvp'],
-    SFMVP: ['Conference Finals MVP', 'conference finals mvp', 'CFMVP', 'cfmvp'],
     AllLeagueAny: ['All-League', 'all-league', 'First Team All-League', 'Second Team All-League', 'Third Team All-League'],
     AllDefAny: ['All-Defensive', 'all-defensive', 'First Team All-Defensive', 'Second Team All-Defensive'],
     AllRookieAny: ['All-Rookie', 'all-rookie', 'All-Rookie Team'],
@@ -524,8 +517,8 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     if (award.season) {
       seasons.push(award.season);
       
-      // For Finals MVP and Conference Finals MVP (BBGM, FBGM, HKGM, and BBGM), include team abbreviation
-      if (achievementId === 'FinalsMVP' || achievementId === 'SFMVP' || achievementId === 'FBFinalsMVP' || achievementId === 'HKPlayoffsMVP' || achievementId === 'HKChampion' || achievementId === 'BBPlayoffsMVP' || achievementId === 'BBChampion') {
+      // For Finals MVP (BBGM, FBGM, HKGM, and BBGM), include team abbreviation
+      if (achievementId === 'FinalsMVP' || achievementId === 'FBFinalsMVP' || achievementId === 'HKPlayoffsMVP' || achievementId === 'HKChampion' || achievementId === 'BBPlayoffsMVP' || achievementId === 'BBChampion') {
         // Try to get team from playoffs stats for that season
         const playoffTeam = getPlayoffTeamForSeason(player, award.season);
         if (playoffTeam) {
@@ -2293,7 +2286,7 @@ function generateTeamSeasonAchievementMessage(
   const playerData = getPlayerSeasonAchievementData(player, achievementId, teamTid);
   
   const countStr = playerData.count === 0 ? '0x' : 
-    `${playerData.count}x — ${formatSeasonList(playerData.seasonsWithTeam, achievementId === 'FinalsMVP' || achievementId === 'SFMVP')}`;
+    `${playerData.count}x — ${formatSeasonList(playerData.seasonsWithTeam, achievementId === 'FinalsMVP')}`;
   
   // Check if player actually played for this team
   const playedForTeam = playerPlayedForTeam(player, teamTid);
@@ -2329,15 +2322,15 @@ function generateSeasonSeasonAchievementMessage(
   
   // Case: Player has both awards but never in the same season
   if (playerDataA.count > 0 && playerDataB.count > 0) {
-    const seasonsA = formatSeasonList(playerDataA.seasonsWithTeam, achievementA === 'FinalsMVP' || achievementA === 'SFMVP');
-    const seasonsB = formatSeasonList(playerDataB.seasonsWithTeam, achievementB === 'FinalsMVP' || achievementB === 'SFMVP');
+    const seasonsA = formatSeasonList(playerDataA.seasonsWithTeam, achievementA === 'FinalsMVP');
+    const seasonsB = formatSeasonList(playerDataB.seasonsWithTeam, achievementB === 'FinalsMVP');
     
     return `${player.name} did earn ${achDataA.label} and ${achDataB.label}, but never in the same season. (${achDataA.short}: ${playerDataA.count}x — ${seasonsA}; ${achDataB.short}: ${playerDataB.count}x — ${seasonsB})`;
   }
   
   // Case: Player is missing one side entirely
   if (playerDataA.count > 0 && playerDataB.count === 0) {
-    const seasonsA = formatSeasonList(playerDataA.seasonsWithTeam, achievementA === 'FinalsMVP' || achievementA === 'SFMVP');
+    const seasonsA = formatSeasonList(playerDataA.seasonsWithTeam, achievementA === 'FinalsMVP');
     const verbB = isRookieAchievement(achievementB) 
       ? achDataB.verbGeneric.replace('made the', 'didn\'t make the').replace('won', 'didn\'t win')
       : achDataB.verbGeneric.replace('made', 'did not make').replace('won', 'did not win');
@@ -2353,7 +2346,7 @@ function generateSeasonSeasonAchievementMessage(
   }
   
   if (playerDataB.count > 0 && playerDataA.count === 0) {
-    const seasonsB = formatSeasonList(playerDataB.seasonsWithTeam, achievementB === 'FinalsMVP' || achievementB === 'SFMVP');
+    const seasonsB = formatSeasonList(playerDataB.seasonsWithTeam, achievementB === 'FinalsMVP');
     const verbA = isRookieAchievement(achievementA) 
       ? achDataA.verbGeneric.replace('made the', 'didn\'t make the').replace('won', 'didn\'t win')
       : achDataA.verbGeneric.replace('made', 'did not make').replace('won', 'did not win');
