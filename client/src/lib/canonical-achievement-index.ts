@@ -2,6 +2,7 @@
 // This ensures all parts of the system (grid generation, validation, counts, modals) use identical data
 
 import type { Player, Team } from '@/types/bbgm';
+import { calculateBBGMSeasonLeaders } from './season-achievements';
 
 // Canonical index structures
 export interface CanonicalAchievementIndex {
@@ -240,6 +241,53 @@ export function buildCanonicalAchievementIndex(
         }
       }
     }
+  }
+  
+  // Process League Leaders for basketball (like the season index does)
+  if (sport === 'basketball') {
+    console.log('🏀 Processing Basketball GM season leaders for canonical index...');
+    let leaderEntriesAdded = 0;
+    
+    // Use the imported leader calculation function
+    
+    // Get all seasons from processed players
+    const allSeasons = new Set<number>();
+    for (const player of players) {
+      if (player.stats) {
+        for (const stat of player.stats) {
+          if (stat.season && !stat.playoffs) {
+            allSeasons.add(stat.season);
+          }
+        }
+      }
+    }
+    
+    // Calculate leaders for each season and add to canonical index
+    for (const season of Array.from(allSeasons).sort((a, b) => a - b)) {
+      const seasonLeaders = calculateBBGMSeasonLeaders(players, season, null);
+      
+      for (const [leaderType, playerIds] of Object.entries(seasonLeaders)) {
+        const achId = leaderType; // PointsLeader, ReboundsLeader, etc.
+        
+        for (const pid of playerIds) {
+          const player = players.find(p => p.pid === pid);
+          if (!player) continue;
+          
+          // Get all franchises this player played for in this season (regular season only)
+          const regularSeasonStats = player.stats?.filter(s => 
+            s.season === season && !s.playoffs && (s.gp || 0) > 0
+          ) || [];
+          
+          for (const stat of regularSeasonStats) {
+            const franchiseId = franchiseIdMap.get(stat.tid) || stat.tid;
+            addToIndex(awardByTeamSeason, awardByTeamAnySeason, achId, franchiseId, season, pid);
+            leaderEntriesAdded++;
+          }
+        }
+      }
+    }
+    
+    console.log(`🏀 Basketball GM leaders added to canonical index: ${leaderEntriesAdded} entries`);
   }
   
   console.log(`✅ Canonical index built: ${processedAwards} awards processed, ${skippedAwards} skipped`);
