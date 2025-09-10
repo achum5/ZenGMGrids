@@ -254,6 +254,8 @@ export interface LeagueData {
   sport?: 'basketball' | 'football' | 'hockey' | 'baseball';
   // Season index for season-specific achievements (basketball only)
   seasonIndex?: any; // SeasonIndex from season-achievements
+  // Career-ever index for Achievement × Achievement cells (all sports)
+  careerEverIndex?: any; // CareerEverIndex from season-achievements
 }
 
 export interface CatTeam {
