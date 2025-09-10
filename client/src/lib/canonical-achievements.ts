@@ -104,21 +104,21 @@ export const CANONICAL_ACHIEVEMENTS: CanonicalAchievement[] = [
   {
     id: 'ALL_LEAGUE',
     displayLabel: 'All-League Team',
-    synonyms: ['All-League', 'all-league', 'First Team All-League', 'Second Team All-League', 'Third Team All-League'],
+    synonyms: ['All-League', 'all-league', 'First Team All-League', 'Second Team All-League', 'Third Team All-League', 'AllLeagueAny'],
     sport: ['basketball'],
     category: 'award'
   },
   {
     id: 'ALL_DEF',
     displayLabel: 'All-Defensive Team',
-    synonyms: ['All-Defensive', 'all-defensive', 'First Team All-Defensive', 'Second Team All-Defensive'],
+    synonyms: ['All-Defensive', 'all-defensive', 'First Team All-Defensive', 'Second Team All-Defensive', 'AllDefAny'],
     sport: ['basketball'],
     category: 'award'
   },
   {
     id: 'ALL_ROOKIE',
     displayLabel: 'All-Rookie Team',
-    synonyms: ['All-Rookie', 'all-rookie', 'All-Rookie Team'],
+    synonyms: ['All-Rookie', 'all-rookie', 'All-Rookie Team', 'AllRookieAny'],
     sport: ['basketball'],
     category: 'award'
   },
