@@ -506,7 +506,9 @@ export function generateGridSeeded(leagueData: LeagueData): GridGenerationResult
               { type: 'team', tid: team.tid, label: team.name || `Team ${team.tid}` },
               colConstraint,
               players,
-              seasonIndex
+              seasonIndex,
+              careerEverIndex,
+              canonicalIndex
             );
             
             if (intersection.length === 0) {
@@ -561,7 +563,9 @@ export function generateGridSeeded(leagueData: LeagueData): GridGenerationResult
               { type: 'achievement', achievementId: ach.id, label: ach.label },
               colConstraint,
               players,
-              seasonIndex
+              seasonIndex,
+              careerEverIndex,
+              canonicalIndex
             );
             
             if (intersection.length === 0) {
@@ -618,7 +622,9 @@ export function generateGridSeeded(leagueData: LeagueData): GridGenerationResult
               rowConstraint,
               { type: 'team', tid: team.tid, label: team.name || `Team ${team.tid}` },
               players,
-              seasonIndex
+              seasonIndex,
+              careerEverIndex,
+              canonicalIndex
             );
             
             if (intersection.length === 0) {
@@ -673,7 +679,9 @@ export function generateGridSeeded(leagueData: LeagueData): GridGenerationResult
               rowConstraint,
               { type: 'achievement', achievementId: ach.id, label: ach.label },
               players,
-              seasonIndex
+              seasonIndex,
+              careerEverIndex,
+              canonicalIndex
             );
             
             if (intersection.length === 0) {
@@ -715,7 +723,7 @@ export function generateGridSeeded(leagueData: LeagueData): GridGenerationResult
   for (let row = 0; row < 3; row++) {
     for (let col = 0; col < 3; col++) {
       const key = `${rows[row].key}|${cols[col].key}`;
-      const eligiblePlayers = calculateIntersectionSimple(rows[row], cols[col], players, seasonIndex, careerEverIndex);
+      const eligiblePlayers = calculateIntersectionSimple(rows[row], cols[col], players, seasonIndex, careerEverIndex, canonicalIndex);
       intersections[key] = eligiblePlayers.map((p: Player) => p.pid);
       console.log(`Intersection ${rows[row].label} × ${cols[col].label}: ${eligiblePlayers.length} eligible players`);
     }
@@ -783,7 +791,8 @@ function calculateIntersectionSimple(
   colConstraint: any,
   players: Player[],
   seasonIndex?: SeasonIndex,
-  careerEverIndex?: any
+  careerEverIndex?: any,
+  canonicalIndex?: CanonicalAchievementIndex
 ): Player[] {
   // Use the exact same logic as custom grids for proper Team × Achievement alignment
   let eligiblePlayers: Player[];
@@ -1240,7 +1249,7 @@ function buildEligibilityMatrix(
   for (let r = 0; r < 3; r++) {
     matrix[r] = [];
     for (let c = 0; c < 3; c++) {
-      matrix[r][c] = calculateIntersectionSimple(rows[r], cols[c], players, seasonIndex, careerEverIndex);
+      matrix[r][c] = calculateIntersectionSimple(rows[r], cols[c], players, seasonIndex, careerEverIndex, canonicalIndex);
     }
   }
   
