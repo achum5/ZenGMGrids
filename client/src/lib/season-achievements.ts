@@ -116,6 +116,11 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId | null> = {
   'bbgm all-rookie team': 'AllRookieAny',
   'basketball all-rookie team': 'AllRookieAny',
   
+  // CRITICAL: Exact case-sensitive Basketball GM All-League awards (MAJOR FIX)
+  'First Team All-League': 'AllLeagueAny',
+  'Second Team All-League': 'AllLeagueAny',
+  'Third Team All-League': 'AllLeagueAny',
+  
   // CRITICAL: Numeric ordinal variants for All-League Team (fixes Jaylen Brown issue)
   'all-league 1st team': 'AllLeagueAny',
   'all-league 2nd team': 'AllLeagueAny',
@@ -146,16 +151,16 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId | null> = {
   'basketball blocks leader': 'BlocksLeader',
   
   // Football GM specific awards (case-sensitive exact matches from FBGM)
-  'All-Star': 'FBAllStar',
-  'Most Valuable Player': 'FBMVP',
-  'Defensive Player of the Year': 'FBDPOY',
-  'Offensive Rookie of the Year': 'FBOffROY',
-  'Defensive Rookie of the Year': 'FBDefROY',
-  'Won Championship': 'FBChampion',
-  'All-Rookie Team': 'FBAllRookie',
-  'First Team All-League': 'FBAllLeague',
-  'Second Team All-League': 'FBAllLeague',
-  'Finals MVP': 'FBFinalsMVP',
+  'FB All-Star': 'FBAllStar',
+  'FB Most Valuable Player': 'FBMVP',
+  'FB Defensive Player of the Year': 'FBDPOY',
+  'FB Offensive Rookie of the Year': 'FBOffROY',
+  'FB Defensive Rookie of the Year': 'FBDefROY',
+  'FB Won Championship': 'FBChampion',
+  'FB All-Rookie Team': 'FBAllRookie',
+  'FB First Team All-League': 'FBAllLeague',
+  'FB Second Team All-League': 'FBAllLeague',
+  'FB Finals MVP': 'FBFinalsMVP',
   
   // Hockey GM (ZGMH) awards
   'All-Star Game': 'HKAllStar',
@@ -164,8 +169,8 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId | null> = {
   'Rookie of the Year': 'HKROY',
   'Championship': 'HKChampion',
   'Playoffs MVP': 'HKPlayoffsMVP',
-  'Finals MVP': 'HKFinalsMVP', // Note: keep only the last one to avoid duplication
-  'All-Rookie Team': 'HKAllRookie', // Note: keep only the last one to avoid duplication
+  'Finals MVP': 'HKFinalsMVP',
+  'All-Rookie Team': 'HKAllRookie',
   'All-League Team': 'HKAllLeague',
   'All-Star Game MVP': 'HKAllStarMVP',
   'Assists Leader': 'HKAssistsLeader',
@@ -640,8 +645,23 @@ export function buildSeasonIndex(
       
       const achievementId = mapAwardToAchievement(award.type, sport);
       if (!achievementId) {
-        if (isJaylenBrown && award.type.toLowerCase().includes('all') && award.type.toLowerCase().includes('league')) {
-          console.log(`   ❌ [DEBUG] Jaylen Brown All-League award NOT MAPPED: "${award.type}"`);
+        // CRITICAL DEBUG: Log ALL unmapped basketball awards containing "All-League" or "All-NBA"
+        const awardLower = award.type.toLowerCase();
+        if (sport === 'basketball' && 
+            (awardLower.includes('all') && (awardLower.includes('league') || awardLower.includes('nba')))) {
+          console.log(`🚨 [UNMAPPED ALL-LEAGUE] Player: "${player.name}" (pid=${player.pid})`);
+          console.log(`   Award Type: "${award.type}"`);
+          console.log(`   Season: ${award.season}`);
+          console.log(`   Normalized: "${awardLower}"`);
+          console.log(`   Contains 'all': ${awardLower.includes('all')}`);
+          console.log(`   Contains 'league': ${awardLower.includes('league')}`);
+          console.log(`   Contains 'nba': ${awardLower.includes('nba')}`);
+          console.log(`   Contains 'team': ${awardLower.includes('team')}`);
+        }
+        
+        // Enhanced Jaylen Brown debugging
+        if (isJaylenBrown) {
+          console.log(`   ❌ [DEBUG] Jaylen Brown award NOT MAPPED: "${award.type}" (season: ${award.season})`);
         }
         skippedEntries++;
         continue;
