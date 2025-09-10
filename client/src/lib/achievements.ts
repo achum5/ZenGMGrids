@@ -395,7 +395,9 @@ export function playerMeetsAchievement(player: Player, achievementId: string, se
   // Check if it's a season-specific achievement (like SMOY, MVP, etc.)
   const seasonAchievement = SEASON_ACHIEVEMENTS.find(sa => sa.id === achievementId);
   if (seasonAchievement) {
-    // For traditional award-based achievements, check player awards using the same mapping logic as season index building
+    // For season-specific achievements, we should ideally use the season index for proper team-season harmonization
+    // However, for general achievement checking (without team context), we fall back to award checking
+    // This is used when checking if a player meets an achievement regardless of team context
     return player.awards?.some(award => {
       const normalizedType = award.type.toLowerCase().trim();
       

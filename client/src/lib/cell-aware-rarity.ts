@@ -95,6 +95,21 @@ const CELL_WEIGHTS = {
 
 // Season-aligned achievements
 const SEASON_ALIGNED = new Set([
+  // Basketball GM season-specific achievements
+  'AllStar', 'MVP', 'DPOY', 'ROY', 'SMOY', 'MIP', 'FinalsMVP',
+  'AllLeagueAny', 'AllDefAny', 'AllRookieAny',
+  'PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader',
+  
+  // Football GM season-specific achievements
+  'FBAllStar', 'FBMVP', 'FBDPOY', 'FBOffROY', 'FBDefROY', 'FBChampion', 'FBAllRookie', 'FBAllLeague', 'FBFinalsMVP',
+  
+  // Hockey GM season-specific achievements
+  'HKAllStar', 'HKMVP', 'HKDefenseman', 'HKROY', 'HKChampion', 'HKPlayoffsMVP', 'HKFinalsMVP', 'HKAllRookie', 'HKAllLeague', 'HKAllStarMVP', 'HKAssistsLeader',
+  
+  // Baseball GM season-specific achievements
+  'BBAllStar', 'BBMVP', 'BBROY', 'BBChampion', 'BBAllRookie', 'BBAllLeague', 'BBPlayoffsMVP',
+  
+  // Legacy support for old achievement names (if any still exist)
   'season30ppg', 'season10apg', 'season15rpg', 'season3bpg', 'season25spg', 'season504090',
   'ledScoringAny', 'ledRebAny', 'ledAstAny', 'ledStlAny', 'ledBlkAny',
   'mvpWinner', 'dpoyWinner', 'royWinner', 'smoyWinner', 'mipWinner', 'fmvpWinner',
