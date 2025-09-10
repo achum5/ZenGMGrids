@@ -72,41 +72,51 @@ const sportSpecificRules = {
     }
   },
   football: {
-    title: "Football GM Grids — Quick Rules",
-    howCellsWork: [
-      "Match both labels.",
-      "Team × Team: player must appear (GP > 0) for both teams (any seasons).",
-      "Team × Career: player must have ever played for the team + meet the career/longevity/birthplace item.",
-      "Team × Award: player must do it with that team in that season."
-    ],
-    achievements: {
-      career: [
-        "Pass TDs: 150+ career",
-        "Rushing: 8,000+ yards; 40+ TDs career",
-        "Receiving: 6,000+ yards; 40+ TDs career",
-        "Defense: 60+ sacks; 20+ interceptions career",
-        "Longevity: played 10+ seasons; played 15+ seasons",
-        "Hall of Fame",
-        "Born outside 50 states + DC"
-      ],
-      awards: [
-        "Most Valuable Player",
-        "Defensive Player of the Year",
-        "Rookie of the Year"
-      ],
-      draft: [
-        "#1 Overall • First Round • Second Round • Undrafted"
+    title: "FBGM Grids",
+    eligibility: {
+      title: "How eligibility works",
+      rules: [
+        "Season-aligned achievements only need to match a team for Team × Achievement squares (same season, same team).",
+        "Finals MVP / Champion: must be with the team from that playoff run.",
+        "League Leaders: if present, count with any team the player played for during that leader season.",
+        "Achievement × Achievement squares do not require the same season.",
+        "Non-season (career/draft) achievements: player must have ever played for the team (any season) and meet the career/draft condition."
       ]
     },
-    scoring: [
-      "1. Team fit: How much the player truly belongs to the team(s) in the square—played real minutes/games and had impact, not just a cameo.",
-      "2. Category fit: How strongly the player matches the stat/award—e.g., cleared the threshold (20k points) or actually won MVP that year.",
-      "3. Fame: How well-known the player is overall—Hall of Fame status, MVPs, All-Star selections, and big career volume.",
-      "Common picks → lower score.",
-      "Rare picks → higher score.",
-      "Very small answer pools can add a small bonus—but only if your pick wasn't the obvious one."
-    ],
-    remember: "No duplicate players across the grid."
+    seasonAchievements: {
+      title: "Season-aligned achievements",
+      items: [
+        "All-Star",
+        "MVP",
+        "Defensive Player of the Year",
+        "Offensive Rookie of the Year",
+        "Defensive Rookie of the Year",
+        "Champion",
+        "All-Rookie Team",
+        "All-League Team",
+        "Finals MVP"
+      ],
+      note: "Note for small leagues: If your league has fewer than 20 seasons, the generator uses a simplified mode — single-season achievements won't be used in generation."
+    },
+    careerAchievements: {
+      title: "Non-season (career/draft) achievements",
+      items: [
+        "#1 Overall Pick • First Round Pick • Went Undrafted",
+        "Hall of Fame • Played 15+ Seasons • Played 10+ Seasons",
+        "150+ Career Pass TDs • 8,000+ Career Rush Yards • 40+ Career Rush TDs",
+        "6,000+ Career Rec Yards • 40+ Career Rec TDs",
+        "60+ Career Sacks • 20+ Career Interceptions"
+      ]
+    },
+    scoring: {
+      title: "Scoring",
+      rules: [
+        "Each correct guess = its rarity score (10–100 points).",
+        "Base rarity: we rank all eligible players for that cell from rarest → most common using a popularity model (awards & career volume). Rarest ≈ 100, most common ≈ 10, others scale in between.",
+        "Small-pool bonus: harder cells with few eligible players get extra points (more bonus for smaller pools).",
+        "Cell-aware tweaks: when available, the model also considers team fit and category fit to reward creative picks."
+      ]
+    }
   },
   baseball: {
     title: "Baseball ZenGM Grids — Quick Rules",
@@ -242,8 +252,8 @@ export function RulesModal({ sport }: RulesModalProps) {
             </div>
           ) : sportRules ? (
             <div className="space-y-6">
-              {/* Basketball BBGM Format */}
-              {sport === 'basketball' && (sportRules as any).eligibility ? (
+              {/* Basketball BBGM Format & Football FBGM Format */}
+              {(sport === 'basketball' || sport === 'football') && (sportRules as any).eligibility ? (
                 <>
                   {/* How eligibility works */}
                   <div>
@@ -283,7 +293,9 @@ export function RulesModal({ sport }: RulesModalProps) {
                         </li>
                       ))}
                     </ul>
-                    <p className="mt-3 text-sm text-muted-foreground italic">{(sportRules as any).careerAchievements.basketballNote}</p>
+                    {sport === 'basketball' && (sportRules as any).careerAchievements.basketballNote && (
+                      <p className="mt-3 text-sm text-muted-foreground italic">{(sportRules as any).careerAchievements.basketballNote}</p>
+                    )}
                   </div>
 
                   {/* Scoring */}
