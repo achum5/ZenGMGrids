@@ -62,7 +62,7 @@ const sportSpecificRules = {
       basketballNote: "Basketball-specific draft note: Second Round Pick"
     },
     scoring: {
-      title: "Scoring (all sports)",
+      title: "Scoring",
       rules: [
         "Each correct guess = its rarity score (10–100 points).",
         "Base rarity: we rank all eligible players for that cell from rarest → most common using a popularity model (awards & career volume). Rarest ≈ 100, most common ≈ 10, others scale in between.",
