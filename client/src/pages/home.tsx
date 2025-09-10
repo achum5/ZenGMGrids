@@ -425,6 +425,13 @@ export default function Home() {
     const rowConstraint = rows.find(r => r.key === rowKey);
     const colConstraint = cols.find(c => c.key === colKey);
     
+    console.log('🚨 COMPREHENSIVE VALIDATION DEBUG:');
+    console.log(`  Player: ${player.name} (pid: ${player.pid})`);
+    console.log(`  Cell: ${currentCellKey}`);
+    console.log(`  Row constraint:`, rowConstraint);
+    console.log(`  Col constraint:`, colConstraint);
+    console.log(`  Canonical index available:`, !!canonicalIndex);
+    
     let isCorrect = false;
     let eligiblePids: number[] = [];
     
@@ -439,7 +446,20 @@ export default function Home() {
         const team = leagueData?.teams.find(t => t.tid === teamId);
         const franchiseId = (team as any)?.franchiseId || teamId;
         
-        console.log(`🔍 USER GUESS: ${player.name} for team ${franchiseId} × achievement ${rawAchId} (canonical: ${canonicalAchId})`);
+        console.log(`  🔍 RAW ACHIEVEMENT ID: ${rawAchId}`);
+        console.log(`  🔍 CANONICAL ACHIEVEMENT ID: ${canonicalAchId}`);
+        console.log(`  🔍 FRANCHISE ID: ${franchiseId}`);
+        
+        // Debug canonical index structure
+        console.log(`  🔍 CANONICAL INDEX STRUCTURE:`);
+        console.log(`    Career achievements:`, Object.keys(canonicalIndex.careerAch || {}));
+        console.log(`    Team achievements:`, Object.keys(canonicalIndex.awardByTeamAnySeason || {}));
+        
+        // Check if canonical achievement exists
+        const careerAch = canonicalIndex.careerAch?.[canonicalAchId];
+        const teamAch = canonicalIndex.awardByTeamAnySeason?.[canonicalAchId]?.[franchiseId];
+        console.log(`    ${canonicalAchId} in career:`, careerAch ? `${careerAch.size} players` : 'NOT FOUND');
+        console.log(`    ${canonicalAchId} for team ${franchiseId}:`, teamAch ? `${teamAch.size} players` : 'NOT FOUND');
         
         // Log diagnostics for Celtics × All-League cases
         if (franchiseId === 1 && canonicalAchId === 'AllLeagueAny') {
@@ -450,7 +470,7 @@ export default function Home() {
         const eligiblePidSet = getCanonicalEligiblePlayers(canonicalIndex, canonicalAchId, franchiseId);
         eligiblePids = Array.from(eligiblePidSet);
         
-        console.log(`🔍 VALIDATION RESULT: ${isCorrect ? '✅ CORRECT' : '❌ INCORRECT'} (${eligiblePids.length} eligible players)`);  
+        console.log(`  🔍 VALIDATION RESULT: ${isCorrect ? '✅ CORRECT' : '❌ INCORRECT'} (${eligiblePids.length} eligible players)`);  
       } else if (colConstraint.type === 'team' && rowConstraint.type === 'achievement' && rowConstraint.achievementId) {
         const teamId = colConstraint.tid!;
         const rawAchId = rowConstraint.achievementId;
@@ -460,13 +480,26 @@ export default function Home() {
         const team = leagueData?.teams.find(t => t.tid === teamId);
         const franchiseId = (team as any)?.franchiseId || teamId;
         
-        console.log(`🔍 USER GUESS: ${player.name} for achievement ${rawAchId} (canonical: ${canonicalAchId}) × team ${franchiseId}`);
+        console.log(`  🔍 RAW ACHIEVEMENT ID: ${rawAchId}`);
+        console.log(`  🔍 CANONICAL ACHIEVEMENT ID: ${canonicalAchId}`);
+        console.log(`  🔍 FRANCHISE ID: ${franchiseId}`);
+        
+        // Debug canonical index structure
+        console.log(`  🔍 CANONICAL INDEX STRUCTURE:`);
+        console.log(`    Career achievements:`, Object.keys(canonicalIndex.careerAch || {}));
+        console.log(`    Team achievements:`, Object.keys(canonicalIndex.awardByTeamAnySeason || {}));
+        
+        // Check if canonical achievement exists
+        const careerAch = canonicalIndex.careerAch?.[canonicalAchId];
+        const teamAch = canonicalIndex.awardByTeamAnySeason?.[canonicalAchId]?.[franchiseId];
+        console.log(`    ${canonicalAchId} in career:`, careerAch ? `${careerAch.size} players` : 'NOT FOUND');
+        console.log(`    ${canonicalAchId} for team ${franchiseId}:`, teamAch ? `${teamAch.size} players` : 'NOT FOUND');
         
         isCorrect = validateGuessCanonical(canonicalIndex, player.pid, canonicalAchId, franchiseId);
         const eligiblePidSet = getCanonicalEligiblePlayers(canonicalIndex, canonicalAchId, franchiseId);
         eligiblePids = Array.from(eligiblePidSet);
         
-        console.log(`🔍 VALIDATION RESULT: ${isCorrect ? '✅ CORRECT' : '❌ INCORRECT'} (${eligiblePids.length} eligible players)`);
+        console.log(`  🔍 VALIDATION RESULT: ${isCorrect ? '✅ CORRECT' : '❌ INCORRECT'} (${eligiblePids.length} eligible players)`);
       } else {
         // Fall back to original validation for non-canonical cases (Team × Team, etc.)
         const originalEligiblePids = intersections[currentCellKey] || [];
