@@ -119,44 +119,48 @@ const sportSpecificRules = {
     }
   },
   baseball: {
-    title: "Baseball ZenGM Grids — Quick Rules",
-    howCellsWork: [
-      "Match both labels.",
-      "Team × Team: appeared (GP > 0) for both teams (any seasons).",
-      "Team × Career: has ever played for the team + meets the career/long-term/birthplace requirement.",
-      "Team × Award: must do it with that team in that season."
-    ],
-    achievements: {
-      career: [
-        "3,000+ Hits • 500+ HR • 1,500+ RBI • 400+ SB • 1,800+ Runs",
-        "300+ Wins (P) • 3,000+ SO (P) • 300+ Saves (P)",
-        "Played 10+ Seasons • Played 15+ Seasons • Hall of Fame",
-        "Born outside 50 states + DC"
-      ],
-      awards: [
-        "Most Valuable Player",
-        "Pitcher of the Year • Relief Pitcher of the Year",
-        "Rookie of the Year",
-        "All-Star",
-        "Finals MVP (championship series)",
-        "Champion (GP > 0 in RS or playoffs with the title team)"
-      ],
-      draft: [
-        "#1 Overall • First Round • Went Undrafted • Drafted as Teenager (age ≤ 19 at draft)"
+    title: "ZGMB Grids",
+    eligibility: {
+      title: "How eligibility works",
+      rules: [
+        "Season-aligned achievements only need to match a team for Team × Achievement squares (same season, same team).",
+        "Playoffs MVP & Champion: must be with the team from that playoff run.",
+        "Achievement × Achievement squares do not require the same season.",
+        "Non-season (career/draft) achievements: player must have ever played for the team (any season) and meet the career/draft condition."
       ]
     },
-    scoring: [
-      "1. Team fit: How much the player truly belongs to the team(s) in the square—played real minutes/games and had impact, not just a cameo.",
-      "2. Category fit: How strongly the player matches the stat/award—e.g., cleared the threshold (20k points) or actually won MVP that year.",
-      "3. Fame: How well-known the player is overall—Hall of Fame status, MVPs, All-Star selections, and big career volume.",
-      "Common picks → lower score.",
-      "Rare picks → higher score.",
-      "Very small answer pools can add a small bonus—but only if your pick wasn't the obvious one."
-    ],
-    notes: [
-      "\"(P)\" items apply to pitchers in that season.",
-      "No duplicate players across the grid."
-    ]
+    seasonAchievements: {
+      title: "Season-aligned achievements",
+      items: [
+        "All-Star",
+        "MVP",
+        "Rookie of the Year",
+        "Champion",
+        "All-Rookie Team",
+        "All-League Team",
+        "Playoffs MVP"
+      ],
+      note: "Note for small leagues: If your league has fewer than 20 seasons, the generator uses a simplified mode — single-season achievements won't be used in generation."
+    },
+    careerAchievements: {
+      title: "Non-season (career/draft) achievements",
+      items: [
+        "#1 Overall Pick • First Round Pick • Went Undrafted",
+        "Hall of Fame • Played 15+ Seasons • Played 10+ Seasons",
+        "3,000+ Career Hits • 500+ Career Home Runs • 1,500+ Career RBIs",
+        "400+ Career Stolen Bases • 1,800+ Career Runs",
+        "300+ Career Wins (Pitcher) • 3,000+ Career Strikeouts • 300+ Career Saves"
+      ]
+    },
+    scoring: {
+      title: "Scoring",
+      rules: [
+        "Each correct guess = its rarity score (10–100 points).",
+        "Base rarity: we rank all eligible players for that cell from rarest → most common using a popularity model (awards & career volume). Rarest ≈ 100, most common ≈ 10, others scale in between.",
+        "Small-pool bonus: harder cells with few eligible players get extra points (more bonus for smaller pools).",
+        "Cell-aware tweaks: when available, the model also considers team fit and category fit to reward creative picks."
+      ]
+    }
   },
   hockey: {
     title: "ZGMH Grids",
@@ -258,8 +262,8 @@ export function RulesModal({ sport }: RulesModalProps) {
             </div>
           ) : sportRules ? (
             <div className="space-y-6">
-              {/* Basketball BBGM Format & Football FBGM Format & Hockey ZGMH Format */}
-              {(sport === 'basketball' || sport === 'football' || sport === 'hockey') && (sportRules as any).eligibility ? (
+              {/* Basketball BBGM Format & Football FBGM Format & Hockey ZGMH Format & Baseball ZGMB Format */}
+              {(sport === 'basketball' || sport === 'football' || sport === 'hockey' || sport === 'baseball') && (sportRules as any).eligibility ? (
                 <>
                   {/* How eligibility works */}
                   <div>
