@@ -28,14 +28,9 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, string> = {
   FBOffROY: 'Offensive Rookie of the Year',
   FBDefROY: 'Defensive Rookie of the Year',
   FBAllRookie: 'All-Rookie Team',
-  FBAllLeague1st: 'First Team All-League',
-  FBAllLeague2nd: 'Second Team All-League',
+  FBAllLeague: 'All-League Team',
   FBFinalsMVP: 'Finals MVP',
   FBChampion: 'Won Championship',
-  FBPassLeader: 'League Passing Leader',
-  FBRecLeader: 'League Receiving Leader',
-  FBRushLeader: 'League Rushing Leader',
-  FBScrimmageLeader: 'League Scrimmage Yards Leader',
   
   // Hockey GM achievements
   HKAllStar: 'All-Star',
@@ -130,14 +125,9 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
     FBOffROY: ['Offensive Rookie of the Year'],
     FBDefROY: ['Defensive Rookie of the Year'],
     FBAllRookie: ['All-Rookie Team'],
-    FBAllLeague1st: ['First Team All-League'],
-    FBAllLeague2nd: ['Second Team All-League'],
+    FBAllLeague: ['First Team All-League', 'Second Team All-League'],
     FBFinalsMVP: ['Finals MVP'],
     FBChampion: ['Won Championship'],
-    FBPassLeader: ['League Passing Leader'],
-    FBRecLeader: ['League Receiving Leader'],
-    FBRushLeader: ['League Rushing Leader'],
-    FBScrimmageLeader: ['League Scrimmage Yards Leader'],
     
     // Hockey GM achievements
     HKAllStar: ['All-Star', 'all-star'],
@@ -438,29 +428,20 @@ export function generateReasonBullets(
   const colIsSeasonAch = colConstraint.type === 'achievement' && isSeasonAchievement(colConstraint.achievementId!);
   
   if (rowIsSeasonAch && colIsSeasonAch) {
-    // Option: Show combined overlap bullet for season×season cells
+    // Career-ever logic: Show that player achieved both awards during career (no season alignment required)
     const achLabelA = SEASON_ACHIEVEMENT_LABELS[rowConstraint.achievementId! as SeasonAchievementId];
     const achLabelB = SEASON_ACHIEVEMENT_LABELS[colConstraint.achievementId! as SeasonAchievementId];
     
-    // Extract actual overlap seasons from player data
+    // Get all seasons for each achievement
     const seasonsA = getSeasonAchievementSeasons(player, rowConstraint.achievementId! as SeasonAchievementId, teams);
     const seasonsB = getSeasonAchievementSeasons(player, colConstraint.achievementId! as SeasonAchievementId, teams);
     
-    // Find overlapping seasons (for same-season requirements)
-    const overlapSeasons = seasonsA.filter(seasonA => {
-      const yearA = parseInt(seasonA.split(' ')[0]); // Extract year part
-      return seasonsB.some(seasonB => {
-        const yearB = parseInt(seasonB.split(' ')[0]);
-        return yearA === yearB;
-      });
-    });
-    
-    // Use just the years for the overlap display
-    const yearOverlaps = Array.from(new Set(overlapSeasons.map(s => s.split(' ')[0]))).sort();
-    const overlapStr = formatBulletSeasonList(yearOverlaps, false);
+    // Show career-ever achievements with their respective seasons 
+    const seasonsAStr = formatBulletSeasonList(seasonsA, rowConstraint.achievementId === 'FinalsMVP');
+    const seasonsBStr = formatBulletSeasonList(seasonsB, colConstraint.achievementId === 'FinalsMVP');
     
     bullets.push({
-      text: `${achLabelA} + ${achLabelB} (${overlapStr})`,
+      text: `${achLabelA} (${seasonsAStr}) + ${achLabelB} (${seasonsBStr})`,
       type: 'award'
     });
     
