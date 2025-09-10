@@ -5,7 +5,6 @@ import { PlayerSearchModal } from '@/components/player-search-modal';
 import { PlayerModal } from '@/components/PlayerModal';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { RulesModal } from '@/components/RulesModal';
-import { V2Toggle } from '@/components/V2Toggle';
 import { GridSharingModal } from '@/components/grid-sharing-modal';
 import { CustomGridModal } from '@/components/custom-grid-modal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -21,8 +20,6 @@ import { parseLeagueFile, parseLeagueUrl, buildSearchIndex } from '@/lib/bbgm-pa
 import { generateTeamsGrid, cellKey } from '@/lib/grid-generator';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
 import { useToast } from '@/hooks/use-toast';
-import { buildCanonicalAchievementIndex, getCanonicalEligiblePlayers, validateGuessCanonical, logCanonicalDiagnostics, CANONICAL_ACHIEVEMENT_IDS, type CanonicalAchievementIndex } from '@/lib/canonical-achievement-index';
-import { getCanonicalId } from '@/lib/canonical-achievements';
 import type { LeagueData, CatTeam, CellState, Player, SearchablePlayer } from '@/types/bbgm';
 
 // Helper functions for attempt tracking
@@ -71,7 +68,6 @@ export default function Home() {
   
   // Core state
   const [leagueData, setLeagueData] = useState<LeagueData | null>(null);
-  const [canonicalIndex, setCanonicalIndex] = useState<CanonicalAchievementIndex | null>(null);
   const [rows, setRows] = useState<CatTeam[]>([]);
   const [cols, setCols] = useState<CatTeam[]>([]);
   const [cells, setCells] = useState<Record<string, CellState>>({});
@@ -220,9 +216,6 @@ export default function Home() {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     
-    // Build canonical achievement index - SINGLE SOURCE OF TRUTH
-    const canonicalIdx = buildCanonicalAchievementIndex(data.players, data.teams);
-    setCanonicalIndex(canonicalIdx);
     
     // Build search indices
     const indices = buildSearchIndex(data.players, data.teams);
@@ -250,18 +243,15 @@ export default function Home() {
   }, [toast]);
 
   const handleGenerateNewGrid = useCallback(() => {
-    if (!leagueData || !canonicalIndex) {
-      console.warn('Cannot generate grid: missing leagueData or canonicalIndex');
+    if (!leagueData) {
+      console.warn('Cannot generate grid: missing leagueData');
       return;
     }
     
     setIsGenerating(true);
     
     try {
-      const gridResult = generateTeamsGrid({
-        ...leagueData,
-        canonicalIndex: canonicalIndex || undefined
-      });
+      const gridResult = generateTeamsGrid(leagueData);
       setRows(gridResult.rows);
       setCols(gridResult.cols);
       setIntersections(gridResult.intersections);
@@ -289,7 +279,7 @@ export default function Home() {
     } finally {
       setIsGenerating(false);
     }
-  }, [leagueData, canonicalIndex, toast]);
+  }, [leagueData, toast]);
 
   // Handle importing a shared grid
   const handleImportGrid = useCallback((importedRows: CatTeam[], importedCols: CatTeam[]) => {
@@ -349,37 +339,8 @@ export default function Home() {
     if (cellState?.locked && cellState?.player) {
       setModalPlayer(cellState.player);
       
-      // Get eligible players for this cell using canonical index - SINGLE SOURCE OF TRUTH
-      const [modalRowKey, modalColKey] = key.split('|');
-      const modalRowConstraint = rows.find(r => r.key === modalRowKey);
-      const modalColConstraint = cols.find(c => c.key === modalColKey);
-      
-      let modalEligiblePids: number[] = [];
-      
-      if (canonicalIndex && modalRowConstraint && modalColConstraint) {
-        // Use canonical index for Team × Achievement combinations
-        if (modalRowConstraint.type === 'team' && modalColConstraint.type === 'achievement' && modalColConstraint.achievementId) {
-          const teamId = modalRowConstraint.tid!;
-          const achId = modalColConstraint.achievementId;
-          const team = leagueData?.teams.find(t => t.tid === teamId);
-          const franchiseId = (team as any)?.franchiseId || teamId;
-          const eligiblePidSet = getCanonicalEligiblePlayers(canonicalIndex, achId, franchiseId);
-          modalEligiblePids = Array.from(eligiblePidSet);
-        } else if (modalColConstraint.type === 'team' && modalRowConstraint.type === 'achievement' && modalRowConstraint.achievementId) {
-          const teamId = modalColConstraint.tid!;
-          const achId = modalRowConstraint.achievementId;
-          const team = leagueData?.teams.find(t => t.tid === teamId);
-          const franchiseId = (team as any)?.franchiseId || teamId;
-          const eligiblePidSet = getCanonicalEligiblePlayers(canonicalIndex, achId, franchiseId);
-          modalEligiblePids = Array.from(eligiblePidSet);
-        } else {
-          // Fall back to intersections for non-canonical cases
-          modalEligiblePids = intersections[key] || [];
-        }
-      } else {
-        // Fallback to intersections if canonical index not available
-        modalEligiblePids = intersections[key] || [];
-      }
+      // Get eligible players for this cell from intersections
+      const modalEligiblePids = intersections[key] || [];
       
       const eligiblePlayers = leagueData?.players.filter(p => modalEligiblePids.includes(p.pid)) || [];
       setModalEligiblePlayers(eligiblePlayers);
@@ -403,7 +364,7 @@ export default function Home() {
     // Open search modal for empty cells
     setCurrentCellKey(key);
     setSearchModalOpen(true);
-  }, [cells, rows, cols, intersections, leagueData, canonicalIndex]);
+  }, [cells, rows, cols, intersections, leagueData]);
 
   const handleSelectPlayer = useCallback((player: Player) => {
     if (!currentCellKey) return;
@@ -425,92 +386,16 @@ export default function Home() {
     const rowConstraint = rows.find(r => r.key === rowKey);
     const colConstraint = cols.find(c => c.key === colKey);
     
-    console.log('🚨 COMPREHENSIVE VALIDATION DEBUG:');
-    console.log(`  Player: ${player.name} (pid: ${player.pid})`);
-    console.log(`  Cell: ${currentCellKey}`);
-    console.log(`  Row constraint:`, rowConstraint);
-    console.log(`  Col constraint:`, colConstraint);
-    console.log(`  Canonical index available:`, !!canonicalIndex);
+    // Use original validation system
+    const eligiblePids = intersections[currentCellKey] || [];
+    const isCorrect = eligiblePids.includes(player.pid);
     
-    let isCorrect = false;
-    let eligiblePids: number[] = [];
+    console.log(`🚨 VALIDATION DEBUG: ${player.name} for ${currentCellKey}`);
+    console.log(`  Eligible players: ${eligiblePids.length}`);
+    console.log(`  Player ${player.pid} eligible: ${isCorrect}`);
     
-    if (canonicalIndex && rowConstraint && colConstraint) {
-      // Use canonical validation for Team × Achievement combinations
-      if (rowConstraint.type === 'team' && colConstraint.type === 'achievement' && colConstraint.achievementId) {
-        const teamId = rowConstraint.tid!;
-        const rawAchId = colConstraint.achievementId;
-        // Convert to canonical ID for index lookup
-        const canonicalAchId = getCanonicalId(rawAchId) || rawAchId;
-        // Get franchise ID for team continuity
-        const team = leagueData?.teams.find(t => t.tid === teamId);
-        const franchiseId = (team as any)?.franchiseId || teamId;
-        
-        console.log(`  🔍 RAW ACHIEVEMENT ID: ${rawAchId}`);
-        console.log(`  🔍 CANONICAL ACHIEVEMENT ID: ${canonicalAchId}`);
-        console.log(`  🔍 FRANCHISE ID: ${franchiseId}`);
-        
-        // Debug canonical index structure
-        console.log(`  🔍 CANONICAL INDEX STRUCTURE:`);
-        console.log(`    Career achievements:`, Object.keys(canonicalIndex.careerAch || {}));
-        console.log(`    Team achievements:`, Object.keys(canonicalIndex.awardByTeamAnySeason || {}));
-        
-        // Check if canonical achievement exists
-        const careerAch = canonicalIndex.careerAch?.[canonicalAchId];
-        const teamAch = canonicalIndex.awardByTeamAnySeason?.[canonicalAchId]?.[franchiseId];
-        console.log(`    ${canonicalAchId} in career:`, careerAch ? `${careerAch.size} players` : 'NOT FOUND');
-        console.log(`    ${canonicalAchId} for team ${franchiseId}:`, teamAch ? `${teamAch.size} players` : 'NOT FOUND');
-        
-        // Log diagnostics for Celtics × All-League cases
-        if (franchiseId === 1 && canonicalAchId === 'AllLeagueAny') {
-          logCanonicalDiagnostics(canonicalIndex, canonicalAchId, franchiseId, leagueData?.players || [], 'Celtics');
-        }
-        
-        isCorrect = validateGuessCanonical(canonicalIndex, player.pid, canonicalAchId, franchiseId);
-        const eligiblePidSet = getCanonicalEligiblePlayers(canonicalIndex, canonicalAchId, franchiseId);
-        eligiblePids = Array.from(eligiblePidSet);
-        
-        console.log(`  🔍 VALIDATION RESULT: ${isCorrect ? '✅ CORRECT' : '❌ INCORRECT'} (${eligiblePids.length} eligible players)`);  
-      } else if (colConstraint.type === 'team' && rowConstraint.type === 'achievement' && rowConstraint.achievementId) {
-        const teamId = colConstraint.tid!;
-        const rawAchId = rowConstraint.achievementId;
-        // Convert to canonical ID for index lookup
-        const canonicalAchId = getCanonicalId(rawAchId) || rawAchId;
-        // Get franchise ID for team continuity
-        const team = leagueData?.teams.find(t => t.tid === teamId);
-        const franchiseId = (team as any)?.franchiseId || teamId;
-        
-        console.log(`  🔍 RAW ACHIEVEMENT ID: ${rawAchId}`);
-        console.log(`  🔍 CANONICAL ACHIEVEMENT ID: ${canonicalAchId}`);
-        console.log(`  🔍 FRANCHISE ID: ${franchiseId}`);
-        
-        // Debug canonical index structure
-        console.log(`  🔍 CANONICAL INDEX STRUCTURE:`);
-        console.log(`    Career achievements:`, Object.keys(canonicalIndex.careerAch || {}));
-        console.log(`    Team achievements:`, Object.keys(canonicalIndex.awardByTeamAnySeason || {}));
-        
-        // Check if canonical achievement exists
-        const careerAch = canonicalIndex.careerAch?.[canonicalAchId];
-        const teamAch = canonicalIndex.awardByTeamAnySeason?.[canonicalAchId]?.[franchiseId];
-        console.log(`    ${canonicalAchId} in career:`, careerAch ? `${careerAch.size} players` : 'NOT FOUND');
-        console.log(`    ${canonicalAchId} for team ${franchiseId}:`, teamAch ? `${teamAch.size} players` : 'NOT FOUND');
-        
-        isCorrect = validateGuessCanonical(canonicalIndex, player.pid, canonicalAchId, franchiseId);
-        const eligiblePidSet = getCanonicalEligiblePlayers(canonicalIndex, canonicalAchId, franchiseId);
-        eligiblePids = Array.from(eligiblePidSet);
-        
-        console.log(`  🔍 VALIDATION RESULT: ${isCorrect ? '✅ CORRECT' : '❌ INCORRECT'} (${eligiblePids.length} eligible players)`);
-      } else {
-        // Fall back to original validation for non-canonical cases (Team × Team, etc.)
-        const originalEligiblePids = intersections[currentCellKey] || [];
-        isCorrect = originalEligiblePids.includes(player.pid);
-        eligiblePids = originalEligiblePids;
-      }
-    } else {
-      // Fallback to original validation if canonical index not available
-      const originalEligiblePids = intersections[currentCellKey] || [];
-      isCorrect = originalEligiblePids.includes(player.pid);
-      eligiblePids = originalEligiblePids;
+    if (!isCorrect && eligiblePids.length > 0) {
+      console.log(`  First few eligible PIDs:`, eligiblePids.slice(0, 5));
     }
     
     
@@ -569,7 +454,7 @@ export default function Home() {
     
     setCurrentCellKey(null);
     setSearchModalOpen(false);
-  }, [currentCellKey, intersections, usedPids, toast, canonicalIndex, rows, cols, leagueData]);
+  }, [currentCellKey, intersections, usedPids, toast, rows, cols, leagueData]);
 
   const getCurrentCellDescription = () => {
     if (!currentCellKey || !rows || !cols) return '';
@@ -834,7 +719,6 @@ export default function Home() {
               </h1>
             </div>
             <div className="flex items-center space-x-1">
-              <V2Toggle />
               <ThemeToggle />
               <RulesModal sport={leagueData?.sport} />
               {hasGuesses ? (

@@ -8,7 +8,6 @@ import {
   isCareerAchievement,
   formatAchievementDetails 
 } from '@/lib/achievement-helpers';
-import { getCanonicalId } from '@/lib/canonical-achievements';
 
 // Season achievement labels for bullet display
 const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, string> = {
@@ -529,7 +528,7 @@ function buildSeasonAchievementBullet(player: Player, achievementId: SeasonAchie
 // Build a career/misc achievement bullet: Award Label (value)
 function buildCareerAchievementBullet(player: Player, achievementId: string, teams: Team[], sport: string): ReasonBullet | null {
   // Convert to canonical ID
-  const canonicalId = getCanonicalId(achievementId) || achievementId;
+  const canonicalId = achievementId;
   
   // If this is a career achievement, use robust formatting
   if (isCareerAchievement(canonicalId)) {

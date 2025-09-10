@@ -2,9 +2,6 @@ import type { Player, Team } from '@/types/bbgm';
 import { SEASON_ALIGNED_ACHIEVEMENTS } from '@/lib/achievements';
 import { playerMeetsAchievement } from '@/lib/achievements';
 import { SEASON_ACHIEVEMENTS, type SeasonAchievementId, type SeasonIndex, getSeasonEligiblePlayers, type CareerEverIndex, getCareerEverIntersection } from './season-achievements';
-import { getCanonicalId, getDisplayLabel, isSeasonAligned } from '@/lib/canonical-achievements';
-import type { CanonicalAchievementIndex } from './canonical-achievement-index';
-import { validateGuessCanonical, getCanonicalEligiblePlayers } from './canonical-achievement-index';
 import { isCareerAchievement } from './achievement-helpers';
 
 // Season achievement metadata for modal copy

@@ -3,7 +3,6 @@
 import type { Player, Team } from '@/types/bbgm';
 import { playerMeetsAchievement, getAchievements, SEASON_ALIGNED_ACHIEVEMENTS } from '@/lib/achievements';
 import { SEASON_ACHIEVEMENTS, type SeasonAchievementId, type SeasonIndex, type CareerEverIndex, getSeasonEligiblePlayers, getCareerEverIntersection } from './season-achievements';
-import type { CanonicalAchievementIndex } from './canonical-achievement-index';
 import { evaluateConstraintPair } from './feedback';
 
 // Type definitions for grid constraints
@@ -22,14 +21,8 @@ interface GridGenerationResult {
   intersections: Record<string, number[]>;
 }
 
-interface LeagueData {
-  players: Player[];
-  teams: Team[];
-  sport: 'basketball' | 'football' | 'hockey' | 'baseball';
-  seasonIndex?: SeasonIndex;
-  careerEverIndex?: CareerEverIndex;
-  canonicalIndex?: CanonicalAchievementIndex;
-}
+// Import LeagueData from types instead of redefining
+import type { LeagueData } from '@/types/bbgm';
 
 interface TeamPair {
   tid1: number;
