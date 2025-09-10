@@ -434,7 +434,8 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
         // Special categories achievements
         allStar35Plus: false,
         oneTeamOnly: false,
-        isHallOfFamer: false
+        isHallOfFamer: false,
+        draftedTeen: false
       };
     }
   });
