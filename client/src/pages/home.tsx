@@ -22,6 +22,7 @@ import { generateTeamsGrid, cellKey } from '@/lib/grid-generator';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
 import { useToast } from '@/hooks/use-toast';
 import { buildCanonicalAchievementIndex, getCanonicalEligiblePlayers, validateGuessCanonical, logCanonicalDiagnostics, CANONICAL_ACHIEVEMENT_IDS, type CanonicalAchievementIndex } from '@/lib/canonical-achievement-index';
+import { getCanonicalId } from '@/lib/canonical-achievements';
 import type { LeagueData, CatTeam, CellState, Player, SearchablePlayer } from '@/types/bbgm';
 
 // Helper functions for attempt tracking
@@ -431,29 +432,41 @@ export default function Home() {
       // Use canonical validation for Team × Achievement combinations
       if (rowConstraint.type === 'team' && colConstraint.type === 'achievement' && colConstraint.achievementId) {
         const teamId = rowConstraint.tid!;
-        const achId = colConstraint.achievementId;
+        const rawAchId = colConstraint.achievementId;
+        // Convert to canonical ID for index lookup
+        const canonicalAchId = getCanonicalId(rawAchId) || rawAchId;
         // Get franchise ID for team continuity
         const team = leagueData?.teams.find(t => t.tid === teamId);
         const franchiseId = (team as any)?.franchiseId || teamId;
+        
+        console.log(`🔍 USER GUESS: ${player.name} for team ${franchiseId} × achievement ${rawAchId} (canonical: ${canonicalAchId})`);
         
         // Log diagnostics for Celtics × All-League cases
-        if (franchiseId === 1 && achId === 'AllLeagueAny') {
-          logCanonicalDiagnostics(canonicalIndex, achId, franchiseId, leagueData?.players || [], 'Celtics');
+        if (franchiseId === 1 && canonicalAchId === 'AllLeagueAny') {
+          logCanonicalDiagnostics(canonicalIndex, canonicalAchId, franchiseId, leagueData?.players || [], 'Celtics');
         }
         
-        isCorrect = validateGuessCanonical(canonicalIndex, player.pid, achId, franchiseId);
-        const eligiblePidSet = getCanonicalEligiblePlayers(canonicalIndex, achId, franchiseId);
+        isCorrect = validateGuessCanonical(canonicalIndex, player.pid, canonicalAchId, franchiseId);
+        const eligiblePidSet = getCanonicalEligiblePlayers(canonicalIndex, canonicalAchId, franchiseId);
         eligiblePids = Array.from(eligiblePidSet);
+        
+        console.log(`🔍 VALIDATION RESULT: ${isCorrect ? '✅ CORRECT' : '❌ INCORRECT'} (${eligiblePids.length} eligible players)`);  
       } else if (colConstraint.type === 'team' && rowConstraint.type === 'achievement' && rowConstraint.achievementId) {
         const teamId = colConstraint.tid!;
-        const achId = rowConstraint.achievementId;
+        const rawAchId = rowConstraint.achievementId;
+        // Convert to canonical ID for index lookup
+        const canonicalAchId = getCanonicalId(rawAchId) || rawAchId;
         // Get franchise ID for team continuity
         const team = leagueData?.teams.find(t => t.tid === teamId);
         const franchiseId = (team as any)?.franchiseId || teamId;
         
-        isCorrect = validateGuessCanonical(canonicalIndex, player.pid, achId, franchiseId);
-        const eligiblePidSet = getCanonicalEligiblePlayers(canonicalIndex, achId, franchiseId);
+        console.log(`🔍 USER GUESS: ${player.name} for achievement ${rawAchId} (canonical: ${canonicalAchId}) × team ${franchiseId}`);
+        
+        isCorrect = validateGuessCanonical(canonicalIndex, player.pid, canonicalAchId, franchiseId);
+        const eligiblePidSet = getCanonicalEligiblePlayers(canonicalIndex, canonicalAchId, franchiseId);
         eligiblePids = Array.from(eligiblePidSet);
+        
+        console.log(`🔍 VALIDATION RESULT: ${isCorrect ? '✅ CORRECT' : '❌ INCORRECT'} (${eligiblePids.length} eligible players)`);
       } else {
         // Fall back to original validation for non-canonical cases (Team × Team, etc.)
         const originalEligiblePids = intersections[currentCellKey] || [];
