@@ -3,7 +3,6 @@
 import type { Player, Team } from '@/types/bbgm';
 import { playerMeetsAchievement, getAchievements, SEASON_ALIGNED_ACHIEVEMENTS } from '@/lib/achievements';
 import { SEASON_ACHIEVEMENTS, type SeasonAchievementId, type SeasonIndex, type CareerEverIndex, getSeasonEligiblePlayers, getCareerEverIntersection } from './season-achievements';
-import { isAchievementByAchievementCell, getAchievementId } from '@/lib/achievement-detection';
 import { evaluateConstraintPair } from './feedback';
 
 // Type definitions for grid constraints
@@ -787,8 +786,19 @@ function calculateIntersectionSimple(
   // Use the exact same logic as custom grids for proper Team × Achievement alignment
   let eligiblePlayers: Player[];
   
-  // Check if this is Achievement × Achievement (ANY achievement types)
-  if (isAchievementByAchievementCell(rowConstraint, colConstraint)) {
+  // Check if either constraint is a season achievement (use SEASON_ALIGNED_ACHIEVEMENTS for consistency)
+  const rowIsSeasonAchievement = rowConstraint.type === 'achievement' && SEASON_ALIGNED_ACHIEVEMENTS.has(rowConstraint.achievementId!);
+  const colIsSeasonAchievement = colConstraint.type === 'achievement' && SEASON_ALIGNED_ACHIEVEMENTS.has(colConstraint.achievementId!);
+  
+  if (rowIsSeasonAchievement && colConstraint.type === 'team' && seasonIndex) {
+    // Season achievement × team
+    const eligiblePids = getSeasonEligiblePlayers(seasonIndex, colConstraint.tid!, rowConstraint.achievementId as SeasonAchievementId);
+    eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
+  } else if (colIsSeasonAchievement && rowConstraint.type === 'team' && seasonIndex) {
+    // Team × season achievement  
+    const eligiblePids = getSeasonEligiblePlayers(seasonIndex, rowConstraint.tid!, colConstraint.achievementId as SeasonAchievementId);
+    eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
+  } else if (rowIsSeasonAchievement && colIsSeasonAchievement) {
     // Achievement × Achievement - Use career-ever logic (no season/team alignment)
     if (careerEverIndex) {
       // Use career-ever index for fast intersection
