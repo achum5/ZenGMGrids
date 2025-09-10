@@ -225,25 +225,101 @@ function validateCareerAchievement(player: Player, achievementName: string): Val
   if (achievementName.includes('Played 15+ Seasons')) {
     return validateSeasonsPlayed(player, 15);
   }
+  if (achievementName.includes('Played 1,000+ Games') || achievementName.includes('Played 1000+ Games')) {
+    return validateGamesPlayed(player, 1000);
+  }
+  if (achievementName.includes('Played 5+ Seasons')) {
+    return validateSeasonsPlayed(player, 5);
+  }
   
-  // Career stat thresholds
+  // Career stat thresholds - Basketball
+  if (achievementName.includes('30,000+ Career Points') || achievementName.includes('30000+ Career Points')) {
+    return validateCareerStatThreshold(player, 'pts', 30000, 'Career Points');
+  }
+  if (achievementName.includes('25,000+ Career Points') || achievementName.includes('25000+ Career Points')) {
+    return validateCareerStatThreshold(player, 'pts', 25000, 'Career Points');
+  }
   if (achievementName.includes('20,000+ Career Points') || achievementName.includes('20000+ Career Points')) {
     return validateCareerStatThreshold(player, 'pts', 20000, 'Career Points');
+  }
+  if (achievementName.includes('15,000+ Career Points') || achievementName.includes('15000+ Career Points')) {
+    return validateCareerStatThreshold(player, 'pts', 15000, 'Career Points');
+  }
+  if (achievementName.includes('10,000+ Career Points') || achievementName.includes('10000+ Career Points')) {
+    return validateCareerStatThreshold(player, 'pts', 10000, 'Career Points');
+  }
+  
+  if (achievementName.includes('15,000+ Career Rebounds') || achievementName.includes('15000+ Career Rebounds')) {
+    return validateCareerStatThreshold(player, 'trb', 15000, 'Career Rebounds');
+  }
+  if (achievementName.includes('12,000+ Career Rebounds') || achievementName.includes('12000+ Career Rebounds')) {
+    return validateCareerStatThreshold(player, 'trb', 12000, 'Career Rebounds');
   }
   if (achievementName.includes('10,000+ Career Rebounds') || achievementName.includes('10000+ Career Rebounds')) {
     return validateCareerStatThreshold(player, 'trb', 10000, 'Career Rebounds');
   }
+  if (achievementName.includes('8,000+ Career Rebounds') || achievementName.includes('8000+ Career Rebounds')) {
+    return validateCareerStatThreshold(player, 'trb', 8000, 'Career Rebounds');
+  }
+  
+  if (achievementName.includes('10,000+ Career Assists') || achievementName.includes('10000+ Career Assists')) {
+    return validateCareerStatThreshold(player, 'ast', 10000, 'Career Assists');
+  }
+  if (achievementName.includes('8,000+ Career Assists') || achievementName.includes('8000+ Career Assists')) {
+    return validateCareerStatThreshold(player, 'ast', 8000, 'Career Assists');
+  }
   if (achievementName.includes('5,000+ Career Assists') || achievementName.includes('5000+ Career Assists')) {
     return validateCareerStatThreshold(player, 'ast', 5000, 'Career Assists');
+  }
+  
+  if (achievementName.includes('3,000+ Career Steals') || achievementName.includes('3000+ Career Steals')) {
+    return validateCareerStatThreshold(player, 'stl', 3000, 'Career Steals');
+  }
+  if (achievementName.includes('2,500+ Career Steals') || achievementName.includes('2500+ Career Steals')) {
+    return validateCareerStatThreshold(player, 'stl', 2500, 'Career Steals');
   }
   if (achievementName.includes('2,000+ Career Steals') || achievementName.includes('2000+ Career Steals')) {
     return validateCareerStatThreshold(player, 'stl', 2000, 'Career Steals');
   }
+  
+  if (achievementName.includes('3,000+ Career Blocks') || achievementName.includes('3000+ Career Blocks')) {
+    return validateCareerStatThreshold(player, 'blk', 3000, 'Career Blocks');
+  }
+  if (achievementName.includes('2,000+ Career Blocks') || achievementName.includes('2000+ Career Blocks')) {
+    return validateCareerStatThreshold(player, 'blk', 2000, 'Career Blocks');
+  }
   if (achievementName.includes('1,500+ Career Blocks') || achievementName.includes('1500+ Career Blocks')) {
     return validateCareerStatThreshold(player, 'blk', 1500, 'Career Blocks');
   }
+  
+  if (achievementName.includes('3,000+ Made Threes') || achievementName.includes('3000+ Made Threes')) {
+    return validateCareerStatThreshold(player, 'fg3', 3000, 'Made Threes');
+  }
+  if (achievementName.includes('2,500+ Made Threes') || achievementName.includes('2500+ Made Threes')) {
+    return validateCareerStatThreshold(player, 'fg3', 2500, 'Made Threes');
+  }
   if (achievementName.includes('2,000+ Made Threes') || achievementName.includes('2000+ Made Threes')) {
     return validateCareerStatThreshold(player, 'fg3', 2000, 'Made Threes');
+  }
+  if (achievementName.includes('1,500+ Made Threes') || achievementName.includes('1500+ Made Threes')) {
+    return validateCareerStatThreshold(player, 'fg3', 1500, 'Made Threes');
+  }
+  if (achievementName.includes('1,000+ Made Threes') || achievementName.includes('1000+ Made Threes')) {
+    return validateCareerStatThreshold(player, 'fg3', 1000, 'Made Threes');
+  }
+  
+  // Shooting percentage achievements
+  if (achievementName.includes('50/40/90 Club')) {
+    return validate504090Club(player);
+  }
+  if (achievementName.includes('40% Career 3PT')) {
+    return validateCareerShootingPercentage(player, 'fg3p', 0.40, '40% Career 3PT');
+  }
+  if (achievementName.includes('50% Career FG')) {
+    return validateCareerShootingPercentage(player, 'fgp', 0.50, '50% Career FG');
+  }
+  if (achievementName.includes('90% Career FT')) {
+    return validateCareerShootingPercentage(player, 'ftp', 0.90, '90% Career FT');
   }
   
   return {
@@ -522,4 +598,103 @@ function getPlayerTeamInSeason(player: Player, season: number, franchiseMap: Map
 function getTeamName(teamId: number, teams: Team[]): string {
   const team = teams.find(t => t.tid === teamId);
   return team?.name || `Team ${teamId}`;
+}
+
+function validateGamesPlayed(player: Player, minGames: number): ValidationResult {
+  if (!player.stats) {
+    return {
+      isValid: false,
+      proofData: { failureReason: `Player did not play ${minGames}+ games (no stats available).` }
+    };
+  }
+  
+  let totalGames = 0;
+  for (const stat of player.stats) {
+    if (!stat.playoffs) {
+      totalGames += stat.gp || 0;
+    }
+  }
+  
+  const isValid = totalGames >= minGames;
+  
+  return {
+    isValid,
+    proofData: isValid
+      ? { achievements: [`Played ${totalGames} games`] }
+      : { failureReason: `Player did not play ${minGames}+ games (played ${totalGames}).` }
+  };
+}
+
+function validate504090Club(player: Player): ValidationResult {
+  if (!player.stats) {
+    return {
+      isValid: false,
+      proofData: { failureReason: 'Player did not join 50/40/90 club (no stats available).' }
+    };
+  }
+  
+  // Need at least one season with 50% FG, 40% 3PT, 90% FT
+  for (const stat of player.stats) {
+    if (stat.playoffs) continue;
+    
+    const fgp = (stat as any).fgp || 0;
+    const fg3p = (stat as any).fg3p || 0;
+    const ftp = (stat as any).ftp || 0;
+    
+    // Minimum shot attempts to qualify
+    const fga = (stat as any).fga || 0;
+    const fg3a = (stat as any).fg3a || 0;
+    const fta = (stat as any).fta || 0;
+    
+    if (fga >= 300 && fg3a >= 50 && fta >= 100) { // Minimum thresholds
+      if (fgp >= 0.50 && fg3p >= 0.40 && ftp >= 0.90) {
+        return {
+          isValid: true,
+          proofData: { 
+            achievements: [`50/40/90 Club (${stat.season}: ${(fgp*100).toFixed(1)}% FG, ${(fg3p*100).toFixed(1)}% 3PT, ${(ftp*100).toFixed(1)}% FT)`] 
+          }
+        };
+      }
+    }
+  }
+  
+  return {
+    isValid: false,
+    proofData: { failureReason: 'Player did not join 50/40/90 club (never shot 50% FG, 40% 3PT, 90% FT in qualifying season).' }
+  };
+}
+
+function validateCareerShootingPercentage(player: Player, statField: string, threshold: number, achievementName: string): ValidationResult {
+  if (!player.stats) {
+    return {
+      isValid: false,
+      proofData: { failureReason: `Player did not achieve ${achievementName} (no stats available).` }
+    };
+  }
+  
+  // Calculate career averages
+  let totalMade = 0;
+  let totalAttempts = 0;
+  
+  const attemptField = statField.replace('p', 'a'); // fgp -> fga, fg3p -> fg3a, ftp -> fta
+  
+  for (const stat of player.stats) {
+    if (stat.playoffs) continue;
+    
+    const made = (stat as any)[statField.replace('p', '')] || 0; // fgp -> fg, fg3p -> fg3, ftp -> ft
+    const attempts = (stat as any)[attemptField] || 0;
+    
+    totalMade += made;
+    totalAttempts += attempts;
+  }
+  
+  const percentage = totalAttempts > 0 ? totalMade / totalAttempts : 0;
+  const isValid = percentage >= threshold && totalAttempts >= 1000; // Minimum attempts to qualify
+  
+  return {
+    isValid,
+    proofData: isValid
+      ? { achievements: [`${achievementName} (${(percentage * 100).toFixed(1)}%)`] }
+      : { failureReason: `Player did not achieve ${achievementName} (career ${(percentage * 100).toFixed(1)}%).` }
+  };
 }

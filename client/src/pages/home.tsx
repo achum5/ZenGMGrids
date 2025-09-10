@@ -73,7 +73,7 @@ export default function Home() {
   const [cols, setCols] = useState<CatTeam[]>([]);
   const [cells, setCells] = useState<Record<string, CellState>>({});
   const [usedPids, setUsedPids] = useState<Set<number>>(new Set());
-  const [intersections, setIntersections] = useState<Record<string, number[]>>({});
+  // Note: Intersections removed - using single common-sense validator for all eligibility
   
   // Search indices
   const [byName, setByName] = useState<Record<string, number>>({});
@@ -246,7 +246,7 @@ export default function Home() {
     const gridResult = generateTeamsGrid(data);
     setRows(gridResult.rows);
     setCols(gridResult.cols);
-    setIntersections(gridResult.intersections);
+    // Skip intersections - using single validator instead
     setCells({});
     
     // Initialize grid tracking
@@ -272,7 +272,7 @@ export default function Home() {
       const gridResult = generateTeamsGrid(leagueData);
       setRows(gridResult.rows);
       setCols(gridResult.cols);
-      setIntersections(gridResult.intersections);
+      // Skip intersections - using single validator instead
       setCells({}); // Reset all answers
       setUsedPids(new Set()); // Reset used players
       setRankCache({}); // Reset cached rankings for the old grid
@@ -409,7 +409,7 @@ export default function Home() {
     // Open search modal for empty cells
     setCurrentCellKey(key);
     setSearchModalOpen(true);
-  }, [cells, rows, cols, intersections, leagueData]);
+  }, [cells, rows, cols, leagueData]);
 
   const handleSelectPlayer = useCallback((player: Player) => {
     if (!currentCellKey) return;
@@ -529,7 +529,7 @@ export default function Home() {
     
     setCurrentCellKey(null);
     setSearchModalOpen(false);
-  }, [currentCellKey, intersections, usedPids, toast, rows, cols, leagueData]);
+  }, [currentCellKey, usedPids, toast, rows, cols, leagueData]);
 
   const getCurrentCellDescription = () => {
     if (!currentCellKey || !rows || !cols) return '';
