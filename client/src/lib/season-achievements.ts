@@ -434,6 +434,47 @@ function getSeasonTeams(player: Player, season: number): Set<number> {
 }
 
 /**
+ * Resolve the primary team for a player in a specific season based on minutes played
+ * Used for awards that don't have a team ID attached
+ */
+function resolvePrimaryTeamForSeason(player: Player, season: number): number | null {
+  if (!player.stats) return null;
+  
+  // Get all regular season stats for this season
+  const seasonStats = player.stats.filter(stat => 
+    stat.season === season && !stat.playoffs
+  );
+  
+  if (seasonStats.length === 0) return null;
+  
+  // Find team with most minutes played
+  let maxMinutes = 0;
+  let primaryTeam: number | null = null;
+  
+  for (const stat of seasonStats) {
+    const minutes = stat.min || 0;
+    if (minutes > maxMinutes) {
+      maxMinutes = minutes;
+      primaryTeam = stat.tid;
+    }
+  }
+  
+  // Fallback to games played if no minutes data
+  if (primaryTeam === null) {
+    let maxGames = 0;
+    for (const stat of seasonStats) {
+      const games = stat.gp || 0;
+      if (games > maxGames) {
+        maxGames = games;
+        primaryTeam = stat.tid;
+      }
+    }
+  }
+  
+  return primaryTeam;
+}
+
+/**
  * Resolve Finals MVP team from playoffs stats
  * Used for both BBGM FinalsMVP and FBGM FBFinalsMVP
  */
@@ -557,24 +598,23 @@ export function buildSeasonIndex(
         continue;
       }
       
-      // Handle all other awards (multi-team rule)
-      const seasonTeams = getSeasonTeams(player, season);
+      // Handle all other awards - resolve to primary team based on minutes played
+      // This is the critical fix for awards like All-League Team, All-Star, MVP, etc.
+      const primaryTeam = resolvePrimaryTeamForSeason(player, season);
       
-      if (seasonTeams.size === 0) {
+      if (primaryTeam === null) {
         // No regular season stats for this award season, skip
         skippedEntries++;
         continue;
       }
       
-      // Add to all teams the player appeared for in this season
-      for (const tid of Array.from(seasonTeams)) {
-        if (!seasonIndex[season]) seasonIndex[season] = {};
-        if (!seasonIndex[season][tid]) seasonIndex[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
-        if (!seasonIndex[season][tid][achievementId]) seasonIndex[season][tid][achievementId] = new Set();
-        
-        seasonIndex[season][tid][achievementId].add(player.pid);
-        totalIndexed++;
-      }
+      // Add to the primary team (the team they played the most minutes for)
+      if (!seasonIndex[season]) seasonIndex[season] = {};
+      if (!seasonIndex[season][primaryTeam]) seasonIndex[season][primaryTeam] = {} as Record<SeasonAchievementId, Set<number>>;
+      if (!seasonIndex[season][primaryTeam][achievementId]) seasonIndex[season][primaryTeam][achievementId] = new Set();
+      
+      seasonIndex[season][primaryTeam][achievementId].add(player.pid);
+      totalIndexed++;
     }
   }
   
