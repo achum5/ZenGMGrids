@@ -1991,8 +1991,8 @@ export function generateFeedbackMessage(
   * Check if a player satisfies a team × achievement constraint with same-season alignment
   */
 function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, achievementId: string, seasonIndex?: SeasonIndex, canonicalIndex?: CanonicalAchievementIndex): boolean {
-  // Convert to canonical ID for consistency
-  const canonicalId = getCanonicalId(achievementId) || achievementId;
+  // Use achievement ID directly (removed canonical mapping)
+  const canonicalId = achievementId;
   
   // If we have canonical index, use it (preferred method)
   if (canonicalIndex) {
@@ -2064,9 +2064,9 @@ export function evaluateConstraintPair(player: Player, rowConstraint: GridConstr
   
   // If both are achievements, use career-ever logic (Achievement × Achievement cells)
   if (rowConstraint.type === 'achievement' && colConstraint.type === 'achievement') {
-    // Convert achievement IDs to canonical IDs
-    const rowCanonicalId = getCanonicalId(rowConstraint.achievementId!) || rowConstraint.achievementId!;
-    const colCanonicalId = getCanonicalId(colConstraint.achievementId!) || colConstraint.achievementId!;
+    // Use achievement IDs directly (removed canonical mapping)
+    const rowCanonicalId = rowConstraint.achievementId!;
+    const colCanonicalId = colConstraint.achievementId!;
     
     console.log(`🔍 A×A Debug: ${rowConstraint.achievementId} -> ${rowCanonicalId}, ${colConstraint.achievementId} -> ${colCanonicalId}`);
     
