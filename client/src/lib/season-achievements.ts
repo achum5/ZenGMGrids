@@ -19,7 +19,7 @@ export interface SeasonAchievement {
 
 export type SeasonAchievementId = 
   // Basketball GM achievements
-  | 'AllStar' | 'MVP' | 'DPOY' | 'ROY' | 'SMOY' | 'MIP' | 'FinalsMVP'
+  | 'AllStar' | 'MVP' | 'DPOY' | 'ROY' | 'SMOY' | 'MIP' | 'FinalsMVP' | 'Champion'
   | 'AllLeagueAny' | 'AllDefAny' | 'AllRookieAny'
   | 'PointsLeader' | 'ReboundsLeader' | 'AssistsLeader' | 'StealsLeader' | 'BlocksLeader'
   
@@ -58,6 +58,7 @@ const BASKETBALL_AWARD_MAPPING: Record<string, SeasonAchievementId | null> = {
   'Sixth Man of the Year': 'SMOY',
   'Most Improved Player': 'MIP',
   'Finals MVP': 'FinalsMVP',
+  'Won Championship': 'Champion',
   'All-League Team': 'AllLeagueAny',
   'First Team All-League': 'AllLeagueAny',
   'Second Team All-League': 'AllLeagueAny',
@@ -75,6 +76,7 @@ const BASKETBALL_AWARD_MAPPING: Record<string, SeasonAchievementId | null> = {
   'sixth man of the year': 'SMOY',
   'most improved player': 'MIP',
   'finals mvp': 'FinalsMVP',
+  'won championship': 'Champion',
   'all-league team': 'AllLeagueAny',
   'first team all-league': 'AllLeagueAny',
   'second team all-league': 'AllLeagueAny',
@@ -542,6 +544,12 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
   {
     id: 'FinalsMVP',
     label: 'Finals MVP',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'Champion',
+    label: 'Won Championship',
     isSeasonSpecific: true,
     minPlayers: 3
   },
