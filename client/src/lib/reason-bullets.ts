@@ -1,6 +1,14 @@
 import type { Player, Team } from '@/types/bbgm';
 import type { GridConstraint } from '@/lib/feedback';
 import { type SeasonAchievementId } from '@/lib/season-achievements';
+import { 
+  getDraftStatus, 
+  computeCareerTotals, 
+  checkHallOfFame,
+  isCareerAchievement,
+  formatAchievementDetails 
+} from '@/lib/achievement-helpers';
+import { getCanonicalId } from '@/lib/canonical-achievements';
 
 // Season achievement labels for bullet display
 const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, string> = {
@@ -520,7 +528,31 @@ function buildSeasonAchievementBullet(player: Player, achievementId: SeasonAchie
 
 // Build a career/misc achievement bullet: Award Label (value)
 function buildCareerAchievementBullet(player: Player, achievementId: string, teams: Team[], sport: string): ReasonBullet | null {
-  // Use existing achievement bullet generation logic
+  // Convert to canonical ID
+  const canonicalId = getCanonicalId(achievementId) || achievementId;
+  
+  // If this is a career achievement, use robust formatting
+  if (isCareerAchievement(canonicalId)) {
+    const draftStatus = getDraftStatus(player);
+    const careerTotals = computeCareerTotals(player);
+    
+    const formattedText = formatAchievementDetails(canonicalId, player, draftStatus, careerTotals);
+    
+    // Determine bullet type based on canonical ID
+    let bulletType: ReasonBullet['type'] = 'award';
+    if (['ONE_OA', 'ROUND_1', 'ROUND_2', 'UNDRAFTED'].includes(canonicalId)) {
+      bulletType = 'draft';
+    } else if (['SEASONS_10', 'SEASONS_15'].includes(canonicalId)) {
+      bulletType = 'longevity';
+    }
+    
+    return {
+      text: formattedText,
+      type: bulletType
+    };
+  }
+  
+  // For non-career achievements, use existing logic
   return generateAchievementBullet(player, achievementId, teams, sport);
 }
 
