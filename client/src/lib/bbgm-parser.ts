@@ -1,7 +1,7 @@
 import pako from 'pako';
 import type { LeagueData, Player, Team, SeasonLine, TeamOverlapData } from '@/types/bbgm';
 import { calculatePlayerAchievements, clearSeasonLengthCache, calculateLeagueLeadership, calculateTeamSeasonsAndAchievementSeasons, setCachedSportDetection } from '@/lib/achievements';
-import { buildSeasonIndex, type SeasonIndex } from './season-achievements';
+import { buildSeasonIndex, buildCareerEverIndex, type SeasonIndex, type CareerEverIndex } from './season-achievements';
 
 export type Sport = 'basketball' | 'football' | 'hockey' | 'baseball';
 
@@ -579,12 +579,17 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
   
   // Build season index for basketball and football (when league has 50+ seasons)
   let seasonIndex: SeasonIndex | undefined;
+  let careerEverIndex: CareerEverIndex | undefined;
   
   // Check if league has enough seasons for season achievement grids
   const uniqueSeasons = new Set(
     players.flatMap(p => p.stats?.filter(s => !s.playoffs).map(s => s.season) || [])
   );
   const seasonCount = uniqueSeasons.size;
+  
+  // Always build career-ever index for Achievement × Achievement cells
+  console.log(`🎯 Building career-ever achievement index for ${sport}...`);
+  careerEverIndex = buildCareerEverIndex(players, sport);
   
   if (sport === 'basketball') {
     console.log('🏀 Building season-specific achievement index for basketball...');
@@ -606,7 +611,7 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
     console.log(`⚾ Skipping season achievements for baseball (${seasonCount} seasons < 20)`);
   }
   
-  return { players, teams, sport, teamOverlaps, seasonIndex };
+  return { players, teams, sport, teamOverlaps, seasonIndex, careerEverIndex };
   
   } catch (error) {
     console.error('Error in normalizeLeague:', error);

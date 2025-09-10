@@ -2,7 +2,7 @@
 
 import type { Player, Team } from '@/types/bbgm';
 import { playerMeetsAchievement, getAchievements, SEASON_ALIGNED_ACHIEVEMENTS } from '@/lib/achievements';
-import { SEASON_ACHIEVEMENTS, type SeasonAchievementId, type SeasonIndex, getSeasonEligiblePlayers } from './season-achievements';
+import { SEASON_ACHIEVEMENTS, type SeasonAchievementId, type SeasonIndex, type CareerEverIndex, getSeasonEligiblePlayers, getCareerEverIntersection } from './season-achievements';
 import { evaluateConstraintPair } from './feedback';
 
 // Type definitions for grid constraints
@@ -26,6 +26,7 @@ interface LeagueData {
   teams: Team[];
   sport: 'basketball' | 'football' | 'hockey' | 'baseball';
   seasonIndex?: SeasonIndex;
+  careerEverIndex?: CareerEverIndex;
 }
 
 interface TeamPair {
@@ -241,7 +242,7 @@ export function generateGridFallback(
  * Uses seeded randomness for consistency and prioritizes team overlap
  */
 export function generateGridSeeded(leagueData: LeagueData): GridGenerationResult {
-  const { players, teams, sport, seasonIndex } = leagueData;
+  const { players, teams, sport, seasonIndex, careerEverIndex } = leagueData;
   
   if (!seasonIndex) {
     throw new Error('Season index required for seeded builder');
@@ -712,7 +713,7 @@ export function generateGridSeeded(leagueData: LeagueData): GridGenerationResult
   for (let row = 0; row < 3; row++) {
     for (let col = 0; col < 3; col++) {
       const key = `${rows[row].key}|${cols[col].key}`;
-      const eligiblePlayers = calculateIntersectionSimple(rows[row], cols[col], players, seasonIndex);
+      const eligiblePlayers = calculateIntersectionSimple(rows[row], cols[col], players, seasonIndex, careerEverIndex);
       intersections[key] = eligiblePlayers.map((p: Player) => p.pid);
       console.log(`Intersection ${rows[row].label} × ${cols[col].label}: ${eligiblePlayers.length} eligible players`);
     }
@@ -779,7 +780,8 @@ function calculateIntersectionSimple(
   rowConstraint: any,
   colConstraint: any,
   players: Player[],
-  seasonIndex?: SeasonIndex
+  seasonIndex?: SeasonIndex,
+  careerEverIndex?: any
 ): Player[] {
   // Use the exact same logic as custom grids for proper Team × Achievement alignment
   let eligiblePlayers: Player[];
@@ -796,62 +798,85 @@ function calculateIntersectionSimple(
     // Team × season achievement  
     const eligiblePids = getSeasonEligiblePlayers(seasonIndex, rowConstraint.tid!, colConstraint.achievementId as SeasonAchievementId);
     eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
-  } else if (rowIsSeasonAchievement && colIsSeasonAchievement && seasonIndex) {
-    // Season achievement × season achievement - NO SEASON ALIGNMENT REQUIRED
-    if (rowConstraint.achievementId === colConstraint.achievementId) {
-      // Same achievement - just find all players who have it
-      const eligiblePids = new Set<number>();
-      for (const seasonStr of Object.keys(seasonIndex)) {
-        const season = parseInt(seasonStr);
-        const seasonData = seasonIndex[season];
-        for (const teamStr of Object.keys(seasonData)) {
-          const teamId = parseInt(teamStr);
-          const teamData = seasonData[teamId];
-          if (teamData[rowConstraint.achievementId as SeasonAchievementId]) {
-            const achievementPids = teamData[rowConstraint.achievementId as SeasonAchievementId];
-            achievementPids.forEach(pid => eligiblePids.add(pid));
+  } else if (rowIsSeasonAchievement && colIsSeasonAchievement) {
+    // Achievement × Achievement - Use career-ever logic (no season/team alignment)
+    if (careerEverIndex) {
+      // Use career-ever index for fast intersection
+      if (rowConstraint.achievementId === colConstraint.achievementId) {
+        // Same achievement - just find all players who ever achieved it
+        const achievementSet = careerEverIndex[rowConstraint.achievementId] || new Set<number>();
+        eligiblePlayers = players.filter(p => achievementSet.has(p.pid));
+      } else {
+        // Different achievements - find intersection using career-ever index
+        const eligiblePids = getCareerEverIntersection(
+          careerEverIndex, 
+          rowConstraint.achievementId, 
+          colConstraint.achievementId
+        );
+        eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
+      }
+    } else if (seasonIndex) {
+      // Fallback to season index logic if career-ever index not available
+      if (rowConstraint.achievementId === colConstraint.achievementId) {
+        // Same achievement - just find all players who have it
+        const eligiblePids = new Set<number>();
+        for (const seasonStr of Object.keys(seasonIndex)) {
+          const season = parseInt(seasonStr);
+          const seasonData = seasonIndex[season];
+          for (const teamStr of Object.keys(seasonData)) {
+            const teamId = parseInt(teamStr);
+            const teamData = seasonData[teamId];
+            if (teamData[rowConstraint.achievementId as SeasonAchievementId]) {
+              const achievementPids = teamData[rowConstraint.achievementId as SeasonAchievementId];
+              achievementPids.forEach(pid => eligiblePids.add(pid));
+            }
           }
         }
+        eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
+      } else {
+        // Different achievements - find players who have BOTH achievements across ANY seasons (no season alignment)
+        const rowEligiblePids = new Set<number>();
+        const colEligiblePids = new Set<number>();
+        
+        // Collect all players who have the row achievement in any season
+        for (const seasonStr of Object.keys(seasonIndex)) {
+          const season = parseInt(seasonStr);
+          const seasonData = seasonIndex[season];
+          for (const teamStr of Object.keys(seasonData)) {
+            const teamId = parseInt(teamStr);
+            const teamData = seasonData[teamId];
+            const rowAchievementPids = teamData[rowConstraint.achievementId as SeasonAchievementId] || new Set();
+            rowAchievementPids.forEach(pid => rowEligiblePids.add(pid));
+          }
+        }
+        
+        // Collect all players who have the column achievement in any season
+        for (const seasonStr of Object.keys(seasonIndex)) {
+          const season = parseInt(seasonStr);
+          const seasonData = seasonIndex[season];
+          for (const teamStr of Object.keys(seasonData)) {
+            const teamId = parseInt(teamStr);
+            const teamData = seasonData[teamId];
+            const colAchievementPids = teamData[colConstraint.achievementId as SeasonAchievementId] || new Set();
+            colAchievementPids.forEach(pid => colEligiblePids.add(pid));
+          }
+        }
+        
+        // Find intersection of players who have both achievements (across any seasons)
+        const eligiblePids = new Set<number>();
+        rowEligiblePids.forEach(pid => {
+          if (colEligiblePids.has(pid)) {
+            eligiblePids.add(pid);
+          }
+        });
+        
+        eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
       }
-      eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
     } else {
-      // Different achievements - find players who have BOTH achievements across ANY seasons (no season alignment)
-      const rowEligiblePids = new Set<number>();
-      const colEligiblePids = new Set<number>();
-      
-      // Collect all players who have the row achievement in any season
-      for (const seasonStr of Object.keys(seasonIndex)) {
-        const season = parseInt(seasonStr);
-        const seasonData = seasonIndex[season];
-        for (const teamStr of Object.keys(seasonData)) {
-          const teamId = parseInt(teamStr);
-          const teamData = seasonData[teamId];
-          const rowAchievementPids = teamData[rowConstraint.achievementId as SeasonAchievementId] || new Set();
-          rowAchievementPids.forEach(pid => rowEligiblePids.add(pid));
-        }
-      }
-      
-      // Collect all players who have the column achievement in any season
-      for (const seasonStr of Object.keys(seasonIndex)) {
-        const season = parseInt(seasonStr);
-        const seasonData = seasonIndex[season];
-        for (const teamStr of Object.keys(seasonData)) {
-          const teamId = parseInt(teamStr);
-          const teamData = seasonData[teamId];
-          const colAchievementPids = teamData[colConstraint.achievementId as SeasonAchievementId] || new Set();
-          colAchievementPids.forEach(pid => colEligiblePids.add(pid));
-        }
-      }
-      
-      // Find intersection of players who have both achievements (across any seasons)
-      const eligiblePids = new Set<number>();
-      rowEligiblePids.forEach(pid => {
-        if (colEligiblePids.has(pid)) {
-          eligiblePids.add(pid);
-        }
-      });
-      
-      eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
+      // No indices available - fallback to player-by-player evaluation
+      eligiblePlayers = players.filter(p => 
+        evaluateConstraintPair(p, rowConstraint, colConstraint, seasonIndex)
+      );
     }
   } else {
     // Standard evaluation for career achievements or mixed career/season
@@ -931,7 +956,8 @@ export function generateGridGreedy(
   players: Player[], 
   teams: Team[], 
   sport: 'basketball' | 'football' | 'hockey' | 'baseball',
-  seasonIndex?: SeasonIndex
+  seasonIndex?: SeasonIndex,
+  careerEverIndex?: CareerEverIndex
 ): GridGenerationResult {
   console.log('🎯 Using low-season grid generator (< 20 seasons)');
   
@@ -978,7 +1004,7 @@ export function generateGridGreedy(
       for (const layout of tier.layouts) {
         
         try {
-          const result = attemptGrid(layout, players, activeTeams, achievements, seasonIndex, careerSeasonsGroup, sport);
+          const result = attemptGrid(layout, players, activeTeams, achievements, seasonIndex, careerEverIndex, careerSeasonsGroup, sport);
           if (result) {
             console.log(`✅ Tier ${tier.name} grid generated using ${layout.name}`);
             return result;
@@ -1006,6 +1032,7 @@ function attemptGrid(
   activeTeams: any[],
   achievements: any[],
   seasonIndex: SeasonIndex | undefined,
+  careerEverIndex: CareerEverIndex | undefined,
   careerSeasonsGroup: string[],
   sport: string
 ): GridGenerationResult | null {
@@ -1014,7 +1041,7 @@ function attemptGrid(
   const { rows, cols } = pickHeaders(layout, activeTeams, achievements, careerSeasonsGroup, seasonIndex);
   
   // Step 2: Build eligibility matrix
-  let eligibilityMatrix = buildEligibilityMatrix(rows, cols, players, seasonIndex);
+  let eligibilityMatrix = buildEligibilityMatrix(rows, cols, players, seasonIndex, careerEverIndex);
   
   // Step 3: Validate hard guarantees
   let violations = findViolations(eligibilityMatrix);
@@ -1046,7 +1073,7 @@ function attemptGrid(
     }
     
     // Rebuild matrix and check again
-    eligibilityMatrix = buildEligibilityMatrix(rows, cols, players, seasonIndex);
+    eligibilityMatrix = buildEligibilityMatrix(rows, cols, players, seasonIndex, careerEverIndex);
     violations = findViolations(eligibilityMatrix);
   }
   
@@ -1203,14 +1230,15 @@ function buildEligibilityMatrix(
   rows: GridConstraint[],
   cols: GridConstraint[],
   players: Player[],
-  seasonIndex?: SeasonIndex
+  seasonIndex?: SeasonIndex,
+  careerEverIndex?: CareerEverIndex
 ): Player[][][] {
   const matrix: Player[][][] = [];
   
   for (let r = 0; r < 3; r++) {
     matrix[r] = [];
     for (let c = 0; c < 3; c++) {
-      matrix[r][c] = calculateIntersectionSimple(rows[r], cols[c], players, seasonIndex);
+      matrix[r][c] = calculateIntersectionSimple(rows[r], cols[c], players, seasonIndex, careerEverIndex);
     }
   }
   
@@ -1445,7 +1473,7 @@ function logCellCounts(rows: GridConstraint[], cols: GridConstraint[], eligibili
  * Main grid generation function that tries different strategies
  */
 export function generateGrid(leagueData: LeagueData): GridGenerationResult {
-  const { players, teams, sport, seasonIndex } = leagueData;
+  const { players, teams, sport, seasonIndex, careerEverIndex } = leagueData;
   
   // Get unique seasons for coverage assessment
   const allSeasons = new Set<number>();
@@ -1472,13 +1500,13 @@ export function generateGrid(leagueData: LeagueData): GridGenerationResult {
     
     // Fall back to greedy for smaller leagues or sports without season achievements
     console.log('Using greedy generation with backtracking');
-    return generateGridGreedy(players, teams, sport, seasonIndex);
+    return generateGridGreedy(players, teams, sport, seasonIndex, careerEverIndex);
     
   } catch (error) {
     console.log(`⚠️ Grid generation failed: ${error}. Using fallback.`);
     // Ultimate fallback: use Tier C (3T × 3T) 
     const fallbackLayout = { name: '3T × 3T', rows: ['T', 'T', 'T'], cols: ['T', 'T', 'T'], totalAchievements: 0 };
-    const fallbackResult = attemptGrid(fallbackLayout, players, teams.filter(t => !t.disabled), [], seasonIndex, [], sport);
+    const fallbackResult = attemptGrid(fallbackLayout, players, teams.filter(t => !t.disabled), [], seasonIndex, careerEverIndex, [], sport);
     if (fallbackResult) {
       console.log('✅ Used ultimate fallback (all teams)');
       return fallbackResult;
