@@ -180,6 +180,14 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId | null> = {
 function mapAwardToAchievement(awardType: string, sport?: 'basketball' | 'football' | 'hockey' | 'baseball'): SeasonAchievementId | null {
   if (!awardType) return null;
   
+  // DEBUG: Track All-League Team award mapping specifically 
+  if (awardType.toLowerCase().includes('all') && awardType.toLowerCase().includes('league')) {
+    console.log(`🔍 [DEBUG mapAwardToAchievement] Processing All-League award:`);
+    console.log(`   - Original awardType: "${awardType}"`);
+    console.log(`   - Sport: ${sport}`);
+    console.log(`   - Normalized: "${awardType.toLowerCase().trim()}"`);
+  }
+  
   // Sport-specific handling FIRST (takes priority over global mapping)
   if (sport === 'football') {
     // Football GM specific mappings (case-sensitive exact matches from FBGM)
@@ -224,16 +232,26 @@ function mapAwardToAchievement(awardType: string, sport?: 'basketball' | 'footba
   
   // Direct exact match from global mapping (for Basketball and missed cases)
   if (AWARD_TYPE_MAPPING[awardType]) {
-    return AWARD_TYPE_MAPPING[awardType];
+    const result = AWARD_TYPE_MAPPING[awardType];
+    if (awardType.toLowerCase().includes('all') && awardType.toLowerCase().includes('league')) {
+      console.log(`   ✅ [DEBUG] Direct exact match found: "${awardType}" -> ${result}`);
+    }
+    return result;
   }
   
   // Fall back to normalized mapping
   let mapped = AWARD_TYPE_MAPPING[normalized];
-  if (mapped) return mapped;
+  if (mapped) {
+    if (awardType.toLowerCase().includes('all') && awardType.toLowerCase().includes('league')) {
+      console.log(`   ✅ [DEBUG] Normalized mapping found: "${normalized}" -> ${mapped}`);
+    }
+    return mapped;
+  }
   
   // CRITICAL: Defensive substring-based fallback for basketball (future-proofs against variants)
   if (sport === 'basketball') {
     if (normalized.includes('all') && normalized.includes('league') && normalized.includes('team')) {
+      console.log(`   ✅ [DEBUG] Substring fallback triggered for All-League: "${normalized}" -> AllLeagueAny`);
       return 'AllLeagueAny';
     }
     if (normalized.includes('all') && normalized.includes('defensive') && normalized.includes('team')) {
@@ -242,6 +260,16 @@ function mapAwardToAchievement(awardType: string, sport?: 'basketball' | 'footba
     if (normalized.includes('all') && normalized.includes('rookie') && normalized.includes('team')) {
       return 'AllRookieAny';
     }
+  }
+  
+  // DEBUG: If we reach here with an All-League award, something went wrong
+  if (awardType.toLowerCase().includes('all') && awardType.toLowerCase().includes('league')) {
+    console.log(`   ❌ [DEBUG] All-League award NOT MAPPED: "${awardType}" (sport: ${sport})`);
+    console.log(`   ❌ [DEBUG] Normalized: "${normalized}"`);
+    console.log(`   ❌ [DEBUG] Substring checks:`);
+    console.log(`      - includes 'all': ${normalized.includes('all')}`);
+    console.log(`      - includes 'league': ${normalized.includes('league')}`);
+    console.log(`      - includes 'team': ${normalized.includes('team')}`);
   }
   
   return null;
@@ -588,20 +616,51 @@ export function buildSeasonIndex(
   let skippedEntries = 0;
 
   // Process traditional award-based achievements
+  console.log('🏗️ [DEBUG buildSeasonIndex] Starting award processing for', players.length, 'players');
+  let jaylenBrownProcessed = false;
+  
   for (const player of players) {
     if (!player.awards || player.awards.length === 0) continue;
 
+    // DEBUG: Track Jaylen Brown specifically (look for common name patterns)
+    const isJaylenBrown = player.name && (player.name.includes('Jaylen') || player.name.includes('Brown'));
+    if (isJaylenBrown) {
+      console.log(`\n🎯 [DEBUG] Found potential Jaylen Brown: pid=${player.pid}, name="${player.name}"`);
+      console.log(`   Awards count: ${player.awards.length}`);
+      jaylenBrownProcessed = true;
+    }
+
     for (const award of player.awards) {
+      // DEBUG: Track All-League awards for Jaylen Brown
+      if (isJaylenBrown && award.type.toLowerCase().includes('all') && award.type.toLowerCase().includes('league')) {
+        console.log(`   🏆 [DEBUG] Jaylen Brown All-League award found:`);
+        console.log(`      - Type: "${award.type}"`);
+        console.log(`      - Season: ${award.season}`);
+      }
+      
       const achievementId = mapAwardToAchievement(award.type, sport);
       if (!achievementId) {
+        if (isJaylenBrown && award.type.toLowerCase().includes('all') && award.type.toLowerCase().includes('league')) {
+          console.log(`   ❌ [DEBUG] Jaylen Brown All-League award NOT MAPPED: "${award.type}"`);
+        }
         skippedEntries++;
         continue;
       }
 
       const season = award.season;
       if (!season) {
+        if (isJaylenBrown && achievementId === 'AllLeagueAny') {
+          console.log(`   ❌ [DEBUG] Jaylen Brown All-League award missing season`);
+        }
         skippedEntries++;
         continue;
+      }
+      
+      // DEBUG: Track successful mapping for Jaylen Brown All-League
+      if (isJaylenBrown && achievementId === 'AllLeagueAny') {
+        console.log(`   ✅ [DEBUG] Jaylen Brown All-League award successfully mapped:`);
+        console.log(`      - achievementId: ${achievementId}`);
+        console.log(`      - season: ${season}`);
       }
       
       if (achievementId === 'FBFinalsMVP' || achievementId === 'FinalsMVP') {
@@ -638,8 +697,20 @@ export function buildSeasonIndex(
       // This is the critical fix for awards like All-League Team, All-Star, MVP, etc.
       const primaryTeam = resolvePrimaryTeamForSeason(player, season);
       
+      // DEBUG: Track team resolution for Jaylen Brown All-League
+      if (isJaylenBrown && achievementId === 'AllLeagueAny') {
+        console.log(`   🏀 [DEBUG] Resolving primary team for Jaylen Brown All-League (season ${season}):`);
+        console.log(`      - Primary team resolved: ${primaryTeam}`);
+        if (primaryTeam !== null) {
+          console.log(`      - About to add to seasonIndex[${season}][${primaryTeam}]['AllLeagueAny']`);
+        }
+      }
+      
       if (primaryTeam === null) {
         // No regular season stats for this award season, skip
+        if (isJaylenBrown && achievementId === 'AllLeagueAny') {
+          console.log(`   ❌ [DEBUG] Jaylen Brown All-League award skipped - no primary team found`);
+        }
         skippedEntries++;
         continue;
       }
@@ -651,6 +722,13 @@ export function buildSeasonIndex(
       
       seasonIndex[season][primaryTeam][achievementId].add(player.pid);
       totalIndexed++;
+      
+      // DEBUG: Confirm addition for Jaylen Brown All-League
+      if (isJaylenBrown && achievementId === 'AllLeagueAny') {
+        console.log(`   ✅ [DEBUG] Successfully added Jaylen Brown to seasonIndex:`);
+        console.log(`      - seasonIndex[${season}][${primaryTeam}]['AllLeagueAny'] now contains pid ${player.pid}`);
+        console.log(`      - Set size: ${seasonIndex[season][primaryTeam][achievementId].size}`);
+      }
     }
   }
   
@@ -732,15 +810,42 @@ export function getSeasonEligiblePlayers(
 ): Set<number> {
   const allPlayers = new Set<number>();
   
+  // DEBUG: Track specific Celtics × All-League calls
+  const isCelticsAllLeague = achievementId === 'AllLeagueAny' && (teamId === 1 || teamId === 0); // Common Celtics team IDs
+  if (isCelticsAllLeague) {
+    console.log(`\n🏀 [DEBUG getSeasonEligiblePlayers] Celtics × All-League Team lookup:`);
+    console.log(`   - teamId: ${teamId}`);
+    console.log(`   - achievementId: ${achievementId}`);
+    console.log(`   - seasonIndex keys: ${Object.keys(seasonIndex).length} seasons`);
+  }
+  
   // Search across all seasons for this team-achievement combination
   for (const seasonStr of Object.keys(seasonIndex)) {
     const season = parseInt(seasonStr);
     const seasonData = seasonIndex[season];
+    
+    if (isCelticsAllLeague) {
+      console.log(`   - Checking season ${season}:`);
+      console.log(`     - seasonData[${teamId}] exists: ${!!seasonData[teamId]}`);
+      if (seasonData[teamId]) {
+        console.log(`     - seasonData[${teamId}]['AllLeagueAny'] exists: ${!!seasonData[teamId][achievementId]}`);
+        if (seasonData[teamId][achievementId]) {
+          const playerSet = seasonData[teamId][achievementId];
+          console.log(`     - seasonData[${teamId}]['AllLeagueAny'] contains ${playerSet.size} players:`, Array.from(playerSet));
+        }
+      }
+    }
+    
     if (seasonData[teamId] && seasonData[teamId][achievementId]) {
       for (const pid of Array.from(seasonData[teamId][achievementId])) {
         allPlayers.add(pid);
       }
     }
+  }
+  
+  if (isCelticsAllLeague) {
+    console.log(`   📊 [DEBUG] Final result: ${allPlayers.size} total eligible players`);
+    console.log(`     Player IDs: [${Array.from(allPlayers).join(', ')}]`);
   }
   
   return allPlayers;

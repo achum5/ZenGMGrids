@@ -469,9 +469,41 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
         }
       }
       
+      // DEBUG: Track Celtics × All-League Team intersection specifically
+      const isCelticsAllLeague = (
+        (rowConstraint.type === 'team' && rowConstraint.tid !== undefined && [0, 1].includes(rowConstraint.tid) && 
+         colConstraint.type === 'achievement' && colConstraint.achievementId === 'AllLeagueAny') ||
+        (colConstraint.type === 'team' && colConstraint.tid !== undefined && [0, 1].includes(colConstraint.tid) && 
+         rowConstraint.type === 'achievement' && rowConstraint.achievementId === 'AllLeagueAny')
+      );
+      
+      if (isCelticsAllLeague) {
+        console.log(`\n🎯 [DEBUG GRID] Celtics × All-League Team intersection evaluation:`);
+        console.log(`   - Row: ${row.label} (type: ${rowConstraint.type}, tid: ${rowConstraint.tid}, achievement: ${rowConstraint.achievementId})`);
+        console.log(`   - Col: ${col.label} (type: ${colConstraint.type}, tid: ${colConstraint.tid}, achievement: ${colConstraint.achievementId})`);
+        console.log(`   - Total players to evaluate: ${players.length}`);
+      }
+      
       const eligiblePids = players
-        .filter(p => evaluateConstraintPair(p, rowConstraint, colConstraint))
+        .filter((p, index) => {
+          const isEligible = evaluateConstraintPair(p, rowConstraint, colConstraint);
+          
+          // DEBUG: Track each player evaluation for Celtics × All-League
+          if (isCelticsAllLeague) {
+            const isJaylenBrown = p.name && (p.name.includes('Jaylen') || p.name.includes('Brown'));
+            if (isJaylenBrown || index < 10) { // Log first 10 players + any Jaylen Brown
+              console.log(`     Player ${p.pid} (${p.name}): ${isEligible ? '✅ ELIGIBLE' : '❌ NOT ELIGIBLE'}`);
+            }
+          }
+          
+          return isEligible;
+        })
         .map(p => p.pid);
+      
+      if (isCelticsAllLeague) {
+        console.log(`   📊 [DEBUG GRID] Final result: ${eligiblePids.length} eligible players`);
+        console.log(`   Player IDs: [${eligiblePids.slice(0, 10).join(', ')}${eligiblePids.length > 10 ? '...' : ''}]`);
+      }
       
       if (eligiblePids.length === 0) {
         throw new Error(`No eligible players for intersection ${row.label} × ${col.label}`);
