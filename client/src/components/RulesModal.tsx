@@ -23,44 +23,53 @@ const generalRules = {
 
 const sportSpecificRules = {
   basketball: {
-    title: "Basketball GM Grids — Rules",
-    howCellsWork: [
-      "Match both labels.",
-      "Team × Team: player must appear (GP > 0) for both teams (any seasons).",
-      "Team × Career: player must have ever played for the team + meet the career/longevity/birthplace item.",
-      "Team × Award: player must do it with that team in that season."
-    ],
-    achievements: {
-      career: [
-        "20,000+ Points • 10,000+ Rebounds • 5,000+ Assists",
-        "2,000+ Steals • 1,500+ Blocks • 2,000+ Made Threes",
-        "Played 10+ Seasons • Played 15+ Seasons",
-        "Hall of Fame",
-        "Born outside 50 states + DC"
-      ],
-      awards: [
-        "Most Valuable Player",
-        "Defensive Player of the Year",
-        "Rookie of the Year",
-        "Sixth Man of the Year",
-        "Finals MVP",
-        "All-Star",
-        "Champion (must have GP > 0 in RS or playoffs with the title team)"
-      ],
-      draft: [
-        "#1 Overall • First Round • Second Round • Undrafted",
-        "Drafted as Teenager (age ≤ 19 at draft)"
+    title: "BBGM Grids",
+    eligibility: {
+      title: "How eligibility works",
+      rules: [
+        "Season-aligned achievements only need to match a team when the square is Team × Achievement. The player must have earned it in that same season with that team.",
+        "Finals MVP: must be with the team from that title run.",
+        "League Leaders: count with any team the player played for during that leader season.",
+        "Achievement × Achievement squares do not require the same season.",
+        "Non-season (career/draft) achievements: count if the player ever played for the team (any season) and meets the career/draft condition."
       ]
     },
-    scoring: [
-      "1. Team fit: How much the player truly belongs to the team(s) in the square—played real minutes/games and had impact, not just a cameo.",
-      "2. Category fit: How strongly the player matches the stat/award—e.g., cleared the threshold (20k points) or actually won MVP that year.",
-      "3. Fame: How well-known the player is overall—Hall of Fame status, MVPs, All-Star selections, and big career volume.",
-      "Common picks → lower score.",
-      "Rare picks → higher score.",
-      "Very small answer pools can add a small bonus—but only if your pick wasn't the obvious one."
-    ],
-    remember: "No duplicate players across the grid."
+    seasonAchievements: {
+      title: "Season-aligned achievements",
+      items: [
+        "All-Star",
+        "MVP (Most Valuable Player)",
+        "DPOY (Defensive Player of the Year)",
+        "ROY (Rookie of the Year)",
+        "SMOY (Sixth Man of the Year)",
+        "MIP (Most Improved Player)",
+        "Finals MVP",
+        "All-League Team (any tier)",
+        "All-Defensive Team (any tier)",
+        "All-Rookie Team (any tier)",
+        "Points Leader • Rebounds Leader • Assists Leader • Steals Leader • Blocks Leader"
+      ],
+      note: "Note for small leagues: If your league has fewer than 20 seasons, the generator uses a simplified mode to keep puzzles solvable — single-season achievements won't be used in generation."
+    },
+    careerAchievements: {
+      title: "Non-season (career/draft) achievements",
+      items: [
+        "#1 Overall Pick • First Round Pick • Went Undrafted",
+        "Hall of Fame • Played 15+ Seasons • Played 10+ Seasons",
+        "20,000+ Career Points • 10,000+ Career Rebounds • 5,000+ Career Assists",
+        "2,000+ Career Steals • 1,500+ Career Blocks • 2,000+ Made Threes"
+      ],
+      basketballNote: "Basketball-specific draft note: Second Round Pick"
+    },
+    scoring: {
+      title: "Scoring (all sports)",
+      rules: [
+        "Each correct guess = its rarity score (10–100 points).",
+        "Base rarity: we rank all eligible players for that cell from rarest → most common using a popularity model (awards & career volume). Rarest ≈ 100, most common ≈ 10, others scale in between.",
+        "Small-pool bonus: harder cells with few eligible players get extra points (more bonus for smaller pools).",
+        "Cell-aware tweaks: when available, the model also considers team fit and category fit to reward creative picks."
+      ]
+    }
   },
   football: {
     title: "Football GM Grids — Quick Rules",
@@ -233,9 +242,66 @@ export function RulesModal({ sport }: RulesModalProps) {
             </div>
           ) : sportRules ? (
             <div className="space-y-6">
-              {/* Quick Rules Format for all sports with howCellsWork */}
-              {(sportRules as any).howCellsWork ? (
+              {/* Basketball BBGM Format */}
+              {sport === 'basketball' && (sportRules as any).eligibility ? (
                 <>
+                  {/* How eligibility works */}
+                  <div>
+                    <h3 className="font-semibold mb-3 text-base">{(sportRules as any).eligibility.title}</h3>
+                    <ul className="space-y-2">
+                      {(sportRules as any).eligibility.rules.map((rule: string, index: number) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <span className="text-primary">•</span>
+                          <span>{rule}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Season-aligned achievements */}
+                  <div>
+                    <h3 className="font-semibold mb-3 text-base">{(sportRules as any).seasonAchievements.title}</h3>
+                    <ul className="space-y-2">
+                      {(sportRules as any).seasonAchievements.items.map((item: string, index: number) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <span className="text-primary">•</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-3 text-sm text-muted-foreground italic">{(sportRules as any).seasonAchievements.note}</p>
+                  </div>
+
+                  {/* Non-season achievements */}
+                  <div>
+                    <h3 className="font-semibold mb-3 text-base">{(sportRules as any).careerAchievements.title}</h3>
+                    <ul className="space-y-2">
+                      {(sportRules as any).careerAchievements.items.map((item: string, index: number) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <span className="text-primary">•</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-3 text-sm text-muted-foreground italic">{(sportRules as any).careerAchievements.basketballNote}</p>
+                  </div>
+
+                  {/* Scoring */}
+                  <div>
+                    <h3 className="font-semibold mb-3 text-base">{(sportRules as any).scoring.title}</h3>
+                    <ul className="space-y-2">
+                      {(sportRules as any).scoring.rules.map((rule: string, index: number) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <span className="text-primary">•</span>
+                          <span>{rule}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </>
+              ) : (sportRules as any).howCellsWork ? (
+                <>
+                  {/* Quick Rules Format for other sports with howCellsWork */}
                   {/* How cells work */}
                   <div>
                     <h3 className="font-semibold mb-3 text-base">How cells work</h3>
@@ -253,7 +319,7 @@ export function RulesModal({ sport }: RulesModalProps) {
                   <div>
                     <h3 className="font-semibold mb-3 text-base">Career</h3>
                     <ul className="space-y-2">
-                      {sportRules.achievements.career.map((achievement: string, index: number) => (
+                      {(sportRules as any).achievements.career.map((achievement: string, index: number) => (
                         <li key={index} className="flex items-start gap-2">
                           <span className="text-primary">•</span>
                           <span>{achievement}</span>
@@ -262,14 +328,12 @@ export function RulesModal({ sport }: RulesModalProps) {
                     </ul>
                   </div>
 
-
-
                   {/* Draft */}
-                  {sportRules.achievements.draft.length > 0 && (
+                  {(sportRules as any).achievements.draft.length > 0 && (
                     <div>
                       <h3 className="font-semibold mb-3 text-base">Draft</h3>
                       <div className="text-center">
-                        <span>{sportRules.achievements.draft[0]}</span>
+                        <span>{(sportRules as any).achievements.draft[0]}</span>
                       </div>
                     </div>
                   )}
@@ -309,7 +373,7 @@ export function RulesModal({ sport }: RulesModalProps) {
                     </div>
                   ) : null}
                 </>
-              ) : (
+              ) : (sportRules as any).achievements ? (
                 <>
                   {/* Standard format for other sports */}
 
@@ -321,7 +385,7 @@ export function RulesModal({ sport }: RulesModalProps) {
                     <div className="mb-4">
                       <h4 className="font-medium mb-2">Career (Team × Career requires ever played for team)</h4>
                       <ul className="space-y-1 ml-4">
-                        {sportRules.achievements.career.map((achievement: string, index: number) => (
+                        {(sportRules as any).achievements.career.map((achievement: string, index: number) => (
                           <li key={index} className="flex items-start gap-2">
                             <span className="text-primary">•</span>
                             <span>{achievement}</span>
@@ -333,11 +397,11 @@ export function RulesModal({ sport }: RulesModalProps) {
 
 
                     {/* Draft */}
-                    {sportRules.achievements.draft.length > 0 && (
+                    {(sportRules as any).achievements.draft.length > 0 && (
                       <div>
                         <h4 className="font-medium mb-2">Draft</h4>
                         <ul className="space-y-1 ml-4">
-                          {sportRules.achievements.draft.map((draft: string, index: number) => (
+                          {(sportRules as any).achievements.draft.map((draft: string, index: number) => (
                             <li key={index} className="flex items-start gap-2">
                               <span className="text-primary">•</span>
                               <span>{draft}</span>
@@ -355,7 +419,7 @@ export function RulesModal({ sport }: RulesModalProps) {
                     </p>
                   </div>
                 </>
-              )}
+              ) : null}
             </div>
           ) : null}
         </div>
