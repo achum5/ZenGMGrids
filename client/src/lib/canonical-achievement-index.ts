@@ -146,10 +146,10 @@ export function buildCanonicalAchievementIndex(
     awardByTeamAnySeason[achId] = {};
   }
   
-  // Initialize career achievements  
-  const careerAchievementIds = ['isPick1Overall', 'isFirstRoundPick', 'isUndrafted', 'isHallOfFamer', 'played10PlusSeasons', 'played15PlusSeasons'];
+  // Initialize career achievements using canonical IDs
+  const careerAchievementIds = ['PICK_1_OA', 'FIRST_ROUND', 'UNDRAFTED', 'HOF', 'SEASONS_10', 'SEASONS_15'];
   if (sport === 'basketball') {
-    careerAchievementIds.push('career20kPoints', 'career10kRebounds', 'career5kAssists', 'career2kSteals', 'career1500Blocks', 'career2k3PM');
+    careerAchievementIds.push('PTS_20K', 'REB_10K', 'AST_5K', 'STL_2K', 'BLK_1_5K', 'THREES_2K');
   } else if (sport === 'football') {
     careerAchievementIds.push('career300PassTDs', 'career12kRushYds', 'career100RushTDs', 'career12kRecYds', 'career100RecTDs', 'career100Sacks', 'career20Ints');
   }
@@ -327,19 +327,19 @@ function calculateCareerAchievements(
   // Draft achievements
   if (player.draft) {
     if (player.draft.pick === 1 && player.draft.round === 1) {
-      careerAch.isPick1Overall.add(player.pid);
+      careerAch.PICK_1_OA.add(player.pid);
     }
     if (player.draft.round === 1) {
-      careerAch.isFirstRoundPick.add(player.pid);
+      careerAch.FIRST_ROUND.add(player.pid);
     }
   } else {
     // No draft data means undrafted (round === 0 or missing)
-    careerAch.isUndrafted.add(player.pid);
+    careerAch.UNDRAFTED.add(player.pid);
   }
   
   // Hall of Fame - check both hof property and award
   if ((player as any).hof === true || player.awards?.some(a => a.type === 'Inducted into the Hall of Fame')) {
-    careerAch.isHallOfFamer.add(player.pid);
+    careerAch.HOF.add(player.pid);
   }
   
   // Seasons played (count distinct regular season years with games played)
@@ -352,10 +352,10 @@ function calculateCareerAchievements(
     });
     
     if (seasonsPlayed.size >= 10) {
-      careerAch.played10PlusSeasons.add(player.pid);
+      careerAch.SEASONS_10.add(player.pid);
     }
     if (seasonsPlayed.size >= 15) {
-      careerAch.played15PlusSeasons.add(player.pid);
+      careerAch.SEASONS_15.add(player.pid);
     }
   }
   
@@ -375,13 +375,13 @@ function calculateCareerAchievements(
       career3PM += stat.tp || stat.fg3 || 0; // 3-pointers made
     });
     
-    // Apply basketball career thresholds
-    if (careerPts >= 20000) careerAch.career20kPoints.add(player.pid);
-    if (careerTrb >= 10000) careerAch.career10kRebounds.add(player.pid);
-    if (careerAst >= 5000) careerAch.career5kAssists.add(player.pid);
-    if (careerStl >= 2000) careerAch.career2kSteals.add(player.pid);
-    if (careerBlk >= 1500) careerAch.career1500Blocks.add(player.pid);
-    if (career3PM >= 2000) careerAch.career2k3PM.add(player.pid);
+    // Apply basketball career thresholds using canonical IDs
+    if (careerPts >= 20000) careerAch.PTS_20K.add(player.pid);
+    if (careerTrb >= 10000) careerAch.REB_10K.add(player.pid);
+    if (careerAst >= 5000) careerAch.AST_5K.add(player.pid);
+    if (careerStl >= 2000) careerAch.STL_2K.add(player.pid);
+    if (careerBlk >= 1500) careerAch.BLK_1_5K.add(player.pid);
+    if (career3PM >= 2000) careerAch.THREES_2K.add(player.pid);
   }
   
   // Football-specific career achievements
