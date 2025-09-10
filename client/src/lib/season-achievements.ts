@@ -147,8 +147,8 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId | null> = {
   'Rookie of the Year': 'HKROY',
   'Championship': 'HKChampion',
   'Playoffs MVP': 'HKPlayoffsMVP',
-  'Finals MVP': 'HKFinalsMVP',
-  'All-Rookie Team': 'HKAllRookie',
+  'Finals MVP': 'HKFinalsMVP', // Note: keep only the last one to avoid duplication
+  'All-Rookie Team': 'HKAllRookie', // Note: keep only the last one to avoid duplication
   'All-League Team': 'HKAllLeague',
   'All-Star Game MVP': 'HKAllStarMVP',
   'Assists Leader': 'HKAssistsLeader',
@@ -436,13 +436,16 @@ function getSeasonTeams(player: Player, season: number): Set<number> {
 /**
  * Resolve the primary team for a player in a specific season based on minutes played
  * Used for awards that don't have a team ID attached
+ * CRITICAL: Only uses regular season stats, excludes TOT rows and playoff stats
  */
 function resolvePrimaryTeamForSeason(player: Player, season: number): number | null {
   if (!player.stats) return null;
   
-  // Get all regular season stats for this season
+  // Get all regular season stats for this season, excluding TOT rows (tid === -1)
   const seasonStats = player.stats.filter(stat => 
-    stat.season === season && !stat.playoffs
+    stat.season === season && 
+    !stat.playoffs && 
+    stat.tid !== -1 // Exclude TOT (Total) rows
   );
   
   if (seasonStats.length === 0) return null;
