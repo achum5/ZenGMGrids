@@ -94,7 +94,7 @@ export function CustomGridHeaderSelector({
             <SelectValue placeholder="Team" className="text-xs" />
           </SelectTrigger>
           <SelectContent 
-            className="w-64 max-h-[480px] bg-popover dark:bg-slate-800 border border-border dark:border-slate-600 shadow-md"
+            className="w-64 max-h-[40vh] bg-popover dark:bg-slate-800 border border-border dark:border-slate-600 shadow-md"
             data-testid={`dropdown-teams-${position}`}
             side="bottom"
             align="start"
@@ -123,7 +123,7 @@ export function CustomGridHeaderSelector({
             <SelectValue placeholder="Achievement" className="text-xs" />
           </SelectTrigger>
           <SelectContent 
-            className="w-64 max-h-[480px] bg-popover dark:bg-slate-800 border border-border dark:border-slate-600 shadow-md"
+            className="w-64 max-h-[40vh] bg-popover dark:bg-slate-800 border border-border dark:border-slate-600 shadow-md"
             data-testid={`dropdown-achievements-${position}`}
             side="bottom"
             align="start"
