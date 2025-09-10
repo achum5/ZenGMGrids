@@ -46,6 +46,13 @@ export type SeasonAchievementId =
  */
 export type SeasonIndex = Record<number, Record<number, Record<SeasonAchievementId, Set<number>>>>;
 
+/**
+ * Type for the career-ever achievement index
+ * Maps achievementId -> set of player IDs who ever achieved it
+ * Used for Achievement × Achievement cells with career-ever logic
+ */
+export type CareerEverIndex = Record<string, Set<number>>;
+
 import type { Player } from "@/types/bbgm";
 
 // Award type mapping for Basketball GM - exact strings only
@@ -222,7 +229,7 @@ export function calculateBBGMSeasonLeaders(
     for (const stat of regularSeasonStats) {
       if ((stat.gp || 0) > 0) {
         totalPts += stat.pts || 0;
-        totalTrb += (stat.trb || 0) + (stat.orb || 0) + (stat.drb || 0); // Handle different rebound field formats
+        totalTrb += stat.trb || 0; // Use total rebounds directly
         totalAst += stat.ast || 0;
         totalStl += stat.stl || 0;
         totalBlk += stat.blk || 0;
@@ -450,9 +457,9 @@ export function buildSeasonIndex(
           for (const franchiseId of Array.from(seasonFranchises)) {
             if (!seasonIndex[season]) seasonIndex[season] = {};
             if (!seasonIndex[season][franchiseId]) seasonIndex[season][franchiseId] = {} as Record<SeasonAchievementId, Set<number>>;
-            if (!seasonIndex[season][franchiseId][achievementId]) seasonIndex[season][franchiseId][achievementId] = new Set();
+            if (!seasonIndex[season][franchiseId][achievementId as SeasonAchievementId]) seasonIndex[season][franchiseId][achievementId as SeasonAchievementId] = new Set();
             
-            seasonIndex[season][franchiseId][achievementId].add(pid);
+            seasonIndex[season][franchiseId][achievementId as SeasonAchievementId].add(pid);
             leaderEntriesAdded++;
           }
         }
@@ -473,6 +480,230 @@ export function buildSeasonIndex(
   console.log(`⚠️ Skipped ${skippedEntries} entries due to missing data`);
   
   return seasonIndex;
+}
+
+/**
+ * Build career-ever achievement index for Achievement × Achievement cells
+ * This index tracks which players ever achieved each achievement (career-wide, no season alignment)
+ */
+export function buildCareerEverIndex(players: Player[], sport?: string): CareerEverIndex {
+  const careerEverIndex: CareerEverIndex = {};
+  
+  console.log(`🔄 Building career-ever achievement index for ${sport || 'basketball'}...`);
+  
+  // Initialize all possible achievement sets
+  const allAchievements = getAllPossibleAchievements(sport);
+  for (const achievement of allAchievements) {
+    careerEverIndex[achievement] = new Set<number>();
+  }
+  
+  let totalIndexed = 0;
+  
+  for (const player of players) {
+    if (!player.awards) continue;
+    
+    // Track achievements for this player
+    const playerAchievements = new Set<string>();
+    
+    // Process awards
+    for (const award of player.awards) {
+      const achievementId = mapAwardToAchievement(award.type, sport as any);
+      if (achievementId) {
+        playerAchievements.add(achievementId);
+      }
+    }
+    
+    // Add career milestones (10+ seasons, 20k points, etc.)
+    const careerAchievements = getCareerMilestones(player);
+    careerAchievements.forEach(achievement => playerAchievements.add(achievement));
+    
+    // Add this player to all their achievements in the career-ever index
+    for (const achievement of playerAchievements) {
+      if (!careerEverIndex[achievement]) {
+        careerEverIndex[achievement] = new Set<number>();
+      }
+      careerEverIndex[achievement].add(player.pid);
+      totalIndexed++;
+    }
+  }
+  
+  // Calculate statistical leaders across all seasons and add to career-ever index
+  if (sport === 'basketball' || !sport) {
+    addCareerEverLeaders(players, careerEverIndex);
+  }
+  
+  console.log(`✅ Career-ever index built: ${totalIndexed} total entries`);
+  
+  return careerEverIndex;
+}
+
+/**
+ * Get all possible achievements for a sport
+ */
+function getAllPossibleAchievements(sport?: string): string[] {
+  const achievements: string[] = [];
+  
+  if (sport === 'basketball' || !sport) {
+    achievements.push(
+      'AllStar', 'MVP', 'DPOY', 'ROY', 'SMOY', 'MIP', 'FinalsMVP', 'Champion',
+      'AllLeagueAny', 'AllDefAny', 'AllRookieAny',
+      'PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader'
+    );
+  } else if (sport === 'football') {
+    achievements.push(
+      'FBAllStar', 'FBMVP', 'FBDPOY', 'FBOffROY', 'FBDefROY', 'FBChampion',
+      'FBAllRookie', 'FBAllLeague', 'FBFinalsMVP'
+    );
+  } else if (sport === 'hockey') {
+    achievements.push(
+      'HKAllStar', 'HKMVP', 'HKDefenseman', 'HKROY', 'HKChampion',
+      'HKPlayoffsMVP', 'HKFinalsMVP', 'HKAllRookie', 'HKAllLeague',
+      'HKAllStarMVP', 'HKAssistsLeader'
+    );
+  } else if (sport === 'baseball') {
+    achievements.push(
+      'BBAllStar', 'BBMVP', 'BBROY', 'BBChampion', 'BBAllRookie',
+      'BBAllLeague', 'BBPlayoffsMVP', 'BBAllStarMVP', 'BBPitcherOTY',
+      'BBGoldGlove', 'BBSilverSlugger',
+      'BBBattingAvgLeader', 'BBHomeRunLeader', 'BBRBILeader', 'BBStolenBaseLeader',
+      'BBOBPLeader', 'BBSluggingLeader', 'BBOPSLeader', 'BBHitsLeader',
+      'BBERALeader', 'BBStrikeoutsLeader', 'BBSavesLeader', 'BBReliefPitcherOTY'
+    );
+  }
+  
+  // Add career milestones that apply to all sports
+  achievements.push(
+    'played10PlusSeasons', 'played15PlusSeasons', 'HOF',
+    'drafted1OA', 'draftedFirstRound', 'undrafted',
+    'career20kPoints', 'career10kRebounds', 'career5kAssists', 'career2kSteals', 'career1_5kBlocks', 'career2kThrees'
+  );
+  
+  return achievements;
+}
+
+/**
+ * Get career milestone achievements for a player
+ */
+function getCareerMilestones(player: Player): string[] {
+  const achievements: string[] = [];
+  
+  // Calculate career totals
+  let totalSeasons = 0;
+  let careerPts = 0;
+  let careerTrb = 0;
+  let careerAst = 0;
+  let careerStl = 0;
+  let careerBlk = 0;
+  let careerThrees = 0;
+  
+  const seasonsPlayed = new Set<number>();
+  
+  if (player.stats) {
+    for (const stat of player.stats) {
+      if (!stat.playoffs && stat.season) {
+        seasonsPlayed.add(stat.season);
+        careerPts += stat.pts || 0;
+        careerTrb += stat.trb || 0;
+        careerAst += stat.ast || 0;
+        careerStl += stat.stl || 0;
+        careerBlk += stat.blk || 0;
+        careerThrees += stat.tp || 0;
+      }
+    }
+  }
+  
+  totalSeasons = seasonsPlayed.size;
+  
+  // Season milestones
+  if (totalSeasons >= 10) achievements.push('played10PlusSeasons');
+  if (totalSeasons >= 15) achievements.push('played15PlusSeasons');
+  
+  // Statistical milestones
+  if (careerPts >= 20000) achievements.push('career20kPoints');
+  if (careerTrb >= 10000) achievements.push('career10kRebounds');
+  if (careerAst >= 5000) achievements.push('career5kAssists');
+  if (careerStl >= 2000) achievements.push('career2kSteals');
+  if (careerBlk >= 1500) achievements.push('career1_5kBlocks');
+  if (careerThrees >= 2000) achievements.push('career2kThrees');
+  
+  // Draft status
+  if (player.draft?.pick === 1 && player.draft?.round === 1) {
+    achievements.push('drafted1OA');
+  } else if (player.draft?.round === 1) {
+    achievements.push('draftedFirstRound');
+  } else if (!player.draft?.round) {
+    achievements.push('undrafted');
+  }
+  
+  // Hall of Fame
+  if (player.hof) achievements.push('HOF');
+  
+  return achievements;
+}
+
+/**
+ * Add statistical leaders to career-ever index
+ */
+function addCareerEverLeaders(players: Player[], careerEverIndex: CareerEverIndex): void {
+  // Get all seasons
+  const allSeasons = new Set<number>();
+  for (const player of players) {
+    if (player.stats) {
+      for (const stat of player.stats) {
+        if (stat.season && !stat.playoffs) {
+          allSeasons.add(stat.season);
+        }
+      }
+    }
+  }
+  
+  // Calculate leaders for each season and add to career-ever index
+  for (const season of Array.from(allSeasons)) {
+    const seasonLeaders = calculateBBGMSeasonLeaders(players, season, null);
+    
+    for (const [achievementId, playerIds] of Object.entries(seasonLeaders)) {
+      for (const pid of playerIds) {
+        if (!careerEverIndex[achievementId]) {
+          careerEverIndex[achievementId] = new Set<number>();
+        }
+        careerEverIndex[achievementId].add(pid);
+      }
+    }
+  }
+}
+
+/**
+ * Get eligible players for Achievement × Achievement intersection using career-ever logic
+ */
+export function getCareerEverIntersection(
+  careerEverIndex: CareerEverIndex,
+  achievement1: string,
+  achievement2: string
+): Set<number> {
+  const set1 = careerEverIndex[achievement1] || new Set<number>();
+  const set2 = careerEverIndex[achievement2] || new Set<number>();
+  
+  // Return intersection of both sets
+  const intersection = new Set<number>();
+  for (const pid of set1) {
+    if (set2.has(pid)) {
+      intersection.add(pid);
+    }
+  }
+  
+  return intersection;
+}
+
+/**
+ * Check if a player ever achieved a specific achievement (career-ever logic)
+ */
+export function playerEverAchieved(
+  careerEverIndex: CareerEverIndex,
+  playerId: number,
+  achievementId: string
+): boolean {
+  const achievementSet = careerEverIndex[achievementId];
+  return achievementSet ? achievementSet.has(playerId) : false;
 }
 
 /**
