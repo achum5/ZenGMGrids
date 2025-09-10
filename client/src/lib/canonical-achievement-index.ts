@@ -200,8 +200,10 @@ export function buildCanonicalAchievementIndex(
         if (playoffsStats) {
           const franchiseId = franchiseIdMap.get(playoffsStats.tid) || playoffsStats.tid;
           addToIndex(awardByTeamSeason, awardByTeamAnySeason, achId, franchiseId, season, player.pid);
+          console.log(`🏆 Finals MVP indexed: Player ${player.pid} (${player.firstName} ${player.lastName}) -> ${achId} (team ${franchiseId}, season ${season})`);
           processedAwards++;
         } else {
+          console.log(`⚠️ Finals MVP SKIPPED: Player ${player.pid} (${player.firstName} ${player.lastName}) - no playoff stats for season ${season}`);
           skippedAwards++;
         }
         continue;
