@@ -420,13 +420,25 @@ function addToIndex(
 }
 
 /**
- * Get eligible players for Team × Achievement combination using canonical index
+ * Get eligible players for Team × Achievement combination using canonical index (with V2 integration)
  */
 export function getCanonicalEligiblePlayers(
   index: CanonicalAchievementIndex,
   achievementId: string,
-  franchiseId: number
+  franchiseId: number,
+  players?: Player[],
+  teams?: Team[]
 ): Set<number> {
+  // Check if V2 engine is enabled
+  const { isV2Enabled, getV2EligiblePlayers } = getV2Integration();
+  
+  if (isV2Enabled() && players && teams) {
+    // Use V2 eligible players calculation
+    const eligiblePlayers = getV2EligiblePlayers(achievementId, franchiseId, players, teams);
+    return new Set(eligiblePlayers.map((p: any) => p.pid));
+  }
+  
+  // Fall back to V1 logic
   // Check if this is a career achievement
   if (index.careerAch[achievementId]) {
     const careerPlayers = index.careerAch[achievementId];
@@ -469,16 +481,51 @@ export function getCanonicalEligiblePlayersInSeason(
 }
 
 /**
- * Validate player guess using canonical index
+ * Validate player guess using canonical index (with V2 integration)
  */
 export function validateGuessCanonical(
   index: CanonicalAchievementIndex,
   playerId: number,
   achievementId: string,
-  franchiseId: number
+  franchiseId: number,
+  players?: Player[],
+  teams?: Team[]
 ): boolean {
+  // Check if V2 engine is enabled
+  const { isV2Enabled, validateAchievementV2Compatible } = getV2Integration();
+  
+  if (isV2Enabled() && players && teams) {
+    // Use V2 validation
+    const player = players.find(p => p.pid === playerId);
+    if (player) {
+      return validateAchievementV2Compatible(player, achievementId, franchiseId, players, teams);
+    }
+  }
+  
+  // Fall back to V1 validation
   const eligiblePlayers = getCanonicalEligiblePlayers(index, achievementId, franchiseId);
   return eligiblePlayers.has(playerId);
+}
+
+/**
+ * Get V2 integration functions (lazy loaded to avoid circular imports)
+ */
+function getV2Integration() {
+  try {
+    const v2Manager = require('./achievements-v2-manager');
+    return {
+      isV2Enabled: v2Manager.isV2Enabled,
+      validateAchievementV2Compatible: v2Manager.validateAchievementV2Compatible,
+      getV2EligiblePlayers: v2Manager.getV2EligiblePlayers,
+    };
+  } catch (error) {
+    console.warn('V2 integration not available:', error);
+    return {
+      isV2Enabled: () => false,
+      validateAchievementV2Compatible: () => false,
+      getV2EligiblePlayers: () => [],
+    };
+  }
 }
 
 /**
