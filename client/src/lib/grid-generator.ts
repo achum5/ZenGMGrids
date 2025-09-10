@@ -875,13 +875,13 @@ function calculateIntersectionSimple(
     } else {
       // No indices available - fallback to player-by-player evaluation
       eligiblePlayers = players.filter(p => 
-        evaluateConstraintPair(p, rowConstraint, colConstraint, seasonIndex)
+        evaluateConstraintPair(p, rowConstraint, colConstraint, seasonIndex, careerEverIndex)
       );
     }
   } else {
     // Standard evaluation for career achievements or mixed career/season
     eligiblePlayers = players.filter(p => 
-      evaluateConstraintPair(p, rowConstraint, colConstraint, seasonIndex)
+      evaluateConstraintPair(p, rowConstraint, colConstraint, seasonIndex, careerEverIndex)
     );
   }
   
