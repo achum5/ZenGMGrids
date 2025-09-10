@@ -2062,10 +2062,13 @@ export function evaluateConstraintPair(player: Player, rowConstraint: GridConstr
     const rowCanonicalId = getCanonicalId(rowConstraint.achievementId!) || rowConstraint.achievementId!;
     const colCanonicalId = getCanonicalId(colConstraint.achievementId!) || colConstraint.achievementId!;
     
+    console.log(`🔍 A×A Debug: ${rowConstraint.achievementId} -> ${rowCanonicalId}, ${colConstraint.achievementId} -> ${colCanonicalId}`);
+    
     // Use career-ever index if available (preferred for A×A cells)
     if (careerEverIndex) {
       const hasRowAchievement = careerEverIndex[rowCanonicalId]?.has(player.pid) || false;
       const hasColAchievement = careerEverIndex[colCanonicalId]?.has(player.pid) || false;
+      console.log(`🔍 A×A Player ${player.name}: ${rowCanonicalId}=${hasRowAchievement}, ${colCanonicalId}=${hasColAchievement}`);
       return hasRowAchievement && hasColAchievement;
     }
     
