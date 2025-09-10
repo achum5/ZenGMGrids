@@ -4,6 +4,8 @@ import { playerMeetsAchievement } from '@/lib/achievements';
 import { SEASON_ACHIEVEMENTS, type SeasonAchievementId, type SeasonIndex, getSeasonEligiblePlayers, type CareerEverIndex, getCareerEverIntersection } from './season-achievements';
 import { getCanonicalId, getDisplayLabel, isSeasonAligned } from '@/lib/canonical-achievements';
 import type { CanonicalAchievementIndex } from './canonical-achievement-index';
+import { validateGuessCanonical, getCanonicalEligiblePlayers } from './canonical-achievement-index';
+import { isCareerAchievement } from './achievement-helpers';
 
 // Season achievement metadata for modal copy
 const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
@@ -1991,11 +1993,18 @@ export function generateFeedbackMessage(
 /**
   * Check if a player satisfies a team × achievement constraint with same-season alignment
   */
-function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, achievementId: string, seasonIndex?: SeasonIndex): boolean {
-
-  // Check if this achievement requires same-season alignment
-  if (!SEASON_ALIGNED_ACHIEVEMENTS.has(achievementId)) {
-    // Career-based achievements: just check if player ever played for team AND has the achievement
+function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, achievementId: string, seasonIndex?: SeasonIndex, canonicalIndex?: CanonicalAchievementIndex): boolean {
+  // Convert to canonical ID for consistency
+  const canonicalId = getCanonicalId(achievementId) || achievementId;
+  
+  // If we have canonical index, use it (preferred method)
+  if (canonicalIndex) {
+    return validateGuessCanonical(canonicalIndex, player.pid, canonicalId, teamTid);
+  }
+  
+  // Check if this is a career achievement (non-season-aligned)
+  if (isCareerAchievement(canonicalId)) {
+    // Career-based achievements: player must have played for team AND have the achievement
     const result = playerPlayedForTeam(player, teamTid) && playerMeetsAchievement(player, achievementId, seasonIndex);
     return result;
   }
@@ -2006,7 +2015,6 @@ function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, a
     // Use the same logic as custom grids - check if player is eligible via season index
     const eligiblePids = getSeasonEligiblePlayers(seasonIndex, teamTid, achievementId as SeasonAchievementId);
     const result = eligiblePids.has(player.pid);
-    
     
     return result;
   }
@@ -2116,11 +2124,11 @@ export function evaluateConstraintPair(player: Player, rowConstraint: GridConstr
   
   // Team × Achievement case: use same-season alignment
   if (rowConstraint.type === 'team' && colConstraint.type === 'achievement') {
-    return evaluateTeamAchievementWithAlignment(player, rowConstraint.tid!, colConstraint.achievementId!, seasonIndex);
+    return evaluateTeamAchievementWithAlignment(player, rowConstraint.tid!, colConstraint.achievementId!, seasonIndex, canonicalIndex);
   }
   
   if (rowConstraint.type === 'achievement' && colConstraint.type === 'team') {
-    return evaluateTeamAchievementWithAlignment(player, colConstraint.tid!, rowConstraint.achievementId!, seasonIndex);
+    return evaluateTeamAchievementWithAlignment(player, colConstraint.tid!, rowConstraint.achievementId!, seasonIndex, canonicalIndex);
   }
   
   return false;

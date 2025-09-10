@@ -3,6 +3,13 @@
 
 import type { Player, Team } from '@/types/bbgm';
 import { calculateBBGMSeasonLeaders } from './season-achievements';
+import { 
+  getDraftStatus, 
+  computeCareerTotals, 
+  checkCareerThresholds, 
+  checkHallOfFame,
+  isCareerAchievement 
+} from './achievement-helpers';
 
 // Canonical index structures
 export interface CanonicalAchievementIndex {
@@ -41,6 +48,9 @@ const BASKETBALL_AWARD_MAPPING: Record<string, string> = {
   'Second Team All-Defensive': 'ALL_DEFENSIVE',
   'All-Rookie Team': 'ALL_ROOKIE',
   'Finals MVP': 'FINALS_MVP',
+  'Champion': 'CHAMPION',
+  'Won Championship': 'CHAMPION',
+  'Won title': 'CHAMPION',
 };
 
 const FOOTBALL_AWARD_MAPPING: Record<string, string> = {
@@ -146,8 +156,16 @@ export function buildCanonicalAchievementIndex(
     awardByTeamAnySeason[achId] = {};
   }
   
+  // Initialize season achievements that also have career-ever logic
+  const seasonAchievements = ['MIP', 'CHAMPION'];
+  seasonAchievements.forEach(achId => {
+    awardByTeamSeason[achId] = {};
+    awardByTeamAnySeason[achId] = {};
+    careerAch[achId] = new Set(); // Also track career-ever for A×A cells
+  });
+  
   // Initialize career achievements using canonical IDs
-  const careerAchievementIds = ['PICK_1_OA', 'FIRST_ROUND', 'UNDRAFTED', 'HOF', 'SEASONS_10', 'SEASONS_15'];
+  const careerAchievementIds = ['ONE_OA', 'ROUND_1', 'ROUND_2', 'UNDRAFTED', 'HOF', 'SEASONS_10', 'SEASONS_15'];
   if (sport === 'basketball') {
     careerAchievementIds.push('PTS_20K', 'REB_10K', 'AST_5K', 'STL_2K', 'BLK_1_5K', 'THREES_2K');
   } else if (sport === 'football') {
@@ -228,8 +246,8 @@ export function buildCanonicalAchievementIndex(
       processedAwards++;
     }
     
-    // Build career achievements and playedForTeam mappings
-    calculateCareerAchievements(player, careerAch, sport);
+    // Build career achievements using new robust helpers
+    calculateCareerAchievementsRobust(player, careerAch, sport);
     
     // Track which teams this player appeared for
     if (player.stats) {
@@ -319,100 +337,52 @@ export function buildCanonicalAchievementIndex(
 }
 
 /**
- * Calculate career achievements for a player according to FBGM specification
+ * Calculate career achievements for a player using robust helpers
  */
-function calculateCareerAchievements(
+function calculateCareerAchievementsRobust(
   player: Player,
   careerAch: Record<string, Set<number>>,
   sport: string
 ): void {
-  // Draft achievements
-  if (player.draft) {
-    if (player.draft.pick === 1 && player.draft.round === 1) {
-      careerAch.PICK_1_OA.add(player.pid);
+  // Use robust draft parsing
+  const draftStatus = getDraftStatus(player);
+  draftStatus.flags.forEach(flag => {
+    if (careerAch[flag]) {
+      careerAch[flag].add(player.pid);
     }
-    if (player.draft.round === 1) {
-      careerAch.FIRST_ROUND.add(player.pid);
-    }
-  } else {
-    // No draft data means undrafted (round === 0 or missing)
-    careerAch.UNDRAFTED.add(player.pid);
-  }
+  });
   
-  // Hall of Fame - check both hof property and award
-  if ((player as any).hof === true || player.awards?.some(a => a.type === 'Inducted into the Hall of Fame')) {
+  // Hall of Fame using robust helper
+  if (checkHallOfFame(player)) {
     careerAch.HOF.add(player.pid);
   }
   
-  // Seasons played (count distinct regular season years with games played)
-  if (player.stats) {
-    const seasonsPlayed = new Set<number>();
-    player.stats.forEach(stat => {
-      if (!stat.playoffs && (stat.gp || 0) > 0) {
-        seasonsPlayed.add(stat.season);
-      }
-    });
-    
-    if (seasonsPlayed.size >= 10) {
-      careerAch.SEASONS_10.add(player.pid);
+  // Career totals and threshold checking
+  const careerTotals = computeCareerTotals(player);
+  const thresholdAchievements = checkCareerThresholds(careerTotals);
+  thresholdAchievements.forEach(achId => {
+    if (careerAch[achId]) {
+      careerAch[achId].add(player.pid);
     }
-    if (seasonsPlayed.size >= 15) {
-      careerAch.SEASONS_15.add(player.pid);
+  });
+  
+  // Check for MIP and CHAMPION awards for career-ever logic (Achievement × Achievement)
+  if (player.awards) {
+    const hasMIP = player.awards.some(award => 
+      award.type === 'Most Improved Player' || award.type === 'MIP'
+    );
+    if (hasMIP) {
+      careerAch.MIP.add(player.pid);
     }
-  }
-  
-  // Basketball-specific career achievements
-  if (sport === 'basketball' && player.stats) {
-    let careerPts = 0, careerTrb = 0, careerAst = 0;
-    let careerStl = 0, careerBlk = 0, career3PM = 0;
     
-    player.stats.forEach(stat => {
-      if (stat.playoffs) return; // Only regular season
-      
-      careerPts += stat.pts || 0;
-      careerTrb += (stat.trb || 0) + (stat.orb || 0) + (stat.drb || 0); // Handle different rebound formats
-      careerAst += stat.ast || 0;
-      careerStl += stat.stl || 0;
-      careerBlk += stat.blk || 0;
-      career3PM += stat.tp || stat.fg3 || 0; // 3-pointers made
-    });
-    
-    // Apply basketball career thresholds using canonical IDs
-    if (careerPts >= 20000) careerAch.PTS_20K.add(player.pid);
-    if (careerTrb >= 10000) careerAch.REB_10K.add(player.pid);
-    if (careerAst >= 5000) careerAch.AST_5K.add(player.pid);
-    if (careerStl >= 2000) careerAch.STL_2K.add(player.pid);
-    if (careerBlk >= 1500) careerAch.BLK_1_5K.add(player.pid);
-    if (career3PM >= 2000) careerAch.THREES_2K.add(player.pid);
-  }
-  
-  // Football-specific career achievements
-  if (sport === 'football' && player.stats) {
-    let careerPassTDs = 0, careerRushYds = 0, careerRushTDs = 0;
-    let careerRecYds = 0, careerRecTDs = 0, careerSacks = 0, careerInts = 0;
-    
-    player.stats.forEach(stat => {
-      if (stat.playoffs) return; // Only regular season
-      
-      // Field names from specification - use tolerant lookup with type casting
-      const s = stat as any;
-      careerPassTDs += s.psTD || s.passTD || 0;
-      careerRushYds += s.ruYds || s.rushYds || 0;
-      careerRushTDs += s.ruTD || s.rushTD || 0;
-      careerRecYds += s.recYds || 0;
-      careerRecTDs += s.recTD || 0;
-      careerSacks += s.sk || s.sacks || 0;
-      careerInts += s.int || s.defInt || 0;
-    });
-    
-    // Apply thresholds from specification
-    if (careerPassTDs >= 150) careerAch.career300PassTDs.add(player.pid);
-    if (careerRushYds >= 8000) careerAch.career12kRushYds.add(player.pid);
-    if (careerRushTDs >= 40) careerAch.career100RushTDs.add(player.pid);
-    if (careerRecYds >= 6000) careerAch.career12kRecYds.add(player.pid);
-    if (careerRecTDs >= 40) careerAch.career100RecTDs.add(player.pid);
-    if (careerSacks >= 60) careerAch.career100Sacks.add(player.pid);
-    if (careerInts >= 20) careerAch.career20Ints.add(player.pid);
+    const hasChampion = player.awards.some(award => 
+      award.type === 'Champion' || 
+      award.type === 'Won Championship' || 
+      award.type === 'Won title'
+    );
+    if (hasChampion) {
+      careerAch.CHAMPION.add(player.pid);
+    }
   }
 }
 
