@@ -1,5 +1,31 @@
 import type { Player, Team } from '@/types/bbgm';
 import type { GridConstraint } from '@/lib/feedback';
+import type { SeasonIndex, SeasonAchievementId } from '@/lib/season-achievements';
+
+// ===== HELPER FUNCTIONS =====
+
+/**
+ * Check if a player is eligible for a team-achievement combination in the season index
+ * This replaces complex affinity calculations with direct season index lookup
+ */
+function isPlayerInSeasonIndex(
+  playerId: number, 
+  teamId: number, 
+  achievementId: string, 
+  seasonIndex: SeasonIndex
+): boolean {
+  // Search across all seasons for this team-achievement combination
+  for (const seasonStr of Object.keys(seasonIndex)) {
+    const season = parseInt(seasonStr);
+    const seasonData = seasonIndex[season];
+    if (seasonData[teamId] && seasonData[teamId][achievementId as SeasonAchievementId]) {
+      if (seasonData[teamId][achievementId as SeasonAchievementId].has(playerId)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
 
 // ===== TYPES AND INTERFACES =====
 
@@ -66,6 +92,9 @@ export interface PlayerCache {
   
   // Global popularity score
   globalPopularity: number;
+  
+  // Season achievement index
+  seasonIndex: SeasonIndex;
 }
 
 export interface CellPopularityComponents {
@@ -347,9 +376,11 @@ export function calculateTeamAffinity(
   const achievementId = rowConstraint.type === 'achievement' ? 
     rowConstraint.achievementId! : colConstraint.achievementId!;
   
-  // For season-aligned categories, use season-specific team affinity
+  // For season-aligned categories, check direct season index eligibility
   if (SEASON_ALIGNED.has(achievementId)) {
-    return calculateSeasonTeamAffinity(player, cache, teamTid, achievementId);
+    // Simple check: is player eligible for this team-achievement combination?
+    // This replaces complex affinity calculations with direct season index lookup
+    return isPlayerInSeasonIndex(player.pid, teamTid, achievementId, cache.seasonIndex) ? 10 : 0;
   }
   
   // For career categories, use career team affinity
@@ -364,50 +395,16 @@ function calculateSingleTeamAffinity(cache: PlayerCache, teamTid: number): numbe
   return Math.log(1 + teamStat.min + 2 * teamStat.gp) + 10 * teamStat.ws;
 }
 
+// This function is no longer used - replaced by direct season index checks
+// Keeping as stub for any remaining references
 function calculateSeasonTeamAffinity(
   player: Player, 
   cache: PlayerCache, 
   teamTid: number, 
   achievementId: string
 ): number {
-  const qualifyingSeasons = getQualifyingSeasonsForAchievement(player, achievementId);
-  let bestAffinity = 0;
-  let debugInfo: any[] = [];
-  
-  for (const season of qualifyingSeasons) {
-    const seasonStat = cache.seasonStats.get(season);
-    if (!seasonStat) continue;
-    
-    const teamMinutes = seasonStat.teamMinutes.get(teamTid) ?? 0;
-    if (teamMinutes === 0) continue;
-    
-    // Estimate games from minutes ratio (approximate)
-    const totalMinutes = seasonStat.min;
-    const minutesRatio = totalMinutes > 0 ? teamMinutes / totalMinutes : 0;
-    const teamGames = Math.round(seasonStat.gp * minutesRatio);
-    
-    const affinity = Math.log(1 + teamMinutes + 2 * teamGames);
-    debugInfo.push({
-      season,
-      teamMinutes,
-      teamGames,
-      affinity: affinity.toFixed(3)
-    });
-    
-    if (affinity > bestAffinity) {
-      bestAffinity = affinity;
-    }
-  }
-  
-  // Debug log for season-specific team affinity
-  if (debugInfo.length > 0) {
-    console.log(`${player.name} - Season Team Affinity (tid=${teamTid}, achievement=${achievementId}):`);
-    console.log(`  Qualifying seasons: ${qualifyingSeasons.join(', ')}`);
-    console.log(`  Details:`, debugInfo);
-    console.log(`  Best affinity: ${bestAffinity.toFixed(3)}`);
-  }
-  
-  return bestAffinity;
+  // Replaced with direct season index eligibility check
+  return isPlayerInSeasonIndex(player.pid, teamTid, achievementId, cache.seasonIndex) ? 10 : 0;
 }
 
 // ===== CATEGORY FIT CALCULATION =====
@@ -584,23 +581,8 @@ function calculateTeamOverlap(
   achievementId: string
 ): number {
   if (SEASON_ALIGNED.has(achievementId)) {
-    // For season-aligned: minutes share with team in qualifying season
-    const qualifyingSeasons = getQualifyingSeasonsForAchievement(player, achievementId);
-    let bestOverlap = 0;
-    
-    for (const season of qualifyingSeasons) {
-      const seasonStat = cache.seasonStats.get(season);
-      if (!seasonStat) continue;
-      
-      const totalMinutes = seasonStat.min;
-      const teamMinutes = seasonStat.teamMinutes.get(teamTid) ?? 0;
-      
-      if (totalMinutes > 0) {
-        bestOverlap = Math.max(bestOverlap, teamMinutes / totalMinutes);
-      }
-    }
-    
-    return bestOverlap;
+    // For season-aligned: check if player is eligible via season index
+    return isPlayerInSeasonIndex(player.pid, teamTid, achievementId, cache.seasonIndex) ? 1.0 : 0.0;
   } else {
     // For career categories: fraction of career stat with team
     const teamStat = cache.teamStats.get(teamTid);
