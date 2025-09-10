@@ -1,5 +1,9 @@
 // Season achievement constants and utility functions for Immaculate Grid
 
+import type { Player, PlayerAward } from '@/types/bbgm';
+import { playerMeetsAchievement } from '@/lib/achievements';
+import { getCanonicalId, getAchievementsForSport, isSeasonAligned, CANONICAL_ACHIEVEMENTS } from '@/lib/canonical-achievements';
+
 /**
  * Configuration for minimum games played requirement 
  * These values ensure statistical leader calculations are meaningful
@@ -485,56 +489,166 @@ export function buildSeasonIndex(
 /**
  * Build career-ever achievement index for Achievement × Achievement cells
  * This index tracks which players ever achieved each achievement (career-wide, no season alignment)
+ * Uses canonical achievement IDs for consistency across all systems
  */
 export function buildCareerEverIndex(players: Player[], sport?: string): CareerEverIndex {
   const careerEverIndex: CareerEverIndex = {};
   
   console.log(`🔄 Building career-ever achievement index for ${sport || 'basketball'}...`);
   
-  // Initialize all possible achievement sets
-  const allAchievements = getAllPossibleAchievements(sport);
-  for (const achievement of allAchievements) {
-    careerEverIndex[achievement] = new Set<number>();
+  // Initialize sets for all canonical achievements for this sport
+  const sportAchievements = getAchievementsForSport(sport || 'basketball');
+  for (const achievement of sportAchievements) {
+    careerEverIndex[achievement.id] = new Set<number>();
   }
   
   let totalIndexed = 0;
   
   for (const player of players) {
-    if (!player.awards) continue;
-    
-    // Track achievements for this player
+    // Track achievements for this player using canonical IDs
     const playerAchievements = new Set<string>();
     
-    // Process awards
-    for (const award of player.awards) {
-      const achievementId = mapAwardToAchievement(award.type, sport as any);
-      if (achievementId) {
-        playerAchievements.add(achievementId);
+    // Process awards using canonical mapping
+    if (player.awards) {
+      for (const award of player.awards) {
+        const canonicalId = getCanonicalId(award.type || '');
+        if (canonicalId && careerEverIndex[canonicalId]) {
+          playerAchievements.add(canonicalId);
+        }
       }
     }
     
-    // Add career milestones (10+ seasons, 20k points, etc.)
-    const careerAchievements = getCareerMilestones(player);
-    careerAchievements.forEach(achievement => playerAchievements.add(achievement));
+    // Add computed career milestones using canonical IDs
+    const careerMilestones = computeCareerMilestones(player, sport);
+    careerMilestones.forEach(canonicalId => {
+      if (careerEverIndex[canonicalId]) {
+        playerAchievements.add(canonicalId);
+      }
+    });
+    
+    // Add statistical leaders using canonical mapping
+    const leaderAchievements = computeStatisticalLeaders(player, sport);
+    leaderAchievements.forEach(canonicalId => {
+      if (careerEverIndex[canonicalId]) {
+        playerAchievements.add(canonicalId);
+      }
+    });
     
     // Add this player to all their achievements in the career-ever index
-    for (const achievement of playerAchievements) {
-      if (!careerEverIndex[achievement]) {
-        careerEverIndex[achievement] = new Set<number>();
-      }
-      careerEverIndex[achievement].add(player.pid);
+    for (const canonicalId of playerAchievements) {
+      careerEverIndex[canonicalId].add(player.pid);
       totalIndexed++;
     }
-  }
-  
-  // Calculate statistical leaders across all seasons and add to career-ever index
-  if (sport === 'basketball' || !sport) {
-    addCareerEverLeaders(players, careerEverIndex);
   }
   
   console.log(`✅ Career-ever index built: ${totalIndexed} total entries`);
   
   return careerEverIndex;
+}
+
+/**
+ * Compute career milestone achievements for a player using canonical IDs
+ */
+function computeCareerMilestones(player: Player, sport?: string): string[] {
+  const milestones: string[] = [];
+  
+  if (!player.stats) return milestones;
+  
+  // Count regular season stats only (exclude playoffs)
+  const regularSeasonStats = player.stats.filter(s => !s.playoffs);
+  
+  // Count seasons played
+  const seasonsPlayed = new Set(regularSeasonStats.map(s => s.season)).size;
+  if (seasonsPlayed >= 10) milestones.push('SEASONS_10');
+  if (seasonsPlayed >= 15) milestones.push('SEASONS_15');
+  
+  if (sport === 'basketball' || !sport) {
+    // Calculate career totals (use season aggregate rows if available, otherwise sum team rows)
+    let careerPts = 0, careerReb = 0, careerAst = 0, careerStl = 0, careerBlk = 0, careerThrees = 0;
+    
+    const seasonTotals = new Map<number, any>();
+    
+    // Group stats by season
+    for (const stat of regularSeasonStats) {
+      if (!seasonTotals.has(stat.season)) {
+        seasonTotals.set(stat.season, { pts: 0, trb: 0, ast: 0, stl: 0, blk: 0, tp: 0, fg3m: 0 });
+      }
+      
+      const seasonTotal = seasonTotals.get(stat.season)!;
+      seasonTotal.pts += stat.pts || 0;
+      seasonTotal.trb += stat.trb || 0;
+      seasonTotal.ast += stat.ast || 0;
+      seasonTotal.stl += stat.stl || 0;
+      seasonTotal.blk += stat.blk || 0;
+      seasonTotal.tp += stat.tp || 0;
+      seasonTotal.fg3m += stat.fg3m || 0;
+    }
+    
+    // Sum across all seasons
+    for (const seasonTotal of seasonTotals.values()) {
+      careerPts += seasonTotal.pts;
+      careerReb += seasonTotal.trb;
+      careerAst += seasonTotal.ast;
+      careerStl += seasonTotal.stl;
+      careerBlk += seasonTotal.blk;
+      careerThrees += Math.max(seasonTotal.tp, seasonTotal.fg3m); // Use whichever field is available
+    }
+    
+    // Check thresholds using canonical IDs
+    if (careerPts >= 20000) milestones.push('PTS_20K');
+    if (careerReb >= 10000) milestones.push('REB_10K');
+    if (careerAst >= 5000) milestones.push('AST_5K');
+    if (careerStl >= 2000) milestones.push('STL_2K');
+    if (careerBlk >= 1500) milestones.push('BLK_1_5K');
+    if (careerThrees >= 2000) milestones.push('THREES_2K');
+  }
+  
+  // Draft achievements
+  if (player.draft) {
+    if (player.draft.pick === 1) milestones.push('PICK_1_OA');
+    else if (player.draft.round === 1) milestones.push('FIRST_ROUND');
+    else if (player.draft.round === 2) milestones.push('SECOND_ROUND');
+    else if (player.draft.undrafted) milestones.push('UNDRAFTED');
+  }
+  
+  // Hall of Fame
+  if (player.hof) milestones.push('HOF');
+  
+  return milestones;
+}
+
+/**
+ * Compute statistical leader achievements for a player using canonical IDs
+ */
+function computeStatisticalLeaders(player: Player, sport?: string): string[] {
+  const leaders: string[] = [];
+  
+  if (!player.awards) return leaders;
+  
+  // Map award strings to canonical leader IDs
+  for (const award of player.awards) {
+    const awardType = (award.type || '').toLowerCase();
+    
+    if (sport === 'basketball' || !sport) {
+      if (awardType.includes('scoring leader') || awardType.includes('points leader')) {
+        leaders.push('PTS_LEADER');
+      }
+      if (awardType.includes('rebounding leader') || awardType.includes('rebounds leader')) {
+        leaders.push('REB_LEADER');
+      }
+      if (awardType.includes('assists leader') || awardType.includes('assist leader')) {
+        leaders.push('AST_LEADER');
+      }
+      if (awardType.includes('steals leader')) {
+        leaders.push('STL_LEADER');
+      }
+      if (awardType.includes('blocks leader')) {
+        leaders.push('BLK_LEADER');
+      }
+    }
+  }
+  
+  return leaders;
 }
 
 /**
