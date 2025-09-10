@@ -32,13 +32,10 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, string> = {
   FBFinalsMVP: 'Finals MVP',
   FBChampion: 'Won Championship',
   
-  // Hockey GM achievements
+  // Hockey GM achievements  
   HKAllStar: 'All-Star',
   HKAllStarMVP: 'All-Star MVP',
   HKMVP: 'MVP',
-  HKDPOY: 'Defensive Player of the Year',
-  HKDefForward: 'Defensive Forward of the Year',
-  HKGoalie: 'Goalie of the Year',
   HKROY: 'Rookie of the Year',
   HKAllRookie: 'All-Rookie Team',
   HKAllLeague: 'All-League Team',
@@ -133,9 +130,6 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
     HKAllStar: ['All-Star', 'all-star'],
     HKAllStarMVP: ['All-Star MVP', 'all-star mvp'],
     HKMVP: ['Most Valuable Player', 'most valuable player'],
-    HKDPOY: ['Defensive Player of the Year', 'defensive player of the year'],
-    HKDefForward: ['Defensive Forward of the Year', 'defensive forward of the year'],
-    HKGoalie: ['Goalie of the Year', 'goalie of the year'],
     HKROY: ['Rookie of the Year', 'rookie of the year'],
     HKAllRookie: ['All-Rookie Team', 'all-rookie team'],
     HKAllLeague: ['All-League Team', 'all-league team', 'First Team All-League', 'Second Team All-League'],
