@@ -1,8 +1,6 @@
 import type { Player, Team, CatTeam, LeagueData } from '@/types/bbgm';
-import type { SeasonIndex, SeasonAchievementId } from '@/lib/season-achievements';
+import type { SeasonIndex } from '@/lib/season-achievements';
 import { getAchievements, playerMeetsAchievement } from '@/lib/achievements';
-import { getSeasonEligiblePlayers, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
-import { evaluateConstraintPair } from '@/lib/feedback';
 
 export interface HeaderConfig {
   type: 'team' | 'achievement' | null;
@@ -66,6 +64,7 @@ export function getTeamOptions(teams: Team[]): TeamOption[] {
 export function getAchievementOptions(sport: string, seasonIndex?: SeasonIndex): AchievementOption[] {
   const achievements = getAchievements(sport as any, seasonIndex);
   return achievements
+    .filter(achievement => achievement.id !== 'bornOutsideUS50DC') // Exclude problematic achievement
     .map(achievement => ({
       id: achievement.id,
       label: achievement.label
@@ -77,8 +76,7 @@ export function getAchievementOptions(sport: string, seasonIndex?: SeasonIndex):
 export function headerConfigToCatTeam(
   config: HeaderConfig,
   teams: Team[],
-  seasonIndex?: SeasonIndex,
-  position?: string // Add position parameter to make keys unique
+  seasonIndex?: SeasonIndex
 ): CatTeam | null {
   if (!config.type || !config.selectedId || !config.selectedLabel) {
     return null;
@@ -89,7 +87,7 @@ export function headerConfigToCatTeam(
     if (!team) return null;
     
     return {
-      key: position ? `team-${config.selectedId}-${position}` : `team-${config.selectedId}`,
+      key: `team-${config.selectedId}`,
       label: config.selectedLabel,
       tid: config.selectedId as number,
       type: 'team',
@@ -97,7 +95,7 @@ export function headerConfigToCatTeam(
     };
   } else {
     return {
-      key: position ? `achievement-${config.selectedId}-${position}` : `achievement-${config.selectedId}`,
+      key: `achievement-${config.selectedId}`,
       label: config.selectedLabel,
       achievementId: config.selectedId as string,
       type: 'achievement',
@@ -121,84 +119,9 @@ export function calculateCustomCellIntersection(
     return 0;
   }
 
-  // Use the same logic as grid generator for proper Team × Achievement alignment
-  let eligiblePlayers: Player[];
-  
-  // Check if either constraint is a season achievement
-  const rowIsSeasonAchievement = rowConstraint.type === 'achievement' && SEASON_ACHIEVEMENTS.some(sa => sa.id === rowConstraint.achievementId);
-  const colIsSeasonAchievement = colConstraint.type === 'achievement' && SEASON_ACHIEVEMENTS.some(sa => sa.id === colConstraint.achievementId);
-  
-  if (rowIsSeasonAchievement && colConstraint.type === 'team' && seasonIndex) {
-    // Season achievement × team
-    const eligiblePids = getSeasonEligiblePlayers(seasonIndex, colConstraint.tid!, rowConstraint.achievementId as SeasonAchievementId);
-    eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
-  } else if (colIsSeasonAchievement && rowConstraint.type === 'team' && seasonIndex) {
-    // Team × season achievement  
-    const eligiblePids = getSeasonEligiblePlayers(seasonIndex, rowConstraint.tid!, colConstraint.achievementId as SeasonAchievementId);
-    eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
-  } else if (rowIsSeasonAchievement && colIsSeasonAchievement && seasonIndex) {
-    // Season achievement × season achievement
-    if (rowConstraint.achievementId === colConstraint.achievementId) {
-      // Same achievement - just find all players who have it
-      const eligiblePids = new Set<number>();
-      for (const seasonStr of Object.keys(seasonIndex)) {
-        const season = parseInt(seasonStr);
-        const seasonData = seasonIndex[season];
-        for (const teamStr of Object.keys(seasonData)) {
-          const teamId = parseInt(teamStr);
-          const teamData = seasonData[teamId];
-          if (teamData[rowConstraint.achievementId as SeasonAchievementId]) {
-            const achievementPids = teamData[rowConstraint.achievementId as SeasonAchievementId];
-            achievementPids.forEach(pid => eligiblePids.add(pid));
-          }
-        }
-      }
-      eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
-    } else {
-      // Different achievements - find players who have BOTH achievements across ANY seasons (no season alignment)
-      const rowEligiblePids = new Set<number>();
-      const colEligiblePids = new Set<number>();
-      
-      // Collect all players who have the row achievement in any season
-      for (const seasonStr of Object.keys(seasonIndex)) {
-        const season = parseInt(seasonStr);
-        const seasonData = seasonIndex[season];
-        for (const teamStr of Object.keys(seasonData)) {
-          const teamId = parseInt(teamStr);
-          const teamData = seasonData[teamId];
-          const rowAchievementPids = teamData[rowConstraint.achievementId as SeasonAchievementId] || new Set();
-          rowAchievementPids.forEach(pid => rowEligiblePids.add(pid));
-        }
-      }
-      
-      // Collect all players who have the column achievement in any season
-      for (const seasonStr of Object.keys(seasonIndex)) {
-        const season = parseInt(seasonStr);
-        const seasonData = seasonIndex[season];
-        for (const teamStr of Object.keys(seasonData)) {
-          const teamId = parseInt(teamStr);
-          const teamData = seasonData[teamId];
-          const colAchievementPids = teamData[colConstraint.achievementId as SeasonAchievementId] || new Set();
-          colAchievementPids.forEach(pid => colEligiblePids.add(pid));
-        }
-      }
-      
-      // Find intersection of players who have both achievements (across any seasons)
-      const eligiblePids = new Set<number>();
-      rowEligiblePids.forEach(pid => {
-        if (colEligiblePids.has(pid)) {
-          eligiblePids.add(pid);
-        }
-      });
-      
-      eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
-    }
-  } else {
-    // Standard evaluation for career achievements or mixed career/season
-    eligiblePlayers = players.filter(p => 
-      evaluateConstraintPair(p, rowConstraint, colConstraint, seasonIndex, undefined, undefined)
-    );
-  }
+  const eligiblePlayers = players.filter(player => 
+    rowConstraint.test(player) && colConstraint.test(player)
+  );
 
   return eligiblePlayers.length;
 }
@@ -323,16 +246,16 @@ export function customGridToGenerated(
   const rows: CatTeam[] = [];
   const cols: CatTeam[] = [];
   
-  // Convert rows with position information to ensure unique keys
+  // Convert rows
   for (let i = 0; i < 3; i++) {
-    const constraint = headerConfigToCatTeam(state.rows[i], teams, seasonIndex, `r${i}`);
+    const constraint = headerConfigToCatTeam(state.rows[i], teams, seasonIndex);
     if (!constraint) return null;
     rows.push(constraint);
   }
   
-  // Convert cols with position information to ensure unique keys
+  // Convert cols
   for (let i = 0; i < 3; i++) {
-    const constraint = headerConfigToCatTeam(state.cols[i], teams, seasonIndex, `c${i}`);
+    const constraint = headerConfigToCatTeam(state.cols[i], teams, seasonIndex);
     if (!constraint) return null;
     cols.push(constraint);
   }

@@ -28,7 +28,6 @@ interface GridSectionProps {
   onGiveUp: () => void;
   onRetryGrid: () => void;
   onShareGrid?: () => void;
-  onCustomGrid?: () => void;
   isGenerating: boolean;
   teams: Team[]; // Add teams for jersey styling
   sport?: string;
@@ -52,7 +51,6 @@ export function GridSection({
   onGiveUp,
   onRetryGrid,
   onShareGrid,
-  onCustomGrid,
   isGenerating,
   teams,
   sport,
@@ -128,31 +126,28 @@ export function GridSection({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-2 sm:gap-4">
+      <div className="flex items-center justify-between">
         {/* Left button: Give Up or Retry This Grid */}
         {isGridComplete ? (
           <Button
             onClick={onRetryGrid}
             variant="default"
-            size="sm"
-            className="bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg focus:ring-2 focus:ring-green-500 focus:ring-offset-2 px-2 sm:px-4 text-xs sm:text-sm"
+            className="bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
             data-testid="button-retry-grid"
           >
-            <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden xs:inline">Retry This Grid</span>
-            <span className="xs:hidden">Retry</span>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Retry This Grid
           </Button>
         ) : (
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
                 variant="ghost"
-                size="sm"
                 disabled={isGenerating || !hasEmptyCells}
-                className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg px-2 sm:px-4 text-xs sm:text-sm"
+                className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg"
                 data-testid="button-give-up"
               >
-                <Flag className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                <Flag className="mr-2 h-4 w-4" />
                 Give Up
               </Button>
             </AlertDialogTrigger>
@@ -176,21 +171,18 @@ export function GridSection({
           onClick={onGenerateNewGrid}
           disabled={isGenerating}
           variant="secondary"
-          size="sm"
-          className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg px-2 sm:px-4 text-xs sm:text-sm"
+          className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg"
           data-testid="button-generate-grid"
         >
           {isGenerating ? (
             <>
-              <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
-              <span className="hidden xs:inline">Generating...</span>
-              <span className="xs:hidden">Gen...</span>
+              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+              Generating...
             </>
           ) : (
             <>
-              <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Generate New Grid</span>
-              <span className="sm:hidden">New Grid</span>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Generate New Grid
             </>
           )}
         </Button>
@@ -372,50 +364,18 @@ export function GridSection({
         </CardContent>
       </Card>
 
-      {/* Bottom buttons: Share/Import Grid (left) and Create Custom Grid (right) */}
-      {(onShareGrid || onCustomGrid) && rows.length > 0 && cols.length > 0 && (
-        <div className="flex justify-between items-center mt-4 gap-2 sm:gap-4">
-          {/* Share/Import Grid button - Left */}
-          {onShareGrid ? (
-            <Button
-              onClick={onShareGrid}
-              variant="outline"
-              size="sm"
-              className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg px-2 sm:px-4 text-xs sm:text-sm"
-              data-testid="button-share-import-grid"
-            >
-              <Share2 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Share/Import Grid</span>
-              <span className="sm:hidden">Share</span>
-            </Button>
-          ) : (
-            <div>{/* Empty div to maintain spacing */}</div>
-          )}
-
-          {/* Create Custom Grid button - Right */}
-          {onCustomGrid && (
-            <Button
-              onClick={onCustomGrid}
-              variant="outline"
-              size="sm"
-              className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg px-2 sm:px-4 text-xs sm:text-sm"
-              data-testid="button-create-custom-grid"
-            >
-              <svg className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="3" width="6" height="6" />
-                <rect x="9" y="3" width="6" height="6" />
-                <rect x="15" y="3" width="6" height="6" />
-                <rect x="3" y="9" width="6" height="6" />
-                <rect x="9" y="9" width="6" height="6" />
-                <rect x="15" y="9" width="6" height="6" />
-                <rect x="3" y="15" width="6" height="6" />
-                <rect x="9" y="15" width="6" height="6" />
-                <rect x="15" y="15" width="6" height="6" />
-              </svg>
-              <span className="hidden sm:inline">Create Custom Grid</span>
-              <span className="sm:hidden">Custom</span>
-            </Button>
-          )}
+      {/* Share/Import Grid button below the grid */}
+      {onShareGrid && rows.length > 0 && cols.length > 0 && (
+        <div className="flex justify-start mt-4">
+          <Button
+            onClick={onShareGrid}
+            variant="outline"
+            className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg"
+            data-testid="button-share-import-grid"
+          >
+            <Share2 className="mr-2 h-4 w-4" />
+            Share/Import Grid
+          </Button>
         </div>
       )}
     </div>

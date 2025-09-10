@@ -1,13 +1,6 @@
 import type { Player, Team } from '@/types/bbgm';
 import type { GridConstraint } from '@/lib/feedback';
 import { type SeasonAchievementId } from '@/lib/season-achievements';
-import { 
-  getDraftStatus, 
-  computeCareerTotals, 
-  checkHallOfFame,
-  isCareerAchievement,
-  formatAchievementDetails 
-} from '@/lib/achievement-helpers';
 
 // Season achievement labels for bullet display
 const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, string> = {
@@ -19,6 +12,7 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, string> = {
   SMOY: 'Sixth Man of the Year',
   MIP: 'Most Improved Player',
   FinalsMVP: 'Finals MVP',
+  SFMVP: 'Conference Finals MVP',
   AllLeagueAny: 'All-League Team',
   AllDefAny: 'All-Defensive Team',
   AllRookieAny: 'All-Rookie Team',
@@ -35,14 +29,22 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, string> = {
   FBOffROY: 'Offensive Rookie of the Year',
   FBDefROY: 'Defensive Rookie of the Year',
   FBAllRookie: 'All-Rookie Team',
-  FBAllLeague: 'All-League Team',
+  FBAllLeague1st: 'First Team All-League',
+  FBAllLeague2nd: 'Second Team All-League',
   FBFinalsMVP: 'Finals MVP',
   FBChampion: 'Won Championship',
+  FBPassLeader: 'League Passing Leader',
+  FBRecLeader: 'League Receiving Leader',
+  FBRushLeader: 'League Rushing Leader',
+  FBScrimmageLeader: 'League Scrimmage Yards Leader',
   
-  // Hockey GM achievements  
+  // Hockey GM achievements
   HKAllStar: 'All-Star',
   HKAllStarMVP: 'All-Star MVP',
   HKMVP: 'MVP',
+  HKDPOY: 'Defensive Player of the Year',
+  HKDefForward: 'Defensive Forward of the Year',
+  HKGoalie: 'Goalie of the Year',
   HKROY: 'Rookie of the Year',
   HKAllRookie: 'All-Rookie Team',
   HKAllLeague: 'All-League Team',
@@ -113,6 +115,7 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
     SMOY: ['SMOY', 'Sixth Man of the Year', 'sixth man of the year', '6MOY', '6th man'],
     MIP: ['MIP', 'Most Improved Player', 'most improved player'],
     FinalsMVP: ['Finals MVP', 'finals mvp', 'championship mvp'],
+    SFMVP: ['Conference Finals MVP', 'conference finals mvp', 'CFMVP', 'cfmvp'],
     AllLeagueAny: ['All-League', 'all-league', 'First Team All-League', 'Second Team All-League', 'Third Team All-League'],
     AllDefAny: ['All-Defensive', 'all-defensive', 'First Team All-Defensive', 'Second Team All-Defensive'],
     AllRookieAny: ['All-Rookie', 'all-rookie', 'All-Rookie Team'],
@@ -129,14 +132,22 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
     FBOffROY: ['Offensive Rookie of the Year'],
     FBDefROY: ['Defensive Rookie of the Year'],
     FBAllRookie: ['All-Rookie Team'],
-    FBAllLeague: ['First Team All-League', 'Second Team All-League'],
+    FBAllLeague1st: ['First Team All-League'],
+    FBAllLeague2nd: ['Second Team All-League'],
     FBFinalsMVP: ['Finals MVP'],
     FBChampion: ['Won Championship'],
+    FBPassLeader: ['League Passing Leader'],
+    FBRecLeader: ['League Receiving Leader'],
+    FBRushLeader: ['League Rushing Leader'],
+    FBScrimmageLeader: ['League Scrimmage Yards Leader'],
     
     // Hockey GM achievements
     HKAllStar: ['All-Star', 'all-star'],
     HKAllStarMVP: ['All-Star MVP', 'all-star mvp'],
     HKMVP: ['Most Valuable Player', 'most valuable player'],
+    HKDPOY: ['Defensive Player of the Year', 'defensive player of the year'],
+    HKDefForward: ['Defensive Forward of the Year', 'defensive forward of the year'],
+    HKGoalie: ['Goalie of the Year', 'goalie of the year'],
     HKROY: ['Rookie of the Year', 'rookie of the year'],
     HKAllRookie: ['All-Rookie Team', 'all-rookie team'],
     HKAllLeague: ['All-League Team', 'all-league team', 'First Team All-League', 'Second Team All-League'],
@@ -184,31 +195,22 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
 
   // Extract seasons and format
   const seasonsWithTeam: string[] = [];
-  const seenSeasons = new Set<string>(); // Track seen season entries to prevent duplicates
   
   for (const award of matchingAwards) {
     if (award.season) {
-      let seasonEntry: string;
-      
-      // For Finals MVP, Championship, and Playoffs MVP, try to include team abbreviation
-      if (achievementId === 'FinalsMVP' || achievementId === 'FBFinalsMVP' || 
+      // For Finals MVP, Conference Finals MVP, Championship, and Playoffs MVP, try to include team abbreviation
+      if (achievementId === 'FinalsMVP' || achievementId === 'SFMVP' || achievementId === 'FBFinalsMVP' || 
           achievementId === 'HKPlayoffsMVP' || achievementId === 'BBPlayoffsMVP' || 
           achievementId === 'FBChampion' || achievementId === 'HKChampion' || achievementId === 'BBChampion') {
         const playoffTeam = getBulletPlayoffTeam(player, award.season, teams);
         if (playoffTeam) {
-          seasonEntry = `${award.season} ${playoffTeam}`;
+          seasonsWithTeam.push(`${award.season} ${playoffTeam}`);
         } else {
           // If we can't resolve playoff team, just show the year without team
-          seasonEntry = `${award.season}`;
+          seasonsWithTeam.push(`${award.season}`);
         }
       } else {
-        seasonEntry = `${award.season}`;
-      }
-      
-      // Only add if we haven't seen this exact season entry before
-      if (!seenSeasons.has(seasonEntry)) {
-        seasonsWithTeam.push(seasonEntry);
-        seenSeasons.add(seasonEntry);
+        seasonsWithTeam.push(`${award.season}`);
       }
     }
   }
@@ -233,60 +235,16 @@ function getBulletPlayoffTeam(player: Player, season: number, teams: Team[]): st
 }
 
 // Helper function to format season list for bullets
-// Helper function to format consecutive years as ranges
-function formatYearRanges(years: number[]): string {
-  if (years.length === 0) return '';
-  if (years.length === 1) return years[0].toString();
-  
-  const sortedYears = [...years].sort((a, b) => a - b);
-  const ranges: string[] = [];
-  let start = sortedYears[0];
-  let end = sortedYears[0];
-  
-  for (let i = 1; i < sortedYears.length; i++) {
-    if (sortedYears[i] === end + 1) {
-      // Consecutive year, extend the range
-      end = sortedYears[i];
-    } else {
-      // Gap found, close current range and start new one
-      if (start === end) {
-        ranges.push(start.toString());
-      } else {
-        ranges.push(`${start}-${end}`);
-      }
-      start = end = sortedYears[i];
-    }
-  }
-  
-  // Close the final range
-  if (start === end) {
-    ranges.push(start.toString());
-  } else {
-    ranges.push(`${start}-${end}`);
-  }
-  
-  return ranges.join(', ');
-}
-
 function formatBulletSeasonList(seasons: string[], isFinalsOrCFMVP: boolean = false): string {
   if (seasons.length === 0) return '';
   if (seasons.length === 1) return seasons[0];
   
   // For Finals MVP/CFMVP, use semicolon separator: "1994 HOU; 1995 HOU"
-  // These include team abbreviations so we can't format as ranges
   if (isFinalsOrCFMVP) {
     return seasons.join('; ');
   }
   
-  // For other awards, try to format as year ranges if they're just years
-  const yearOnlySeasons = seasons.filter(season => /^\d{4}$/.test(season));
-  if (yearOnlySeasons.length === seasons.length) {
-    // All seasons are just years, we can format as ranges
-    const years = yearOnlySeasons.map(year => parseInt(year));
-    return formatYearRanges(years);
-  }
-  
-  // Mixed format or contains non-year data, use comma separator
+  // For other awards, use comma separator: "2019, 2020, 2021"
   return seasons.join(', ');
 }
 
@@ -322,18 +280,6 @@ function getCareerStats(player: Player, statTypes: string[]) {
           const seasonThrees = (season as any).tpm || (season as any).tp || (season as any).fg3 || 0;
           total += seasonThrees;
         } 
-        // Handle rebounds - try different field names used in BBGM files
-        else if (statType === 'trb') {
-          let seasonRebounds = 0;
-          if ((season as any).trb !== undefined) {
-            seasonRebounds = (season as any).trb;
-          } else if ((season as any).orb !== undefined || (season as any).drb !== undefined) {
-            seasonRebounds = ((season as any).orb || 0) + ((season as any).drb || 0);
-          } else if ((season as any).reb !== undefined) {
-            seasonRebounds = (season as any).reb;
-          }
-          total += seasonRebounds;
-        }
         // Handle hockey assists - calculate from component assists
         else if (statType === 'a') {
           // Hockey assists are the sum of even-strength, power-play, and short-handed assists
@@ -429,20 +375,29 @@ export function generateReasonBullets(
   const colIsSeasonAch = colConstraint.type === 'achievement' && isSeasonAchievement(colConstraint.achievementId!);
   
   if (rowIsSeasonAch && colIsSeasonAch) {
-    // Career-ever logic: Show that player achieved both awards during career (no season alignment required)
+    // Option: Show combined overlap bullet for season×season cells
     const achLabelA = SEASON_ACHIEVEMENT_LABELS[rowConstraint.achievementId! as SeasonAchievementId];
     const achLabelB = SEASON_ACHIEVEMENT_LABELS[colConstraint.achievementId! as SeasonAchievementId];
     
-    // Get all seasons for each achievement
+    // Extract actual overlap seasons from player data
     const seasonsA = getSeasonAchievementSeasons(player, rowConstraint.achievementId! as SeasonAchievementId, teams);
     const seasonsB = getSeasonAchievementSeasons(player, colConstraint.achievementId! as SeasonAchievementId, teams);
     
-    // Show career-ever achievements with their respective seasons 
-    const seasonsAStr = formatBulletSeasonList(seasonsA, rowConstraint.achievementId === 'FinalsMVP');
-    const seasonsBStr = formatBulletSeasonList(seasonsB, colConstraint.achievementId === 'FinalsMVP');
+    // Find overlapping seasons (for same-season requirements)
+    const overlapSeasons = seasonsA.filter(seasonA => {
+      const yearA = parseInt(seasonA.split(' ')[0]); // Extract year part
+      return seasonsB.some(seasonB => {
+        const yearB = parseInt(seasonB.split(' ')[0]);
+        return yearA === yearB;
+      });
+    });
+    
+    // Use just the years for the overlap display
+    const yearOverlaps = Array.from(new Set(overlapSeasons.map(s => s.split(' ')[0]))).sort();
+    const overlapStr = formatBulletSeasonList(yearOverlaps, false);
     
     bullets.push({
-      text: `${achLabelA} (${seasonsAStr}) + ${achLabelB} (${seasonsBStr})`,
+      text: `${achLabelA} + ${achLabelB} (${overlapStr})`,
       type: 'award'
     });
     
@@ -513,8 +468,8 @@ function buildSeasonAchievementBullet(player: Player, achievementId: SeasonAchie
   
   if (seasons.length === 0) return null;
   
-  const isPlayoffAward = achievementId === 'FinalsMVP' || achievementId === 'FBFinalsMVP' || 
-                        achievementId === 'HKPlayoffsMVP' || 
+  const isPlayoffAward = achievementId === 'FinalsMVP' || achievementId === 'SFMVP' || 
+                        achievementId === 'FBFinalsMVP' || achievementId === 'HKPlayoffsMVP' || 
                         achievementId === 'BBPlayoffsMVP' || achievementId === 'FBChampion' || 
                         achievementId === 'HKChampion' || achievementId === 'BBChampion';
   const seasonStr = formatBulletSeasonList(seasons, isPlayoffAward);
@@ -527,31 +482,7 @@ function buildSeasonAchievementBullet(player: Player, achievementId: SeasonAchie
 
 // Build a career/misc achievement bullet: Award Label (value)
 function buildCareerAchievementBullet(player: Player, achievementId: string, teams: Team[], sport: string): ReasonBullet | null {
-  // Convert to canonical ID
-  const canonicalId = achievementId;
-  
-  // If this is a career achievement, use robust formatting
-  if (isCareerAchievement(canonicalId)) {
-    const draftStatus = getDraftStatus(player);
-    const careerTotals = computeCareerTotals(player);
-    
-    const formattedText = formatAchievementDetails(canonicalId, player, draftStatus, careerTotals);
-    
-    // Determine bullet type based on canonical ID
-    let bulletType: ReasonBullet['type'] = 'award';
-    if (['ONE_OA', 'ROUND_1', 'ROUND_2', 'UNDRAFTED'].includes(canonicalId)) {
-      bulletType = 'draft';
-    } else if (['SEASONS_10', 'SEASONS_15'].includes(canonicalId)) {
-      bulletType = 'longevity';
-    }
-    
-    return {
-      text: formattedText,
-      type: bulletType
-    };
-  }
-  
-  // For non-career achievements, use existing logic
+  // Use existing achievement bullet generation logic
   return generateAchievementBullet(player, achievementId, teams, sport);
 }
 
@@ -583,7 +514,7 @@ function generateAchievementBullet(
   sport: string
 ): ReasonBullet | null {
   // Draft achievements
-  if (['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted'].includes(achievementId)) {
+  if (['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen'].includes(achievementId)) {
     return generateDraftBullet(player, achievementId);
   }
   
@@ -623,6 +554,7 @@ function generateDraftBullet(player: Player, achievementId: string): ReasonBulle
     isFirstRoundPick: 'First-Round Pick', 
     isSecondRoundPick: 'Second-Round Pick',
     isUndrafted: 'Undrafted',
+    draftedTeen: 'Drafted as Teenager'
   };
   
   const label = draftLabels[achievementId];

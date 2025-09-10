@@ -36,6 +36,12 @@ export const COMMON_ACHIEVEMENTS: Achievement[] = [
     test: (p: Player) => p.achievements?.isUndrafted || false,
     minPlayers: 5
   },
+  {
+    id: 'draftedTeen',
+    label: 'Drafted as Teenager',
+    test: (p: Player) => p.achievements?.draftedTeen || false,
+    minPlayers: 5
+  },
   // Special
   {
     id: 'isHallOfFamer',
@@ -53,6 +59,12 @@ export const COMMON_ACHIEVEMENTS: Achievement[] = [
     id: 'played10PlusSeasons',
     label: 'Played 10+ Seasons',
     test: (p: Player) => p.achievements?.played10PlusSeasons || false,
+    minPlayers: 5
+  },
+  {
+    id: 'bornOutsideUS50DC',
+    label: 'Born outside 50 states + DC',
+    test: (p: Player) => p.achievements?.bornOutsideUS50DC || false,
     minPlayers: 5
   },
 ];
@@ -320,8 +332,9 @@ export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | '
   const common = COMMON_ACHIEVEMENTS;
   
   if (sport === 'football') {
-    // Use common achievements for football
-    const footballAchievements = [...common, ...FOOTBALL_ACHIEVEMENTS];
+    // Exclude draftedTeen for football
+    const footballCommon = common.filter(a => a.id !== 'draftedTeen');
+    const footballAchievements = [...footballCommon, ...FOOTBALL_ACHIEVEMENTS];
     // Add season-specific achievements for football if season index is available
     if (seasonIndex) {
       const seasonAchievements = createSeasonAchievementTests(seasonIndex, 'football');
@@ -357,26 +370,7 @@ export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | '
 
 // Season-aligned achievements that need same-season matching for Team × Achievement cells
 export const SEASON_ALIGNED_ACHIEVEMENTS = new Set([
-  // Legacy season achievements  
-  'ledScoringAny', 'ledRebAny', 'ledAstAny',
-  
-  // Basketball GM season achievements
-  'AllStar', 'MVP', 'DPOY', 'ROY', 'SMOY', 'MIP', 'FinalsMVP', 'Champion',
-  'AllLeagueAny', 'AllDefAny', 'AllRookieAny',
-  'PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader',
-  
-  // Football GM season achievements
-  'FBAllStar', 'FBMVP', 'FBDPOY', 'FBOffROY', 'FBDefROY', 'FBChampion',
-  'FBAllRookie', 'FBAllLeague', 'FBFinalsMVP',
-  
-  // Hockey GM season achievements  
-  'HKAllStar', 'HKMVP', 'HKDefenseman', 'HKROY', 'HKChampion', 
-  'HKPlayoffsMVP', 'HKFinalsMVP', 'HKAllRookie', 'HKAllLeague',
-  'HKAllStarMVP', 'HKAssistsLeader',
-  
-  // Baseball GM season achievements
-  'BBAllStar', 'BBMVP', 'BBROY', 'BBChampion', 'BBAllRookie', 
-  'BBAllLeague', 'BBPlayoffsMVP'
+  'ledScoringAny', 'ledRebAny', 'ledAstAny'
 ]);
 
 // Check if a player meets a specific achievement criteria
@@ -782,6 +776,7 @@ function calculateCommonAchievements(player: Player, achievements: any): void {
     const draftYear = draft.year;
     const birthYear = player.born?.year;
     if (draftYear && birthYear) {
+      achievements.draftedTeen = (draftYear - birthYear) <= 19;
     }
   } else {
     achievements.isUndrafted = true;
@@ -799,10 +794,232 @@ function calculateCommonAchievements(player: Player, achievements: any): void {
   achievements.played10PlusSeasons = seasonCount >= 10;
   achievements.played15PlusSeasons = seasonCount >= 15;
   
+  
+  // Location - check if born outside the 50 US states + DC
+  achievements.bornOutsideUS50DC = isBornOutsideUS50DC(player.born);
+  
+  
   // Hall of Fame - check awards only (hof property doesn't exist in Player type)
   const awards = player.awards || [];
   achievements.isHallOfFamer = awards.some((a: any) => a.type === 'Inducted into the Hall of Fame');
 }
+
+// Helper function to check if player was born outside the 50 US states + DC
+function isBornOutsideUS50DC(born: any): boolean {
+  // If no birth location data, qualify (assume outside US)
+  if (!born || !born.loc) return true;
+  
+  const location = born.loc.trim();
+  if (!location) return true;
+  
+  // Normalize for comparisons (case-insensitive, handle punctuation)
+  const normalized = location.toLowerCase()
+    .replace(/[.,]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  // Check if this is definitively a US birth location (50 states + DC)
+  // If it is, they DON'T qualify for "outside" achievement
+  const isUSBorn = isBornInUS50DC(normalized);
+  
+  // Debug logging specifically for hockey to help diagnose issues
+  if (location.includes('Hockey') || Math.random() < 0.001) {
+    console.log(`🏒 HOCKEY BIRTH DEBUG: "${location}" -> normalized: "${normalized}" -> isUSBorn: ${isUSBorn} -> qualifies: ${!isUSBorn}`);
+  }
+  
+  return !isUSBorn;
+}
+
+// Check if location definitively indicates birth in the 50 US states + DC
+function isBornInUS50DC(normalized: string): boolean {
+  // A) District of Columbia - any of these = reject (inside US)
+  if (isDC(normalized)) {
+    return true;
+  }
+  
+  // B) U.S. state postal codes
+  if (hasUSStateCode(normalized)) {
+    return true;
+  }
+  
+  // C) U.S. state full names
+  if (hasUSStateName(normalized)) {
+    return true;
+  }
+  
+  // D) "Commonwealth of..." variants
+  if (hasCommonwealthVariant(normalized)) {
+    return true;
+  }
+  
+  // E) "Inside-USA" catch-alls (without clear foreign/territory cue)
+  if (hasUSACatchall(normalized)) {
+    return true;
+  }
+  
+  // F) Address patterns that imply "inside"
+  if (hasUSAddressPattern(normalized)) {
+    return true;
+  }
+  
+  // If none of the above, treat as outside (qualifies for achievement)
+  return false;
+}
+
+// A) District of Columbia detection
+function isDC(normalized: string): boolean {
+  return normalized.includes('washington dc') ||
+         normalized.includes('washington d c') ||
+         normalized.includes('district of columbia') ||
+         normalized.match(/\bdc\b/) !== null ||
+         normalized.match(/\bd\.c\.\b/) !== null;
+}
+
+// B) U.S. state postal codes detection
+function hasUSStateCode(normalized: string): boolean {
+  const stateCodes = [
+    'al', 'ak', 'az', 'ar', 'ca', 'co', 'ct', 'de', 'fl', 'ga', 'hi', 'id', 'il', 'in', 
+    'ia', 'ks', 'ky', 'la', 'me', 'md', 'ma', 'mi', 'mn', 'ms', 'mo', 'mt', 'ne', 
+    'nv', 'nh', 'nj', 'nm', 'ny', 'nc', 'nd', 'oh', 'ok', 'or', 'pa', 'ri', 'sc', 
+    'sd', 'tn', 'tx', 'ut', 'vt', 'va', 'wa', 'wv', 'wi', 'wy'
+  ];
+  
+  for (const code of stateCodes) {
+    const regex = new RegExp(`\\b${code}\\b`);
+    if (regex.test(normalized)) {
+      // Handle ambiguous case: GA could be Georgia state or Georgia country
+      if (code === 'ga') {
+        // Look for context clues that indicate Georgia state
+        if (normalized.includes('atlanta') || normalized.includes('savannah') || 
+            normalized.includes('augusta') || normalized.includes('columbus') ||
+            normalized.includes('usa') || normalized.includes('united states')) {
+          return true; // Clearly Georgia state
+        }
+        // Look for context clues that indicate Georgia country
+        if (normalized.includes('tbilisi') || 
+            (normalized.includes('georgia') && !normalized.includes('usa') && !normalized.includes('united states'))) {
+          continue; // Likely Georgia country, keep checking other codes
+        }
+        // Default to state if still ambiguous (conservative approach)
+        return true;
+      }
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+// C) U.S. state full names detection
+function hasUSStateName(normalized: string): boolean {
+  const stateNames = [
+    'alabama', 'alaska', 'arizona', 'arkansas', 'california', 'colorado', 'connecticut',
+    'delaware', 'florida', 'georgia', 'hawaii', 'idaho', 'illinois', 'indiana', 'iowa', 
+    'kansas', 'kentucky', 'louisiana', 'maine', 'maryland', 'massachusetts', 'michigan', 
+    'minnesota', 'mississippi', 'missouri', 'montana', 'nebraska', 'nevada', 'new hampshire', 
+    'new jersey', 'new mexico', 'new york', 'north carolina', 'north dakota', 'ohio', 
+    'oklahoma', 'oregon', 'pennsylvania', 'rhode island', 'south carolina', 'south dakota', 
+    'tennessee', 'texas', 'utah', 'vermont', 'virginia', 'washington', 'west virginia', 
+    'wisconsin', 'wyoming'
+  ];
+  
+  for (const stateName of stateNames) {
+    if (normalized.includes(stateName)) {
+      // Special handling for ambiguous names
+      if (stateName === 'washington') {
+        // Washington could be state, DC, or foreign
+        if (normalized.includes('seattle') || normalized.includes('spokane') || 
+            normalized.includes('tacoma') || normalized.includes('washington state') ||
+            normalized.match(/\bwa\b/)) {
+          return true; // Clearly Washington state
+        }
+        if (normalized.includes('dc') || normalized.includes('d c') || 
+            normalized.includes('district')) {
+          return true; // Washington DC (handled by DC check but catch here too)
+        }
+        // If just "washington" without context, default to inside (conservative)
+        return true;
+      }
+      
+      if (stateName === 'georgia') {
+        // Same logic as GA code above
+        if (normalized.includes('atlanta') || normalized.includes('savannah') || 
+            normalized.includes('augusta') || normalized.includes('usa') || 
+            normalized.includes('united states')) {
+          return true; // Clearly Georgia state
+        }
+        if (normalized.includes('tbilisi')) {
+          continue; // Clearly Georgia country
+        }
+        return true; // Default to state
+      }
+      
+      return true;
+    }
+  }
+  
+  // Also check "State of ___" patterns
+  const stateOfRegex = /state of (alabama|alaska|arizona|arkansas|california|colorado|connecticut|delaware|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new hampshire|new jersey|new mexico|new york|north carolina|north dakota|ohio|oklahoma|oregon|pennsylvania|rhode island|south carolina|south dakota|tennessee|texas|utah|vermont|virginia|washington|west virginia|wisconsin|wyoming)/;
+  if (stateOfRegex.test(normalized)) {
+    return true;
+  }
+  
+  return false;
+}
+
+// D) Commonwealth variants detection
+function hasCommonwealthVariant(normalized: string): boolean {
+  const commonwealths = [
+    'commonwealth of kentucky',
+    'commonwealth of massachusetts', 
+    'commonwealth of pennsylvania',
+    'commonwealth of virginia'
+  ];
+  
+  for (const commonwealth of commonwealths) {
+    if (normalized.includes(commonwealth)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+// E) USA catch-alls detection
+function hasUSACatchall(normalized: string): boolean {
+  const usaPatterns = [
+    'usa', 'u.s.a.', 'u s a', 'us', 'u.s.', 'u s',
+    'united states', 'united states of america'
+  ];
+  
+  for (const pattern of usaPatterns) {
+    if (normalized.includes(pattern)) {
+      // Check if this is combined with a US state/city (clearly inside)
+      // OR if it's just "USA" alone (treat as inside per conservative approach)
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+// F) US address patterns detection
+function hasUSAddressPattern(normalized: string): boolean {
+  // Pattern: City, StateCode (e.g., "dallas tx", "miami fl")
+  const cityStatePattern = /\b[a-z\s]+,?\s+(al|ak|az|ar|ca|co|ct|de|fl|ga|hi|id|il|in|ia|ks|ky|la|me|md|ma|mi|mn|ms|mo|mt|ne|nv|nh|nj|nm|ny|nc|nd|oh|ok|or|pa|ri|sc|sd|tn|tx|ut|vt|va|wa|wv|wi|wy)\b/;
+  if (cityStatePattern.test(normalized)) {
+    return true;
+  }
+  
+  // Pattern: City, StateName (e.g., "portland oregon", "buffalo new york")
+  const cityStateNamePattern = /\b[a-z\s]+,?\s+(alabama|alaska|arizona|arkansas|california|colorado|connecticut|delaware|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new hampshire|new jersey|new mexico|new york|north carolina|north dakota|ohio|oklahoma|oregon|pennsylvania|rhode island|south carolina|south dakota|tennessee|texas|utah|vermont|virginia|washington|west virginia|wisconsin|wyoming)\b/;
+  if (cityStateNamePattern.test(normalized)) {
+    return true;
+  }
+  
+  return false;
+}
+
 
 // Calculate team seasons and achievement seasons for same-season alignment
 export function calculateTeamSeasonsAndAchievementSeasons(player: Player, leadershipMap: any, gameAttributes: any): void {
@@ -842,6 +1059,8 @@ export function calculateTeamSeasonsAndAchievementSeasons(player: Player, leader
       isFirstRoundPick: new Set<number>(),
       isSecondRoundPick: new Set<number>(),
       isUndrafted: new Set<number>(),
+      draftedTeen: new Set<number>(),
+      bornOutsideUS50DC: new Set<number>(),
       allStar35Plus: new Set<number>(),
       oneTeamOnly: new Set<number>(),
       isHallOfFamer: new Set<number>()

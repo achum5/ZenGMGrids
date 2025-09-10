@@ -6,7 +6,6 @@ import { PlayerModal } from '@/components/PlayerModal';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { RulesModal } from '@/components/RulesModal';
 import { GridSharingModal } from '@/components/grid-sharing-modal';
-import { CustomGridModal } from '@/components/custom-grid-modal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Home as HomeIcon } from 'lucide-react';
@@ -21,7 +20,6 @@ import { generateTeamsGrid, cellKey } from '@/lib/grid-generator';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
 import { useToast } from '@/hooks/use-toast';
 import type { LeagueData, CatTeam, CellState, Player, SearchablePlayer } from '@/types/bbgm';
-import { validatePlayerEligibility } from '@/lib/common-sense-validator';
 
 // Helper functions for attempt tracking
 function getAttemptCount(gridId: string): number {
@@ -73,7 +71,7 @@ export default function Home() {
   const [cols, setCols] = useState<CatTeam[]>([]);
   const [cells, setCells] = useState<Record<string, CellState>>({});
   const [usedPids, setUsedPids] = useState<Set<number>>(new Set());
-  // Note: Intersections removed - using single common-sense validator for all eligibility
+  const [intersections, setIntersections] = useState<Record<string, number[]>>({});
   
   // Search indices
   const [byName, setByName] = useState<Record<string, number>>({});
@@ -101,9 +99,6 @@ export default function Home() {
   
   // Grid sharing state
   const [gridSharingModalOpen, setGridSharingModalOpen] = useState(false);
-  
-  // Custom grid state
-  const [customGridModalOpen, setCustomGridModalOpen] = useState(false);
 
   // Helper function to build and cache player rankings for a cell
   const buildRankCacheForCell = useCallback((cellKey: string): Array<{player: Player, rarity: number}> => {
@@ -115,28 +110,11 @@ export default function Home() {
     
     if (!rowConstraint || !colConstraint) return [];
     
-    // Get eligible players for this cell using single common-sense validator
-    const rowValidationConstraint = {
-      type: rowConstraint.type === 'team' ? 'team' as const : 'achievement' as const,
-      name: rowConstraint.label || '',
-      tid: rowConstraint.tid
-    };
-    
-    const colValidationConstraint = {
-      type: colConstraint.type === 'team' ? 'team' as const : 'achievement' as const,
-      name: colConstraint.label || '',
-      tid: colConstraint.tid
-    };
-    
-    const eligiblePlayers = leagueData.players.filter(p => {
-      const result = validatePlayerEligibility(
-        rowValidationConstraint,
-        colValidationConstraint,
-        p,
-        leagueData.teams
-      );
-      return result.isValid;
-    });
+    // Get eligible players for this cell
+    const eligiblePids = intersections[cellKey] || [];
+    const eligiblePlayers = eligiblePids
+      .map(pid => byPid[pid])
+      .filter(player => player);
     
     if (eligiblePlayers.length === 0) return [];
     
@@ -177,7 +155,7 @@ export default function Home() {
     playersWithRarity.sort((a, b) => a.rarity - b.rarity);
     
     return playersWithRarity;
-  }, [leagueData, rows, cols]);
+  }, [leagueData, rows, cols, intersections, byPid]);
 
   const handleFileUpload = useCallback(async (file: File) => {
     setIsProcessing(true);
@@ -234,7 +212,6 @@ export default function Home() {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     
-    
     // Build search indices
     const indices = buildSearchIndex(data.players, data.teams);
     setByName(indices.byName);
@@ -246,7 +223,7 @@ export default function Home() {
     const gridResult = generateTeamsGrid(data);
     setRows(gridResult.rows);
     setCols(gridResult.cols);
-    // Skip intersections - using single validator instead
+    setIntersections(gridResult.intersections);
     setCells({});
     
     // Initialize grid tracking
@@ -261,10 +238,7 @@ export default function Home() {
   }, [toast]);
 
   const handleGenerateNewGrid = useCallback(() => {
-    if (!leagueData) {
-      console.warn('Cannot generate grid: missing leagueData');
-      return;
-    }
+    if (!leagueData) return;
     
     setIsGenerating(true);
     
@@ -272,7 +246,7 @@ export default function Home() {
       const gridResult = generateTeamsGrid(leagueData);
       setRows(gridResult.rows);
       setCols(gridResult.cols);
-      // Skip intersections - using single validator instead
+      setIntersections(gridResult.intersections);
       setCells({}); // Reset all answers
       setUsedPids(new Set()); // Reset used players
       setRankCache({}); // Reset cached rankings for the old grid
@@ -357,38 +331,10 @@ export default function Home() {
     if (cellState?.locked && cellState?.player) {
       setModalPlayer(cellState.player);
       
-      // Get eligible players for this cell using the single common-sense validator
-      const [modalRowKey, modalColKey] = key.split('|');
-      const modalRowConstraint = rows.find(r => r.key === modalRowKey);
-      const modalColConstraint = cols.find(c => c.key === modalColKey);
-      
-      if (modalRowConstraint && modalColConstraint) {
-        const modalRowValidationConstraint = {
-          type: modalRowConstraint.type === 'team' ? 'team' as const : 'achievement' as const,
-          name: modalRowConstraint.label || '',
-          tid: modalRowConstraint.tid
-        };
-        
-        const modalColValidationConstraint = {
-          type: modalColConstraint.type === 'team' ? 'team' as const : 'achievement' as const,
-          name: modalColConstraint.label || '',
-          tid: modalColConstraint.tid
-        };
-        
-        const eligiblePlayers = leagueData?.players.filter(p => {
-          const result = validatePlayerEligibility(
-            modalRowValidationConstraint,
-            modalColValidationConstraint,
-            p,
-            leagueData?.teams || []
-          );
-          return result.isValid;
-        }) || [];
-        
-        setModalEligiblePlayers(eligiblePlayers);
-      } else {
-        setModalEligiblePlayers([]);
-      }
+      // Get eligible players for this cell to show in modal
+      const eligiblePids = intersections[key] || [];
+      const eligiblePlayers = leagueData?.players.filter(p => eligiblePids.includes(p.pid)) || [];
+      setModalEligiblePlayers(eligiblePlayers);
       
       // Set puzzle seed for consistent rarity calculations
       const puzzleSeed = `${rows.map(r => r.key).join('-')}_${cols.map(c => c.key).join('-')}`;
@@ -397,7 +343,7 @@ export default function Home() {
       // Set the cell key for feedback generation
       setModalCellKey(key);
       
-        setPlayerModalOpen(true);
+      setPlayerModalOpen(true);
       return;
     }
     
@@ -409,7 +355,7 @@ export default function Home() {
     // Open search modal for empty cells
     setCurrentCellKey(key);
     setSearchModalOpen(true);
-  }, [cells, rows, cols, leagueData]);
+  }, [cells, rows, cols, intersections, leagueData]);
 
   const handleSelectPlayer = useCallback((player: Player) => {
     if (!currentCellKey) return;
@@ -426,64 +372,23 @@ export default function Home() {
     
     // currentCellKey now uses key format: "key1|key2"
     
-    // Validate eligibility using canonical index - SINGLE SOURCE OF TRUTH
-    const [rowKey, colKey] = currentCellKey.split('|');
-    const rowConstraint = rows.find(r => r.key === rowKey);
-    const colConstraint = cols.find(c => c.key === colKey);
-    
-    // Use single common-sense validator - SINGLE SOURCE OF TRUTH
-    const rowValidationConstraint = {
-      type: rowConstraint?.type === 'team' ? 'team' as const : 'achievement' as const,
-      name: rowConstraint?.label || '',
-      tid: rowConstraint?.tid
-    };
-    
-    const colValidationConstraint = {
-      type: colConstraint?.type === 'team' ? 'team' as const : 'achievement' as const,
-      name: colConstraint?.label || '',
-      tid: colConstraint?.tid
-    };
-    
-    const validationResult = validatePlayerEligibility(
-      rowValidationConstraint,
-      colValidationConstraint,
-      player,
-      leagueData?.teams || []
-    );
-    
-    const isCorrect = validationResult.isValid;
-    
-    console.log(`🚨 VALIDATION DEBUG: ${player.name} for ${currentCellKey}`);
-    console.log(`  Row: ${rowValidationConstraint.name} (${rowValidationConstraint.type})`);
-    console.log(`  Col: ${colValidationConstraint.name} (${colValidationConstraint.type})`);
-    console.log(`  Result: ${isCorrect ? '✅ VALID' : '❌ INVALID'}`);
-    
-    if (!isCorrect) {
-      console.log(`  Reason: ${validationResult.proofData.failureReason}`);
-    } else {
-      console.log(`  Proof:`, validationResult.proofData);
-    }
-    
+    // Validate eligibility
+    const eligiblePids = intersections[currentCellKey] || [];
+    const isCorrect = eligiblePids.includes(player.pid);
     
     // Compute rarity if correct
     let rarity = 0;
     let points = 0;
     if (isCorrect && leagueData) {
-      // Calculate eligible players using the same validator for rarity consistency
-      const eligiblePlayers = leagueData.players.filter(p => {
-        const result = validatePlayerEligibility(
-          rowValidationConstraint,
-          colValidationConstraint,
-          p,
-          leagueData.teams
-        );
-        return result.isValid;
-      });
+      const eligiblePlayers = leagueData.players.filter(p => eligiblePids.includes(p.pid));
       const eligiblePool = eligiblePlayers.map(p => playerToEligibleLite(p));
       const guessedPlayer = playerToEligibleLite(player);
       const puzzleSeed = `${rows.map(r => r.key).join('-')}_${cols.map(c => c.key).join('-')}`;
       
-      // Row and column constraints already extracted above
+      // Get row and column constraints for cell context
+      const [rowKey, colKey] = currentCellKey.split('|');
+      const rowConstraint = rows.find(r => r.key === rowKey);
+      const colConstraint = cols.find(c => c.key === colKey);
       const teamsMap = new Map(leagueData.teams.map(t => [t.tid, t]));
       
       rarity = computeRarityForGuess({
@@ -529,7 +434,7 @@ export default function Home() {
     
     setCurrentCellKey(null);
     setSearchModalOpen(false);
-  }, [currentCellKey, usedPids, toast, rows, cols, leagueData]);
+  }, [currentCellKey, intersections, usedPids, toast]);
 
   const getCurrentCellDescription = () => {
     if (!currentCellKey || !rows || !cols) return '';
@@ -688,53 +593,6 @@ export default function Home() {
     // Keep the same rows, cols, and intersections (same puzzle)
   }, [currentGridId, attemptCount]);
 
-  // Handle custom grid creation
-  const handleCustomGridCreated = useCallback((customRows: CatTeam[], customCols: CatTeam[]) => {
-    if (!leagueData) return;
-    
-    try {
-      // Calculate intersections for the custom grid
-      const newIntersections: Record<string, number[]> = {};
-      
-      customRows.forEach((row, rowIndex) => {
-        customCols.forEach((col, colIndex) => {
-          const key = cellKey(row.key, col.key);
-          
-          // Filter players that match both row and column constraints
-          const eligiblePlayers = leagueData.players.filter(player => 
-            row.test(player) && col.test(player)
-          );
-          
-          newIntersections[key] = eligiblePlayers.map(p => p.pid);
-        });
-      });
-      
-      // Update state with custom grid
-      setRows(customRows);
-      setCols(customCols);
-      setIntersections(newIntersections);
-      setCells({}); // Reset all answers
-      setUsedPids(new Set()); // Reset used players
-      setRankCache({}); // Reset cached rankings
-      
-      // Initialize new grid tracking
-      const gridId = `custom_${customRows.map(r => r.key).join('-')}_${customCols.map(c => c.key).join('-')}`;
-      setCurrentGridId(gridId);
-      
-      // Reset attempt count for new grid
-      setAttemptCount(1);
-      storeAttemptCount(gridId, 1);
-      
-    } catch (error) {
-      console.error('Error creating custom grid:', error);
-      toast({
-        title: 'Error creating custom grid',
-        description: error instanceof Error ? error.message : 'Failed to create custom grid',
-        variant: 'destructive',
-      });
-    }
-  }, [leagueData, toast]);
-
   // Show upload section if no league data
   if (!leagueData) {
     return (
@@ -837,7 +695,6 @@ export default function Home() {
           onGiveUp={handleGiveUp}
           onRetryGrid={handleRetryGrid}
           onShareGrid={() => setGridSharingModalOpen(true)}
-          onCustomGrid={() => setCustomGridModalOpen(true)}
           isGenerating={isGenerating}
           teams={leagueData?.teams || []}
           sport={leagueData?.sport}
@@ -867,8 +724,6 @@ export default function Home() {
           cols={cols}
           currentCellKey={modalCellKey}
           sport={leagueData?.sport}
-          cells={cells}
-          seasonIndex={leagueData?.seasonIndex}
         />
         
         <GridSharingModal
@@ -878,13 +733,6 @@ export default function Home() {
           cols={cols}
           leagueData={leagueData}
           onImportGrid={handleImportGrid}
-        />
-        
-        <CustomGridModal
-          isOpen={customGridModalOpen}
-          onClose={() => setCustomGridModalOpen(false)}
-          leagueData={leagueData}
-          onCreateGrid={handleCustomGridCreated}
         />
       </main>
     </div>
