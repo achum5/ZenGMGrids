@@ -18,35 +18,35 @@ export const CANONICAL_ACHIEVEMENTS: CanonicalAchievement[] = [
   {
     id: 'PTS_LEADER',
     displayLabel: 'League Points Leader',
-    synonyms: ['League Points Leader', 'League Scoring Leader', 'Scoring Leader', 'Points Leader', 'Scoring Champ', 'PTS Leader', 'league points leader', 'league scoring leader', 'scoring leader', 'points leader'],
+    synonyms: ['League Points Leader', 'League Scoring Leader', 'Scoring Leader', 'Points Leader', 'Scoring Champ', 'PTS Leader', 'league points leader', 'league scoring leader', 'scoring leader', 'points leader', 'PointsLeader'],
     sport: ['basketball'],
     category: 'leader'
   },
   {
     id: 'REB_LEADER', 
     displayLabel: 'League Rebounds Leader',
-    synonyms: ['League Rebounds Leader', 'League Rebounding Leader', 'Rebounds Leader', 'Rebounding Leader', 'REB Leader', 'league rebounds leader', 'league rebounding leader', 'rebounds leader', 'rebounding leader'],
+    synonyms: ['League Rebounds Leader', 'League Rebounding Leader', 'Rebounds Leader', 'Rebounding Leader', 'REB Leader', 'league rebounds leader', 'league rebounding leader', 'rebounds leader', 'rebounding leader', 'ReboundsLeader'],
     sport: ['basketball'],
     category: 'leader'
   },
   {
     id: 'AST_LEADER',
     displayLabel: 'League Assists Leader', 
-    synonyms: ['League Assists Leader', 'Assists Leader', 'Assist Leader', 'AST Leader', 'league assists leader', 'assists leader', 'assist leader'],
+    synonyms: ['League Assists Leader', 'Assists Leader', 'Assist Leader', 'AST Leader', 'league assists leader', 'assists leader', 'assist leader', 'AssistsLeader'],
     sport: ['basketball'],
     category: 'leader'
   },
   {
     id: 'STL_LEADER',
     displayLabel: 'League Steals Leader',
-    synonyms: ['League Steals Leader', 'Steals Leader', 'STL Leader', 'league steals leader', 'steals leader'],
+    synonyms: ['League Steals Leader', 'Steals Leader', 'STL Leader', 'league steals leader', 'steals leader', 'StealsLeader'],
     sport: ['basketball'],
     category: 'leader'
   },
   {
     id: 'BLK_LEADER',
     displayLabel: 'League Blocks Leader',
-    synonyms: ['League Blocks Leader', 'Blocks Leader', 'BLK Leader', 'league blocks leader', 'blocks leader'],
+    synonyms: ['League Blocks Leader', 'Blocks Leader', 'BLK Leader', 'league blocks leader', 'blocks leader', 'BlocksLeader'],
     sport: ['basketball'],
     category: 'leader'
   },
@@ -441,14 +441,14 @@ export const CANONICAL_ACHIEVEMENTS: CanonicalAchievement[] = [
   {
     id: 'SEASONS_10',
     displayLabel: 'Played 10+ Seasons',
-    synonyms: ['Played 10+ Seasons', 'played 10+ seasons'],
+    synonyms: ['Played 10+ Seasons', 'played 10+ seasons', 'played10PlusSeasons'],
     sport: ['basketball', 'football', 'hockey', 'baseball'],
     category: 'career'
   },
   {
     id: 'SEASONS_15',
     displayLabel: 'Played 15+ Seasons',
-    synonyms: ['Played 15+ Seasons', 'played 15+ seasons'],
+    synonyms: ['Played 15+ Seasons', 'played 15+ seasons', 'played15PlusSeasons'],
     sport: ['basketball', 'football', 'hockey', 'baseball'],
     category: 'career'
   },
@@ -457,42 +457,42 @@ export const CANONICAL_ACHIEVEMENTS: CanonicalAchievement[] = [
   {
     id: 'PTS_20K',
     displayLabel: '20,000+ Career Points',
-    synonyms: ['20,000+ Career Points', '20000+ Career Points', '20k+ Career Points'],
+    synonyms: ['20,000+ Career Points', '20000+ Career Points', '20k+ Career Points', 'career20kPoints'],
     sport: ['basketball'],
     category: 'career'
   },
   {
     id: 'REB_10K',
     displayLabel: '10,000+ Career Rebounds',
-    synonyms: ['10,000+ Career Rebounds', '10000+ Career Rebounds', '10k+ Career Rebounds'],
+    synonyms: ['10,000+ Career Rebounds', '10000+ Career Rebounds', '10k+ Career Rebounds', 'career10kRebounds'],
     sport: ['basketball'],
     category: 'career'
   },
   {
     id: 'AST_5K',
     displayLabel: '5,000+ Career Assists',
-    synonyms: ['5,000+ Career Assists', '5000+ Career Assists', '5k+ Career Assists'],
+    synonyms: ['5,000+ Career Assists', '5000+ Career Assists', '5k+ Career Assists', 'career5kAssists'],
     sport: ['basketball'],
     category: 'career'
   },
   {
     id: 'STL_2K',
     displayLabel: '2,000+ Career Steals',
-    synonyms: ['2,000+ Career Steals', '2000+ Career Steals', '2k+ Career Steals'],
+    synonyms: ['2,000+ Career Steals', '2000+ Career Steals', '2k+ Career Steals', 'career2kSteals'],
     sport: ['basketball'],
     category: 'career'
   },
   {
     id: 'BLK_1_5K',
     displayLabel: '1,500+ Career Blocks',
-    synonyms: ['1,500+ Career Blocks', '1500+ Career Blocks', '1.5k+ Career Blocks'],
+    synonyms: ['1,500+ Career Blocks', '1500+ Career Blocks', '1.5k+ Career Blocks', 'career1500Blocks'],
     sport: ['basketball'],
     category: 'career'
   },
   {
     id: 'THREES_2K',
     displayLabel: '2,000+ Career Threes',
-    synonyms: ['2,000+ Career Threes', '2000+ Career Threes', '2k+ Career Threes'],
+    synonyms: ['2,000+ Career Threes', '2000+ Career Threes', '2k+ Career Threes', 'career2kThrees', 'career2k3PM'],
     sport: ['basketball'],
     category: 'career'
   },
@@ -501,28 +501,28 @@ export const CANONICAL_ACHIEVEMENTS: CanonicalAchievement[] = [
   {
     id: 'PICK_1_OA',
     displayLabel: '#1 Overall Pick',
-    synonyms: ['#1 Overall Pick', '1st Overall Pick', 'First Overall Pick'],
+    synonyms: ['#1 Overall Pick', '1st Overall Pick', 'First Overall Pick', 'isPick1Overall'],
     sport: ['basketball', 'football', 'hockey', 'baseball'],
     category: 'draft'
   },
   {
     id: 'FIRST_ROUND',
     displayLabel: 'First Round Pick',
-    synonyms: ['First Round Pick', '1st Round Pick'],
+    synonyms: ['First Round Pick', '1st Round Pick', 'isFirstRoundPick'],
     sport: ['basketball', 'football', 'hockey', 'baseball'],
     category: 'draft'
   },
   {
     id: 'SECOND_ROUND',
     displayLabel: 'Second Round Pick',
-    synonyms: ['Second Round Pick', '2nd Round Pick'],
+    synonyms: ['Second Round Pick', '2nd Round Pick', 'isSecondRoundPick'],
     sport: ['basketball', 'football', 'hockey', 'baseball'],
     category: 'draft'
   },
   {
     id: 'UNDRAFTED',
     displayLabel: 'Went Undrafted',
-    synonyms: ['Went Undrafted', 'Undrafted'],
+    synonyms: ['Went Undrafted', 'Undrafted', 'isUndrafted'],
     sport: ['basketball', 'football', 'hockey', 'baseball'],
     category: 'draft'
   },
@@ -531,7 +531,7 @@ export const CANONICAL_ACHIEVEMENTS: CanonicalAchievement[] = [
   {
     id: 'HOF',
     displayLabel: 'Hall of Fame',
-    synonyms: ['Hall of Fame', 'Inducted into the Hall of Fame'],
+    synonyms: ['Hall of Fame', 'Inducted into the Hall of Fame', 'isHallOfFamer'],
     sport: ['basketball', 'football', 'hockey', 'baseball'],
     category: 'misc'
   }
