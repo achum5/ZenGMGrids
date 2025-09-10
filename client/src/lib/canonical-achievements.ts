@@ -125,7 +125,7 @@ export const CANONICAL_ACHIEVEMENTS: CanonicalAchievement[] = [
   {
     id: 'CHAMPION',
     displayLabel: 'Won Championship',
-    synonyms: ['Won Championship', 'Champion', 'won championship', 'champion'],
+    synonyms: ['Won Championship', 'Champion', 'won championship', 'champion', 'Won title'],
     sport: ['basketball'],
     category: 'award'
   },
@@ -491,29 +491,29 @@ export const CANONICAL_ACHIEVEMENTS: CanonicalAchievement[] = [
   },
   {
     id: 'THREES_2K',
-    displayLabel: '2,000+ Career Threes',
-    synonyms: ['2,000+ Career Threes', '2000+ Career Threes', '2k+ Career Threes', 'career2kThrees', 'career2k3PM'],
+    displayLabel: '2,000+ Made Threes',
+    synonyms: ['2,000+ Made Threes', '2,000+ Career Threes', '2000+ Career Threes', '2k+ Career Threes', 'career2kThrees', 'career2k3PM'],
     sport: ['basketball'],
     category: 'career'
   },
 
   // Draft Achievements
   {
-    id: 'PICK_1_OA',
+    id: 'ONE_OA',
     displayLabel: '#1 Overall Pick',
     synonyms: ['#1 Overall Pick', '1st Overall Pick', 'First Overall Pick', 'isPick1Overall'],
     sport: ['basketball', 'football', 'hockey', 'baseball'],
     category: 'draft'
   },
   {
-    id: 'FIRST_ROUND',
+    id: 'ROUND_1',
     displayLabel: 'First Round Pick',
     synonyms: ['First Round Pick', '1st Round Pick', 'isFirstRoundPick'],
     sport: ['basketball', 'football', 'hockey', 'baseball'],
     category: 'draft'
   },
   {
-    id: 'SECOND_ROUND',
+    id: 'ROUND_2',
     displayLabel: 'Second Round Pick',
     synonyms: ['Second Round Pick', '2nd Round Pick', 'isSecondRoundPick'],
     sport: ['basketball', 'football', 'hockey', 'baseball'],
