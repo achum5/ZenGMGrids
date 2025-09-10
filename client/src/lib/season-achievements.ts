@@ -1,8 +1,7 @@
 // Season achievement constants and utility functions for Immaculate Grid
 
-import type { Player, PlayerAward } from '@/types/bbgm';
+import type { Player } from '@/types/bbgm';
 import { playerMeetsAchievement } from '@/lib/achievements';
-import { getCanonicalId, getAchievementsForSport, isSeasonAligned, CANONICAL_ACHIEVEMENTS } from '@/lib/canonical-achievements';
 
 /**
  * Configuration for minimum games played requirement 
