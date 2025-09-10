@@ -97,7 +97,7 @@ export const CANONICAL_ACHIEVEMENTS: CanonicalAchievement[] = [
   {
     id: 'FINALS_MVP',
     displayLabel: 'Finals MVP',
-    synonyms: ['Finals MVP', 'finals mvp', 'championship mvp'],
+    synonyms: ['Finals MVP', 'finals mvp', 'championship mvp', 'FinalsMVP'],
     sport: ['basketball'],
     category: 'award'
   },
