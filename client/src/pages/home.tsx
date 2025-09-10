@@ -256,7 +256,10 @@ export default function Home() {
     setIsGenerating(true);
     
     try {
-      const gridResult = generateTeamsGrid(leagueData);
+      const gridResult = generateTeamsGrid({
+        ...leagueData,
+        canonicalIndex: canonicalIndex || undefined
+      });
       setRows(gridResult.rows);
       setCols(gridResult.cols);
       setIntersections(gridResult.intersections);

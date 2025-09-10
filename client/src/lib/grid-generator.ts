@@ -3,6 +3,7 @@
 import type { Player, Team } from '@/types/bbgm';
 import { playerMeetsAchievement, getAchievements, SEASON_ALIGNED_ACHIEVEMENTS } from '@/lib/achievements';
 import { SEASON_ACHIEVEMENTS, type SeasonAchievementId, type SeasonIndex, type CareerEverIndex, getSeasonEligiblePlayers, getCareerEverIntersection } from './season-achievements';
+import type { CanonicalAchievementIndex } from './canonical-achievement-index';
 import { evaluateConstraintPair } from './feedback';
 
 // Type definitions for grid constraints
@@ -27,6 +28,7 @@ interface LeagueData {
   sport: 'basketball' | 'football' | 'hockey' | 'baseball';
   seasonIndex?: SeasonIndex;
   careerEverIndex?: CareerEverIndex;
+  canonicalIndex?: CanonicalAchievementIndex;
 }
 
 interface TeamPair {
@@ -242,7 +244,7 @@ export function generateGridFallback(
  * Uses seeded randomness for consistency and prioritizes team overlap
  */
 export function generateGridSeeded(leagueData: LeagueData): GridGenerationResult {
-  const { players, teams, sport, seasonIndex, careerEverIndex } = leagueData;
+  const { players, teams, sport, seasonIndex, careerEverIndex, canonicalIndex } = leagueData;
   
   if (!seasonIndex) {
     throw new Error('Season index required for seeded builder');
@@ -875,13 +877,13 @@ function calculateIntersectionSimple(
     } else {
       // No indices available - fallback to player-by-player evaluation
       eligiblePlayers = players.filter(p => 
-        evaluateConstraintPair(p, rowConstraint, colConstraint, seasonIndex, careerEverIndex)
+        evaluateConstraintPair(p, rowConstraint, colConstraint, seasonIndex, careerEverIndex, canonicalIndex)
       );
     }
   } else {
     // Standard evaluation for career achievements or mixed career/season
     eligiblePlayers = players.filter(p => 
-      evaluateConstraintPair(p, rowConstraint, colConstraint, seasonIndex, careerEverIndex)
+      evaluateConstraintPair(p, rowConstraint, colConstraint, seasonIndex, careerEverIndex, canonicalIndex)
     );
   }
   
@@ -1473,7 +1475,7 @@ function logCellCounts(rows: GridConstraint[], cols: GridConstraint[], eligibili
  * Main grid generation function that tries different strategies
  */
 export function generateGrid(leagueData: LeagueData): GridGenerationResult {
-  const { players, teams, sport, seasonIndex, careerEverIndex } = leagueData;
+  const { players, teams, sport, seasonIndex, careerEverIndex, canonicalIndex } = leagueData;
   
   // Get unique seasons for coverage assessment
   const allSeasons = new Set<number>();

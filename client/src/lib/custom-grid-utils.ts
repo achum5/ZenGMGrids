@@ -196,7 +196,7 @@ export function calculateCustomCellIntersection(
   } else {
     // Standard evaluation for career achievements or mixed career/season
     eligiblePlayers = players.filter(p => 
-      evaluateConstraintPair(p, rowConstraint, colConstraint, seasonIndex, undefined)
+      evaluateConstraintPair(p, rowConstraint, colConstraint, seasonIndex, undefined, undefined)
     );
   }
 

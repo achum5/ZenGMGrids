@@ -3,6 +3,7 @@ import { SEASON_ALIGNED_ACHIEVEMENTS } from '@/lib/achievements';
 import { playerMeetsAchievement } from '@/lib/achievements';
 import { SEASON_ACHIEVEMENTS, type SeasonAchievementId, type SeasonIndex, getSeasonEligiblePlayers, type CareerEverIndex, getCareerEverIntersection } from './season-achievements';
 import { getCanonicalId, getDisplayLabel, isSeasonAligned } from '@/lib/canonical-achievements';
+import type { CanonicalAchievementIndex } from './canonical-achievement-index';
 
 // Season achievement metadata for modal copy
 const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
@@ -2050,7 +2051,7 @@ function getConstraintDetails(player: Player, constraint: GridConstraint) {
 /**
   * Evaluate if a player meets both constraints with proper Team × Achievement alignment
   */
-export function evaluateConstraintPair(player: Player, rowConstraint: GridConstraint, colConstraint: GridConstraint, seasonIndex?: SeasonIndex, careerEverIndex?: CareerEverIndex): boolean {
+export function evaluateConstraintPair(player: Player, rowConstraint: GridConstraint, colConstraint: GridConstraint, seasonIndex?: SeasonIndex, careerEverIndex?: CareerEverIndex, canonicalIndex?: CanonicalAchievementIndex): boolean {
   // If both constraints are teams, check both separately
   if (rowConstraint.type === 'team' && colConstraint.type === 'team') {
     return evaluateConstraint(player, rowConstraint) && evaluateConstraint(player, colConstraint);
@@ -2064,7 +2065,15 @@ export function evaluateConstraintPair(player: Player, rowConstraint: GridConstr
     
     console.log(`🔍 A×A Debug: ${rowConstraint.achievementId} -> ${rowCanonicalId}, ${colConstraint.achievementId} -> ${colCanonicalId}`);
     
-    // Use career-ever index if available (preferred for A×A cells)
+    // Use canonical index if available (preferred for A×A cells)  
+    if (canonicalIndex?.careerAch) {
+      const hasRowAchievement = canonicalIndex.careerAch[rowCanonicalId]?.has(player.pid) || false;
+      const hasColAchievement = canonicalIndex.careerAch[colCanonicalId]?.has(player.pid) || false;
+      console.log(`🔍 A×A Player ${player.name}: ${rowCanonicalId}=${hasRowAchievement}, ${colCanonicalId}=${hasColAchievement}`);
+      return hasRowAchievement && hasColAchievement;
+    }
+    
+    // Fallback to legacy career-ever index 
     if (careerEverIndex) {
       const hasRowAchievement = careerEverIndex[rowCanonicalId]?.has(player.pid) || false;
       const hasColAchievement = careerEverIndex[colCanonicalId]?.has(player.pid) || false;
