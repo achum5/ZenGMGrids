@@ -361,7 +361,7 @@ export const SEASON_ALIGNED_ACHIEVEMENTS = new Set([
   'ledScoringAny', 'ledRebAny', 'ledAstAny',
   
   // Basketball GM season achievements
-  'AllStar', 'MVP', 'DPOY', 'ROY', 'SMOY', 'MIP', 'FinalsMVP',
+  'AllStar', 'MVP', 'DPOY', 'ROY', 'SMOY', 'MIP', 'FinalsMVP', 'Champion',
   'AllLeagueAny', 'AllDefAny', 'AllRookieAny',
   'PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader',
   
