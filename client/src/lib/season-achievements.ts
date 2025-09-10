@@ -495,52 +495,9 @@ export function buildCareerEverIndex(players: Player[], sport?: string): CareerE
   
   console.log(`🔄 Building career-ever achievement index for ${sport || 'basketball'}...`);
   
-  // Initialize sets for all canonical achievements for this sport
-  const sportAchievements = getAchievementsForSport(sport || 'basketball');
-  for (const achievement of sportAchievements) {
-    careerEverIndex[achievement.id] = new Set<number>();
-  }
-  
-  let totalIndexed = 0;
-  
-  for (const player of players) {
-    // Track achievements for this player using canonical IDs
-    const playerAchievements = new Set<string>();
-    
-    // Process awards using canonical mapping
-    if (player.awards) {
-      for (const award of player.awards) {
-        const canonicalId = getCanonicalId(award.type || '');
-        if (canonicalId && careerEverIndex[canonicalId]) {
-          playerAchievements.add(canonicalId);
-        }
-      }
-    }
-    
-    // Add computed career milestones using canonical IDs
-    const careerMilestones = computeCareerMilestones(player, sport);
-    careerMilestones.forEach(canonicalId => {
-      if (careerEverIndex[canonicalId]) {
-        playerAchievements.add(canonicalId);
-      }
-    });
-    
-    // Add statistical leaders using canonical mapping
-    const leaderAchievements = computeStatisticalLeaders(player, sport);
-    leaderAchievements.forEach(canonicalId => {
-      if (careerEverIndex[canonicalId]) {
-        playerAchievements.add(canonicalId);
-      }
-    });
-    
-    // Add this player to all their achievements in the career-ever index
-    for (const canonicalId of playerAchievements) {
-      careerEverIndex[canonicalId].add(player.pid);
-      totalIndexed++;
-    }
-  }
-  
-  console.log(`✅ Career-ever index built: ${totalIndexed} total entries`);
+  // Since we removed the V2 achievements engine, return empty index for now
+  // Grid generation will rely on the new common-sense validator instead
+  console.log(`✅ Career-ever index built: 0 total entries (using new validator system)`);
   
   return careerEverIndex;
 }
