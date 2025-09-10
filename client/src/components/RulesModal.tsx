@@ -159,46 +159,52 @@ const sportSpecificRules = {
     ]
   },
   hockey: {
-    title: "Hockey ZenGM Grids — Quick Rules",
-    howCellsWork: [
-      "Match both labels.",
-      "Team × Team: player appeared (GP > 0) for both teams (any seasons).",
-      "Team × Career: player has ever played for the team + meets the career/longevity/birthplace item.",
-      "Team × Award: player must do it with that team in that season."
-    ],
-    achievements: {
-      career: [
-        "500+ Goals • 1,000+ Points • 500+ Assists",
-        "200+ Goalie Wins (G) • 50+ Goalie Shutouts (G)",
-        "Played 10+ Seasons • Played 15+ Seasons",
-        "Hall of Fame",
-        "Born outside 50 states + DC",
-        "#1 Overall • First Round • Second Round • Undrafted • Drafted as Teenager (age ≤ 19 at draft)"
-      ],
-      awards: [
-        "Most Valuable Player",
-        "Defensive Forward of the Year",
-        "Goalie of the Year",
-        "Rookie of the Year",
-        "Playoffs MVP",
-        "All-Star",
-        "Champion (must have GP > 0 in RS or playoffs with the title team)"
-      ],
-      draft: []
+    title: "ZGMH Grids",
+    eligibility: {
+      title: "How eligibility works",
+      rules: [
+        "Season-aligned achievements only need to match a team for Team × Achievement squares (same season, same team).",
+        "Playoffs/Finals MVP & Champion: must be with the team from that playoff run.",
+        "League Leaders (e.g., Assists Leader): count with any team the player played for during that leader season.",
+        "Achievement × Achievement squares do not require the same season.",
+        "Non-season (career/draft) achievements: player must have ever played for the team (any season) and meet the career/draft condition."
+      ]
     },
-    scoring: [
-      "1. Team fit: How much the player truly belongs to the team(s) in the square—played real minutes/games and had impact, not just a cameo.",
-      "2. Category fit: How strongly the player matches the stat/award—e.g., cleared the threshold (20k points) or actually won MVP that year.",
-      "3. Fame: How well-known the player is overall—Hall of Fame status, MVPs, All-Star selections, and big career volume.",
-      "Common picks → lower score.",
-      "Rare picks → higher score.",
-      "Very small answer pools can add a small bonus—but only if your pick wasn't the obvious one."
-    ],
-    notes: [
-      "\"(G)\" items apply to players who were goalies in that season.",
-      "Save% uses the season value in the uploaded league.",
-      "No duplicate players across the grid."
-    ]
+    seasonAchievements: {
+      title: "Season-aligned achievements",
+      items: [
+        "All-Star",
+        "MVP",
+        "Best Defenseman",
+        "Rookie of the Year",
+        "Champion",
+        "Playoffs MVP",
+        "Finals MVP",
+        "All-Rookie Team",
+        "All-League Team",
+        "All-Star Game MVP",
+        "Assists Leader"
+      ],
+      note: "Note for small leagues: If your league has fewer than 20 seasons, the generator uses a simplified mode — single-season achievements won't be used in generation."
+    },
+    careerAchievements: {
+      title: "Non-season (career/draft) achievements",
+      items: [
+        "#1 Overall Pick • First Round Pick • Went Undrafted",
+        "Hall of Fame • Played 15+ Seasons • Played 10+ Seasons",
+        "500+ Career Goals • 1,000+ Career Points • 500+ Career Assists",
+        "200+ Career Wins (Goalie) • 50+ Career Shutouts (Goalie)"
+      ]
+    },
+    scoring: {
+      title: "Scoring",
+      rules: [
+        "Each correct guess = its rarity score (10–100 points).",
+        "Base rarity: we rank all eligible players for that cell from rarest → most common using a popularity model (awards & career volume). Rarest ≈ 100, most common ≈ 10, others scale in between.",
+        "Small-pool bonus: harder cells with few eligible players get extra points (more bonus for smaller pools).",
+        "Cell-aware tweaks: when available, the model also considers team fit and category fit to reward creative picks."
+      ]
+    }
   }
 };
 
@@ -252,8 +258,8 @@ export function RulesModal({ sport }: RulesModalProps) {
             </div>
           ) : sportRules ? (
             <div className="space-y-6">
-              {/* Basketball BBGM Format & Football FBGM Format */}
-              {(sport === 'basketball' || sport === 'football') && (sportRules as any).eligibility ? (
+              {/* Basketball BBGM Format & Football FBGM Format & Hockey ZGMH Format */}
+              {(sport === 'basketball' || sport === 'football' || sport === 'hockey') && (sportRules as any).eligibility ? (
                 <>
                   {/* How eligibility works */}
                   <div>
