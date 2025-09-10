@@ -5,6 +5,7 @@ import { PlayerSearchModal } from '@/components/player-search-modal';
 import { PlayerModal } from '@/components/PlayerModal';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { RulesModal } from '@/components/RulesModal';
+import { V2Toggle } from '@/components/V2Toggle';
 import { GridSharingModal } from '@/components/grid-sharing-modal';
 import { CustomGridModal } from '@/components/custom-grid-modal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -787,6 +788,7 @@ export default function Home() {
               </h1>
             </div>
             <div className="flex items-center space-x-1">
+              <V2Toggle />
               <ThemeToggle />
               <RulesModal sport={leagueData?.sport} />
               {hasGuesses ? (
