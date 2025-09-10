@@ -115,6 +115,23 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId | null> = {
   'basketball all-defensive team': 'AllDefAny',
   'bbgm all-rookie team': 'AllRookieAny',
   'basketball all-rookie team': 'AllRookieAny',
+  
+  // CRITICAL: Numeric ordinal variants for All-League Team (fixes Jaylen Brown issue)
+  'all-league 1st team': 'AllLeagueAny',
+  'all-league 2nd team': 'AllLeagueAny',
+  'all-league 3rd team': 'AllLeagueAny',
+  'all league 1st team': 'AllLeagueAny',
+  'all league 2nd team': 'AllLeagueAny',
+  'all league 3rd team': 'AllLeagueAny',
+  'all-nba 1st team': 'AllLeagueAny',
+  'all-nba 2nd team': 'AllLeagueAny',
+  'all-nba 3rd team': 'AllLeagueAny',
+  
+  // Numeric ordinal variants for All-Defensive Team
+  'all-defensive 1st team': 'AllDefAny',
+  'all-defensive 2nd team': 'AllDefAny',
+  'all defensive 1st team': 'AllDefAny',
+  'all defensive 2nd team': 'AllDefAny',
 
   // Statistical leader achievements
   'bbgm points leader': 'PointsLeader',
@@ -211,7 +228,23 @@ function mapAwardToAchievement(awardType: string, sport?: 'basketball' | 'footba
   }
   
   // Fall back to normalized mapping
-  return AWARD_TYPE_MAPPING[normalized] || null;
+  let mapped = AWARD_TYPE_MAPPING[normalized];
+  if (mapped) return mapped;
+  
+  // CRITICAL: Defensive substring-based fallback for basketball (future-proofs against variants)
+  if (sport === 'basketball') {
+    if (normalized.includes('all') && normalized.includes('league') && normalized.includes('team')) {
+      return 'AllLeagueAny';
+    }
+    if (normalized.includes('all') && normalized.includes('defensive') && normalized.includes('team')) {
+      return 'AllDefAny';
+    }
+    if (normalized.includes('all') && normalized.includes('rookie') && normalized.includes('team')) {
+      return 'AllRookieAny';
+    }
+  }
+  
+  return null;
 }
 
 /**
