@@ -21,6 +21,7 @@ import { generateTeamsGrid, cellKey } from '@/lib/grid-generator';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
 import { useToast } from '@/hooks/use-toast';
 import type { LeagueData, CatTeam, CellState, Player, SearchablePlayer } from '@/types/bbgm';
+import { validatePlayerEligibility } from '@/lib/common-sense-validator';
 
 // Helper functions for attempt tracking
 function getAttemptCount(gridId: string): number {
@@ -114,11 +115,28 @@ export default function Home() {
     
     if (!rowConstraint || !colConstraint) return [];
     
-    // Get eligible players for this cell
-    const eligiblePids = intersections[cellKey] || [];
-    const eligiblePlayers = eligiblePids
-      .map(pid => byPid[pid])
-      .filter(player => player);
+    // Get eligible players for this cell using single common-sense validator
+    const rowValidationConstraint = {
+      type: rowConstraint.type === 'team' ? 'team' as const : 'achievement' as const,
+      name: rowConstraint.label || '',
+      tid: rowConstraint.tid
+    };
+    
+    const colValidationConstraint = {
+      type: colConstraint.type === 'team' ? 'team' as const : 'achievement' as const,
+      name: colConstraint.label || '',
+      tid: colConstraint.tid
+    };
+    
+    const eligiblePlayers = leagueData.players.filter(p => {
+      const result = validatePlayerEligibility(
+        rowValidationConstraint,
+        colValidationConstraint,
+        p,
+        leagueData.teams
+      );
+      return result.isValid;
+    });
     
     if (eligiblePlayers.length === 0) return [];
     
@@ -159,7 +177,7 @@ export default function Home() {
     playersWithRarity.sort((a, b) => a.rarity - b.rarity);
     
     return playersWithRarity;
-  }, [leagueData, rows, cols, intersections, byPid]);
+  }, [leagueData, rows, cols]);
 
   const handleFileUpload = useCallback(async (file: File) => {
     setIsProcessing(true);
@@ -339,11 +357,38 @@ export default function Home() {
     if (cellState?.locked && cellState?.player) {
       setModalPlayer(cellState.player);
       
-      // Get eligible players for this cell from intersections
-      const modalEligiblePids = intersections[key] || [];
+      // Get eligible players for this cell using the single common-sense validator
+      const [modalRowKey, modalColKey] = key.split('|');
+      const modalRowConstraint = rows.find(r => r.key === modalRowKey);
+      const modalColConstraint = cols.find(c => c.key === modalColKey);
       
-      const eligiblePlayers = leagueData?.players.filter(p => modalEligiblePids.includes(p.pid)) || [];
-      setModalEligiblePlayers(eligiblePlayers);
+      if (modalRowConstraint && modalColConstraint) {
+        const modalRowValidationConstraint = {
+          type: modalRowConstraint.type === 'team' ? 'team' as const : 'achievement' as const,
+          name: modalRowConstraint.label || '',
+          tid: modalRowConstraint.tid
+        };
+        
+        const modalColValidationConstraint = {
+          type: modalColConstraint.type === 'team' ? 'team' as const : 'achievement' as const,
+          name: modalColConstraint.label || '',
+          tid: modalColConstraint.tid
+        };
+        
+        const eligiblePlayers = leagueData?.players.filter(p => {
+          const result = validatePlayerEligibility(
+            modalRowValidationConstraint,
+            modalColValidationConstraint,
+            p,
+            leagueData?.teams || []
+          );
+          return result.isValid;
+        }) || [];
+        
+        setModalEligiblePlayers(eligiblePlayers);
+      } else {
+        setModalEligiblePlayers([]);
+      }
       
       // Set puzzle seed for consistent rarity calculations
       const puzzleSeed = `${rows.map(r => r.key).join('-')}_${cols.map(c => c.key).join('-')}`;
@@ -386,16 +431,37 @@ export default function Home() {
     const rowConstraint = rows.find(r => r.key === rowKey);
     const colConstraint = cols.find(c => c.key === colKey);
     
-    // Use original validation system
-    const eligiblePids = intersections[currentCellKey] || [];
-    const isCorrect = eligiblePids.includes(player.pid);
+    // Use single common-sense validator - SINGLE SOURCE OF TRUTH
+    const rowValidationConstraint = {
+      type: rowConstraint?.type === 'team' ? 'team' as const : 'achievement' as const,
+      name: rowConstraint?.label || '',
+      tid: rowConstraint?.tid
+    };
+    
+    const colValidationConstraint = {
+      type: colConstraint?.type === 'team' ? 'team' as const : 'achievement' as const,
+      name: colConstraint?.label || '',
+      tid: colConstraint?.tid
+    };
+    
+    const validationResult = validatePlayerEligibility(
+      rowValidationConstraint,
+      colValidationConstraint,
+      player,
+      leagueData?.teams || []
+    );
+    
+    const isCorrect = validationResult.isValid;
     
     console.log(`🚨 VALIDATION DEBUG: ${player.name} for ${currentCellKey}`);
-    console.log(`  Eligible players: ${eligiblePids.length}`);
-    console.log(`  Player ${player.pid} eligible: ${isCorrect}`);
+    console.log(`  Row: ${rowValidationConstraint.name} (${rowValidationConstraint.type})`);
+    console.log(`  Col: ${colValidationConstraint.name} (${colValidationConstraint.type})`);
+    console.log(`  Result: ${isCorrect ? '✅ VALID' : '❌ INVALID'}`);
     
-    if (!isCorrect && eligiblePids.length > 0) {
-      console.log(`  First few eligible PIDs:`, eligiblePids.slice(0, 5));
+    if (!isCorrect) {
+      console.log(`  Reason: ${validationResult.proofData.failureReason}`);
+    } else {
+      console.log(`  Proof:`, validationResult.proofData);
     }
     
     
@@ -403,7 +469,16 @@ export default function Home() {
     let rarity = 0;
     let points = 0;
     if (isCorrect && leagueData) {
-      const eligiblePlayers = leagueData.players.filter(p => eligiblePids.includes(p.pid));
+      // Calculate eligible players using the same validator for rarity consistency
+      const eligiblePlayers = leagueData.players.filter(p => {
+        const result = validatePlayerEligibility(
+          rowValidationConstraint,
+          colValidationConstraint,
+          p,
+          leagueData.teams
+        );
+        return result.isValid;
+      });
       const eligiblePool = eligiblePlayers.map(p => playerToEligibleLite(p));
       const guessedPlayer = playerToEligibleLite(player);
       const puzzleSeed = `${rows.map(r => r.key).join('-')}_${cols.map(c => c.key).join('-')}`;
