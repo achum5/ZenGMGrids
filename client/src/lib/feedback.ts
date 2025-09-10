@@ -1,7 +1,8 @@
 import type { Player, Team } from '@/types/bbgm';
 import { SEASON_ALIGNED_ACHIEVEMENTS } from '@/lib/achievements';
 import { playerMeetsAchievement } from '@/lib/achievements';
-import { SEASON_ACHIEVEMENTS, type SeasonAchievementId, type SeasonIndex, getSeasonEligiblePlayers, type CareerEverIndex, getCareerEverIntersection } from './season-achievements';
+import { SEASON_ACHIEVEMENTS, type SeasonAchievementId, type SeasonIndex, getSeasonEligiblePlayers, type CareerEverIndex, getCareerEverIntersection, playerEverAchieved } from './season-achievements';
+import { isAchievementByAchievementCell, getAchievementId } from '@/lib/achievement-detection';
 
 // Season achievement metadata for modal copy
 const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
@@ -2055,36 +2056,21 @@ export function evaluateConstraintPair(player: Player, rowConstraint: GridConstr
     return evaluateConstraint(player, rowConstraint) && evaluateConstraint(player, colConstraint);
   }
   
-  // If both are achievements, check based on their season-specific nature
-  if (rowConstraint.type === 'achievement' && colConstraint.type === 'achievement') {
-    const rowIsSeasonSpecific = SEASON_ALIGNED_ACHIEVEMENTS.has(rowConstraint.achievementId!);
-    const colIsSeasonSpecific = SEASON_ALIGNED_ACHIEVEMENTS.has(colConstraint.achievementId!);
+  // Achievement × Achievement: Use career-ever logic for ALL achievement combinations
+  if (isAchievementByAchievementCell(rowConstraint, colConstraint)) {
+    const rowAchievementId = getAchievementId(rowConstraint);
+    const colAchievementId = getAchievementId(colConstraint);
     
-    if (rowIsSeasonSpecific && colIsSeasonSpecific) {
-      // Both season-specific: player must have both achievements at ANY point in career (no season alignment)
-      if (seasonIndex) {
-        // Use season index to check if player achieved both across any seasons
-        let hasRow = false;
-        let hasCol = false;
-        
-        for (const seasonStr of Object.keys(seasonIndex)) {
-          const seasonData = seasonIndex[parseInt(seasonStr)];
-          for (const teamData of Object.values(seasonData)) {
-            if (teamData[rowConstraint.achievementId! as keyof typeof teamData]?.has(player.pid)) {
-              hasRow = true;
-            }
-            if (teamData[colConstraint.achievementId! as keyof typeof teamData]?.has(player.pid)) {
-              hasCol = true;
-            }
-          }
-        }
-        return hasRow && hasCol;
-      } else {
-        // No season index: fall back to basic check
-        return evaluateConstraint(player, rowConstraint) && evaluateConstraint(player, colConstraint);
-      }
+    if (!rowAchievementId || !colAchievementId) {
+      return false; // Invalid achievement IDs
+    }
+    
+    // Use career-ever logic: player eligible if they achieved both at ANY point in career
+    if (careerEverIndex) {
+      return playerEverAchieved(careerEverIndex, player.pid, rowAchievementId) && 
+             playerEverAchieved(careerEverIndex, player.pid, colAchievementId);
     } else {
-      // At least one is career: just check both separately (no season alignment needed)
+      // Fallback if no career-ever index
       return evaluateConstraint(player, rowConstraint) && evaluateConstraint(player, colConstraint);
     }
   }

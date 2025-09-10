@@ -534,6 +534,10 @@ export function buildCareerEverIndex(players: Player[], sport?: string): CareerE
   
   console.log(`✅ Career-ever index built: ${totalIndexed} total entries`);
   
+  // Debug: Log the keys in the career-ever index
+  const indexKeys = Object.keys(careerEverIndex).filter(key => careerEverIndex[key].size > 0);
+  console.log(`🔍 Career-ever index keys with players:`, indexKeys.slice(0, 20));
+  
   return careerEverIndex;
 }
 
@@ -683,6 +687,9 @@ export function getCareerEverIntersection(
   const set1 = careerEverIndex[achievement1] || new Set<number>();
   const set2 = careerEverIndex[achievement2] || new Set<number>();
   
+  // Debug logging for Achievement × Achievement intersections
+  console.log(`🔍 Career-ever intersection: ${achievement1} (${set1.size} players) × ${achievement2} (${set2.size} players)`);
+  
   // Return intersection of both sets
   const intersection = new Set<number>();
   for (const pid of set1) {
@@ -691,6 +698,7 @@ export function getCareerEverIntersection(
     }
   }
   
+  console.log(`🔍 Intersection result: ${intersection.size} players`);
   return intersection;
 }
 
