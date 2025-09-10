@@ -1,7 +1,7 @@
 import pako from 'pako';
 import type { LeagueData, Player, Team, SeasonLine, TeamOverlapData } from '@/types/bbgm';
 import { calculatePlayerAchievements, clearSeasonLengthCache, calculateLeagueLeadership, calculateTeamSeasonsAndAchievementSeasons, setCachedSportDetection } from '@/lib/achievements';
-import { buildSeasonIndex, buildCareerEverIndex, type SeasonIndex, type CareerEverIndex } from './season-achievements';
+import { buildSeasonIndex, type SeasonIndex } from './season-achievements';
 
 export type Sport = 'basketball' | 'football' | 'hockey' | 'baseball';
 
@@ -431,11 +431,12 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
         isFirstRoundPick: false,
         isSecondRoundPick: false,
         isUndrafted: false,
+        draftedTeen: false,
+        bornOutsideUS50DC: false,
         // Special categories achievements
         allStar35Plus: false,
         oneTeamOnly: false,
-        isHallOfFamer: false,
-        draftedTeen: false
+        isHallOfFamer: false
       };
     }
   });
@@ -472,6 +473,8 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
     isFirstRoundPick: 0,
     isSecondRoundPick: 0,
     isUndrafted: 0,
+    draftedTeen: 0,
+    bornOutsideUS50DC: 0,
     // Special categories achievements
     allStar35Plus: 0,
     oneTeamOnly: 0,
@@ -507,6 +510,8 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
       if (player.achievements.isFirstRoundPick) achievementCounts.isFirstRoundPick++;
       if (player.achievements.isSecondRoundPick) achievementCounts.isSecondRoundPick++;
       if (player.achievements.isUndrafted) achievementCounts.isUndrafted++;
+      if (player.achievements.draftedTeen) achievementCounts.draftedTeen++;
+      if (player.achievements.bornOutsideUS50DC) achievementCounts.bornOutsideUS50DC++;
       // Special categories achievements
       if (player.achievements.allStar35Plus) achievementCounts.allStar35Plus++;
       if (player.achievements.oneTeamOnly) achievementCounts.oneTeamOnly++;
@@ -580,17 +585,12 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
   
   // Build season index for basketball and football (when league has 50+ seasons)
   let seasonIndex: SeasonIndex | undefined;
-  let careerEverIndex: CareerEverIndex | undefined;
   
   // Check if league has enough seasons for season achievement grids
   const uniqueSeasons = new Set(
     players.flatMap(p => p.stats?.filter(s => !s.playoffs).map(s => s.season) || [])
   );
   const seasonCount = uniqueSeasons.size;
-  
-  // Always build career-ever index for Achievement × Achievement cells
-  console.log(`🎯 Building career-ever achievement index for ${sport}...`);
-  careerEverIndex = buildCareerEverIndex(players, sport);
   
   if (sport === 'basketball') {
     console.log('🏀 Building season-specific achievement index for basketball...');
@@ -612,7 +612,7 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
     console.log(`⚾ Skipping season achievements for baseball (${seasonCount} seasons < 20)`);
   }
   
-  return { players, teams, sport, teamOverlaps, seasonIndex, careerEverIndex };
+  return { players, teams, sport, teamOverlaps, seasonIndex };
   
   } catch (error) {
     console.error('Error in normalizeLeague:', error);
@@ -723,8 +723,8 @@ function analyzeTeamOverlaps(players: Player[], teams: Team[]): TeamOverlapData 
   
   // List of all possible achievement IDs to track
   const achievementIds = [
-    'isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted',
-    'isHallOfFamer', 'played15PlusSeasons', 'played10PlusSeasons',
+    'isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen',
+    'isHallOfFamer', 'played15PlusSeasons', 'played10PlusSeasons', 'bornOutsideUS50DC',
     'career300PassTDs', 'season35PassTDs', 'career12kRushYds', 'career100RushTDs', 
     'season1800RushYds', 'season20RushTDs', 'career12kRecYds', 'career100RecTDs',
     'season1400RecYds', 'season15RecTDs', 'career100Sacks', 'career20Ints',

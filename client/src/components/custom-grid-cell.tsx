@@ -2,38 +2,37 @@ import { cn } from '@/lib/utils';
 
 interface CustomGridCellProps {
   playerCount: number;
-  rowIndex: number;
-  colIndex: number;
+  row: number;
+  col: number;
   className?: string;
 }
 
-export function CustomGridCell({
-  playerCount,
-  rowIndex,
-  colIndex,
-  className
+export function CustomGridCell({ 
+  playerCount, 
+  row, 
+  col, 
+  className 
 }: CustomGridCellProps) {
   const isValid = playerCount > 0;
   
   return (
     <div
       className={cn(
-        'aspect-square w-full flex flex-col items-center justify-center text-center relative overflow-hidden',
-        'border border-border/60 dark:border-slate-600/90',
-        'transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/20 dark:hover:shadow-blue-400/30',
-        'hover:scale-[1.02] hover:z-10',
+        "aspect-square flex items-center justify-center border border-border dark:border-slate-600 rounded-lg transition-all duration-200",
         isValid 
-          ? 'bg-green-600/20 dark:bg-green-600/30 text-green-900 dark:text-green-100 shadow-sm shadow-green-500/10 dark:shadow-green-400/20' 
-          : 'bg-red-600/20 dark:bg-red-600/30 text-red-900 dark:text-red-100 shadow-sm shadow-red-500/10 dark:shadow-red-400/20',
+          ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 border-green-300 dark:border-green-700" 
+          : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 border-red-300 dark:border-red-700",
         className
       )}
-      data-testid={`custom-cell-${rowIndex}-${colIndex}`}
+      data-testid={`custom-cell-${row}-${col}`}
     >
-      <div className="text-xl md:text-2xl font-bold leading-none">
-        {playerCount}
-      </div>
-      <div className="text-xs text-muted-foreground mt-1">
-        eligible player{playerCount !== 1 ? 's' : ''}
+      <div className="text-center">
+        <div className="text-lg font-bold">
+          {playerCount}
+        </div>
+        <div className="text-xs opacity-75">
+          eligible player{playerCount !== 1 ? 's' : ''}
+        </div>
       </div>
     </div>
   );

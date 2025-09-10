@@ -1,8 +1,7 @@
 import type { Player, Team } from '@/types/bbgm';
 import { SEASON_ALIGNED_ACHIEVEMENTS } from '@/lib/achievements';
 import { playerMeetsAchievement } from '@/lib/achievements';
-import { SEASON_ACHIEVEMENTS, type SeasonAchievementId, type SeasonIndex, getSeasonEligiblePlayers, type CareerEverIndex, getCareerEverIntersection } from './season-achievements';
-import { isCareerAchievement } from './achievement-helpers';
+import { SEASON_ACHIEVEMENTS, type SeasonAchievementId } from './season-achievements';
 
 // Season achievement metadata for modal copy
 const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
@@ -52,6 +51,12 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     short: 'Finals MVP',
     verbTeam: 'won a Finals MVP',
     verbGeneric: 'won a Finals MVP'
+  },
+  SFMVP: {
+    label: 'Conference Finals MVP',
+    short: 'CFMVP',
+    verbTeam: 'won a Conference Finals MVP',
+    verbGeneric: 'won a Conference Finals MVP'
   },
   AllLeagueAny: {
     label: 'All-League Team',
@@ -434,6 +439,7 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     SMOY: ['SMOY', 'Sixth Man of the Year', 'sixth man of the year', '6MOY', '6th man'],
     MIP: ['MIP', 'Most Improved Player', 'most improved player'],
     FinalsMVP: ['Finals MVP', 'finals mvp', 'championship mvp'],
+    SFMVP: ['Conference Finals MVP', 'conference finals mvp', 'CFMVP', 'cfmvp'],
     AllLeagueAny: ['All-League', 'all-league', 'First Team All-League', 'Second Team All-League', 'Third Team All-League'],
     AllDefAny: ['All-Defensive', 'all-defensive', 'First Team All-Defensive', 'Second Team All-Defensive'],
     AllRookieAny: ['All-Rookie', 'all-rookie', 'All-Rookie Team'],
@@ -518,8 +524,8 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     if (award.season) {
       seasons.push(award.season);
       
-      // For Finals MVP (BBGM, FBGM, HKGM, and BBGM), include team abbreviation
-      if (achievementId === 'FinalsMVP' || achievementId === 'FBFinalsMVP' || achievementId === 'HKPlayoffsMVP' || achievementId === 'HKChampion' || achievementId === 'BBPlayoffsMVP' || achievementId === 'BBChampion') {
+      // For Finals MVP and Conference Finals MVP (BBGM, FBGM, HKGM, and BBGM), include team abbreviation
+      if (achievementId === 'FinalsMVP' || achievementId === 'SFMVP' || achievementId === 'FBFinalsMVP' || achievementId === 'HKPlayoffsMVP' || achievementId === 'HKChampion' || achievementId === 'BBPlayoffsMVP' || achievementId === 'BBChampion') {
         // Try to get team from playoffs stats for that season
         const playoffTeam = getPlayoffTeamForSeason(player, award.season);
         if (playoffTeam) {
@@ -1683,6 +1689,8 @@ function getAchievementPositiveMessage(achievementId: string, player?: Player): 
     isFirstRoundPick: "was a first-round pick",
     isSecondRoundPick: "was a second-round pick",
     isUndrafted: "went undrafted",
+    draftedTeen: "was drafted as a teenager (19 or younger)",
+    bornOutsideUS50DC: getBornOutsidePositiveMessage(player),
     
     // Special
     allStar35Plus: "made an All-Star team at age 35+",
@@ -1793,6 +1801,8 @@ function getAchievementNegativeMessage(achievementId: string, player?: Player): 
     isFirstRoundPick: "",
     isSecondRoundPick: "",
     isUndrafted: "",
+    draftedTeen: "",
+    bornOutsideUS50DC: "",
     
     // Special
     allStar35Plus: "never made an All-Star team at age 35+",
@@ -1861,7 +1871,7 @@ function getAchievementNegativeMessage(achievementId: string, player?: Player): 
   };
   
   // Handle draft achievements specially
-  if (['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted'].includes(achievementId) && player) {
+  if (['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen', 'bornOutsideUS50DC'].includes(achievementId) && player) {
     return getDraftNegativeMessage(player, achievementId);
   }
   
@@ -1876,8 +1886,7 @@ export function generateFeedbackMessage(
   player: Player,
   rowConstraint: GridConstraint,
   colConstraint: GridConstraint,
-  teams: Team[],
-  seasonIndex?: SeasonIndex
+  teams: Team[]
 ): string {
   const playerName = player.name;
   
@@ -1900,31 +1909,6 @@ export function generateFeedbackMessage(
   }
   
   // Fall back to original logic for other constraint combinations
-  // For Team × Career Achievement, check if it's being incorrectly evaluated
-  if ((rowConstraint.type === 'team' && colConstraint.type === 'achievement' && !SEASON_ALIGNED_ACHIEVEMENTS.has(colConstraint.achievementId!)) ||
-      (colConstraint.type === 'team' && rowConstraint.type === 'achievement' && !SEASON_ALIGNED_ACHIEVEMENTS.has(rowConstraint.achievementId!))) {
-    
-    // Team × Career Achievement case - use career achievement logic
-    const teamConstraint = rowConstraint.type === 'team' ? rowConstraint : colConstraint;
-    const achievementConstraint = rowConstraint.type === 'achievement' ? rowConstraint : colConstraint;
-    
-    const playedForTeam = playerPlayedForTeam(player, teamConstraint.tid!);
-    const hasAchievement = playerMeetsAchievement(player, achievementConstraint.achievementId!, seasonIndex);
-    
-    const teamName = getTeamNameWithThe(teams, teamConstraint.tid!);
-    
-    if (!playedForTeam && !hasAchievement) {
-      return `${playerName} never played for ${teamName} and ${getAchievementNegativeMessage(achievementConstraint.achievementId!, player)}.`;
-    } else if (!playedForTeam) {
-      return `${playerName} ${getAchievementPositiveMessage(achievementConstraint.achievementId!, player)}, but never played for ${teamName}.`;
-    } else if (!hasAchievement) {
-      return `${playerName} did play for ${teamName}, but ${getAchievementNegativeMessage(achievementConstraint.achievementId!, player)}.`;
-    } else {
-      // Both pass - this should only happen if the guess is actually correct
-      return `${playerName} did play for ${teamName} and ${getAchievementPositiveMessage(achievementConstraint.achievementId!, player)}.`;
-    }
-  }
-  
   // Get detailed evaluation for both constraints using actual achievement results
   const rowDetails = getConstraintDetails(player, rowConstraint);
   const colDetails = getConstraintDetails(player, colConstraint);
@@ -1983,41 +1967,87 @@ export function generateFeedbackMessage(
   }
   
   // Case 4: Both pass (shouldn't happen for wrong guesses, but handle gracefully)
-  // This might indicate a logic error or edge case
-  return `${playerName} ${rowDetails.passText} and ${colDetails.passText}, but the combination doesn't meet the grid requirements.`;
+  // This might indicate a same-season alignment issue
+  return `${playerName} ${rowDetails.passText} and ${colDetails.passText}, but there may be a season alignment issue.`;
 }
 
 /**
   * Check if a player satisfies a team × achievement constraint with same-season alignment
   */
-function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, achievementId: string, seasonIndex?: SeasonIndex, canonicalIndex?: CanonicalAchievementIndex): boolean {
-  // Use achievement ID directly (removed canonical mapping)
-  const canonicalId = achievementId;
-  
-  // If we have canonical index, use it (preferred method)
-  if (canonicalIndex) {
-    return validateGuessCanonical(canonicalIndex, player.pid, canonicalId, teamTid);
-  }
-  
-  // Check if this is a career achievement (non-season-aligned)
-  if (isCareerAchievement(canonicalId)) {
-    // Career-based achievements: player must have played for team AND have the achievement
-    const result = playerPlayedForTeam(player, teamTid) && playerMeetsAchievement(player, achievementId, seasonIndex);
-    return result;
+function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, achievementId: string): boolean {
+  // Check if this achievement requires same-season alignment
+  if (!SEASON_ALIGNED_ACHIEVEMENTS.has(achievementId)) {
+    // Career-based achievements: just check if player ever played for team AND has the achievement
+    return playerPlayedForTeam(player, teamTid) && playerMeetsAchievement(player, achievementId, undefined);
   }
 
-  // For season achievements that are in SEASON_ACHIEVEMENTS, use the season index approach if available
-  const seasonAchievement = SEASON_ACHIEVEMENTS.find(sa => sa.id === achievementId);
-  if (seasonAchievement && seasonIndex) {
-    // Use the same logic as custom grids - check if player is eligible via season index
-    const eligiblePids = getSeasonEligiblePlayers(seasonIndex, teamTid, achievementId as SeasonAchievementId);
-    const result = eligiblePids.has(player.pid);
-    
-    return result;
+  // For new statistical leader achievements, we need to use the season index approach
+  // These achievements are not stored in player.achievementSeasons but in the global season index
+  const statisticalLeaders = ['PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader'];
+  if (statisticalLeaders.includes(achievementId)) {
+    // This will be handled by the grid generator's season index logic
+    // For now, return false here since the grid generator handles this case differently
+    return false;
   }
 
-  // For non-season achievements or when season index is not available, fall back to career-based check
-  return playerPlayedForTeam(player, teamTid) && playerMeetsAchievement(player, achievementId, seasonIndex);
+  // Season-aligned achievements: need intersection of team seasons and achievement seasons
+  if (!player.teamSeasonsPaired || !player.achievementSeasons) {
+    return false;
+  }
+
+  // Get seasons when player achieved this specific achievement
+  let achievementSeasons: Set<number>;
+  
+  // Map achievement IDs to their season data (handle existing vs new naming)
+  switch (achievementId) {
+    case 'season30ppg': achievementSeasons = player.achievementSeasons.season30ppg; break;
+    case 'season10apg': achievementSeasons = player.achievementSeasons.season10apg; break;
+    case 'season15rpg': achievementSeasons = player.achievementSeasons.season15rpg; break;
+    case 'season3bpg': achievementSeasons = player.achievementSeasons.season3bpg; break;
+    case 'season25spg': achievementSeasons = player.achievementSeasons.season25spg; break;
+    case 'season504090': achievementSeasons = player.achievementSeasons.season504090; break;
+    case 'ledScoringAny': achievementSeasons = player.achievementSeasons.ledScoringAny; break;
+    case 'ledRebAny': achievementSeasons = player.achievementSeasons.ledRebAny; break;
+    case 'ledAstAny': achievementSeasons = player.achievementSeasons.ledAstAny; break;
+    case 'ledStlAny': achievementSeasons = player.achievementSeasons.ledStlAny; break;
+    case 'ledBlkAny': achievementSeasons = player.achievementSeasons.ledBlkAny; break;
+    case 'hasMVP': achievementSeasons = player.achievementSeasons.mvpWinner; break;
+    case 'hasDPOY': achievementSeasons = player.achievementSeasons.dpoyWinner; break;
+    case 'hasROY': achievementSeasons = player.achievementSeasons.royWinner; break;
+    case 'hasSixthMan': achievementSeasons = player.achievementSeasons.smoyWinner; break;
+    case 'hasMIP': achievementSeasons = player.achievementSeasons.mipWinner; break;
+    case 'hasFMVP': achievementSeasons = player.achievementSeasons.fmvpWinner; break;
+    case 'hasAllLeague': achievementSeasons = player.achievementSeasons.allLeagueTeam; break;
+    case 'hasAllDef': achievementSeasons = player.achievementSeasons.allDefensiveTeam; break;
+    case 'hasAllStar': achievementSeasons = player.achievementSeasons.allStarSelection; break;
+    case 'hasChampion': achievementSeasons = player.achievementSeasons.champion; break;
+    case 'allStar35Plus': achievementSeasons = player.achievementSeasons.allStar35Plus; break;
+    // Football achievements that should use career-based check
+    case 'wonMVP':
+    case 'wonOPOY': 
+    case 'wonDPOY':
+    case 'wonROY':
+    case 'season35PassTDs':
+    case 'season1400RecYds':
+    case 'season15RecTDs':
+    case 'season15Sacks':
+    case 'season8Ints':
+    case 'season1800RushYds':
+    case 'season20RushTDs':
+    default:
+      // Fallback to career-based check for unrecognized achievements
+      return playerPlayedForTeam(player, teamTid) && playerMeetsAchievement(player, achievementId, undefined);
+  }
+
+  // Check if there's any season where player both played for the team AND achieved the accomplishment
+  for (const season of Array.from(achievementSeasons)) {
+    const teamSeasonKey = `${season}|${teamTid}`;
+    if (player.teamSeasonsPaired.has(teamSeasonKey)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -2043,7 +2073,7 @@ function getConstraintDetails(player: Player, constraint: GridConstraint) {
       failText: passed ? '' : `never played for team ${constraint.tid}` // Will be filled properly later
     };
   } else if (constraint.type === 'achievement') {
-    const passed = playerMeetsAchievement(player, constraint.achievementId!, undefined);
+    const passed = playerMeetsAchievement(player, constraint.achievementId!);
     return {
       passed,
       passText: passed ? getAchievementPositiveMessage(constraint.achievementId!, player) : '',
@@ -2056,81 +2086,79 @@ function getConstraintDetails(player: Player, constraint: GridConstraint) {
 /**
   * Evaluate if a player meets both constraints with proper Team × Achievement alignment
   */
-export function evaluateConstraintPair(player: Player, rowConstraint: GridConstraint, colConstraint: GridConstraint, seasonIndex?: SeasonIndex, careerEverIndex?: CareerEverIndex, canonicalIndex?: CanonicalAchievementIndex): boolean {
+export function evaluateConstraintPair(player: Player, rowConstraint: GridConstraint, colConstraint: GridConstraint): boolean {
   // If both constraints are teams, check both separately
   if (rowConstraint.type === 'team' && colConstraint.type === 'team') {
     return evaluateConstraint(player, rowConstraint) && evaluateConstraint(player, colConstraint);
   }
   
-  // If both are achievements, use career-ever logic (Achievement × Achievement cells)
+  // If both are achievements, check both separately  
   if (rowConstraint.type === 'achievement' && colConstraint.type === 'achievement') {
-    // Use achievement IDs directly (removed canonical mapping)
-    const rowCanonicalId = rowConstraint.achievementId!;
-    const colCanonicalId = colConstraint.achievementId!;
-    
-    console.log(`🔍 A×A Debug: ${rowConstraint.achievementId} -> ${rowCanonicalId}, ${colConstraint.achievementId} -> ${colCanonicalId}`);
-    
-    // Use canonical index if available (preferred for A×A cells)  
-    if (canonicalIndex?.careerAch) {
-      const hasRowAchievement = canonicalIndex.careerAch[rowCanonicalId]?.has(player.pid) || false;
-      const hasColAchievement = canonicalIndex.careerAch[colCanonicalId]?.has(player.pid) || false;
-      console.log(`🔍 A×A Player ${player.name}: ${rowCanonicalId}=${hasRowAchievement}, ${colCanonicalId}=${hasColAchievement}`);
-      return hasRowAchievement && hasColAchievement;
-    }
-    
-    // Fallback to legacy career-ever index 
-    if (careerEverIndex) {
-      const hasRowAchievement = careerEverIndex[rowCanonicalId]?.has(player.pid) || false;
-      const hasColAchievement = careerEverIndex[colCanonicalId]?.has(player.pid) || false;
-      console.log(`🔍 A×A Player ${player.name}: ${rowCanonicalId}=${hasRowAchievement}, ${colCanonicalId}=${hasColAchievement}`);
-      return hasRowAchievement && hasColAchievement;
-    }
-    
-    // Fallback to legacy logic if no career-ever index
-    const rowIsSeasonSpecific = SEASON_ALIGNED_ACHIEVEMENTS.has(rowConstraint.achievementId!);
-    const colIsSeasonSpecific = SEASON_ALIGNED_ACHIEVEMENTS.has(colConstraint.achievementId!);
-    
-    if (rowIsSeasonSpecific && colIsSeasonSpecific) {
-      // Both season-specific: player must have both achievements at ANY point in career (no season alignment)
-      if (seasonIndex) {
-        // Use season index to check if player achieved both across any seasons
-        let hasRow = false;
-        let hasCol = false;
-        
-        for (const seasonStr of Object.keys(seasonIndex)) {
-          const seasonData = seasonIndex[parseInt(seasonStr)];
-          for (const teamData of Object.values(seasonData)) {
-            if (teamData[rowConstraint.achievementId! as keyof typeof teamData]?.has(player.pid)) {
-              hasRow = true;
-            }
-            if (teamData[colConstraint.achievementId! as keyof typeof teamData]?.has(player.pid)) {
-              hasCol = true;
-            }
-          }
-        }
-        return hasRow && hasCol;
-      } else {
-        // No season index: fall back to basic check
-        return evaluateConstraint(player, rowConstraint) && evaluateConstraint(player, colConstraint);
-      }
-    } else {
-      // At least one is career: just check both separately (no season alignment needed)
-      return evaluateConstraint(player, rowConstraint) && evaluateConstraint(player, colConstraint);
-    }
+    return evaluateConstraint(player, rowConstraint) && evaluateConstraint(player, colConstraint);
   }
   
   // Team × Achievement case: use same-season alignment
   if (rowConstraint.type === 'team' && colConstraint.type === 'achievement') {
-    return evaluateTeamAchievementWithAlignment(player, rowConstraint.tid!, colConstraint.achievementId!, seasonIndex, canonicalIndex);
+    return evaluateTeamAchievementWithAlignment(player, rowConstraint.tid!, colConstraint.achievementId!);
   }
   
   if (rowConstraint.type === 'achievement' && colConstraint.type === 'team') {
-    return evaluateTeamAchievementWithAlignment(player, colConstraint.tid!, rowConstraint.achievementId!, seasonIndex, canonicalIndex);
+    return evaluateTeamAchievementWithAlignment(player, colConstraint.tid!, rowConstraint.achievementId!);
   }
   
   return false;
 }
 
+/**
+  * Format birthplace for players born outside the 50 U.S. states or D.C.
+  */
+function formatBirthPlaceForOutside(born: any): string {
+  if (!born || !born.loc) {
+    return '';
+  }
+
+  const fullLocation = born.loc.trim();
+  
+  // If born outside USA entirely
+  if (born.country && born.country !== "USA") {
+    // Use available parts: city, region/state (if present), country
+    const parts = [];
+    if (born.city) parts.push(born.city);
+    if (born.region || born.state) parts.push(born.region || born.state);
+    if (born.country) parts.push(born.country);
+    return parts.join(', ') || fullLocation;
+  }
+  
+  // If born in USA but not in the 50 states or DC (territories)
+  if (born.country === "USA") {
+    // Extract location without ", USA" suffix for territories
+    if (fullLocation.endsWith(', USA')) {
+      return fullLocation.slice(0, -5).trim(); // Remove ", USA"
+    }
+    return fullLocation;
+  }
+  
+  // Fallback to the full location string
+  return fullLocation;
+}
+
+/**
+  * Get positive message for bornOutsideUS50DC with birthplace in parentheses
+  */
+function getBornOutsidePositiveMessage(player?: Player): string {
+  if (!player || !player.born) {
+    return "was born outside the 50 U.S. states or D.C.";
+  }
+  
+  const birthplaceFormatted = formatBirthPlaceForOutside(player.born);
+  
+  if (birthplaceFormatted) {
+    return `was born outside the 50 U.S. states or D.C. (born in ${birthplaceFormatted})`;
+  }
+  
+  // Fallback if no birthplace info
+  return "was born outside the 50 U.S. states or D.C.";
+}
 
 /**
   * Count the number of seasons a player played (excludes playoffs)
@@ -2202,7 +2230,23 @@ function getOrdinalNumber(num: number): string {
 
 function getDraftNegativeMessage(player: Player, achievementId: string): string {
   // Handle new non-draft-specific achievements
+  if (achievementId === 'draftedTeen') {
+    if (!player.born?.year || !player.draft?.year) {
+      return "draft age information unavailable";
+    }
+    const ageAtDraft = player.draft.year - player.born.year;
+    return `was ${ageAtDraft} years old when drafted (not a teenager)`;
+  }
   
+  if (achievementId === 'bornOutsideUS50DC') {
+    if (!player.born?.loc) {
+      return "birthplace information unavailable";
+    }
+    
+    const birthplace = player.born.loc.trim();
+    // For wrong guesses on "Born outside 50 states + DC", show their actual birth location
+    return `was born in the US (${birthplace})`;
+  }
   
   if (!player.draft) {
     // Player went undrafted
@@ -2249,7 +2293,7 @@ function generateTeamSeasonAchievementMessage(
   const playerData = getPlayerSeasonAchievementData(player, achievementId, teamTid);
   
   const countStr = playerData.count === 0 ? '0x' : 
-    `${playerData.count}x — ${formatSeasonList(playerData.seasonsWithTeam, achievementId === 'FinalsMVP')}`;
+    `${playerData.count}x — ${formatSeasonList(playerData.seasonsWithTeam, achievementId === 'FinalsMVP' || achievementId === 'SFMVP')}`;
   
   // Check if player actually played for this team
   const playedForTeam = playerPlayedForTeam(player, teamTid);
@@ -2272,7 +2316,6 @@ function generateTeamSeasonAchievementMessage(
 
 /**
  * Generate feedback message for Season Achievement × Season Achievement incorrect guesses
- * Now uses career-ever logic - players eligible if they achieved both awards at any point in career
  */
 function generateSeasonSeasonAchievementMessage(
   player: Player,
@@ -2284,18 +2327,17 @@ function generateSeasonSeasonAchievementMessage(
   const playerDataA = getPlayerSeasonAchievementData(player, achievementA);
   const playerDataB = getPlayerSeasonAchievementData(player, achievementB);
   
-  // This function is only called for INCORRECT guesses since validation already uses career-ever logic
-  // If both achievements exist, there must be some other reason why the guess was wrong (shouldn't happen with current logic)
+  // Case: Player has both awards but never in the same season
   if (playerDataA.count > 0 && playerDataB.count > 0) {
-    const seasonsA = formatSeasonList(playerDataA.seasonsWithTeam, achievementA === 'FinalsMVP');
-    const seasonsB = formatSeasonList(playerDataB.seasonsWithTeam, achievementB === 'FinalsMVP');
+    const seasonsA = formatSeasonList(playerDataA.seasonsWithTeam, achievementA === 'FinalsMVP' || achievementA === 'SFMVP');
+    const seasonsB = formatSeasonList(playerDataB.seasonsWithTeam, achievementB === 'FinalsMVP' || achievementB === 'SFMVP');
     
-    return `${player.name} did earn both ${achDataA.label} and ${achDataB.label} during their career. (${achDataA.short}: ${playerDataA.count}x — ${seasonsA}; ${achDataB.short}: ${playerDataB.count}x — ${seasonsB})`;
+    return `${player.name} did earn ${achDataA.label} and ${achDataB.label}, but never in the same season. (${achDataA.short}: ${playerDataA.count}x — ${seasonsA}; ${achDataB.short}: ${playerDataB.count}x — ${seasonsB})`;
   }
   
   // Case: Player is missing one side entirely
   if (playerDataA.count > 0 && playerDataB.count === 0) {
-    const seasonsA = formatSeasonList(playerDataA.seasonsWithTeam, achievementA === 'FinalsMVP');
+    const seasonsA = formatSeasonList(playerDataA.seasonsWithTeam, achievementA === 'FinalsMVP' || achievementA === 'SFMVP');
     const verbB = isRookieAchievement(achievementB) 
       ? achDataB.verbGeneric.replace('made the', 'didn\'t make the').replace('won', 'didn\'t win')
       : achDataB.verbGeneric.replace('made', 'did not make').replace('won', 'did not win');
@@ -2311,7 +2353,7 @@ function generateSeasonSeasonAchievementMessage(
   }
   
   if (playerDataB.count > 0 && playerDataA.count === 0) {
-    const seasonsB = formatSeasonList(playerDataB.seasonsWithTeam, achievementB === 'FinalsMVP');
+    const seasonsB = formatSeasonList(playerDataB.seasonsWithTeam, achievementB === 'FinalsMVP' || achievementB === 'SFMVP');
     const verbA = isRookieAchievement(achievementA) 
       ? achDataA.verbGeneric.replace('made the', 'didn\'t make the').replace('won', 'didn\'t win')
       : achDataA.verbGeneric.replace('made', 'did not make').replace('won', 'did not win');
