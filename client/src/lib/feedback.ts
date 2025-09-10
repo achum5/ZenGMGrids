@@ -1,7 +1,7 @@
 import type { Player, Team } from '@/types/bbgm';
 import { SEASON_ALIGNED_ACHIEVEMENTS } from '@/lib/achievements';
 import { playerMeetsAchievement } from '@/lib/achievements';
-import { SEASON_ACHIEVEMENTS, type SeasonAchievementId, type SeasonIndex, getSeasonEligiblePlayers } from './season-achievements';
+import { SEASON_ACHIEVEMENTS, type SeasonAchievementId, type SeasonIndex, getSeasonEligiblePlayers, type CareerEverIndex, getCareerEverIntersection } from './season-achievements';
 
 // Season achievement metadata for modal copy
 const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
@@ -2242,6 +2242,7 @@ function generateTeamSeasonAchievementMessage(
 
 /**
  * Generate feedback message for Season Achievement × Season Achievement incorrect guesses
+ * Now uses career-ever logic - players eligible if they achieved both awards at any point in career
  */
 function generateSeasonSeasonAchievementMessage(
   player: Player,
@@ -2253,12 +2254,13 @@ function generateSeasonSeasonAchievementMessage(
   const playerDataA = getPlayerSeasonAchievementData(player, achievementA);
   const playerDataB = getPlayerSeasonAchievementData(player, achievementB);
   
-  // Case: Player has both awards but never in the same season
+  // This function is only called for INCORRECT guesses since validation already uses career-ever logic
+  // If both achievements exist, there must be some other reason why the guess was wrong (shouldn't happen with current logic)
   if (playerDataA.count > 0 && playerDataB.count > 0) {
     const seasonsA = formatSeasonList(playerDataA.seasonsWithTeam, achievementA === 'FinalsMVP');
     const seasonsB = formatSeasonList(playerDataB.seasonsWithTeam, achievementB === 'FinalsMVP');
     
-    return `${player.name} did earn ${achDataA.label} and ${achDataB.label}, but never in the same season. (${achDataA.short}: ${playerDataA.count}x — ${seasonsA}; ${achDataB.short}: ${playerDataB.count}x — ${seasonsB})`;
+    return `${player.name} did earn both ${achDataA.label} and ${achDataB.label} during their career. (${achDataA.short}: ${playerDataA.count}x — ${seasonsA}; ${achDataB.short}: ${playerDataB.count}x — ${seasonsB})`;
   }
   
   // Case: Player is missing one side entirely
