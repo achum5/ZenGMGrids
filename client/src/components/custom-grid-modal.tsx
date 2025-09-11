@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -54,12 +54,19 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
 
   const sport = leagueData ? detectSport(leagueData) : 'basketball';
   
-  // Get available teams and achievements
-  const teamOptions: TeamOption[] = leagueData ? getTeamOptions(leagueData.teams) : [];
+  // Memoize expensive computations to prevent performance issues
+  const teamOptions = useMemo<TeamOption[]>(() => {
+    return leagueData ? getTeamOptions(leagueData.teams) : [];
+  }, [leagueData?.teams]);
   
-  // Build season index for achievements if needed
-  const seasonIndex = leagueData ? buildSeasonIndex(leagueData.players, sport) : undefined;
-  const achievementOptions: AchievementOption[] = leagueData ? getAchievementOptions(sport, seasonIndex) : [];
+  // Build season index for achievements if needed (expensive operation)
+  const seasonIndex = useMemo(() => {
+    return leagueData ? buildSeasonIndex(leagueData.players, sport) : undefined;
+  }, [leagueData?.players, sport]);
+  
+  const achievementOptions = useMemo<AchievementOption[]>(() => {
+    return leagueData ? getAchievementOptions(sport, seasonIndex) : [];
+  }, [sport, seasonIndex]);
 
   // Clear all selections
   const handleClearAll = useCallback(() => {
