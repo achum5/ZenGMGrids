@@ -6,6 +6,7 @@ import { PlayerModal } from '@/components/PlayerModal';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { RulesModal } from '@/components/RulesModal';
 import { GridSharingModal } from '@/components/grid-sharing-modal';
+import { CustomGridModal } from '@/components/custom-grid-modal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Home as HomeIcon } from 'lucide-react';
@@ -914,6 +915,25 @@ export default function Home() {
           cols={cols}
           leagueData={leagueData}
           onImportGrid={handleImportGrid}
+        />
+        
+        <CustomGridModal
+          isOpen={customGridModalOpen}
+          onClose={() => setCustomGridModalOpen(false)}
+          onPlayGrid={(customRows, customCols) => {
+            // Replace current grid with custom grid
+            setRows(customRows);
+            setCols(customCols);
+            // Reset game state for new custom grid
+            setCells({});
+            setUsedPids(new Set());
+            setRankCache({});
+            // TODO: Calculate intersections for custom grid in later task
+            setIntersections({});
+            // Close modal
+            setCustomGridModalOpen(false);
+          }}
+          leagueData={leagueData}
         />
       </main>
     </div>
