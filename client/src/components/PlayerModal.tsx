@@ -22,6 +22,7 @@ type Props = {
   cols?: CatTeam[];
   currentCellKey?: string;
   sport?: string;
+  isGridCompleted?: boolean;
 };
 
 // Helper function to get team name at a specific season
@@ -43,7 +44,7 @@ function teamNameAtSeason(teamsByTid: Map<number, Team>, tid: number, season: nu
   return region ? `${region} ${name}` : name;
 }
 
-export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers = [], puzzleSeed = "", rows = [], cols = [], currentCellKey = "", sport }: Props) {
+export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers = [], puzzleSeed = "", rows = [], cols = [], currentCellKey = "", sport, isGridCompleted = false }: Props) {
   if (!player) return null;
 
   // Create team lookup map for efficient lookups - defensive check for teams array
@@ -481,7 +482,12 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                 })()}
               </h3>
               <div className="w-full rounded-md border p-3 overflow-y-auto" style={{ maxHeight: '12rem' }}>
-                <div className="space-y-1 text-sm">
+                {!isGridCompleted ? (
+                  <div className="text-sm text-muted-foreground text-center py-8">
+                    Revealed upon grid completion...
+                  </div>
+                ) : (
+                  <div className="space-y-1 text-sm">
                   {(() => {
                     // Calculate rarity for all eligible players
                     const eligiblePool = eligiblePlayers.map(p => playerToEligibleLite(p));
@@ -566,7 +572,8 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                       );
                     });
                   })()}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
