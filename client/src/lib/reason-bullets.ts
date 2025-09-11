@@ -234,6 +234,55 @@ function getBulletPlayoffTeam(player: Player, season: number, teams: Team[]): st
   return null;
 }
 
+// Helper function to group consecutive years into ranges
+function groupConsecutiveYears(seasons: string[]): string[] {
+  if (seasons.length <= 1) return seasons;
+  
+  // For Finals MVP/playoffs with team abbreviations, don't group (e.g., "1994 HOU; 1995 HOU")
+  if (seasons.some(s => s.includes(' '))) {
+    return seasons;
+  }
+  
+  // Convert to numbers, sort, and group consecutive years
+  const years = seasons.map(s => parseInt(s)).filter(y => !isNaN(y)).sort((a, b) => a - b);
+  if (years.length === 0) return seasons;
+  
+  const ranges: string[] = [];
+  let start = years[0];
+  let end = years[0];
+  
+  for (let i = 1; i < years.length; i++) {
+    if (years[i] === end + 1) {
+      // Consecutive year, extend the range
+      end = years[i];
+    } else {
+      // Gap found, close current range and start new one
+      if (start === end) {
+        ranges.push(start.toString());
+      } else if (end === start + 1) {
+        // Only two consecutive years, don't use range notation
+        ranges.push(`${start}, ${end}`);
+      } else {
+        ranges.push(`${start}-${end}`);
+      }
+      start = years[i];
+      end = years[i];
+    }
+  }
+  
+  // Handle the last range
+  if (start === end) {
+    ranges.push(start.toString());
+  } else if (end === start + 1) {
+    // Only two consecutive years, don't use range notation  
+    ranges.push(`${start}, ${end}`);
+  } else {
+    ranges.push(`${start}-${end}`);
+  }
+  
+  return ranges;
+}
+
 // Helper function to format season list for bullets
 function formatBulletSeasonList(seasons: string[], isFinalsOrCFMVP: boolean = false): string {
   if (seasons.length === 0) return '';
@@ -244,8 +293,9 @@ function formatBulletSeasonList(seasons: string[], isFinalsOrCFMVP: boolean = fa
     return seasons.join('; ');
   }
   
-  // For other awards, use comma separator: "2019, 2020, 2021"
-  return seasons.join(', ');
+  // For other awards, group consecutive years and use comma separator
+  const groupedSeasons = groupConsecutiveYears(seasons);
+  return groupedSeasons.join(', ');
 }
 
 // Helper function to get team year range from stats
