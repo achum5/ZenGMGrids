@@ -53,7 +53,7 @@ export function PlayerFace({ pid, name, imgURL, face, size = 110, hideName = fal
         {kind === "svg" && (
           <div className="w-full h-full flex items-center justify-center">
             <div
-              className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full transform -translate-x-[1px]"
+              className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full transform -translate-x-[4px]"
               dangerouslySetInnerHTML={{ __html: data }}
             />
           </div>
