@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Grid3x3, Trash2, Play, RotateCcw, X, ArrowUpDown, Search } from 'lucide-react';
+import { Grid3x3, Trash2, Play, RotateCcw, X, ArrowUpDown, Search, ChevronDown, Wand2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { LeagueData, Team, CatTeam } from '@/types/bbgm';
 import { detectSport } from '@/lib/grid-sharing';
@@ -182,6 +183,171 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
   const isSeasonAchievement = useCallback((achievementId: string) => {
     return SEASON_ACHIEVEMENTS.some(sa => sa.id === achievementId);
   }, []);
+
+  // Autofill empty headers with intelligent choices
+  const handleAutofill = useCallback((mode: 'all' | 'teams' | 'achievements') => {
+    if (!leagueData) return;
+
+    // Get currently selected IDs to avoid duplicates
+    const usedTeamIds = new Set<number>();
+    const usedAchievementIds = new Set<string>();
+    
+    [...rowSelectors, ...colSelectors].forEach(selector => {
+      if (selector.type === 'team' && selector.value) {
+        usedTeamIds.add(parseInt(selector.value));
+      } else if (selector.type === 'achievement' && selector.value) {
+        usedAchievementIds.add(selector.value);
+      }
+    });
+
+    // Get available options excluding already used ones
+    const availableTeams = teamOptions.filter(team => !usedTeamIds.has(team.id));
+    const availableAchievements = achievementOptions.filter(ach => !usedAchievementIds.has(ach.id));
+
+    // Find empty slots
+    const emptySlots: Array<{ isRow: boolean, index: number }> = [];
+    rowSelectors.forEach((selector, index) => {
+      if (!selector.type) emptySlots.push({ isRow: true, index });
+    });
+    colSelectors.forEach((selector, index) => {
+      if (!selector.type) emptySlots.push({ isRow: false, index });
+    });
+
+    if (emptySlots.length === 0) {
+      toast({
+        title: "No empty slots",
+        description: "All headers are already filled.",
+      });
+      return;
+    }
+
+    // Prepare selection pools based on mode
+    let teamPool = mode === 'achievements' ? [] : [...availableTeams];
+    let achievementPool = mode === 'teams' ? [] : [...availableAchievements];
+
+    // Shuffle pools for randomness
+    teamPool.sort(() => Math.random() - 0.5);
+    achievementPool.sort(() => Math.random() - 0.5);
+
+    // Fill slots with validation
+    const newRowSelectors = [...rowSelectors];
+    const newColSelectors = [...colSelectors];
+    let filledCount = 0;
+
+    for (const slot of emptySlots) {
+      let filled = false;
+      
+      // Try teams first (if available), then achievements
+      const optionsToTry = teamPool.length > 0 && achievementPool.length > 0 
+        ? [{ type: 'team', pool: teamPool }, { type: 'achievement', pool: achievementPool }]
+        : teamPool.length > 0 
+        ? [{ type: 'team', pool: teamPool }]
+        : achievementPool.length > 0
+        ? [{ type: 'achievement', pool: achievementPool }]
+        : [];
+
+      for (const { type, pool } of optionsToTry) {
+        if (filled || pool.length === 0) continue;
+
+        // Try options from the pool
+        for (let i = 0; i < pool.length; i++) {
+          const option = pool[i];
+          
+          // Create test configuration
+          const testSelectors = slot.isRow ? [...newRowSelectors] : [...newColSelectors];
+          testSelectors[slot.index] = {
+            type: type as SelectorType,
+            value: type === 'team' ? option.id.toString() : option.id.toString(),
+            label: option.label
+          };
+
+          // Simulate the configuration to check if it creates any 0-result cells
+          let hasZeroResults = false;
+          
+          // Check all potential intersections with current + test configuration
+          const testRowSelectors = slot.isRow ? testSelectors : newRowSelectors;
+          const testColSelectors = slot.isRow ? newColSelectors : testSelectors;
+          
+          for (let rowIndex = 0; rowIndex < 3; rowIndex++) {
+            for (let colIndex = 0; colIndex < 3; colIndex++) {
+              const rowSel = testRowSelectors[rowIndex];
+              const colSel = testColSelectors[colIndex];
+              
+              if (rowSel.type && rowSel.value && colSel.type && colSel.value) {
+                const rowConfig: HeaderConfig = {
+                  type: rowSel.type,
+                  selectedId: rowSel.type === 'team' ? parseInt(rowSel.value) : rowSel.value,
+                  selectedLabel: rowSel.label
+                };
+                
+                const colConfig: HeaderConfig = {
+                  type: colSel.type,
+                  selectedId: colSel.type === 'team' ? parseInt(colSel.value) : colSel.value,
+                  selectedLabel: colSel.label
+                };
+                
+                const count = calculateCustomCellIntersection(
+                  rowConfig,
+                  colConfig,
+                  leagueData.players,
+                  leagueData.teams,
+                  seasonIndex
+                );
+                
+                if (count === 0) {
+                  hasZeroResults = true;
+                  break;
+                }
+              }
+            }
+            if (hasZeroResults) break;
+          }
+
+          // If this option doesn't create zero-result cells, use it
+          if (!hasZeroResults) {
+            if (slot.isRow) {
+              newRowSelectors[slot.index] = {
+                type: type as SelectorType,
+                value: type === 'team' ? option.id.toString() : option.id.toString(),
+                label: option.label
+              };
+            } else {
+              newColSelectors[slot.index] = {
+                type: type as SelectorType,
+                value: type === 'team' ? option.id.toString() : option.id.toString(),
+                label: option.label
+              };
+            }
+            
+            // Remove used option from pool
+            pool.splice(i, 1);
+            filled = true;
+            filledCount++;
+            break;
+          }
+        }
+        if (filled) break;
+      }
+    }
+
+    // Apply the changes
+    setRowSelectors(newRowSelectors);
+    setColSelectors(newColSelectors);
+    setCalculating(true);
+
+    if (filledCount === emptySlots.length) {
+      toast({
+        title: "Autofill completed",
+        description: `Successfully filled all ${filledCount} empty slots with valid options.`,
+      });
+    } else {
+      toast({
+        title: "Autofill partially completed",
+        description: `Filled ${filledCount} of ${emptySlots.length} empty slots. Some slots couldn't be filled without creating zero-result cells.`,
+        variant: "destructive"
+      });
+    }
+  }, [leagueData, rowSelectors, colSelectors, teamOptions, achievementOptions, seasonIndex, toast]);
   
   // Create unified options list for combobox
   const unifiedOptions = useMemo(() => {
@@ -590,14 +756,57 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
             )}
             
             <div className="flex justify-between items-center pt-4">
-              <Button
-                onClick={handleClearAll}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <Trash2 className="h-4 w-4" />
-                Clear All
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleClearAll}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Clear All
+                </Button>
+                
+                {/* Autofill Split Button */}
+                <div className="flex">
+                  <Button
+                    onClick={() => handleAutofill('all')}
+                    variant="outline"
+                    className="flex items-center gap-2 rounded-r-none border-r-0 flex-grow-[3] min-w-[90px]"
+                    disabled={!leagueData}
+                    data-testid="button-autofill"
+                  >
+                    <Wand2 className="h-4 w-4" />
+                    Autofill
+                  </Button>
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="rounded-l-none flex-grow-[1] px-2 min-w-[30px]"
+                        disabled={!leagueData}
+                        data-testid="button-autofill-menu"
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem 
+                        onClick={() => handleAutofill('teams')}
+                        data-testid="item-autofill-teams"
+                      >
+                        Autofill Teams Only
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleAutofill('achievements')}
+                        data-testid="item-autofill-achievements"
+                      >
+                        Autofill Achievements Only
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
               
               <div className="flex gap-2">
                 <Button
