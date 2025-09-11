@@ -375,19 +375,41 @@ export const SEASON_ALIGNED_ACHIEVEMENTS = new Set([
 
 // Check if a player meets a specific achievement criteria
 export function playerMeetsAchievement(player: Player, achievementId: string, seasonIndex?: SeasonIndex): boolean {
+  // Debug logging for specific achievements we're investigating
+  const isDebugAchievement = achievementId === 'career10kRebounds' || achievementId === 'AssistsLeader';
+  if (isDebugAchievement && player.name) {
+    console.log(`🔍 [DEBUG] Testing ${player.name} (${player.pid}) for ${achievementId}`);
+  }
+
   // First, check if it's a statistical leader achievement that needs season index
   const statisticalLeaders = ['PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader'];
   if (statisticalLeaders.includes(achievementId)) {
     // For statistical leaders, check if player appears in any season/team for this achievement
-    if (!seasonIndex) return false;
+    if (!seasonIndex) {
+      if (isDebugAchievement) {
+        console.log(`   ❌ No seasonIndex provided for statistical leader ${achievementId}`);
+      }
+      return false;
+    }
+    
+    if (isDebugAchievement) {
+      console.log(`   🔍 Checking seasonIndex for ${achievementId} (${Object.keys(seasonIndex).length} seasons)`);
+    }
     
     for (const seasonStr of Object.keys(seasonIndex)) {
       const seasonData = seasonIndex[parseInt(seasonStr)];
       for (const teamData of Object.values(seasonData)) {
         if (teamData[achievementId as keyof typeof teamData]?.has(player.pid)) {
+          if (isDebugAchievement) {
+            console.log(`   ✅ Found ${player.name} in seasonIndex for ${achievementId} in season ${seasonStr}`);
+          }
           return true;
         }
       }
+    }
+    
+    if (isDebugAchievement) {
+      console.log(`   ❌ ${player.name} not found in seasonIndex for ${achievementId}`);
     }
     return false;
   }
@@ -453,7 +475,20 @@ export function playerMeetsAchievement(player: Player, achievementId: string, se
   // For regular career achievements, use the static achievement arrays
   const allAchievements = [...COMMON_ACHIEVEMENTS, ...BASKETBALL_ACHIEVEMENTS, ...FOOTBALL_ACHIEVEMENTS, ...HOCKEY_ACHIEVEMENTS, ...BASEBALL_ACHIEVEMENTS];
   const achievement = allAchievements.find(a => a.id === achievementId);
-  return achievement ? achievement.test(player) : false;
+  const result = achievement ? achievement.test(player) : false;
+  
+  if (isDebugAchievement && player.name) {
+    if (achievement) {
+      console.log(`   🎯 Testing career achievement ${achievementId} for ${player.name}: ${result}`);
+      if (achievementId === 'career10kRebounds') {
+        console.log(`     - player.achievements?.career10kRebounds: ${player.achievements?.career10kRebounds}`);
+      }
+    } else {
+      console.log(`   ❌ Achievement ${achievementId} not found in static arrays`);
+    }
+  }
+  
+  return result;
 }
 
 // Cache for season lengths
@@ -470,6 +505,61 @@ export function setCachedSportDetection(sport: 'basketball' | 'football' | 'hock
 // Get cached sport detection  
 export function getCachedSportDetection(): 'basketball' | 'football' | 'hockey' | 'baseball' | undefined {
   return cachedSport;
+}
+
+// Debug function to test individual achievements and grid filtering
+export function debugIndividualAchievements(players: Player[], seasonIndex?: SeasonIndex): void {
+  console.log(`🧪 [DEBUG] Testing individual achievements`);
+  console.log(`   Players: ${players.length}, SeasonIndex: ${!!seasonIndex}`);
+  
+  // Test the viability filtering vs grid generation filtering
+  console.log(`🔍 [DEBUG] Comparing achievement filtering:`);
+  const viableAchievements = getViableAchievements(players, 5, 'basketball', seasonIndex);
+  console.log(`   Viable achievements: ${viableAchievements.length}`);
+  viableAchievements.forEach(ach => console.log(`     - ${ach.id}: ${ach.label} (season-specific: ${ach.isSeasonSpecific})`));
+  
+  const gridAchievements = getAchievements('basketball', seasonIndex);
+  console.log(`   Grid achievements: ${gridAchievements.length}`);
+  const assistsLeaderInGrid = gridAchievements.find(a => a.id === 'AssistsLeader');
+  console.log(`   AssistsLeader in grid achievements: ${!!assistsLeaderInGrid}`);
+  
+  let reboundsCount = 0;
+  let assistsCount = 0;
+  let bothCount = 0;
+  
+  const reboundsPlayers: Player[] = [];
+  const assistsPlayers: Player[] = [];
+  const bothPlayers: Player[] = [];
+  
+  for (const player of players) {
+    const hasRebounds = playerMeetsAchievement(player, 'career10kRebounds', seasonIndex);
+    const hasAssists = playerMeetsAchievement(player, 'AssistsLeader', seasonIndex);
+    
+    if (hasRebounds) {
+      reboundsCount++;
+      reboundsPlayers.push(player);
+    }
+    
+    if (hasAssists) {
+      assistsCount++;
+      assistsPlayers.push(player);
+    }
+    
+    if (hasRebounds && hasAssists) {
+      bothCount++;
+      bothPlayers.push(player);
+    }
+  }
+  
+  console.log(`📊 [DEBUG] Individual Achievement Results (all ${players.length} players):`);
+  console.log(`   Career 10k Rebounds: ${reboundsCount} players`);
+  console.log(`     - All players: ${reboundsPlayers.map(p => p.name || `pid:${p.pid}`).join(', ')}`);
+  
+  console.log(`   Assists Leader: ${assistsCount} players`);  
+  console.log(`     - All players: ${assistsPlayers.map(p => p.name || `pid:${p.pid}`).join(', ')}`);
+  
+  console.log(`   🎯 BOTH ACHIEVEMENTS: ${bothCount} players`);
+  console.log(`     - These should be in the intersection: ${bothPlayers.map(p => p.name || `pid:${p.pid}`).join(', ')}`);
 }
 
 // Clear season length cache
@@ -1080,7 +1170,15 @@ export function getViableAchievements(
   const achievements = getAchievements(sport, seasonIndex);
   
   return achievements.filter(achievement => {
-    const qualifyingPlayers = players.filter(achievement.test);
+    // For season-specific achievements, use playerMeetsAchievement which properly handles seasonIndex
+    // For career achievements, use the original test function
+    const qualifyingPlayers = players.filter(player => {
+      if (achievement.isSeasonSpecific) {
+        return playerMeetsAchievement(player, achievement.id, seasonIndex);
+      } else {
+        return achievement.test(player);
+      }
+    });
     const hasEnough = qualifyingPlayers.length >= Math.max(minCount, achievement.minPlayers);
     
     if (hasEnough) {
