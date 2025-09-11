@@ -440,7 +440,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
             </div>
             
             {/* Options list */}
-            <CommandList className="max-h-64 overflow-y-auto" style={{ overflowY: 'auto' }}>
+            <div className="max-h-64 overflow-y-auto">
+              <CommandList>
               <CommandEmpty>
                 <div className="py-6 text-center text-sm text-muted-foreground">
                   <div>No matches—try a different team or achievement.</div>
@@ -512,7 +513,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                   ))}
                 </CommandGroup>
               )}
-            </CommandList>
+              </CommandList>
+            </div>
             
             {/* Helper text */}
             <div className="px-3 py-2 border-t bg-muted/30 text-xs text-muted-foreground">
