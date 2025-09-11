@@ -134,11 +134,12 @@ export function GridSection({
           <Button
             onClick={onRetryGrid}
             variant="default"
-            className="bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            className="bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg focus:ring-2 focus:ring-green-500 focus:ring-offset-2 text-xs sm:text-sm h-8 px-2 sm:h-10 sm:px-4"
             data-testid="button-retry-grid"
           >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Retry This Grid
+            <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline">Retry This Grid</span>
+            <span className="xs:hidden">Retry</span>
           </Button>
         ) : (
           <AlertDialog>
@@ -146,11 +147,12 @@ export function GridSection({
               <Button
                 variant="ghost"
                 disabled={isGenerating || !hasEmptyCells}
-                className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg"
+                className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg text-xs sm:text-sm h-8 px-2 sm:h-10 sm:px-4"
                 data-testid="button-give-up"
               >
-                <Flag className="mr-2 h-4 w-4" />
-                Give Up
+                <Flag className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Give Up</span>
+                <span className="xs:hidden">Give Up</span>
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -173,18 +175,20 @@ export function GridSection({
           onClick={onGenerateNewGrid}
           disabled={isGenerating}
           variant="secondary"
-          className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg"
+          className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg text-xs sm:text-sm h-8 px-2 sm:h-10 sm:px-4"
           data-testid="button-generate-grid"
         >
           {isGenerating ? (
             <>
-              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-              Generating...
+              <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+              <span className="hidden xs:inline">Generating...</span>
+              <span className="xs:hidden">...</span>
             </>
           ) : (
             <>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Generate New Grid
+              <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Generate New Grid</span>
+              <span className="xs:hidden">New</span>
             </>
           )}
         </Button>
@@ -374,11 +378,12 @@ export function GridSection({
             <Button
               onClick={onShareGrid}
               variant="outline"
-              className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg"
+              className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg text-xs sm:text-sm h-8 px-2 sm:h-10 sm:px-4"
               data-testid="button-share-import-grid"
             >
-              <Share2 className="mr-2 h-4 w-4" />
-              Share/Import Grid
+              <Share2 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Share/Import Grid</span>
+              <span className="xs:hidden">Share</span>
             </Button>
           )}
           
@@ -390,11 +395,12 @@ export function GridSection({
             <Button
               onClick={onCreateCustomGrid}
               variant="outline"
-              className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg"
+              className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg text-xs sm:text-sm h-8 px-2 sm:h-10 sm:px-4"
               data-testid="button-create-custom-grid"
             >
-              <Grid3x3 className="mr-2 h-4 w-4" />
-              Create Custom Grid
+              <Grid3x3 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Create Custom Grid</span>
+              <span className="xs:hidden">Custom</span>
             </Button>
           )}
         </div>
