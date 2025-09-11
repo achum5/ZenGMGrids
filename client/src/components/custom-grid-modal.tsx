@@ -1,11 +1,11 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Grid3x3, Trash2, Play, RotateCcw, Plus } from 'lucide-react';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Grid3x3, Trash2, Play, RotateCcw, X, ArrowUpDown, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { LeagueData, Team, CatTeam } from '@/types/bbgm';
 import { detectSport } from '@/lib/grid-sharing';
@@ -46,11 +46,19 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
   // Track which header selector is open
   const [openHeaderSelector, setOpenHeaderSelector] = useState<string | null>(null);
   
+  // Search and filter state for unified combobox
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<'all' | 'teams' | 'achievements'>('all');
+  const [hideZeroResults, setHideZeroResults] = useState(false);
+  
   // Loading state for cell count calculations
   const [calculating, setCalculating] = useState(false);
   
   // Cell intersection counts
   const [cellCounts, setCellCounts] = useState<Record<string, number>>({});
+  
+  // Option counts for popover (team/achievement -> eligible player count)
+  const [optionCounts, setOptionCounts] = useState<Record<string, number>>({});
 
   const sport = leagueData ? detectSport(leagueData) : 'basketball';
   
@@ -100,22 +108,65 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
   }, []);
 
   // Update selector value
-  const updateSelectorValue = useCallback((isRow: boolean, index: number, value: string, label: string) => {
+  const updateSelectorValue = useCallback((isRow: boolean, index: number, type: SelectorType, value: string, label: string) => {
     if (isRow) {
       setRowSelectors(prev => prev.map((selector, i) => 
-        i === index ? { ...selector, value, label } : selector
+        i === index ? { type, value, label } : selector
       ));
     } else {
       setColSelectors(prev => prev.map((selector, i) => 
-        i === index ? { ...selector, value, label } : selector
+        i === index ? { type, value, label } : selector
       ));
     }
     // Trigger cell count calculation
     setCalculating(true);
-    // Close the header selector
+    // Close the header selector and clear search
     setOpenHeaderSelector(null);
+    setSearchQuery('');
   }, []);
 
+  // Create unified options list for combobox
+  const unifiedOptions = useMemo(() => {
+    const teams = teamOptions.map(team => ({
+      type: 'team' as const,
+      id: team.id.toString(),
+      label: team.label,
+      searchText: team.label.toLowerCase(),
+    }));
+    
+    const achievements = achievementOptions.map(achievement => ({
+      type: 'achievement' as const,
+      id: achievement.id.toString(), 
+      label: achievement.label,
+      searchText: achievement.label.toLowerCase(),
+    }));
+    
+    return { teams, achievements };
+  }, [teamOptions, achievementOptions]);
+  
+  // Filter options based on search and type filter
+  const filteredOptions = useMemo(() => {
+    const query = searchQuery.toLowerCase();
+    
+    let teams = unifiedOptions.teams;
+    let achievements = unifiedOptions.achievements;
+    
+    // Apply search filter
+    if (query) {
+      teams = teams.filter(option => option.searchText.includes(query));
+      achievements = achievements.filter(option => option.searchText.includes(query));
+    }
+    
+    // Apply type filter
+    if (filterType === 'teams') {
+      achievements = [];
+    } else if (filterType === 'achievements') {
+      teams = [];
+    }
+    
+    return { teams, achievements };
+  }, [unifiedOptions, searchQuery, filterType]);
+  
   // Check if all selectors are filled
   const allSelectorsComplete = rowSelectors.every(s => s.type && s.value) && 
                               colSelectors.every(s => s.type && s.value);
@@ -293,67 +344,124 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
             )}
           </div>
         </PopoverTrigger>
-        <PopoverContent className="w-80 p-3" align="start">
-          <div className="space-y-3">
-            <div className="font-medium">
-              Configure {isRow ? 'Row' : 'Column'} {index + 1}
-            </div>
-            
-            {/* Type Selection */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Type</label>
-              <Select 
-                value={selector.type || ''} 
-                onValueChange={(value: SelectorType) => updateSelectorType(isRow, index, value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="team">Team</SelectItem>
-                  <SelectItem value="achievement">Achievement</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {/* Value Selection */}
-            {selector.type && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  {selector.type === 'team' ? 'Team' : 'Achievement'}
-                </label>
-                <Select 
-                  value={selector.value || ''} 
-                  onValueChange={(value) => {
-                    const options = selector.type === 'team' ? teamOptions : achievementOptions;
-                    const selectedOption = options.find(opt => opt.id.toString() === value);
-                    if (selectedOption) {
-                      updateSelectorValue(isRow, index, value, selectedOption.label);
-                    }
-                  }}
-                  disabled={!leagueData}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={`Select ${selector.type}...`} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {selector.type === 'team' 
-                      ? teamOptions.map(option => (
-                          <SelectItem key={option.id} value={option.id.toString()}>
-                            {option.label}
-                          </SelectItem>
-                        ))
-                      : achievementOptions.map(option => (
-                          <SelectItem key={option.id} value={option.id.toString()}>
-                            {option.label}
-                          </SelectItem>
-                        ))
-                    }
-                  </SelectContent>
-                </Select>
+        <PopoverContent className="w-96 p-0" align="start">
+          <Command>
+            {/* Header with dynamic title */}
+            <div className="px-3 py-2 border-b bg-muted/30">
+              <div className="font-medium text-sm">
+                {selector.label ? `${isRow ? 'Row' : 'Column'} ${index + 1}: ${selector.label}` : `Configure ${isRow ? 'Row' : 'Column'} ${index + 1}`}
               </div>
-            )}
-          </div>
+            </div>
+            
+            {/* Search input */}
+            <div className="p-2">
+              <CommandInput 
+                placeholder="Search teams or achievements…"
+                value={searchQuery}
+                onValueChange={setSearchQuery}
+                className="h-9"
+              />
+            </div>
+            
+            {/* Filter chips */}
+            <div className="px-2 pb-2">
+              <div className="flex gap-1">
+                {(['all', 'teams', 'achievements'] as const).map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => setFilterType(filter)}
+                    className={`px-2 py-1 text-xs rounded-md transition-colors ${
+                      filterType === filter 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'bg-muted hover:bg-muted/80'
+                    }`}
+                  >
+                    {filter === 'all' ? 'All' : filter === 'teams' ? 'Teams' : 'Achievements'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            {/* Options list */}
+            <CommandList className="max-h-64 overflow-y-auto">
+              <CommandEmpty>
+                <div className="py-6 text-center text-sm text-muted-foreground">
+                  <div>No matches—try a different team or achievement.</div>
+                  <div className="mt-2 space-x-2">
+                    <button
+                      onClick={() => setFilterType('teams')}
+                      className="text-primary hover:underline"
+                    >
+                      Browse Teams
+                    </button>
+                    <button
+                      onClick={() => setFilterType('achievements')}
+                      className="text-primary hover:underline"
+                    >
+                      Browse Achievements
+                    </button>
+                  </div>
+                </div>
+              </CommandEmpty>
+              
+              {/* Teams group */}
+              {filteredOptions.teams.length > 0 && (
+                <CommandGroup heading="Teams">
+                  {filteredOptions.teams.map((team) => (
+                    <CommandItem
+                      key={`team-${team.id}`}
+                      value={`team-${team.id}`}
+                      onSelect={() => {
+                        updateSelectorValue(isRow, index, 'team', team.id, team.label);
+                      }}
+                      className="flex items-center gap-2 px-3 py-2"
+                    >
+                      <div className="w-6 h-6 rounded bg-muted flex items-center justify-center text-xs">
+                        🏀
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium">{team.label}</div>
+                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        Team
+                      </Badge>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+              
+              {/* Achievements group */}
+              {filteredOptions.achievements.length > 0 && (
+                <CommandGroup heading="Achievements">
+                  {filteredOptions.achievements.map((achievement) => (
+                    <CommandItem
+                      key={`achievement-${achievement.id}`}
+                      value={`achievement-${achievement.id}`}
+                      onSelect={() => {
+                        updateSelectorValue(isRow, index, 'achievement', achievement.id, achievement.label);
+                      }}
+                      className="flex items-center gap-2 px-3 py-2"
+                    >
+                      <div className="w-5 h-5 rounded bg-muted flex items-center justify-center text-xs">
+                        🏆
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium">{achievement.label}</div>
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        Career
+                      </Badge>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+            </CommandList>
+            
+            {/* Helper text */}
+            <div className="px-3 py-2 border-t bg-muted/30 text-xs text-muted-foreground">
+              Season items only need the same season when paired with a Team.
+            </div>
+          </Command>
         </PopoverContent>
       </Popover>
     );
