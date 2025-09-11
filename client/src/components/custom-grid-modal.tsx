@@ -348,7 +348,15 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
       label: achievement.label,
       searchText: achievement.label.toLowerCase(),
       isSeason: isSeasonAchievement(achievement.id), // Add season/career categorization
-    }));
+    }))
+    .sort((a, b) => {
+      // Sort by season first (season achievements before career)
+      if (a.isSeason && !b.isSeason) return -1;
+      if (!a.isSeason && b.isSeason) return 1;
+      
+      // If both are same type (season or career), sort alphabetically
+      return a.label.localeCompare(b.label);
+    });
     
     return { teams, achievements };
   }, [teamOptions, achievementOptions, leagueData, isSeasonAchievement]);
