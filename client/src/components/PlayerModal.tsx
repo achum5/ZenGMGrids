@@ -11,6 +11,41 @@ import { cellKey } from '@/lib/grid-generator';
 import { CareerTeamLogo, checkAllTeamsHaveLogos } from '@/components/CareerTeamLogo';
 import { generateReasonBullets } from '@/lib/reason-bullets';
 
+// Helper function to format consecutive years with hyphens
+function formatYearsWithRanges(years: number[]): string {
+  if (years.length === 0) return '';
+  if (years.length === 1) return years[0].toString();
+  
+  const ranges: string[] = [];
+  let start = years[0];
+  let end = years[0];
+  
+  for (let i = 1; i < years.length; i++) {
+    if (years[i] === end + 1) {
+      // Consecutive year, extend the range
+      end = years[i];
+    } else {
+      // Non-consecutive, push the current range and start a new one
+      if (start === end) {
+        ranges.push(start.toString());
+      } else {
+        ranges.push(`${start}-${end}`);
+      }
+      start = years[i];
+      end = years[i];
+    }
+  }
+  
+  // Don't forget the final range
+  if (start === end) {
+    ranges.push(start.toString());
+  } else {
+    ranges.push(`${start}-${end}`);
+  }
+  
+  return ranges.join(', ');
+}
+
 type Props = {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -319,20 +354,38 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                       case "Third Team All-League":
                         // Count all All-League teams together
                         if (!condensedAwards.some(award => award.text.includes("All-League"))) {
-                          const allLeagueCount = (player.awards || []).filter(a => 
+                          const allLeagueAwards = (player.awards || []).filter(a => 
                             a.type.includes("All-League")
-                          ).length;
-                          condensedAwards.push({ text: allLeagueCount > 1 ? `${allLeagueCount}x All-League` : "All-League" });
+                          );
+                          const allLeagueCount = allLeagueAwards.length;
+                          
+                          // Get years and format with ranges
+                          const allLeagueYears = allLeagueAwards
+                            .map(a => a.season)
+                            .sort((a, b) => a - b);
+                          const formattedYears = formatYearsWithRanges(allLeagueYears);
+                          
+                          const baseText = allLeagueCount > 1 ? `All-League: ${allLeagueCount}x` : "All-League";
+                          condensedAwards.push({ text: `${baseText} — ${formattedYears}` });
                         }
                         break;
                       case "First Team All-Defensive":
                       case "Second Team All-Defensive":
                         // Count all All-Defensive teams together
                         if (!condensedAwards.some(award => award.text.includes("All-Defensive"))) {
-                          const allDefensiveCount = (player.awards || []).filter(a => 
+                          const allDefensiveAwards = (player.awards || []).filter(a => 
                             a.type.includes("All-Defensive")
-                          ).length;
-                          condensedAwards.push({ text: allDefensiveCount > 1 ? `${allDefensiveCount}x All-Defensive` : "All-Defensive" });
+                          );
+                          const allDefensiveCount = allDefensiveAwards.length;
+                          
+                          // Get years and format with ranges
+                          const allDefensiveYears = allDefensiveAwards
+                            .map(a => a.season)
+                            .sort((a, b) => a - b);
+                          const formattedYears = formatYearsWithRanges(allDefensiveYears);
+                          
+                          const baseText = allDefensiveCount > 1 ? `All-Defensive: ${allDefensiveCount}x` : "All-Defensive";
+                          condensedAwards.push({ text: `${baseText} — ${formattedYears}` });
                         }
                         break;
                       case "League Scoring Leader":
