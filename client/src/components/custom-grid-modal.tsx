@@ -113,6 +113,13 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
   
   // Option counts for popover (team/achievement -> eligible player count)
   const [optionCounts, setOptionCounts] = useState<Record<string, number>>({});
+  
+  // Undo functionality for autofill
+  const [canUndo, setCanUndo] = useState(false);
+  const [previousState, setPreviousState] = useState<{
+    rowSelectors: SelectorState[];
+    colSelectors: SelectorState[];
+  } | null>(null);
 
   const sport = leagueData ? detectSport(leagueData) : 'basketball';
   
@@ -144,6 +151,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     ]);
     setCellCounts({});
     setOpenHeaderSelector(null);
+    setCanUndo(false);
+    setPreviousState(null);
   }, []);
 
   // Update selector type
@@ -187,6 +196,12 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
   // Autofill empty headers with intelligent choices
   const handleAutofill = useCallback((mode: 'all' | 'teams' | 'achievements') => {
     if (!leagueData) return;
+
+    // Save current state for undo
+    setPreviousState({
+      rowSelectors: [...rowSelectors],
+      colSelectors: [...colSelectors]
+    });
 
     // Get currently selected IDs to avoid duplicates
     const usedTeamIds = new Set<number>();
@@ -330,7 +345,38 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     setRowSelectors(newRowSelectors);
     setColSelectors(newColSelectors);
     setCalculating(true);
+
+    if (filledCount > 0) {
+      setCanUndo(true);
+      toast({
+        title: "Headers filled",
+        description: `Filled ${filledCount} empty header${filledCount > 1 ? 's' : ''} with validated options.`,
+        duration: 3000
+      });
+    } else {
+      toast({
+        title: "No changes",
+        description: "No suitable options found or all headers are already filled.",
+        duration: 3000
+      });
+    }
   }, [leagueData, rowSelectors, colSelectors, teamOptions, achievementOptions, seasonIndex, toast]);
+
+  // Undo last autofill operation
+  const handleUndo = useCallback(() => {
+    if (!previousState || !canUndo) return;
+    
+    setRowSelectors(previousState.rowSelectors);
+    setColSelectors(previousState.colSelectors);
+    setCanUndo(false);
+    setPreviousState(null);
+    
+    toast({
+      title: "Undone",
+      description: "Reverted to state before autofill.",
+      duration: 2000
+    });
+  }, [previousState, canUndo, toast]);
   
   // Create unified options list for combobox
   const unifiedOptions = useMemo(() => {
@@ -532,19 +578,42 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
         onOpenChange={(open) => setOpenHeaderSelector(open ? headerKey : null)}
       >
         <PopoverTrigger asChild>
-          <div className="aspect-square flex flex-col items-center justify-center bg-background border rounded cursor-pointer hover:bg-muted/50 transition-colors p-1">
+          <div className="aspect-square flex flex-col items-center justify-center bg-background border rounded cursor-pointer hover:bg-muted/50 transition-colors p-1 relative group">
             {selector.label ? (
               // Selected state: show what was chosen
-              <div className="text-center w-full h-full flex flex-col items-center justify-center">
-                {selector.type && (
-                  <Badge variant="outline" className="text-[10px] mb-1 px-1 py-0 leading-none">
-                    {selector.type}
-                  </Badge>
-                )}
-                <div className="text-[10px] sm:text-xs font-medium leading-tight break-words text-center px-1 overflow-hidden">
-                  {selector.label}
+              <>
+                <div className="text-center w-full h-full flex flex-col items-center justify-center">
+                  {selector.type && (
+                    <Badge variant="outline" className="text-[10px] mb-1 px-1 py-0 leading-none">
+                      {selector.type}
+                    </Badge>
+                  )}
+                  <div className="text-[10px] sm:text-xs font-medium leading-tight break-words text-center px-1 overflow-hidden">
+                    {selector.label}
+                  </div>
                 </div>
-              </div>
+                {/* X button to clear selection */}
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (isRow) {
+                      const newRowSelectors = [...rowSelectors];
+                      newRowSelectors[index] = { type: null, value: null, label: '', tid: undefined, achievementId: undefined };
+                      setRowSelectors(newRowSelectors);
+                    } else {
+                      const newColSelectors = [...colSelectors];
+                      newColSelectors[index] = { type: null, value: null, label: '', tid: undefined, achievementId: undefined };
+                      setColSelectors(newColSelectors);
+                    }
+                  }}
+                  className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center text-[10px] font-bold"
+                  title="Clear selection"
+                  data-testid={`button-clear-${isRow ? 'row' : 'col'}-${index}`}
+                >
+                  ×
+                </button>
+              </>
             ) : (
               // Ghost state: clear invitation to select
               <div className="text-center w-full h-full flex flex-col items-center justify-center space-y-1">
@@ -797,6 +866,19 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
+                
+                {/* Undo Button */}
+                {canUndo && (
+                  <Button
+                    onClick={handleUndo}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                    data-testid="button-undo-autofill"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Undo
+                  </Button>
+                )}
               </div>
               
               <div className="flex gap-2">
