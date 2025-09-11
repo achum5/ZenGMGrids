@@ -8,7 +8,7 @@ import { Grid3x3, Trash2, Play, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { LeagueData, Team, CatTeam } from '@/types/bbgm';
 import { detectSport } from '@/lib/grid-sharing';
-import { getTeamOptions, getAchievementOptions, calculateCustomCellIntersection, type TeamOption, type AchievementOption, type HeaderConfig } from '@/lib/custom-grid-utils';
+import { getTeamOptions, getAchievementOptions, calculateCustomCellIntersection, headerConfigToCatTeam, type TeamOption, type AchievementOption, type HeaderConfig } from '@/lib/custom-grid-utils';
 import { buildSeasonIndex } from '@/lib/season-achievements';
 
 interface CustomGridModalProps {
@@ -163,12 +163,58 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     if (!isGridSolvable || !leagueData) return;
 
     // Convert selectors to CatTeam format
-    // This will be implemented in the validation integration task
-    toast({
-      title: "Play Grid functionality coming soon",
-      description: "Grid creation logic will be implemented next.",
-    });
-  }, [isGridSolvable, leagueData, toast]);
+    const customRows: CatTeam[] = [];
+    const customCols: CatTeam[] = [];
+    
+    // Convert row selectors
+    for (let i = 0; i < 3; i++) {
+      const rowSelector = rowSelectors[i];
+      if (rowSelector.type && rowSelector.value && rowSelector.label) {
+        const headerConfig: HeaderConfig = {
+          type: rowSelector.type,
+          selectedId: rowSelector.type === 'team' ? parseInt(rowSelector.value) : rowSelector.value,
+          selectedLabel: rowSelector.label
+        };
+        
+        const catTeam = headerConfigToCatTeam(headerConfig, leagueData.teams, seasonIndex);
+        if (catTeam) {
+          customRows.push(catTeam);
+        }
+      }
+    }
+    
+    // Convert column selectors
+    for (let i = 0; i < 3; i++) {
+      const colSelector = colSelectors[i];
+      if (colSelector.type && colSelector.value && colSelector.label) {
+        const headerConfig: HeaderConfig = {
+          type: colSelector.type,
+          selectedId: colSelector.type === 'team' ? parseInt(colSelector.value) : colSelector.value,
+          selectedLabel: colSelector.label
+        };
+        
+        const catTeam = headerConfigToCatTeam(headerConfig, leagueData.teams, seasonIndex);
+        if (catTeam) {
+          customCols.push(catTeam);
+        }
+      }
+    }
+    
+    // Ensure we have exactly 3 rows and 3 cols
+    if (customRows.length === 3 && customCols.length === 3) {
+      onPlayGrid(customRows, customCols);
+      toast({
+        title: "Custom Grid Started!",
+        description: "Your custom grid is now ready to play.",
+      });
+    } else {
+      toast({
+        title: "Grid Creation Failed",
+        description: "Could not convert all selections to valid grid constraints.",
+        variant: "destructive"
+      });
+    }
+  }, [isGridSolvable, leagueData, rowSelectors, colSelectors, seasonIndex, onPlayGrid, toast]);
 
   // Get cell key for intersection
   const getCellKey = (rowIndex: number, colIndex: number) => `${rowIndex}-${colIndex}`;
