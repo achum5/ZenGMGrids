@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { LeagueData, Team, CatTeam } from '@/types/bbgm';
 import { detectSport } from '@/lib/grid-sharing';
 import { getTeamOptions, getAchievementOptions, calculateCustomCellIntersection, headerConfigToCatTeam, type TeamOption, type AchievementOption, type HeaderConfig } from '@/lib/custom-grid-utils';
-import { buildSeasonIndex } from '@/lib/season-achievements';
+import { buildSeasonIndex, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 
 // Team logo icon component for combobox
 function TeamLogoIcon({ teamData }: { teamData?: Team }) {
@@ -178,6 +178,11 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     setSearchQuery('');
   }, []);
 
+  // Helper function to determine if an achievement is season-specific
+  const isSeasonAchievement = useCallback((achievementId: string) => {
+    return SEASON_ACHIEVEMENTS.some(sa => sa.id === achievementId);
+  }, []);
+  
   // Create unified options list for combobox
   const unifiedOptions = useMemo(() => {
     const teams = teamOptions.map(team => ({
@@ -193,10 +198,11 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
       id: achievement.id.toString(), 
       label: achievement.label,
       searchText: achievement.label.toLowerCase(),
+      isSeason: isSeasonAchievement(achievement.id), // Add season/career categorization
     }));
     
     return { teams, achievements };
-  }, [teamOptions, achievementOptions, leagueData]);
+  }, [teamOptions, achievementOptions, leagueData, isSeasonAchievement]);
   
   // Filter options based on search and type filter
   const filteredOptions = useMemo(() => {
@@ -499,8 +505,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                       <div className="flex-1">
                         <div className="font-medium">{achievement.label}</div>
                       </div>
-                      <Badge variant="outline" className="text-xs">
-                        Career
+                      <Badge variant={achievement.isSeason ? "default" : "outline"} className="text-xs">
+                        {achievement.isSeason ? "Season" : "Career"}
                       </Badge>
                     </CommandItem>
                   ))}
