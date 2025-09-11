@@ -921,6 +921,8 @@ export default function Home() {
           isOpen={customGridModalOpen}
           onClose={() => setCustomGridModalOpen(false)}
           onPlayGrid={(customRows, customCols) => {
+            if (!leagueData) return;
+            
             // Replace current grid with custom grid
             setRows(customRows);
             setCols(customCols);
@@ -928,8 +930,26 @@ export default function Home() {
             setCells({});
             setUsedPids(new Set());
             setRankCache({});
-            // TODO: Calculate intersections for custom grid in later task
-            setIntersections({});
+            
+            // Calculate intersections for custom grid
+            const allCellKeys = customRows.flatMap(row => 
+              customCols.map(col => cellKey(row.key, col.key))
+            );
+            
+            const newIntersections: Record<string, number[]> = {};
+            
+            for (const key of allCellKeys) {
+              const [rowKey, colKey] = key.split('|');
+              const row = customRows.find(r => r.key === rowKey);
+              const col = customCols.find(c => c.key === colKey);
+              
+              if (row && col) {
+                const eligible = leagueData.players.filter(p => row.test(p) && col.test(p));
+                newIntersections[key] = eligible.map(p => p.pid);
+              }
+            }
+            
+            setIntersections(newIntersections);
             // Close modal
             setCustomGridModalOpen(false);
           }}
