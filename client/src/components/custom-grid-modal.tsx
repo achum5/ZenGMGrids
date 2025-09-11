@@ -391,9 +391,6 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                 <div className="text-[9px] sm:text-[10px] font-medium text-muted-foreground leading-tight">
                   Achievement
                 </div>
-                <div className="text-[8px] text-muted-foreground/70 leading-tight">
-                  Click to choose
-                </div>
               </div>
             )}
           </div>
