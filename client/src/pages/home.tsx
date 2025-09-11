@@ -413,15 +413,6 @@ export default function Home() {
     // Success toast removed - was blocking mobile interactions
   }, [toast]);
   
-  // Auto-load test data when component mounts for debugging
-  useEffect(() => {
-    const autoLoad = async () => {
-      console.log('🔧 [DEBUG] Component mounted, auto-loading test data...');
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s for app to initialize
-      await loadTestData();
-    };
-    autoLoad();
-  }, []); // Empty dependency array means this runs once on mount
 
   const handleGenerateNewGrid = useCallback(() => {
     if (!leagueData) return;
