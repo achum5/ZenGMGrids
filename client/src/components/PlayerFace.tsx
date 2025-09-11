@@ -39,7 +39,7 @@ export function PlayerFace({ pid, name, imgURL, face, size = 110, hideName = fal
     <div className="flex h-full w-full flex-col items-center justify-center p-1 gap-1 pointer-events-none">
       {/* Face box: square that scales with tile; leaves room for the name */}
       <div
-        className="w-full max-h-[70%] aspect-square overflow-hidden rounded-xl bg-transparent"
+        className="w-full max-h-[82%] aspect-square overflow-hidden rounded-xl bg-transparent"
       >
         {kind === "url" && (
           <img
