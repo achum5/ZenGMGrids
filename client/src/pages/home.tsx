@@ -907,6 +907,11 @@ export default function Home() {
           cols={cols}
           currentCellKey={modalCellKey}
           sport={leagueData?.sport}
+          isGridCompleted={(() => {
+            // Check if all cells have been filled (either guessed or auto-filled)
+            const allCellKeys = rows.flatMap(row => cols.map(col => `${row.key}|${col.key}`));
+            return allCellKeys.every(key => cells[key]?.name);
+          })()}
         />
         
         <GridSharingModal
