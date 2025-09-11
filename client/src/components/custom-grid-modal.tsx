@@ -47,14 +47,14 @@ function TeamLogoIcon({ teamData }: { teamData?: Team }) {
   
   if (!currentLogo || logoError) {
     return (
-      <div className="w-6 h-6 rounded bg-muted flex items-center justify-center text-xs">
+      <div className="w-6 h-6 flex items-center justify-center text-xs">
         🏀
       </div>
     );
   }
   
   return (
-    <div className="w-6 h-6 rounded bg-muted flex items-center justify-center overflow-hidden">
+    <div className="w-6 h-6 flex items-center justify-center overflow-hidden">
       <img
         src={currentLogo}
         alt={teamData?.name || 'Team logo'}
