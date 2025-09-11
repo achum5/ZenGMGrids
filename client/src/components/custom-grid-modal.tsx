@@ -549,7 +549,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
         onOpenChange={(open) => setOpenHeaderSelector(open ? headerKey : null)}
       >
         <PopoverTrigger asChild>
-          <div className="aspect-square flex flex-col items-center justify-center bg-background border rounded cursor-pointer hover:bg-muted/50 transition-colors p-1 sm:p-2 relative group text-xs sm:text-sm">
+          <div className="aspect-square flex flex-col items-center justify-center bg-background border rounded cursor-pointer hover:bg-muted/50 transition-colors p-0.5 sm:p-2 relative group text-xs sm:text-sm min-h-[50px] sm:min-h-[80px]">
             {selector.label ? (
               // Selected state: show what was chosen
               <>
@@ -559,7 +559,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                       {selector.type}
                     </Badge>
                   )}
-                  <div className="text-[10px] sm:text-xs font-medium leading-tight break-words text-center px-1 overflow-hidden">
+                  <div className="text-[7px] sm:text-xs font-medium leading-tight break-words text-center px-0.5 overflow-hidden">
                     {selector.label}
                   </div>
                 </div>
@@ -723,7 +723,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] overflow-y-auto sm:w-full">
+      <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto overflow-x-hidden p-3 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Grid3x3 className="h-5 w-5" />
@@ -734,12 +734,12 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
         <div className="space-y-6">
           {/* Interactive Grid */}
           <div className="space-y-4">
-            <div className="text-sm text-muted-foreground">
+            <div className="text-xs sm:text-sm text-muted-foreground">
               Click on the headers to select teams or achievements for each row and column.
             </div>
             
-            <div className="bg-muted/30 p-2 sm:p-4 md:p-6 rounded-lg">
-              <div className="grid grid-cols-4 gap-1 sm:gap-2 md:gap-3 max-w-xs sm:max-w-sm md:max-w-lg mx-auto">
+            <div className="bg-muted/30 p-1 sm:p-4 md:p-6 rounded-lg overflow-hidden">
+              <div className="grid grid-cols-4 gap-0.5 sm:gap-2 md:gap-3 w-full max-w-[260px] sm:max-w-sm md:max-w-lg mx-auto">
                 {/* Top-left empty cell */}
                 <div className="aspect-square"></div>
                 
@@ -760,7 +760,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                     
                     // Row cells
                     ...colSelectors.map((_, colIndex) => (
-                      <div key={`cell-${rowIndex}-${colIndex}`} className="aspect-square flex items-center justify-center bg-background border rounded text-sm font-medium">
+                      <div key={`cell-${rowIndex}-${colIndex}`} className="aspect-square flex items-center justify-center bg-background border rounded text-xs sm:text-sm font-medium min-h-[50px] sm:min-h-[80px]">
                         {getCellDisplay(rowIndex, colIndex)}
                       </div>
                     ))
