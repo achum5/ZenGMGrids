@@ -423,39 +423,8 @@ export function generateReasonBullets(
 ): ReasonBullet[] {
   const bullets: ReasonBullet[] = [];
   
-  // Special case: Season Achievement × Season Achievement with overlap display
-  const rowIsSeasonAch = rowConstraint.type === 'achievement' && isSeasonAchievement(rowConstraint.achievementId!);
-  const colIsSeasonAch = colConstraint.type === 'achievement' && isSeasonAchievement(colConstraint.achievementId!);
-  
-  if (rowIsSeasonAch && colIsSeasonAch) {
-    // Option: Show combined overlap bullet for season×season cells
-    const achLabelA = SEASON_ACHIEVEMENT_LABELS[rowConstraint.achievementId! as SeasonAchievementId];
-    const achLabelB = SEASON_ACHIEVEMENT_LABELS[colConstraint.achievementId! as SeasonAchievementId];
-    
-    // Extract actual overlap seasons from player data
-    const seasonsA = getSeasonAchievementSeasons(player, rowConstraint.achievementId! as SeasonAchievementId, teams);
-    const seasonsB = getSeasonAchievementSeasons(player, colConstraint.achievementId! as SeasonAchievementId, teams);
-    
-    // Find overlapping seasons (for same-season requirements)
-    const overlapSeasons = seasonsA.filter(seasonA => {
-      const yearA = parseInt(seasonA.split(' ')[0]); // Extract year part
-      return seasonsB.some(seasonB => {
-        const yearB = parseInt(seasonB.split(' ')[0]);
-        return yearA === yearB;
-      });
-    });
-    
-    // Use just the years for the overlap display
-    const yearOverlaps = Array.from(new Set(overlapSeasons.map(s => s.split(' ')[0]))).sort();
-    const overlapStr = formatBulletSeasonList(yearOverlaps, false);
-    
-    bullets.push({
-      text: `${achLabelA} + ${achLabelB} (${overlapStr})`,
-      type: 'award'
-    });
-    
-    return bullets;
-  }
+  // Always generate separate bullet points for both constraints
+  // No special case - let both constraints be processed individually
   
   // Standard rule: Generate one bullet per constraint header
   // Process constraints in order: Teams first, then season achievements, then career/misc
