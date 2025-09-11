@@ -7,7 +7,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Grid3x3, Trash2, Play, RotateCcw, X, ArrowUpDown, Search, ChevronDown, Wand2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import type { LeagueData, Team, CatTeam } from '@/types/bbgm';
 import { detectSport } from '@/lib/grid-sharing';
 import { getTeamOptions, getAchievementOptions, calculateCustomCellIntersection, headerConfigToCatTeam, type TeamOption, type AchievementOption, type HeaderConfig } from '@/lib/custom-grid-utils';
@@ -82,7 +81,6 @@ interface SelectorState {
 }
 
 export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: CustomGridModalProps) {
-  const { toast } = useToast();
   
   // State for the 6 selectors (3 rows + 3 cols)
   const [rowSelectors, setRowSelectors] = useState<SelectorState[]>([
@@ -348,19 +346,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
 
     if (filledCount > 0) {
       setCanUndo(true);
-      toast({
-        title: "Headers filled",
-        description: `Filled ${filledCount} empty header${filledCount > 1 ? 's' : ''} with validated options.`,
-        duration: 3000
-      });
-    } else {
-      toast({
-        title: "No changes",
-        description: "No suitable options found or all headers are already filled.",
-        duration: 3000
-      });
     }
-  }, [leagueData, rowSelectors, colSelectors, teamOptions, achievementOptions, seasonIndex, toast]);
+  }, [leagueData, rowSelectors, colSelectors, teamOptions, achievementOptions, seasonIndex]);
 
   // Undo last autofill operation
   const handleUndo = useCallback(() => {
@@ -370,13 +357,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     setColSelectors(previousState.colSelectors);
     setCanUndo(false);
     setPreviousState(null);
-    
-    toast({
-      title: "Undone",
-      description: "Reverted to state before autofill.",
-      duration: 2000
-    });
-  }, [previousState, canUndo, toast]);
+  }, [previousState, canUndo]);
   
   // Create unified options list for combobox
   const unifiedOptions = useMemo(() => {
@@ -531,18 +512,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     // Ensure we have exactly 3 rows and 3 cols
     if (customRows.length === 3 && customCols.length === 3) {
       onPlayGrid(customRows, customCols);
-      toast({
-        title: "Custom Grid Started!",
-        description: "Your custom grid is now ready to play.",
-      });
-    } else {
-      toast({
-        title: "Grid Creation Failed",
-        description: "Could not convert all selections to valid grid constraints.",
-        variant: "destructive"
-      });
     }
-  }, [isGridSolvable, leagueData, rowSelectors, colSelectors, seasonIndex, onPlayGrid, toast]);
+  }, [isGridSolvable, leagueData, rowSelectors, colSelectors, seasonIndex, onPlayGrid]);
 
   // Get cell key for intersection
   const getCellKey = (rowIndex: number, colIndex: number) => `${rowIndex}-${colIndex}`;
