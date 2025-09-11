@@ -549,17 +549,17 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
         onOpenChange={(open) => setOpenHeaderSelector(open ? headerKey : null)}
       >
         <PopoverTrigger asChild>
-          <div className="aspect-square flex flex-col items-center justify-center bg-background border rounded cursor-pointer hover:bg-muted/50 transition-colors p-0.5 sm:p-2 relative group text-xs sm:text-sm min-h-[50px] sm:min-h-[80px]">
+          <div className="aspect-square flex flex-col items-center justify-center bg-background border rounded cursor-pointer hover:bg-muted/50 transition-colors p-0.5 sm:p-1 lg:p-2 relative group text-[8px] sm:text-xs lg:text-sm min-h-[40px] sm:min-h-[60px] lg:min-h-[80px]">
             {selector.label ? (
               // Selected state: show what was chosen
               <>
                 <div className="text-center w-full h-full flex flex-col items-center justify-center">
                   {selector.type && (
-                    <Badge variant="outline" className="text-[8px] sm:text-[10px] mb-1 px-1 py-0 leading-none">
+                    <Badge variant="outline" className="text-[6px] sm:text-[8px] lg:text-[10px] mb-0.5 px-0.5 sm:px-1 py-0 leading-none">
                       {selector.type}
                     </Badge>
                   )}
-                  <div className="text-[7px] sm:text-xs font-medium leading-tight break-words text-center px-0.5 overflow-hidden">
+                  <div className="text-[6px] sm:text-[8px] lg:text-xs font-medium leading-tight break-words text-center px-0.5 overflow-hidden">
                     {selector.label}
                   </div>
                 </div>
@@ -723,7 +723,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto overflow-x-hidden p-3 sm:p-6">
+      <DialogContent className="w-[96vw] max-w-[96vw] sm:w-[90vw] sm:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto overflow-x-hidden p-2 sm:p-4 lg:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Grid3x3 className="h-5 w-5" />
@@ -731,15 +731,15 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
           </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-6">
+        <div className="space-y-2 sm:space-y-4 lg:space-y-6">
           {/* Interactive Grid */}
-          <div className="space-y-4">
-            <div className="text-xs sm:text-sm text-muted-foreground">
+          <div className="space-y-2 sm:space-y-4">
+            <div className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground">
               Click on the headers to select teams or achievements for each row and column.
             </div>
             
-            <div className="bg-muted/30 p-1 sm:p-4 md:p-6 rounded-lg overflow-hidden">
-              <div className="grid grid-cols-4 gap-0.5 sm:gap-2 md:gap-3 w-full max-w-[260px] sm:max-w-sm md:max-w-lg mx-auto">
+            <div className="bg-muted/30 p-1 sm:p-2 lg:p-4 rounded-lg overflow-hidden">
+              <div className="grid grid-cols-4 gap-0.5 sm:gap-1 lg:gap-2 w-full mx-auto" style={{ maxWidth: 'calc(100vw - 3rem)' }}>
                 {/* Top-left empty cell */}
                 <div className="aspect-square"></div>
                 
@@ -760,7 +760,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                     
                     // Row cells
                     ...colSelectors.map((_, colIndex) => (
-                      <div key={`cell-${rowIndex}-${colIndex}`} className="aspect-square flex items-center justify-center bg-background border rounded text-xs sm:text-sm font-medium min-h-[50px] sm:min-h-[80px]">
+                      <div key={`cell-${rowIndex}-${colIndex}`} className="aspect-square flex items-center justify-center bg-background border rounded text-[8px] sm:text-xs lg:text-sm font-medium min-h-[40px] sm:min-h-[60px] lg:min-h-[80px]">
                         {getCellDisplay(rowIndex, colIndex)}
                       </div>
                     ))
@@ -771,9 +771,9 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
           </div>
 
           {/* Status and Actions */}
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {allSelectorsComplete && (
-              <div className="text-center text-sm">
+              <div className="text-center text-xs sm:text-sm">
                 {isGridSolvable ? (
                   <span className="text-green-600 dark:text-green-400">
                     ✅ Grid is solvable! All cells have at least 1 eligible player.
@@ -802,23 +802,24 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                   <Button
                     onClick={() => handleAutofill('all')}
                     variant="outline"
-                    className="flex items-center gap-2 rounded-r-none border-r-0 flex-grow-[3] min-w-[90px]"
+                    className="flex items-center gap-1 sm:gap-2 rounded-r-none border-r-0 flex-grow-[3] min-w-[60px] sm:min-w-[90px] text-xs sm:text-sm h-8 px-2 sm:h-10 sm:px-4"
                     disabled={!leagueData}
                     data-testid="button-autofill"
                   >
-                    <Wand2 className="h-4 w-4" />
-                    Autofill
+                    <Wand2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="hidden xs:inline">Autofill</span>
+                    <span className="xs:hidden">Auto</span>
                   </Button>
                   
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="outline"
-                        className="rounded-l-none flex-grow-[1] px-2 min-w-[30px]"
+                        className="rounded-l-none flex-grow-[1] px-1 sm:px-2 min-w-[24px] sm:min-w-[30px] h-8 sm:h-10"
                         disabled={!leagueData}
                         data-testid="button-autofill-menu"
                       >
-                        <ChevronDown className="h-4 w-4" />
+                        <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -843,28 +844,29 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                   <Button
                     onClick={handleUndo}
                     variant="outline"
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm h-8 px-2 sm:h-10 sm:px-4"
                     data-testid="button-undo-autofill"
                   >
-                    <RotateCcw className="h-4 w-4" />
+                    <RotateCcw className="h-3 w-3 sm:h-4 sm:w-4" />
                     Undo
                   </Button>
                 )}
               </div>
               
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Button
                   onClick={onClose}
                   variant="ghost"
+                  className="text-xs sm:text-sm h-8 px-3 sm:h-10 sm:px-4"
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handlePlayGrid}
                   disabled={!isGridSolvable}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm h-8 px-3 sm:h-10 sm:px-4"
                 >
-                  <Play className="h-4 w-4" />
+                  <Play className="h-3 w-3 sm:h-4 sm:w-4" />
                   Play Grid
                 </Button>
               </div>
