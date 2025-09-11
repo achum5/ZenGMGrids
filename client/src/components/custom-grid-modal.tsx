@@ -549,13 +549,13 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
         onOpenChange={(open) => setOpenHeaderSelector(open ? headerKey : null)}
       >
         <PopoverTrigger asChild>
-          <div className="aspect-square flex flex-col items-center justify-center bg-background border rounded cursor-pointer hover:bg-muted/50 transition-colors p-1 relative group">
+          <div className="aspect-square flex flex-col items-center justify-center bg-background border rounded cursor-pointer hover:bg-muted/50 transition-colors p-1 sm:p-2 relative group text-xs sm:text-sm">
             {selector.label ? (
               // Selected state: show what was chosen
               <>
                 <div className="text-center w-full h-full flex flex-col items-center justify-center">
                   {selector.type && (
-                    <Badge variant="outline" className="text-[10px] mb-1 px-1 py-0 leading-none">
+                    <Badge variant="outline" className="text-[8px] sm:text-[10px] mb-1 px-1 py-0 leading-none">
                       {selector.type}
                     </Badge>
                   )}
@@ -723,7 +723,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] overflow-y-auto sm:w-full">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Grid3x3 className="h-5 w-5" />
@@ -738,8 +738,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
               Click on the headers to select teams or achievements for each row and column.
             </div>
             
-            <div className="bg-muted/30 p-6 rounded-lg">
-              <div className="grid grid-cols-4 gap-3 max-w-lg mx-auto">
+            <div className="bg-muted/30 p-2 sm:p-4 md:p-6 rounded-lg">
+              <div className="grid grid-cols-4 gap-1 sm:gap-2 md:gap-3 max-w-xs sm:max-w-sm md:max-w-lg mx-auto">
                 {/* Top-left empty cell */}
                 <div className="aspect-square"></div>
                 
