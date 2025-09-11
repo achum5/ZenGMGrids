@@ -1,6 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Flag, Share2 } from 'lucide-react';
+import { RefreshCw, Flag, Share2, Grid3x3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CatTeam, CellState, Team } from '@/types/bbgm';
 import { PlayerFace } from '@/components/PlayerFace';
@@ -28,6 +28,7 @@ interface GridSectionProps {
   onGiveUp: () => void;
   onRetryGrid: () => void;
   onShareGrid?: () => void;
+  onCreateCustomGrid?: () => void;
   isGenerating: boolean;
   teams: Team[]; // Add teams for jersey styling
   sport?: string;
@@ -51,6 +52,7 @@ export function GridSection({
   onGiveUp,
   onRetryGrid,
   onShareGrid,
+  onCreateCustomGrid,
   isGenerating,
   teams,
   sport,
@@ -364,18 +366,37 @@ export function GridSection({
         </CardContent>
       </Card>
 
-      {/* Share/Import Grid button below the grid */}
-      {onShareGrid && rows.length > 0 && cols.length > 0 && (
-        <div className="flex justify-start mt-4">
-          <Button
-            onClick={onShareGrid}
-            variant="outline"
-            className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg"
-            data-testid="button-share-import-grid"
-          >
-            <Share2 className="mr-2 h-4 w-4" />
-            Share/Import Grid
-          </Button>
+      {/* Share/Import Grid and Create Custom Grid buttons below the grid */}
+      {((onShareGrid && rows.length > 0 && cols.length > 0) || onCreateCustomGrid) && (
+        <div className="flex justify-between mt-4">
+          {/* Share/Import Grid button (left side) */}
+          {onShareGrid && rows.length > 0 && cols.length > 0 && (
+            <Button
+              onClick={onShareGrid}
+              variant="outline"
+              className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg"
+              data-testid="button-share-import-grid"
+            >
+              <Share2 className="mr-2 h-4 w-4" />
+              Share/Import Grid
+            </Button>
+          )}
+          
+          {/* Spacer when only one button is shown */}
+          {!((onShareGrid && rows.length > 0 && cols.length > 0) && onCreateCustomGrid) && <div />}
+          
+          {/* Create Custom Grid button (right side) */}
+          {onCreateCustomGrid && (
+            <Button
+              onClick={onCreateCustomGrid}
+              variant="outline"
+              className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner hover:shadow-lg"
+              data-testid="button-create-custom-grid"
+            >
+              <Grid3x3 className="mr-2 h-4 w-4" />
+              Create Custom Grid
+            </Button>
+          )}
         </div>
       )}
     </div>

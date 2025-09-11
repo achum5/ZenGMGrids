@@ -101,6 +101,9 @@ export default function Home() {
   
   // Grid sharing state
   const [gridSharingModalOpen, setGridSharingModalOpen] = useState(false);
+  
+  // Custom grid creation state
+  const [customGridModalOpen, setCustomGridModalOpen] = useState(false);
 
   // Helper function to build and cache player rankings for a cell
   const buildRankCacheForCell = useCallback((cellKey: string): Array<{player: Player, rarity: number}> => {
@@ -872,6 +875,7 @@ export default function Home() {
           onGiveUp={handleGiveUp}
           onRetryGrid={handleRetryGrid}
           onShareGrid={() => setGridSharingModalOpen(true)}
+          onCreateCustomGrid={() => setCustomGridModalOpen(true)}
           isGenerating={isGenerating}
           teams={leagueData?.teams || []}
           sport={leagueData?.sport}
