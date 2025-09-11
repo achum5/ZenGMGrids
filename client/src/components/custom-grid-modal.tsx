@@ -258,32 +258,39 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     const headerKey = `${isRow ? 'row' : 'col'}-${index}`;
     const isOpen = openHeaderSelector === headerKey;
     
-    const displayText = selector.label || 
-      (selector.type ? `Select ${selector.type}...` : 'Click to select');
-    
     return (
       <Popover 
         open={isOpen} 
         onOpenChange={(open) => setOpenHeaderSelector(open ? headerKey : null)}
       >
         <PopoverTrigger asChild>
-          <div className="aspect-square flex flex-col items-center justify-center bg-background border rounded text-xs p-1 cursor-pointer hover:bg-muted/50 transition-colors">
-            <div className="text-center leading-tight">
-              {selector.type && (
-                <Badge variant="outline" className="text-xs mb-1 scale-75">
-                  {selector.type}
-                </Badge>
-              )}
-              <div className="break-words max-w-full">
-                {selector.label ? (
-                  <span className="font-medium">{selector.label}</span>
-                ) : (
-                  <span className="text-muted-foreground flex items-center justify-center">
-                    <Plus className="h-3 w-3" />
-                  </span>
+          <div className="aspect-square flex flex-col items-center justify-center bg-background border rounded cursor-pointer hover:bg-muted/50 transition-colors p-1">
+            {selector.label ? (
+              // Selected state: show what was chosen
+              <div className="text-center w-full h-full flex flex-col items-center justify-center">
+                {selector.type && (
+                  <Badge variant="outline" className="text-[10px] mb-1 px-1 py-0 leading-none">
+                    {selector.type}
+                  </Badge>
                 )}
+                <div className="text-[10px] sm:text-xs font-medium leading-tight break-words text-center px-1 overflow-hidden">
+                  {selector.label}
+                </div>
               </div>
-            </div>
+            ) : (
+              // Ghost state: clear invitation to select
+              <div className="text-center w-full h-full flex flex-col items-center justify-center space-y-1">
+                <div className="text-[9px] sm:text-[10px] font-medium text-muted-foreground leading-tight">
+                  Pick Team or
+                </div>
+                <div className="text-[9px] sm:text-[10px] font-medium text-muted-foreground leading-tight">
+                  Achievement
+                </div>
+                <div className="text-[8px] text-muted-foreground/70 leading-tight">
+                  Click to choose
+                </div>
+              </div>
+            )}
           </div>
         </PopoverTrigger>
         <PopoverContent className="w-80 p-3" align="start">
