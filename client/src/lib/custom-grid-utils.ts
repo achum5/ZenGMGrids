@@ -65,12 +65,25 @@ export function getTeamOptions(teams: Team[]): TeamOption[] {
 export function getAchievementOptions(sport: string, seasonIndex?: SeasonIndex): AchievementOption[] {
   const achievements = getAchievements(sport as any, seasonIndex);
   return achievements
-    .filter(achievement => achievement.id !== 'bornOutsideUS50DC') // Exclude problematic achievement
+    .filter(achievement => 
+      achievement.id !== 'bornOutsideUS50DC' && // Exclude problematic achievement
+      achievement.id !== 'SFMVP' // Exclude Superstar Finals MVP
+    )
     .map(achievement => ({
       id: achievement.id,
       label: achievement.label
     }))
-    .sort((a, b) => a.label.localeCompare(b.label));
+    .sort((a, b) => {
+      // Sort by season first (season achievements before career)
+      const aIsSeason = SEASON_ACHIEVEMENTS.some(sa => sa.id === a.id);
+      const bIsSeason = SEASON_ACHIEVEMENTS.some(sa => sa.id === b.id);
+      
+      if (aIsSeason && !bIsSeason) return -1;
+      if (!aIsSeason && bIsSeason) return 1;
+      
+      // If both are same type (season or career), sort alphabetically
+      return a.label.localeCompare(b.label);
+    });
 }
 
 // Convert header config to CatTeam constraint for intersection calculation
