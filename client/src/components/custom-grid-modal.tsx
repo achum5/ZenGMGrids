@@ -214,10 +214,6 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     });
 
     if (emptySlots.length === 0) {
-      toast({
-        title: "No empty slots",
-        description: "All headers are already filled.",
-      });
       return;
     }
 
@@ -334,19 +330,6 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     setRowSelectors(newRowSelectors);
     setColSelectors(newColSelectors);
     setCalculating(true);
-
-    if (filledCount === emptySlots.length) {
-      toast({
-        title: "Autofill completed",
-        description: `Successfully filled all ${filledCount} empty slots with valid options.`,
-      });
-    } else {
-      toast({
-        title: "Autofill partially completed",
-        description: `Filled ${filledCount} of ${emptySlots.length} empty slots. Some slots couldn't be filled without creating zero-result cells.`,
-        variant: "destructive"
-      });
-    }
   }, [leagueData, rowSelectors, colSelectors, teamOptions, achievementOptions, seasonIndex, toast]);
   
   // Create unified options list for combobox
