@@ -8,6 +8,8 @@ import { Grid3x3, Trash2, Play, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { LeagueData, Team, CatTeam } from '@/types/bbgm';
 import { detectSport } from '@/lib/grid-sharing';
+import { getTeamOptions, getAchievementOptions, calculateCustomCellIntersection, type TeamOption, type AchievementOption, type HeaderConfig } from '@/lib/custom-grid-utils';
+import { buildSeasonIndex } from '@/lib/season-achievements';
 
 interface CustomGridModalProps {
   isOpen: boolean;
@@ -47,6 +49,13 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
   const [cellCounts, setCellCounts] = useState<Record<string, number>>({});
 
   const sport = leagueData ? detectSport(leagueData) : 'basketball';
+  
+  // Get available teams and achievements
+  const teamOptions: TeamOption[] = leagueData ? getTeamOptions(leagueData.teams) : [];
+  
+  // Build season index for achievements if needed
+  const seasonIndex = leagueData ? buildSeasonIndex(leagueData.players, sport) : undefined;
+  const achievementOptions: AchievementOption[] = leagueData ? getAchievementOptions(sport, seasonIndex) : [];
 
   // Clear all selections
   const handleClearAll = useCallback(() => {
@@ -74,6 +83,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
         i === index ? { type, value: null, label: null } : selector
       ));
     }
+    // Clear cell counts when type changes
+    setCellCounts({});
   }, []);
 
   // Update selector value
@@ -87,11 +98,60 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
         i === index ? { ...selector, value, label } : selector
       ));
     }
+    // Trigger cell count calculation
+    setCalculating(true);
   }, []);
 
   // Check if all selectors are filled
   const allSelectorsComplete = rowSelectors.every(s => s.type && s.value) && 
                               colSelectors.every(s => s.type && s.value);
+  
+  // Calculate cell counts when selectors change
+  useEffect(() => {
+    if (!leagueData || calculating === false) return;
+    
+    const timer = setTimeout(() => {
+      const newCellCounts: Record<string, number> = {};
+      
+      for (let rowIndex = 0; rowIndex < 3; rowIndex++) {
+        for (let colIndex = 0; colIndex < 3; colIndex++) {
+          const rowSelector = rowSelectors[rowIndex];
+          const colSelector = colSelectors[colIndex];
+          
+          if (rowSelector.type && rowSelector.value && colSelector.type && colSelector.value) {
+            // Convert to HeaderConfig format
+            const rowConfig: HeaderConfig = {
+              type: rowSelector.type,
+              selectedId: rowSelector.type === 'team' ? parseInt(rowSelector.value) : rowSelector.value,
+              selectedLabel: rowSelector.label
+            };
+            
+            const colConfig: HeaderConfig = {
+              type: colSelector.type,
+              selectedId: colSelector.type === 'team' ? parseInt(colSelector.value) : colSelector.value,
+              selectedLabel: colSelector.label
+            };
+            
+            // Calculate intersection
+            const count = calculateCustomCellIntersection(
+              rowConfig,
+              colConfig,
+              leagueData.players,
+              leagueData.teams,
+              seasonIndex
+            );
+            
+            newCellCounts[getCellKey(rowIndex, colIndex)] = count;
+          }
+        }
+      }
+      
+      setCellCounts(newCellCounts);
+      setCalculating(false);
+    }, 300); // Small delay to avoid too many calculations
+    
+    return () => clearTimeout(timer);
+  }, [rowSelectors, colSelectors, leagueData, calculating, seasonIndex]);
 
   // Check if grid is solvable (all cells have at least 1 eligible player)
   const isGridSolvable = allSelectorsComplete && 
@@ -168,20 +228,35 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                     </SelectContent>
                   </Select>
                   
-                  {/* Value Dropdown - will be implemented in next tasks */}
+                  {/* Value Dropdown */}
                   {selector.type && (
                     <Select 
                       value={selector.value || ''} 
-                      onValueChange={(value) => updateSelectorValue(true, index, value, value)}
+                      onValueChange={(value) => {
+                        const options = selector.type === 'team' ? teamOptions : achievementOptions;
+                        const selectedOption = options.find(opt => opt.id.toString() === value);
+                        if (selectedOption) {
+                          updateSelectorValue(true, index, value, selectedOption.label);
+                        }
+                      }}
                       disabled={!leagueData}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder={`Select ${selector.type}...`} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="placeholder">
-                          {selector.type === 'team' ? 'Teams loading...' : 'Achievements loading...'}
-                        </SelectItem>
+                        {selector.type === 'team' 
+                          ? teamOptions.map(option => (
+                              <SelectItem key={option.id} value={option.id.toString()}>
+                                {option.label}
+                              </SelectItem>
+                            ))
+                          : achievementOptions.map(option => (
+                              <SelectItem key={option.id} value={option.id.toString()}>
+                                {option.label}
+                              </SelectItem>
+                            ))
+                        }
                       </SelectContent>
                     </Select>
                   )}
@@ -212,20 +287,35 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                     </SelectContent>
                   </Select>
                   
-                  {/* Value Dropdown - will be implemented in next tasks */}
+                  {/* Value Dropdown */}
                   {selector.type && (
                     <Select 
                       value={selector.value || ''} 
-                      onValueChange={(value) => updateSelectorValue(false, index, value, value)}
+                      onValueChange={(value) => {
+                        const options = selector.type === 'team' ? teamOptions : achievementOptions;
+                        const selectedOption = options.find(opt => opt.id.toString() === value);
+                        if (selectedOption) {
+                          updateSelectorValue(false, index, value, selectedOption.label);
+                        }
+                      }}
                       disabled={!leagueData}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder={`Select ${selector.type}...`} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="placeholder">
-                          {selector.type === 'team' ? 'Teams loading...' : 'Achievements loading...'}
-                        </SelectItem>
+                        {selector.type === 'team' 
+                          ? teamOptions.map(option => (
+                              <SelectItem key={option.id} value={option.id.toString()}>
+                                {option.label}
+                              </SelectItem>
+                            ))
+                          : achievementOptions.map(option => (
+                              <SelectItem key={option.id} value={option.id.toString()}>
+                                {option.label}
+                              </SelectItem>
+                            ))
+                        }
                       </SelectContent>
                     </Select>
                   )}
