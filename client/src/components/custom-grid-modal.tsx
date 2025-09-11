@@ -549,17 +549,17 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
         onOpenChange={(open) => setOpenHeaderSelector(open ? headerKey : null)}
       >
         <PopoverTrigger asChild>
-          <div className="aspect-square flex flex-col items-center justify-center bg-background border rounded cursor-pointer hover:bg-muted/50 transition-colors p-0.5 sm:p-2 relative group text-xs sm:text-sm min-h-[50px] sm:min-h-[80px]">
+          <div className="sm:aspect-square flex flex-col items-center justify-center bg-background border rounded cursor-pointer hover:bg-muted/50 transition-colors p-2 sm:p-2 relative group text-sm min-h-[60px] sm:min-h-[80px]">
             {selector.label ? (
               // Selected state: show what was chosen
               <>
                 <div className="text-center w-full h-full flex flex-col items-center justify-center">
                   {selector.type && (
-                    <Badge variant="outline" className="text-[8px] sm:text-[10px] mb-1 px-1 py-0 leading-none">
+                    <Badge variant="outline" className="text-xs mb-1 px-1 py-0 leading-none">
                       {selector.type}
                     </Badge>
                   )}
-                  <div className="text-[7px] sm:text-xs font-medium leading-tight break-words text-center px-0.5 overflow-hidden">
+                  <div className="text-sm font-medium leading-tight break-words text-center px-1 overflow-hidden">
                     {selector.label}
                   </div>
                 </div>
@@ -570,11 +570,11 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                     e.stopPropagation();
                     if (isRow) {
                       const newRowSelectors = [...rowSelectors];
-                      newRowSelectors[index] = { type: null, value: null, label: '', tid: undefined, achievementId: undefined };
+                      newRowSelectors[index] = { type: null, value: null, label: null };
                       setRowSelectors(newRowSelectors);
                     } else {
                       const newColSelectors = [...colSelectors];
-                      newColSelectors[index] = { type: null, value: null, label: '', tid: undefined, achievementId: undefined };
+                      newColSelectors[index] = { type: null, value: null, label: null };
                       setColSelectors(newColSelectors);
                     }
                   }}
@@ -598,7 +598,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
             )}
           </div>
         </PopoverTrigger>
-        <PopoverContent className="w-96 p-0" align="start">
+        <PopoverContent className="w-[min(90vw,24rem)] max-w-[90vw] p-0" align="center" sideOffset={5} collisionPadding={10}>
           <Command>
             {/* Header with dynamic title */}
             <div className="px-3 py-2 border-b bg-muted/30">
@@ -723,7 +723,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto overflow-x-hidden p-3 sm:p-6">
+      <DialogContent className="w-[100vw] h-[100dvh] pb-[env(safe-area-inset-bottom)] sm:w-[95vw] sm:h-auto sm:max-w-4xl sm:max-h-[90vh] overflow-y-auto overflow-x-hidden p-2 sm:p-6 rounded-none sm:rounded-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Grid3x3 className="h-5 w-5" />
@@ -731,21 +731,92 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
           </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Interactive Grid */}
-          <div className="space-y-4">
-            <div className="text-xs sm:text-sm text-muted-foreground">
+          <div className="space-y-3 sm:space-y-4">
+            <div className="text-sm sm:text-base text-muted-foreground">
               Click on the headers to select teams or achievements for each row and column.
             </div>
             
-            <div className="bg-muted/30 p-1 sm:p-4 md:p-6 rounded-lg overflow-hidden">
-              <div className="grid grid-cols-4 gap-0.5 sm:gap-2 md:gap-3 w-full max-w-[260px] sm:max-w-sm md:max-w-lg mx-auto">
+            {/* Mobile Layout: Stacked Sections */}
+            <div className="block sm:hidden space-y-6">
+              {/* Row Headers Section */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium">Row Headers</h3>
+                <div className="grid grid-cols-1 gap-3">
+                  {rowSelectors.map((_, index) => (
+                    <div key={`mobile-row-${index}`} className="flex items-center gap-3">
+                      <span className="text-sm font-medium w-12">Row {index + 1}:</span>
+                      <div className="flex-1">
+                        {renderHeaderSelector(true, index)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Column Headers Section */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium">Column Headers</h3>
+                <div className="grid grid-cols-1 gap-3">
+                  {colSelectors.map((_, index) => (
+                    <div key={`mobile-col-${index}`} className="flex items-center gap-3">
+                      <span className="text-sm font-medium w-12">Col {index + 1}:</span>
+                      <div className="flex-1">
+                        {renderHeaderSelector(false, index)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Grid Preview Section */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium">Grid Preview</h3>
+                <div className="bg-muted/30 p-3 rounded-lg">
+                  <div className="grid grid-cols-4 gap-1 max-w-[280px] mx-auto">
+                    {/* Top-left empty cell */}
+                    <div className="aspect-square flex items-center justify-center bg-secondary rounded text-xs">
+                      Grid
+                    </div>
+                    
+                    {/* Column headers preview */}
+                    {colSelectors.map((_, index) => (
+                      <div key={`preview-col-${index}`} className="aspect-square flex items-center justify-center bg-secondary rounded text-xs">
+                        C{index + 1}
+                      </div>
+                    ))}
+                    
+                    {/* Grid rows preview */}
+                    {rowSelectors.map((_, rowIndex) => (
+                      [
+                        // Row header preview
+                        <div key={`preview-row-${rowIndex}`} className="aspect-square flex items-center justify-center bg-secondary rounded text-xs">
+                          R{rowIndex + 1}
+                        </div>,
+                        
+                        // Row cells preview
+                        ...colSelectors.map((_, colIndex) => (
+                          <div key={`preview-cell-${rowIndex}-${colIndex}`} className="aspect-square flex items-center justify-center bg-background border rounded text-xs">
+                            {getCellDisplay(rowIndex, colIndex)}
+                          </div>
+                        ))
+                      ]
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Desktop Layout: Traditional Grid */}
+            <div className="hidden sm:block bg-muted/30 p-4 md:p-6 rounded-lg">
+              <div className="grid grid-cols-4 gap-2 md:gap-3 w-full max-w-2xl mx-auto">
                 {/* Top-left empty cell */}
                 <div className="aspect-square"></div>
                 
                 {/* Column headers */}
                 {colSelectors.map((_, index) => (
-                  <div key={`col-header-${index}`}>
+                  <div key={`desktop-col-header-${index}`}>
                     {renderHeaderSelector(false, index)}
                   </div>
                 ))}
@@ -754,13 +825,13 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                 {rowSelectors.map((_, rowIndex) => (
                   [
                     // Row header
-                    <div key={`row-header-${rowIndex}`}>
+                    <div key={`desktop-row-header-${rowIndex}`}>
                       {renderHeaderSelector(true, rowIndex)}
                     </div>,
                     
                     // Row cells
                     ...colSelectors.map((_, colIndex) => (
-                      <div key={`cell-${rowIndex}-${colIndex}`} className="aspect-square flex items-center justify-center bg-background border rounded text-xs sm:text-sm font-medium min-h-[50px] sm:min-h-[80px]">
+                      <div key={`desktop-cell-${rowIndex}-${colIndex}`} className="aspect-square flex items-center justify-center bg-background border rounded text-sm font-medium">
                         {getCellDisplay(rowIndex, colIndex)}
                       </div>
                     ))
@@ -786,12 +857,53 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
               </div>
             )}
             
-            <div className="flex justify-between items-center pt-4">
+            {/* Mobile Footer */}
+            <div className="block sm:hidden space-y-3 pt-4">
+              {/* Top row: utility buttons */}
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleClearAll}
+                  variant="outline"
+                  className="flex-1 flex items-center justify-center gap-2 h-12"
+                  data-testid="button-clear-all"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Clear All
+                </Button>
+                
+                <Button
+                  onClick={() => handleAutofill('all')}
+                  variant="outline"
+                  className="flex-1 flex items-center justify-center gap-2 h-12"
+                  disabled={!leagueData}
+                  data-testid="button-autofill"
+                >
+                  <Wand2 className="h-4 w-4" />
+                  Autofill
+                </Button>
+                
+                {canUndo && (
+                  <Button
+                    onClick={handleUndo}
+                    variant="outline"
+                    className="flex-1 flex items-center justify-center gap-2 h-12"
+                    data-testid="button-undo-autofill"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Undo
+                  </Button>
+                )}
+              </div>
+            </div>
+            
+            {/* Desktop Footer */}
+            <div className="hidden sm:flex justify-between items-center pt-4">
               <div className="flex gap-2">
                 <Button
                   onClick={handleClearAll}
                   variant="outline"
                   className="flex items-center gap-2"
+                  data-testid="button-clear-all"
                 >
                   <Trash2 className="h-4 w-4" />
                   Clear All
@@ -852,17 +964,20 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                 )}
               </div>
               
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-2">
                 <Button
                   onClick={onClose}
                   variant="ghost"
+                  className="w-full sm:w-auto h-12 sm:h-10"
+                  data-testid="button-cancel"
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handlePlayGrid}
                   disabled={!isGridSolvable}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 w-full sm:w-auto h-12 sm:h-10 bg-green-600 hover:bg-green-700 text-white"
+                  data-testid="button-play-grid"
                 >
                   <Play className="h-4 w-4" />
                   Play Grid
