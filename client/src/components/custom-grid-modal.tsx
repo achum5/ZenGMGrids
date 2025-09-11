@@ -101,6 +101,16 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
   // Search and filter state for unified combobox
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'teams' | 'achievements'>('all');
+  const [activeIndex, setActiveIndex] = useState(-1);
+  
+  // Diacritic-insensitive folding (same as in player search)
+  const fold = (s: string): string => {
+    return s.normalize('NFKD')
+      .toLowerCase()
+      .replace(/[\u0300-\u036f]/g, '') // Remove combining diacritical marks
+      .replace(/'/g, '') // Remove apostrophes for search matching
+      .replace(/[-]/g, ' '); // Convert hyphens to spaces for flexible search
+  };
   const [hideZeroResults, setHideZeroResults] = useState(false);
   
   // Loading state for cell count calculations
@@ -390,15 +400,29 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
   
   // Filter options based on search and type filter
   const filteredOptions = useMemo(() => {
-    const query = searchQuery.toLowerCase();
-    
     let teams = unifiedOptions.teams;
     let achievements = unifiedOptions.achievements;
     
-    // Apply search filter
-    if (query) {
-      teams = teams.filter(option => option.searchText.includes(query));
-      achievements = achievements.filter(option => option.searchText.includes(query));
+    // Enhanced search filter (same logic as player search)
+    if (searchQuery.trim()) {
+      const query = searchQuery.trim();
+      if (query.length >= 1) { // More responsive than player search (start at 1 char)
+        const queryFolded = fold(query);
+        const queryWithHyphens = queryFolded.replace(/ /g, '-');
+        const queryWithPeriods = queryFolded.replace(/([a-z])([a-z])/g, '$1.$2.');
+        const queryNoPeriods = queryFolded.replace(/\./g, '');
+        
+        const matchesQuery = (option: any) => {
+          const searchTextFolded = fold(option.searchText);
+          return searchTextFolded.includes(queryFolded) ||
+                 searchTextFolded.includes(queryWithHyphens) ||
+                 searchTextFolded.includes(queryNoPeriods) ||
+                 (queryWithPeriods.length > 2 && searchTextFolded.includes(queryWithPeriods));
+        };
+        
+        teams = teams.filter(matchesQuery);
+        achievements = achievements.filter(matchesQuery);
+      }
     }
     
     // Apply type filter
@@ -570,11 +594,11 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                     e.stopPropagation();
                     if (isRow) {
                       const newRowSelectors = [...rowSelectors];
-                      newRowSelectors[index] = { type: null, value: null, label: '', tid: undefined, achievementId: undefined };
+                      newRowSelectors[index] = { type: null, value: null, label: '' };
                       setRowSelectors(newRowSelectors);
                     } else {
                       const newColSelectors = [...colSelectors];
-                      newColSelectors[index] = { type: null, value: null, label: '', tid: undefined, achievementId: undefined };
+                      newColSelectors[index] = { type: null, value: null, label: '' };
                       setColSelectors(newColSelectors);
                     }
                   }}
@@ -607,13 +631,45 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
               </div>
             </div>
             
-            {/* Search input */}
+            {/* Enhanced Search input with keyboard navigation */}
             <div className="p-2">
               <CommandInput 
                 placeholder="Search teams or achievements…"
                 value={searchQuery}
-                onValueChange={setSearchQuery}
+                onValueChange={(value) => {
+                  setSearchQuery(value);
+                  setActiveIndex(-1); // Reset active index when search changes
+                }}
                 className="h-9"
+                onKeyDown={(e) => {
+                  const allOptions = [...filteredOptions.teams, ...filteredOptions.achievements];
+                  
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    const newIndex = Math.min(activeIndex + 1, allOptions.length - 1);
+                    setActiveIndex(newIndex);
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    const newIndex = Math.max(activeIndex - 1, -1);
+                    setActiveIndex(newIndex);
+                  } else if (e.key === 'Enter' && activeIndex >= 0 && allOptions[activeIndex]) {
+                    e.preventDefault();
+                    const selectedOption = allOptions[activeIndex];
+                    if (selectedOption.type === 'team') {
+                      updateSelectorValue(isRow, index, 'team', selectedOption.id, selectedOption.label);
+                    } else {
+                      updateSelectorValue(isRow, index, 'achievement', selectedOption.id, selectedOption.label);
+                    }
+                    setOpenHeaderSelector(null);
+                    setSearchQuery('');
+                    setActiveIndex(-1);
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    setOpenHeaderSelector(null);
+                    setSearchQuery('');
+                    setActiveIndex(-1);
+                  }
+                }}
               />
             </div>
             
@@ -661,15 +717,23 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
               {/* Teams group */}
               {filteredOptions.teams.length > 0 && (
                 <CommandGroup heading="Teams">
-                  {filteredOptions.teams.map((team) => (
-                    <CommandItem
-                      key={`team-${team.id}`}
-                      value={`team-${team.searchText} team`}
-                      keywords={[team.searchText, 'team']}
-                      onSelect={() => {
-                        updateSelectorValue(isRow, index, 'team', team.id, team.label);
-                      }}
-                      className="flex items-center gap-2 px-3 py-2"
+                  {filteredOptions.teams.map((team, teamIndex) => {
+                    const globalIndex = teamIndex;
+                    const isActive = activeIndex === globalIndex;
+                    return (
+                      <CommandItem
+                        key={`team-${team.id}`}
+                        value={`team-${team.searchText} team`}
+                        keywords={[team.searchText, 'team']}
+                        onSelect={() => {
+                          updateSelectorValue(isRow, index, 'team', team.id, team.label);
+                          setOpenHeaderSelector(null);
+                          setSearchQuery('');
+                          setActiveIndex(-1);
+                        }}
+                        className={`flex items-center gap-2 px-3 py-2 ${
+                          isActive ? 'bg-accent text-accent-foreground' : ''
+                        }`}
                     >
                       <TeamLogoIcon teamData={team.teamData} />
                       <div className="flex-1">
@@ -678,23 +742,32 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                       <Badge variant="secondary" className="text-xs">
                         Team
                       </Badge>
-                    </CommandItem>
-                  ))}
+                      </CommandItem>
+                    );
+                  })}
                 </CommandGroup>
               )}
               
               {/* Achievements group */}
               {filteredOptions.achievements.length > 0 && (
                 <CommandGroup heading="Achievements">
-                  {filteredOptions.achievements.map((achievement) => (
-                    <CommandItem
-                      key={`achievement-${achievement.id}`}
-                      value={`${achievement.searchText} achievement`}
-                      keywords={[achievement.searchText, 'achievement']}
-                      onSelect={() => {
-                        updateSelectorValue(isRow, index, 'achievement', achievement.id, achievement.label);
-                      }}
-                      className="flex items-center gap-2 px-3 py-2"
+                  {filteredOptions.achievements.map((achievement, achievementIndex) => {
+                    const globalIndex = filteredOptions.teams.length + achievementIndex;
+                    const isActive = activeIndex === globalIndex;
+                    return (
+                      <CommandItem
+                        key={`achievement-${achievement.id}`}
+                        value={`${achievement.searchText} achievement`}
+                        keywords={[achievement.searchText, 'achievement']}
+                        onSelect={() => {
+                          updateSelectorValue(isRow, index, 'achievement', achievement.id, achievement.label);
+                          setOpenHeaderSelector(null);
+                          setSearchQuery('');
+                          setActiveIndex(-1);
+                        }}
+                        className={`flex items-center gap-2 px-3 py-2 ${
+                          isActive ? 'bg-accent text-accent-foreground' : ''
+                        }`}
                     >
                       <div className="w-5 h-5 rounded bg-muted flex items-center justify-center text-xs">
                         🏆
@@ -705,8 +778,9 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                       <Badge variant={achievement.isSeason ? "default" : "outline"} className="text-xs">
                         {achievement.isSeason ? "Season" : "Career"}
                       </Badge>
-                    </CommandItem>
-                  ))}
+                      </CommandItem>
+                    );
+                  })}
                 </CommandGroup>
               )}
             </CommandList>
