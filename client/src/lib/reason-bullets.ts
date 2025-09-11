@@ -234,18 +234,71 @@ function getBulletPlayoffTeam(player: Player, season: number, teams: Team[]): st
   return null;
 }
 
+// Helper function to group consecutive years into ranges
+function groupConsecutiveYears(years: number[]): string[] {
+  if (years.length === 0) return [];
+  if (years.length === 1) return [years[0].toString()];
+  
+  const sortedYears = [...years].sort((a, b) => a - b);
+  const groups: string[] = [];
+  let start = sortedYears[0];
+  let end = sortedYears[0];
+  
+  for (let i = 1; i < sortedYears.length; i++) {
+    if (sortedYears[i] === end + 1) {
+      // Consecutive year, extend the range
+      end = sortedYears[i];
+    } else {
+      // Non-consecutive year, close the current range
+      if (start === end) {
+        groups.push(start.toString());
+      } else {
+        groups.push(`${start}-${end}`);
+      }
+      start = sortedYears[i];
+      end = sortedYears[i];
+    }
+  }
+  
+  // Add the final range
+  if (start === end) {
+    groups.push(start.toString());
+  } else {
+    groups.push(`${start}-${end}`);
+  }
+  
+  return groups;
+}
+
 // Helper function to format season list for bullets
 function formatBulletSeasonList(seasons: string[], isFinalsOrCFMVP: boolean = false): string {
   if (seasons.length === 0) return '';
   if (seasons.length === 1) return seasons[0];
   
-  // For Finals MVP/CFMVP, use semicolon separator: "1994 HOU; 1995 HOU"
+  // For Finals MVP/CFMVP with team abbreviations, use semicolon separator
   if (isFinalsOrCFMVP) {
-    return seasons.join('; ');
+    // Group by consecutive years while preserving team abbreviations
+    const yearsWithTeams = seasons.map(s => {
+      const parts = s.split(' ');
+      return { year: parseInt(parts[0]), team: parts[1] || '', original: s };
+    });
+    
+    // If all seasons have the same team, group years and append team
+    const uniqueTeams = [...new Set(yearsWithTeams.map(y => y.team))];
+    if (uniqueTeams.length === 1 && uniqueTeams[0]) {
+      const years = yearsWithTeams.map(y => y.year);
+      const yearRanges = groupConsecutiveYears(years);
+      return yearRanges.map(range => `${range} ${uniqueTeams[0]}`).join('; ');
+    } else {
+      // Different teams or no teams, just use original format
+      return seasons.join('; ');
+    }
   }
   
-  // For other awards, use comma separator: "2019, 2020, 2021"
-  return seasons.join(', ');
+  // For other awards, group consecutive years: "2023-2028, 2030"
+  const years = seasons.map(s => parseInt(s)).filter(y => !isNaN(y));
+  const yearRanges = groupConsecutiveYears(years);
+  return yearRanges.join(', ');
 }
 
 // Helper function to get team year range from stats
