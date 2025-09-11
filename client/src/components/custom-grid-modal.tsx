@@ -12,6 +12,59 @@ import { detectSport } from '@/lib/grid-sharing';
 import { getTeamOptions, getAchievementOptions, calculateCustomCellIntersection, headerConfigToCatTeam, type TeamOption, type AchievementOption, type HeaderConfig } from '@/lib/custom-grid-utils';
 import { buildSeasonIndex } from '@/lib/season-achievements';
 
+// Team logo icon component for combobox
+function TeamLogoIcon({ teamData }: { teamData?: Team }) {
+  const [logoError, setLogoError] = useState(false);
+  const [currentLogo, setCurrentLogo] = useState<string | null>(null);
+  
+  useEffect(() => {
+    if (!teamData) {
+      setCurrentLogo(null);
+      return;
+    }
+    
+    // Build logo candidates similar to TeamLogo component
+    const candidates: string[] = [];
+    
+    // Try small logo first, then regular logo
+    if (teamData.imgURLSmall) {
+      candidates.push(teamData.imgURLSmall);
+    }
+    if (teamData.imgURL) {
+      candidates.push(teamData.imgURL);
+    }
+    
+    // Try BBGM default paths if no custom logos
+    if (candidates.length === 0 && teamData.abbrev) {
+      const abbrev = teamData.abbrev.toUpperCase();
+      candidates.push(`https://basketball-gm.com/img/logos-primary/${abbrev}.svg`);
+      candidates.push(`https://basketball-gm.com/img/logos-secondary/${abbrev}.svg`);
+    }
+    
+    setCurrentLogo(candidates[0] || null);
+    setLogoError(false);
+  }, [teamData]);
+  
+  if (!currentLogo || logoError) {
+    return (
+      <div className="w-6 h-6 rounded bg-muted flex items-center justify-center text-xs">
+        🏀
+      </div>
+    );
+  }
+  
+  return (
+    <div className="w-6 h-6 rounded bg-muted flex items-center justify-center overflow-hidden">
+      <img
+        src={currentLogo}
+        alt={teamData?.name || 'Team logo'}
+        className="w-full h-full object-contain"
+        onError={() => setLogoError(true)}
+      />
+    </div>
+  );
+}
+
 interface CustomGridModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -132,6 +185,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
       id: team.id.toString(),
       label: team.label,
       searchText: team.label.toLowerCase(),
+      teamData: leagueData?.teams.find(t => t.tid === team.id), // Add team data for logo access
     }));
     
     const achievements = achievementOptions.map(achievement => ({
@@ -142,7 +196,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     }));
     
     return { teams, achievements };
-  }, [teamOptions, achievementOptions]);
+  }, [teamOptions, achievementOptions, leagueData]);
   
   // Filter options based on search and type filter
   const filteredOptions = useMemo(() => {
@@ -383,7 +437,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
             </div>
             
             {/* Options list */}
-            <CommandList className="max-h-64 overflow-y-auto">
+            <CommandList className="max-h-64 overflow-y-auto" style={{ overflowY: 'auto' }}>
               <CommandEmpty>
                 <div className="py-6 text-center text-sm text-muted-foreground">
                   <div>No matches—try a different team or achievement.</div>
@@ -410,15 +464,14 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                   {filteredOptions.teams.map((team) => (
                     <CommandItem
                       key={`team-${team.id}`}
-                      value={`team-${team.id}`}
+                      value={`team-${team.searchText} team`}
+                      keywords={[team.searchText, 'team']}
                       onSelect={() => {
                         updateSelectorValue(isRow, index, 'team', team.id, team.label);
                       }}
                       className="flex items-center gap-2 px-3 py-2"
                     >
-                      <div className="w-6 h-6 rounded bg-muted flex items-center justify-center text-xs">
-                        🏀
-                      </div>
+                      <TeamLogoIcon teamData={team.teamData} />
                       <div className="flex-1">
                         <div className="font-medium">{team.label}</div>
                       </div>
@@ -436,7 +489,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                   {filteredOptions.achievements.map((achievement) => (
                     <CommandItem
                       key={`achievement-${achievement.id}`}
-                      value={`achievement-${achievement.id}`}
+                      value={`${achievement.searchText} achievement`}
+                      keywords={[achievement.searchText, 'achievement']}
                       onSelect={() => {
                         updateSelectorValue(isRow, index, 'achievement', achievement.id, achievement.label);
                       }}
