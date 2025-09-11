@@ -566,6 +566,41 @@ function getPlayoffTeamForSeason(player: Player, season: number): string | null 
   return null;
 }
 
+// Helper function to format consecutive years with hyphens
+function formatYearsWithRanges(years: number[]): string {
+  if (years.length === 0) return '';
+  if (years.length === 1) return years[0].toString();
+  
+  const ranges: string[] = [];
+  let start = years[0];
+  let end = years[0];
+  
+  for (let i = 1; i < years.length; i++) {
+    if (years[i] === end + 1) {
+      // Consecutive year, extend the range
+      end = years[i];
+    } else {
+      // Non-consecutive, push the current range and start a new one
+      if (start === end) {
+        ranges.push(start.toString());
+      } else {
+        ranges.push(`${start}-${end}`);
+      }
+      start = years[i];
+      end = years[i];
+    }
+  }
+  
+  // Don't forget the final range
+  if (start === end) {
+    ranges.push(start.toString());
+  } else {
+    ranges.push(`${start}-${end}`);
+  }
+  
+  return ranges.join(', ');
+}
+
 // Helper function to format season lists
 function formatSeasonList(seasons: string[], isFinalsOrCFMVP: boolean = false): string {
   if (seasons.length === 0) return '';
@@ -576,7 +611,18 @@ function formatSeasonList(seasons: string[], isFinalsOrCFMVP: boolean = false): 
     return seasons.join('; ');
   }
   
-  // For other awards, use comma separator: "2019, 2020, 2021"
+  // For other awards, try to parse years and format with ranges
+  const numericYears = seasons
+    .map(s => parseInt(s, 10))
+    .filter(year => !isNaN(year))
+    .sort((a, b) => a - b);
+    
+  if (numericYears.length === seasons.length) {
+    // All seasons are numeric years, format with ranges
+    return formatYearsWithRanges(numericYears);
+  }
+  
+  // Fall back to comma separator if seasons contain non-numeric data
   return seasons.join(', ');
 }
 
