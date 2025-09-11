@@ -1,5 +1,5 @@
 import type { LeagueData, CatTeam, Player, Team } from '@/types/bbgm';
-import { getViableAchievements, playerMeetsAchievement, getAchievements, type Achievement } from '@/lib/achievements';
+import { getViableAchievements, playerMeetsAchievement, getAchievements, type Achievement, debugIndividualAchievements } from '@/lib/achievements';
 import { evaluateConstraintPair, GridConstraint } from '@/lib/feedback';
 import { getSeasonEligiblePlayers, type SeasonAchievementId, type SeasonIndex, SEASON_ACHIEVEMENTS } from './season-achievements';
 
@@ -129,6 +129,10 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
     console.log(`${viable} ${achievement.id}: ${count} players`);
   });
   console.log('==========================');
+  
+  // Add detailed debugging for specific achievements we're investigating
+  console.log('🔍 [GRID-DEBUG] Adding detailed achievement analysis...');
+  debugIndividualAchievements(players, seasonIndex);
   
   // Create constraint pool (only active teams + achievements)
   const teamConstraints: CatTeam[] = teams.filter(team => !team.disabled).map(team => ({

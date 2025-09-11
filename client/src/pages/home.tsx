@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { UploadSection } from '@/components/upload-section';
 import { GridSection } from '@/components/grid-section';
 import { PlayerSearchModal } from '@/components/player-search-modal';
@@ -18,6 +18,8 @@ import baseballIcon from '@/assets/baseball.png';
 import { parseLeagueFile, parseLeagueUrl, buildSearchIndex } from '@/lib/bbgm-parser';
 import { generateTeamsGrid, cellKey } from '@/lib/grid-generator';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
+import { debugAchievementIntersection, calculateCustomCellIntersection } from '@/lib/custom-grid-utils';
+import { debugIndividualAchievements, playerMeetsAchievement } from '@/lib/achievements';
 import { useToast } from '@/hooks/use-toast';
 import type { LeagueData, CatTeam, CellState, Player, SearchablePlayer } from '@/types/bbgm';
 
@@ -197,6 +199,123 @@ export default function Home() {
     }
   }, [toast]);
 
+  // Create minimal test data for debugging
+  const createTestData = useCallback((): LeagueData => {
+    console.log('🔧 [DEBUG] Creating minimal test data for achievement debugging...');
+    
+    // Create mock players with achievements (add more for grid generation)
+    const mockPlayers = [
+      {
+        pid: 1,
+        name: "Test Player 1 (Both)",
+        achievements: { career10kRebounds: true },
+        awards: [{ type: "Assists Leader", season: 2020, tid: 1 }],
+        teamsPlayed: new Set([1]),
+        stats: [{ season: 2020, rebounds: 12000 }, { season: 2019, rebounds: 11000 }]
+      },
+      {
+        pid: 2, 
+        name: "Test Player 2 (Rebounds Only)",
+        achievements: { career10kRebounds: true },
+        awards: [],
+        teamsPlayed: new Set([1]),
+        stats: [{ season: 2020, rebounds: 15000 }, { season: 2018, rebounds: 14000 }]
+      },
+      {
+        pid: 3,
+        name: "Test Player 3 (Assists Only)", 
+        achievements: { career10kRebounds: false },
+        awards: [{ type: "Assists Leader", season: 2021, tid: 2 }],
+        teamsPlayed: new Set([2]),
+        stats: [{ season: 2021, rebounds: 5000 }, { season: 2020, rebounds: 4800 }]
+      },
+      {
+        pid: 4,
+        name: "Test Player 4 (Both Again)",
+        achievements: { career10kRebounds: true },
+        awards: [{ type: "Assists Leader", season: 2022, tid: 3 }],
+        teamsPlayed: new Set([3]),
+        stats: [{ season: 2022, rebounds: 11000 }]
+      },
+      {
+        pid: 5,
+        name: "Test Player 5 (Another Both)",
+        achievements: { career10kRebounds: true },
+        awards: [{ type: "Assists Leader", season: 2019, tid: 1 }],
+        teamsPlayed: new Set([1, 2]),
+        stats: [{ season: 2019, rebounds: 13000 }]
+      },
+      {
+        pid: 6,
+        name: "Test Player 6 (Rebounds Only)",
+        achievements: { career10kRebounds: true },
+        awards: [],
+        teamsPlayed: new Set([4]),
+        stats: [{ season: 2020, rebounds: 10500 }]
+      },
+      {
+        pid: 7,
+        name: "Test Player 7 (Assists Only)",
+        achievements: { career10kRebounds: false },
+        awards: [{ type: "Assists Leader", season: 2018, tid: 4 }],
+        teamsPlayed: new Set([4]),
+        stats: [{ season: 2018, rebounds: 4000 }]
+      },
+      {
+        pid: 8,
+        name: "Test Player 8 (Final Both)",
+        achievements: { career10kRebounds: true },
+        awards: [{ type: "Assists Leader", season: 2017, tid: 3 }],
+        teamsPlayed: new Set([3]),
+        stats: [{ season: 2017, rebounds: 10200 }]
+      }
+    ];
+    
+    // Create mock teams (need at least 3 for grid generation)
+    const mockTeams = [
+      { tid: 1, name: "Team A", region: "Test", abbrev: "TA", disabled: false },
+      { tid: 2, name: "Team B", region: "Test", abbrev: "TB", disabled: false },
+      { tid: 3, name: "Team C", region: "Test", abbrev: "TC", disabled: false },
+      { tid: 4, name: "Team D", region: "Test", abbrev: "TD", disabled: false }
+    ];
+    
+    // Create mock season index (with 20+ seasons to trigger new seeded builder)
+    const mockSeasonIndex: any = {};
+    for (let season = 2000; season <= 2022; season++) {
+      mockSeasonIndex[season] = {
+        1: { AssistsLeader: new Set() },
+        2: { AssistsLeader: new Set() },
+        3: { AssistsLeader: new Set() },
+        4: { AssistsLeader: new Set() }
+      };
+    }
+    
+    // Add our specific assist leaders
+    mockSeasonIndex[2017][3].AssistsLeader = new Set([8]);
+    mockSeasonIndex[2018][4].AssistsLeader = new Set([7]);
+    mockSeasonIndex[2019][1].AssistsLeader = new Set([5]);
+    mockSeasonIndex[2020][1].AssistsLeader = new Set([1]);
+    mockSeasonIndex[2021][2].AssistsLeader = new Set([3]);
+    mockSeasonIndex[2022][3].AssistsLeader = new Set([4]);
+    
+    return {
+      players: mockPlayers as any,
+      teams: mockTeams as any,
+      sport: 'basketball',
+      seasonIndex: mockSeasonIndex
+    };
+  }, []);
+
+  const loadTestData = useCallback(async () => {
+    try {
+      console.log('🔧 [DEBUG] Creating and processing minimal test data...');
+      const data = createTestData();
+      await processLeagueData(data);
+    } catch (error) {
+      console.error('Test data creation failed:', error);
+    }
+  }, [createTestData]);
+
   const processLeagueData = useCallback(async (data: LeagueData) => {
     setLeagueData(data);
     
@@ -219,6 +338,63 @@ export default function Home() {
     setSearchablePlayers(indices.searchablePlayers);
     setTeamsByTid(indices.teamsByTid);
     
+    // Direct intersection test (bypass grid generation)
+    console.log('🎯 [DIRECT TEST] Testing the problematic intersection directly...');
+    
+    // Test each achievement individually
+    let reboundsPlayers: Player[] = [];
+    let assistsPlayers: Player[] = [];
+    let intersectionPlayers: Player[] = [];
+    
+    console.log(`   Testing ${data.players.length} players...`);
+    
+    for (const player of data.players) {
+      const hasRebounds = playerMeetsAchievement(player, 'career10kRebounds', data.seasonIndex);
+      const hasAssists = playerMeetsAchievement(player, 'AssistsLeader', data.seasonIndex);
+      
+      if (hasRebounds) {
+        reboundsPlayers.push(player);
+      }
+      
+      if (hasAssists) {
+        assistsPlayers.push(player);
+      }
+      
+      if (hasRebounds && hasAssists) {
+        intersectionPlayers.push(player);
+      }
+    }
+    
+    console.log(`📊 [DIRECT TEST] Results:`);
+    console.log(`   Career 10k Rebounds: ${reboundsPlayers.length} players`);
+    console.log(`     - Players: ${reboundsPlayers.map(p => p.name).join(', ')}`);
+    
+    console.log(`   Assists Leader: ${assistsPlayers.length} players`);
+    console.log(`     - Players: ${assistsPlayers.map(p => p.name).join(', ')}`);
+    
+    console.log(`   🎯 INTERSECTION: ${intersectionPlayers.length} players`);
+    if (intersectionPlayers.length > 0) {
+      console.log(`     - These are the players that should appear in the intersection!`);
+      console.log(`     - Players: ${intersectionPlayers.map(p => p.name).join(', ')}`);
+    } else {
+      console.log(`     - ❌ NO INTERSECTION! This is the bug we need to fix.`);
+    }
+    
+    // Test the intersection calculation function directly
+    console.log(`🔧 [INTERSECTION FUNCTION TEST] Using calculateCustomCellIntersection...`);
+    const testIntersection = calculateCustomCellIntersection(
+      { type: 'achievement', selectedId: 'career10kRebounds', selectedLabel: '10,000+ Career Rebounds' },
+      { type: 'achievement', selectedId: 'AssistsLeader', selectedLabel: 'League Assists Leader' },
+      data.players,
+      data.teams,
+      data.seasonIndex
+    );
+    console.log(`   Function result: ${testIntersection} players`);
+    
+    // Debug individual achievements first to understand the data
+    console.log('🐛 [DEBUG] Testing individual achievements first...');
+    debugIndividualAchievements(data.players, data.seasonIndex);
+    
     // Generate initial grid
     const gridResult = generateTeamsGrid(data);
     setRows(gridResult.rows);
@@ -236,6 +412,16 @@ export default function Home() {
     
     // Success toast removed - was blocking mobile interactions
   }, [toast]);
+  
+  // Auto-load test data when component mounts for debugging
+  useEffect(() => {
+    const autoLoad = async () => {
+      console.log('🔧 [DEBUG] Component mounted, auto-loading test data...');
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s for app to initialize
+      await loadTestData();
+    };
+    autoLoad();
+  }, []); // Empty dependency array means this runs once on mount
 
   const handleGenerateNewGrid = useCallback(() => {
     if (!leagueData) return;

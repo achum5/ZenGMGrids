@@ -119,9 +119,41 @@ export function calculateCustomCellIntersection(
     return 0;
   }
 
+  // Debug logging for our specific problematic intersection
+  const isDebugIntersection = 
+    (rowConstraint.achievementId === 'career10kRebounds' && colConstraint.achievementId === 'AssistsLeader') ||
+    (colConstraint.achievementId === 'career10kRebounds' && rowConstraint.achievementId === 'AssistsLeader');
+    
+  if (isDebugIntersection) {
+    console.log(`🔍 [DEBUG INTERSECTION] Testing intersection:`);
+    console.log(`   Row: ${rowConstraint.label} (${rowConstraint.achievementId || rowConstraint.tid})`);
+    console.log(`   Col: ${colConstraint.label} (${colConstraint.achievementId || colConstraint.tid})`);
+    console.log(`   Total players: ${players.length}`);
+    console.log(`   SeasonIndex available: ${!!seasonIndex}`);
+    
+    // Test each constraint individually first
+    const rowQualifiers = players.filter(player => rowConstraint.test(player));
+    const colQualifiers = players.filter(player => colConstraint.test(player));
+    
+    console.log(`   Players qualifying for "${rowConstraint.label}": ${rowQualifiers.length}`);
+    console.log(`     - Sample players: ${rowQualifiers.slice(0, 5).map(p => p.name || `pid:${p.pid}`).join(', ')}`);
+    
+    console.log(`   Players qualifying for "${colConstraint.label}": ${colQualifiers.length}`);
+    console.log(`     - Sample players: ${colQualifiers.slice(0, 5).map(p => p.name || `pid:${p.pid}`).join(', ')}`);
+  }
+
   const eligiblePlayers = players.filter(player => 
     rowConstraint.test(player) && colConstraint.test(player)
   );
+
+  if (isDebugIntersection) {
+    console.log(`   Final intersection: ${eligiblePlayers.length} players`);
+    if (eligiblePlayers.length > 0) {
+      console.log(`     - Intersection players: ${eligiblePlayers.slice(0, 5).map(p => p.name || `pid:${p.pid}`).join(', ')}`);
+    } else {
+      console.log(`     - ❌ No players in intersection!`);
+    }
+  }
 
   return eligiblePlayers.length;
 }
@@ -231,6 +263,40 @@ export function updateCustomGridState(
     isValid,
     isSolvable
   };
+}
+
+// Debug function to test specific achievement intersection
+export function debugAchievementIntersection(
+  players: Player[],
+  teams: Team[],
+  seasonIndex?: SeasonIndex
+): void {
+  console.log(`🚀 [DEBUG] Starting achievement intersection debug test`);
+  console.log(`   Players: ${players.length}, Teams: ${teams.length}, SeasonIndex: ${!!seasonIndex}`);
+  
+  // Create test configurations for our problematic intersection
+  const reboundsConfig: HeaderConfig = {
+    type: 'achievement',
+    selectedId: 'career10kRebounds',
+    selectedLabel: '10,000+ Career Rebounds'
+  };
+  
+  const assistsConfig: HeaderConfig = {
+    type: 'achievement', 
+    selectedId: 'AssistsLeader',
+    selectedLabel: 'League Assists Leader'
+  };
+  
+  // Test the intersection
+  const intersection = calculateCustomCellIntersection(
+    reboundsConfig,
+    assistsConfig, 
+    players,
+    teams,
+    seasonIndex
+  );
+  
+  console.log(`🎯 [DEBUG] Final intersection result: ${intersection} players`);
 }
 
 // Convert custom grid state to grid generation format
