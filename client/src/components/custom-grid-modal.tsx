@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -623,7 +624,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
           </div>
         </PopoverTrigger>
         <PopoverContent className="w-96 p-0" align="start">
-          <Command>
+          <div className="flex flex-col h-full">
             {/* Header with dynamic title */}
             <div className="px-3 py-2 border-b bg-muted/30">
               <div className="font-medium text-sm">
@@ -631,46 +632,51 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
               </div>
             </div>
             
-            {/* Enhanced Search input with keyboard navigation */}
+            {/* Search input */}
             <div className="p-2">
-              <CommandInput 
-                placeholder="Search teams or achievements…"
-                value={searchQuery}
-                onValueChange={(value) => {
-                  setSearchQuery(value);
-                  setActiveIndex(-1); // Reset active index when search changes
-                }}
-                className="h-9"
-                onKeyDown={(e) => {
-                  const allOptions = [...filteredOptions.teams, ...filteredOptions.achievements];
-                  
-                  if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    const newIndex = Math.min(activeIndex + 1, allOptions.length - 1);
-                    setActiveIndex(newIndex);
-                  } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    const newIndex = Math.max(activeIndex - 1, -1);
-                    setActiveIndex(newIndex);
-                  } else if (e.key === 'Enter' && activeIndex >= 0 && allOptions[activeIndex]) {
-                    e.preventDefault();
-                    const selectedOption = allOptions[activeIndex];
-                    if (selectedOption.type === 'team') {
-                      updateSelectorValue(isRow, index, 'team', selectedOption.id, selectedOption.label);
-                    } else {
-                      updateSelectorValue(isRow, index, 'achievement', selectedOption.id, selectedOption.label);
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  type="text"
+                  placeholder="Search teams or achievements…"
+                  value={searchQuery}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    setSearchQuery(e.target.value);
+                    setActiveIndex(-1);
+                  }}
+                  className="pl-10 h-9"
+                  autoFocus
+                  onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                    const allOptions = [...filteredOptions.teams, ...filteredOptions.achievements];
+                    
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      const newIndex = Math.min(activeIndex + 1, allOptions.length - 1);
+                      setActiveIndex(newIndex);
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      const newIndex = Math.max(activeIndex - 1, -1);
+                      setActiveIndex(newIndex);
+                    } else if (e.key === 'Enter' && activeIndex >= 0 && allOptions[activeIndex]) {
+                      e.preventDefault();
+                      const selectedOption = allOptions[activeIndex];
+                      if (selectedOption.type === 'team') {
+                        updateSelectorValue(isRow, index, 'team', selectedOption.id, selectedOption.label);
+                      } else {
+                        updateSelectorValue(isRow, index, 'achievement', selectedOption.id, selectedOption.label);
+                      }
+                      setOpenHeaderSelector(null);
+                      setSearchQuery('');
+                      setActiveIndex(-1);
+                    } else if (e.key === 'Escape') {
+                      e.preventDefault();
+                      setOpenHeaderSelector(null);
+                      setSearchQuery('');
+                      setActiveIndex(-1);
                     }
-                    setOpenHeaderSelector(null);
-                    setSearchQuery('');
-                    setActiveIndex(-1);
-                  } else if (e.key === 'Escape') {
-                    e.preventDefault();
-                    setOpenHeaderSelector(null);
-                    setSearchQuery('');
-                    setActiveIndex(-1);
-                  }
-                }}
-              />
+                  }}
+                />
+              </div>
             </div>
             
             {/* Filter chips */}
@@ -692,9 +698,9 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
               </div>
             </div>
             
-            {/* Options list */}
-            <CommandList className="max-h-64 overflow-y-scroll scrollbar-thin">
-              <CommandEmpty>
+            {/* Scrollable options list */}
+            <div className="flex-1 overflow-y-auto max-h-64" style={{ scrollbarWidth: 'thin' }}>
+              {filteredOptions.teams.length === 0 && filteredOptions.achievements.length === 0 && (
                 <div className="py-6 text-center text-sm text-muted-foreground">
                   <div>No matches—try a different team or achievement.</div>
                   <div className="mt-2 space-x-2">
@@ -712,84 +718,82 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                     </button>
                   </div>
                 </div>
-              </CommandEmpty>
+              )}
               
-              {/* Teams group */}
+              {/* Teams section */}
               {filteredOptions.teams.length > 0 && (
-                <CommandGroup heading="Teams">
+                <div className="p-2">
+                  <div className="text-xs font-medium text-muted-foreground mb-2 px-2">Teams</div>
                   {filteredOptions.teams.map((team, teamIndex) => {
                     const globalIndex = teamIndex;
                     const isActive = activeIndex === globalIndex;
                     return (
-                      <CommandItem
+                      <button
                         key={`team-${team.id}`}
-                        value={`team-${team.searchText} team`}
-                        keywords={[team.searchText, 'team']}
-                        onSelect={() => {
+                        onClick={() => {
                           updateSelectorValue(isRow, index, 'team', team.id, team.label);
                           setOpenHeaderSelector(null);
                           setSearchQuery('');
                           setActiveIndex(-1);
                         }}
-                        className={`flex items-center gap-2 px-3 py-2 ${
+                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-left hover:bg-accent hover:text-accent-foreground ${
                           isActive ? 'bg-accent text-accent-foreground' : ''
                         }`}
-                    >
-                      <TeamLogoIcon teamData={team.teamData} />
-                      <div className="flex-1">
-                        <div className="font-medium">{team.label}</div>
-                      </div>
-                      <Badge variant="secondary" className="text-xs">
-                        Team
-                      </Badge>
-                      </CommandItem>
+                      >
+                        <TeamLogoIcon teamData={team.teamData} />
+                        <div className="flex-1">
+                          <div className="font-medium">{team.label}</div>
+                        </div>
+                        <Badge variant="secondary" className="text-xs">
+                          Team
+                        </Badge>
+                      </button>
                     );
                   })}
-                </CommandGroup>
+                </div>
               )}
               
-              {/* Achievements group */}
+              {/* Achievements section */}
               {filteredOptions.achievements.length > 0 && (
-                <CommandGroup heading="Achievements">
+                <div className="p-2">
+                  <div className="text-xs font-medium text-muted-foreground mb-2 px-2">Achievements</div>
                   {filteredOptions.achievements.map((achievement, achievementIndex) => {
                     const globalIndex = filteredOptions.teams.length + achievementIndex;
                     const isActive = activeIndex === globalIndex;
                     return (
-                      <CommandItem
+                      <button
                         key={`achievement-${achievement.id}`}
-                        value={`${achievement.searchText} achievement`}
-                        keywords={[achievement.searchText, 'achievement']}
-                        onSelect={() => {
+                        onClick={() => {
                           updateSelectorValue(isRow, index, 'achievement', achievement.id, achievement.label);
                           setOpenHeaderSelector(null);
                           setSearchQuery('');
                           setActiveIndex(-1);
                         }}
-                        className={`flex items-center gap-2 px-3 py-2 ${
+                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-left hover:bg-accent hover:text-accent-foreground ${
                           isActive ? 'bg-accent text-accent-foreground' : ''
                         }`}
-                    >
-                      <div className="w-5 h-5 rounded bg-muted flex items-center justify-center text-xs">
-                        🏆
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium">{achievement.label}</div>
-                      </div>
-                      <Badge variant={achievement.isSeason ? "default" : "outline"} className="text-xs">
-                        {achievement.isSeason ? "Season" : "Career"}
-                      </Badge>
-                      </CommandItem>
+                      >
+                        <div className="w-5 h-5 rounded bg-muted flex items-center justify-center text-xs">
+                          🏆
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium">{achievement.label}</div>
+                        </div>
+                        <Badge variant={achievement.isSeason ? "default" : "outline"} className="text-xs">
+                          {achievement.isSeason ? "Season" : "Career"}
+                        </Badge>
+                      </button>
                     );
                   })}
-                </CommandGroup>
+                </div>
               )}
-            </CommandList>
+            </div>
             
             {/* Helper text */}
             <div className="px-3 py-2 border-t bg-muted/30 text-xs text-muted-foreground">
               Season items only need the same season when paired with a Team.
             </div>
-          </Command>
+          </div>
         </PopoverContent>
       </Popover>
     );
