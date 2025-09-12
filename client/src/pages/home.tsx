@@ -751,6 +751,14 @@ export default function Home() {
       }
     }
     
+    // Check for players already used in the entire grid (including existing cells)
+    const gridUsedPids = new Set<number>();
+    Object.values(cells).forEach(cell => {
+      if (cell.player?.pid) {
+        gridUsedPids.add(cell.player.pid);
+      }
+    });
+    
     // Determine which rank to use for each cell (collision resolution)
     const cellToRank: Record<string, number> = {};
     
@@ -784,26 +792,34 @@ export default function Home() {
       }
       
       // Get the rank to use for this cell (with collision detection)
-      const rankToUse = cellToRank[cellKey] || 0;
+      let rankToUse = cellToRank[cellKey] || 0;
       
-      if (rankToUse >= ranking.length) {
-        // Not enough players in ranking (fallback to last available)
-        const lastAvailable = ranking[ranking.length - 1];
+      // Find the first available player not already used in the entire grid
+      let selectedRanked = null;
+      let actualRank = rankToUse;
+      
+      while (actualRank < ranking.length) {
+        const candidate = ranking[actualRank];
+        if (!gridUsedPids.has(candidate.player.pid)) {
+          selectedRanked = candidate;
+          break;
+        }
+        actualRank++;
+      }
+      
+      if (!selectedRanked) {
+        // No available players (all already used in grid)
         newCells[cellKey] = {
-          name: lastAvailable.player.name,
-          correct: true,
+          name: '—',
+          correct: false,
           locked: true,
           autoFilled: true,
           guessed: false,
-          player: lastAvailable.player,
-          rarity: lastAvailable.rarity,
-          points: lastAvailable.rarity,
+          points: 0, // No points for Give Up
         };
-        console.log(`🔍 Give Up: ${cellKey} -> ${lastAvailable.player.name} (rank #${ranking.length}, rarity ${lastAvailable.rarity})`);
+        console.log(`🔍 Give Up: ${cellKey} -> "—" (all players already used in grid)`);
       } else {
-        // Use the determined rank
-        const selectedRanked = ranking[rankToUse];
-        
+        // Use the selected player
         newCells[cellKey] = {
           name: selectedRanked.player.name,
           correct: true,
@@ -812,10 +828,12 @@ export default function Home() {
           guessed: false,
           player: selectedRanked.player,
           rarity: selectedRanked.rarity,
-          points: selectedRanked.rarity,
+          points: 0, // No points for Give Up
         };
         
-        console.log(`🔍 Give Up: ${cellKey} -> ${selectedRanked.player.name} (rank #${rankToUse + 1}, rarity ${selectedRanked.rarity})`);
+        // Add to used set for subsequent cells
+        gridUsedPids.add(selectedRanked.player.pid);
+        console.log(`🔍 Give Up: ${cellKey} -> ${selectedRanked.player.name} (rank #${actualRank + 1}, rarity ${selectedRanked.rarity})`);
       }
     }
     
