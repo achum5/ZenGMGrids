@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Grid3x3, Trash2, Play, RotateCcw, X, ArrowUpDown, ChevronDown, Wand2 } from 'lucide-react';
@@ -97,11 +96,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     { type: null, value: null, label: null }
   ]);
   
-  // Track which header selector is open
-  const [openHeaderSelector, setOpenHeaderSelector] = useState<string | null>(null);
-  
-  // Filter state for list
-  const [filterType, setFilterType] = useState<'all' | 'teams' | 'achievements'>('all');
+  // No header selector state needed anymore
   const [hideZeroResults, setHideZeroResults] = useState(false);
   
   // Loading state for cell count calculations
@@ -149,7 +144,6 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
       { type: null, value: null, label: null }
     ]);
     setCellCounts({});
-    setOpenHeaderSelector(null);
     setCanUndo(false);
     setPreviousState(null);
   }, []);
@@ -183,7 +177,6 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     // Trigger cell count calculation
     setCalculating(true);
     // Close the header selector and clear search
-    setOpenHeaderSelector(null);
     // Reset state
   }, []);
 
@@ -389,20 +382,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     return { teams, achievements };
   }, [teamOptions, achievementOptions, leagueData, isSeasonAchievement]);
   
-  // Simple filter options based on type filter only (no search)
-  const filteredOptions = useMemo(() => {
-    let teams = unifiedOptions.teams;
-    let achievements = unifiedOptions.achievements;
-    
-    // Apply type filter only
-    if (filterType === 'teams') {
-      achievements = [];
-    } else if (filterType === 'achievements') {
-      teams = [];
-    }
-    
-    return { teams, achievements };
-  }, [unifiedOptions, filterType]);
+  // No filtering options needed anymore since popup is removed
   
   // Check if all selectors are filled
   const allSelectorsComplete = rowSelectors.every(s => s.type && s.value) && 
@@ -533,193 +513,53 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
   // Render header selector
   const renderHeaderSelector = (isRow: boolean, index: number) => {
     const selector = isRow ? rowSelectors[index] : colSelectors[index];
-    const headerKey = `${isRow ? 'row' : 'col'}-${index}`;
-    const isOpen = openHeaderSelector === headerKey;
     
     return (
-      <Popover 
-        open={isOpen} 
-        onOpenChange={(open) => setOpenHeaderSelector(open ? headerKey : null)}
-      >
-        <PopoverTrigger asChild>
-          <div className="aspect-square flex flex-col items-center justify-center bg-background border rounded cursor-pointer hover:bg-muted/50 transition-colors p-0.5 sm:p-1 lg:p-2 relative group text-[8px] sm:text-xs lg:text-sm min-h-[40px] sm:min-h-[60px] lg:min-h-[80px]">
-            {selector.label ? (
-              // Selected state: show what was chosen
-              <>
-                <div className="text-center w-full h-full flex flex-col items-center justify-center">
-                  {selector.type && (
-                    <Badge variant="outline" className="text-[6px] sm:text-[8px] lg:text-[10px] mb-0.5 px-0.5 sm:px-1 py-0 leading-none">
-                      {selector.type}
-                    </Badge>
-                  )}
-                  <div className="text-[6px] sm:text-[8px] lg:text-xs font-medium leading-tight break-words text-center px-0.5 overflow-hidden">
-                    {selector.label}
-                  </div>
-                </div>
-                {/* X button to clear selection */}
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (isRow) {
-                      const newRowSelectors = [...rowSelectors];
-                      newRowSelectors[index] = { type: null, value: null, label: '' };
-                      setRowSelectors(newRowSelectors);
-                    } else {
-                      const newColSelectors = [...colSelectors];
-                      newColSelectors[index] = { type: null, value: null, label: '' };
-                      setColSelectors(newColSelectors);
-                    }
-                  }}
-                  className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center text-[10px] font-bold"
-                  title="Clear selection"
-                  data-testid={`button-clear-${isRow ? 'row' : 'col'}-${index}`}
-                >
-                  ×
-                </button>
-              </>
-            ) : (
-              // Ghost state: clear invitation to select
-              <div className="text-center w-full h-full flex flex-col items-center justify-center space-y-1">
-                <div className="text-[9px] sm:text-[10px] font-medium text-muted-foreground leading-tight">
-                  Pick Team or
-                </div>
-                <div className="text-[9px] sm:text-[10px] font-medium text-muted-foreground leading-tight">
-                  Achievement
-                </div>
+      <div className="aspect-square flex flex-col items-center justify-center bg-background border rounded transition-colors p-0.5 sm:p-1 lg:p-2 relative group text-[8px] sm:text-xs lg:text-sm min-h-[40px] sm:min-h-[60px] lg:min-h-[80px]">
+        {selector.label ? (
+          <>
+            <div className="text-center w-full h-full flex flex-col items-center justify-center">
+              {selector.type && (
+                <Badge variant="outline" className="text-[6px] sm:text-[8px] lg:text-[10px] mb-0.5 px-0.5 sm:px-1 py-0 leading-none">
+                  {selector.type}
+                </Badge>
+              )}
+              <div className="text-[6px] sm:text-[8px] lg:text-xs font-medium leading-tight break-words text-center px-0.5 overflow-hidden">
+                {selector.label}
               </div>
-            )}
-          </div>
-        </PopoverTrigger>
-        <PopoverContent className="w-96 p-0" align="start">
-          {/* Header */}
-          <div className="px-3 py-2 border-b bg-muted/30">
-            <div className="font-medium text-sm">
-              {selector.label ? `${isRow ? 'Row' : 'Column'} ${index + 1}: ${selector.label}` : `Configure ${isRow ? 'Row' : 'Column'} ${index + 1}`}
+            </div>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (isRow) {
+                  const newRowSelectors = [...rowSelectors];
+                  newRowSelectors[index] = { type: null, value: null, label: null };
+                  setRowSelectors(newRowSelectors);
+                } else {
+                  const newColSelectors = [...colSelectors];
+                  newColSelectors[index] = { type: null, value: null, label: null };
+                  setColSelectors(newColSelectors);
+                }
+              }}
+              className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center text-[10px] font-bold"
+              title="Clear selection"
+              data-testid={`button-clear-${isRow ? 'row' : 'col'}-${index}`}
+            >
+              ×
+            </button>
+          </>
+        ) : (
+          <div className="text-center w-full h-full flex flex-col items-center justify-center space-y-1">
+            <div className="text-[9px] sm:text-[10px] font-medium text-muted-foreground leading-tight">
+              Pick Team or
+            </div>
+            <div className="text-[9px] sm:text-[10px] font-medium text-muted-foreground leading-tight">
+              Achievement
             </div>
           </div>
-          
-          {/* Filter buttons */}
-          <div className="p-3 border-b">
-            <div className="flex gap-2">
-              <button
-                onClick={() => setFilterType('teams')}
-                className={`px-3 py-1.5 text-sm rounded-md transition-colors flex-1 ${
-                  filterType === 'teams' 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'bg-muted hover:bg-muted/80'
-                }`}
-              >
-                Teams
-              </button>
-              <button
-                onClick={() => setFilterType('achievements')}
-                className={`px-3 py-1.5 text-sm rounded-md transition-colors flex-1 ${
-                  filterType === 'achievements' 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'bg-muted hover:bg-muted/80'
-                }`}
-              >
-                Achievements
-              </button>
-            </div>
-          </div>
-          
-          {/* Scrollable list */}
-          <div 
-            className="h-80 overflow-y-auto" 
-            data-radix-scroll-lock-ignore 
-            onWheelCapture={(e) => e.stopPropagation()}
-          >
-            {/* Teams List */}
-            {filterType === 'teams' && (
-              <div className="p-2">
-                {unifiedOptions.teams.map((team) => (
-                  <button
-                    key={`team-${team.id}`}
-                    onClick={() => {
-                      updateSelectorValue(isRow, index, 'team', team.id, team.label);
-                      setOpenHeaderSelector(null);
-                    }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-left hover:bg-accent hover:text-accent-foreground transition-colors"
-                  >
-                    <div className="w-6 h-6 flex-shrink-0">
-                      <TeamLogoIcon teamData={team.teamData} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm truncate">{team.label}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-            
-            {/* Achievements List */}
-            {filterType === 'achievements' && (
-              <div className="p-2">
-                {/* Career Achievements */}
-                <div className="mb-4">
-                  <div className="text-xs font-semibold text-muted-foreground mb-2 px-2 sticky top-0 bg-background">
-                    Career Achievements
-                  </div>
-                  {unifiedOptions.achievements
-                    .filter(achievement => !achievement.isSeason)
-                    .map((achievement) => (
-                      <button
-                        key={`achievement-${achievement.id}`}
-                        onClick={() => {
-                          updateSelectorValue(isRow, index, 'achievement', achievement.id, achievement.label);
-                          setOpenHeaderSelector(null);
-                        }}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-left hover:bg-accent hover:text-accent-foreground transition-colors"
-                      >
-                        <div className="w-6 h-6 flex-shrink-0 bg-orange-100 dark:bg-orange-900 rounded flex items-center justify-center">
-                          <span className="text-xs">🏆</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm truncate">{achievement.label}</div>
-                          <div className="text-xs text-muted-foreground">Career</div>
-                        </div>
-                      </button>
-                    ))}
-                </div>
-                
-                {/* Season Achievements */}
-                <div>
-                  <div className="text-xs font-semibold text-muted-foreground mb-2 px-2 sticky top-0 bg-background">
-                    Season Achievements
-                  </div>
-                  {unifiedOptions.achievements
-                    .filter(achievement => achievement.isSeason)
-                    .map((achievement) => (
-                      <button
-                        key={`achievement-${achievement.id}`}
-                        onClick={() => {
-                          updateSelectorValue(isRow, index, 'achievement', achievement.id, achievement.label);
-                          setOpenHeaderSelector(null);
-                        }}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-left hover:bg-accent hover:text-accent-foreground transition-colors"
-                      >
-                        <div className="w-6 h-6 flex-shrink-0 bg-blue-100 dark:bg-blue-900 rounded flex items-center justify-center">
-                          <span className="text-xs">🏅</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm truncate">{achievement.label}</div>
-                          <div className="text-xs text-muted-foreground">Season</div>
-                        </div>
-                      </button>
-                    ))}
-                </div>
-              </div>
-            )}
-          </div>
-          
-          {/* Footer help text */}
-          <div className="px-3 py-2 border-t bg-muted/30 text-xs text-muted-foreground">
-            Season achievements require same season when paired with a Team.
-          </div>
-        </PopoverContent>
-      </Popover>
+        )}
+      </div>
     );
   };
 
