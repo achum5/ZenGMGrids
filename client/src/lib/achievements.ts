@@ -129,14 +129,14 @@ function createSeasonAchievementTests(seasonIndex?: SeasonIndex, sport: 'basketb
       // Basketball: exclude FB*, HK*, BB* prefixed achievements
       return !seasonAch.id.startsWith('FB') && !seasonAch.id.startsWith('HK') && !seasonAch.id.startsWith('BB');
     } else if (sport === 'football') {
-      // Football: only FB* prefixed achievements and some general ones
-      return seasonAch.id.startsWith('FB') || ['PointsLeader', 'ReboundsLeader', 'AssistsLeader'].includes(seasonAch.id);
+      // Football: only FB* prefixed achievements, exclude basketball-specific ones
+      return seasonAch.id.startsWith('FB');
     } else if (sport === 'hockey') {
-      // Hockey: only HK* prefixed achievements and some general ones
-      return seasonAch.id.startsWith('HK') || ['PointsLeader', 'ReboundsLeader', 'AssistsLeader'].includes(seasonAch.id);
+      // Hockey: only HK* prefixed achievements, exclude basketball-specific ones
+      return seasonAch.id.startsWith('HK');
     } else if (sport === 'baseball') {
-      // Baseball: only BB* prefixed achievements and some general ones
-      return seasonAch.id.startsWith('BB') || ['PointsLeader', 'ReboundsLeader', 'AssistsLeader'].includes(seasonAch.id);
+      // Baseball: only BB* prefixed achievements, exclude basketball-specific ones
+      return seasonAch.id.startsWith('BB');
     }
     return false;
   });

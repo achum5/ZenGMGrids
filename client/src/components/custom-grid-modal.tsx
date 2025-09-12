@@ -638,8 +638,10 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                       newColSelectors[index] = { type: null, value: null, label: null };
                       setColSelectors(newColSelectors);
                     }
+                    // Clear cell counts when clearing a header
+                    setCellCounts({});
                   }}
-                  className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center text-[10px] font-bold"
+                  className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-100 transition-colors duration-200 flex items-center justify-center text-[10px] font-bold"
                   title="Clear selection"
                   data-testid={`button-clear-${isRow ? 'row' : 'col'}-${index}`}
                 >
