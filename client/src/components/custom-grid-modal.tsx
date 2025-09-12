@@ -241,14 +241,21 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     for (const slot of emptySlots) {
       let filled = false;
       
-      // Try teams first (if available), then achievements
-      const optionsToTry = teamPool.length > 0 && achievementPool.length > 0 
-        ? [{ type: 'team', pool: teamPool }, { type: 'achievement', pool: achievementPool }]
-        : teamPool.length > 0 
-        ? [{ type: 'team', pool: teamPool }]
-        : achievementPool.length > 0
-        ? [{ type: 'achievement', pool: achievementPool }]
-        : [];
+      // For 'all' mode, randomly choose order for each slot to create mix
+      // For specific modes, use only the requested type
+      let optionsToTry: Array<{ type: string, pool: any[] }> = [];
+      
+      if (mode === 'all' && teamPool.length > 0 && achievementPool.length > 0) {
+        // Randomly choose order for each slot to create team/achievement mix
+        const useTeamFirst = Math.random() < 0.5;
+        optionsToTry = useTeamFirst 
+          ? [{ type: 'team', pool: teamPool }, { type: 'achievement', pool: achievementPool }]
+          : [{ type: 'achievement', pool: achievementPool }, { type: 'team', pool: teamPool }];
+      } else if (teamPool.length > 0) {
+        optionsToTry = [{ type: 'team', pool: teamPool }];
+      } else if (achievementPool.length > 0) {
+        optionsToTry = [{ type: 'achievement', pool: achievementPool }];
+      }
 
       for (const { type, pool } of optionsToTry) {
         if (filled || pool.length === 0) continue;
