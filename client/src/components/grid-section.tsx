@@ -2,6 +2,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Flag, Share2, Grid3x3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { cellKey } from '@/lib/grid-generator';
 import type { CatTeam, CellState, Team } from '@/types/bbgm';
 import { PlayerFace } from '@/components/PlayerFace';
 import { RarityChip } from '@/components/RarityChip';
@@ -60,10 +61,26 @@ export function GridSection({
   getOrdinalLabel,
 }: GridSectionProps) {
   const totalScore = calculateScore(cells);
-  const getCellKey = (rowKey: string, colKey: string) => `${rowKey}|${colKey}`;
+  
+  // Helper function for generating unique React keys
+  const getReactKey = (type: 'header-row' | 'header-col' | 'cell', rowIndex?: number, colIndex?: number, rowKey?: string, colKey?: string) => {
+    // For duplicates, we need to check if we should use position-based keys
+    const keyToCheck = cellKey('dummy', 'dummy', rows, cols);
+    const hasDuplicates = !keyToCheck.includes('|');
+    
+    if (hasDuplicates) {
+      if (type === 'header-row') return `header-row-${rowIndex}`;
+      if (type === 'header-col') return `header-col-${colIndex}`;
+      if (type === 'cell') return `cell-${rowIndex}-${colIndex}`;
+    }
+    if (type === 'header-row') return `${rowKey}-header`;
+    if (type === 'header-col') return `${colKey}-header`;
+    if (type === 'cell') return `${rowKey}-${colKey}`;
+    return 'unknown';
+  };
 
   const getCellContent = (rowKey: string, colKey: string) => {
-    const key = getCellKey(rowKey, colKey);
+    const key = cellKey(rowKey, colKey, rows, cols);
     const cellState = cells[key];
     
     if (!cellState?.name) {
@@ -119,7 +136,7 @@ export function GridSection({
   const totalCells = 9;
   
   // Check if all cells are filled (either guessed or auto-filled)
-  const allCellKeys = rows.flatMap(row => cols.map(col => getCellKey(row.key, col.key)));
+  const allCellKeys = rows.flatMap(row => cols.map(col => cellKey(row.key, col.key, rows, cols)));
   const filledCells = allCellKeys.filter(key => cells[key]?.name).length;
   const isGridComplete = filledCells === totalCells;
   
@@ -227,7 +244,7 @@ export function GridSection({
                 
                 return (
                   <div 
-                    key={col.key} 
+                    key={getReactKey('header-col', undefined, colIndex, undefined, col.key)} 
                     className={cn(
                       "aspect-square bg-secondary dark:bg-slate-700 p-2 md:p-3 overflow-hidden",
                       headerRadius
@@ -261,7 +278,7 @@ export function GridSection({
                     
                     return (
                       <div 
-                        key={`${row.key}-header`}
+                        key={getReactKey('header-row', rowIndex, undefined, row.key)}
                         className={cn(
                           "aspect-square bg-secondary dark:bg-slate-700 p-2 md:p-3 overflow-hidden",
                           rowIndex === rows.length - 1 ? 'rounded-bl-2xl' : ''
@@ -299,7 +316,7 @@ export function GridSection({
                     
                     return (
                       <button
-                        key={`${row.key}-${col.key}`}
+                        key={getReactKey('cell', rowIndex, colIndex, row.key, col.key)}
                         className={cn(
                           'aspect-square w-full flex items-center justify-center text-center relative overflow-hidden transition-all duration-200 hover:brightness-110 hover:contrast-110 hover:shadow-md',
                           cornerRadius,
@@ -346,8 +363,8 @@ export function GridSection({
                                 sport={sport}
                               />
                               {(() => {
-                                const cellKey = getCellKey(row.key, col.key);
-                                const cellState = cells[cellKey];
+                                const currentCellKey = cellKey(row.key, col.key, rows, cols);
+                                const cellState = cells[currentCellKey];
                                 return cellState?.correct && cellState?.rarity && (
                                   <div className="absolute top-1 left-1 z-10">
                                     <RarityChip value={cellState.rarity} />

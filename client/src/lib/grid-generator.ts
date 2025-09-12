@@ -554,8 +554,43 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
   return { rows, cols, intersections };
 }
 
-export function cellKey(rowKey: string, colKey: string): string {
+// Detect if a grid has duplicate header keys
+export function hasGridDuplicateHeaders(rows: CatTeam[], cols: CatTeam[]): boolean {
+  const rowKeys = rows.map(r => r.key);
+  const colKeys = cols.map(c => c.key);
+  
+  // Check for duplicate row keys
+  const uniqueRowKeys = new Set(rowKeys);
+  if (uniqueRowKeys.size !== rowKeys.length) {
+    return true;
+  }
+  
+  // Check for duplicate column keys
+  const uniqueColKeys = new Set(colKeys);
+  if (uniqueColKeys.size !== colKeys.length) {
+    return true;
+  }
+  
+  return false;
+}
+
+// Enhanced cell key generation that handles duplicates
+export function cellKey(rowKey: string, colKey: string, rows?: CatTeam[], cols?: CatTeam[]): string {
+  // If rows and cols are provided, check for duplicates
+  if (rows && cols && hasGridDuplicateHeaders(rows, cols)) {
+    // Use position-based keys for grids with duplicates
+    const rowIndex = rows.findIndex(r => r.key === rowKey);
+    const colIndex = cols.findIndex(c => c.key === colKey);
+    return `${rowIndex}-${colIndex}`;
+  }
+  
+  // Use traditional key-based approach for grids without duplicates
   return `${rowKey}|${colKey}`;
+}
+
+// Position-based cell key generation (for consistency with custom grid modal)
+export function positionBasedCellKey(rowIndex: number, colIndex: number): string {
+  return `${rowIndex}-${colIndex}`;
 }
 
 export function legacyCellKey(rowTid: number, colTid: number): string {
@@ -1164,7 +1199,8 @@ function buildOppositeAxisForSeed(
   eligibleTeams: number[],
   teams: Team[],
   players: Player[],
-  seasonIndex: SeasonIndex
+  seasonIndex: SeasonIndex,
+  sport?: 'basketball' | 'football' | 'hockey' | 'baseball'
 ): { rows: CatTeam[]; cols: CatTeam[]; intersections: Record<string, number[]> } {
   
   // Create arrays for the final result
@@ -1258,7 +1294,7 @@ function buildOppositeAxisForSeed(
   
   const availableSeasonAchievements = sportFilteredAchievements.map(ach => 
     SEASON_ACHIEVEMENTS.find(sa => sa.id === ach.id)
-  ).filter((sa): sa is NonNullable<typeof sa> => sa && sa.id !== seedAchievement.id);
+  ).filter((sa): sa is NonNullable<typeof sa> => sa !== undefined && sa.id !== seedAchievement.id);
   
   // Helper function to find an unused fallback achievement
   const findUnusedFallbackAchievement = (usedIds: Set<string>): CatTeam => {

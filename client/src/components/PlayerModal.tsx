@@ -57,9 +57,22 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
         return null;
       }
 
-      const [rowKey, colKey] = currentCellKey.split('|');
-      const rowConstraint = rows.find(r => r.key === rowKey);
-      const colConstraint = cols.find(c => c.key === colKey);
+      let rowConstraint: any;
+      let colConstraint: any;
+      
+      if (currentCellKey.includes('|')) {
+        // Traditional format: "rowKey|colKey"
+        const [rowKey, colKey] = currentCellKey.split('|');
+        rowConstraint = rows.find(r => r.key === rowKey);
+        colConstraint = cols.find(c => c.key === colKey);
+      } else {
+        // Position-based format: "rowIndex-colIndex"
+        const [rowIndexStr, colIndexStr] = currentCellKey.split('-');
+        const rowIndex = parseInt(rowIndexStr, 10);
+        const colIndex = parseInt(colIndexStr, 10);
+        rowConstraint = rows[rowIndex];
+        colConstraint = cols[colIndex];
+      }
       
       if (!rowConstraint || !colConstraint) {
         return null;
@@ -503,7 +516,16 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                       
                       // If we have cell context, recalculate with cell-aware system
                       if (currentCellKey && rows && cols) {
-                        const [rowKey, colKey] = currentCellKey.split('|');
+                        let rowKey, colKey;
+                        if (currentCellKey.includes('|')) {
+                          [rowKey, colKey] = currentCellKey.split('|');
+                        } else {
+                          const [rowIndexStr, colIndexStr] = currentCellKey.split('-');
+                          const rowIndex = parseInt(rowIndexStr, 10);
+                          const colIndex = parseInt(colIndexStr, 10);
+                          rowKey = rows[rowIndex]?.key;
+                          colKey = cols[colIndex]?.key;
+                        }
                         const rowConstraint = rows.find(r => r.key === rowKey);
                         const colConstraint = cols.find(c => c.key === colKey);
                         
