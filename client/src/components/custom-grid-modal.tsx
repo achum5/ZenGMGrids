@@ -107,7 +107,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
 
   // Focus the scroll container when dropdown opens
   useEffect(() => {
-    if (openHeaderSelector === headerKey) {
+    if (openHeaderSelector) {
       setTimeout(() => {
         const scrollContainer = document.getElementById('cg-scroll');
         if (scrollContainer) {
@@ -115,7 +115,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
         }
       }, 100);
     }
-  }, [openHeaderSelector, headerKey]);
+  }, [openHeaderSelector]);
   
   // Diacritic-insensitive folding (same as in player search)
   const fold = (s: string): string => {
