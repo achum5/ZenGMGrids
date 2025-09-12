@@ -111,9 +111,22 @@ export default function Home() {
   const buildRankCacheForCell = useCallback((cellKey: string): Array<{player: Player, rarity: number}> => {
     if (!leagueData || !rows.length || !cols.length) return [];
     
-    const [rowKey, colKey] = cellKey.split('|');
-    const rowConstraint = rows.find(r => r.key === rowKey);
-    const colConstraint = cols.find(c => c.key === colKey);
+    let rowConstraint: CatTeam | undefined;
+    let colConstraint: CatTeam | undefined;
+    
+    if (cellKey.includes('|')) {
+      // Traditional format: "rowKey|colKey"
+      const [rowKey, colKey] = cellKey.split('|');
+      rowConstraint = rows.find(r => r.key === rowKey);
+      colConstraint = cols.find(c => c.key === colKey);
+    } else {
+      // Position-based format: "rowIndex-colIndex"
+      const [rowIndexStr, colIndexStr] = cellKey.split('-');
+      const rowIndex = parseInt(rowIndexStr, 10);
+      const colIndex = parseInt(colIndexStr, 10);
+      rowConstraint = rows[rowIndex];
+      colConstraint = cols[colIndex];
+    }
     
     if (!rowConstraint || !colConstraint) return [];
     
@@ -466,15 +479,28 @@ export default function Home() {
       
       // Generate intersections for the new grid
       const allCellKeys = importedRows.flatMap(row => 
-        importedCols.map(col => cellKey(row.key, col.key))
+        importedCols.map(col => cellKey(row.key, col.key, importedRows, importedCols))
       );
       
       const newIntersections: Record<string, number[]> = {};
       
       for (const key of allCellKeys) {
-        const [rowKey, colKey] = key.split('|');
-        const row = importedRows.find(r => r.key === rowKey);
-        const col = importedCols.find(c => c.key === colKey);
+        let row: CatTeam | undefined;
+        let col: CatTeam | undefined;
+        
+        if (key.includes('|')) {
+          // Traditional format: "rowKey|colKey"
+          const [rowKey, colKey] = key.split('|');
+          row = importedRows.find(r => r.key === rowKey);
+          col = importedCols.find(c => c.key === colKey);
+        } else {
+          // Position-based format: "rowIndex-colIndex"
+          const [rowIndexStr, colIndexStr] = key.split('-');
+          const rowIndex = parseInt(rowIndexStr, 10);
+          const colIndex = parseInt(colIndexStr, 10);
+          row = importedRows[rowIndex];
+          col = importedCols[colIndex];
+        }
         
         if (row && col) {
           const eligible = leagueData.players.filter(p => row.test(p) && col.test(p));
@@ -506,7 +532,7 @@ export default function Home() {
   }, [leagueData, toast]);
 
   const handleCellClick = useCallback((rowKey: string, colKey: string) => {
-    const key = cellKey(rowKey, colKey);
+    const key = cellKey(rowKey, colKey, rows, cols);
     const cellState = cells[key];
     
     // If cell is locked and has a player, open player modal
@@ -568,9 +594,22 @@ export default function Home() {
       const puzzleSeed = `${rows.map(r => r.key).join('-')}_${cols.map(c => c.key).join('-')}`;
       
       // Get row and column constraints for cell context
-      const [rowKey, colKey] = currentCellKey.split('|');
-      const rowConstraint = rows.find(r => r.key === rowKey);
-      const colConstraint = cols.find(c => c.key === colKey);
+      let rowConstraint: CatTeam | undefined;
+      let colConstraint: CatTeam | undefined;
+      
+      if (currentCellKey.includes('|')) {
+        // Traditional format: "rowKey|colKey"
+        const [rowKey, colKey] = currentCellKey.split('|');
+        rowConstraint = rows.find(r => r.key === rowKey);
+        colConstraint = cols.find(c => c.key === colKey);
+      } else {
+        // Position-based format: "rowIndex-colIndex"
+        const [rowIndexStr, colIndexStr] = currentCellKey.split('-');
+        const rowIndex = parseInt(rowIndexStr, 10);
+        const colIndex = parseInt(colIndexStr, 10);
+        rowConstraint = rows[rowIndex];
+        colConstraint = cols[colIndex];
+      }
       const teamsMap = new Map(leagueData.teams.map(t => [t.tid, t]));
       
       rarity = computeRarityForGuess({
@@ -621,9 +660,22 @@ export default function Home() {
   const getCurrentCellDescription = () => {
     if (!currentCellKey || !rows || !cols) return '';
     
-    const [rowKey, colKey] = currentCellKey.split('|');
-    const row = rows.find(r => r.key === rowKey);
-    const col = cols.find(c => c.key === colKey);
+    let row: CatTeam | undefined;
+    let col: CatTeam | undefined;
+    
+    if (currentCellKey.includes('|')) {
+      // Traditional format: "rowKey|colKey"
+      const [rowKey, colKey] = currentCellKey.split('|');
+      row = rows.find(r => r.key === rowKey);
+      col = cols.find(c => c.key === colKey);
+    } else {
+      // Position-based format: "rowIndex-colIndex"
+      const [rowIndexStr, colIndexStr] = currentCellKey.split('-');
+      const rowIndex = parseInt(rowIndexStr, 10);
+      const colIndex = parseInt(colIndexStr, 10);
+      row = rows[rowIndex];
+      col = cols[colIndex];
+    }
     
     if (!row || !col) return '';
     
@@ -909,7 +961,9 @@ export default function Home() {
           sport={leagueData?.sport}
           isGridCompleted={(() => {
             // Check if all cells have been filled (either guessed or auto-filled)
-            const allCellKeys = rows.flatMap(row => cols.map(col => `${row.key}|${col.key}`));
+            const allCellKeys = rows.flatMap((row, rowIndex) => 
+              cols.map((col, colIndex) => cellKey(row.key, col.key, rows, cols))
+            );
             return allCellKeys.every(key => cells[key]?.name);
           })()}
         />
@@ -938,16 +992,28 @@ export default function Home() {
             setRankCache({});
             
             // Calculate intersections for custom grid using season-aware logic
-            const allCellKeys = customRows.flatMap(row => 
-              customCols.map(col => cellKey(row.key, col.key))
+            const allCellKeys = customRows.flatMap((row, rowIndex) => 
+              customCols.map((col, colIndex) => cellKey(row.key, col.key, customRows, customCols))
             );
             
             const newIntersections: Record<string, number[]> = {};
             
-            for (const key of allCellKeys) {
-              const [rowKey, colKey] = key.split('|');
-              const row = customRows.find(r => r.key === rowKey);
-              const col = customCols.find(c => c.key === colKey);
+            for (let i = 0; i < allCellKeys.length; i++) {
+              const key = allCellKeys[i];
+              // Determine row and column indices based on key format
+              let rowIndex: number, colIndex: number;
+              if (key.includes('|')) {
+                // Old format: rowKey|colKey
+                const [rowKey, colKey] = key.split('|');
+                rowIndex = customRows.findIndex(r => r.key === rowKey);
+                colIndex = customCols.findIndex(c => c.key === colKey);
+              } else {
+                // New format: rowIndex-colIndex
+                [rowIndex, colIndex] = key.split('-').map(Number);
+              }
+              
+              const row = customRows[rowIndex];
+              const col = customCols[colIndex];
               
               if (row && col) {
                 // Use the same season-aware intersection logic as the modal preview
