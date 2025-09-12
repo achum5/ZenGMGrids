@@ -807,12 +807,16 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
               </div>
             )}
             
-            <div className="flex justify-between items-center pt-4">
-              <div className="flex gap-2">
+            {/* Action Buttons - Organized Layout */}
+            <div className="border-t pt-4 mt-4">
+              {/* Utility Actions Row */}
+              <div className="flex flex-wrap gap-2 justify-center sm:justify-start mb-3">
                 <Button
                   onClick={handleClearAll}
                   variant="outline"
-                  className="flex items-center gap-2"
+                  size="sm"
+                  className="flex items-center gap-2 h-9"
+                  data-testid="button-clear-all"
                 >
                   <Trash2 className="h-4 w-4" />
                   Clear All
@@ -823,11 +827,12 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                   <Button
                     onClick={() => handleAutofill('all')}
                     variant="outline"
-                    className="flex items-center gap-1 sm:gap-2 rounded-r-none border-r-0 flex-grow-[3] min-w-[60px] sm:min-w-[90px] text-xs sm:text-sm h-8 px-2 sm:h-10 sm:px-4"
+                    size="sm"
+                    className="flex items-center gap-2 rounded-r-none border-r-0 h-9 min-w-[80px]"
                     disabled={!leagueData}
                     data-testid="button-autofill"
                   >
-                    <Wand2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <Wand2 className="h-4 w-4" />
                     <span className="hidden xs:inline">Autofill</span>
                     <span className="xs:hidden">Auto</span>
                   </Button>
@@ -836,11 +841,12 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="outline"
-                        className="rounded-l-none flex-grow-[1] px-1 sm:px-2 min-w-[24px] sm:min-w-[30px] h-8 sm:h-10"
+                        size="sm"
+                        className="rounded-l-none px-2 h-9 min-w-[32px]"
                         disabled={!leagueData}
                         data-testid="button-autofill-menu"
                       >
-                        <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <ChevronDown className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -865,29 +871,35 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                   <Button
                     onClick={handleUndo}
                     variant="outline"
-                    className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm h-8 px-2 sm:h-10 sm:px-4"
+                    size="sm"
+                    className="flex items-center gap-2 h-9"
                     data-testid="button-undo-autofill"
                   >
-                    <RotateCcw className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <RotateCcw className="h-4 w-4" />
                     Undo
                   </Button>
                 )}
               </div>
               
-              <div className="flex flex-col sm:flex-row gap-2">
+              {/* Primary Actions Row */}
+              <div className="flex gap-3 justify-end">
                 <Button
                   onClick={onClose}
                   variant="ghost"
-                  className="text-xs sm:text-sm h-8 px-3 sm:h-10 sm:px-4"
+                  size="sm"
+                  className="h-9 px-4"
+                  data-testid="button-cancel"
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handlePlayGrid}
                   disabled={!isGridSolvable}
-                  className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm h-8 px-3 sm:h-10 sm:px-4"
+                  size="sm"
+                  className="flex items-center gap-2 h-9 px-4 min-w-[100px]"
+                  data-testid="button-play-grid"
                 >
-                  <Play className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <Play className="h-4 w-4" />
                   Play Grid
                 </Button>
               </div>
