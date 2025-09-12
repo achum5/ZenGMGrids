@@ -35,6 +35,7 @@ interface GridSectionProps {
   sport?: string;
   attemptCount: number;
   getOrdinalLabel: (count: number) => string;
+  giveUpPressed?: boolean; // Track if Give Up has been pressed
 }
 
 // Calculate total score from correct guesses
@@ -59,6 +60,7 @@ export function GridSection({
   sport,
   attemptCount,
   getOrdinalLabel,
+  giveUpPressed = false,
 }: GridSectionProps) {
   const totalScore = calculateScore(cells);
   
@@ -148,7 +150,7 @@ export function GridSection({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         {/* Left button: Give Up or Retry This Grid */}
-        {isGridComplete ? (
+        {isGridComplete || giveUpPressed ? (
           <Button
             onClick={onRetryGrid}
             variant="default"
