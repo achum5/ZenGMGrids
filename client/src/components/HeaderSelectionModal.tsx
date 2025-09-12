@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -265,40 +264,35 @@ export function HeaderSelectionModal({
     return `Configure ${position} ${parseInt(index) + 1}`;
   };
 
-  // Handle click outside to close, but prevent closing parent modal
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      e.stopPropagation(); // Prevent parent modal from closing
-      handleClose();
-    }
-  };
+  // Close on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && open) {
+        handleClose();
+      }
+    };
 
+    if (open) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [open]);
+
+  // Don't render if not open
   if (!mounted || !open) return null;
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[9999] bg-black/20 backdrop-blur-sm flex items-center justify-center p-4"
-      onClick={handleBackdropClick}
-      style={{ pointerEvents: 'auto' }}
+  return (
+    <div 
+      className="absolute top-full left-0 mt-1 w-80 max-h-96 bg-background border rounded-lg shadow-xl flex flex-col z-50"
+      ref={modalRef}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        // Allow scrolling with keyboard immediately
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          listRef.current?.focus();
+        }
+      }}
     >
-      <div 
-        ref={modalRef}
-        className="w-80 max-h-96 bg-background border rounded-lg shadow-xl flex flex-col" 
-        onClick={(e) => {
-          e.stopPropagation();
-          e.preventDefault();
-        }}
-        onMouseDown={(e) => e.stopPropagation()}
-        onMouseUp={(e) => e.stopPropagation()}
-        style={{ pointerEvents: 'auto', position: 'relative' }}
-        tabIndex={0}
-        onKeyDown={(e) => {
-          // Allow scrolling with keyboard immediately
-          if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-            listRef.current?.focus();
-          }
-        }}
-      >
         {/* Header */}
         <div className="flex-shrink-0 border-b p-3">
           <div className="flex items-center justify-between mb-3">
@@ -457,8 +451,6 @@ export function HeaderSelectionModal({
             </div>
           )}
         </div>
-      </div>
-    </div>,
-    document.body
+    </div>
   );
 }
