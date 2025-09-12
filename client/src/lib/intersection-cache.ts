@@ -56,24 +56,35 @@ function cleanupCache(): void {
   lastCleanup = now;
 }
 
-// Pre-built Set lookups for optimization
-const playersByTeamCache = new Map<number, Set<number>>();
-const playersByAchievementCache = new Map<string, Set<number>>();
+// Pre-built Set lookups for optimization (keyed by playersHash for proper invalidation)
+const playersByTeamCache = new Map<string, Map<number, Set<number>>>();
+const playersByAchievementCache = new Map<string, Map<string, Set<number>>>();
 
 // Build player Sets by team for fast lookups
 function buildPlayersByTeam(players: Player[]): Map<number, Set<number>> {
-  if (playersByTeamCache.size > 0) return playersByTeamCache;
+  const playersHash = hashPlayerIds(players);
+  
+  // Check if we have cached data for this specific player dataset
+  if (playersByTeamCache.has(playersHash)) {
+    return playersByTeamCache.get(playersHash)!;
+  }
+  
+  // Build new cache for this player dataset
+  const teamMap = new Map<number, Set<number>>();
   
   for (const player of players) {
     player.teamsPlayed.forEach(teamId => {
-      if (!playersByTeamCache.has(teamId)) {
-        playersByTeamCache.set(teamId, new Set());
+      if (!teamMap.has(teamId)) {
+        teamMap.set(teamId, new Set());
       }
-      playersByTeamCache.get(teamId)!.add(player.pid);
+      teamMap.get(teamId)!.add(player.pid);
     });
   }
   
-  return playersByTeamCache;
+  // Cache the result keyed by playersHash
+  playersByTeamCache.set(playersHash, teamMap);
+  
+  return teamMap;
 }
 
 // Build player Sets by achievement for fast lookups
@@ -81,9 +92,15 @@ function buildPlayersByAchievement(
   players: Player[], 
   seasonIndex?: SeasonIndex
 ): Map<string, Set<number>> {
-  const cacheKey = `achievement_cache_${players.length}`;
+  const playersHash = hashPlayerIds(players);
   
-  if (playersByAchievementCache.size > 0) return playersByAchievementCache;
+  // Check if we have cached data for this specific player dataset
+  if (playersByAchievementCache.has(playersHash)) {
+    return playersByAchievementCache.get(playersHash)!;
+  }
+  
+  // Build new cache for this player dataset
+  const achievementMap = new Map<string, Set<number>>();
   
   // For career achievements, build Sets directly
   for (const player of players) {
@@ -91,15 +108,18 @@ function buildPlayersByAchievement(
     
     for (const [achievementId, hasAchievement] of Object.entries(player.achievements)) {
       if (hasAchievement) {
-        if (!playersByAchievementCache.has(achievementId)) {
-          playersByAchievementCache.set(achievementId, new Set());
+        if (!achievementMap.has(achievementId)) {
+          achievementMap.set(achievementId, new Set());
         }
-        playersByAchievementCache.get(achievementId)!.add(player.pid);
+        achievementMap.get(achievementId)!.add(player.pid);
       }
     }
   }
   
-  return playersByAchievementCache;
+  // Cache the result keyed by playersHash
+  playersByAchievementCache.set(playersHash, achievementMap);
+  
+  return achievementMap;
 }
 
 // Set intersection with size optimization
@@ -384,16 +404,38 @@ export function clearIntersectionCaches(): void {
 }
 
 /**
+ * Clear caches for a specific player dataset (when a league file is replaced)
+ */
+export function clearIntersectionCachesForPlayers(players: Player[]): void {
+  const playersHash = hashPlayerIds(players);
+  
+  // Clear intersection cache entries for this player dataset
+  const keysToDelete: string[] = [];
+  Array.from(intersectionCache.keys()).forEach(key => {
+    if (key.includes(`#${playersHash}`)) {
+      keysToDelete.push(key);
+    }
+  });
+  keysToDelete.forEach(key => intersectionCache.delete(key));
+  
+  // Clear player-specific caches
+  playersByTeamCache.delete(playersHash);
+  playersByAchievementCache.delete(playersHash);
+}
+
+/**
  * Get cache statistics for debugging
  */
 export function getIntersectionCacheStats(): {
   intersectionCacheSize: number;
   playersByTeamCacheSize: number;
   playersByAchievementCacheSize: number;
+  playerDatasetsCached: number;
 } {
   return {
     intersectionCacheSize: intersectionCache.size,
-    playersByTeamCacheSize: playersByTeamCache.size,
-    playersByAchievementCacheSize: playersByAchievementCache.size,
+    playersByTeamCacheSize: Array.from(playersByTeamCache.values()).reduce((sum, map) => sum + map.size, 0),
+    playersByAchievementCacheSize: Array.from(playersByAchievementCache.values()).reduce((sum, map) => sum + map.size, 0),
+    playerDatasetsCached: Math.max(playersByTeamCache.size, playersByAchievementCache.size),
   };
 }
