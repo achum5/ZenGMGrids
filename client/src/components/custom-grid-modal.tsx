@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -533,10 +533,12 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     const selector = isRow ? rowSelectors[index] : colSelectors[index];
     const position = `${isRow ? 'row' : 'col'}-${index}`;
     const isDropdownOpen = openDropdown === position;
+    const triggerRef = useRef<HTMLDivElement>(null);
     
     return (
       <div className="relative">
         <div 
+          ref={triggerRef}
           className="aspect-square flex flex-col items-center justify-center bg-background border rounded transition-colors p-0.5 sm:p-1 lg:p-2 relative group text-[8px] sm:text-xs lg:text-sm min-h-[40px] sm:min-h-[60px] lg:min-h-[80px] cursor-pointer hover:bg-muted"
           onClick={() => toggleHeaderDropdown(isRow, index)}
           data-testid={`header-${isRow ? 'row' : 'col'}-${index}`}
@@ -601,6 +603,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
             leagueData={leagueData}
             onSelect={(type, value, label) => handleHeaderSelection(position, type, value, label)}
             headerPosition={position}
+            triggerElementRef={triggerRef}
           />
         )}
       </div>

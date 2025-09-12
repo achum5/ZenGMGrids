@@ -70,6 +70,14 @@ interface HeaderSelectionModalProps {
   triggerElementRef?: React.RefObject<HTMLElement>; // For focus restoration
 }
 
+interface DropdownPosition {
+  top?: number;
+  bottom?: number;
+  left?: number;
+  right?: number;
+  transform?: string;
+}
+
 // Simple tokenization and fuzzy search (similar to player search)
 function tokenizeSearch(query: string): string[] {
   return query.toLowerCase()
@@ -98,25 +106,79 @@ export function HeaderSelectionModal({
 }: HeaderSelectionModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'teams' | 'achievements'>('all');
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [selectedIndex, setSelectedIndex] = useState(-1); // Start with no selection
   const [mounted, setMounted] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState<DropdownPosition>({});
   
   const listRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Reset state when opening/closing and focus modal for immediate scrolling
+  // Calculate smart positioning based on available space
+  const calculatePosition = () => {
+    if (!containerRef.current || !triggerElementRef?.current) return;
+
+    const trigger = triggerElementRef.current;
+    const dropdown = containerRef.current;
+    const triggerRect = trigger.getBoundingClientRect();
+    const dropdownRect = dropdown.getBoundingClientRect();
+    
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    // Calculate available space in each direction
+    const spaceAbove = triggerRect.top;
+    const spaceBelow = viewportHeight - triggerRect.bottom;
+    const spaceLeft = triggerRect.left;
+    const spaceRight = viewportWidth - triggerRect.right;
+    
+    // Dropdown dimensions (with some buffer)
+    const dropdownWidth = Math.min(320, viewportWidth * 0.95);
+    const dropdownHeight = Math.min(384, viewportHeight * 0.6);
+    
+    let position: DropdownPosition = {};
+    
+    // Vertical positioning - prefer below, fallback to above
+    if (spaceBelow >= dropdownHeight || spaceBelow >= spaceAbove) {
+      position.top = triggerRect.bottom + 4;
+    } else {
+      position.bottom = viewportHeight - triggerRect.top + 4;
+    }
+    
+    // Horizontal positioning - try to center, adjust if needed
+    const idealLeft = triggerRect.left + (triggerRect.width / 2) - (dropdownWidth / 2);
+    
+    if (idealLeft < 8) {
+      // Too far left, align to left edge with padding
+      position.left = 8;
+    } else if (idealLeft + dropdownWidth > viewportWidth - 8) {
+      // Too far right, align to right edge with padding
+      position.right = 8;
+    } else {
+      // Centered position works
+      position.left = idealLeft;
+    }
+    
+    setDropdownPosition(position);
+  };
+
+  // Reset state when opening/closing and calculate position
   useEffect(() => {
     if (open) {
       setSearchQuery('');
       setActiveFilter('all');
-      setSelectedIndex(0);
-      // Focus modal container for immediate scrolling capability
-      setTimeout(() => modalRef.current?.focus(), 100);
+      setSelectedIndex(-1); // No initial selection
+      
+      // Calculate position after a brief delay to ensure element is rendered
+      setTimeout(() => {
+        calculatePosition();
+        modalRef.current?.focus();
+      }, 10);
     }
   }, [open]);
 
@@ -210,15 +272,15 @@ export function HeaderSelectionModal({
           break;
         case 'ArrowDown':
           e.preventDefault();
-          setSelectedIndex(prev => Math.min(prev + 1, filteredItems.length - 1));
+          setSelectedIndex(prev => prev < 0 ? 0 : Math.min(prev + 1, filteredItems.length - 1));
           break;
         case 'ArrowUp':
           e.preventDefault();
-          setSelectedIndex(prev => Math.max(prev - 1, 0));
+          setSelectedIndex(prev => prev <= 0 ? -1 : prev - 1);
           break;
         case 'Enter':
           e.preventDefault();
-          if (filteredItems[selectedIndex]) {
+          if (selectedIndex >= 0 && filteredItems[selectedIndex]) {
             handleSelect(filteredItems[selectedIndex]);
           }
           break;
@@ -233,12 +295,12 @@ export function HeaderSelectionModal({
 
   // Reset selected index when filtered items change
   useEffect(() => {
-    setSelectedIndex(0);
+    setSelectedIndex(-1); // No initial selection
   }, [filteredItems]);
 
-  // Scroll selected item into view
+  // Scroll selected item into view (only if there's a selection)
   useEffect(() => {
-    if (listRef.current && filteredItems.length > 0) {
+    if (listRef.current && filteredItems.length > 0 && selectedIndex >= 0) {
       const selectedElement = listRef.current.querySelector(`[data-index="${selectedIndex}"]`);
       selectedElement?.scrollIntoView({ block: 'nearest' });
     }
@@ -283,12 +345,15 @@ export function HeaderSelectionModal({
 
   return (
     <div 
-      className="absolute top-full left-0 mt-1 w-[95vw] sm:w-80 max-w-sm sm:max-w-none max-h-[60vh] sm:max-h-96 bg-background border rounded-lg shadow-xl flex flex-col z-50"
+      ref={containerRef}
+      className="fixed w-[95vw] sm:w-80 max-w-sm sm:max-w-none max-h-[60vh] sm:max-h-96 bg-background border rounded-lg shadow-xl flex flex-col z-50"
       style={{
-        // Prevent dropdown from going off-screen
-        transform: 'translateX(max(-50%, min(0px, calc(100vw - 100% - 1rem))))'
+        top: dropdownPosition.top,
+        bottom: dropdownPosition.bottom,
+        left: dropdownPosition.left,
+        right: dropdownPosition.right,
+        transform: dropdownPosition.transform
       }}
-      ref={modalRef}
       tabIndex={0}
       onKeyDown={(e) => {
         // Allow scrolling with keyboard immediately
@@ -382,7 +447,7 @@ export function HeaderSelectionModal({
                             onClick={() => handleSelect(item)}
                             data-testid={`team-option-${item.id}`}
                           >
-                            {isSelected && (
+                            {isSelected && selectedIndex >= 0 && (
                               <CheckCircle className="h-3 w-3 text-primary flex-shrink-0" />
                             )}
                             <img
@@ -433,7 +498,7 @@ export function HeaderSelectionModal({
                             onClick={() => handleSelect(item)}
                             data-testid={`achievement-option-${item.id}`}
                           >
-                            {isSelected && (
+                            {isSelected && selectedIndex >= 0 && (
                               <CheckCircle className="h-3 w-3 text-primary flex-shrink-0" />
                             )}
                             <Trophy className="h-3 w-3 text-muted-foreground flex-shrink-0" />
