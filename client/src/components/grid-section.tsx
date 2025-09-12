@@ -64,9 +64,10 @@ export function GridSection({
   
   // Helper function for generating unique React keys
   const getReactKey = (type: 'header-row' | 'header-col' | 'cell', rowIndex?: number, colIndex?: number, rowKey?: string, colKey?: string) => {
-    // For duplicates, we need to check if we should use position-based keys
-    const keyToCheck = cellKey('dummy', 'dummy', rows, cols);
-    const hasDuplicates = !keyToCheck.includes('|');
+    // Explicit duplicate detection
+    const hasDupRows = rows.map(r => r.key).some((k, i, a) => a.indexOf(k) !== i);
+    const hasDupCols = cols.map(c => c.key).some((k, i, a) => a.indexOf(k) !== i);
+    const hasDuplicates = hasDupRows || hasDupCols;
     
     if (hasDuplicates) {
       if (type === 'header-row') return `header-row-${rowIndex}`;
