@@ -2,6 +2,7 @@ import type { LeagueData, CatTeam, Player, Team } from '@/types/bbgm';
 import { getViableAchievements, playerMeetsAchievement, getAchievements, type Achievement, debugIndividualAchievements } from '@/lib/achievements';
 import { evaluateConstraintPair, GridConstraint } from '@/lib/feedback';
 import { getSeasonEligiblePlayers, type SeasonAchievementId, type SeasonIndex, SEASON_ACHIEVEMENTS } from './season-achievements';
+import { calculateOptimizedIntersection, type IntersectionConstraint } from '@/lib/intersection-cache';
 
 // Define conflicting achievement sets at module level
 const draftAchievements = new Set(['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen']);
@@ -191,7 +192,9 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
     
     // Log conflict resolution for debugging
     if (seasonLengthAchs.length > 1) {
-      console.log(`🔧 Resolving season length conflict: found ${seasonLengthAchs.map(a => a.label).join(' + ')}, keeping only first`);
+      if (import.meta.env.VITE_DEBUG === 'true') {
+        console.log(`🔧 Resolving season length conflict: found ${seasonLengthAchs.map(a => a.label).join(' + ')}, keeping only first`);
+      }
     }
     
     // Keep only one from each conflicting category
@@ -1119,139 +1122,38 @@ function validateAchievementIntersection(
   return eligiblePlayers.length >= minPlayers;
 }
 
-// Helper function to calculate intersection between two constraints (simplified version)
+// Helper function to calculate intersection between two constraints (optimized version)
 function calculateIntersectionSimple(
   rowConstraint: any,
   colConstraint: any,
   players: Player[],
   seasonIndex?: SeasonIndex
 ): Player[] {
-  const rowIsSeasonAchievement = rowConstraint.type === 'achievement' && 
-    SEASON_ACHIEVEMENTS.some(sa => sa.id === rowConstraint.achievementId);
-  const colIsSeasonAchievement = colConstraint.type === 'achievement' && 
-    SEASON_ACHIEVEMENTS.some(sa => sa.id === colConstraint.achievementId);
+  // Use optimized intersection calculation
+  const rowIntersectionConstraint: IntersectionConstraint = {
+    type: rowConstraint.type,
+    id: rowConstraint.type === 'team' ? rowConstraint.tid : rowConstraint.achievementId,
+    label: rowConstraint.label
+  };
   
-  if (rowIsSeasonAchievement && colConstraint.type === 'team') {
-    // Season achievement × team
-    if (!seasonIndex) return [];
-    const eligiblePids = getSeasonEligiblePlayers(seasonIndex, colConstraint.tid!, rowConstraint.achievementId as SeasonAchievementId);
-    return players.filter(p => eligiblePids.has(p.pid));
-  } else if (colIsSeasonAchievement && rowConstraint.type === 'team') {
-    // Team × season achievement  
-    if (!seasonIndex) return [];
-    const eligiblePids = getSeasonEligiblePlayers(seasonIndex, rowConstraint.tid!, colConstraint.achievementId as SeasonAchievementId);
-    return players.filter(p => eligiblePids.has(p.pid));
-  } else if (rowIsSeasonAchievement && colIsSeasonAchievement) {
-    // Season achievement × season achievement
-    if (!seasonIndex) return [];
-    
-    if (rowConstraint.achievementId === colConstraint.achievementId) {
-      // Same achievement - find all players who have it
-      const eligiblePids = new Set<number>();
-      for (const seasonStr of Object.keys(seasonIndex)) {
-        const season = parseInt(seasonStr);
-        const seasonData = seasonIndex[season];
-        for (const teamStr of Object.keys(seasonData)) {
-          const teamId = parseInt(teamStr);
-          const teamData = seasonData[teamId];
-          if (teamData[rowConstraint.achievementId as SeasonAchievementId]) {
-            const achievementPids = teamData[rowConstraint.achievementId as SeasonAchievementId];
-            achievementPids.forEach(pid => eligiblePids.add(pid));
-          }
-        }
-      }
-      return players.filter(p => eligiblePids.has(p.pid));
-    } else {
-      // Different achievements - find players who have both in the same season
-      const eligiblePids = new Set<number>();
-      for (const seasonStr of Object.keys(seasonIndex)) {
-        const season = parseInt(seasonStr);
-        const seasonData = seasonIndex[season];
-        for (const teamStr of Object.keys(seasonData)) {
-          const teamId = parseInt(teamStr);
-          const teamData = seasonData[teamId];
-          const rowPids = teamData[rowConstraint.achievementId as SeasonAchievementId] || new Set();
-          const colPids = teamData[colConstraint.achievementId as SeasonAchievementId] || new Set();
-          
-          // Find intersection - players who have both achievements with this team in this season
-          for (const pid of Array.from(rowPids)) {
-            if (colPids.has(pid)) {
-              eligiblePids.add(pid);
-            }
-          }
-        }
-      }
-      return players.filter(p => eligiblePids.has(p.pid));
-    }
-  } else if (rowConstraint.type === 'team' && colConstraint.type === 'team') {
-    // Team × team - players who played for both teams
-    return players.filter(p => {
-      return p.teamsPlayed.has(rowConstraint.tid) && p.teamsPlayed.has(colConstraint.tid);
-    });
-  } else if (rowConstraint.type === 'team' && colConstraint.type === 'achievement' && !colIsSeasonAchievement) {
-    // Team × career achievement
-    return players.filter(p => {
-      return p.teamsPlayed.has(rowConstraint.tid) && playerMeetsAchievement(p, colConstraint.achievementId, seasonIndex);
-    });
-  } else if (rowConstraint.type === 'achievement' && !rowIsSeasonAchievement && colConstraint.type === 'team') {
-    // Career achievement × team
-    return players.filter(p => {
-      return playerMeetsAchievement(p, rowConstraint.achievementId, seasonIndex) && p.teamsPlayed.has(colConstraint.tid);
-    });
-  } else if (rowConstraint.type === 'achievement' && !rowIsSeasonAchievement && colConstraint.type === 'achievement' && !colIsSeasonAchievement) {
-    // Career achievement × career achievement
-    return players.filter(p => {
-      return playerMeetsAchievement(p, rowConstraint.achievementId, seasonIndex) && playerMeetsAchievement(p, colConstraint.achievementId, seasonIndex);
-    });
-  } else if (rowConstraint.type === 'achievement' && !rowIsSeasonAchievement && colConstraint.type === 'achievement' && colIsSeasonAchievement) {
-    // Career achievement × season achievement
-    if (!seasonIndex) return [];
-    
-    // Find players who meet the career achievement AND have the season achievement
-    return players.filter(p => {
-      if (!playerMeetsAchievement(p, rowConstraint.achievementId, seasonIndex)) return false;
-      
-      // Check if this player has the season achievement in any season/team
-      for (const seasonStr of Object.keys(seasonIndex)) {
-        const season = parseInt(seasonStr);
-        const seasonData = seasonIndex[season];
-        for (const teamStr of Object.keys(seasonData)) {
-          const teamId = parseInt(teamStr);
-          const teamData = seasonData[teamId];
-          const seasonAchPlayers = teamData[colConstraint.achievementId as SeasonAchievementId] || new Set();
-          if (seasonAchPlayers.has(p.pid)) {
-            return true;
-          }
-        }
-      }
-      return false;
-    });
-  } else if (rowConstraint.type === 'achievement' && rowIsSeasonAchievement && colConstraint.type === 'achievement' && !colIsSeasonAchievement) {
-    // Season achievement × career achievement  
-    if (!seasonIndex) return [];
-    
-    // Find players who meet the career achievement AND have the season achievement
-    return players.filter(p => {
-      if (!playerMeetsAchievement(p, colConstraint.achievementId, seasonIndex)) return false;
-      
-      // Check if this player has the season achievement in any season/team
-      for (const seasonStr of Object.keys(seasonIndex)) {
-        const season = parseInt(seasonStr);
-        const seasonData = seasonIndex[season];
-        for (const teamStr of Object.keys(seasonData)) {
-          const teamId = parseInt(teamStr);
-          const teamData = seasonData[teamId];
-          const seasonAchPlayers = teamData[rowConstraint.achievementId as SeasonAchievementId] || new Set();
-          if (seasonAchPlayers.has(p.pid)) {
-            return true;
-          }
-        }
-      }
-      return false;
-    });
-  }
+  const colIntersectionConstraint: IntersectionConstraint = {
+    type: colConstraint.type,
+    id: colConstraint.type === 'team' ? colConstraint.tid : colConstraint.achievementId,
+    label: colConstraint.label
+  };
   
-  return [];
+  // Get the Set of eligible player IDs
+  const eligiblePids = calculateOptimizedIntersection(
+    rowIntersectionConstraint,
+    colIntersectionConstraint,
+    players,
+    [], // teams array not used in this context
+    seasonIndex,
+    false // Return Set, not count
+  ) as Set<number>;
+  
+  // Convert Set to Player array
+  return players.filter(p => eligiblePids.has(p.pid));
 }
 
 // Build opposite axis to ensure seed has 3/3 coverage (simplified implementation)

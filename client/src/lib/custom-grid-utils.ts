@@ -2,6 +2,7 @@ import type { Player, Team, CatTeam, LeagueData } from '@/types/bbgm';
 import type { SeasonIndex, SeasonAchievementId } from '@/lib/season-achievements';
 import { getAchievements, playerMeetsAchievement } from '@/lib/achievements';
 import { getSeasonEligiblePlayers, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
+import { calculateOptimizedIntersection, type IntersectionConstraint } from '@/lib/intersection-cache';
 
 // Create Set for O(1) lookup instead of O(N) .some() calls
 const SEASON_ACHIEVEMENT_IDS = new Set(SEASON_ACHIEVEMENTS.map(sa => sa.id));
@@ -122,7 +123,7 @@ export function headerConfigToCatTeam(
   }
 }
 
-// Calculate intersection for a single cell using same logic as main grid system
+// Calculate intersection for a single cell using optimized Set-based operations with memoization
 export function calculateCustomCellIntersection(
   rowConfig: HeaderConfig,
   colConfig: HeaderConfig,
@@ -137,97 +138,27 @@ export function calculateCustomCellIntersection(
     return 0;
   }
 
-  // Use exact same logic as calculateIntersectionSimple from grid-generator.ts - O(1) Set lookup
-  const rowIsSeasonAchievement = rowConstraint.type === 'achievement' && 
-    SEASON_ACHIEVEMENT_IDS.has(rowConstraint.achievementId as any);
-  const colIsSeasonAchievement = colConstraint.type === 'achievement' && 
-    SEASON_ACHIEVEMENT_IDS.has(colConstraint.achievementId as any);
+  // Use optimized intersection calculation with memoization
+  const rowIntersectionConstraint: IntersectionConstraint = {
+    type: rowConstraint.type,
+    id: rowConstraint.type === 'team' ? rowConstraint.tid! : rowConstraint.achievementId!,
+    label: rowConstraint.label
+  };
   
-  // PERFORMANCE CRITICAL: Use set sizes directly instead of filtering arrays
-  if (rowIsSeasonAchievement && colConstraint.type === 'team') {
-    // Season achievement × team - return count directly from set size
-    if (!seasonIndex) return 0;
-    const eligiblePids = getSeasonEligiblePlayers(seasonIndex, colConstraint.tid!, rowConstraint.achievementId as SeasonAchievementId);
-    return eligiblePids.size;
-  } else if (colIsSeasonAchievement && rowConstraint.type === 'team') {
-    // Team × season achievement - return count directly from set size
-    if (!seasonIndex) return 0;
-    const eligiblePids = getSeasonEligiblePlayers(seasonIndex, rowConstraint.tid!, colConstraint.achievementId as SeasonAchievementId);
-    return eligiblePids.size;
-  } else if (rowIsSeasonAchievement && colIsSeasonAchievement) {
-    // Season achievement × season achievement - optimize with set operations
-    if (!seasonIndex) return 0;
-    
-    if (rowConstraint.achievementId === colConstraint.achievementId) {
-      // Same achievement - count all players who have it
-      let count = 0;
-      for (const seasonStr of Object.keys(seasonIndex)) {
-        const season = parseInt(seasonStr);
-        const seasonData = seasonIndex[season];
-        for (const teamStr of Object.keys(seasonData)) {
-          const teamId = parseInt(teamStr);
-          const teamData = seasonData[teamId];
-          if (teamData[rowConstraint.achievementId as SeasonAchievementId]) {
-            count += teamData[rowConstraint.achievementId as SeasonAchievementId].size;
-          }
-        }
-      }
-      return count;
-    } else {
-      // Different achievements - use intersection of sets for performance
-      const rowAchievementPids = new Set<number>();
-      const colAchievementPids = new Set<number>();
-      
-      // Collect players with row achievement
-      for (const seasonStr of Object.keys(seasonIndex)) {
-        const season = parseInt(seasonStr);
-        const seasonData = seasonIndex[season];
-        for (const teamStr of Object.keys(seasonData)) {
-          const teamId = parseInt(teamStr);
-          const teamData = seasonData[teamId];
-          if (teamData[rowConstraint.achievementId as SeasonAchievementId]) {
-            const achievementPids = teamData[rowConstraint.achievementId as SeasonAchievementId];
-            achievementPids.forEach(pid => rowAchievementPids.add(pid));
-          }
-        }
-      }
-      
-      // Collect players with col achievement
-      for (const seasonStr of Object.keys(seasonIndex)) {
-        const season = parseInt(seasonStr);
-        const seasonData = seasonIndex[season];
-        for (const teamStr of Object.keys(seasonData)) {
-          const teamId = parseInt(teamStr);
-          const teamData = seasonData[teamId];
-          if (teamData[colConstraint.achievementId as SeasonAchievementId]) {
-            const achievementPids = teamData[colConstraint.achievementId as SeasonAchievementId];
-            achievementPids.forEach(pid => colAchievementPids.add(pid));
-          }
-        }
-      }
-      
-      // Count intersection efficiently - iterate smaller set
-      const smallerSet = rowAchievementPids.size <= colAchievementPids.size ? rowAchievementPids : colAchievementPids;
-      const largerSet = rowAchievementPids.size > colAchievementPids.size ? rowAchievementPids : colAchievementPids;
-      
-      let intersectionCount = 0;
-      for (const pid of Array.from(smallerSet)) {
-        if (largerSet.has(pid)) {
-          intersectionCount++;
-        }
-      }
-      return intersectionCount;
-    }
-  } else {
-    // Non-season achievements or Team × Team: count directly
-    let count = 0;
-    for (const player of players) {
-      if (rowConstraint.test(player) && colConstraint.test(player)) {
-        count++;
-      }
-    }
-    return count;
-  }
+  const colIntersectionConstraint: IntersectionConstraint = {
+    type: colConstraint.type,
+    id: colConstraint.type === 'team' ? colConstraint.tid! : colConstraint.achievementId!,
+    label: colConstraint.label
+  };
+  
+  return calculateOptimizedIntersection(
+    rowIntersectionConstraint,
+    colIntersectionConstraint,
+    players,
+    teams,
+    seasonIndex,
+    true // Return count only
+  ) as number;
 }
 
 // Update cell results for entire grid

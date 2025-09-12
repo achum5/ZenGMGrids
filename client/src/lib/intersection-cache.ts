@@ -1,0 +1,399 @@
+import type { Player, Team } from '@/types/bbgm';
+import type { SeasonIndex, SeasonAchievementId } from '@/lib/season-achievements';
+import { getSeasonEligiblePlayers, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
+import { playerMeetsAchievement } from '@/lib/achievements';
+
+// Intersection cache for performance optimization
+type IntersectionKey = string;
+type CacheEntry = {
+  result: number;
+  timestamp: number;
+};
+
+const CACHE_TTL_MS = 30000; // 30 seconds cache TTL
+const intersectionCache = new Map<IntersectionKey, CacheEntry>();
+
+// Generate cache key for intersection
+function generateCacheKey(
+  rowType: string,
+  rowId: string | number,
+  colType: string,
+  colId: string | number,
+  playersHash?: string
+): IntersectionKey {
+  return `${rowType}:${rowId}|${colType}:${colId}${playersHash ? `#${playersHash}` : ''}`;
+}
+
+// Simple hash for players array to detect changes
+function hashPlayerIds(players: Player[]): string {
+  if (players.length < 100) {
+    return players.map(p => p.pid).sort((a, b) => a - b).join(',');
+  }
+  // For large arrays, use length + first/last few PIDs for faster hashing
+  const sorted = players.map(p => p.pid).sort((a, b) => a - b);
+  return `${sorted.length}:${sorted.slice(0, 5).join(',')}:${sorted.slice(-5).join(',')}`;
+}
+
+// Check if cache entry is valid
+function isCacheValid(entry: CacheEntry): boolean {
+  return Date.now() - entry.timestamp < CACHE_TTL_MS;
+}
+
+// Clear expired cache entries periodically
+let lastCleanup = Date.now();
+function cleanupCache(): void {
+  const now = Date.now();
+  if (now - lastCleanup < 10000) return; // Cleanup every 10 seconds
+  
+  const expired: string[] = [];
+  Array.from(intersectionCache.entries()).forEach(([key, entry]) => {
+    if (!isCacheValid(entry)) {
+      expired.push(key);
+    }
+  });
+  
+  expired.forEach(key => intersectionCache.delete(key));
+  lastCleanup = now;
+}
+
+// Pre-built Set lookups for optimization
+const playersByTeamCache = new Map<number, Set<number>>();
+const playersByAchievementCache = new Map<string, Set<number>>();
+
+// Build player Sets by team for fast lookups
+function buildPlayersByTeam(players: Player[]): Map<number, Set<number>> {
+  if (playersByTeamCache.size > 0) return playersByTeamCache;
+  
+  for (const player of players) {
+    player.teamsPlayed.forEach(teamId => {
+      if (!playersByTeamCache.has(teamId)) {
+        playersByTeamCache.set(teamId, new Set());
+      }
+      playersByTeamCache.get(teamId)!.add(player.pid);
+    });
+  }
+  
+  return playersByTeamCache;
+}
+
+// Build player Sets by achievement for fast lookups
+function buildPlayersByAchievement(
+  players: Player[], 
+  seasonIndex?: SeasonIndex
+): Map<string, Set<number>> {
+  const cacheKey = `achievement_cache_${players.length}`;
+  
+  if (playersByAchievementCache.size > 0) return playersByAchievementCache;
+  
+  // For career achievements, build Sets directly
+  for (const player of players) {
+    if (!player.achievements) continue;
+    
+    for (const [achievementId, hasAchievement] of Object.entries(player.achievements)) {
+      if (hasAchievement) {
+        if (!playersByAchievementCache.has(achievementId)) {
+          playersByAchievementCache.set(achievementId, new Set());
+        }
+        playersByAchievementCache.get(achievementId)!.add(player.pid);
+      }
+    }
+  }
+  
+  return playersByAchievementCache;
+}
+
+// Set intersection with size optimization
+function intersectSets(setA: Set<number>, setB: Set<number>): Set<number> {
+  // Always iterate the smaller set for performance
+  const [smaller, larger] = setA.size <= setB.size ? [setA, setB] : [setB, setA];
+  const result = new Set<number>();
+  
+  Array.from(smaller).forEach(item => {
+    if (larger.has(item)) {
+      result.add(item);
+    }
+  });
+  
+  return result;
+}
+
+// Set intersection count (optimized - no need to build the result set)
+function intersectSetsCount(setA: Set<number>, setB: Set<number>): number {
+  // Always iterate the smaller set for performance
+  const [smaller, larger] = setA.size <= setB.size ? [setA, setB] : [setB, setA];
+  let count = 0;
+  
+  Array.from(smaller).forEach(item => {
+    if (larger.has(item)) {
+      count++;
+    }
+  });
+  
+  return count;
+}
+
+export interface IntersectionConstraint {
+  type: 'team' | 'achievement';
+  id: string | number;
+  label?: string;
+}
+
+/**
+ * Optimized intersection calculation using Set operations with memoization
+ */
+export function calculateOptimizedIntersection(
+  rowConstraint: IntersectionConstraint,
+  colConstraint: IntersectionConstraint,
+  players: Player[],
+  teams: Team[],
+  seasonIndex?: SeasonIndex,
+  returnCount: boolean = true
+): number | Set<number> {
+  cleanupCache();
+  
+  const playersHash = hashPlayerIds(players);
+  const cacheKey = generateCacheKey(
+    rowConstraint.type, 
+    rowConstraint.id, 
+    colConstraint.type, 
+    colConstraint.id,
+    playersHash
+  );
+  
+  // Check cache first (only for count requests)
+  if (returnCount) {
+    const cached = intersectionCache.get(cacheKey);
+    if (cached && isCacheValid(cached)) {
+      return cached.result;
+    }
+  }
+  
+  let result: number | Set<number>;
+  
+  // Create Set for season achievement IDs for O(1) lookup
+  const SEASON_ACHIEVEMENT_IDS = new Set(SEASON_ACHIEVEMENTS.map(sa => sa.id));
+  
+  const rowIsSeasonAchievement = rowConstraint.type === 'achievement' && 
+    SEASON_ACHIEVEMENT_IDS.has(rowConstraint.id as SeasonAchievementId);
+  const colIsSeasonAchievement = colConstraint.type === 'achievement' && 
+    SEASON_ACHIEVEMENT_IDS.has(colConstraint.id as SeasonAchievementId);
+  
+  if (rowConstraint.type === 'team' && colConstraint.type === 'team') {
+    // Team × Team intersection - players who played for both teams
+    const teamAPlayers = buildPlayersByTeam(players).get(rowConstraint.id as number) || new Set();
+    const teamBPlayers = buildPlayersByTeam(players).get(colConstraint.id as number) || new Set();
+    
+    if (returnCount) {
+      result = intersectSetsCount(teamAPlayers, teamBPlayers);
+    } else {
+      result = intersectSets(teamAPlayers, teamBPlayers);
+    }
+  } else if (rowIsSeasonAchievement && colConstraint.type === 'team') {
+    // Season achievement × team
+    if (!seasonIndex) {
+      result = returnCount ? 0 : new Set();
+    } else {
+      const eligiblePids = getSeasonEligiblePlayers(
+        seasonIndex, 
+        colConstraint.id as number, 
+        rowConstraint.id as SeasonAchievementId
+      );
+      result = returnCount ? eligiblePids.size : eligiblePids;
+    }
+  } else if (colIsSeasonAchievement && rowConstraint.type === 'team') {
+    // Team × season achievement
+    if (!seasonIndex) {
+      result = returnCount ? 0 : new Set();
+    } else {
+      const eligiblePids = getSeasonEligiblePlayers(
+        seasonIndex, 
+        rowConstraint.id as number, 
+        colConstraint.id as SeasonAchievementId
+      );
+      result = returnCount ? eligiblePids.size : eligiblePids;
+    }
+  } else if (rowIsSeasonAchievement && colIsSeasonAchievement) {
+    // Season achievement × season achievement
+    if (!seasonIndex) {
+      result = returnCount ? 0 : new Set();
+    } else {
+      if (rowConstraint.id === colConstraint.id) {
+        // Same achievement - count all players who have it
+        const eligiblePids = new Set<number>();
+        for (const seasonStr of Object.keys(seasonIndex)) {
+          const season = parseInt(seasonStr);
+          const seasonData = seasonIndex[season];
+          for (const teamStr of Object.keys(seasonData)) {
+            const teamId = parseInt(teamStr);
+            const teamData = seasonData[teamId];
+            if (teamData[rowConstraint.id as SeasonAchievementId]) {
+              const achievementPids = teamData[rowConstraint.id as SeasonAchievementId];
+              achievementPids.forEach(pid => eligiblePids.add(pid));
+            }
+          }
+        }
+        result = returnCount ? eligiblePids.size : eligiblePids;
+      } else {
+        // Different achievements - use Set intersection for efficiency
+        const rowAchievementPids = new Set<number>();
+        const colAchievementPids = new Set<number>();
+        
+        // Collect players with row achievement
+        for (const seasonStr of Object.keys(seasonIndex)) {
+          const season = parseInt(seasonStr);
+          const seasonData = seasonIndex[season];
+          for (const teamStr of Object.keys(seasonData)) {
+            const teamId = parseInt(teamStr);
+            const teamData = seasonData[teamId];
+            if (teamData[rowConstraint.id as SeasonAchievementId]) {
+              const achievementPids = teamData[rowConstraint.id as SeasonAchievementId];
+              achievementPids.forEach(pid => rowAchievementPids.add(pid));
+            }
+          }
+        }
+        
+        // Collect players with col achievement
+        for (const seasonStr of Object.keys(seasonIndex)) {
+          const season = parseInt(seasonStr);
+          const seasonData = seasonIndex[season];
+          for (const teamStr of Object.keys(seasonData)) {
+            const teamId = parseInt(teamStr);
+            const teamData = seasonData[teamId];
+            if (teamData[colConstraint.id as SeasonAchievementId]) {
+              const achievementPids = teamData[colConstraint.id as SeasonAchievementId];
+              achievementPids.forEach(pid => colAchievementPids.add(pid));
+            }
+          }
+        }
+        
+        if (returnCount) {
+          result = intersectSetsCount(rowAchievementPids, colAchievementPids);
+        } else {
+          result = intersectSets(rowAchievementPids, colAchievementPids);
+        }
+      }
+    }
+  } else if (rowConstraint.type === 'team' && colConstraint.type === 'achievement' && !colIsSeasonAchievement) {
+    // Team × career achievement
+    const teamPlayers = buildPlayersByTeam(players).get(rowConstraint.id as number) || new Set();
+    const achievementPlayers = buildPlayersByAchievement(players, seasonIndex).get(colConstraint.id as string) || new Set();
+    
+    if (returnCount) {
+      result = intersectSetsCount(teamPlayers, achievementPlayers);
+    } else {
+      result = intersectSets(teamPlayers, achievementPlayers);
+    }
+  } else if (rowConstraint.type === 'achievement' && !rowIsSeasonAchievement && colConstraint.type === 'team') {
+    // Career achievement × team
+    const achievementPlayers = buildPlayersByAchievement(players, seasonIndex).get(rowConstraint.id as string) || new Set();
+    const teamPlayers = buildPlayersByTeam(players).get(colConstraint.id as number) || new Set();
+    
+    if (returnCount) {
+      result = intersectSetsCount(achievementPlayers, teamPlayers);
+    } else {
+      result = intersectSets(achievementPlayers, teamPlayers);
+    }
+  } else if (rowConstraint.type === 'achievement' && !rowIsSeasonAchievement && 
+             colConstraint.type === 'achievement' && !colIsSeasonAchievement) {
+    // Career achievement × career achievement
+    const rowAchievementPlayers = buildPlayersByAchievement(players, seasonIndex).get(rowConstraint.id as string) || new Set();
+    const colAchievementPlayers = buildPlayersByAchievement(players, seasonIndex).get(colConstraint.id as string) || new Set();
+    
+    if (returnCount) {
+      result = intersectSetsCount(rowAchievementPlayers, colAchievementPlayers);
+    } else {
+      result = intersectSets(rowAchievementPlayers, colAchievementPlayers);
+    }
+  } else if (rowConstraint.type === 'achievement' && !rowIsSeasonAchievement && 
+             colConstraint.type === 'achievement' && colIsSeasonAchievement) {
+    // Career achievement × season achievement
+    if (!seasonIndex) {
+      result = returnCount ? 0 : new Set();
+    } else {
+      const careerAchievementPlayers = buildPlayersByAchievement(players, seasonIndex).get(rowConstraint.id as string) || new Set();
+      
+      // Get all players with the season achievement
+      const seasonAchievementPlayers = new Set<number>();
+      for (const seasonStr of Object.keys(seasonIndex)) {
+        const season = parseInt(seasonStr);
+        const seasonData = seasonIndex[season];
+        for (const teamStr of Object.keys(seasonData)) {
+          const teamId = parseInt(teamStr);
+          const teamData = seasonData[teamId];
+          const seasonAchPlayers = teamData[colConstraint.id as SeasonAchievementId] || new Set();
+          seasonAchPlayers.forEach(pid => seasonAchievementPlayers.add(pid));
+        }
+      }
+      
+      if (returnCount) {
+        result = intersectSetsCount(careerAchievementPlayers, seasonAchievementPlayers);
+      } else {
+        result = intersectSets(careerAchievementPlayers, seasonAchievementPlayers);
+      }
+    }
+  } else if (rowConstraint.type === 'achievement' && rowIsSeasonAchievement && 
+             colConstraint.type === 'achievement' && !colIsSeasonAchievement) {
+    // Season achievement × career achievement
+    if (!seasonIndex) {
+      result = returnCount ? 0 : new Set();
+    } else {
+      const careerAchievementPlayers = buildPlayersByAchievement(players, seasonIndex).get(colConstraint.id as string) || new Set();
+      
+      // Get all players with the season achievement
+      const seasonAchievementPlayers = new Set<number>();
+      for (const seasonStr of Object.keys(seasonIndex)) {
+        const season = parseInt(seasonStr);
+        const seasonData = seasonIndex[season];
+        for (const teamStr of Object.keys(seasonData)) {
+          const teamId = parseInt(teamStr);
+          const teamData = seasonData[teamId];
+          const seasonAchPlayers = teamData[rowConstraint.id as SeasonAchievementId] || new Set();
+          seasonAchPlayers.forEach(pid => seasonAchievementPlayers.add(pid));
+        }
+      }
+      
+      if (returnCount) {
+        result = intersectSetsCount(seasonAchievementPlayers, careerAchievementPlayers);
+      } else {
+        result = intersectSets(seasonAchievementPlayers, careerAchievementPlayers);
+      }
+    }
+  } else {
+    // Fallback - should not happen with proper constraints
+    result = returnCount ? 0 : new Set();
+  }
+  
+  // Cache the result (only for count requests)
+  if (returnCount && typeof result === 'number') {
+    intersectionCache.set(cacheKey, {
+      result,
+      timestamp: Date.now()
+    });
+  }
+  
+  return result;
+}
+
+/**
+ * Clear all caches (useful for testing or when data changes significantly)
+ */
+export function clearIntersectionCaches(): void {
+  intersectionCache.clear();
+  playersByTeamCache.clear();
+  playersByAchievementCache.clear();
+}
+
+/**
+ * Get cache statistics for debugging
+ */
+export function getIntersectionCacheStats(): {
+  intersectionCacheSize: number;
+  playersByTeamCacheSize: number;
+  playersByAchievementCacheSize: number;
+} {
+  return {
+    intersectionCacheSize: intersectionCache.size,
+    playersByTeamCacheSize: playersByTeamCache.size,
+    playersByAchievementCacheSize: playersByAchievementCache.size,
+  };
+}
