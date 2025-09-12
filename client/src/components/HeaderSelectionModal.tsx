@@ -275,10 +275,15 @@ export function HeaderSelectionModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-[9999] bg-black/20 backdrop-blur-sm flex items-center justify-center p-4"
       onClick={handleBackdropClick}
+      style={{ pointerEvents: 'auto' }}
     >
-      <div className="w-80 max-h-96 bg-background border rounded-lg shadow-xl flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div 
+        className="w-80 max-h-96 bg-background border rounded-lg shadow-xl flex flex-col" 
+        onClick={(e) => e.stopPropagation()}
+        style={{ pointerEvents: 'auto', position: 'relative' }}
+      >
         {/* Header */}
         <div className="flex-shrink-0 border-b p-3">
           <div className="flex items-center justify-between mb-3">
