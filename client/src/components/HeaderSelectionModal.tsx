@@ -8,6 +8,7 @@ import { detectSport } from '@/lib/grid-sharing';
 import { getAchievementOptions, type AchievementOption } from '@/lib/custom-grid-utils';
 import { SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 import { getCachedSeasonIndex } from '@/lib/season-index-cache';
+import { useDebounce } from '@/lib/search-utils';
 
 // Constants for BBGM logo URLs
 const BBGM_ASSET_BASE = 'https://play.basketball-gm.com';
@@ -106,6 +107,7 @@ export function HeaderSelectionModal({
   triggerElementRef 
 }: HeaderSelectionModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 250); // 250ms debounce
   const [activeFilter, setActiveFilter] = useState<'all' | 'teams' | 'achievements'>('all');
   const [selectedIndex, setSelectedIndex] = useState(-1); // Start with no selection
   const [mounted, setMounted] = useState(false);
@@ -243,7 +245,7 @@ export function HeaderSelectionModal({
     return [...teams, ...achievements];
   }, [leagueData?.teams, sport, seasonIndex, leagueData]);
 
-  // Filter items based on search and filter
+  // Filter items based on search and filter (using debounced search query)
   const filteredItems = useMemo(() => {
     let items = allItems;
 
@@ -254,13 +256,13 @@ export function HeaderSelectionModal({
       items = items.filter(item => item.type === 'achievement');
     }
 
-    // Apply search
-    if (searchQuery.trim()) {
-      items = items.filter(item => matchesSearch(item.searchText, searchQuery));
+    // Apply search (using debounced query for performance)
+    if (debouncedSearchQuery.trim()) {
+      items = items.filter(item => matchesSearch(item.searchText, debouncedSearchQuery));
     }
 
     return items;
-  }, [allItems, activeFilter, searchQuery]);
+  }, [allItems, activeFilter, debouncedSearchQuery]);
 
   // Handle keyboard navigation
   useEffect(() => {

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search, X } from 'lucide-react';
 import type { SearchablePlayer, Player } from '@/types/bbgm';
+import { useOptimizedSearch } from '@/lib/search-utils';
 
 interface PlayerSearchModalProps {
   isOpen: boolean;
@@ -27,70 +28,36 @@ export function PlayerSearchModal({
   usedPids,
   currentCellKey,
 }: PlayerSearchModalProps) {
-  const [searchQuery, setSearchQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(-1);
   const [inputRef, setInputRef] = useState<HTMLInputElement | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  // Diacritic-insensitive folding (same as in bbgm-parser)
-  const fold = (s: string): string => {
-    return s.normalize('NFKD')
-      .toLowerCase()
-      .replace(/[\u0300-\u036f]/g, '') // Remove combining diacritical marks
-      .replace(/'/g, '') // Remove apostrophes for search matching
-      .replace(/[-]/g, ' '); // Convert hyphens to spaces for flexible search
-  };
+  // Use optimized search with debouncing and memoization
+  const {
+    searchQuery,
+    setSearchQuery,
+    searchResults,
+    isSearching
+  } = useOptimizedSearch(
+    searchablePlayers,
+    (player: SearchablePlayer) => [
+      player.name,
+      player.firstFolded,
+      player.lastFolded,
+      player.nameFolded
+    ],
+    (player: SearchablePlayer) => player.pid,
+    {
+      delay: 250, // 250ms debounce
+      maxResults: 100,
+      enableCache: true
+    }
+  );
 
-  // Get career year range for a player
-  // Career years are now pre-calculated in SearchablePlayer
-
-  // Optimized filtering with debouncing and early exits
+  // Extract just the SearchablePlayer items from search results
   const filteredPlayers = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return searchablePlayers.slice(0, 100); // Show first 100 players when no search
-    }
-
-    const query = searchQuery.trim();
-    if (query.length < 2) {
-      return searchablePlayers.slice(0, 100); // Wait for at least 2 characters
-    }
-
-    const queryFolded = fold(query);
-    const queryWithHyphens = queryFolded.replace(/ /g, '-');
-    // Create variations to handle period matching: "cj" should match "c.j."
-    const queryWithPeriods = queryFolded.replace(/([a-z])([a-z])/g, '$1.$2.'); // "cj" -> "c.j."
-    const queryNoPeriods = queryFolded.replace(/\./g, ''); // Remove any periods from query
-    
-    const matches: SearchablePlayer[] = [];
-    const maxResults = 100;
-    
-    // Early exit when we have enough matches
-    for (let i = 0; i < searchablePlayers.length && matches.length < maxResults; i++) {
-      const sp = searchablePlayers[i];
-      
-      // Quick check: if query is longer than the name, skip (but be more lenient for period matching)
-      if (queryFolded.length > sp.nameFolded.length + 4) continue; // +4 to account for periods
-      
-      // Check for matches using includes (already optimized in string internals)
-      if (sp.firstFolded.includes(queryFolded) || 
-          sp.lastFolded.includes(queryFolded) ||
-          sp.nameFolded.includes(queryFolded) ||
-          sp.firstFolded.includes(queryWithHyphens) || 
-          sp.lastFolded.includes(queryWithHyphens) ||
-          sp.nameFolded.includes(queryWithHyphens) ||
-          // Handle period matching: "cj" matches "c.j." and vice versa
-          sp.firstFolded.includes(queryNoPeriods) || 
-          sp.lastFolded.includes(queryNoPeriods) ||
-          sp.nameFolded.includes(queryNoPeriods) ||
-          (queryWithPeriods.length > 2 && sp.firstFolded.includes(queryWithPeriods)) ||
-          (queryWithPeriods.length > 2 && sp.lastFolded.includes(queryWithPeriods)) ||
-          (queryWithPeriods.length > 2 && sp.nameFolded.includes(queryWithPeriods))) {
-        matches.push(sp);
-      }
-    }
-
-    return matches.sort((a, b) => a.name.localeCompare(b.name));
-  }, [searchablePlayers, searchQuery]);
+    return searchResults.map((result: any) => result.item);
+  }, [searchResults]);
 
   // Reset search when modal opens or cell changes and focus input
   useEffect(() => {
@@ -251,7 +218,7 @@ export function PlayerSearchModal({
                 {searchQuery.trim() ? 'No matching players found' : 'No players found'}
               </div>
             ) : (
-              filteredPlayers.map((searchablePlayer, index) => {
+              filteredPlayers.map((searchablePlayer: SearchablePlayer, index: number) => {
                 const player = byPid[searchablePlayer.pid];
                 const isUsed = usedPids.has(searchablePlayer.pid);
                 const isActive = index === activeIndex;
