@@ -3,6 +3,9 @@ import type { SeasonIndex, SeasonAchievementId } from '@/lib/season-achievements
 import { getAchievements, playerMeetsAchievement } from '@/lib/achievements';
 import { getSeasonEligiblePlayers, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 
+// Create Set for O(1) lookup instead of O(N) .some() calls
+const SEASON_ACHIEVEMENT_IDS = new Set(SEASON_ACHIEVEMENTS.map(sa => sa.id));
+
 export interface HeaderConfig {
   type: 'team' | 'achievement' | null;
   selectedId: string | number | null;
@@ -74,9 +77,9 @@ export function getAchievementOptions(sport: string, seasonIndex?: SeasonIndex):
       label: achievement.label
     }))
     .sort((a, b) => {
-      // Sort by career first (career achievements before season)
-      const aIsSeason = SEASON_ACHIEVEMENTS.some(sa => sa.id === a.id);
-      const bIsSeason = SEASON_ACHIEVEMENTS.some(sa => sa.id === b.id);
+      // Sort by career first (career achievements before season) - use O(1) Set lookup
+      const aIsSeason = SEASON_ACHIEVEMENT_IDS.has(a.id as any);
+      const bIsSeason = SEASON_ACHIEVEMENT_IDS.has(b.id as any);
       
       if (!aIsSeason && bIsSeason) return -1; // Career first
       if (aIsSeason && !bIsSeason) return 1;   // Season second
@@ -134,60 +137,30 @@ export function calculateCustomCellIntersection(
     return 0;
   }
 
-  // Use exact same logic as calculateIntersectionSimple from grid-generator.ts
+  // Use exact same logic as calculateIntersectionSimple from grid-generator.ts - O(1) Set lookup
   const rowIsSeasonAchievement = rowConstraint.type === 'achievement' && 
-    SEASON_ACHIEVEMENTS.some(sa => sa.id === rowConstraint.achievementId);
+    SEASON_ACHIEVEMENT_IDS.has(rowConstraint.achievementId as any);
   const colIsSeasonAchievement = colConstraint.type === 'achievement' && 
-    SEASON_ACHIEVEMENTS.some(sa => sa.id === colConstraint.achievementId);
+    SEASON_ACHIEVEMENT_IDS.has(colConstraint.achievementId as any);
   
-  let eligiblePlayers: Player[] = [];
-  
-  // Debug logging for Celtics + All-League specifically
-  const isCelticsAllLeague = 
-    (rowConstraint.achievementId === 'AllLeagueAny' && colConstraint.type === 'team' && [0, 1].includes(colConstraint.tid!)) ||
-    (colConstraint.achievementId === 'AllLeagueAny' && rowConstraint.type === 'team' && [0, 1].includes(rowConstraint.tid!));
-    
-  if (isCelticsAllLeague) {
-    console.log(`\n🏀 [CUSTOM GRID DEBUG] Celtics × All-League intersection:`);
-    console.log(`   Row: ${rowConstraint.label} (type: ${rowConstraint.type})`);
-    console.log(`   Col: ${colConstraint.label} (type: ${colConstraint.type})`);
-    console.log(`   rowIsSeasonAchievement: ${rowIsSeasonAchievement}`);
-    console.log(`   colIsSeasonAchievement: ${colIsSeasonAchievement}`);
-  }
-  
+  // PERFORMANCE CRITICAL: Use set sizes directly instead of filtering arrays
   if (rowIsSeasonAchievement && colConstraint.type === 'team') {
-    // Season achievement × team
-    if (!seasonIndex) {
-      console.log(`   ❌ No seasonIndex available for season achievement`);
-      return 0;
-    }
+    // Season achievement × team - return count directly from set size
+    if (!seasonIndex) return 0;
     const eligiblePids = getSeasonEligiblePlayers(seasonIndex, colConstraint.tid!, rowConstraint.achievementId as SeasonAchievementId);
-    eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
-    
-    if (isCelticsAllLeague) {
-      console.log(`   🎯 Season Achievement × Team result: ${eligiblePlayers.length} players`);
-      console.log(`     - Using getSeasonEligiblePlayers(${colConstraint.tid}, '${rowConstraint.achievementId}')`);
-    }
+    return eligiblePids.size;
   } else if (colIsSeasonAchievement && rowConstraint.type === 'team') {
-    // Team × season achievement  
-    if (!seasonIndex) {
-      console.log(`   ❌ No seasonIndex available for season achievement`);
-      return 0;
-    }
+    // Team × season achievement - return count directly from set size
+    if (!seasonIndex) return 0;
     const eligiblePids = getSeasonEligiblePlayers(seasonIndex, rowConstraint.tid!, colConstraint.achievementId as SeasonAchievementId);
-    eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
-    
-    if (isCelticsAllLeague) {
-      console.log(`   🎯 Team × Season Achievement result: ${eligiblePlayers.length} players`);
-      console.log(`     - Using getSeasonEligiblePlayers(${rowConstraint.tid}, '${colConstraint.achievementId}')`);
-    }
+    return eligiblePids.size;
   } else if (rowIsSeasonAchievement && colIsSeasonAchievement) {
-    // Season achievement × season achievement
+    // Season achievement × season achievement - optimize with set operations
     if (!seasonIndex) return 0;
     
     if (rowConstraint.achievementId === colConstraint.achievementId) {
-      // Same achievement - find all players who have it
-      const eligiblePids = new Set<number>();
+      // Same achievement - count all players who have it
+      let count = 0;
       for (const seasonStr of Object.keys(seasonIndex)) {
         const season = parseInt(seasonStr);
         const seasonData = seasonIndex[season];
@@ -195,18 +168,17 @@ export function calculateCustomCellIntersection(
           const teamId = parseInt(teamStr);
           const teamData = seasonData[teamId];
           if (teamData[rowConstraint.achievementId as SeasonAchievementId]) {
-            const achievementPids = teamData[rowConstraint.achievementId as SeasonAchievementId];
-            achievementPids.forEach(pid => eligiblePids.add(pid));
+            count += teamData[rowConstraint.achievementId as SeasonAchievementId].size;
           }
         }
       }
-      eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
+      return count;
     } else {
-      // Different achievements - find players who have both achievements (season alignment not required)
+      // Different achievements - use intersection of sets for performance
       const rowAchievementPids = new Set<number>();
       const colAchievementPids = new Set<number>();
       
-      // Collect all players who have the row achievement
+      // Collect players with row achievement
       for (const seasonStr of Object.keys(seasonIndex)) {
         const season = parseInt(seasonStr);
         const seasonData = seasonIndex[season];
@@ -220,7 +192,7 @@ export function calculateCustomCellIntersection(
         }
       }
       
-      // Collect all players who have the col achievement
+      // Collect players with col achievement
       for (const seasonStr of Object.keys(seasonIndex)) {
         const season = parseInt(seasonStr);
         const seasonData = seasonIndex[season];
@@ -234,28 +206,28 @@ export function calculateCustomCellIntersection(
         }
       }
       
-      // Find players who have both achievements (regardless of when they achieved them)
-      const eligiblePids = new Set<number>();
-      for (const pid of Array.from(rowAchievementPids)) {
-        if (colAchievementPids.has(pid)) {
-          eligiblePids.add(pid);
+      // Count intersection efficiently - iterate smaller set
+      const smallerSet = rowAchievementPids.size <= colAchievementPids.size ? rowAchievementPids : colAchievementPids;
+      const largerSet = rowAchievementPids.size > colAchievementPids.size ? rowAchievementPids : colAchievementPids;
+      
+      let intersectionCount = 0;
+      for (const pid of Array.from(smallerSet)) {
+        if (largerSet.has(pid)) {
+          intersectionCount++;
         }
       }
-      
-      eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
+      return intersectionCount;
     }
   } else {
-    // Non-season achievements or Team × Team: use standard logic
-    eligiblePlayers = players.filter(player => 
-      rowConstraint.test(player) && colConstraint.test(player)
-    );
-    
-    if (isCelticsAllLeague) {
-      console.log(`   📋 Standard logic result: ${eligiblePlayers.length} players`);
+    // Non-season achievements or Team × Team: count directly
+    let count = 0;
+    for (const player of players) {
+      if (rowConstraint.test(player) && colConstraint.test(player)) {
+        count++;
+      }
     }
+    return count;
   }
-
-  return eligiblePlayers.length;
 }
 
 // Update cell results for entire grid
