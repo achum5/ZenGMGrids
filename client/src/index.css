@@ -51,6 +51,15 @@
   --spacing: 0.25rem;
 }
 
+/* Custom Grid Scroll Container */
+#cg-scroll {
+  max-height: min(560px, 56vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;      /* stops wheel from bubbling to dialog */
+  -webkit-overflow-scrolling: touch; /* smooth iOS scrolling */
+  scrollbar-gutter: stable;          /* keeps layout steady when bar shows */
+}
+
 .dark {
   --background: hsl(0, 0%, 8%);
   --foreground: hsl(0, 0%, 95%);
