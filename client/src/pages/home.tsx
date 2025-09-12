@@ -727,14 +727,48 @@ export default function Home() {
     const newCells = { ...cells };
     const newRankCache = { ...rankCache };
     
-    // For each empty cell, get the most common answer (rank #1)
+    // Build rankings for all empty cells
+    const cellRankings: Record<string, Array<{player: Player, rarity: number}>> = {};
     for (const cellKey of emptyCells) {
-      // Get or build the ranking for this cell
       let ranking = newRankCache[cellKey];
       if (!ranking) {
         ranking = buildRankCacheForCell(cellKey);
         newRankCache[cellKey] = ranking;
       }
+      cellRankings[cellKey] = ranking;
+    }
+    
+    // Detect collisions: find players who are rank #1 for multiple cells
+    const playerToCells: Record<number, string[]> = {};
+    for (const cellKey of emptyCells) {
+      const ranking = cellRankings[cellKey];
+      if (ranking.length > 0) {
+        const topPlayer = ranking[0].player;
+        if (!playerToCells[topPlayer.pid]) {
+          playerToCells[topPlayer.pid] = [];
+        }
+        playerToCells[topPlayer.pid].push(cellKey);
+      }
+    }
+    
+    // Determine which rank to use for each cell (collision resolution)
+    const cellToRank: Record<string, number> = {};
+    
+    for (const [pidStr, cellsForPlayer] of Object.entries(playerToCells)) {
+      if (cellsForPlayer.length === 1) {
+        // No collision, use rank #1
+        cellToRank[cellsForPlayer[0]] = 0;
+      } else {
+        // Collision detected - use rank #1, #2, #3, etc. for different cells
+        cellsForPlayer.forEach((cellKey, index) => {
+          cellToRank[cellKey] = index; // 0 = rank #1, 1 = rank #2, etc.
+        });
+      }
+    }
+    
+    // Fill cells with the determined ranks
+    for (const cellKey of emptyCells) {
+      const ranking = cellRankings[cellKey];
       
       if (ranking.length === 0) {
         // No eligible players
@@ -749,22 +783,40 @@ export default function Home() {
         continue;
       }
       
-      // Pick the most common answer (rank #1 = index 0)
-      const topRanked = ranking[0];
-      const selectedPlayer = topRanked.player;
+      // Get the rank to use for this cell (with collision detection)
+      const rankToUse = cellToRank[cellKey] || 0;
       
-      newCells[cellKey] = {
-        name: selectedPlayer.name,
-        correct: true,
-        locked: true,
-        autoFilled: true,
-        guessed: false,
-        player: selectedPlayer,
-        rarity: topRanked.rarity,
-        points: topRanked.rarity,
-      };
-      
-      console.log(`🔍 Give Up: ${cellKey} -> ${selectedPlayer.name} (rank #1, rarity ${topRanked.rarity})`);
+      if (rankToUse >= ranking.length) {
+        // Not enough players in ranking (fallback to last available)
+        const lastAvailable = ranking[ranking.length - 1];
+        newCells[cellKey] = {
+          name: lastAvailable.player.name,
+          correct: true,
+          locked: true,
+          autoFilled: true,
+          guessed: false,
+          player: lastAvailable.player,
+          rarity: lastAvailable.rarity,
+          points: lastAvailable.rarity,
+        };
+        console.log(`🔍 Give Up: ${cellKey} -> ${lastAvailable.player.name} (rank #${ranking.length}, rarity ${lastAvailable.rarity})`);
+      } else {
+        // Use the determined rank
+        const selectedRanked = ranking[rankToUse];
+        
+        newCells[cellKey] = {
+          name: selectedRanked.player.name,
+          correct: true,
+          locked: true,
+          autoFilled: true,
+          guessed: false,
+          player: selectedRanked.player,
+          rarity: selectedRanked.rarity,
+          points: selectedRanked.rarity,
+        };
+        
+        console.log(`🔍 Give Up: ${cellKey} -> ${selectedRanked.player.name} (rank #${rankToUse + 1}, rarity ${selectedRanked.rarity})`);
+      }
     }
     
     // Update state
