@@ -97,10 +97,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     { type: null, value: null, label: null }
   ]);
   
-  // Header selection modal state
-  const [headerSelectionOpen, setHeaderSelectionOpen] = useState(false);
-  const [selectedHeaderPosition, setSelectedHeaderPosition] = useState<string>('');
-  const [triggerElementRef, setTriggerElementRef] = useState<React.RefObject<HTMLElement> | null>(null);
+  // Header dropdown state - track which header dropdown is open
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [hideZeroResults, setHideZeroResults] = useState(false);
   
   // Loading state for cell count calculations
@@ -514,48 +512,42 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     return count !== undefined ? (count > 500 ? '500+' : count.toString()) : '—';
   };
 
-  // Handle header selection
-  const handleHeaderClick = (isRow: boolean, index: number, element: HTMLElement) => {
+  // Toggle header dropdown
+  const toggleHeaderDropdown = (isRow: boolean, index: number) => {
     const position = `${isRow ? 'row' : 'col'}-${index}`;
-    setSelectedHeaderPosition(position);
-    
-    // Create a ref for the trigger element
-    const ref = { current: element };
-    setTriggerElementRef(ref);
-    
-    setHeaderSelectionOpen(true);
+    setOpenDropdown(openDropdown === position ? null : position);
   };
 
-  // Handle selection from modal
-  const handleHeaderSelection = (type: 'team' | 'achievement', value: string, label: string) => {
-    if (!selectedHeaderPosition) return;
-    
-    const [rowOrCol, indexStr] = selectedHeaderPosition.split('-');
+  // Handle selection from dropdown
+  const handleHeaderSelection = (position: string, type: 'team' | 'achievement', value: string, label: string) => {
+    const [rowOrCol, indexStr] = position.split('-');
     const index = parseInt(indexStr);
     const isRow = rowOrCol === 'row';
     
     updateSelectorValue(isRow, index, type, value, label);
-    setHeaderSelectionOpen(false);
-    setSelectedHeaderPosition('');
+    setOpenDropdown(null); // Close dropdown after selection
   };
 
-  // Render header selector
+  // Render header selector with inline dropdown
   const renderHeaderSelector = (isRow: boolean, index: number) => {
     const selector = isRow ? rowSelectors[index] : colSelectors[index];
+    const position = `${isRow ? 'row' : 'col'}-${index}`;
+    const isDropdownOpen = openDropdown === position;
     
     return (
-      <div 
-        className="aspect-square flex flex-col items-center justify-center bg-background border rounded transition-colors p-0.5 sm:p-1 lg:p-2 relative group text-[8px] sm:text-xs lg:text-sm min-h-[40px] sm:min-h-[60px] lg:min-h-[80px] cursor-pointer hover:bg-muted"
-        onClick={(e) => handleHeaderClick(isRow, index, e.currentTarget)}
-        data-testid={`header-${isRow ? 'row' : 'col'}-${index}`}
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            handleHeaderClick(isRow, index, e.currentTarget);
-          }
-        }}
-      >
+      <div className="relative">
+        <div 
+          className="aspect-square flex flex-col items-center justify-center bg-background border rounded transition-colors p-0.5 sm:p-1 lg:p-2 relative group text-[8px] sm:text-xs lg:text-sm min-h-[40px] sm:min-h-[60px] lg:min-h-[80px] cursor-pointer hover:bg-muted"
+          onClick={() => toggleHeaderDropdown(isRow, index)}
+          data-testid={`header-${isRow ? 'row' : 'col'}-${index}`}
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              toggleHeaderDropdown(isRow, index);
+            }
+          }}
+        >
         {selector.label ? (
           <>
             <div className="text-center w-full h-full flex flex-col items-center justify-center">
@@ -598,6 +590,18 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
               Team or Achievement
             </div>
           </div>
+        )}
+        </div>
+        
+        {/* Inline dropdown */}
+        {isDropdownOpen && (
+          <HeaderSelectionModal
+            open={true}
+            onOpenChange={() => setOpenDropdown(null)}
+            leagueData={leagueData}
+            onSelect={(type, value, label) => handleHeaderSelection(position, type, value, label)}
+            headerPosition={position}
+          />
         )}
       </div>
     );
@@ -757,15 +761,6 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
         </div>
       </DialogContent>
       
-      {/* Header Selection Modal */}
-      <HeaderSelectionModal
-        open={headerSelectionOpen}
-        onOpenChange={setHeaderSelectionOpen}
-        leagueData={leagueData}
-        onSelect={handleHeaderSelection}
-        headerPosition={selectedHeaderPosition}
-        triggerElementRef={triggerElementRef}
-      />
     </Dialog>
   );
 }
