@@ -1005,7 +1005,7 @@ export default function Home() {
           isGridCompleted={(() => {
             // Check if all cells have been filled (either guessed or auto-filled)
             const allCellKeys = rows.flatMap((row, rowIndex) => 
-              cols.map((col, colIndex) => cellKey(row.key, col.key, rows, cols))
+              cols.map((col, colIndex) => `${rowIndex}-${colIndex}`)
             );
             return allCellKeys.every(key => cells[key]?.name);
           })()}
