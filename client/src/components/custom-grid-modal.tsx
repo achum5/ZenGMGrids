@@ -623,7 +623,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
             )}
           </div>
         </PopoverTrigger>
-        <PopoverContent className="w-96 p-0" align="start">
+        <PopoverContent className="w-96 p-0 h-96" align="start">
           <div className="flex flex-col h-full">
             {/* Header with dynamic title */}
             <div className="px-3 py-2 border-b bg-muted/30">
@@ -699,7 +699,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
             </div>
             
             {/* Scrollable options list */}
-            <div className="flex-1 overflow-y-auto max-h-64" style={{ scrollbarWidth: 'thin' }}>
+            <div className="flex-1 overflow-y-scroll min-h-0 h-64" style={{ scrollbarWidth: 'thin' }}>
               {filteredOptions.teams.length === 0 && filteredOptions.achievements.length === 0 && (
                 <div className="py-6 text-center text-sm text-muted-foreground">
                   <div>No matches—try a different team or achievement.</div>
