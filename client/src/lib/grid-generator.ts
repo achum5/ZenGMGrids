@@ -426,9 +426,11 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
   // Build intersections and validate
   const intersections: Record<string, number[]> = {};
   
-  for (const row of rows) {
-    for (const col of cols) {
-      const cellKey = `${row.key}|${col.key}`;
+  for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+    for (let colIndex = 0; colIndex < cols.length; colIndex++) {
+      const row = rows[rowIndex];
+      const col = cols[colIndex];
+      const cellKey = `${rowIndex}-${colIndex}`;
       
       // Find players who satisfy both constraints using same-season alignment
       const rowConstraint: GridConstraint = {
@@ -1094,7 +1096,7 @@ function generateGridSeeded(leagueData: LeagueData): {
   
   for (let row = 0; row < 3; row++) {
     for (let col = 0; col < 3; col++) {
-      const key = `${rows[row].key}|${cols[col].key}`;
+      const key = `${row}-${col}`;
       const eligiblePlayers = calculateIntersectionSimple(rows[row], cols[col], players, seasonIndex);
       intersections[key] = eligiblePlayers.map((p: Player) => p.pid);
       console.log(`Intersection ${rows[row].label} × ${cols[col].label}: ${eligiblePlayers.length} eligible players`);
@@ -1432,7 +1434,7 @@ function buildOppositeAxisForSeed(
   
   for (let row = 0; row < 3; row++) {
     for (let col = 0; col < 3; col++) {
-      const key = `${rows[row].key}|${cols[col].key}`;
+      const key = `${row}-${col}`;
       const rowConstraint: GridConstraint = {
         type: rows[row].type,
         tid: rows[row].tid,

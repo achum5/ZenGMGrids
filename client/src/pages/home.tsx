@@ -531,16 +531,15 @@ export default function Home() {
     }
   }, [leagueData, toast]);
 
-  const handleCellClick = useCallback((rowKey: string, colKey: string) => {
-    const key = cellKey(rowKey, colKey, rows, cols);
-    const cellState = cells[key];
+  const handleCellClick = useCallback((positionalKey: string) => {
+    const cellState = cells[positionalKey];
     
     // If cell is locked and has a player, open player modal
     if (cellState?.locked && cellState?.player) {
       setModalPlayer(cellState.player);
       
       // Get eligible players for this cell to show in modal
-      const eligiblePids = intersections[key] || [];
+      const eligiblePids = intersections[positionalKey] || [];
       const eligiblePlayers = leagueData?.players.filter(p => eligiblePids.includes(p.pid)) || [];
       setModalEligiblePlayers(eligiblePlayers);
       
@@ -549,7 +548,7 @@ export default function Home() {
       setModalPuzzleSeed(puzzleSeed);
       
       // Set the cell key for feedback generation
-      setModalCellKey(key);
+      setModalCellKey(positionalKey);
       
       setPlayerModalOpen(true);
       return;
@@ -561,7 +560,7 @@ export default function Home() {
     }
     
     // Open search modal for empty cells
-    setCurrentCellKey(key);
+    setCurrentCellKey(positionalKey);
     setSearchModalOpen(true);
   }, [cells, rows, cols, intersections, leagueData]);
 
@@ -637,6 +636,7 @@ export default function Home() {
     }
     
     // Update cell state with locking
+    console.debug(`🐛 DUPLICATE FIX: Updating only cell ${currentCellKey} with player ${player.name}`);
     setCells(prev => ({
       ...prev,
       [currentCellKey]: {

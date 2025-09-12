@@ -24,7 +24,7 @@ interface GridSectionProps {
   rows: CatTeam[];
   cols: CatTeam[];
   cells: Record<string, CellState>;
-  onCellClick: (rowKey: string, colKey: string) => void;
+  onCellClick: (positionalKey: string) => void;
   onGenerateNewGrid: () => void;
   onGiveUp: () => void;
   onRetryGrid: () => void;
@@ -326,17 +326,20 @@ export function GridSection({
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          onCellClick(row.key, col.key);
+                          const positionalKey = cellKey(row.key, col.key, rows, cols);
+                          onCellClick(positionalKey);
                         }}
                         onTouchEnd={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          onCellClick(row.key, col.key);
+                          const positionalKey = cellKey(row.key, col.key, rows, cols);
+                          onCellClick(positionalKey);
                         }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault();
-                            onCellClick(row.key, col.key);
+                            const positionalKey = cellKey(row.key, col.key, rows, cols);
+                            onCellClick(positionalKey);
                           }
                         }}
                         disabled={cellContent.disabled}
