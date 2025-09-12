@@ -67,15 +67,6 @@ interface HeaderSelectionModalProps {
   leagueData: LeagueData | null;
   onSelect: (type: 'team' | 'achievement', value: string, label: string) => void;
   headerPosition: string; // e.g., "row-0", "col-1"
-  triggerElementRef?: React.RefObject<HTMLElement>; // For focus restoration
-}
-
-interface DropdownPosition {
-  top?: number;
-  bottom?: number;
-  left?: number;
-  right?: number;
-  transform?: string;
 }
 
 // Simple tokenization and fuzzy search (similar to player search)
@@ -101,83 +92,30 @@ export function HeaderSelectionModal({
   onOpenChange, 
   leagueData, 
   onSelect, 
-  headerPosition,
-  triggerElementRef 
+  headerPosition
 }: HeaderSelectionModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'teams' | 'achievements'>('all');
   const [selectedIndex, setSelectedIndex] = useState(-1); // Start with no selection
   const [mounted, setMounted] = useState(false);
-  const [dropdownPosition, setDropdownPosition] = useState<DropdownPosition>({});
   
   const listRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const modalRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Calculate smart positioning based on available space
-  const calculatePosition = () => {
-    if (!containerRef.current || !triggerElementRef?.current) return;
-
-    const trigger = triggerElementRef.current;
-    const dropdown = containerRef.current;
-    const triggerRect = trigger.getBoundingClientRect();
-    const dropdownRect = dropdown.getBoundingClientRect();
-    
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    
-    // Calculate available space in each direction
-    const spaceAbove = triggerRect.top;
-    const spaceBelow = viewportHeight - triggerRect.bottom;
-    const spaceLeft = triggerRect.left;
-    const spaceRight = viewportWidth - triggerRect.right;
-    
-    // Dropdown dimensions (with some buffer)
-    const dropdownWidth = Math.min(320, viewportWidth * 0.95);
-    const dropdownHeight = Math.min(384, viewportHeight * 0.6);
-    
-    let position: DropdownPosition = {};
-    
-    // Vertical positioning - prefer below, fallback to above
-    if (spaceBelow >= dropdownHeight || spaceBelow >= spaceAbove) {
-      position.top = triggerRect.bottom + 4;
-    } else {
-      position.bottom = viewportHeight - triggerRect.top + 4;
-    }
-    
-    // Horizontal positioning - try to center, adjust if needed
-    const idealLeft = triggerRect.left + (triggerRect.width / 2) - (dropdownWidth / 2);
-    
-    if (idealLeft < 8) {
-      // Too far left, align to left edge with padding
-      position.left = 8;
-    } else if (idealLeft + dropdownWidth > viewportWidth - 8) {
-      // Too far right, align to right edge with padding
-      position.right = 8;
-    } else {
-      // Centered position works
-      position.left = idealLeft;
-    }
-    
-    setDropdownPosition(position);
-  };
-
-  // Reset state when opening/closing and calculate position
+  // Reset state when opening/closing and focus search input
   useEffect(() => {
     if (open) {
       setSearchQuery('');
       setActiveFilter('all');
       setSelectedIndex(-1); // No initial selection
       
-      // Calculate position after a brief delay to ensure element is rendered
+      // Focus search input after brief delay
       setTimeout(() => {
-        calculatePosition();
-        modalRef.current?.focus();
+        searchInputRef.current?.focus();
       }, 10);
     }
   }, [open]);
@@ -313,10 +251,6 @@ export function HeaderSelectionModal({
 
   const handleClose = () => {
     onOpenChange(false);
-    // Restore focus to the trigger element for accessibility
-    setTimeout(() => {
-      triggerElementRef?.current?.focus();
-    }, 100);
   };
 
   const getTitle = () => {
@@ -344,17 +278,7 @@ export function HeaderSelectionModal({
   if (!mounted || !open) return null;
 
   return (
-    <div 
-      ref={containerRef}
-      className="fixed w-[95vw] sm:w-80 max-w-sm sm:max-w-none max-h-[60vh] sm:max-h-96 bg-background border rounded-lg shadow-xl flex flex-col z-50"
-      style={{
-        top: dropdownPosition.top,
-        bottom: dropdownPosition.bottom,
-        left: dropdownPosition.left,
-        right: dropdownPosition.right,
-        transform: dropdownPosition.transform
-      }}
-      tabIndex={0}
+    <div className="flex flex-col max-h-[70vh] sm:max-h-96"
       onKeyDown={(e) => {
         // Allow scrolling with keyboard immediately
         if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
@@ -412,11 +336,7 @@ export function HeaderSelectionModal({
         <div 
           ref={listRef}
           className="flex-1 overflow-y-auto"
-          data-radix-scroll-lock-ignore
           tabIndex={-1}
-          onMouseDown={(e) => e.stopPropagation()}
-          onMouseUp={(e) => e.stopPropagation()}
-          onClick={(e) => e.stopPropagation()}
         >
           {filteredItems.length === 0 ? (
             <div className="flex items-center justify-center h-16 text-muted-foreground text-sm">
