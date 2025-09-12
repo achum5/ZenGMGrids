@@ -79,7 +79,7 @@ export function TeamLogo({ team, className = '' }: TeamLogoProps) {
           <img
             src={currentLogoURL}
             alt={`${fullTeamName} logo`}
-            className={`max-w-[70%] max-h-[70%] object-contain transition-opacity ${
+            className={`w-full h-full max-w-full max-h-full object-contain transition-opacity ${
               logoLoaded ? 'opacity-100' : 'opacity-0'
             }`}
             style={{
