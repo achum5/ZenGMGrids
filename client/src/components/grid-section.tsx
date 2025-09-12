@@ -139,7 +139,9 @@ export function GridSection({
   const totalCells = 9;
   
   // Check if all cells are filled (either guessed or auto-filled)
-  const allCellKeys = rows.flatMap(row => cols.map(col => cellKey(row.key, col.key, rows, cols)));
+  const allCellKeys = rows.flatMap((row, rowIndex) => 
+    cols.map((col, colIndex) => `${rowIndex}-${colIndex}`)
+  );
   const filledCells = allCellKeys.filter(key => cells[key]?.name).length;
   const isGridComplete = filledCells === totalCells;
   
