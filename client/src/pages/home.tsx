@@ -636,7 +636,6 @@ export default function Home() {
     }
     
     // Update cell state with locking
-    console.debug(`🐛 DUPLICATE FIX: Updating only cell ${currentCellKey} with player ${player.name}`);
     setCells(prev => ({
       ...prev,
       [currentCellKey]: {

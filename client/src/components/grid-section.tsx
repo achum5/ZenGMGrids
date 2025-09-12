@@ -80,8 +80,8 @@ export function GridSection({
     return 'unknown';
   };
 
-  const getCellContent = (rowKey: string, colKey: string) => {
-    const key = cellKey(rowKey, colKey, rows, cols);
+  const getCellContent = (rowIndex: number, colIndex: number) => {
+    const key = `${rowIndex}-${colIndex}`;
     const cellState = cells[key];
     
     if (!cellState?.name) {
@@ -301,7 +301,7 @@ export function GridSection({
                   
                   // Grid Cells for this row
                   ...cols.map((col, colIndex) => {
-                    const cellContent = getCellContent(row.key, col.key);
+                    const cellContent = getCellContent(rowIndex, colIndex);
                     
                     // Determine corner radius based on position in the game grid (3x3 within the 4x4 layout)
                     const isTopLeft = rowIndex === 0 && colIndex === 0;
@@ -317,7 +317,7 @@ export function GridSection({
                     
                     return (
                       <button
-                        key={getReactKey('cell', rowIndex, colIndex, row.key, col.key)}
+                        key={`cell-${rowIndex}-${colIndex}`}
                         className={cn(
                           'aspect-square w-full flex items-center justify-center text-center relative overflow-hidden transition-all duration-200 hover:brightness-110 hover:contrast-110 hover:shadow-md',
                           cornerRadius,
@@ -326,20 +326,17 @@ export function GridSection({
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          const positionalKey = cellKey(row.key, col.key, rows, cols);
-                          onCellClick(positionalKey);
+                          onCellClick(`${rowIndex}-${colIndex}`);
                         }}
                         onTouchEnd={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          const positionalKey = cellKey(row.key, col.key, rows, cols);
-                          onCellClick(positionalKey);
+                          onCellClick(`${rowIndex}-${colIndex}`);
                         }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault();
-                            const positionalKey = cellKey(row.key, col.key, rows, cols);
-                            onCellClick(positionalKey);
+                            onCellClick(`${rowIndex}-${colIndex}`);
                           }
                         }}
                         disabled={cellContent.disabled}
