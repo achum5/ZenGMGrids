@@ -607,14 +607,14 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     const { teams, seasonAchievements, careerAchievements } = getDropdownItems();
     
     return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <div 
-            className="aspect-square flex flex-col items-center justify-center bg-background border rounded transition-colors p-0.5 sm:p-1 lg:p-2 relative group text-[8px] sm:text-xs lg:text-sm min-h-[40px] sm:min-h-[60px] lg:min-h-[80px] cursor-pointer hover:bg-muted"
-            data-testid={`header-${isRow ? 'row' : 'col'}-${index}`}
-          >
-            {selector.label ? (
-              <>
+      <div className="relative">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <div 
+              className="aspect-square flex flex-col items-center justify-center bg-background border rounded transition-colors p-0.5 sm:p-1 lg:p-2 relative group text-[8px] sm:text-xs lg:text-sm min-h-[40px] sm:min-h-[60px] lg:min-h-[80px] cursor-pointer hover:bg-muted"
+              data-testid={`header-${isRow ? 'row' : 'col'}-${index}`}
+            >
+              {selector.label ? (
                 <div className="text-center w-full h-full flex flex-col items-center justify-center">
                   {selector.type && (
                     <Badge variant="outline" className="text-[6px] sm:text-[8px] lg:text-[10px] mb-0.5 px-0.5 sm:px-1 py-0 leading-none">
@@ -625,41 +625,18 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                     {selector.label}
                   </div>
                 </div>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (isRow) {
-                      const newRowSelectors = [...rowSelectors];
-                      newRowSelectors[index] = { type: null, value: null, label: null };
-                      setRowSelectors(newRowSelectors);
-                    } else {
-                      const newColSelectors = [...colSelectors];
-                      newColSelectors[index] = { type: null, value: null, label: null };
-                      setColSelectors(newColSelectors);
-                    }
-                    // Clear cell counts when clearing a header
-                    setCellCounts({});
-                  }}
-                  className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-100 transition-colors duration-200 flex items-center justify-center text-[10px] font-bold"
-                  title="Clear selection"
-                  data-testid={`button-clear-${isRow ? 'row' : 'col'}-${index}`}
-                >
-                  ×
-                </button>
-              </>
-            ) : (
-              <div className="text-center w-full h-full flex flex-col items-center justify-center space-y-1">
-                <div className="text-[9px] sm:text-[10px] font-medium text-muted-foreground leading-tight">
-                  Click to Select
+              ) : (
+                <div className="text-center w-full h-full flex flex-col items-center justify-center space-y-1">
+                  <div className="text-[9px] sm:text-[10px] font-medium text-muted-foreground leading-tight">
+                    Click to Select
+                  </div>
+                  <div className="text-[9px] sm:text-[10px] font-medium text-muted-foreground leading-tight">
+                    Team or Achievement
+                  </div>
                 </div>
-                <div className="text-[9px] sm:text-[10px] font-medium text-muted-foreground leading-tight">
-                  Team or Achievement
-                </div>
-              </div>
-            )}
-          </div>
-        </DropdownMenuTrigger>
+              )}
+            </div>
+          </DropdownMenuTrigger>
         
         <DropdownMenuContent 
           side="bottom" 
@@ -742,7 +719,34 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
           </Tabs>
         </DropdownMenuContent>
       </DropdownMenu>
-    );
+      
+      {/* X button positioned outside the DropdownMenuTrigger to prevent click interference */}
+      {selector.label && (
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (isRow) {
+              const newRowSelectors = [...rowSelectors];
+              newRowSelectors[index] = { type: null, value: null, label: null };
+              setRowSelectors(newRowSelectors);
+            } else {
+              const newColSelectors = [...colSelectors];
+              newColSelectors[index] = { type: null, value: null, label: null };
+              setColSelectors(newColSelectors);
+            }
+            // Clear cell counts when clearing a header
+            setCellCounts({});
+          }}
+          className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-100 transition-colors duration-200 flex items-center justify-center text-[10px] font-bold z-10"
+          title="Clear selection"
+          data-testid={`button-clear-${isRow ? 'row' : 'col'}-${index}`}
+        >
+          ×
+        </button>
+      )}
+    </div>
+  );
   };
 
   return (
