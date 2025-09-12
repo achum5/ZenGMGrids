@@ -12,7 +12,8 @@ import { Grid3x3, Trash2, Play, RotateCcw, X, ArrowUpDown, ChevronDown, Wand2 } 
 import type { LeagueData, Team, CatTeam } from '@/types/bbgm';
 import { detectSport } from '@/lib/grid-sharing';
 import { getTeamOptions, getAchievementOptions, calculateCustomCellIntersection, headerConfigToCatTeam, type TeamOption, type AchievementOption, type HeaderConfig } from '@/lib/custom-grid-utils';
-import { buildSeasonIndex, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
+import { SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
+import { getCachedSeasonIndex } from '@/lib/season-index-cache';
 
 // Team logo icon component for combobox
 function TeamLogoIcon({ teamData }: { teamData?: Team }) {
@@ -122,9 +123,9 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     return leagueData ? getTeamOptions(leagueData.teams) : [];
   }, [leagueData?.teams]);
   
-  // Build season index for achievements if needed (expensive operation)
+  // Use cached season index for achievements (replaces expensive local rebuild)
   const seasonIndex = useMemo(() => {
-    return leagueData ? buildSeasonIndex(leagueData.players, sport) : undefined;
+    return leagueData ? getCachedSeasonIndex(leagueData.players, sport) : undefined;
   }, [leagueData?.players, sport]);
   
   const achievementOptions = useMemo<AchievementOption[]>(() => {
@@ -570,7 +571,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
 
     // Get achievements and categorize them
     const sport = detectSport(leagueData);
-    const seasonIndex = buildSeasonIndex(leagueData.players, sport);
+    const seasonIndex = getCachedSeasonIndex(leagueData.players, sport);
     const achievementOptions = getAchievementOptions(sport, seasonIndex);
     
     const seasonAchievements: Array<{id: string, name: string, type: 'achievement'}> = [];
