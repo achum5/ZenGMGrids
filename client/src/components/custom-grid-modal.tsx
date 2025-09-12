@@ -100,6 +100,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
   // Header selection modal state
   const [headerSelectionOpen, setHeaderSelectionOpen] = useState(false);
   const [selectedHeaderPosition, setSelectedHeaderPosition] = useState<string>('');
+  const [triggerElementRef, setTriggerElementRef] = useState<React.RefObject<HTMLElement> | null>(null);
   const [hideZeroResults, setHideZeroResults] = useState(false);
   
   // Loading state for cell count calculations
@@ -514,9 +515,14 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
   };
 
   // Handle header selection
-  const handleHeaderClick = (isRow: boolean, index: number) => {
+  const handleHeaderClick = (isRow: boolean, index: number, element: HTMLElement) => {
     const position = `${isRow ? 'row' : 'col'}-${index}`;
     setSelectedHeaderPosition(position);
+    
+    // Create a ref for the trigger element
+    const ref = { current: element };
+    setTriggerElementRef(ref);
+    
     setHeaderSelectionOpen(true);
   };
 
@@ -540,8 +546,15 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     return (
       <div 
         className="aspect-square flex flex-col items-center justify-center bg-background border rounded transition-colors p-0.5 sm:p-1 lg:p-2 relative group text-[8px] sm:text-xs lg:text-sm min-h-[40px] sm:min-h-[60px] lg:min-h-[80px] cursor-pointer hover:bg-muted"
-        onClick={() => handleHeaderClick(isRow, index)}
+        onClick={(e) => handleHeaderClick(isRow, index, e.currentTarget)}
         data-testid={`header-${isRow ? 'row' : 'col'}-${index}`}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleHeaderClick(isRow, index, e.currentTarget);
+          }
+        }}
       >
         {selector.label ? (
           <>
@@ -751,6 +764,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
         leagueData={leagueData}
         onSelect={handleHeaderSelection}
         headerPosition={selectedHeaderPosition}
+        triggerElementRef={triggerElementRef}
       />
     </Dialog>
   );

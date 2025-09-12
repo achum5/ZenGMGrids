@@ -1,11 +1,13 @@
-import { useState, useMemo } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { X } from 'lucide-react';
+import { X, Search, Trophy, Users, CheckCircle } from 'lucide-react';
 import type { LeagueData, Team } from '@/types/bbgm';
 import { detectSport } from '@/lib/grid-sharing';
+import { getAchievementOptions, type AchievementOption } from '@/lib/custom-grid-utils';
+import { buildSeasonIndex, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 
 // Constants for BBGM logo URLs
 const BBGM_ASSET_BASE = 'https://play.basketball-gm.com';
@@ -15,7 +17,7 @@ function isBBGMDefaultLogo(logoURL: string | null | undefined): boolean {
   return logoURL.startsWith('/img/logos-') || logoURL.startsWith('img/logos-');
 }
 
-// Build logo candidates for teams, prioritizing small logos
+// Build logo URL for teams, prioritizing small logos
 function buildLogoURL(team: Team): string {
   // 1. If explicit small logo URL is provided and it's custom (not BBGM default), use it
   if (team.imgURLSmall && !isBBGMDefaultLogo(team.imgURLSmall)) {
@@ -49,19 +51,15 @@ function buildLogoURL(team: Team): string {
   return '';
 }
 
-interface TeamOption {
-  id: number;
-  name: string;
-  abbrev: string;
-  region: string;
-  logoUrl: string;
-  smallLogoUrl?: string;
-}
-
-interface AchievementOption {
+interface ListItem {
+  type: 'team' | 'achievement';
   id: string;
-  label: string;
-  isCareer: boolean;
+  name: string;
+  displayName: string;
+  logoUrl?: string;
+  abbrev?: string;
+  pillType: 'Team' | 'Season' | 'Career';
+  searchText: string;
 }
 
 interface HeaderSelectionModalProps {
@@ -70,6 +68,25 @@ interface HeaderSelectionModalProps {
   leagueData: LeagueData | null;
   onSelect: (type: 'team' | 'achievement', value: string, label: string) => void;
   headerPosition: string; // e.g., "row-0", "col-1"
+  triggerElementRef?: React.RefObject<HTMLElement>; // For focus restoration
+}
+
+// Simple tokenization and fuzzy search (similar to player search)
+function tokenizeSearch(query: string): string[] {
+  return query.toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .split(/\s+/)
+    .filter(token => token.length > 0);
+}
+
+function matchesSearch(searchText: string, query: string): boolean {
+  if (!query.trim()) return true;
+  
+  const tokens = tokenizeSearch(query);
+  const text = searchText.toLowerCase();
+  
+  // Check if all tokens are found in the text (fuzzy match)
+  return tokens.every(token => text.includes(token));
 }
 
 export function HeaderSelectionModal({ 
@@ -77,191 +94,347 @@ export function HeaderSelectionModal({
   onOpenChange, 
   leagueData, 
   onSelect, 
-  headerPosition 
+  headerPosition,
+  triggerElementRef 
 }: HeaderSelectionModalProps) {
-  const [activeTab, setActiveTab] = useState<'teams' | 'achievements'>('teams');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'teams' | 'achievements'>('all');
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [mounted, setMounted] = useState(false);
+  
+  const listRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Reset state when opening/closing
+  useEffect(() => {
+    if (open) {
+      setSearchQuery('');
+      setActiveFilter('all');
+      setSelectedIndex(0);
+      // Focus search input when opened
+      setTimeout(() => searchInputRef.current?.focus(), 100);
+    }
+  }, [open]);
 
   const sport = useMemo(() => leagueData ? detectSport(leagueData) : 'basketball', [leagueData]);
 
-  // Process teams data
-  const teamOptions = useMemo<TeamOption[]>(() => {
-    if (!leagueData?.teams) return [];
-    
-    return leagueData.teams.map(team => {
-      const logoUrl = buildLogoURL(team);
-      const teamName = team.name || team.region || `Team ${team.tid}`;
+  // Build season index for achievements if needed
+  const seasonIndex = useMemo(() => {
+    return leagueData ? buildSeasonIndex(leagueData.players, sport) : undefined;
+  }, [leagueData?.players, sport]);
+
+  // Build unified list items using raw team and achievement data
+  const allItems = useMemo<ListItem[]>(() => {
+    const teams: ListItem[] = leagueData?.teams 
+      ? leagueData.teams
+          .filter(team => !team.disabled)
+          .map(team => {
+            const logoUrl = buildLogoURL(team);
+            const fullName = `${team.region || team.abbrev} ${team.name}`.trim();
+            return {
+              type: 'team' as const,
+              id: team.tid.toString(),
+              name: fullName,
+              displayName: fullName,
+              logoUrl,
+              abbrev: team.abbrev,
+              pillType: 'Team' as const,
+              searchText: [
+                team.region || '',
+                team.name || '',
+                team.abbrev || '',
+                fullName
+              ].filter(Boolean).join(' ').toLowerCase()
+            };
+          })
+          .sort((a, b) => a.name.localeCompare(b.name))
+      : [];
+
+    // Get achievement options and determine if they are season-based
+    const achievementOptions = leagueData ? getAchievementOptions(sport, seasonIndex) : [];
+    const achievements: ListItem[] = achievementOptions.map(achievement => {
+      // Check if this is a season achievement based on the achievement ID
+      const isSeasonAchievement = SEASON_ACHIEVEMENTS.some(sa => sa.id === achievement.id);
+      
       return {
-        id: team.tid,
-        name: teamName,
-        abbrev: team.abbrev || 'UNK',
-        region: team.region || '',
-        logoUrl,
-        smallLogoUrl: logoUrl // Using the same URL since buildLogoURL already prioritizes small logos
+        type: 'achievement' as const,
+        id: achievement.id,
+        name: achievement.label,
+        displayName: achievement.label,
+        pillType: isSeasonAchievement ? 'Season' as const : 'Career' as const,
+        searchText: achievement.label.toLowerCase()
       };
-    }).sort((a, b) => a.name.localeCompare(b.name));
-  }, [leagueData?.teams]);
+    });
 
-  // Process achievements data
-  const achievementOptions = useMemo<AchievementOption[]>(() => {
-    if (!sport) return [];
-    
-    const achievements: AchievementOption[] = [];
-    
-    // Career achievements (always present)
-    const careerAchievements = [
-      { id: 'mvp', label: 'MVP', isCareer: true },
-      { id: 'finals_mvp', label: 'Finals MVP', isCareer: true },
-      { id: 'dpoy', label: 'Defensive Player of the Year', isCareer: true },
-      { id: 'smoy', label: 'Sixth Man of the Year', isCareer: true },
-      { id: 'roy', label: 'Rookie of the Year', isCareer: true },
-      { id: 'allstar', label: 'All-Star', isCareer: true },
-      { id: 'all_league', label: 'All-League', isCareer: true },
-      { id: 'all_defensive', label: 'All-Defensive', isCareer: true },
-      { id: 'champion', label: 'Champion', isCareer: true }
-    ];
-    
-    // Season achievements
-    const seasonAchievements = [
-      { id: 'mvp_season', label: 'MVP (Season)', isCareer: false },
-      { id: 'finals_mvp_season', label: 'Finals MVP (Season)', isCareer: false },
-      { id: 'dpoy_season', label: 'DPOY (Season)', isCareer: false },
-      { id: 'smoy_season', label: 'SMOY (Season)', isCareer: false },
-      { id: 'roy_season', label: 'ROY (Season)', isCareer: false },
-      { id: 'allstar_season', label: 'All-Star (Season)', isCareer: false },
-      { id: 'all_league_season', label: 'All-League (Season)', isCareer: false },
-      { id: 'all_defensive_season', label: 'All-Defensive (Season)', isCareer: false },
-      { id: 'champion_season', label: 'Champion (Season)', isCareer: false }
-    ];
-    
-    // Add career achievements first, then season achievements
-    achievements.push(...careerAchievements);
-    achievements.push(...seasonAchievements);
-    
-    return achievements;
-  }, [sport]);
+    // Sort achievements: Career first, then Season, then alphabetically within each group
+    achievements.sort((a, b) => {
+      if (a.pillType === 'Career' && b.pillType === 'Season') return -1;
+      if (a.pillType === 'Season' && b.pillType === 'Career') return 1;
+      return a.name.localeCompare(b.name);
+    });
 
-  const handleTeamSelect = (team: TeamOption) => {
-    onSelect('team', team.id.toString(), team.name);
-    onOpenChange(false);
+    return [...teams, ...achievements];
+  }, [leagueData?.teams, sport, seasonIndex, leagueData]);
+
+  // Filter items based on search and filter
+  const filteredItems = useMemo(() => {
+    let items = allItems;
+
+    // Apply filter
+    if (activeFilter === 'teams') {
+      items = items.filter(item => item.type === 'team');
+    } else if (activeFilter === 'achievements') {
+      items = items.filter(item => item.type === 'achievement');
+    }
+
+    // Apply search
+    if (searchQuery.trim()) {
+      items = items.filter(item => matchesSearch(item.searchText, searchQuery));
+    }
+
+    return items;
+  }, [allItems, activeFilter, searchQuery]);
+
+  // Handle keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!open) return;
+
+      switch (e.key) {
+        case 'Escape':
+          handleClose();
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          setSelectedIndex(prev => Math.min(prev + 1, filteredItems.length - 1));
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setSelectedIndex(prev => Math.max(prev - 1, 0));
+          break;
+        case 'Enter':
+          e.preventDefault();
+          if (filteredItems[selectedIndex]) {
+            handleSelect(filteredItems[selectedIndex]);
+          }
+          break;
+      }
+    };
+
+    if (open) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [open, filteredItems, selectedIndex, onOpenChange]);
+
+  // Reset selected index when filtered items change
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [filteredItems]);
+
+  // Scroll selected item into view
+  useEffect(() => {
+    if (listRef.current && filteredItems.length > 0) {
+      const selectedElement = listRef.current.querySelector(`[data-index="${selectedIndex}"]`);
+      selectedElement?.scrollIntoView({ block: 'nearest' });
+    }
+  }, [selectedIndex, filteredItems]);
+
+  const handleSelect = (item: ListItem) => {
+    onSelect(item.type, item.id, item.name);
+    handleClose();
   };
 
-  const handleAchievementSelect = (achievement: AchievementOption) => {
-    onSelect('achievement', achievement.id, achievement.label);
+  const handleClose = () => {
     onOpenChange(false);
+    // Restore focus to the trigger element for accessibility
+    setTimeout(() => {
+      triggerElementRef?.current?.focus();
+    }, 100);
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] h-[80vh] flex flex-col" data-radix-scroll-lock-ignore>
-        <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="text-lg font-semibold">
-            Select {headerPosition.includes('row') ? 'Row' : 'Column'} Header
-          </DialogTitle>
-        </DialogHeader>
-        
-        <Tabs 
-          value={activeTab} 
-          onValueChange={(value) => setActiveTab(value as 'teams' | 'achievements')}
-          className="flex-1 flex flex-col overflow-hidden"
+  const getTitle = () => {
+    if (!headerPosition) return 'Configure Header';
+    const [type, index] = headerPosition.split('-');
+    const position = type === 'row' ? 'Row' : 'Column';
+    return `Configure ${position} ${parseInt(index) + 1}`;
+  };
+
+  // Handle click outside to close
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      handleClose();
+    }
+  };
+
+  if (!mounted || !open) return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm"
+      onClick={handleBackdropClick}
+    >
+      <div className="absolute right-0 top-0 h-full w-full max-w-[560px] md:max-w-[520px] bg-background border-l shadow-xl flex flex-col">
+        {/* Header */}
+        <div className="flex-shrink-0 border-b p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">{getTitle()}</h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={handleClose}
+              data-testid="close-panel"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          {/* Search Bar */}
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Search teams or achievements..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+              data-testid="search-input"
+            />
+          </div>
+          
+          {/* Filter Chips */}
+          <div className="flex gap-2">
+            {(['all', 'teams', 'achievements'] as const).map((filter) => (
+              <Button
+                key={filter}
+                variant={activeFilter === filter ? 'default' : 'outline'}
+                size="sm"
+                className="h-8 px-3 text-xs capitalize"
+                onClick={() => setActiveFilter(filter)}
+                data-testid={`filter-${filter}`}
+              >
+                {filter}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {/* Scrollable List */}
+        <div 
+          ref={listRef}
+          className="flex-1 overflow-y-auto"
+          data-radix-scroll-lock-ignore
         >
-          <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
-            <TabsTrigger value="teams" data-testid="tab-teams">Teams</TabsTrigger>
-            <TabsTrigger value="achievements" data-testid="tab-achievements">Achievements</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="teams" className="flex-1 overflow-hidden mt-4">
-            <div className="h-full overflow-y-auto" data-testid="teams-list">
-              <div className="space-y-2 pr-2">
-                {teamOptions.map((team) => (
-                  <Button
-                    key={team.id}
-                    variant="ghost"
-                    className="w-full justify-start h-auto p-3 hover:bg-muted"
-                    onClick={() => handleTeamSelect(team)}
-                    data-testid={`team-option-${team.id}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={team.smallLogoUrl}
-                        alt={`${team.name} logo`}
-                        className="w-8 h-8 object-contain flex-shrink-0"
-                        onError={(e) => {
-                          // Fallback to regular logo if small logo fails
-                          e.currentTarget.src = team.logoUrl;
-                        }}
-                      />
-                      <div className="text-left">
-                        <div className="font-medium">{team.name}</div>
-                        <div className="text-sm text-muted-foreground">{team.abbrev}</div>
-                      </div>
-                    </div>
-                  </Button>
-                ))}
-              </div>
+          {filteredItems.length === 0 ? (
+            <div className="flex items-center justify-center h-32 text-muted-foreground">
+              No results. Try a different search or filter.
             </div>
-          </TabsContent>
-          
-          <TabsContent value="achievements" className="flex-1 overflow-hidden mt-4">
-            <div className="h-full overflow-y-auto" data-testid="achievements-list">
-              <div className="space-y-4 pr-2">
-                {/* Career Achievements Section */}
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                      Career Achievements
-                    </h3>
-                    <Badge variant="secondary" className="text-xs">Career</Badge>
+          ) : (
+            <div className="p-2">
+              {/* Teams Section */}
+              {filteredItems.some(item => item.type === 'team') && (
+                <div className="mb-6">
+                  <div className="px-3 py-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                    Teams
                   </div>
-                  <div className="space-y-2">
-                    {achievementOptions
-                      .filter(achievement => achievement.isCareer)
-                      .map((achievement) => (
-                        <Button
-                          key={achievement.id}
-                          variant="ghost"
-                          className="w-full justify-start h-auto p-3 hover:bg-muted"
-                          onClick={() => handleAchievementSelect(achievement)}
-                          data-testid={`achievement-option-${achievement.id}`}
-                        >
-                          <div className="text-left">
-                            <div className="font-medium">{achievement.label}</div>
-                          </div>
-                        </Button>
-                      ))}
+                  <div className="space-y-1">
+                    {filteredItems
+                      .filter(item => item.type === 'team')
+                      .map((item, globalIndex) => {
+                        const itemIndex = filteredItems.indexOf(item);
+                        const isSelected = selectedIndex === itemIndex;
+                        
+                        return (
+                          <button
+                            key={item.id}
+                            data-index={itemIndex}
+                            className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors hover:bg-muted ${
+                              isSelected ? 'bg-muted ring-2 ring-primary' : ''
+                            }`}
+                            onClick={() => handleSelect(item)}
+                            data-testid={`team-option-${item.id}`}
+                          >
+                            {isSelected && (
+                              <CheckCircle className="h-4 w-4 text-primary flex-shrink-0" />
+                            )}
+                            <img
+                              src={item.logoUrl}
+                              alt={`${item.name} logo`}
+                              className="w-8 h-8 object-contain flex-shrink-0"
+                              onError={(e) => {
+                                // Hide broken images
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium truncate">{item.displayName}</div>
+                              {item.abbrev && (
+                                <div className="text-sm text-muted-foreground">{item.abbrev}</div>
+                              )}
+                            </div>
+                            <Badge variant="outline" className="flex-shrink-0">
+                              {item.pillType}
+                            </Badge>
+                          </button>
+                        );
+                      })}
                   </div>
                 </div>
-                
-                {/* Season Achievements Section */}
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                      Season Achievements
-                    </h3>
-                    <Badge variant="outline" className="text-xs">Season</Badge>
+              )}
+
+              {/* Achievements Section */}
+              {filteredItems.some(item => item.type === 'achievement') && (
+                <div className="mb-6">
+                  <div className="px-3 py-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                    Achievements
                   </div>
-                  <div className="space-y-2">
-                    {achievementOptions
-                      .filter(achievement => !achievement.isCareer)
-                      .map((achievement) => (
-                        <Button
-                          key={achievement.id}
-                          variant="ghost"
-                          className="w-full justify-start h-auto p-3 hover:bg-muted"
-                          onClick={() => handleAchievementSelect(achievement)}
-                          data-testid={`achievement-option-${achievement.id}`}
-                        >
-                          <div className="text-left">
-                            <div className="font-medium">{achievement.label}</div>
-                          </div>
-                        </Button>
-                      ))}
+                  <div className="space-y-1">
+                    {filteredItems
+                      .filter(item => item.type === 'achievement')
+                      .map((item) => {
+                        const itemIndex = filteredItems.indexOf(item);
+                        const isSelected = selectedIndex === itemIndex;
+                        
+                        return (
+                          <button
+                            key={item.id}
+                            data-index={itemIndex}
+                            className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors hover:bg-muted ${
+                              isSelected ? 'bg-muted ring-2 ring-primary' : ''
+                            }`}
+                            onClick={() => handleSelect(item)}
+                            data-testid={`achievement-option-${item.id}`}
+                          >
+                            {isSelected && (
+                              <CheckCircle className="h-4 w-4 text-primary flex-shrink-0" />
+                            )}
+                            <Trophy className="h-6 w-6 text-muted-foreground flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium truncate">{item.displayName}</div>
+                            </div>
+                            <Badge 
+                              variant={item.pillType === 'Season' ? 'default' : 'secondary'}
+                              className="flex-shrink-0"
+                            >
+                              {item.pillType}
+                            </Badge>
+                          </button>
+                        );
+                      })}
                   </div>
                 </div>
-              </div>
+              )}
             </div>
-          </TabsContent>
-        </Tabs>
-      </DialogContent>
-    </Dialog>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body
   );
 }
