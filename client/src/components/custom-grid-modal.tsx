@@ -10,6 +10,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Grid3x3, Trash2, Play, RotateCcw, X, ArrowUpDown, ChevronDown, Wand2 } from 'lucide-react';
 import type { LeagueData, Team, CatTeam } from '@/types/bbgm';
 import { detectSport } from '@/lib/grid-sharing';
+import { HeaderSelectionModal } from './HeaderSelectionModal';
 import { getTeamOptions, getAchievementOptions, calculateCustomCellIntersection, headerConfigToCatTeam, type TeamOption, type AchievementOption, type HeaderConfig } from '@/lib/custom-grid-utils';
 import { buildSeasonIndex, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 
@@ -96,7 +97,9 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     { type: null, value: null, label: null }
   ]);
   
-  // No header selector state needed anymore
+  // Header selection modal state
+  const [headerSelectionOpen, setHeaderSelectionOpen] = useState(false);
+  const [selectedHeaderPosition, setSelectedHeaderPosition] = useState<string>('');
   const [hideZeroResults, setHideZeroResults] = useState(false);
   
   // Loading state for cell count calculations
@@ -510,12 +513,36 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     return count !== undefined ? (count > 500 ? '500+' : count.toString()) : '—';
   };
 
+  // Handle header selection
+  const handleHeaderClick = (isRow: boolean, index: number) => {
+    const position = `${isRow ? 'row' : 'col'}-${index}`;
+    setSelectedHeaderPosition(position);
+    setHeaderSelectionOpen(true);
+  };
+
+  // Handle selection from modal
+  const handleHeaderSelection = (type: 'team' | 'achievement', value: string, label: string) => {
+    if (!selectedHeaderPosition) return;
+    
+    const [rowOrCol, indexStr] = selectedHeaderPosition.split('-');
+    const index = parseInt(indexStr);
+    const isRow = rowOrCol === 'row';
+    
+    updateSelectorValue(isRow, index, type, value, label);
+    setHeaderSelectionOpen(false);
+    setSelectedHeaderPosition('');
+  };
+
   // Render header selector
   const renderHeaderSelector = (isRow: boolean, index: number) => {
     const selector = isRow ? rowSelectors[index] : colSelectors[index];
     
     return (
-      <div className="aspect-square flex flex-col items-center justify-center bg-background border rounded transition-colors p-0.5 sm:p-1 lg:p-2 relative group text-[8px] sm:text-xs lg:text-sm min-h-[40px] sm:min-h-[60px] lg:min-h-[80px]">
+      <div 
+        className="aspect-square flex flex-col items-center justify-center bg-background border rounded transition-colors p-0.5 sm:p-1 lg:p-2 relative group text-[8px] sm:text-xs lg:text-sm min-h-[40px] sm:min-h-[60px] lg:min-h-[80px] cursor-pointer hover:bg-muted"
+        onClick={() => handleHeaderClick(isRow, index)}
+        data-testid={`header-${isRow ? 'row' : 'col'}-${index}`}
+      >
         {selector.label ? (
           <>
             <div className="text-center w-full h-full flex flex-col items-center justify-center">
@@ -552,10 +579,10 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
         ) : (
           <div className="text-center w-full h-full flex flex-col items-center justify-center space-y-1">
             <div className="text-[9px] sm:text-[10px] font-medium text-muted-foreground leading-tight">
-              Pick Team or
+              Click to Select
             </div>
             <div className="text-[9px] sm:text-[10px] font-medium text-muted-foreground leading-tight">
-              Achievement
+              Team or Achievement
             </div>
           </div>
         )}
@@ -716,6 +743,15 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
           </div>
         </div>
       </DialogContent>
+      
+      {/* Header Selection Modal */}
+      <HeaderSelectionModal
+        open={headerSelectionOpen}
+        onOpenChange={setHeaderSelectionOpen}
+        leagueData={leagueData}
+        onSelect={handleHeaderSelection}
+        headerPosition={selectedHeaderPosition}
+      />
     </Dialog>
   );
 }
