@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -623,176 +624,174 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
             )}
           </div>
         </PopoverTrigger>
-        <PopoverContent className="w-96 p-0 h-96" align="start">
-          <div className="flex flex-col h-full">
-            {/* Header with dynamic title */}
-            <div className="px-3 py-2 border-b bg-muted/30">
-              <div className="font-medium text-sm">
-                {selector.label ? `${isRow ? 'Row' : 'Column'} ${index + 1}: ${selector.label}` : `Configure ${isRow ? 'Row' : 'Column'} ${index + 1}`}
-              </div>
+        <PopoverContent className="w-96 p-0" align="start">
+          {/* Header with dynamic title */}
+          <div className="px-3 py-2 border-b bg-muted/30">
+            <div className="font-medium text-sm">
+              {selector.label ? `${isRow ? 'Row' : 'Column'} ${index + 1}: ${selector.label}` : `Configure ${isRow ? 'Row' : 'Column'} ${index + 1}`}
             </div>
-            
-            {/* Search input */}
-            <div className="p-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  type="text"
-                  placeholder="Search teams or achievements…"
-                  value={searchQuery}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    setSearchQuery(e.target.value);
-                    setActiveIndex(-1);
-                  }}
-                  className="pl-10 h-9"
-                  autoFocus
-                  onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                    const allOptions = [...filteredOptions.teams, ...filteredOptions.achievements];
-                    
-                    if (e.key === 'ArrowDown') {
-                      e.preventDefault();
-                      const newIndex = Math.min(activeIndex + 1, allOptions.length - 1);
-                      setActiveIndex(newIndex);
-                    } else if (e.key === 'ArrowUp') {
-                      e.preventDefault();
-                      const newIndex = Math.max(activeIndex - 1, -1);
-                      setActiveIndex(newIndex);
-                    } else if (e.key === 'Enter' && activeIndex >= 0 && allOptions[activeIndex]) {
-                      e.preventDefault();
-                      const selectedOption = allOptions[activeIndex];
-                      if (selectedOption.type === 'team') {
-                        updateSelectorValue(isRow, index, 'team', selectedOption.id, selectedOption.label);
-                      } else {
-                        updateSelectorValue(isRow, index, 'achievement', selectedOption.id, selectedOption.label);
-                      }
-                      setOpenHeaderSelector(null);
-                      setSearchQuery('');
-                      setActiveIndex(-1);
-                    } else if (e.key === 'Escape') {
-                      e.preventDefault();
-                      setOpenHeaderSelector(null);
-                      setSearchQuery('');
-                      setActiveIndex(-1);
+          </div>
+          
+          {/* Search input */}
+          <div className="p-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                type="text"
+                placeholder="Search teams or achievements…"
+                value={searchQuery}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setSearchQuery(e.target.value);
+                  setActiveIndex(-1);
+                }}
+                className="pl-10 h-9"
+                autoFocus
+                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                  const allOptions = [...filteredOptions.teams, ...filteredOptions.achievements];
+                  
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    const newIndex = Math.min(activeIndex + 1, allOptions.length - 1);
+                    setActiveIndex(newIndex);
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    const newIndex = Math.max(activeIndex - 1, -1);
+                    setActiveIndex(newIndex);
+                  } else if (e.key === 'Enter' && activeIndex >= 0 && allOptions[activeIndex]) {
+                    e.preventDefault();
+                    const selectedOption = allOptions[activeIndex];
+                    if (selectedOption.type === 'team') {
+                      updateSelectorValue(isRow, index, 'team', selectedOption.id, selectedOption.label);
+                    } else {
+                      updateSelectorValue(isRow, index, 'achievement', selectedOption.id, selectedOption.label);
                     }
-                  }}
-                />
-              </div>
+                    setOpenHeaderSelector(null);
+                    setSearchQuery('');
+                    setActiveIndex(-1);
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    setOpenHeaderSelector(null);
+                    setSearchQuery('');
+                    setActiveIndex(-1);
+                  }
+                }}
+              />
             </div>
-            
-            {/* Filter chips */}
-            <div className="px-2 pb-2">
-              <div className="flex gap-1">
-                {(['all', 'teams', 'achievements'] as const).map((filter) => (
+          </div>
+          
+          {/* Filter chips */}
+          <div className="px-2 pb-2">
+            <div className="flex gap-1">
+              {(['all', 'teams', 'achievements'] as const).map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => setFilterType(filter)}
+                  className={`px-2 py-1 text-xs rounded-md transition-colors ${
+                    filterType === filter 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-muted hover:bg-muted/80'
+                  }`}
+                >
+                  {filter === 'all' ? 'All' : filter === 'teams' ? 'Teams' : 'Achievements'}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          {/* Scrollable options list using ScrollArea */}
+          <ScrollArea className="h-64 w-full">
+            {filteredOptions.teams.length === 0 && filteredOptions.achievements.length === 0 && (
+              <div className="py-6 text-center text-sm text-muted-foreground">
+                <div>No matches—try a different team or achievement.</div>
+                <div className="mt-2 space-x-2">
                   <button
-                    key={filter}
-                    onClick={() => setFilterType(filter)}
-                    className={`px-2 py-1 text-xs rounded-md transition-colors ${
-                      filterType === filter 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'bg-muted hover:bg-muted/80'
-                    }`}
+                    onClick={() => setFilterType('teams')}
+                    className="text-primary hover:underline"
                   >
-                    {filter === 'all' ? 'All' : filter === 'teams' ? 'Teams' : 'Achievements'}
+                    Browse Teams
                   </button>
-                ))}
+                  <button
+                    onClick={() => setFilterType('achievements')}
+                    className="text-primary hover:underline"
+                  >
+                    Browse Achievements
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
             
-            {/* Scrollable options list */}
-            <div className="flex-1 overflow-y-scroll min-h-0 h-64" style={{ scrollbarWidth: 'thin' }}>
-              {filteredOptions.teams.length === 0 && filteredOptions.achievements.length === 0 && (
-                <div className="py-6 text-center text-sm text-muted-foreground">
-                  <div>No matches—try a different team or achievement.</div>
-                  <div className="mt-2 space-x-2">
+            {/* Teams section */}
+            {filteredOptions.teams.length > 0 && (
+              <div className="p-2">
+                <div className="text-xs font-medium text-muted-foreground mb-2 px-2">Teams</div>
+                {filteredOptions.teams.map((team, teamIndex) => {
+                  const globalIndex = teamIndex;
+                  const isActive = activeIndex === globalIndex;
+                  return (
                     <button
-                      onClick={() => setFilterType('teams')}
-                      className="text-primary hover:underline"
+                      key={`team-${team.id}`}
+                      onClick={() => {
+                        updateSelectorValue(isRow, index, 'team', team.id, team.label);
+                        setOpenHeaderSelector(null);
+                        setSearchQuery('');
+                        setActiveIndex(-1);
+                      }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-left hover:bg-accent hover:text-accent-foreground ${
+                        isActive ? 'bg-accent text-accent-foreground' : ''
+                      }`}
                     >
-                      Browse Teams
+                      <TeamLogoIcon teamData={team.teamData} />
+                      <div className="flex-1">
+                        <div className="font-medium">{team.label}</div>
+                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        Team
+                      </Badge>
                     </button>
-                    <button
-                      onClick={() => setFilterType('achievements')}
-                      className="text-primary hover:underline"
-                    >
-                      Browse Achievements
-                    </button>
-                  </div>
-                </div>
-              )}
-              
-              {/* Teams section */}
-              {filteredOptions.teams.length > 0 && (
-                <div className="p-2">
-                  <div className="text-xs font-medium text-muted-foreground mb-2 px-2">Teams</div>
-                  {filteredOptions.teams.map((team, teamIndex) => {
-                    const globalIndex = teamIndex;
-                    const isActive = activeIndex === globalIndex;
-                    return (
-                      <button
-                        key={`team-${team.id}`}
-                        onClick={() => {
-                          updateSelectorValue(isRow, index, 'team', team.id, team.label);
-                          setOpenHeaderSelector(null);
-                          setSearchQuery('');
-                          setActiveIndex(-1);
-                        }}
-                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-left hover:bg-accent hover:text-accent-foreground ${
-                          isActive ? 'bg-accent text-accent-foreground' : ''
-                        }`}
-                      >
-                        <TeamLogoIcon teamData={team.teamData} />
-                        <div className="flex-1">
-                          <div className="font-medium">{team.label}</div>
-                        </div>
-                        <Badge variant="secondary" className="text-xs">
-                          Team
-                        </Badge>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-              
-              {/* Achievements section */}
-              {filteredOptions.achievements.length > 0 && (
-                <div className="p-2">
-                  <div className="text-xs font-medium text-muted-foreground mb-2 px-2">Achievements</div>
-                  {filteredOptions.achievements.map((achievement, achievementIndex) => {
-                    const globalIndex = filteredOptions.teams.length + achievementIndex;
-                    const isActive = activeIndex === globalIndex;
-                    return (
-                      <button
-                        key={`achievement-${achievement.id}`}
-                        onClick={() => {
-                          updateSelectorValue(isRow, index, 'achievement', achievement.id, achievement.label);
-                          setOpenHeaderSelector(null);
-                          setSearchQuery('');
-                          setActiveIndex(-1);
-                        }}
-                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-left hover:bg-accent hover:text-accent-foreground ${
-                          isActive ? 'bg-accent text-accent-foreground' : ''
-                        }`}
-                      >
-                        <div className="w-5 h-5 rounded bg-muted flex items-center justify-center text-xs">
-                          🏆
-                        </div>
-                        <div className="flex-1">
-                          <div className="font-medium">{achievement.label}</div>
-                        </div>
-                        <Badge variant={achievement.isSeason ? "default" : "outline"} className="text-xs">
-                          {achievement.isSeason ? "Season" : "Career"}
-                        </Badge>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+                  );
+                })}
+              </div>
+            )}
             
-            {/* Helper text */}
-            <div className="px-3 py-2 border-t bg-muted/30 text-xs text-muted-foreground">
-              Season items only need the same season when paired with a Team.
-            </div>
+            {/* Achievements section */}
+            {filteredOptions.achievements.length > 0 && (
+              <div className="p-2">
+                <div className="text-xs font-medium text-muted-foreground mb-2 px-2">Achievements</div>
+                {filteredOptions.achievements.map((achievement, achievementIndex) => {
+                  const globalIndex = filteredOptions.teams.length + achievementIndex;
+                  const isActive = activeIndex === globalIndex;
+                  return (
+                    <button
+                      key={`achievement-${achievement.id}`}
+                      onClick={() => {
+                        updateSelectorValue(isRow, index, 'achievement', achievement.id, achievement.label);
+                        setOpenHeaderSelector(null);
+                        setSearchQuery('');
+                        setActiveIndex(-1);
+                      }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-left hover:bg-accent hover:text-accent-foreground ${
+                        isActive ? 'bg-accent text-accent-foreground' : ''
+                      }`}
+                    >
+                      <div className="w-5 h-5 rounded bg-muted flex items-center justify-center text-xs">
+                        🏆
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium">{achievement.label}</div>
+                      </div>
+                      <Badge variant={achievement.isSeason ? "default" : "outline"} className="text-xs">
+                        {achievement.isSeason ? "Season" : "Career"}
+                      </Badge>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </ScrollArea>
+          
+          {/* Helper text */}
+          <div className="px-3 py-2 border-t bg-muted/30 text-xs text-muted-foreground">
+            Season items only need the same season when paired with a Team.
           </div>
         </PopoverContent>
       </Popover>
