@@ -1,7 +1,8 @@
 import pako from 'pako';
 import type { LeagueData, Player, Team, SeasonLine, TeamOverlapData } from '@/types/bbgm';
 import { calculatePlayerAchievements, clearSeasonLengthCache, calculateLeagueLeadership, calculateTeamSeasonsAndAchievementSeasons, setCachedSportDetection } from '@/lib/achievements';
-import { buildSeasonIndex, type SeasonIndex } from './season-achievements';
+import { type SeasonIndex } from './season-achievements';
+import { getCachedSeasonIndex } from './season-index-cache';
 
 export type Sport = 'basketball' | 'football' | 'hockey' | 'baseball';
 
@@ -593,21 +594,21 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
   const seasonCount = uniqueSeasons.size;
   
   if (sport === 'basketball') {
-    console.log('🏀 Building season-specific achievement index for basketball...');
-    seasonIndex = buildSeasonIndex(players, sport);
+    console.log('🏀 Using cached season-specific achievement index for basketball...');
+    seasonIndex = getCachedSeasonIndex(players, sport);
   } else if (sport === 'football' && seasonCount >= 20) {
-    console.log(`🏈 Building season-specific achievement index for football (${seasonCount} seasons ≥ 20)...`);
-    seasonIndex = buildSeasonIndex(players, sport);
+    console.log(`🏈 Using cached season-specific achievement index for football (${seasonCount} seasons ≥ 20)...`);
+    seasonIndex = getCachedSeasonIndex(players, sport);
   } else if (sport === 'football') {
     console.log(`🏈 Skipping season achievements for football (${seasonCount} seasons < 20)`);
   } else if (sport === 'hockey' && seasonCount >= 20) {
-    console.log(`🏒 Building season-specific achievement index for hockey (${seasonCount} seasons ≥ 20)...`);
-    seasonIndex = buildSeasonIndex(players, sport);
+    console.log(`🏒 Using cached season-specific achievement index for hockey (${seasonCount} seasons ≥ 20)...`);
+    seasonIndex = getCachedSeasonIndex(players, sport);
   } else if (sport === 'hockey') {
     console.log(`🏒 Skipping season achievements for hockey (${seasonCount} seasons < 20)`);
   } else if (sport === 'baseball' && seasonCount >= 20) {
-    console.log(`⚾ Building season-specific achievement index for baseball (${seasonCount} seasons ≥ 20)...`);
-    seasonIndex = buildSeasonIndex(players, sport);
+    console.log(`⚾ Using cached season-specific achievement index for baseball (${seasonCount} seasons ≥ 20)...`);
+    seasonIndex = getCachedSeasonIndex(players, sport);
   } else if (sport === 'baseball') {
     console.log(`⚾ Skipping season achievements for baseball (${seasonCount} seasons < 20)`);
   }

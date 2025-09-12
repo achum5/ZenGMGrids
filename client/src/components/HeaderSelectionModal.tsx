@@ -6,7 +6,8 @@ import { X, Search, Trophy, Users, CheckCircle } from 'lucide-react';
 import type { LeagueData, Team } from '@/types/bbgm';
 import { detectSport } from '@/lib/grid-sharing';
 import { getAchievementOptions, type AchievementOption } from '@/lib/custom-grid-utils';
-import { buildSeasonIndex, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
+import { SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
+import { getCachedSeasonIndex } from '@/lib/season-index-cache';
 
 // Constants for BBGM logo URLs
 const BBGM_ASSET_BASE = 'https://play.basketball-gm.com';
@@ -184,9 +185,9 @@ export function HeaderSelectionModal({
 
   const sport = useMemo(() => leagueData ? detectSport(leagueData) : 'basketball', [leagueData]);
 
-  // Build season index for achievements if needed
+  // Use cached season index for achievements
   const seasonIndex = useMemo(() => {
-    return leagueData ? buildSeasonIndex(leagueData.players, sport) : undefined;
+    return leagueData ? getCachedSeasonIndex(leagueData.players, sport) : undefined;
   }, [leagueData?.players, sport]);
 
   // Build unified list items using raw team and achievement data
