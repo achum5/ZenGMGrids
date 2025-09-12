@@ -307,13 +307,14 @@ function HeaderSelectionContent({
       </div>
 
       {/* Scrollable List */}
-      <ScrollArea className="flex-1">
-        {filteredItems.length === 0 ? (
-          <div className="flex items-center justify-center h-16 text-muted-foreground text-sm">
-            No results. Try a different search or filter.
-          </div>
-        ) : (
-          <div className="p-2">
+      <ScrollArea className="flex-1 max-h-[300px]">
+        <div className="p-2">
+          {filteredItems.length === 0 ? (
+            <div className="flex items-center justify-center h-16 text-muted-foreground text-sm">
+              No results. Try a different search or filter.
+            </div>
+          ) : (
+            <>
             {/* Teams Section */}
             {filteredItems.some(item => item.type === 'team') && (
               <div className="mb-3">
@@ -407,8 +408,9 @@ function HeaderSelectionContent({
                 </div>
               </div>
             )}
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </ScrollArea>
     </div>
   );
