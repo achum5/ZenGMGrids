@@ -236,7 +236,7 @@ export function calculateCustomCellIntersection(
       
       // Find players who have both achievements (regardless of when they achieved them)
       const eligiblePids = new Set<number>();
-      for (const pid of rowAchievementPids) {
+      for (const pid of Array.from(rowAchievementPids)) {
         if (colAchievementPids.has(pid)) {
           eligiblePids.add(pid);
         }
