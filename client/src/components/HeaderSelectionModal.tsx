@@ -104,19 +104,20 @@ export function HeaderSelectionModal({
   
   const listRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Reset state when opening/closing
+  // Reset state when opening/closing and focus modal for immediate scrolling
   useEffect(() => {
     if (open) {
       setSearchQuery('');
       setActiveFilter('all');
       setSelectedIndex(0);
-      // Focus search input when opened
-      setTimeout(() => searchInputRef.current?.focus(), 100);
+      // Focus modal container for immediate scrolling capability
+      setTimeout(() => modalRef.current?.focus(), 100);
     }
   }, [open]);
 
@@ -264,9 +265,10 @@ export function HeaderSelectionModal({
     return `Configure ${position} ${parseInt(index) + 1}`;
   };
 
-  // Handle click outside to close
+  // Handle click outside to close, but prevent closing parent modal
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
+      e.stopPropagation(); // Prevent parent modal from closing
       handleClose();
     }
   };
@@ -280,9 +282,22 @@ export function HeaderSelectionModal({
       style={{ pointerEvents: 'auto' }}
     >
       <div 
+        ref={modalRef}
         className="w-80 max-h-96 bg-background border rounded-lg shadow-xl flex flex-col" 
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+        }}
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
         style={{ pointerEvents: 'auto', position: 'relative' }}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          // Allow scrolling with keyboard immediately
+          if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            listRef.current?.focus();
+          }
+        }}
       >
         {/* Header */}
         <div className="flex-shrink-0 border-b p-3">
@@ -335,6 +350,10 @@ export function HeaderSelectionModal({
           ref={listRef}
           className="flex-1 overflow-y-auto"
           data-radix-scroll-lock-ignore
+          tabIndex={-1}
+          onMouseDown={(e) => e.stopPropagation()}
+          onMouseUp={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
         >
           {filteredItems.length === 0 ? (
             <div className="flex items-center justify-center h-16 text-muted-foreground text-sm">
