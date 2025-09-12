@@ -663,6 +663,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
           align="end" 
           sideOffset={4}
           className="w-[min(90vw,20rem)] sm:w-80 p-0"
+          avoidCollisions={true}
+          collisionPadding={16}
         >
           <Tabs defaultValue="teams" className="w-full">
             <TabsList className="grid w-full grid-cols-2 m-2 mb-0">
@@ -671,7 +673,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
             </TabsList>
             
             <TabsContent value="teams" className="mt-0">
-              <div className="max-h-[50vh] sm:max-h-80 overflow-y-auto p-0">
+              <div className="max-h-[35vh] sm:max-h-80 overflow-y-auto p-0">
                 {teams.map(team => (
                   <DropdownMenuItem
                     key={team.id}
@@ -694,7 +696,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
             </TabsContent>
             
             <TabsContent value="achievements" className="mt-0">
-              <div className="max-h-[50vh] sm:max-h-80 overflow-y-auto p-0">
+              <div className="max-h-[35vh] sm:max-h-80 overflow-y-auto p-0">
                 {/* Career Achievements */}
                 {careerAchievements.length > 0 && (
                   <>
