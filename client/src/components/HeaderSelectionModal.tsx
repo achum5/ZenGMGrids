@@ -275,47 +275,47 @@ export function HeaderSelectionModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm"
+      className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4"
       onClick={handleBackdropClick}
     >
-      <div className="absolute right-0 top-0 h-full w-full max-w-[560px] md:max-w-[520px] bg-background border-l shadow-xl flex flex-col">
+      <div className="w-80 max-h-96 bg-background border rounded-lg shadow-xl flex flex-col" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex-shrink-0 border-b p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">{getTitle()}</h2>
+        <div className="flex-shrink-0 border-b p-3">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold">{getTitle()}</h2>
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0"
+              className="h-6 w-6 p-0"
               onClick={handleClose}
               data-testid="close-panel"
             >
-              <X className="h-4 w-4" />
+              <X className="h-3 w-3" />
             </Button>
           </div>
           
           {/* Search Bar */}
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div className="relative mb-3">
+            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
             <Input
               ref={searchInputRef}
               type="text"
               placeholder="Search teams or achievements..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-7 h-8 text-sm"
               data-testid="search-input"
             />
           </div>
           
           {/* Filter Chips */}
-          <div className="flex gap-2">
+          <div className="flex gap-1">
             {(['all', 'teams', 'achievements'] as const).map((filter) => (
               <Button
                 key={filter}
                 variant={activeFilter === filter ? 'default' : 'outline'}
                 size="sm"
-                className="h-8 px-3 text-xs capitalize"
+                className="h-6 px-2 text-xs capitalize"
                 onClick={() => setActiveFilter(filter)}
                 data-testid={`filter-${filter}`}
               >
@@ -332,18 +332,18 @@ export function HeaderSelectionModal({
           data-radix-scroll-lock-ignore
         >
           {filteredItems.length === 0 ? (
-            <div className="flex items-center justify-center h-32 text-muted-foreground">
+            <div className="flex items-center justify-center h-16 text-muted-foreground text-sm">
               No results. Try a different search or filter.
             </div>
           ) : (
             <div className="p-2">
               {/* Teams Section */}
               {filteredItems.some(item => item.type === 'team') && (
-                <div className="mb-6">
-                  <div className="px-3 py-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                <div className="mb-3">
+                  <div className="px-1 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     Teams
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     {filteredItems
                       .filter(item => item.type === 'team')
                       .map((item, globalIndex) => {
@@ -354,31 +354,31 @@ export function HeaderSelectionModal({
                           <button
                             key={item.id}
                             data-index={itemIndex}
-                            className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors hover:bg-muted ${
-                              isSelected ? 'bg-muted ring-2 ring-primary' : ''
+                            className={`w-full flex items-center gap-2 p-1.5 rounded text-left transition-colors hover:bg-muted ${
+                              isSelected ? 'bg-muted ring-1 ring-primary' : ''
                             }`}
                             onClick={() => handleSelect(item)}
                             data-testid={`team-option-${item.id}`}
                           >
                             {isSelected && (
-                              <CheckCircle className="h-4 w-4 text-primary flex-shrink-0" />
+                              <CheckCircle className="h-3 w-3 text-primary flex-shrink-0" />
                             )}
                             <img
                               src={item.logoUrl}
                               alt={`${item.name} logo`}
-                              className="w-8 h-8 object-contain flex-shrink-0"
+                              className="w-4 h-4 object-contain flex-shrink-0"
                               onError={(e) => {
                                 // Hide broken images
                                 e.currentTarget.style.display = 'none';
                               }}
                             />
                             <div className="flex-1 min-w-0">
-                              <div className="font-medium truncate">{item.displayName}</div>
+                              <div className="font-medium text-xs truncate">{item.displayName}</div>
                               {item.abbrev && (
-                                <div className="text-sm text-muted-foreground">{item.abbrev}</div>
+                                <div className="text-xs text-muted-foreground">{item.abbrev}</div>
                               )}
                             </div>
-                            <Badge variant="outline" className="flex-shrink-0">
+                            <Badge variant="outline" className="flex-shrink-0 text-xs h-4">
                               {item.pillType}
                             </Badge>
                           </button>
@@ -390,11 +390,11 @@ export function HeaderSelectionModal({
 
               {/* Achievements Section */}
               {filteredItems.some(item => item.type === 'achievement') && (
-                <div className="mb-6">
-                  <div className="px-3 py-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                <div className="mb-3">
+                  <div className="px-1 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     Achievements
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     {filteredItems
                       .filter(item => item.type === 'achievement')
                       .map((item) => {
@@ -405,22 +405,22 @@ export function HeaderSelectionModal({
                           <button
                             key={item.id}
                             data-index={itemIndex}
-                            className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors hover:bg-muted ${
-                              isSelected ? 'bg-muted ring-2 ring-primary' : ''
+                            className={`w-full flex items-center gap-2 p-1.5 rounded text-left transition-colors hover:bg-muted ${
+                              isSelected ? 'bg-muted ring-1 ring-primary' : ''
                             }`}
                             onClick={() => handleSelect(item)}
                             data-testid={`achievement-option-${item.id}`}
                           >
                             {isSelected && (
-                              <CheckCircle className="h-4 w-4 text-primary flex-shrink-0" />
+                              <CheckCircle className="h-3 w-3 text-primary flex-shrink-0" />
                             )}
-                            <Trophy className="h-6 w-6 text-muted-foreground flex-shrink-0" />
+                            <Trophy className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                             <div className="flex-1 min-w-0">
-                              <div className="font-medium truncate">{item.displayName}</div>
+                              <div className="font-medium text-xs truncate">{item.displayName}</div>
                             </div>
                             <Badge 
                               variant={item.pillType === 'Season' ? 'default' : 'secondary'}
-                              className="flex-shrink-0"
+                              className="flex-shrink-0 text-xs h-4"
                             >
                               {item.pillType}
                             </Badge>
