@@ -74,12 +74,12 @@ export function getAchievementOptions(sport: string, seasonIndex?: SeasonIndex):
       label: achievement.label
     }))
     .sort((a, b) => {
-      // Sort by season first (season achievements before career)
+      // Sort by career first (career achievements before season)
       const aIsSeason = SEASON_ACHIEVEMENTS.some(sa => sa.id === a.id);
       const bIsSeason = SEASON_ACHIEVEMENTS.some(sa => sa.id === b.id);
       
-      if (aIsSeason && !bIsSeason) return -1;
-      if (!aIsSeason && bIsSeason) return 1;
+      if (!aIsSeason && bIsSeason) return -1; // Career first
+      if (aIsSeason && !bIsSeason) return 1;   // Season second
       
       // If both are same type (season or career), sort alphabetically
       return a.label.localeCompare(b.label);
