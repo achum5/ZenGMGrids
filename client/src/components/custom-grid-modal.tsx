@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Grid3x3, Trash2, Play, RotateCcw, X, ArrowUpDown, ChevronDown, Wand2 } from 'lucide-react';
 import type { LeagueData, Team, CatTeam } from '@/types/bbgm';
@@ -529,82 +528,85 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     setOpenDropdown(null); // Close dropdown after selection
   };
 
-  // Render header selector with simple popover dropdown
+  // Render header selector with inline dropdown
   const renderHeaderSelector = (isRow: boolean, index: number) => {
     const selector = isRow ? rowSelectors[index] : colSelectors[index];
     const position = `${isRow ? 'row' : 'col'}-${index}`;
     const isDropdownOpen = openDropdown === position;
+    const triggerRef = useRef<HTMLDivElement>(null);
     
     return (
-      <Popover open={isDropdownOpen} onOpenChange={(open) => setOpenDropdown(open ? position : null)}>
-        <PopoverTrigger asChild>
-          <div 
-            className="aspect-square flex flex-col items-center justify-center bg-background border rounded transition-colors p-0.5 sm:p-1 lg:p-2 relative group text-[8px] sm:text-xs lg:text-sm min-h-[40px] sm:min-h-[60px] lg:min-h-[80px] cursor-pointer hover:bg-muted"
-            data-testid={`header-${isRow ? 'row' : 'col'}-${index}`}
-            tabIndex={0}
-          >
-            {selector.label ? (
-              <>
-                <div className="text-center w-full h-full flex flex-col items-center justify-center">
-                  {selector.type && (
-                    <Badge variant="outline" className="text-[6px] sm:text-[8px] lg:text-[10px] mb-0.5 px-0.5 sm:px-1 py-0 leading-none">
-                      {selector.type}
-                    </Badge>
-                  )}
-                  <div className="text-[6px] sm:text-[8px] lg:text-xs font-medium leading-tight break-words text-center px-0.5 overflow-hidden">
-                    {selector.label}
-                  </div>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (isRow) {
-                      const newRowSelectors = [...rowSelectors];
-                      newRowSelectors[index] = { type: null, value: null, label: null };
-                      setRowSelectors(newRowSelectors);
-                    } else {
-                      const newColSelectors = [...colSelectors];
-                      newColSelectors[index] = { type: null, value: null, label: null };
-                      setColSelectors(newColSelectors);
-                    }
-                  }}
-                  className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center text-[10px] font-bold"
-                  title="Clear selection"
-                  data-testid={`button-clear-${isRow ? 'row' : 'col'}-${index}`}
-                >
-                  ×
-                </button>
-              </>
-            ) : (
-              <div className="text-center w-full h-full flex flex-col items-center justify-center space-y-1">
-                <div className="text-[9px] sm:text-[10px] font-medium text-muted-foreground leading-tight">
-                  Click to Select
-                </div>
-                <div className="text-[9px] sm:text-[10px] font-medium text-muted-foreground leading-tight">
-                  Team or Achievement
-                </div>
-              </div>
-            )}
-          </div>
-        </PopoverTrigger>
-        
-        <PopoverContent 
-          side="bottom" 
-          align="center" 
-          sideOffset={4} 
-          collisionPadding={8}
-          className="w-[min(95vw,360px)] sm:w-80 p-0 shadow-lg rounded-lg overflow-hidden"
+      <div className="relative">
+        <div 
+          ref={triggerRef}
+          className="aspect-square flex flex-col items-center justify-center bg-background border rounded transition-colors p-0.5 sm:p-1 lg:p-2 relative group text-[8px] sm:text-xs lg:text-sm min-h-[40px] sm:min-h-[60px] lg:min-h-[80px] cursor-pointer hover:bg-muted"
+          onClick={() => toggleHeaderDropdown(isRow, index)}
+          data-testid={`header-${isRow ? 'row' : 'col'}-${index}`}
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              toggleHeaderDropdown(isRow, index);
+            }
+          }}
         >
+        {selector.label ? (
+          <>
+            <div className="text-center w-full h-full flex flex-col items-center justify-center">
+              {selector.type && (
+                <Badge variant="outline" className="text-[6px] sm:text-[8px] lg:text-[10px] mb-0.5 px-0.5 sm:px-1 py-0 leading-none">
+                  {selector.type}
+                </Badge>
+              )}
+              <div className="text-[6px] sm:text-[8px] lg:text-xs font-medium leading-tight break-words text-center px-0.5 overflow-hidden">
+                {selector.label}
+              </div>
+            </div>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (isRow) {
+                  const newRowSelectors = [...rowSelectors];
+                  newRowSelectors[index] = { type: null, value: null, label: null };
+                  setRowSelectors(newRowSelectors);
+                } else {
+                  const newColSelectors = [...colSelectors];
+                  newColSelectors[index] = { type: null, value: null, label: null };
+                  setColSelectors(newColSelectors);
+                }
+              }}
+              className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center text-[10px] font-bold"
+              title="Clear selection"
+              data-testid={`button-clear-${isRow ? 'row' : 'col'}-${index}`}
+            >
+              ×
+            </button>
+          </>
+        ) : (
+          <div className="text-center w-full h-full flex flex-col items-center justify-center space-y-1">
+            <div className="text-[9px] sm:text-[10px] font-medium text-muted-foreground leading-tight">
+              Click to Select
+            </div>
+            <div className="text-[9px] sm:text-[10px] font-medium text-muted-foreground leading-tight">
+              Team or Achievement
+            </div>
+          </div>
+        )}
+        </div>
+        
+        {/* Inline dropdown */}
+        {isDropdownOpen && (
           <HeaderSelectionModal
             open={true}
             onOpenChange={() => setOpenDropdown(null)}
             leagueData={leagueData}
             onSelect={(type, value, label) => handleHeaderSelection(position, type, value, label)}
             headerPosition={position}
+            triggerElementRef={triggerRef}
           />
-        </PopoverContent>
-      </Popover>
+        )}
+      </div>
     );
   };
 
