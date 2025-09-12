@@ -707,7 +707,7 @@ export default function Home() {
     setRankCache({});
   }, []);
 
-  // Handle Give Up - smart auto-fill with optimal player distribution
+  // Handle Give Up - fill each cell with the most common answer (rank #1)
   const handleGiveUp = useCallback(() => {
     if (!leagueData) return;
     
@@ -724,70 +724,19 @@ export default function Home() {
     
     if (emptyCells.length === 0) return;
     
-    // Build usedPids from already-guessed cells
-    const usedPidsSet = new Set<number>();
-    Object.values(cells).forEach(cell => {
-      if (cell.player?.pid) {
-        usedPidsSet.add(cell.player.pid);
-      }
-    });
-    
-    // Generate puzzle seed for consistent rarity calculations
-    const puzzleSeed = `${rows.map(r => r.key).join('-')}_${cols.map(c => c.key).join('-')}`;
-    
-    // Get eligible players for each empty cell, sorted by frequency (most common first)
-    const cellPlayerData: Record<string, Array<{player: Player, count: number, rarity: number}>> = {};
-    
-    for (const cellKey of emptyCells) {
-      const eligiblePids = intersections[cellKey] || [];
-      const eligiblePlayers = leagueData.players.filter(p => eligiblePids.includes(p.pid));
-      
-      if (eligiblePlayers.length === 0) {
-        cellPlayerData[cellKey] = [];
-        continue;
-      }
-      
-      // Count how many cells each player is eligible for across the entire grid
-      const playerCounts = new Map<number, number>();
-      
-      for (const emptyCellKey of emptyCells) {
-        const cellEligiblePids = intersections[emptyCellKey] || [];
-        for (const player of eligiblePlayers) {
-          if (cellEligiblePids.includes(player.pid)) {
-            playerCounts.set(player.pid, (playerCounts.get(player.pid) || 0) + 1);
-          }
-        }
-      }
-      
-      // Sort by highest frequency (most common answers first), then by name for stability
-      const sortedPlayers = eligiblePlayers.map(player => ({
-        player,
-        count: playerCounts.get(player.pid) || 0,
-        rarity: 0 // Not used anymore, kept for type compatibility
-      }));
-      
-      // Sort by count (most common first = highest count), then by name for stability
-      sortedPlayers.sort((a, b) => {
-        if (b.count !== a.count) return b.count - a.count;
-        return a.player.name.localeCompare(b.player.name);
-      });
-      
-      cellPlayerData[cellKey] = sortedPlayers;
-    }
-    
-    // Smart assignment: most common answers first, with conflict resolution
     const newCells = { ...cells };
-    const finalUsedPids = new Set(usedPidsSet);
+    const newRankCache = { ...rankCache };
     
-    // Process cells in order of difficulty (fewest options first to avoid conflicts)
-    const cellsByDifficulty = emptyCells.slice().sort((a, b) => 
-      cellPlayerData[a].length - cellPlayerData[b].length
-    );
-    
-    for (const cellKey of cellsByDifficulty) {
-      const candidates = cellPlayerData[cellKey];
+    // For each empty cell, get the most common answer (rank #1)
+    for (const cellKey of emptyCells) {
+      // Get or build the ranking for this cell
+      let ranking = newRankCache[cellKey];
+      if (!ranking) {
+        ranking = buildRankCacheForCell(cellKey);
+        newRankCache[cellKey] = ranking;
+      }
       
-      if (candidates.length === 0) {
+      if (ranking.length === 0) {
         // No eligible players
         newCells[cellKey] = {
           name: '—',
@@ -800,59 +749,28 @@ export default function Home() {
         continue;
       }
       
-      // Find first unused player from most common to least common
-      let selectedPlayer = null;
-      let selectedIndex = -1;
+      // Pick the most common answer (rank #1 = index 0)
+      const topRanked = ranking[0];
+      const selectedPlayer = topRanked.player;
       
-      for (let i = 0; i < candidates.length; i++) {
-        const candidate = candidates[i];
-        if (!finalUsedPids.has(candidate.player.pid)) {
-          selectedPlayer = candidate.player;
-          selectedIndex = i;
-          break;
-        }
-      }
+      newCells[cellKey] = {
+        name: selectedPlayer.name,
+        correct: true,
+        locked: true,
+        autoFilled: true,
+        guessed: false,
+        player: selectedPlayer,
+        rarity: topRanked.rarity,
+        points: topRanked.rarity,
+      };
       
-      if (selectedPlayer) {
-        // Calculate rarity for display consistency only
-        const eligiblePool = candidates.map(c => playerToEligibleLite(c.player));
-        const guessedPlayer = playerToEligibleLite(selectedPlayer);
-        const rarity = computeRarityForGuess({
-          guessed: guessedPlayer,
-          eligiblePool: eligiblePool,
-          puzzleSeed: puzzleSeed
-        });
-        
-        newCells[cellKey] = {
-          name: selectedPlayer.name,
-          correct: true,
-          locked: true,
-          autoFilled: true,
-          guessed: false,
-          player: selectedPlayer,
-          rarity: rarity,
-          points: rarity,
-        };
-        
-        finalUsedPids.add(selectedPlayer.pid);
-        console.log(`🔍 Give Up: ${cellKey} -> ${selectedPlayer.name} (rank #${selectedIndex + 1}, appears in ${candidates[selectedIndex].count} cells, rarity ${rarity})`);
-      } else {
-        // All players already used
-        newCells[cellKey] = {
-          name: '—',
-          correct: false,
-          locked: true,
-          autoFilled: true,
-          guessed: false,
-        };
-        console.log(`🔍 Give Up: ${cellKey} -> "—" (all ${candidates.length} players already used)`);
-      }
+      console.log(`🔍 Give Up: ${cellKey} -> ${selectedPlayer.name} (rank #1, rarity ${topRanked.rarity})`);
     }
     
     // Update state
     setCells(newCells);
-    setUsedPids(finalUsedPids);
-  }, [leagueData, rows, cols, cells, intersections]);
+    setRankCache(newRankCache);
+  }, [leagueData, rows, cols, cells, rankCache, buildRankCacheForCell]);
 
   const handleRetryGrid = useCallback(() => {
     if (!currentGridId) return;
