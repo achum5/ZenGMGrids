@@ -896,7 +896,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
               </div>
               
               {/* Primary Actions Row */}
-              <div className="flex gap-3 justify-end">
+              <div className="flex gap-3 justify-center sm:justify-end">
                 <Button
                   onClick={onClose}
                   variant="ghost"
