@@ -713,7 +713,9 @@ export default function Home() {
     if (!leagueData) return;
     
     // Find all empty cells in stable order (row-major: top→bottom, left→right)
-    const allCellKeys = rows.flatMap(row => cols.map(col => `${row.key}|${col.key}`));
+    const allCellKeys = rows.flatMap((row, rowIndex) => 
+      cols.map((col, colIndex) => cellKey(row.key, col.key, rows, cols))
+    );
     const emptyCells = allCellKeys.filter(key => !cells[key]?.name);
     
     if (emptyCells.length === 0) return;
