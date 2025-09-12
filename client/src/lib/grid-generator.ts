@@ -45,7 +45,10 @@ export function generateTeamsGrid(leagueData: LeagueData): {
 } {
   const { players, teams, sport } = leagueData;
   
-  console.log(`🎯 STARTING GRID GENERATION for ${sport} (${players.length} players, ${teams.length} teams)`);
+  const DEBUG = import.meta.env.VITE_DEBUG === 'true';
+  if (DEBUG) {
+    console.log(`🎯 STARTING GRID GENERATION for ${sport} (${players.length} players, ${teams.length} teams)`);
+  }
   
   // Season count gate: compute unique seasons
   const uniqueSeasons = new Set<number>();
@@ -58,22 +61,24 @@ export function generateTeamsGrid(leagueData: LeagueData): {
     }
   });
 
-  console.log(`Unique seasons found: ${uniqueSeasons.size}`);
+  if (DEBUG) {
+    console.log(`Unique seasons found: ${uniqueSeasons.size}`);
+  }
 
   // If < 20 seasons, use old random builder without season-specific achievements
   if (uniqueSeasons.size < 20) {
-    console.log('Using old random builder (< 20 seasons)');
+    if (DEBUG) console.log('Using old random builder (< 20 seasons)');
     return generateGridOldRandom(leagueData);
   }
 
   // If >= 20 seasons and basketball, football, hockey, or baseball, use new seeded builder
   if ((sport === 'basketball' || sport === 'football' || sport === 'hockey' || sport === 'baseball') && leagueData.seasonIndex) {
-    console.log(`Using new seeded coverage-aware builder (>= 20 seasons, ${sport})`);
+    if (DEBUG) console.log(`Using new seeded coverage-aware builder (>= 20 seasons, ${sport})`);
     return generateGridSeeded(leagueData);
   }
 
   // Fallback to old builder for other sports or insufficient seasons
-  console.log('Using old random builder (fallback)');
+  if (DEBUG) console.log('Using old random builder (fallback)');
   return generateGridOldRandom(leagueData);
 }
 
@@ -90,11 +95,13 @@ function generateGridOldRandom(leagueData: LeagueData): {
   while (attempt < MAX_ATTEMPTS) {
     try {
       const result = attemptGridGenerationOldRandom(leagueData);
-      console.log(`✅ GRID GENERATION SUCCESSFUL after ${attempt + 1} attempts`);
+      const DEBUG = import.meta.env.VITE_DEBUG === 'true';
+      if (DEBUG) console.log(`✅ GRID GENERATION SUCCESSFUL after ${attempt + 1} attempts`);
       return result;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      console.log(`Grid generation attempt ${attempt + 1} failed: ${lastError.message}`);
+      const DEBUG = import.meta.env.VITE_DEBUG === 'true';
+      if (DEBUG) console.log(`Grid generation attempt ${attempt + 1} failed: ${lastError.message}`);
     }
     attempt++;
   }
@@ -120,19 +127,21 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
     !SEASON_ACHIEVEMENTS.some(sa => sa.id === achievement.id)
   );
   
-  // Log all achievement counts for debugging - only check sport-specific achievements
-  console.log('=== ACHIEVEMENT COUNTS ===');
-  const sportAchievements = getAchievements(sport);
-  sportAchievements.forEach((achievement: Achievement) => {
-    const count = players.filter(p => p.achievements && (p.achievements as any)[achievement.id]).length;
-    const viable = count >= 15 ? '✓' : '✗';
-    console.log(`${viable} ${achievement.id}: ${count} players`);
-  });
-  console.log('==========================');
-  
-  // Add detailed debugging for specific achievements we're investigating
-  console.log('🔍 [GRID-DEBUG] Adding detailed achievement analysis...');
-  debugIndividualAchievements(players, seasonIndex);
+  // Debug logging removed for performance - was causing verbose logs on every grid generation
+  const DEBUG = import.meta.env.VITE_DEBUG === 'true';
+  if (DEBUG) {
+    console.log('=== ACHIEVEMENT COUNTS ===');
+    const sportAchievements = getAchievements(sport);
+    sportAchievements.forEach((achievement: Achievement) => {
+      const count = players.filter(p => p.achievements && (p.achievements as any)[achievement.id]).length;
+      const viable = count >= 15 ? '✓' : '✗';
+      console.log(`${viable} ${achievement.id}: ${count} players`);
+    });
+    console.log('==========================');
+    
+    console.log('🔍 [GRID-DEBUG] Adding detailed achievement analysis...');
+    debugIndividualAchievements(players, seasonIndex);
+  }
   
   // Create constraint pool (only active teams + achievements)
   const teamConstraints: CatTeam[] = teams.filter(team => !team.disabled).map(team => ({
@@ -473,48 +482,24 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
         }
       }
       
-      // DEBUG: Track Celtics × All-League Team intersection specifically
-      const isCelticsAllLeague = (
-        (rowConstraint.type === 'team' && rowConstraint.tid !== undefined && [0, 1].includes(rowConstraint.tid) && 
-         colConstraint.type === 'achievement' && colConstraint.achievementId === 'AllLeagueAny') ||
-        (colConstraint.type === 'team' && colConstraint.tid !== undefined && [0, 1].includes(colConstraint.tid) && 
-         rowConstraint.type === 'achievement' && rowConstraint.achievementId === 'AllLeagueAny')
-      );
-      
-      if (isCelticsAllLeague) {
-        console.log(`\n🎯 [DEBUG GRID] Celtics × All-League Team intersection evaluation:`);
-        console.log(`   - Row: ${row.label} (type: ${rowConstraint.type}, tid: ${rowConstraint.tid}, achievement: ${rowConstraint.achievementId})`);
-        console.log(`   - Col: ${col.label} (type: ${colConstraint.type}, tid: ${colConstraint.tid}, achievement: ${colConstraint.achievementId})`);
-        console.log(`   - Total players to evaluate: ${players.length}`);
-      }
-      
+      // Debug logging removed for performance - was causing verbose logs for every player evaluation
       const eligiblePids = players
         .filter((p, index) => {
-          const isEligible = evaluateConstraintPair(p, rowConstraint, colConstraint);
-          
-          // DEBUG: Track each player evaluation for Celtics × All-League
-          if (isCelticsAllLeague) {
-            const isJaylenBrown = p.name && (p.name.includes('Jaylen') || p.name.includes('Brown'));
-            if (isJaylenBrown || index < 10) { // Log first 10 players + any Jaylen Brown
-              console.log(`     Player ${p.pid} (${p.name}): ${isEligible ? '✅ ELIGIBLE' : '❌ NOT ELIGIBLE'}`);
-            }
-          }
-          
-          return isEligible;
+          return evaluateConstraintPair(p, rowConstraint, colConstraint);
         })
         .map(p => p.pid);
-      
-      if (isCelticsAllLeague) {
-        console.log(`   📊 [DEBUG GRID] Final result: ${eligiblePids.length} eligible players`);
-        console.log(`   Player IDs: [${eligiblePids.slice(0, 10).join(', ')}${eligiblePids.length > 10 ? '...' : ''}]`);
-      }
       
       if (eligiblePids.length === 0) {
         throw new Error(`No eligible players for intersection ${row.label} × ${col.label}`);
       }
       
       intersections[cellKey] = eligiblePids;
-      console.log(`Intersection ${row.label} × ${col.label}: ${eligiblePids.length} eligible players`);
+      
+      // Debug logging removed for performance - was logging for every intersection calculation
+      const DEBUG = import.meta.env.VITE_DEBUG === 'true';
+      if (DEBUG) {
+        console.log(`Intersection ${row.label} × ${col.label}: ${eligiblePids.length} eligible players`);
+      }
     }
   }
   
