@@ -1034,26 +1034,12 @@ export default function Home() {
             setUsedPids(new Set());
             setRankCache({});
             
-            // Calculate intersections for custom grid using season-aware logic
-            const allCellKeys = customRows.flatMap((row, rowIndex) => 
-              customCols.map((col, colIndex) => cellKey(row.key, col.key, customRows, customCols))
-            );
-            
+            // Calculate intersections for custom grid using position-based keys
             const newIntersections: Record<string, number[]> = {};
             
-            for (let i = 0; i < allCellKeys.length; i++) {
-              const key = allCellKeys[i];
-              // Determine row and column indices based on key format
-              let rowIndex: number, colIndex: number;
-              if (key.includes('|')) {
-                // Old format: rowKey|colKey
-                const [rowKey, colKey] = key.split('|');
-                rowIndex = customRows.findIndex(r => r.key === rowKey);
-                colIndex = customCols.findIndex(c => c.key === colKey);
-              } else {
-                // New format: rowIndex-colIndex
-                [rowIndex, colIndex] = key.split('-').map(Number);
-              }
+            for (let rowIndex = 0; rowIndex < customRows.length; rowIndex++) {
+              for (let colIndex = 0; colIndex < customCols.length; colIndex++) {
+                const key = `${rowIndex}-${colIndex}`;
               
               const row = customRows[rowIndex];
               const col = customCols[colIndex];
@@ -1094,6 +1080,7 @@ export default function Home() {
                 }
                 
                 newIntersections[key] = eligiblePlayers.map(p => p.pid);
+              }
               }
             }
             
