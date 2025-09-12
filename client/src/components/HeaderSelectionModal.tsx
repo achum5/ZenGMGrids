@@ -283,7 +283,11 @@ export function HeaderSelectionModal({
 
   return (
     <div 
-      className="absolute top-full left-0 mt-1 w-80 max-h-96 bg-background border rounded-lg shadow-xl flex flex-col z-50"
+      className="absolute top-full left-0 mt-1 w-[95vw] sm:w-80 max-w-sm sm:max-w-none max-h-[60vh] sm:max-h-96 bg-background border rounded-lg shadow-xl flex flex-col z-50"
+      style={{
+        // Prevent dropdown from going off-screen
+        transform: 'translateX(max(-50%, min(0px, calc(100vw - 100% - 1rem))))'
+      }}
       ref={modalRef}
       tabIndex={0}
       onKeyDown={(e) => {
