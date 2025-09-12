@@ -5,12 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Grid3x3, Trash2, Play, RotateCcw, X, ArrowUpDown, ChevronDown, Wand2 } from 'lucide-react';
 import type { LeagueData, Team, CatTeam } from '@/types/bbgm';
 import { detectSport } from '@/lib/grid-sharing';
-import { HeaderSelectionModal } from './HeaderSelectionModal';
 import { getTeamOptions, getAchievementOptions, calculateCustomCellIntersection, headerConfigToCatTeam, type TeamOption, type AchievementOption, type HeaderConfig } from '@/lib/custom-grid-utils';
 import { buildSeasonIndex, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 
@@ -97,8 +96,6 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     { type: null, value: null, label: null }
   ]);
   
-  // Header dropdown state - track which header dropdown is open
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [hideZeroResults, setHideZeroResults] = useState(false);
   
   // Loading state for cell count calculations
@@ -512,101 +509,145 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     return count !== undefined ? (count > 500 ? '500+' : count.toString()) : '—';
   };
 
-  // Toggle header dropdown
-  const toggleHeaderDropdown = (isRow: boolean, index: number) => {
-    const position = `${isRow ? 'row' : 'col'}-${index}`;
-    setOpenDropdown(openDropdown === position ? null : position);
-  };
 
-  // Handle selection from dropdown
-  const handleHeaderSelection = (position: string, type: 'team' | 'achievement', value: string, label: string) => {
-    const [rowOrCol, indexStr] = position.split('-');
-    const index = parseInt(indexStr);
-    const isRow = rowOrCol === 'row';
+  // Get teams and achievements for dropdown
+  const getDropdownItems = () => {
+    if (!leagueData) return { teams: [], achievements: [] };
+
+    // Get teams
+    const teams = leagueData.teams
+      ?.filter(team => !team.disabled)
+      ?.map(team => ({
+        id: team.tid.toString(),
+        name: `${team.region || team.abbrev} ${team.name}`.trim(),
+        type: 'team' as const
+      }))
+      ?.sort((a, b) => a.name.localeCompare(b.name)) || [];
+
+    // Get achievements
+    const sport = detectSport(leagueData);
+    const seasonIndex = buildSeasonIndex(leagueData.players, sport);
+    const achievementOptions = getAchievementOptions(sport, seasonIndex);
     
-    updateSelectorValue(isRow, index, type, value, label);
-    setOpenDropdown(null); // Close dropdown after selection
+    const achievements = achievementOptions.map(achievement => ({
+      id: achievement.id,
+      name: achievement.label,
+      type: 'achievement' as const
+    }));
+
+    return { teams, achievements };
   };
 
-  // Render header selector with inline dropdown
+  // Render header selector with simple dropdown
   const renderHeaderSelector = (isRow: boolean, index: number) => {
     const selector = isRow ? rowSelectors[index] : colSelectors[index];
-    const position = `${isRow ? 'row' : 'col'}-${index}`;
-    const isDropdownOpen = openDropdown === position;
-    const triggerRef = useRef<HTMLDivElement>(null);
+    const { teams, achievements } = getDropdownItems();
     
     return (
-      <div className="relative">
-        <div 
-          ref={triggerRef}
-          className="aspect-square flex flex-col items-center justify-center bg-background border rounded transition-colors p-0.5 sm:p-1 lg:p-2 relative group text-[8px] sm:text-xs lg:text-sm min-h-[40px] sm:min-h-[60px] lg:min-h-[80px] cursor-pointer hover:bg-muted"
-          onClick={() => toggleHeaderDropdown(isRow, index)}
-          data-testid={`header-${isRow ? 'row' : 'col'}-${index}`}
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              toggleHeaderDropdown(isRow, index);
-            }
-          }}
-        >
-        {selector.label ? (
-          <>
-            <div className="text-center w-full h-full flex flex-col items-center justify-center">
-              {selector.type && (
-                <Badge variant="outline" className="text-[6px] sm:text-[8px] lg:text-[10px] mb-0.5 px-0.5 sm:px-1 py-0 leading-none">
-                  {selector.type}
-                </Badge>
-              )}
-              <div className="text-[6px] sm:text-[8px] lg:text-xs font-medium leading-tight break-words text-center px-0.5 overflow-hidden">
-                {selector.label}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <div 
+            className="aspect-square flex flex-col items-center justify-center bg-background border rounded transition-colors p-0.5 sm:p-1 lg:p-2 relative group text-[8px] sm:text-xs lg:text-sm min-h-[40px] sm:min-h-[60px] lg:min-h-[80px] cursor-pointer hover:bg-muted"
+            data-testid={`header-${isRow ? 'row' : 'col'}-${index}`}
+          >
+            {selector.label ? (
+              <>
+                <div className="text-center w-full h-full flex flex-col items-center justify-center">
+                  {selector.type && (
+                    <Badge variant="outline" className="text-[6px] sm:text-[8px] lg:text-[10px] mb-0.5 px-0.5 sm:px-1 py-0 leading-none">
+                      {selector.type}
+                    </Badge>
+                  )}
+                  <div className="text-[6px] sm:text-[8px] lg:text-xs font-medium leading-tight break-words text-center px-0.5 overflow-hidden">
+                    {selector.label}
+                  </div>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (isRow) {
+                      const newRowSelectors = [...rowSelectors];
+                      newRowSelectors[index] = { type: null, value: null, label: null };
+                      setRowSelectors(newRowSelectors);
+                    } else {
+                      const newColSelectors = [...colSelectors];
+                      newColSelectors[index] = { type: null, value: null, label: null };
+                      setColSelectors(newColSelectors);
+                    }
+                  }}
+                  className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center text-[10px] font-bold"
+                  title="Clear selection"
+                  data-testid={`button-clear-${isRow ? 'row' : 'col'}-${index}`}
+                >
+                  ×
+                </button>
+              </>
+            ) : (
+              <div className="text-center w-full h-full flex flex-col items-center justify-center space-y-1">
+                <div className="text-[9px] sm:text-[10px] font-medium text-muted-foreground leading-tight">
+                  Click to Select
+                </div>
+                <div className="text-[9px] sm:text-[10px] font-medium text-muted-foreground leading-tight">
+                  Team or Achievement
+                </div>
               </div>
-            </div>
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (isRow) {
-                  const newRowSelectors = [...rowSelectors];
-                  newRowSelectors[index] = { type: null, value: null, label: null };
-                  setRowSelectors(newRowSelectors);
-                } else {
-                  const newColSelectors = [...colSelectors];
-                  newColSelectors[index] = { type: null, value: null, label: null };
-                  setColSelectors(newColSelectors);
-                }
-              }}
-              className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center text-[10px] font-bold"
-              title="Clear selection"
-              data-testid={`button-clear-${isRow ? 'row' : 'col'}-${index}`}
-            >
-              ×
-            </button>
-          </>
-        ) : (
-          <div className="text-center w-full h-full flex flex-col items-center justify-center space-y-1">
-            <div className="text-[9px] sm:text-[10px] font-medium text-muted-foreground leading-tight">
-              Click to Select
-            </div>
-            <div className="text-[9px] sm:text-[10px] font-medium text-muted-foreground leading-tight">
-              Team or Achievement
-            </div>
+            )}
           </div>
-        )}
-        </div>
+        </DropdownMenuTrigger>
         
-        {/* Inline dropdown */}
-        {isDropdownOpen && (
-          <HeaderSelectionModal
-            open={true}
-            onOpenChange={() => setOpenDropdown(null)}
-            leagueData={leagueData}
-            onSelect={(type, value, label) => handleHeaderSelection(position, type, value, label)}
-            headerPosition={position}
-            triggerElementRef={triggerRef}
-          />
-        )}
-      </div>
+        <DropdownMenuContent 
+          side="bottom" 
+          align="end" 
+          sideOffset={4}
+          className="w-[min(90vw,20rem)] sm:w-80 p-0 max-h-[60vh] sm:max-h-96"
+        >
+          <div className="max-h-[60vh] sm:max-h-96 overflow-y-auto">
+            {/* Teams Section */}
+            {teams.length > 0 && (
+              <>
+                <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Teams
+                </div>
+                {teams.map(team => (
+                  <DropdownMenuItem
+                    key={team.id}
+                    onSelect={() => updateSelectorValue(isRow, index, 'team', team.id, team.name)}
+                    className="px-2 py-1.5 text-sm cursor-pointer"
+                    data-testid={`team-option-${team.id}`}
+                  >
+                    {team.name}
+                  </DropdownMenuItem>
+                ))}
+              </>
+            )}
+            
+            {/* Separator */}
+            {teams.length > 0 && achievements.length > 0 && (
+              <DropdownMenuSeparator />
+            )}
+            
+            {/* Achievements Section */}
+            {achievements.length > 0 && (
+              <>
+                <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Achievements
+                </div>
+                {achievements.map(achievement => (
+                  <DropdownMenuItem
+                    key={achievement.id}
+                    onSelect={() => updateSelectorValue(isRow, index, 'achievement', achievement.id, achievement.name)}
+                    className="px-2 py-1.5 text-sm cursor-pointer"
+                    data-testid={`achievement-option-${achievement.id}`}
+                  >
+                    {achievement.name}
+                  </DropdownMenuItem>
+                ))}
+              </>
+            )}
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
     );
   };
 
