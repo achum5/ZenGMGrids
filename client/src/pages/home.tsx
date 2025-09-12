@@ -707,15 +707,20 @@ export default function Home() {
     setRankCache({});
   }, []);
 
-  // Handle Give Up - auto-fill empty cells using cached rankings (no recomputation)
+  // Handle Give Up - smart auto-fill with optimal player distribution
   const handleGiveUp = useCallback(() => {
     if (!leagueData) return;
     
-    // Find all empty cells in stable order (row-major: top→bottom, left→right)
-    const allCellKeys = rows.flatMap((row, rowIndex) => 
-      cols.map((col, colIndex) => cellKey(row.key, col.key, rows, cols))
-    );
-    const emptyCells = allCellKeys.filter(key => !cells[key]?.name);
+    // Find all empty cells using position-based keys
+    const emptyCells: string[] = [];
+    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+      for (let colIndex = 0; colIndex < cols.length; colIndex++) {
+        const key = `${rowIndex}-${colIndex}`;
+        if (!cells[key]?.name) {
+          emptyCells.push(key);
+        }
+      }
+    }
     
     if (emptyCells.length === 0) return;
     
@@ -727,20 +732,59 @@ export default function Home() {
       }
     });
     
-    const newCells = { ...cells };
-    const updatedRankCache = { ...rankCache };
+    // Get eligible players for each empty cell, sorted by frequency (most common first)
+    const cellPlayerData: Record<string, Array<{player: Player, count: number}>> = {};
     
-    // Process each empty cell
     for (const cellKey of emptyCells) {
-      // Get or build cached ranking for this cell
-      if (!updatedRankCache[cellKey]) {
-        updatedRankCache[cellKey] = buildRankCacheForCell(cellKey);
+      const eligiblePids = intersections[cellKey] || [];
+      const eligiblePlayers = leagueData.players.filter(p => eligiblePids.includes(p.pid));
+      
+      if (eligiblePlayers.length === 0) {
+        cellPlayerData[cellKey] = [];
+        continue;
       }
       
-      const ranked = updatedRankCache[cellKey];
+      // Count how many cells each player is eligible for (across all empty cells)
+      const playerCounts = new Map<number, number>();
       
-      if (ranked.length === 0) {
-        // No eligible players - fill with placeholder
+      for (const emptyCellKey of emptyCells) {
+        const cellEligiblePids = intersections[emptyCellKey] || [];
+        for (const player of eligiblePlayers) {
+          if (cellEligiblePids.includes(player.pid)) {
+            playerCounts.set(player.pid, (playerCounts.get(player.pid) || 0) + 1);
+          }
+        }
+      }
+      
+      // Create sorted list: most common first (highest count)
+      const playersWithCounts = eligiblePlayers.map(player => ({
+        player,
+        count: playerCounts.get(player.pid) || 0
+      }));
+      
+      // Sort by count (most common first), then by name for stability
+      playersWithCounts.sort((a, b) => {
+        if (b.count !== a.count) return b.count - a.count;
+        return a.player.name.localeCompare(b.player.name);
+      });
+      
+      cellPlayerData[cellKey] = playersWithCounts;
+    }
+    
+    // Smart assignment: most common answers first, with conflict resolution
+    const newCells = { ...cells };
+    const finalUsedPids = new Set(usedPidsSet);
+    
+    // Process cells in order of difficulty (fewest options first to avoid conflicts)
+    const cellsByDifficulty = emptyCells.slice().sort((a, b) => 
+      cellPlayerData[a].length - cellPlayerData[b].length
+    );
+    
+    for (const cellKey of cellsByDifficulty) {
+      const candidates = cellPlayerData[cellKey];
+      
+      if (candidates.length === 0) {
+        // No eligible players
         newCells[cellKey] = {
           name: '—',
           correct: false,
@@ -748,51 +792,54 @@ export default function Home() {
           autoFilled: true,
           guessed: false,
         };
-        
-        // Dev logging
         console.log(`🔍 Give Up: ${cellKey} -> "—" (no eligible players)`);
         continue;
       }
       
-      // Scan ranked from index 0 upward; pick first unused player
-      let selectedEntry = null;
-      let selectedRankIndex = -1;
-      let skippedPlayers = [];
+      // Find first unused player from most common to least common
+      let selectedPlayer = null;
+      let selectedIndex = -1;
       
-      for (let i = 0; i < ranked.length; i++) {
-        const entry = ranked[i];
-        if (!usedPidsSet.has(entry.player.pid)) {
-          selectedEntry = entry;
-          selectedRankIndex = i;
+      for (let i = 0; i < candidates.length; i++) {
+        const candidate = candidates[i];
+        if (!finalUsedPids.has(candidate.player.pid)) {
+          selectedPlayer = candidate.player;
+          selectedIndex = i;
           break;
-        } else {
-          // Track skipped players for logging
-          skippedPlayers.push({ pid: entry.player.pid, name: entry.player.name, rank: i + 1 });
         }
       }
       
-      if (selectedEntry) {
+      if (selectedPlayer) {
+        // Calculate proper rarity score for the selected player in this cell
+        const eligiblePool = candidates.map(c => ({
+          name: c.player.name,
+          pid: c.player.pid,
+          seasons: c.player.careerStats?.gp || 0,
+        }));
+        
+        const guessedPlayer = {
+          name: selectedPlayer.name,
+          pid: selectedPlayer.pid,
+          seasons: selectedPlayer.careerStats?.gp || 0,
+        };
+        
+        const rarity = calculateRarity(eligiblePool, guessedPlayer);
+        
         newCells[cellKey] = {
-          name: selectedEntry.player.name,
-          correct: true, // Auto-filled answers are considered correct for display
+          name: selectedPlayer.name,
+          correct: true,
           locked: true,
           autoFilled: true,
           guessed: false,
-          player: selectedEntry.player,
-          rarity: undefined, // No rarity points for revealed answers
-          points: 0, // No points for revealed answers
+          player: selectedPlayer,
+          rarity: rarity,
+          points: rarity,
         };
         
-        // Add to used set for next iterations
-        usedPidsSet.add(selectedEntry.player.pid);
-        
-        // Dev logging
-        const skippedInfo = skippedPlayers.length > 0 
-          ? ` (skipped: ${skippedPlayers.map(s => `${s.name}(#${s.rank})`).join(', ')})` 
-          : '';
-        console.log(`🔍 Give Up: ${cellKey} -> ${selectedEntry.player.name} (rank #${selectedRankIndex + 1}, rarity ${selectedEntry.rarity})${skippedInfo}`);
+        finalUsedPids.add(selectedPlayer.pid);
+        console.log(`🔍 Give Up: ${cellKey} -> ${selectedPlayer.name} (option #${selectedIndex + 1}, appears in ${candidates[selectedIndex].count} cells, rarity ${rarity})`);
       } else {
-        // All players already used - fill with placeholder
+        // All players already used
         newCells[cellKey] = {
           name: '—',
           correct: false,
@@ -800,17 +847,14 @@ export default function Home() {
           autoFilled: true,
           guessed: false,
         };
-        
-        // Dev logging
-        console.log(`🔍 Give Up: ${cellKey} -> "—" (all ${ranked.length} players already used)`);
+        console.log(`🔍 Give Up: ${cellKey} -> "—" (all ${candidates.length} players already used)`);
       }
     }
     
-    // Single batched state update
+    // Update state
     setCells(newCells);
-    setRankCache(updatedRankCache);
-    setUsedPids(usedPidsSet);
-  }, [leagueData, rows, cols, cells, rankCache, buildRankCacheForCell]);
+    setUsedPids(finalUsedPids);
+  }, [leagueData, rows, cols, cells, intersections]);
 
   const handleRetryGrid = useCallback(() => {
     if (!currentGridId) return;
