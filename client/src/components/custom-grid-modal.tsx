@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Grid3x3, Trash2, Play, RotateCcw, X, ArrowUpDown, ChevronDown, Wand2 } from 'lucide-react';
 import type { LeagueData, Team, CatTeam } from '@/types/bbgm';
@@ -510,38 +511,99 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
   };
 
 
+  // Build team logo URL
+  const buildTeamLogoURL = (team: Team): string => {
+    // Constants for BBGM logo URLs
+    const BBGM_ASSET_BASE = 'https://play.basketball-gm.com';
+    
+    function isBBGMDefaultLogo(logoURL: string | null | undefined): boolean {
+      if (!logoURL) return false;
+      return logoURL.startsWith('/img/logos-') || logoURL.startsWith('img/logos-');
+    }
+
+    // 1. If explicit small logo URL is provided and it's custom (not BBGM default), use it
+    if (team.imgURLSmall && !isBBGMDefaultLogo(team.imgURLSmall)) {
+      return team.imgURLSmall;
+    }
+    
+    // 2. If explicit regular logo URL is provided and it's custom, use it  
+    if (team.imgURL && !isBBGMDefaultLogo(team.imgURL)) {
+      return team.imgURL;
+    }
+    
+    // 3. If BBGM default small logo path is provided, convert to absolute URL
+    if (team.imgURLSmall && isBBGMDefaultLogo(team.imgURLSmall)) {
+      const cleanPath = team.imgURLSmall.startsWith('/') ? team.imgURLSmall.substring(1) : team.imgURLSmall;
+      return `${BBGM_ASSET_BASE}/${cleanPath}`;
+    }
+    
+    // 4. If BBGM default logo path is provided, convert to absolute URL
+    if (team.imgURL && isBBGMDefaultLogo(team.imgURL)) {
+      const cleanPath = team.imgURL.startsWith('/') ? team.imgURL.substring(1) : team.imgURL;
+      return `${BBGM_ASSET_BASE}/${cleanPath}`;
+    }
+    
+    // 5. Build BBGM default URL from abbreviation
+    if (team.abbrev) {
+      const abbrev = team.abbrev.toUpperCase();
+      return `${BBGM_ASSET_BASE}/img/logos-primary/${abbrev}.svg`;
+    }
+    
+    // 6. Fallback empty string
+    return '';
+  };
+
   // Get teams and achievements for dropdown
   const getDropdownItems = () => {
-    if (!leagueData) return { teams: [], achievements: [] };
+    if (!leagueData) return { teams: [], seasonAchievements: [], careerAchievements: [] };
 
-    // Get teams
+    // Get teams with logos
     const teams = leagueData.teams
       ?.filter(team => !team.disabled)
       ?.map(team => ({
         id: team.tid.toString(),
         name: `${team.region || team.abbrev} ${team.name}`.trim(),
+        logoUrl: buildTeamLogoURL(team),
         type: 'team' as const
       }))
       ?.sort((a, b) => a.name.localeCompare(b.name)) || [];
 
-    // Get achievements
+    // Get achievements and categorize them
     const sport = detectSport(leagueData);
     const seasonIndex = buildSeasonIndex(leagueData.players, sport);
     const achievementOptions = getAchievementOptions(sport, seasonIndex);
     
-    const achievements = achievementOptions.map(achievement => ({
-      id: achievement.id,
-      name: achievement.label,
-      type: 'achievement' as const
-    }));
+    const seasonAchievements: Array<{id: string, name: string, type: 'achievement'}> = [];
+    const careerAchievements: Array<{id: string, name: string, type: 'achievement'}> = [];
+    
+    achievementOptions.forEach(achievement => {
+      // Check if this is a season achievement based on the achievement ID
+      const isSeasonAchievement = SEASON_ACHIEVEMENTS.some(sa => sa.id === achievement.id);
+      
+      const achievementItem = {
+        id: achievement.id,
+        name: achievement.label,
+        type: 'achievement' as const
+      };
+      
+      if (isSeasonAchievement) {
+        seasonAchievements.push(achievementItem);
+      } else {
+        careerAchievements.push(achievementItem);
+      }
+    });
 
-    return { teams, achievements };
+    // Sort achievements alphabetically within each category
+    seasonAchievements.sort((a, b) => a.name.localeCompare(b.name));
+    careerAchievements.sort((a, b) => a.name.localeCompare(b.name));
+
+    return { teams, seasonAchievements, careerAchievements };
   };
 
-  // Render header selector with simple dropdown
+  // Render header selector with tabbed dropdown
   const renderHeaderSelector = (isRow: boolean, index: number) => {
     const selector = isRow ? rowSelectors[index] : colSelectors[index];
-    const { teams, achievements } = getDropdownItems();
+    const { teams, seasonAchievements, careerAchievements } = getDropdownItems();
     
     return (
       <DropdownMenu>
@@ -600,52 +662,79 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
           side="bottom" 
           align="end" 
           sideOffset={4}
-          className="w-[min(90vw,20rem)] sm:w-80 p-0 max-h-[60vh] sm:max-h-96"
+          className="w-[min(90vw,20rem)] sm:w-80 p-0"
         >
-          <div className="max-h-[60vh] sm:max-h-96 overflow-y-auto">
-            {/* Teams Section */}
-            {teams.length > 0 && (
-              <>
-                <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Teams
-                </div>
+          <Tabs defaultValue="teams" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 m-2 mb-0">
+              <TabsTrigger value="teams" className="text-xs">Teams</TabsTrigger>
+              <TabsTrigger value="achievements" className="text-xs">Achievements</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="teams" className="mt-0">
+              <div className="max-h-[50vh] sm:max-h-80 overflow-y-auto p-0">
                 {teams.map(team => (
                   <DropdownMenuItem
                     key={team.id}
                     onSelect={() => updateSelectorValue(isRow, index, 'team', team.id, team.name)}
-                    className="px-2 py-1.5 text-sm cursor-pointer"
+                    className="px-3 py-2 text-sm cursor-pointer flex items-center gap-2"
                     data-testid={`team-option-${team.id}`}
                   >
-                    {team.name}
+                    <img
+                      src={team.logoUrl}
+                      alt={`${team.name} logo`}
+                      className="w-4 h-4 object-contain flex-shrink-0"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                    <span className="truncate">{team.name}</span>
                   </DropdownMenuItem>
                 ))}
-              </>
-            )}
+              </div>
+            </TabsContent>
             
-            {/* Separator */}
-            {teams.length > 0 && achievements.length > 0 && (
-              <DropdownMenuSeparator />
-            )}
-            
-            {/* Achievements Section */}
-            {achievements.length > 0 && (
-              <>
-                <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Achievements
-                </div>
-                {achievements.map(achievement => (
-                  <DropdownMenuItem
-                    key={achievement.id}
-                    onSelect={() => updateSelectorValue(isRow, index, 'achievement', achievement.id, achievement.name)}
-                    className="px-2 py-1.5 text-sm cursor-pointer"
-                    data-testid={`achievement-option-${achievement.id}`}
-                  >
-                    {achievement.name}
-                  </DropdownMenuItem>
-                ))}
-              </>
-            )}
-          </div>
+            <TabsContent value="achievements" className="mt-0">
+              <div className="max-h-[50vh] sm:max-h-80 overflow-y-auto p-0">
+                {/* Career Achievements */}
+                {careerAchievements.length > 0 && (
+                  <>
+                    <div className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide bg-muted/50">
+                      Career Achievements
+                    </div>
+                    {careerAchievements.map(achievement => (
+                      <DropdownMenuItem
+                        key={achievement.id}
+                        onSelect={() => updateSelectorValue(isRow, index, 'achievement', achievement.id, achievement.name)}
+                        className="px-3 py-2 text-sm cursor-pointer"
+                        data-testid={`achievement-option-${achievement.id}`}
+                      >
+                        <span className="truncate">{achievement.name}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </>
+                )}
+                
+                {/* Season Achievements */}
+                {seasonAchievements.length > 0 && (
+                  <>
+                    <div className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide bg-muted/50">
+                      Season Achievements
+                    </div>
+                    {seasonAchievements.map(achievement => (
+                      <DropdownMenuItem
+                        key={achievement.id}
+                        onSelect={() => updateSelectorValue(isRow, index, 'achievement', achievement.id, achievement.name)}
+                        className="px-3 py-2 text-sm cursor-pointer"
+                        data-testid={`achievement-option-${achievement.id}`}
+                      >
+                        <span className="truncate">{achievement.name}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
         </DropdownMenuContent>
       </DropdownMenu>
     );
