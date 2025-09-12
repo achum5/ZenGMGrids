@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Grid3x3, Trash2, Play, RotateCcw, X, ArrowUpDown, Search, ChevronDown, Wand2 } from 'lucide-react';
+import { Grid3x3, Trash2, Play, RotateCcw, X, ArrowUpDown, ChevronDown, Wand2 } from 'lucide-react';
 import type { LeagueData, Team, CatTeam } from '@/types/bbgm';
 import { detectSport } from '@/lib/grid-sharing';
 import { getTeamOptions, getAchievementOptions, calculateCustomCellIntersection, headerConfigToCatTeam, type TeamOption, type AchievementOption, type HeaderConfig } from '@/lib/custom-grid-utils';
@@ -100,19 +100,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
   // Track which header selector is open
   const [openHeaderSelector, setOpenHeaderSelector] = useState<string | null>(null);
   
-  // Search and filter state for unified combobox
-  const [searchQuery, setSearchQuery] = useState('');
+  // Filter state for list
   const [filterType, setFilterType] = useState<'all' | 'teams' | 'achievements'>('all');
-  const [activeIndex, setActiveIndex] = useState(-1);
-  
-  // Diacritic-insensitive folding (same as in player search)
-  const fold = (s: string): string => {
-    return s.normalize('NFKD')
-      .toLowerCase()
-      .replace(/[\u0300-\u036f]/g, '') // Remove combining diacritical marks
-      .replace(/'/g, '') // Remove apostrophes for search matching
-      .replace(/[-]/g, ' '); // Convert hyphens to spaces for flexible search
-  };
   const [hideZeroResults, setHideZeroResults] = useState(false);
   
   // Loading state for cell count calculations
@@ -195,7 +184,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     setCalculating(true);
     // Close the header selector and clear search
     setOpenHeaderSelector(null);
-    setSearchQuery('');
+    // Reset state
   }, []);
 
   // Helper function to determine if an achievement is season-specific
@@ -389,9 +378,9 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
       isSeason: isSeasonAchievement(achievement.id), // Add season/career categorization
     }))
     .sort((a, b) => {
-      // Sort by season first (season achievements before career)
-      if (a.isSeason && !b.isSeason) return -1;
-      if (!a.isSeason && b.isSeason) return 1;
+      // Sort by career first (career achievements before season)
+      if (!a.isSeason && b.isSeason) return -1; // Career first
+      if (a.isSeason && !b.isSeason) return 1;   // Season second
       
       // If both are same type (season or career), sort alphabetically
       return a.label.localeCompare(b.label);
@@ -400,34 +389,12 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     return { teams, achievements };
   }, [teamOptions, achievementOptions, leagueData, isSeasonAchievement]);
   
-  // Filter options based on search and type filter
+  // Simple filter options based on type filter only (no search)
   const filteredOptions = useMemo(() => {
     let teams = unifiedOptions.teams;
     let achievements = unifiedOptions.achievements;
     
-    // Enhanced search filter (same logic as player search)
-    if (searchQuery.trim()) {
-      const query = searchQuery.trim();
-      if (query.length >= 1) { // More responsive than player search (start at 1 char)
-        const queryFolded = fold(query);
-        const queryWithHyphens = queryFolded.replace(/ /g, '-');
-        const queryWithPeriods = queryFolded.replace(/([a-z])([a-z])/g, '$1.$2.');
-        const queryNoPeriods = queryFolded.replace(/\./g, '');
-        
-        const matchesQuery = (option: any) => {
-          const searchTextFolded = fold(option.searchText);
-          return searchTextFolded.includes(queryFolded) ||
-                 searchTextFolded.includes(queryWithHyphens) ||
-                 searchTextFolded.includes(queryNoPeriods) ||
-                 (queryWithPeriods.length > 2 && searchTextFolded.includes(queryWithPeriods));
-        };
-        
-        teams = teams.filter(matchesQuery);
-        achievements = achievements.filter(matchesQuery);
-      }
-    }
-    
-    // Apply type filter
+    // Apply type filter only
     if (filterType === 'teams') {
       achievements = [];
     } else if (filterType === 'achievements') {
@@ -435,7 +402,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     }
     
     return { teams, achievements };
-  }, [unifiedOptions, searchQuery, filterType]);
+  }, [unifiedOptions, filterType]);
   
   // Check if all selectors are filled
   const allSelectorsComplete = rowSelectors.every(s => s.type && s.value) && 
@@ -632,52 +599,6 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
             </div>
           </div>
           
-          {/* Search input */}
-          <div className="p-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                type="text"
-                placeholder="Search teams or achievements…"
-                value={searchQuery}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  setSearchQuery(e.target.value);
-                  setActiveIndex(-1);
-                }}
-                className="pl-10 h-9"
-                autoFocus
-                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                  const allOptions = [...filteredOptions.teams, ...filteredOptions.achievements];
-                  
-                  if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    const newIndex = Math.min(activeIndex + 1, allOptions.length - 1);
-                    setActiveIndex(newIndex);
-                  } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    const newIndex = Math.max(activeIndex - 1, -1);
-                    setActiveIndex(newIndex);
-                  } else if (e.key === 'Enter' && activeIndex >= 0 && allOptions[activeIndex]) {
-                    e.preventDefault();
-                    const selectedOption = allOptions[activeIndex];
-                    if (selectedOption.type === 'team') {
-                      updateSelectorValue(isRow, index, 'team', selectedOption.id, selectedOption.label);
-                    } else {
-                      updateSelectorValue(isRow, index, 'achievement', selectedOption.id, selectedOption.label);
-                    }
-                    setOpenHeaderSelector(null);
-                    setSearchQuery('');
-                    setActiveIndex(-1);
-                  } else if (e.key === 'Escape') {
-                    e.preventDefault();
-                    setOpenHeaderSelector(null);
-                    setSearchQuery('');
-                    setActiveIndex(-1);
-                  }
-                }}
-              />
-            </div>
-          </div>
           
           {/* Filter chips */}
           <div className="px-2 pb-2">
@@ -729,20 +650,14 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
               <div className="p-2">
                 <div className="text-xs font-medium text-muted-foreground mb-2 px-2">Teams</div>
                 {filteredOptions.teams.map((team, teamIndex) => {
-                  const globalIndex = teamIndex;
-                  const isActive = activeIndex === globalIndex;
                   return (
                     <button
                       key={`team-${team.id}`}
                       onClick={() => {
                         updateSelectorValue(isRow, index, 'team', team.id, team.label);
                         setOpenHeaderSelector(null);
-                        setSearchQuery('');
-                        setActiveIndex(-1);
                       }}
-                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-left hover:bg-accent hover:text-accent-foreground ${
-                        isActive ? 'bg-accent text-accent-foreground' : ''
-                      }`}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-left hover:bg-accent hover:text-accent-foreground"
                     >
                       <TeamLogoIcon teamData={team.teamData} />
                       <div className="flex-1">
@@ -762,20 +677,14 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
               <div className="p-2">
                 <div className="text-xs font-medium text-muted-foreground mb-2 px-2">Achievements</div>
                 {filteredOptions.achievements.map((achievement, achievementIndex) => {
-                  const globalIndex = filteredOptions.teams.length + achievementIndex;
-                  const isActive = activeIndex === globalIndex;
                   return (
                     <button
                       key={`achievement-${achievement.id}`}
                       onClick={() => {
                         updateSelectorValue(isRow, index, 'achievement', achievement.id, achievement.label);
                         setOpenHeaderSelector(null);
-                        setSearchQuery('');
-                        setActiveIndex(-1);
                       }}
-                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-left hover:bg-accent hover:text-accent-foreground ${
-                        isActive ? 'bg-accent text-accent-foreground' : ''
-                      }`}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-left hover:bg-accent hover:text-accent-foreground"
                     >
                       <div className="w-5 h-5 rounded bg-muted flex items-center justify-center text-xs">
                         🏆
