@@ -736,7 +736,7 @@ export default function Home() {
     const puzzleSeed = `${rows.map(r => r.key).join('-')}_${cols.map(c => c.key).join('-')}`;
     
     // Get eligible players for each empty cell, sorted by frequency (most common first)
-    const cellPlayerData: Record<string, Array<{player: Player, count: number}>> = {};
+    const cellPlayerData: Record<string, Array<{player: Player, count: number, rarity: number}>> = {};
     
     for (const cellKey of emptyCells) {
       const eligiblePids = intersections[cellKey] || [];
@@ -747,7 +747,7 @@ export default function Home() {
         continue;
       }
       
-      // Count how many cells each player is eligible for (for logging purposes)
+      // Count how many cells each player is eligible for across the entire grid
       const playerCounts = new Map<number, number>();
       
       for (const emptyCellKey of emptyCells) {
@@ -759,30 +759,20 @@ export default function Home() {
         }
       }
       
-      // Calculate rarity for each player in this specific cell
-      const eligiblePool = eligiblePlayers.map(p => playerToEligibleLite(p));
-      const playersWithRarity = eligiblePlayers.map(player => {
-        const guessedPlayer = playerToEligibleLite(player);
-        const rarity = computeRarityForGuess({
-          guessed: guessedPlayer,
-          eligiblePool: eligiblePool,
-          puzzleSeed: puzzleSeed
-        });
-        
-        return {
-          player,
-          count: playerCounts.get(player.pid) || 0,
-          rarity: rarity
-        };
-      });
+      // Sort by highest frequency (most common answers first), then by name for stability
+      const sortedPlayers = eligiblePlayers.map(player => ({
+        player,
+        count: playerCounts.get(player.pid) || 0,
+        rarity: 0 // Not used anymore, kept for type compatibility
+      }));
       
-      // Sort by rarity (most common first = lowest rarity), then by name for stability
-      playersWithRarity.sort((a, b) => {
-        if (a.rarity !== b.rarity) return a.rarity - b.rarity;
+      // Sort by count (most common first = highest count), then by name for stability
+      sortedPlayers.sort((a, b) => {
+        if (b.count !== a.count) return b.count - a.count;
         return a.player.name.localeCompare(b.player.name);
       });
       
-      cellPlayerData[cellKey] = playersWithRarity;
+      cellPlayerData[cellKey] = sortedPlayers;
     }
     
     // Smart assignment: most common answers first, with conflict resolution
@@ -824,9 +814,14 @@ export default function Home() {
       }
       
       if (selectedPlayer) {
-        // Use the pre-calculated rarity score
-        const selectedCandidate = candidates[selectedIndex];
-        const rarity = selectedCandidate.rarity;
+        // Calculate rarity for display consistency only
+        const eligiblePool = candidates.map(c => playerToEligibleLite(c.player));
+        const guessedPlayer = playerToEligibleLite(selectedPlayer);
+        const rarity = computeRarityForGuess({
+          guessed: guessedPlayer,
+          eligiblePool: eligiblePool,
+          puzzleSeed: puzzleSeed
+        });
         
         newCells[cellKey] = {
           name: selectedPlayer.name,
@@ -840,7 +835,7 @@ export default function Home() {
         };
         
         finalUsedPids.add(selectedPlayer.pid);
-        console.log(`🔍 Give Up: ${cellKey} -> ${selectedPlayer.name} (rank #${selectedIndex + 1}, appears in ${selectedCandidate.count} cells, rarity ${rarity})`);
+        console.log(`🔍 Give Up: ${cellKey} -> ${selectedPlayer.name} (rank #${selectedIndex + 1}, appears in ${candidates[selectedIndex].count} cells, rarity ${rarity})`);
       } else {
         // All players already used
         newCells[cellKey] = {
