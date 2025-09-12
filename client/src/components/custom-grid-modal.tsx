@@ -104,18 +104,6 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'teams' | 'achievements'>('all');
   const [activeIndex, setActiveIndex] = useState(-1);
-
-  // Focus the scroll container when dropdown opens
-  useEffect(() => {
-    if (openHeaderSelector) {
-      setTimeout(() => {
-        const scrollContainer = document.getElementById('cg-scroll');
-        if (scrollContainer) {
-          scrollContainer.focus();
-        }
-      }, 100);
-    }
-  }, [openHeaderSelector]);
   
   // Diacritic-insensitive folding (same as in player search)
   const fold = (s: string): string => {
@@ -711,19 +699,10 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
           </div>
           
           {/* Scrollable options list with native overflow */}
-          <div
-            id="cg-scroll"
-            role="listbox"
-            tabIndex={0}
-            data-radix-scroll-lock-ignore
+          <div 
+            className="h-64 overflow-y-auto" 
+            data-radix-scroll-lock-ignore 
             onWheelCapture={(e) => e.stopPropagation()}
-            style={{
-              maxHeight: '56vh',
-              overflowY: 'auto',
-              overscrollBehavior: 'contain',
-              WebkitOverflowScrolling: 'touch',
-            }}
-            className="scrollbar-gutter-stable"
           >
             {filteredOptions.teams.length === 0 && filteredOptions.achievements.length === 0 && (
               <div className="py-6 text-center text-sm text-muted-foreground">
