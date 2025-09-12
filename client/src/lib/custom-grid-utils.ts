@@ -343,6 +343,9 @@ export function debugAchievementIntersection(
   teams: Team[],
   seasonIndex?: SeasonIndex
 ): void {
+  const DEBUG = import.meta.env.VITE_DEBUG === 'true';
+  if (!DEBUG) return;
+  
   console.log(`🚀 [DEBUG] Starting achievement intersection debug test`);
   console.log(`   Players: ${players.length}, Teams: ${teams.length}, SeasonIndex: ${!!seasonIndex}`);
   
