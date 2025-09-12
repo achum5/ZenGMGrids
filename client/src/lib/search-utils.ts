@@ -146,34 +146,52 @@ export function searchIndex<T>(
     }
   }
   
-  // 4. Token-based fuzzy matches (lower relevance)
-  const tokenMatchCounts = new Map<number, number>();
+  // 4. Token-based fuzzy matches (lower relevance) - REQUIRE ALL TOKENS for multi-token queries
+  const tokenMatchCounts = new Map<number, { exactMatches: number, prefixMatches: number }>();
   
   queryTokens.forEach(token => {
     // Exact token matches
     const exactIndices = index.fullTextIndex.get(token) || [];
     exactIndices.forEach(idx => {
-      tokenMatchCounts.set(idx, (tokenMatchCounts.get(idx) || 0) + 2);
+      const current = tokenMatchCounts.get(idx) || { exactMatches: 0, prefixMatches: 0 };
+      tokenMatchCounts.set(idx, { 
+        exactMatches: current.exactMatches + 1, 
+        prefixMatches: current.prefixMatches 
+      });
     });
     
     // Prefix token matches
     for (const [indexedToken, indices] of Array.from(index.fullTextIndex.entries())) {
       if (indexedToken.startsWith(token) && indexedToken !== token) {
         indices.forEach((idx: number) => {
-          tokenMatchCounts.set(idx, (tokenMatchCounts.get(idx) || 0) + 1);
+          const current = tokenMatchCounts.get(idx) || { exactMatches: 0, prefixMatches: 0 };
+          tokenMatchCounts.set(idx, {
+            exactMatches: current.exactMatches,
+            prefixMatches: current.prefixMatches + 1
+          });
         });
       }
     }
   });
   
-  // Add fuzzy matches based on token coverage
-  for (const [idx, matchCount] of Array.from(tokenMatchCounts.entries())) {
+  // Add fuzzy matches - for multi-token queries, require ALL tokens to match
+  for (const [idx, matches] of Array.from(tokenMatchCounts.entries())) {
     if (!resultMap.has(idx)) {
-      const coverage = matchCount / queryTokens.length;
-      if (coverage >= 0.5) { // At least 50% of tokens match
+      const totalMatches = matches.exactMatches + matches.prefixMatches;
+      const hasAllTokens = totalMatches >= queryTokens.length;
+      
+      // For single token queries, use the old logic (50% coverage)
+      // For multi-token queries, require ALL tokens to match
+      const shouldInclude = queryTokens.length === 1 
+        ? totalMatches >= 1
+        : hasAllTokens;
+        
+      if (shouldInclude) {
+        // Higher relevance for exact matches
+        const relevance = Math.floor(30 + (matches.exactMatches * 10) + (matches.prefixMatches * 5));
         resultMap.set(idx, {
           item: index.items[idx],
-          relevance: Math.floor(40 * coverage),
+          relevance: Math.min(relevance, 45), // Cap at 45 to stay below substring matches
           matchType: 'fuzzy'
         });
       }
