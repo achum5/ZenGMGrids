@@ -732,6 +732,9 @@ export default function Home() {
       }
     });
     
+    // Generate puzzle seed for consistent rarity calculations
+    const puzzleSeed = `${rows.map(r => r.key).join('-')}_${cols.map(c => c.key).join('-')}`;
+    
     // Get eligible players for each empty cell, sorted by frequency (most common first)
     const cellPlayerData: Record<string, Array<{player: Player, count: number}>> = {};
     
@@ -811,19 +814,14 @@ export default function Home() {
       
       if (selectedPlayer) {
         // Calculate proper rarity score for the selected player in this cell
-        const eligiblePool = candidates.map(c => ({
-          name: c.player.name,
-          pid: c.player.pid,
-          seasons: c.player.careerStats?.gp || 0,
-        }));
+        const eligiblePool = candidates.map(c => playerToEligibleLite(c.player));
+        const guessedPlayer = playerToEligibleLite(selectedPlayer);
         
-        const guessedPlayer = {
-          name: selectedPlayer.name,
-          pid: selectedPlayer.pid,
-          seasons: selectedPlayer.careerStats?.gp || 0,
-        };
-        
-        const rarity = calculateRarity(eligiblePool, guessedPlayer);
+        const rarity = computeRarityForGuess({
+          guessed: guessedPlayer,
+          eligiblePool: eligiblePool,
+          puzzleSeed: puzzleSeed
+        });
         
         newCells[cellKey] = {
           name: selectedPlayer.name,
