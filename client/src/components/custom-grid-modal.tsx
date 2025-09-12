@@ -698,8 +698,12 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
             </div>
           </div>
           
-          {/* Scrollable options list using ScrollArea */}
-          <ScrollArea className="h-64 w-full">
+          {/* Scrollable options list with native overflow */}
+          <div 
+            className="h-64 overflow-y-auto" 
+            data-radix-scroll-lock-ignore 
+            onWheelCapture={(e) => e.stopPropagation()}
+          >
             {filteredOptions.teams.length === 0 && filteredOptions.achievements.length === 0 && (
               <div className="py-6 text-center text-sm text-muted-foreground">
                 <div>No matches—try a different team or achievement.</div>
@@ -787,7 +791,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                 })}
               </div>
             )}
-          </ScrollArea>
+          </div>
           
           {/* Helper text */}
           <div className="px-3 py-2 border-t bg-muted/30 text-xs text-muted-foreground">
