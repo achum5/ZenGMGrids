@@ -1,29 +1,12 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { X, Search, Trophy, CheckCircle } from 'lucide-react';
+import { X, Search, Trophy, Users, CheckCircle } from 'lucide-react';
 import type { LeagueData, Team } from '@/types/bbgm';
 import { detectSport } from '@/lib/grid-sharing';
 import { getAchievementOptions, type AchievementOption } from '@/lib/custom-grid-utils';
 import { buildSeasonIndex, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
-
-// Simple hook to detect mobile viewport
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(false);
-  
-  useEffect(() => {
-    const checkIsMobile = () => setIsMobile(window.innerWidth < 768);
-    checkIsMobile();
-    window.addEventListener('resize', checkIsMobile);
-    return () => window.removeEventListener('resize', checkIsMobile);
-  }, []);
-  
-  return isMobile;
-}
 
 // Constants for BBGM logo URLs
 const BBGM_ASSET_BASE = 'https://play.basketball-gm.com';
@@ -78,11 +61,21 @@ interface ListItem {
   searchText: string;
 }
 
-interface HeaderSelectionPopoverProps {
-  children: React.ReactNode; // The trigger element
+interface HeaderSelectionModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   leagueData: LeagueData | null;
   onSelect: (type: 'team' | 'achievement', value: string, label: string) => void;
   headerPosition: string; // e.g., "row-0", "col-1"
+  triggerElementRef?: React.RefObject<HTMLElement>; // For focus restoration
+}
+
+interface DropdownPosition {
+  top?: number;
+  bottom?: number;
+  left?: number;
+  right?: number;
+  transform?: string;
 }
 
 // Simple tokenization and fuzzy search (similar to player search)
@@ -103,28 +96,91 @@ function matchesSearch(searchText: string, query: string): boolean {
   return tokens.every(token => text.includes(token));
 }
 
-// Content component that will be used in both Popover and Sheet
-function HeaderSelectionContent({ 
+export function HeaderSelectionModal({ 
+  open, 
+  onOpenChange, 
   leagueData, 
   onSelect, 
   headerPosition,
-  onClose
-}: {
-  leagueData: LeagueData | null;
-  onSelect: (type: 'team' | 'achievement', value: string, label: string) => void;
-  headerPosition: string;
-  onClose: () => void;
-}) {
+  triggerElementRef 
+}: HeaderSelectionModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'teams' | 'achievements'>('all');
   const [selectedIndex, setSelectedIndex] = useState(-1); // Start with no selection
+  const [mounted, setMounted] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState<DropdownPosition>({});
+  
+  const listRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Reset state when component mounts
   useEffect(() => {
-    setSearchQuery('');
-    setActiveFilter('all');
-    setSelectedIndex(-1);
+    setMounted(true);
   }, []);
+
+  // Calculate smart positioning based on available space
+  const calculatePosition = () => {
+    if (!containerRef.current || !triggerElementRef?.current) return;
+
+    const trigger = triggerElementRef.current;
+    const dropdown = containerRef.current;
+    const triggerRect = trigger.getBoundingClientRect();
+    const dropdownRect = dropdown.getBoundingClientRect();
+    
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    // Calculate available space in each direction
+    const spaceAbove = triggerRect.top;
+    const spaceBelow = viewportHeight - triggerRect.bottom;
+    const spaceLeft = triggerRect.left;
+    const spaceRight = viewportWidth - triggerRect.right;
+    
+    // Dropdown dimensions (with some buffer)
+    const dropdownWidth = Math.min(320, viewportWidth * 0.95);
+    const dropdownHeight = Math.min(384, viewportHeight * 0.6);
+    
+    let position: DropdownPosition = {};
+    
+    // Vertical positioning - prefer below, fallback to above
+    if (spaceBelow >= dropdownHeight || spaceBelow >= spaceAbove) {
+      position.top = triggerRect.bottom + 4;
+    } else {
+      position.bottom = viewportHeight - triggerRect.top + 4;
+    }
+    
+    // Horizontal positioning - try to center, adjust if needed
+    const idealLeft = triggerRect.left + (triggerRect.width / 2) - (dropdownWidth / 2);
+    
+    if (idealLeft < 8) {
+      // Too far left, align to left edge with padding
+      position.left = 8;
+    } else if (idealLeft + dropdownWidth > viewportWidth - 8) {
+      // Too far right, align to right edge with padding
+      position.right = 8;
+    } else {
+      // Centered position works
+      position.left = idealLeft;
+    }
+    
+    setDropdownPosition(position);
+  };
+
+  // Reset state when opening/closing and calculate position
+  useEffect(() => {
+    if (open) {
+      setSearchQuery('');
+      setActiveFilter('all');
+      setSelectedIndex(-1); // No initial selection
+      
+      // Calculate position after a brief delay to ensure element is rendered
+      setTimeout(() => {
+        calculatePosition();
+        modalRef.current?.focus();
+      }, 10);
+    }
+  }, [open]);
 
   const sport = useMemo(() => leagueData ? detectSport(leagueData) : 'basketball', [leagueData]);
 
@@ -208,9 +264,11 @@ function HeaderSelectionContent({
   // Handle keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (!open) return;
+
       switch (e.key) {
         case 'Escape':
-          onClose();
+          handleClose();
           break;
         case 'ArrowDown':
           e.preventDefault();
@@ -229,9 +287,11 @@ function HeaderSelectionContent({
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [filteredItems, selectedIndex, onClose]);
+    if (open) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [open, filteredItems, selectedIndex, onOpenChange]);
 
   // Reset selected index when filtered items change
   useEffect(() => {
@@ -240,15 +300,23 @@ function HeaderSelectionContent({
 
   // Scroll selected item into view (only if there's a selection)
   useEffect(() => {
-    if (filteredItems.length > 0 && selectedIndex >= 0) {
-      const selectedElement = document.querySelector(`[data-index="${selectedIndex}"]`);
+    if (listRef.current && filteredItems.length > 0 && selectedIndex >= 0) {
+      const selectedElement = listRef.current.querySelector(`[data-index="${selectedIndex}"]`);
       selectedElement?.scrollIntoView({ block: 'nearest' });
     }
   }, [selectedIndex, filteredItems]);
 
   const handleSelect = (item: ListItem) => {
     onSelect(item.type, item.id, item.name);
-    onClose();
+    handleClose();
+  };
+
+  const handleClose = () => {
+    onOpenChange(false);
+    // Restore focus to the trigger element for accessibility
+    setTimeout(() => {
+      triggerElementRef?.current?.focus();
+    }, 100);
   };
 
   const getTitle = () => {
@@ -258,210 +326,200 @@ function HeaderSelectionContent({
     return `Configure ${position} ${parseInt(index) + 1}`;
   };
 
+  // Close on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && open) {
+        handleClose();
+      }
+    };
+
+    if (open) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [open]);
+
+  // Don't render if not open
+  if (!mounted || !open) return null;
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex-shrink-0 border-b p-3">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold">{getTitle()}</h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0"
-            onClick={onClose}
-            data-testid="close-panel"
-          >
-            <X className="h-3 w-3" />
-          </Button>
-        </div>
-        
-        {/* Search Bar */}
-        <div className="relative mb-3">
-          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search teams or achievements..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-7 h-8 text-sm"
-            data-testid="search-input"
-          />
-        </div>
-        
-        {/* Filter Chips */}
-        <div className="flex gap-1">
-          {(['all', 'teams', 'achievements'] as const).map((filter) => (
+    <div 
+      ref={containerRef}
+      className="fixed w-[95vw] sm:w-80 max-w-sm sm:max-w-none max-h-[60vh] sm:max-h-96 bg-background border rounded-lg shadow-xl flex flex-col z-50"
+      style={{
+        top: dropdownPosition.top,
+        bottom: dropdownPosition.bottom,
+        left: dropdownPosition.left,
+        right: dropdownPosition.right,
+        transform: dropdownPosition.transform
+      }}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        // Allow scrolling with keyboard immediately
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          listRef.current?.focus();
+        }
+      }}
+    >
+        {/* Header */}
+        <div className="flex-shrink-0 border-b p-3">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold">{getTitle()}</h2>
             <Button
-              key={filter}
-              variant={activeFilter === filter ? 'default' : 'outline'}
+              variant="ghost"
               size="sm"
-              className="h-6 px-2 text-xs capitalize"
-              onClick={() => setActiveFilter(filter)}
-              data-testid={`filter-${filter}`}
+              className="h-6 w-6 p-0"
+              onClick={handleClose}
+              data-testid="close-panel"
             >
-              {filter}
+              <X className="h-3 w-3" />
             </Button>
-          ))}
+          </div>
+          
+          {/* Search Bar */}
+          <div className="relative mb-3">
+            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+            <Input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Search teams or achievements..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-7 h-8 text-sm"
+              data-testid="search-input"
+            />
+          </div>
+          
+          {/* Filter Chips */}
+          <div className="flex gap-1">
+            {(['all', 'teams', 'achievements'] as const).map((filter) => (
+              <Button
+                key={filter}
+                variant={activeFilter === filter ? 'default' : 'outline'}
+                size="sm"
+                className="h-6 px-2 text-xs capitalize"
+                onClick={() => setActiveFilter(filter)}
+                data-testid={`filter-${filter}`}
+              >
+                {filter}
+              </Button>
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Scrollable List */}
-      <ScrollArea className="flex-1 max-h-[300px]">
-        <div className="p-2">
+        {/* Scrollable List */}
+        <div 
+          ref={listRef}
+          className="flex-1 overflow-y-auto"
+          data-radix-scroll-lock-ignore
+          tabIndex={-1}
+          onMouseDown={(e) => e.stopPropagation()}
+          onMouseUp={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
           {filteredItems.length === 0 ? (
             <div className="flex items-center justify-center h-16 text-muted-foreground text-sm">
               No results. Try a different search or filter.
             </div>
           ) : (
-            <>
-            {/* Teams Section */}
-            {filteredItems.some(item => item.type === 'team') && (
-              <div className="mb-3">
-                <div className="px-1 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Teams
-                </div>
-                <div className="space-y-0.5">
-                  {filteredItems
-                    .filter(item => item.type === 'team')
-                    .map((item, globalIndex) => {
-                      const itemIndex = filteredItems.indexOf(item);
-                      const isSelected = selectedIndex === itemIndex;
-                      
-                      return (
-                        <button
-                          key={item.id}
-                          data-index={itemIndex}
-                          className={`w-full flex items-center gap-2 p-1.5 rounded text-left transition-colors hover:bg-muted ${
-                            isSelected ? 'bg-muted ring-1 ring-primary' : ''
-                          }`}
-                          onClick={() => handleSelect(item)}
-                          data-testid={`team-option-${item.id}`}
-                        >
-                          {isSelected && selectedIndex >= 0 && (
-                            <CheckCircle className="h-3 w-3 text-primary flex-shrink-0" />
-                          )}
-                          <img
-                            src={item.logoUrl}
-                            alt={`${item.name} logo`}
-                            className="w-4 h-4 object-contain flex-shrink-0"
-                            onError={(e) => {
-                              // Hide broken images
-                              e.currentTarget.style.display = 'none';
-                            }}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-xs truncate">{item.displayName}</div>
-                            {item.abbrev && (
-                              <div className="text-xs text-muted-foreground">{item.abbrev}</div>
-                            )}
-                          </div>
-                          <Badge variant="outline" className="flex-shrink-0 text-xs h-4">
-                            {item.pillType}
-                          </Badge>
-                        </button>
-                      );
-                    })}
-                </div>
-              </div>
-            )}
-
-            {/* Achievements Section */}
-            {filteredItems.some(item => item.type === 'achievement') && (
-              <div className="mb-3">
-                <div className="px-1 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Achievements
-                </div>
-                <div className="space-y-0.5">
-                  {filteredItems
-                    .filter(item => item.type === 'achievement')
-                    .map((item) => {
-                      const itemIndex = filteredItems.indexOf(item);
-                      const isSelected = selectedIndex === itemIndex;
-                      
-                      return (
-                        <button
-                          key={item.id}
-                          data-index={itemIndex}
-                          className={`w-full flex items-center gap-2 p-1.5 rounded text-left transition-colors hover:bg-muted ${
-                            isSelected ? 'bg-muted ring-1 ring-primary' : ''
-                          }`}
-                          onClick={() => handleSelect(item)}
-                          data-testid={`achievement-option-${item.id}`}
-                        >
-                          {isSelected && selectedIndex >= 0 && (
-                            <CheckCircle className="h-3 w-3 text-primary flex-shrink-0" />
-                          )}
-                          <Trophy className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-xs truncate">{item.displayName}</div>
-                          </div>
-                          <Badge 
-                            variant={item.pillType === 'Season' ? 'default' : 'secondary'}
-                            className="flex-shrink-0 text-xs h-4"
+            <div className="p-2">
+              {/* Teams Section */}
+              {filteredItems.some(item => item.type === 'team') && (
+                <div className="mb-3">
+                  <div className="px-1 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Teams
+                  </div>
+                  <div className="space-y-0.5">
+                    {filteredItems
+                      .filter(item => item.type === 'team')
+                      .map((item, globalIndex) => {
+                        const itemIndex = filteredItems.indexOf(item);
+                        const isSelected = selectedIndex === itemIndex;
+                        
+                        return (
+                          <button
+                            key={item.id}
+                            data-index={itemIndex}
+                            className={`w-full flex items-center gap-2 p-1.5 rounded text-left transition-colors hover:bg-muted ${
+                              isSelected ? 'bg-muted ring-1 ring-primary' : ''
+                            }`}
+                            onClick={() => handleSelect(item)}
+                            data-testid={`team-option-${item.id}`}
                           >
-                            {item.pillType}
-                          </Badge>
-                        </button>
-                      );
-                    })}
+                            {isSelected && selectedIndex >= 0 && (
+                              <CheckCircle className="h-3 w-3 text-primary flex-shrink-0" />
+                            )}
+                            <img
+                              src={item.logoUrl}
+                              alt={`${item.name} logo`}
+                              className="w-4 h-4 object-contain flex-shrink-0"
+                              onError={(e) => {
+                                // Hide broken images
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-xs truncate">{item.displayName}</div>
+                              {item.abbrev && (
+                                <div className="text-xs text-muted-foreground">{item.abbrev}</div>
+                              )}
+                            </div>
+                            <Badge variant="outline" className="flex-shrink-0 text-xs h-4">
+                              {item.pillType}
+                            </Badge>
+                          </button>
+                        );
+                      })}
+                  </div>
                 </div>
-              </div>
-            )}
-            </>
+              )}
+
+              {/* Achievements Section */}
+              {filteredItems.some(item => item.type === 'achievement') && (
+                <div className="mb-3">
+                  <div className="px-1 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Achievements
+                  </div>
+                  <div className="space-y-0.5">
+                    {filteredItems
+                      .filter(item => item.type === 'achievement')
+                      .map((item) => {
+                        const itemIndex = filteredItems.indexOf(item);
+                        const isSelected = selectedIndex === itemIndex;
+                        
+                        return (
+                          <button
+                            key={item.id}
+                            data-index={itemIndex}
+                            className={`w-full flex items-center gap-2 p-1.5 rounded text-left transition-colors hover:bg-muted ${
+                              isSelected ? 'bg-muted ring-1 ring-primary' : ''
+                            }`}
+                            onClick={() => handleSelect(item)}
+                            data-testid={`achievement-option-${item.id}`}
+                          >
+                            {isSelected && selectedIndex >= 0 && (
+                              <CheckCircle className="h-3 w-3 text-primary flex-shrink-0" />
+                            )}
+                            <Trophy className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-xs truncate">{item.displayName}</div>
+                            </div>
+                            <Badge 
+                              variant={item.pillType === 'Season' ? 'default' : 'secondary'}
+                              className="flex-shrink-0 text-xs h-4"
+                            >
+                              {item.pillType}
+                            </Badge>
+                          </button>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
-      </ScrollArea>
     </div>
-  );
-}
-
-export function HeaderSelectionPopover({ 
-  children,
-  leagueData, 
-  onSelect, 
-  headerPosition
-}: HeaderSelectionPopoverProps) {
-  const [open, setOpen] = useState(false);
-  const isMobile = useIsMobile();
-
-  if (isMobile) {
-    return (
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger asChild>
-          {children}
-        </SheetTrigger>
-        <SheetContent side="bottom" className="h-[90vh] p-0">
-          <HeaderSelectionContent
-            leagueData={leagueData}
-            onSelect={onSelect}
-            headerPosition={headerPosition}
-            onClose={() => setOpen(false)}
-          />
-        </SheetContent>
-      </Sheet>
-    );
-  }
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        {children}
-      </PopoverTrigger>
-      <PopoverContent 
-        side="bottom" 
-        align="center" 
-        sideOffset={6}
-        collisionPadding={8}
-        className="p-0 w-[min(22rem,90vw)] max-h-[60vh] overflow-hidden"
-      >
-        <HeaderSelectionContent
-          leagueData={leagueData}
-          onSelect={onSelect}
-          headerPosition={headerPosition}
-          onClose={() => setOpen(false)}
-        />
-      </PopoverContent>
-    </Popover>
   );
 }
