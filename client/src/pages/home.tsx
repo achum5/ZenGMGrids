@@ -86,6 +86,9 @@ export default function Home() {
   // Rank cache for Give Up functionality
   const [rankCache, setRankCache] = useState<Record<string, Array<{player: Player, rarity: number}>>>({});
   
+  // Give Up state tracking
+  const [giveUpPressed, setGiveUpPressed] = useState(false);
+  
   // UI state
   const [isProcessing, setIsProcessing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -445,6 +448,7 @@ export default function Home() {
       setCells({}); // Reset all answers
       setUsedPids(new Set()); // Reset used players
       setRankCache({}); // Reset cached rankings for the old grid
+      setGiveUpPressed(false); // Reset Give Up state
       
       // Initialize new grid tracking
       const gridId = `${gridResult.rows.map(r => r.key).join('-')}_${gridResult.cols.map(c => c.key).join('-')}`;
@@ -840,6 +844,7 @@ export default function Home() {
     // Update state
     setCells(newCells);
     setRankCache(newRankCache);
+    setGiveUpPressed(true); // Mark Give Up as pressed
   }, [leagueData, rows, cols, cells, rankCache, buildRankCacheForCell]);
 
   const handleRetryGrid = useCallback(() => {
@@ -854,6 +859,7 @@ export default function Home() {
     setCells({});
     setUsedPids(new Set());
     setRankCache({});
+    setGiveUpPressed(false); // Reset Give Up state
     
     // Keep the same rows, cols, and intersections (same puzzle)
   }, [currentGridId, attemptCount]);
@@ -962,6 +968,7 @@ export default function Home() {
           onShareGrid={() => setGridSharingModalOpen(true)}
           onCreateCustomGrid={() => setCustomGridModalOpen(true)}
           isGenerating={isGenerating}
+          giveUpPressed={giveUpPressed}
           teams={leagueData?.teams || []}
           sport={leagueData?.sport}
           attemptCount={attemptCount}
