@@ -366,8 +366,9 @@ export function GridSection({
                                 sport={sport}
                               />
                               {(() => {
-                                const currentCellKey = cellKey(row.key, col.key, rows, cols);
-                                const cellState = cells[currentCellKey];
+                                // Use positional key format like home.tsx uses
+                                const positionalKey = `${rowIndex}-${colIndex}`;
+                                const cellState = cells[positionalKey];
                                 return cellState?.correct && cellState?.rarity && (
                                   <div className="absolute top-1 left-1 z-10">
                                     <RarityChip value={cellState.rarity} />
