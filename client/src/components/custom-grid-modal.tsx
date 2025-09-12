@@ -10,7 +10,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Grid3x3, Trash2, Play, RotateCcw, X, ArrowUpDown, ChevronDown, Wand2 } from 'lucide-react';
 import type { LeagueData, Team, CatTeam } from '@/types/bbgm';
 import { detectSport } from '@/lib/grid-sharing';
-import { HeaderSelectionPopover } from './HeaderSelectionModal';
+import { HeaderSelectionModal } from './HeaderSelectionModal';
 import { getTeamOptions, getAchievementOptions, calculateCustomCellIntersection, headerConfigToCatTeam, type TeamOption, type AchievementOption, type HeaderConfig } from '@/lib/custom-grid-utils';
 import { buildSeasonIndex, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 
@@ -97,6 +97,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     { type: null, value: null, label: null }
   ]);
   
+  // Header dropdown state - track which header dropdown is open
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [hideZeroResults, setHideZeroResults] = useState(false);
   
   // Loading state for cell count calculations
@@ -510,27 +512,44 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     return count !== undefined ? (count > 500 ? '500+' : count.toString()) : '—';
   };
 
+  // Toggle header dropdown
+  const toggleHeaderDropdown = (isRow: boolean, index: number) => {
+    const position = `${isRow ? 'row' : 'col'}-${index}`;
+    setOpenDropdown(openDropdown === position ? null : position);
+  };
 
-  // Handle selection from popover/sheet
+  // Handle selection from dropdown
   const handleHeaderSelection = (position: string, type: 'team' | 'achievement', value: string, label: string) => {
     const [rowOrCol, indexStr] = position.split('-');
     const index = parseInt(indexStr);
     const isRow = rowOrCol === 'row';
     
     updateSelectorValue(isRow, index, type, value, label);
+    setOpenDropdown(null); // Close dropdown after selection
   };
 
-  // Render header selector with popover/sheet
+  // Render header selector with inline dropdown
   const renderHeaderSelector = (isRow: boolean, index: number) => {
     const selector = isRow ? rowSelectors[index] : colSelectors[index];
     const position = `${isRow ? 'row' : 'col'}-${index}`;
+    const isDropdownOpen = openDropdown === position;
+    const triggerRef = useRef<HTMLDivElement>(null);
     
-    const triggerButton = (
-      <div 
-        className="aspect-square flex flex-col items-center justify-center bg-background border rounded transition-colors p-0.5 sm:p-1 lg:p-2 relative group text-[8px] sm:text-xs lg:text-sm min-h-[40px] sm:min-h-[60px] lg:min-h-[80px] cursor-pointer hover:bg-muted"
-        data-testid={`header-${isRow ? 'row' : 'col'}-${index}`}
-        tabIndex={0}
-      >
+    return (
+      <div className="relative">
+        <div 
+          ref={triggerRef}
+          className="aspect-square flex flex-col items-center justify-center bg-background border rounded transition-colors p-0.5 sm:p-1 lg:p-2 relative group text-[8px] sm:text-xs lg:text-sm min-h-[40px] sm:min-h-[60px] lg:min-h-[80px] cursor-pointer hover:bg-muted"
+          onClick={() => toggleHeaderDropdown(isRow, index)}
+          data-testid={`header-${isRow ? 'row' : 'col'}-${index}`}
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              toggleHeaderDropdown(isRow, index);
+            }
+          }}
+        >
         {selector.label ? (
           <>
             <div className="text-center w-full h-full flex flex-col items-center justify-center">
@@ -574,17 +593,20 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
             </div>
           </div>
         )}
+        </div>
+        
+        {/* Inline dropdown */}
+        {isDropdownOpen && (
+          <HeaderSelectionModal
+            open={true}
+            onOpenChange={() => setOpenDropdown(null)}
+            leagueData={leagueData}
+            onSelect={(type, value, label) => handleHeaderSelection(position, type, value, label)}
+            headerPosition={position}
+            triggerElementRef={triggerRef}
+          />
+        )}
       </div>
-    );
-
-    return (
-      <HeaderSelectionPopover
-        leagueData={leagueData}
-        onSelect={(type, value, label) => handleHeaderSelection(position, type, value, label)}
-        headerPosition={position}
-      >
-        {triggerButton}
-      </HeaderSelectionPopover>
     );
   };
 
