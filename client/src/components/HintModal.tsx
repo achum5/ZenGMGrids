@@ -97,7 +97,7 @@ export function HintModal({
     }
   }, [open, reshuffleCount, generateHints]);
 
-  // Handle player selection with proper timing
+  // Handle player selection
   const handlePlayerSelect = useCallback((option: HintOption) => {
     if (option.isIncorrect) {
       return; // Don't allow re-clicking incorrect options
@@ -106,10 +106,10 @@ export function HintModal({
     // Process the player selection immediately
     onSelectPlayer(option.player);
     
-    // Close modal after a brief delay to ensure selection is processed
-    setTimeout(() => {
+    // Close modal on next animation frame to avoid timing issues
+    requestAnimationFrame(() => {
       onClose();
-    }, 100);
+    });
   }, [onSelectPlayer, onClose]);
 
 
@@ -208,6 +208,7 @@ export function HintModal({
                 {hintResult.options.slice(0, 6).map((option, index) => (
                   <button
                     key={option.player.pid}
+                    autoFocus={index === 0}
                     className={cn(
                       "aspect-square w-full flex items-center justify-center text-center relative overflow-hidden transition-all duration-200 hover:brightness-110 hover:contrast-110 hover:shadow-md z-10",
                       "bg-muted dark:bg-slate-800 text-muted-foreground hover:bg-accent/30 dark:hover:bg-accent/20 hover:border-accent/40 dark:hover:border-accent/30 border border-transparent rounded-lg",
@@ -216,14 +217,9 @@ export function HintModal({
                         : "focus:ring-2 focus:ring-inset focus:ring-blue-500 dark:focus:ring-blue-400 cursor-pointer"
                     )}
                     onClick={(e) => {
-                      e.preventDefault();
                       e.stopPropagation();
                       console.log('Player button clicked:', option.player.name);
                       handlePlayerSelect(option);
-                    }}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
                     }}
                     disabled={option.isIncorrect}
                     style={{ 
