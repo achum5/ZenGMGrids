@@ -98,7 +98,7 @@ export function HintModal({
   }, [open, reshuffleCount, generateHints]);
 
   // Handle player selection
-  const handlePlayerSelect = (option: HintOption) => {
+  const handlePlayerSelect = useCallback((option: HintOption) => {
     if (option.isIncorrect) {
       return; // Don't allow re-clicking incorrect options
     }
@@ -106,7 +106,7 @@ export function HintModal({
     // For both correct and incorrect choices - submit the guess and close modal
     onSelectPlayer(option.player);
     onClose();
-  };
+  }, [onSelectPlayer, onClose]);
 
 
   // Handle keyboard navigation
@@ -211,7 +211,11 @@ export function HintModal({
                         ? "opacity-60 cursor-not-allowed"
                         : "focus:ring-2 focus:ring-inset focus:ring-blue-500 dark:focus:ring-blue-400"
                     )}
-                    onClick={() => handlePlayerSelect(option)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handlePlayerSelect(option);
+                    }}
                     disabled={option.isIncorrect}
                     style={{ 
                       touchAction: 'manipulation',

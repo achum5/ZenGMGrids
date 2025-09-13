@@ -71,11 +71,9 @@ export function generateHintOptions(
         firstName: `Player`,
         lastName: `${i + 1}`,
         pos: 'G',
-        age: 25,
         hgt: 72,
         weight: 200,
         born: { year: 1999, loc: 'Unknown' },
-        diedYear: undefined,
         college: 'Unknown',
         draft: { round: 1, pick: i + 1, year: 2020 },
         face: undefined,
@@ -210,28 +208,49 @@ export function generateHintOptions(
     distractors = similarHardPlayers.slice(0);
     
     // Fill remaining slots with any other players from the eligible pool
-    const remainingPlayers = eligiblePlayers.filter(p => 
+    const remainingEligible = eligiblePlayers.filter(p => 
       p.pid !== correctPlayer.pid && 
       !distractors.some(d => d.pid === p.pid)
     );
     
     const needed = 5 - distractors.length;
-    if (remainingPlayers.length >= needed) {
-      distractors.push(...rng.sample(remainingPlayers, needed));
+    if (remainingEligible.length >= needed) {
+      distractors.push(...rng.sample(remainingEligible, needed));
     } else {
-      // If still not enough eligible players, create dummy players
-      distractors.push(...remainingPlayers);
+      // Add all remaining eligible players
+      distractors.push(...remainingEligible);
       
-      // Fill remaining with dummy players based on correct player template
-      for (let i = distractors.length; i < 5; i++) {
-        const dummyPlayer: Player = {
-          ...correctPlayer,
-          pid: -1000 - i, // Negative PIDs for dummy players
-          name: `Player ${i + 1}`,
-          imgURL: undefined,
-          face: undefined
-        };
-        distractors.push(dummyPlayer);
+      // Still need more? Get players who meet just ONE constraint (row OR column)
+      const singleConstraintPlayers = allPlayers.filter(player => {
+        const meetsRow = evaluateConstraint(player, rowConstraint, leagueData?.seasonIndex);
+        const meetsCol = evaluateConstraint(player, colConstraint, leagueData?.seasonIndex);
+        const meetsBoth = meetsRow && meetsCol;
+        const meetsOne = (meetsRow || meetsCol) && !meetsBoth;
+        
+        return meetsOne && 
+               !usedPids.has(player.pid) && 
+               player.pid !== correctPlayer.pid && 
+               !distractors.some(d => d.pid === player.pid);
+      });
+      
+      const stillNeeded = 5 - distractors.length;
+      if (singleConstraintPlayers.length >= stillNeeded) {
+        distractors.push(...rng.sample(singleConstraintPlayers, stillNeeded));
+      } else {
+        // Add all single constraint players
+        distractors.push(...singleConstraintPlayers);
+        
+        // Fill remaining with dummy players based on correct player template
+        for (let i = distractors.length; i < 5; i++) {
+          const dummyPlayer: Player = {
+            ...correctPlayer,
+            pid: -1000 - i, // Negative PIDs for dummy players
+            name: `Player ${i + 1}`,
+            imgURL: undefined,
+            face: undefined
+          };
+          distractors.push(dummyPlayer);
+        }
       }
     }
   }
