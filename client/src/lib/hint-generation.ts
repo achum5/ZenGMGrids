@@ -61,9 +61,100 @@ export function generateHintOptions(
     .filter(p => p && !usedPids.has(p.pid));
 
   if (eligiblePlayers.length === 0) {
+    // Create 6 dummy players when no eligible players exist
+    const dummyPlayers: Player[] = [];
+    
+    for (let i = 0; i < 6; i++) {
+      const dummyPlayer: Player = {
+        pid: -1000 - i,
+        name: `Player ${i + 1}`,
+        firstName: `Player`,
+        lastName: `${i + 1}`,
+        pos: 'G',
+        age: 25,
+        hgt: 72,
+        weight: 200,
+        born: { year: 1999, loc: 'Unknown' },
+        diedYear: undefined,
+        college: 'Unknown',
+        draft: { round: 1, pick: i + 1, year: 2020 },
+        face: undefined,
+        imgURL: undefined,
+        mood: undefined,
+        injury: { type: 'Healthy', gamesRemaining: 0 },
+        salaries: [],
+        jerseyNumber: undefined,
+        watch: false,
+        relatives: [],
+        srID: undefined,
+        real: false,
+        awards: [],
+        freeAgent: false,
+        yearsFreeAgent: 0,
+        untradable: false,
+        retiredYear: undefined,
+        hof: false,
+        statsTids: [],
+        seasons: [],
+        careerStats: {
+          gp: 0, min: 0, fg: 0, fga: 0, fgp: 0,
+          tp: 0, tpa: 0, tpp: 0, ft: 0, fta: 0, ftp: 0,
+          orb: 0, drb: 0, trb: 0, ast: 0, tov: 0, stl: 0, blk: 0, pf: 0, pts: 0,
+          per: 0, ewa: 0, ws: 0, vorp: 0
+        },
+        careerStatsPlayoffs: {
+          gp: 0, min: 0, fg: 0, fga: 0, fgp: 0,
+          tp: 0, tpa: 0, tpp: 0, ft: 0, fta: 0, ftp: 0,
+          orb: 0, drb: 0, trb: 0, ast: 0, tov: 0, stl: 0, blk: 0, pf: 0, pts: 0,
+          per: 0, ewa: 0, ws: 0, vorp: 0
+        },
+        teamsPlayed: new Set([]),
+        achievements: {
+          career20kPoints: false,
+          career10kRebounds: false,
+          career5kAssists: false,
+          career2kSteals: false,
+          career1500Blocks: false,
+          career2kThrees: false,
+          season30ppg: false,
+          season10apg: false,
+          season15rpg: false,
+          season3bpg: false,
+          season25spg: false,
+          season504090: false,
+          ledScoringAny: false,
+          ledRebAny: false,
+          ledAstAny: false,
+          ledStlAny: false,
+          ledBlkAny: false,
+          played15PlusSeasons: false,
+          isPick1Overall: false,
+          isFirstRoundPick: false,
+          isSecondRoundPick: false,
+          isUndrafted: false,
+          draftedTeen: false,
+          bornOutsideUS50DC: false,
+          allStar35Plus: false,
+          oneTeamOnly: false,
+          isHallOfFamer: false
+        }
+      };
+      dummyPlayers.push(dummyPlayer);
+    }
+    
+    // Mark first dummy as correct (randomly)
+    const correctIndex = Math.floor(Math.random() * 6);
+    const allOptions: HintOption[] = dummyPlayers.map((player, index) => ({
+      player,
+      isCorrect: index === correctIndex
+    }));
+    
+    const rng = createSeededRandom(gridId, cellKey);
+    const shuffledOptions = rng.shuffle(allOptions);
+    
     const result: HintGenerationResult = {
-      options: [],
-      hasLimitedOptions: true
+      options: shuffledOptions,
+      hasLimitedOptions: false
     };
     hintCache.set(cacheKey, result);
     return result;
@@ -71,8 +162,8 @@ export function generateHintOptions(
 
   // Sort eligible players by rarity using cell-aware logic
   const cellContext: CellContext = {
-    rowConstraint: { type: rowConstraint.type, tid: rowConstraint.tid, achievementId: rowConstraint.achievementId, name: rowConstraint.label },
-    colConstraint: { type: colConstraint.type, tid: colConstraint.tid, achievementId: colConstraint.achievementId, name: colConstraint.label },
+    rowConstraint: { type: rowConstraint.type, tid: rowConstraint.tid, achievementId: rowConstraint.achievementId, label: rowConstraint.label },
+    colConstraint: { type: colConstraint.type, tid: colConstraint.tid, achievementId: colConstraint.achievementId, label: colConstraint.label },
     teams: new Map(teams.map(t => [t.tid, t]))
   };
 
@@ -103,13 +194,47 @@ export function generateHintOptions(
   const correctPlayerData = rng.pick(hardestPlayers)!;
   const correctPlayer = correctPlayerData.player;
 
-  // Generate 5 very similar players (all from the top 40% hardest)
+  // Always generate exactly 5 distractors to reach total of 6 players
+  let distractors: Player[] = [];
+  
+  // First try to get 5 similar hard players from top 40%
   const top40PercentCount = Math.max(6, Math.ceil(playersWithRarity.length * 0.4));
   const similarHardPlayers = playersWithRarity.slice(0, top40PercentCount)
     .map(p => p.player)
     .filter(p => p.pid !== correctPlayer.pid);
   
-  const distractors = rng.sample(similarHardPlayers, 5);
+  if (similarHardPlayers.length >= 5) {
+    distractors = rng.sample(similarHardPlayers, 5);
+  } else {
+    // If not enough similar players, fill with any available players
+    distractors = similarHardPlayers.slice(0);
+    
+    // Fill remaining slots with any other players from the eligible pool
+    const remainingPlayers = eligiblePlayers.filter(p => 
+      p.pid !== correctPlayer.pid && 
+      !distractors.some(d => d.pid === p.pid)
+    );
+    
+    const needed = 5 - distractors.length;
+    if (remainingPlayers.length >= needed) {
+      distractors.push(...rng.sample(remainingPlayers, needed));
+    } else {
+      // If still not enough eligible players, create dummy players
+      distractors.push(...remainingPlayers);
+      
+      // Fill remaining with dummy players based on correct player template
+      for (let i = distractors.length; i < 5; i++) {
+        const dummyPlayer: Player = {
+          ...correctPlayer,
+          pid: -1000 - i, // Negative PIDs for dummy players
+          name: `Player ${i + 1}`,
+          imgURL: undefined,
+          face: undefined
+        };
+        distractors.push(dummyPlayer);
+      }
+    }
+  }
 
   // Combine and shuffle options
   const allOptions: HintOption[] = [
