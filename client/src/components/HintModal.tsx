@@ -139,7 +139,7 @@ export function HintModal({
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent 
-        className="max-w-4xl w-full h-[80vh] flex flex-col p-0 gap-0 bg-card"
+        className="max-w-4xl w-full h-[80vh] flex flex-col p-0 gap-0 bg-card [&>button]:hidden"
         onPointerDownOutside={(e) => e.preventDefault()}
       >
         <DialogTitle className="sr-only">Hint Mode</DialogTitle>
