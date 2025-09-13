@@ -179,14 +179,14 @@ export default function Home() {
       let rowConstraint: CatTeam | undefined;
       let colConstraint: CatTeam | undefined;
       
-      if (currentCellKey.includes('|')) {
+      if (cellKey.includes('|')) {
         // Traditional format: "rowKey|colKey"
-        const [rowKey, colKey] = currentCellKey.split('|');
+        const [rowKey, colKey] = cellKey.split('|');
         rowConstraint = rows.find(r => r.key === rowKey);
         colConstraint = cols.find(c => c.key === colKey);
       } else {
         // Position-based format: "rowIndex-colIndex"
-        const [rowIndexStr, colIndexStr] = currentCellKey.split('-');
+        const [rowIndexStr, colIndexStr] = cellKey.split('-');
         const rowIndex = parseInt(rowIndexStr, 10);
         const colIndex = parseInt(colIndexStr, 10);
         rowConstraint = rows[rowIndex];
