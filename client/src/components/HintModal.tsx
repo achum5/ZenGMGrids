@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RefreshCw, X } from 'lucide-react';
@@ -7,7 +7,7 @@ import { PlayerFace } from '@/components/PlayerFace';
 import { TeamLogo } from '@/components/TeamLogo';
 import { cn } from '@/lib/utils';
 import type { Player, CatTeam, Team, LeagueData } from '@/types/bbgm';
-import { generateHintOptions, markOptionIncorrect, resetIncorrectMarks, type HintOption, type HintGenerationResult } from '@/lib/hint-generation';
+import { generateHintOptions, type HintOption, type HintGenerationResult } from '@/lib/hint-generation';
 import { useToast } from '@/hooks/use-toast';
 
 interface HintModalProps {
@@ -51,12 +51,10 @@ export function HintModal({
 
   // Generate hints when modal opens or reshuffle is requested
   const generateHints = useCallback(async () => {
-    // Note: We always generate hints even with 0 eligible players (will create dummies)
-
     setIsGenerating(true);
     
     try {
-      // Simulate slight delay for UX if generation is very fast
+      // Small delay for UX
       await new Promise(resolve => setTimeout(resolve, 100));
       
       const result = generateHintOptions(
@@ -72,9 +70,6 @@ export function HintModal({
         reshuffleCount,
         leagueData
       );
-
-      // Reset incorrect marks for new generation
-      result.options = resetIncorrectMarks(result.options);
       
       setHintResult(result);
     } catch (error) {
@@ -97,49 +92,42 @@ export function HintModal({
     }
   }, [open, reshuffleCount, generateHints]);
 
-  // Handle player selection
-  const handlePlayerSelect = useCallback((option: HintOption) => {
-    if (option.isIncorrect) {
-      return; // Don't allow re-clicking incorrect options
-    }
-
-    // Process the player selection immediately
-    onSelectPlayer(option.player);
-    
-    // Close modal on next animation frame to avoid timing issues
-    requestAnimationFrame(() => {
-      onClose();
-    });
-  }, [onSelectPlayer, onClose]);
-
-
-  // Handle keyboard navigation
-  const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === 'Escape') {
-      onClose();
-    }
+  // Handle player selection - simple and direct
+  const handlePlayerSelect = (player: Player) => {
+    console.log('Player selected:', player.name);
+    onSelectPlayer(player);
+    onClose();
   };
 
-  // Render any constraint (team or achievement)
-  const renderConstraint = (constraint: CatTeam, side: 'left' | 'right') => {
+  // Handle reshuffle
+  const handleReshuffle = () => {
+    onReshuffle(cellKey);
+  };
+
+  // Render constraint (team or achievement)
+  const renderConstraint = (constraint: CatTeam) => {
     if (!constraint) return null;
     
     if (constraint.type === 'team') {
       const team = teams.find(t => t.tid === constraint.tid);
       return (
-        <div className="flex flex-col items-center gap-3" data-testid={`constraint-team-${constraint.tid}`}>
+        <div className="flex flex-col items-center gap-3">
           <div className="w-20 h-20 flex-shrink-0">
             <TeamLogo team={team!} className="w-full h-full" />
+          </div>
+          <div className="text-center">
+            <div className="font-semibold text-foreground">{team?.region} {team?.name}</div>
           </div>
         </div>
       );
     } else {
       return (
-        <div className="flex flex-col justify-center items-center" data-testid={`constraint-achievement-${constraint.achievementId}`}>
-          <div className="w-20 h-20 flex items-center justify-center">
-            <div className="text-xl font-bold text-foreground leading-tight text-center">
-              {constraint.label}
-            </div>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center flex-shrink-0">
+            <span className="text-2xl">🏆</span>
+          </div>
+          <div className="text-center">
+            <div className="font-semibold text-foreground">{constraint.label}</div>
           </div>
         </div>
       );
@@ -150,20 +138,21 @@ export function HintModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent 
-        className="sm:max-w-4xl max-w-[95vw] max-h-[90vh] flex flex-col p-0 bg-background border-border [&>button]:hidden"
-        onKeyDown={handleKeyDown}
-        data-testid="modal-hint"
-      >
-        {/* Header with both constraints side by side, controls in top */}
-        <div className="border-b border-border p-6">
-          <DialogHeader className="sr-only">
-            <DialogTitle>Hint Mode</DialogTitle>
-            <DialogDescription>Choose a player that matches both constraints.</DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center justify-between mb-6">
+      <DialogContent className="max-w-4xl w-full h-[80vh] flex flex-col p-0 gap-0 bg-card">
+        {/* Header */}
+        <div className="flex-none p-6 border-b border-border/20">
+          <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-foreground">Hint mode</h2>
             <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleReshuffle}
+                className="text-muted-foreground hover:text-foreground hover:bg-muted"
+                data-testid="button-reshuffle-hint"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
@@ -176,93 +165,59 @@ export function HintModal({
             </div>
           </div>
           
-          {/* Both constraints side by side */}
+          {/* Constraints side by side */}
           <div className="grid grid-cols-2 gap-8 items-center">
             <div className="flex justify-center">
-              {renderConstraint(rowConstraint, 'left')}
+              {renderConstraint(rowConstraint)}
             </div>
             <div className="flex justify-center">
-              {renderConstraint(colConstraint, 'right')}
+              {renderConstraint(colConstraint)}
             </div>
           </div>
         </div>
 
-        {/* Main content area */}
+        {/* Main content */}
         <div className="flex-1 p-6 overflow-y-auto bg-background">
           {isGenerating ? (
-            // Loading state
-            <div className="space-y-4" data-testid="loading-hints">
-              <div className="grid grid-cols-3 gap-4">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="aspect-[4/5] bg-card rounded-xl space-y-3 p-4">
-                    <Skeleton className="w-full h-full rounded-lg" />
-                  </div>
-                ))}
-              </div>
+            <div className="grid grid-cols-3 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="aspect-square bg-card rounded-xl">
+                  <Skeleton className="w-full h-full rounded-lg" />
+                </div>
+              ))}
             </div>
           ) : hintResult ? (
-            // Player options grid - always 3x2 layout
-            <div className="space-y-6">
-              
-              <div className="grid grid-cols-3 gap-4" data-testid="grid-hint-options">
-                {hintResult.options.slice(0, 6).map((option, index) => (
-                  <button
-                    key={option.player.pid}
-                    autoFocus={index === 0}
-                    className={cn(
-                      "aspect-square w-full flex items-center justify-center text-center relative overflow-hidden transition-all duration-200 hover:brightness-110 hover:contrast-110 hover:shadow-md z-10",
-                      "bg-muted dark:bg-slate-800 text-muted-foreground hover:bg-accent/30 dark:hover:bg-accent/20 hover:border-accent/40 dark:hover:border-accent/30 border border-transparent rounded-lg",
-                      option.isIncorrect
-                        ? "opacity-60 cursor-not-allowed"
-                        : "focus:ring-2 focus:ring-inset focus:ring-blue-500 dark:focus:ring-blue-400 cursor-pointer"
-                    )}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      console.log('Player button clicked:', option.player.name);
-                      handlePlayerSelect(option);
-                    }}
-                    disabled={option.isIncorrect}
-                    style={{ 
-                      touchAction: 'manipulation',
-                      WebkitTapHighlightColor: 'transparent',
-                      userSelect: 'none',
-                      pointerEvents: 'auto'
-                    }}
-                    data-testid={`button-hint-player-${option.player.pid}`}
-                  >
-                    <div className="text-xs md:text-sm px-1 md:px-2 text-center w-full h-full flex items-center justify-center relative overflow-hidden pointer-events-none">
-                      <div className="relative w-full h-full flex items-center justify-center pointer-events-none">
-                        <PlayerFace
-                          pid={option.player.pid}
-                          name={option.player.name}
-                          imgURL={option.player.imgURL}
-                          face={option.player.face}
-                          size={Math.min(80, typeof window !== 'undefined' ? Math.min(window.innerWidth / 10, window.innerHeight / 12) : 80)}
-                          player={option.player}
-                          teams={teams}
-                          sport={leagueData?.sport}
-                        />
-                      </div>
-                    </div>
-                    
-                    {/* Error overlay for incorrect answers */}
-                    {option.isIncorrect && (
-                      <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center">
-                        <div className="bg-red-600 text-white text-xs px-2 py-1 rounded font-medium" data-testid={`text-incorrect-${option.player.pid}`}>
-                          Not a match
-                        </div>
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
-              
-              {/* Helper text */}
-              <div className="text-center text-muted-foreground text-sm mt-6">
-                Choose the correct player for this square.
-              </div>
+            <div className="grid grid-cols-3 gap-4" data-testid="grid-hint-options">
+              {hintResult.options.slice(0, 6).map((option) => (
+                <div
+                  key={option.player.pid}
+                  className={cn(
+                    "aspect-square bg-muted dark:bg-slate-800 rounded-lg overflow-hidden transition-all duration-200 hover:brightness-110 hover:shadow-md cursor-pointer border border-transparent hover:border-accent/40",
+                    "flex items-center justify-center text-center relative"
+                  )}
+                  onClick={() => handlePlayerSelect(option.player)}
+                  data-testid={`button-hint-player-${option.player.pid}`}
+                >
+                  <div className="w-full h-full flex items-center justify-center p-2">
+                    <PlayerFace
+                      pid={option.player.pid}
+                      name={option.player.name}
+                      imgURL={option.player.imgURL}
+                      face={option.player.face}
+                      size={80}
+                      player={option.player}
+                      teams={teams}
+                      sport={leagueData?.sport}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
-          ) : null}
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-muted-foreground">No hint options available</div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
