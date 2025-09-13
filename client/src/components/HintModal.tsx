@@ -111,23 +111,23 @@ export function HintModal({
     if (constraint.type === 'team') {
       const team = teams.find(t => t.tid === constraint.tid);
       return (
-        <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-col items-center gap-6">
           {team?.imgURL ? (
-            <div className="w-20 h-20 flex-shrink-0">
+            <div className="w-32 h-32 flex-shrink-0">
               <TeamLogo team={team} className="w-full h-full" />
             </div>
           ) : (
             <div className="text-center">
-              <div className="font-semibold text-foreground">{team?.region} {team?.name}</div>
+              <div className="text-2xl font-bold text-foreground">{team?.region} {team?.name}</div>
             </div>
           )}
         </div>
       );
     } else {
       return (
-        <div className="flex flex-col items-center gap-3">
-          <div className="text-center">
-            <div className="font-semibold text-foreground">{constraint.label}</div>
+        <div className="flex flex-col items-center gap-6">
+          <div className="text-center max-w-64">
+            <div className="text-2xl font-bold text-foreground leading-tight">{constraint.label}</div>
           </div>
         </div>
       );
@@ -145,8 +145,8 @@ export function HintModal({
         <DialogTitle className="sr-only">Hint Mode</DialogTitle>
         <DialogDescription className="sr-only">Select a player that matches both constraints</DialogDescription>
         {/* Header */}
-        <div className="flex-none p-6 border-b border-border/20">
-          <div className="flex justify-between items-center mb-6">
+        <div className="flex-none p-8 border-b border-border/20">
+          <div className="flex justify-between items-center mb-8">
             <h2 className="text-3xl font-bold text-foreground text-center w-full">Hint Mode</h2>
             <Button
               variant="ghost"
@@ -159,8 +159,8 @@ export function HintModal({
             </Button>
           </div>
           
-          {/* Constraints side by side */}
-          <div className="grid grid-cols-2 gap-8 items-center">
+          {/* Constraints side by side - much more prominent */}
+          <div className="grid grid-cols-2 gap-12 items-center py-8">
             <div className="flex justify-center">
               {renderConstraint(rowConstraint)}
             </div>
@@ -168,15 +168,12 @@ export function HintModal({
               {renderConstraint(colConstraint)}
             </div>
           </div>
-          
-          {/* Header divider */}
-          <div className="border-t border-border/30"></div>
         </div>
 
         {/* Main content */}
         <div className="flex-1 p-6 overflow-y-auto bg-background">
           {isGenerating ? (
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="aspect-square bg-card rounded-xl">
                   <Skeleton className="w-full h-full rounded-lg" />
@@ -184,7 +181,8 @@ export function HintModal({
               ))}
             </div>
           ) : hintResult ? (
-            <div className="grid grid-cols-3 gap-4" data-testid="grid-hint-options">
+            <div>
+              <div className="grid grid-cols-3 gap-3" data-testid="grid-hint-options">
               {hintResult.options.slice(0, 6).map((option) => (
                 <div
                   key={option.player.pid}
@@ -212,6 +210,11 @@ export function HintModal({
                   </div>
                 </div>
               ))}
+              </div>
+              {/* Bottom instruction text */}
+              <div className="text-center mt-6">
+                <div className="text-lg font-medium text-foreground">Choose the correct player</div>
+              </div>
             </div>
           ) : (
             <div className="flex items-center justify-center h-full">
