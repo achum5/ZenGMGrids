@@ -247,15 +247,14 @@ export default function Home() {
   const handleHintPlayerSelect = useCallback((player: Player) => {
     if (!hintCellKey) return;
     
-    // Set current cell key and close hint modal first
+    // Set current cell key but DON'T close modal - let HintModal handle that
     setCurrentCellKey(hintCellKey);
-    handleHintModalClose();
     
-    // Then route through existing player selection logic
+    // Route through existing player selection logic
     setTimeout(() => {
       handleSelectPlayer(player);
     }, 0);
-  }, [hintCellKey, handleHintModalClose, handleSelectPlayer]);
+  }, [hintCellKey, handleSelectPlayer]);
   
   // Handle hint modal reshuffle
   const handleHintReshuffle = useCallback((cellKey: string) => {
