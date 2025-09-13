@@ -161,8 +161,8 @@ export function HintModal({
   };
 
   // Determine which constraint is team and which is achievement
-  const teamConstraint = rowConstraint.type === 'team' ? rowConstraint : colConstraint;
-  const achievementConstraint = rowConstraint.type === 'achievement' ? rowConstraint : colConstraint;
+  const teamConstraint = rowConstraint?.type === 'team' ? rowConstraint : colConstraint;
+  const achievementConstraint = rowConstraint?.type === 'achievement' ? rowConstraint : colConstraint;
 
   if (!open) return null;
 
