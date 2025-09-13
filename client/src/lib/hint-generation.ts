@@ -80,7 +80,6 @@ export function generateHintOptions(
         imgURL: undefined,
         injury: { type: 'Healthy', gamesRemaining: 0 },
         jerseyNumber: undefined,
-        watch: false,
         relatives: [],
         srID: undefined,
         real: false,
@@ -180,17 +179,26 @@ export function generateHintOptions(
     }
   });
 
-  // Sort by rarity (highest rarity = hardest = what we want)
-  playersWithRarity.sort((a, b) => b.rarity - a.rarity);
+  // Sort by rarity (lowest rarity = most common)
+  playersWithRarity.sort((a, b) => a.rarity - b.rarity);
 
-  // Select correct answer from top 20% hardest players
-  const top20PercentCount = Math.max(1, Math.ceil(playersWithRarity.length * 0.2));
-  const hardestPlayers = playersWithRarity.slice(0, top20PercentCount);
+  // Select correct answer from bottom 20% of rarity scores (most common players)
+  let correctPlayerData: { player: Player; rarity: number };
   const rng = createSeededRandom(gridId, cellKey);
-  const correctPlayerData = rng.pick(hardestPlayers)!;
+  
+  if (playersWithRarity.length < 5) {
+    // If fewer than 5 players, just pick the most common (lowest rarity)
+    correctPlayerData = playersWithRarity[0];
+  } else {
+    // Pick from bottom 20% of rarity scores (most common)
+    const bottom20PercentCount = Math.max(1, Math.ceil(playersWithRarity.length * 0.2));
+    const mostCommonPlayers = playersWithRarity.slice(0, bottom20PercentCount);
+    correctPlayerData = rng.pick(mostCommonPlayers)!;
+  }
+  
   const correctPlayer = correctPlayerData.player;
 
-  // Generate exactly 5 INCORRECT distractors (players who meet only ONE constraint and are similar in skill)
+  // Generate exactly 5 PROMINENT distractors (players who meet only ONE constraint and are similar in career level)
   const distractors: Player[] = [];
   
   // Find players who meet ONLY the row constraint (not both)
@@ -211,64 +219,63 @@ export function generateHintOptions(
            player.pid !== correctPlayer.pid;
   });
   
-  // Calculate skill similarity for the correct player (reference point)
-  const correctPlayerSkill = calculatePlayerSkillLevel(correctPlayer);
+  // Calculate career prominence for the correct player (reference point)
+  const correctPlayerProminence = calculatePlayerProminence(correctPlayer);
   
-  // Sort both pools by similarity to correct player's skill level
-  const rowOnlySorted = rowOnlyPlayers
-    .map(player => ({
-      player,
-      skillSimilarity: calculateSkillSimilarity(correctPlayerSkill, calculatePlayerSkillLevel(player))
-    }))
-    .sort((a, b) => b.skillSimilarity - a.skillSimilarity) // Most similar first
-    .map(item => item.player);
-    
-  const colOnlySorted = colOnlyPlayers
-    .map(player => ({
-      player,
-      skillSimilarity: calculateSkillSimilarity(correctPlayerSkill, calculatePlayerSkillLevel(player))
-    }))
-    .sort((a, b) => b.skillSimilarity - a.skillSimilarity) // Most similar first
-    .map(item => item.player);
+  // Filter and sort both pools by prominence and career similarity
+  const getProminentSimilarPlayers = (players: Player[]) => {
+    return players
+      .map(player => ({
+        player,
+        prominence: calculatePlayerProminence(player),
+        careerSimilarity: calculateCareerSimilarity(correctPlayerProminence, calculatePlayerProminence(player))
+      }))
+      .filter(item => item.prominence > 5) // Only prominent players (filter out scrubs)
+      .sort((a, b) => b.careerSimilarity - a.careerSimilarity) // Most similar career level first
+      .map(item => item.player);
+  };
   
-  // Try to get a good mix of both types of distractors, prioritizing skill similarity
+  const rowOnlyProminent = getProminentSimilarPlayers(rowOnlyPlayers);
+  const colOnlyProminent = getProminentSimilarPlayers(colOnlyPlayers);
+  
+  // Try to get a good mix of both types of distractors
   const maxFromEach = Math.ceil(5 / 2);
   
-  // Add most similar row-only players
-  if (rowOnlySorted.length > 0) {
-    const count = Math.min(maxFromEach, rowOnlySorted.length);
-    // Take from top 40% most similar to add some variety but keep quality
-    const topSimilar = rowOnlySorted.slice(0, Math.max(count * 2, 10));
+  // Add prominent row-only players similar in career to correct answer
+  if (rowOnlyProminent.length > 0) {
+    const count = Math.min(maxFromEach, rowOnlyProminent.length);
+    // Take from top similar prominent players with some variety
+    const topSimilar = rowOnlyProminent.slice(0, Math.max(count * 2, 8));
     const rowSample = rng.sample(topSimilar, count);
     distractors.push(...rowSample);
   }
   
-  // Add most similar column-only players to fill remaining slots
+  // Add prominent column-only players to fill remaining slots
   const remainingSlots = 5 - distractors.length;
-  if (remainingSlots > 0 && colOnlySorted.length > 0) {
-    const count = Math.min(remainingSlots, colOnlySorted.length);
-    // Take from top 40% most similar to add some variety but keep quality
-    const topSimilar = colOnlySorted.slice(0, Math.max(count * 2, 10));
+  if (remainingSlots > 0 && colOnlyProminent.length > 0) {
+    const count = Math.min(remainingSlots, colOnlyProminent.length);
+    // Take from top similar prominent players with some variety
+    const topSimilar = colOnlyProminent.slice(0, Math.max(count * 2, 8));
     const colSample = rng.sample(topSimilar, count);
     distractors.push(...colSample);
   }
   
-  // If we still need more players, prioritize the most skill-similar available
+  // If we still need more players, prioritize the most career-similar available
   const stillNeeded = 5 - distractors.length;
   if (stillNeeded > 0) {
     const usedPids = new Set(distractors.map(d => d.pid));
-    const allSingleConstraint = [...rowOnlySorted, ...colOnlySorted].filter(
+    const allSingleConstraint = [...rowOnlyProminent, ...colOnlyProminent].filter(
       p => !usedPids.has(p.pid)
     );
     
     if (allSingleConstraint.length >= stillNeeded) {
-      // Take the most skill-similar remaining players
+      // Take the most career-similar remaining players
       const remaining = allSingleConstraint
         .map(player => ({
           player,
-          skillSimilarity: calculateSkillSimilarity(correctPlayerSkill, calculatePlayerSkillLevel(player))
+          careerSimilarity: calculateCareerSimilarity(correctPlayerProminence, calculatePlayerProminence(player))
         }))
-        .sort((a, b) => b.skillSimilarity - a.skillSimilarity)
+        .sort((a, b) => b.careerSimilarity - a.careerSimilarity)
         .slice(0, stillNeeded * 2) // Take top options for variety
         .map(item => item.player);
       
@@ -403,10 +410,40 @@ function calculatePlayerSkillLevel(player: Player): number {
 }
 
 /**
- * Calculate similarity between two skill levels (higher = more similar)
+ * Calculate player prominence/career level for hint generation
  */
-function calculateSkillSimilarity(skill1: number, skill2: number): number {
-  const diff = Math.abs(skill1 - skill2);
-  // Exponential decay - players within ~2 skill points are very similar
-  return Math.exp(-diff / 3);
+function calculatePlayerProminence(player: Player): number {
+  // Calculate career totals from player stats
+  let totalPts = 0, totalAst = 0, totalTrb = 0, totalGp = 0, totalMin = 0;
+  
+  for (const stat of player.stats || []) {
+    if (stat.playoffs) continue;
+    totalPts += stat.pts || 0;
+    totalAst += stat.ast || 0;
+    totalTrb += stat.trb || 0;
+    totalGp += stat.gp || 0;
+    totalMin += stat.min || 0;
+  }
+  
+  // Base prominence from career totals (log scale)
+  const statsScore = Math.log10(1 + totalPts) + Math.log10(1 + totalAst + totalTrb) + Math.log10(1 + totalGp);
+  
+  // Awards heavily boost prominence
+  const awards = player.awards || [];
+  const mvpCount = awards.filter(a => a.type === 'Most Valuable Player').length;
+  const allStarCount = awards.filter(a => a.type === 'All-Star').length;
+  const hofBonus = awards.some(a => a.type === 'Inducted into the Hall of Fame') ? 8 : 0;
+  
+  const awardsScore = mvpCount * 6 + allStarCount * 1 + hofBonus;
+  
+  return statsScore + awardsScore;
+}
+
+/**
+ * Calculate similarity between two career levels (higher = more similar)
+ */
+function calculateCareerSimilarity(prominence1: number, prominence2: number): number {
+  const diff = Math.abs(prominence1 - prominence2);
+  // Exponential decay - players within ~3 prominence points are very similar
+  return Math.exp(-diff / 4);
 }
