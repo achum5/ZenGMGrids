@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RefreshCw, X } from 'lucide-react';
@@ -112,20 +112,20 @@ export function HintModal({
       const team = teams.find(t => t.tid === constraint.tid);
       return (
         <div className="flex flex-col items-center gap-3">
-          <div className="w-20 h-20 flex-shrink-0">
-            <TeamLogo team={team!} className="w-full h-full" />
-          </div>
-          <div className="text-center">
-            <div className="font-semibold text-foreground">{team?.region} {team?.name}</div>
-          </div>
+          {team?.imgURL ? (
+            <div className="w-20 h-20 flex-shrink-0">
+              <TeamLogo team={team} className="w-full h-full" />
+            </div>
+          ) : (
+            <div className="text-center">
+              <div className="font-semibold text-foreground">{team?.region} {team?.name}</div>
+            </div>
+          )}
         </div>
       );
     } else {
       return (
         <div className="flex flex-col items-center gap-3">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center flex-shrink-0">
-            <span className="text-2xl">🏆</span>
-          </div>
           <div className="text-center">
             <div className="font-semibold text-foreground">{constraint.label}</div>
           </div>
@@ -142,6 +142,8 @@ export function HintModal({
         className="max-w-4xl w-full h-[80vh] flex flex-col p-0 gap-0 bg-card"
         onPointerDownOutside={(e) => e.preventDefault()}
       >
+        <DialogTitle className="sr-only">Hint Mode</DialogTitle>
+        <DialogDescription className="sr-only">Select a player that matches both constraints</DialogDescription>
         {/* Header */}
         <div className="flex-none p-6 border-b border-border/20">
           <div className="flex justify-between items-center mb-6">
