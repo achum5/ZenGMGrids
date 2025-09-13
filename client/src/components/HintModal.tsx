@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { RefreshCw, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { PlayerFace } from '@/components/PlayerFace';
 import { TeamLogo } from '@/components/TeamLogo';
 import { cn } from '@/lib/utils';
@@ -148,26 +148,15 @@ export function HintModal({
         <div className="flex-none p-6 border-b border-border/20">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-foreground">Hint mode</h2>
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleReshuffle}
-                className="text-muted-foreground hover:text-foreground hover:bg-muted"
-                data-testid="button-reshuffle-hint"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClose}
-                className="text-muted-foreground hover:text-foreground hover:bg-muted"
-                data-testid="button-close-hint"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="text-muted-foreground hover:text-foreground hover:bg-muted"
+              data-testid="button-close-hint"
+            >
+              <X className="w-4 h-4" />
+            </Button>
           </div>
           
           {/* Constraints side by side */}
