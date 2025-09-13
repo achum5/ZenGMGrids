@@ -127,8 +127,10 @@ export function HintModal({
     }
   };
 
-  // Render large team constraint for left side
-  const renderTeamConstraint = (constraint: CatTeam) => {
+  // Render any constraint (team or achievement)
+  const renderConstraint = (constraint: CatTeam, side: 'left' | 'right') => {
+    if (!constraint) return null;
+    
     if (constraint.type === 'team') {
       const team = teams.find(t => t.tid === constraint.tid);
       return (
@@ -136,51 +138,36 @@ export function HintModal({
           <div className="w-16 h-16 flex-shrink-0">
             <TeamLogo team={team!} className="w-full h-full" />
           </div>
-          <div className="text-center">
-            <div className="font-bold text-lg text-neutral-800">{team?.region}</div>
-            <div className="font-bold text-lg text-neutral-800">{team?.name}</div>
-          </div>
         </div>
       );
-    }
-    return null;
-  };
-
-  // Render achievement constraint for right side
-  const renderAchievementConstraint = (constraint: CatTeam) => {
-    if (constraint.type === 'achievement') {
+    } else {
       return (
         <div className="flex flex-col justify-center" data-testid={`constraint-achievement-${constraint.achievementId}`}>
-          <div className="text-2xl font-bold text-neutral-800 leading-tight">
+          <div className="text-2xl font-bold text-foreground leading-tight">
             {constraint.label}
           </div>
         </div>
       );
     }
-    return null;
   };
-
-  // Determine which constraint is team and which is achievement
-  const teamConstraint = rowConstraint?.type === 'team' ? rowConstraint : colConstraint;
-  const achievementConstraint = rowConstraint?.type === 'achievement' ? rowConstraint : colConstraint;
 
   if (!open) return null;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent 
-        className="sm:max-w-4xl max-w-[95vw] max-h-[90vh] flex flex-col p-0 bg-[hsl(40,33%,96%)] border-neutral-300"
+        className="sm:max-w-4xl max-w-[95vw] max-h-[90vh] flex flex-col p-0 bg-background border-border"
         onKeyDown={handleKeyDown}
         data-testid="modal-hint"
       >
-        {/* Header with team logo on left, achievement on right, controls in top */}
-        <div className="border-b border-neutral-300 p-6">
+        {/* Header with both constraints side by side, controls in top */}
+        <div className="border-b border-border p-6">
           <DialogHeader className="sr-only">
             <DialogTitle>Hint Mode</DialogTitle>
-            <DialogDescription>Choose a player that matches both the team and achievement constraints.</DialogDescription>
+            <DialogDescription>Choose a player that matches both constraints.</DialogDescription>
           </DialogHeader>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-neutral-800">Hint mode</h2>
+            <h2 className="text-2xl font-bold text-foreground">Hint mode</h2>
             <div className="flex items-center gap-3">
               {hintResult?.canReshuffle && reshuffleCount < 3 && (
                 <Button
@@ -188,7 +175,7 @@ export function HintModal({
                   size="sm"
                   onClick={handleReshuffle}
                   disabled={isGenerating}
-                  className="bg-white border-neutral-300 text-neutral-700 hover:bg-neutral-50"
+                  className="bg-background border-border text-foreground hover:bg-muted"
                   data-testid="button-reshuffle"
                 >
                   <RefreshCw className="w-4 h-4 mr-1" />
@@ -199,7 +186,7 @@ export function HintModal({
                 variant="ghost"
                 size="sm"
                 onClick={onClose}
-                className="text-neutral-600 hover:text-neutral-800 hover:bg-neutral-200/50"
+                className="text-muted-foreground hover:text-foreground hover:bg-muted"
                 data-testid="button-close-hint"
               >
                 <X className="w-4 h-4" />
@@ -207,48 +194,48 @@ export function HintModal({
             </div>
           </div>
           
-          {/* Team logo and achievement side by side */}
+          {/* Both constraints side by side */}
           <div className="grid grid-cols-2 gap-8 items-center">
             <div className="flex justify-center">
-              {renderTeamConstraint(teamConstraint)}
+              {renderConstraint(rowConstraint, 'left')}
             </div>
             <div className="flex justify-center">
-              {renderAchievementConstraint(achievementConstraint)}
+              {renderConstraint(colConstraint, 'right')}
             </div>
           </div>
         </div>
 
         {/* Main content area */}
-        <div className="flex-1 p-6 overflow-y-auto bg-[hsl(40,33%,96%)]">
+        <div className="flex-1 p-6 overflow-y-auto bg-background">
           {isGenerating ? (
             // Loading state
             <div className="space-y-4" data-testid="loading-hints">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-3 gap-4">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="aspect-[4/5] bg-neutral-800 rounded-xl space-y-3 p-4">
+                  <div key={i} className="aspect-[4/5] bg-card rounded-xl space-y-3 p-4">
                     <Skeleton className="w-full h-full rounded-lg" />
                   </div>
                 ))}
               </div>
             </div>
           ) : hintResult ? (
-            // Player options grid
+            // Player options grid - always 3x2 layout
             <div className="space-y-6">
               {hintResult.hasLimitedOptions && (
-                <div className="text-sm text-amber-700 text-center font-medium" data-testid="text-limited-options">
+                <div className="text-sm text-amber-600 dark:text-amber-400 text-center font-medium" data-testid="text-limited-options">
                   Limited options available for this square.
                 </div>
               )}
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="grid-hint-options">
-                {hintResult.options.map((option, index) => (
+              <div className="grid grid-cols-3 gap-4" data-testid="grid-hint-options">
+                {hintResult.options.slice(0, 6).map((option, index) => (
                   <button
                     key={option.player.pid}
                     className={cn(
-                      "aspect-[4/5] bg-neutral-900 rounded-xl overflow-hidden relative transition-all duration-200 group",
+                      "aspect-[4/5] bg-card dark:bg-neutral-900 rounded-xl overflow-hidden relative transition-all duration-200 group",
                       option.isIncorrect
                         ? "opacity-60 cursor-not-allowed"
-                        : "hover:scale-105 hover:shadow-xl focus:ring-2 focus:ring-neutral-600 focus:outline-none"
+                        : "hover:scale-105 hover:shadow-xl focus:ring-2 focus:ring-ring focus:outline-none"
                     )}
                     onClick={() => handlePlayerSelect(option)}
                     disabled={option.isIncorrect}
@@ -289,7 +276,7 @@ export function HintModal({
               </div>
               
               {/* Helper text */}
-              <div className="text-center text-neutral-600 text-sm mt-6">
+              <div className="text-center text-muted-foreground text-sm mt-6">
                 Choose the correct player for this square.
               </div>
             </div>
