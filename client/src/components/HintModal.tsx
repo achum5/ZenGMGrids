@@ -140,7 +140,6 @@ export function HintModal({
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent 
         className="max-w-4xl w-full h-[80vh] flex flex-col p-0 gap-0 bg-card [&>button]:hidden"
-        onPointerDownOutside={(e) => e.preventDefault()}
       >
         <DialogTitle className="sr-only">Hint Mode</DialogTitle>
         <DialogDescription className="sr-only">Select a player that matches both constraints</DialogDescription>
