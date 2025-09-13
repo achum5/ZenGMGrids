@@ -97,15 +97,19 @@ export function HintModal({
     }
   }, [open, reshuffleCount, generateHints]);
 
-  // Handle player selection
+  // Handle player selection with proper timing
   const handlePlayerSelect = useCallback((option: HintOption) => {
     if (option.isIncorrect) {
       return; // Don't allow re-clicking incorrect options
     }
 
-    // For both correct and incorrect choices - submit the guess and close modal
+    // Process the player selection immediately
     onSelectPlayer(option.player);
-    onClose();
+    
+    // Close modal after a brief delay to ensure selection is processed
+    setTimeout(() => {
+      onClose();
+    }, 100);
   }, [onSelectPlayer, onClose]);
 
 
@@ -205,27 +209,33 @@ export function HintModal({
                   <button
                     key={option.player.pid}
                     className={cn(
-                      "aspect-square w-full flex items-center justify-center text-center relative overflow-hidden transition-all duration-200 hover:brightness-110 hover:contrast-110 hover:shadow-md",
-                      "bg-muted dark:bg-slate-800 text-muted-foreground hover:bg-accent/30 dark:hover:bg-accent/20 hover:border-accent/40 dark:hover:border-accent/30 border border-transparent",
+                      "aspect-square w-full flex items-center justify-center text-center relative overflow-hidden transition-all duration-200 hover:brightness-110 hover:contrast-110 hover:shadow-md z-10",
+                      "bg-muted dark:bg-slate-800 text-muted-foreground hover:bg-accent/30 dark:hover:bg-accent/20 hover:border-accent/40 dark:hover:border-accent/30 border border-transparent rounded-lg",
                       option.isIncorrect
                         ? "opacity-60 cursor-not-allowed"
-                        : "focus:ring-2 focus:ring-inset focus:ring-blue-500 dark:focus:ring-blue-400"
+                        : "focus:ring-2 focus:ring-inset focus:ring-blue-500 dark:focus:ring-blue-400 cursor-pointer"
                     )}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
+                      console.log('Player button clicked:', option.player.name);
                       handlePlayerSelect(option);
+                    }}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                     }}
                     disabled={option.isIncorrect}
                     style={{ 
                       touchAction: 'manipulation',
                       WebkitTapHighlightColor: 'transparent',
-                      userSelect: 'none'
+                      userSelect: 'none',
+                      pointerEvents: 'auto'
                     }}
                     data-testid={`button-hint-player-${option.player.pid}`}
                   >
-                    <div className="text-xs md:text-sm px-1 md:px-2 text-center w-full h-full flex items-center justify-center relative overflow-hidden">
-                      <div className="relative w-full h-full flex items-center justify-center">
+                    <div className="text-xs md:text-sm px-1 md:px-2 text-center w-full h-full flex items-center justify-center relative overflow-hidden pointer-events-none">
+                      <div className="relative w-full h-full flex items-center justify-center pointer-events-none">
                         <PlayerFace
                           pid={option.player.pid}
                           name={option.player.name}
