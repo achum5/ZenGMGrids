@@ -79,7 +79,6 @@ export function generateHintOptions(
         face: undefined,
         imgURL: undefined,
         injury: { type: 'Healthy', gamesRemaining: 0 },
-        salaries: [],
         jerseyNumber: undefined,
         watch: false,
         relatives: [],
@@ -373,23 +372,24 @@ export function markOptionIncorrect(options: HintOption[], playerPid: number): H
  * Calculate a player's overall skill level for similarity comparison
  */
 function calculatePlayerSkillLevel(player: Player): number {
-  const stats = player.careerStats || player.stats?.reduce((acc, stat) => {
-    if (stat.playoffs) return acc;
-    return {
-      pts: acc.pts + (stat.pts || 0),
-      ast: acc.ast + (stat.ast || 0),
-      trb: acc.trb + (stat.trb || 0),
-      gp: acc.gp + (stat.gp || 0),
-      per: stat.per || 15
-    };
-  }, { pts: 0, ast: 0, trb: 0, gp: 0, per: 15 }) || { pts: 0, ast: 0, trb: 0, gp: 0, per: 15 };
+  // Calculate career totals from player stats
+  let totalPts = 0, totalAst = 0, totalTrb = 0, totalGp = 0, totalMin = 0;
+  
+  for (const stat of player.stats || []) {
+    if (stat.playoffs) continue;
+    totalPts += stat.pts || 0;
+    totalAst += stat.ast || 0;
+    totalTrb += stat.trb || 0;
+    totalGp += stat.gp || 0;
+    totalMin += stat.min || 0;
+  }
   
   // Weight different stats for overall skill assessment
-  const pointsScore = Math.log10(1 + stats.pts) * 2;
-  const assistsScore = Math.log10(1 + stats.ast) * 1.5;
-  const reboundsScore = Math.log10(1 + stats.trb) * 1.5;
-  const efficiencyScore = (stats.per || 15) / 10; // PER normalized around 15
-  const gamesScore = Math.log10(1 + stats.gp) * 0.8;
+  const pointsScore = Math.log10(1 + totalPts) * 2;
+  const assistsScore = Math.log10(1 + totalAst) * 1.5;
+  const reboundsScore = Math.log10(1 + totalTrb) * 1.5;
+  const efficiencyScore = (totalMin > 0 ? totalPts / totalMin * 48 : 15) / 10; // Rough PER estimate
+  const gamesScore = Math.log10(1 + totalGp) * 0.8;
   
   // Awards heavily impact skill perception
   const awards = player.awards || [];
