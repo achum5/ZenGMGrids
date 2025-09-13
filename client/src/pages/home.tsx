@@ -3,6 +3,7 @@ import { UploadSection } from '@/components/upload-section';
 import { GridSection } from '@/components/grid-section';
 import { PlayerSearchModal } from '@/components/player-search-modal';
 import { PlayerModal } from '@/components/PlayerModal';
+import { HintModal } from '@/components/HintModal';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { RulesModal } from '@/components/RulesModal';
 import { GridSharingModal } from '@/components/grid-sharing-modal';
@@ -22,6 +23,7 @@ import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
 import { debugAchievementIntersection, calculateCustomCellIntersection } from '@/lib/custom-grid-utils';
 import { getSeasonEligiblePlayers, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 import { debugIndividualAchievements, playerMeetsAchievement } from '@/lib/achievements';
+import { clearHintCache } from '@/lib/hint-generation';
 import { useToast } from '@/hooks/use-toast';
 import type { LeagueData, CatTeam, CellState, Player, SearchablePlayer } from '@/types/bbgm';
 
@@ -109,6 +111,62 @@ export default function Home() {
   
   // Custom grid creation state
   const [customGridModalOpen, setCustomGridModalOpen] = useState(false);
+
+  // Hint mode state
+  const [hintMode, setHintMode] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem('hintMode');
+      return stored === 'true';
+    } catch {
+      return false;
+    }
+  });
+  
+  // Hint modal state
+  const [hintModalOpen, setHintModalOpen] = useState(false);
+  const [hintCellKey, setHintCellKey] = useState<string>('');
+  const [hintRowConstraint, setHintRowConstraint] = useState<CatTeam | null>(null);
+  const [hintColConstraint, setHintColConstraint] = useState<CatTeam | null>(null);
+  
+  // Reshuffle count tracking per cell
+  const [reshuffleCounts, setReshuffleCounts] = useState<Record<string, number>>({});
+
+  // Handle hint mode toggle with localStorage persistence
+  const handleHintModeChange = useCallback((enabled: boolean) => {
+    setHintMode(enabled);
+    try {
+      localStorage.setItem('hintMode', enabled.toString());
+    } catch {
+      // Storage failed, continue without persistence
+    }
+  }, []);
+
+  // Handle hint modal close
+  const handleHintModalClose = useCallback(() => {
+    setHintModalOpen(false);
+    setHintCellKey('');
+    setHintRowConstraint(null);
+    setHintColConstraint(null);
+  }, []);
+
+  // Handle hint player selection (route through existing guess logic)
+  const handleHintPlayerSelect = useCallback((player: Player) => {
+    if (!hintCellKey) return;
+    
+    // Route through existing player selection logic
+    handlePlayerSelect(player, hintCellKey);
+    
+    // Close hint modal
+    handleHintModalClose();
+  }, [hintCellKey]);
+  
+  // Handle hint modal reshuffle
+  const handleHintReshuffle = useCallback((cellKey: string) => {
+    setReshuffleCounts(prev => ({
+      ...prev,
+      [cellKey]: (prev[cellKey] || 0) + 1
+    }));
+  }, []);
 
   // Helper function to build and cache player rankings for a cell
   const buildRankCacheForCell = useCallback((cellKey: string): Array<{player: Player, rarity: number}> => {
@@ -450,6 +508,8 @@ export default function Home() {
       setUsedPids(new Set()); // Reset used players
       setRankCache({}); // Reset cached rankings for the old grid
       setGiveUpPressed(false); // Reset Give Up state
+      clearHintCache(); // Clear hint cache for new grid
+      setReshuffleCounts({}); // Reset reshuffle counts for new grid
       
       // Initialize new grid tracking
       const gridId = `${gridResult.rows.map(r => r.key).join('-')}_${gridResult.cols.map(c => c.key).join('-')}`;
@@ -564,10 +624,38 @@ export default function Home() {
       return;
     }
     
-    // Open search modal for empty cells
-    setCurrentCellKey(positionalKey);
-    setSearchModalOpen(true);
-  }, [cells, rows, cols, intersections, leagueData]);
+    // Route to search modal or hint modal based on hint mode
+    if (hintMode) {
+      // Get constraints for this cell
+      const [rowIndexStr, colIndexStr] = positionalKey.split('-');
+      const rowIndex = parseInt(rowIndexStr, 10);
+      const colIndex = parseInt(colIndexStr, 10);
+      const rowConstraint = rows[rowIndex];
+      const colConstraint = cols[colIndex];
+      
+      if (rowConstraint && colConstraint) {
+        // Check if there are eligible players for this cell
+        const eligiblePids = intersections[positionalKey] || [];
+        if (eligiblePids.length === 0) {
+          toast({
+            title: 'No eligible players for this square.',
+            variant: 'destructive',
+          });
+          return;
+        }
+        
+        // Open hint modal
+        setHintCellKey(positionalKey);
+        setHintRowConstraint(rowConstraint);
+        setHintColConstraint(colConstraint);
+        setHintModalOpen(true);
+      }
+    } else {
+      // Open search modal (existing behavior)
+      setCurrentCellKey(positionalKey);
+      setSearchModalOpen(true);
+    }
+  }, [cells, rows, cols, intersections, leagueData, hintMode, toast]);
 
   const handleSelectPlayer = useCallback((player: Player) => {
     if (!currentCellKey) return;
@@ -862,6 +950,7 @@ export default function Home() {
     setUsedPids(new Set());
     setRankCache({});
     setGiveUpPressed(false); // Reset Give Up state
+    setReshuffleCounts({}); // Reset reshuffle counts for retry
     
     // Keep the same rows, cols, and intersections (same puzzle)
   }, [currentGridId, attemptCount]);
@@ -975,6 +1064,8 @@ export default function Home() {
           sport={leagueData?.sport}
           attemptCount={attemptCount}
           getOrdinalLabel={getOrdinalLabel}
+          hintMode={hintMode}
+          onHintModeChange={handleHintModeChange}
         />
         
         <PlayerSearchModal
@@ -986,6 +1077,24 @@ export default function Home() {
           cellDescription={getCurrentCellDescription()}
           usedPids={usedPids}
           currentCellKey={currentCellKey}
+        />
+        
+        <HintModal
+          open={hintModalOpen}
+          onClose={handleHintModalClose}
+          onSelectPlayer={handleHintPlayerSelect}
+          cellKey={hintCellKey}
+          rowConstraint={hintRowConstraint!}
+          colConstraint={hintColConstraint!}
+          eligiblePlayerIds={intersections[hintCellKey] || []}
+          allPlayers={leagueData?.players || []}
+          byPid={byPid}
+          teams={leagueData?.teams || []}
+          usedPids={usedPids}
+          gridId={currentGridId}
+          leagueData={leagueData}
+          reshuffleCount={reshuffleCounts[hintCellKey] || 0}
+          onReshuffle={handleHintReshuffle}
         />
         
         <PlayerModal

@@ -1,5 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { RefreshCw, Flag, Share2, Grid3x3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { cellKey } from '@/lib/grid-generator';
@@ -36,6 +38,8 @@ interface GridSectionProps {
   attemptCount: number;
   getOrdinalLabel: (count: number) => string;
   giveUpPressed?: boolean; // Track if Give Up has been pressed
+  hintMode: boolean; // Hint mode state
+  onHintModeChange: (enabled: boolean) => void; // Hint mode toggle handler
 }
 
 // Calculate total score from correct guesses
@@ -61,6 +65,8 @@ export function GridSection({
   attemptCount,
   getOrdinalLabel,
   giveUpPressed = false,
+  hintMode,
+  onHintModeChange,
 }: GridSectionProps) {
   const totalScore = calculateScore(cells);
   
@@ -392,6 +398,23 @@ export function GridSection({
           </div>
         </CardContent>
       </Card>
+
+      {/* Hint mode toggle below the grid */}
+      <div className="flex items-center gap-2" data-testid="hint-mode-toggle">
+        <Switch
+          id="hint-mode"
+          checked={hintMode}
+          onCheckedChange={onHintModeChange}
+          data-testid="switch-hint-mode"
+        />
+        <Label 
+          htmlFor="hint-mode" 
+          className="text-sm font-medium cursor-pointer"
+          data-testid="label-hint-mode"
+        >
+          Hint mode
+        </Label>
+      </div>
 
       {/* Share/Import Grid and Create Custom Grid buttons below the grid */}
       {((onShareGrid && rows.length > 0 && cols.length > 0) || onCreateCustomGrid) && (
