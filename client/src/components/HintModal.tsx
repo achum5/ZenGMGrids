@@ -113,12 +113,12 @@ export function HintModal({
       return (
         <div className="flex flex-col items-center gap-3">
           {team?.imgURL ? (
-            <div className="w-20 h-20 flex-shrink-0">
+            <div className="w-20 h-20 md:w-28 md:h-28 flex-shrink-0">
               <TeamLogo team={team} className="w-full h-full" />
             </div>
           ) : (
             <div className="text-center">
-              <div className="text-lg font-bold text-foreground">{team?.region} {team?.name}</div>
+              <div className="text-lg md:text-xl font-bold text-foreground">{team?.region} {team?.name}</div>
             </div>
           )}
         </div>
@@ -127,7 +127,7 @@ export function HintModal({
       return (
         <div className="flex flex-col items-center gap-3">
           <div className="text-center max-w-64">
-            <div className="text-lg font-bold text-foreground leading-tight">{constraint.label}</div>
+            <div className="text-lg md:text-xl font-bold text-foreground leading-tight">{constraint.label}</div>
           </div>
         </div>
       );
@@ -160,7 +160,7 @@ export function HintModal({
           </div>
           
           {/* Constraints side by side - compact but prominent */}
-          <div className="grid grid-cols-2 gap-6 items-center py-4">
+          <div className="grid grid-cols-2 gap-6 md:gap-8 items-center py-4 md:py-6">
             <div className="flex justify-center">
               {renderConstraint(rowConstraint)}
             </div>
