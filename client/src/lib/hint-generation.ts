@@ -80,7 +80,6 @@ export function generateHintOptions(
         imgURL: undefined,
         injury: { type: 'Healthy', gamesRemaining: 0 },
         jerseyNumber: undefined,
-        relatives: [],
         srID: undefined,
         real: false,
         awards: [],
