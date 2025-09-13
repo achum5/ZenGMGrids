@@ -51,14 +51,7 @@ export function HintModal({
 
   // Generate hints when modal opens or reshuffle is requested
   const generateHints = useCallback(async () => {
-    if (eligiblePlayerIds.length === 0) {
-      toast({
-        title: 'No eligible players for this square.',
-        variant: 'destructive',
-      });
-      onClose();
-      return;
-    }
+    // Note: We always generate hints even with 0 eligible players (will create dummies)
 
     setIsGenerating(true);
     
@@ -154,7 +147,7 @@ export function HintModal({
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent 
-        className="sm:max-w-4xl max-w-[95vw] max-h-[90vh] flex flex-col p-0 bg-background border-border"
+        className="sm:max-w-4xl max-w-[95vw] max-h-[90vh] flex flex-col p-0 bg-background border-border [&>button]:hidden"
         onKeyDown={handleKeyDown}
         data-testid="modal-hint"
       >
@@ -206,11 +199,6 @@ export function HintModal({
           ) : hintResult ? (
             // Player options grid - always 3x2 layout
             <div className="space-y-6">
-              {hintResult.hasLimitedOptions && (
-                <div className="text-sm text-amber-600 dark:text-amber-400 text-center font-medium" data-testid="text-limited-options">
-                  Limited options available for this square.
-                </div>
-              )}
               
               <div className="grid grid-cols-3 gap-4" data-testid="grid-hint-options">
                 {hintResult.options.slice(0, 6).map((option, index) => (
