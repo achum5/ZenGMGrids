@@ -147,7 +147,7 @@ export function HintModal({
         {/* Header */}
         <div className="flex-none p-6 border-b border-border/20">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-foreground text-center w-full">Hint Mode</h2>
+            <h2 className="text-3xl font-bold text-foreground text-center w-full">Hint Mode</h2>
             <Button
               variant="ghost"
               size="sm"
@@ -168,6 +168,9 @@ export function HintModal({
               {renderConstraint(colConstraint)}
             </div>
           </div>
+          
+          {/* Header divider */}
+          <div className="border-t border-border/30"></div>
         </div>
 
         {/* Main content */}
@@ -186,7 +189,10 @@ export function HintModal({
                 <div
                   key={option.player.pid}
                   className={cn(
-                    "aspect-square bg-muted dark:bg-slate-800 rounded-lg overflow-hidden transition-all duration-200 hover:brightness-110 hover:shadow-md cursor-pointer border border-transparent hover:border-accent/40",
+                    "aspect-square bg-muted dark:bg-slate-800 rounded-lg overflow-hidden transition-all duration-200",
+                    "hover:brightness-110 hover:shadow-lg hover:shadow-accent/10 hover:scale-[1.02] cursor-pointer", 
+                    "border border-transparent hover:border-accent/40 hover:bg-accent/5",
+                    "active:scale-[0.98] active:brightness-125 active:shadow-accent/20",
                     "flex items-center justify-center text-center relative"
                   )}
                   onClick={() => handlePlayerSelect(option.player)}
