@@ -253,6 +253,9 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
               <DialogTitle className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight dark:text-white">
                 {player.name}
               </DialogTitle>
+              <DialogDescription className="sr-only">
+                Player details including career statistics, achievements, and team history.
+              </DialogDescription>
               
               {/* Score feedback for correct guesses OR feedback message for wrong guesses */}
               {modalData && modalData.type === 'correct' && (
