@@ -401,29 +401,11 @@ export function GridSection({
         </CardContent>
       </Card>
 
-      {/* Hint mode toggle below the grid */}
-      <div className="flex items-center gap-2" data-testid="hint-mode-toggle">
-        <Switch
-          id="hint-mode"
-          checked={hintMode}
-          onCheckedChange={onHintModeChange}
-          disabled={hintModeLocked}
-          data-testid="switch-hint-mode"
-        />
-        <Label 
-          htmlFor="hint-mode" 
-          className="text-sm font-medium cursor-pointer"
-          data-testid="label-hint-mode"
-        >
-          Hint Mode
-        </Label>
-      </div>
-
-      {/* Share/Import Grid and Create Custom Grid buttons below the grid */}
-      {((onShareGrid && rows.length > 0 && cols.length > 0) || onCreateCustomGrid) && (
-        <div className="flex justify-between mt-4">
-          {/* Share/Import Grid button (left side) */}
-          {onShareGrid && rows.length > 0 && cols.length > 0 && (
+      {/* Three-column layout: Share - Hint Mode - Custom */}
+      <div className="grid grid-cols-3 items-center mt-4">
+        {/* Share/Import Grid button (left) */}
+        <div className="flex justify-start">
+          {onShareGrid && rows.length > 0 && cols.length > 0 ? (
             <Button
               onClick={onShareGrid}
               variant="outline"
@@ -434,13 +416,32 @@ export function GridSection({
               <span className="hidden xs:inline">Share/Import Grid</span>
               <span className="xs:hidden">Share</span>
             </Button>
+          ) : (
+            <div /> // Empty div to maintain grid structure
           )}
-          
-          {/* Spacer when only one button is shown */}
-          {!((onShareGrid && rows.length > 0 && cols.length > 0) && onCreateCustomGrid) && <div />}
-          
-          {/* Create Custom Grid button (right side) */}
-          {onCreateCustomGrid && (
+        </div>
+
+        {/* Hint mode toggle (center) */}
+        <div className="flex items-center justify-center gap-2" data-testid="hint-mode-toggle">
+          <Switch
+            id="hint-mode"
+            checked={hintMode}
+            onCheckedChange={onHintModeChange}
+            disabled={hintModeLocked}
+            data-testid="switch-hint-mode"
+          />
+          <Label 
+            htmlFor="hint-mode" 
+            className="text-sm font-medium cursor-pointer"
+            data-testid="label-hint-mode"
+          >
+            Hint Mode
+          </Label>
+        </div>
+
+        {/* Create Custom Grid button (right) */}
+        <div className="flex justify-end">
+          {onCreateCustomGrid ? (
             <Button
               onClick={onCreateCustomGrid}
               variant="outline"
@@ -451,9 +452,11 @@ export function GridSection({
               <span className="hidden xs:inline">Create Custom Grid</span>
               <span className="xs:hidden">Custom</span>
             </Button>
+          ) : (
+            <div /> // Empty div to maintain grid structure
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
