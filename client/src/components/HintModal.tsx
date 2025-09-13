@@ -147,7 +147,7 @@ export function HintModal({
         {/* Header */}
         <div className="flex-none p-6 border-b border-border/20">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-foreground">Hint mode</h2>
+            <h2 className="text-2xl font-bold text-foreground text-center w-full">Help Mode</h2>
             <Button
               variant="ghost"
               size="sm"
