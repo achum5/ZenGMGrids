@@ -78,8 +78,9 @@ export function computeRarityForGuess(opts: {
   cellContext?: CellContext;            // Optional cell context for enhanced rarity
   fullPlayers?: Player[];               // Full player data for cell-aware calculations
   teams?: Map<number, Team>;            // Team data for cell-aware calculations
+  seasonIndex?: import('@/lib/season-achievements').SeasonIndex;  // Season achievements data
 }): number {
-  const { guessed, eligiblePool, puzzleSeed, cellContext, fullPlayers, teams } = opts;
+  const { guessed, eligiblePool, puzzleSeed, cellContext, fullPlayers, teams, seasonIndex } = opts;
   const N = eligiblePool.length;
 
   if (N <= 0) return 1;
@@ -101,7 +102,8 @@ export function computeRarityForGuess(opts: {
             colConstraint: cellContext.colConstraint,
             teams: teams
           },
-          puzzleSeed
+          puzzleSeed,
+          seasonIndex
         });
         return result.finalRarity;
       } catch (error) {

@@ -92,9 +92,6 @@ export interface PlayerCache {
   
   // Global popularity score
   globalPopularity: number;
-  
-  // Season achievement index
-  seasonIndex: SeasonIndex;
 }
 
 export interface CellPopularityComponents {
@@ -157,7 +154,7 @@ const DRAFT_HOF_SPECIAL = new Set([
 
 const playerCacheMap = new Map<number, PlayerCache>();
 
-export function buildPlayerCache(player: Player): PlayerCache {
+export function buildPlayerCache(player: Player, seasonIndex: SeasonIndex = {}): PlayerCache {
   if (playerCacheMap.has(player.pid)) {
     return playerCacheMap.get(player.pid)!;
   }
@@ -191,11 +188,9 @@ export function buildPlayerCache(player: Player): PlayerCache {
     let rebounds = 0;
     if (stat.trb !== undefined) {
       rebounds = stat.trb;
-    } else if (stat.orb !== undefined || stat.drb !== undefined) {
-      rebounds = (stat.orb || 0) + (stat.drb || 0);
-    } else if (stat.reb !== undefined) {
-      rebounds = stat.reb;
     }
+    // Note: orb, drb, reb properties not available in current type definition
+    // Only trb is available, so we use that
     teamStat.trb += rebounds;
     teamStat.ast += stat.ast ?? 0;
     teamStat.stl += stat.stl ?? 0;
@@ -231,11 +226,9 @@ export function buildPlayerCache(player: Player): PlayerCache {
       let rebounds = 0;
       if (stat.trb !== undefined) {
         rebounds = stat.trb;
-      } else if (stat.orb !== undefined || stat.drb !== undefined) {
-        rebounds = (stat.orb || 0) + (stat.drb || 0);
-      } else if (stat.reb !== undefined) {
-        rebounds = stat.reb;
       }
+      // Note: orb, drb, reb properties not available in current type definition
+      // Only trb is available, so we use that
       merged.trb += rebounds;
       merged.ast += stat.ast ?? 0;
       merged.stl += stat.stl ?? 0;
@@ -243,7 +236,8 @@ export function buildPlayerCache(player: Player): PlayerCache {
       merged.fg += stat.fg ?? 0;
       merged.fga += stat.fga ?? 0;
       // Handle different three-pointer field names consistently
-      const threes = stat.tpm || stat.tp || stat.fg3 || 0;
+      const threes = stat.tpm || stat.tp || 0;
+      // Note: fg3 property not available in current type definition
       merged.tpm += threes;
       merged.tpa += stat.tpa ?? 0;
       merged.ft += stat.ft ?? 0;
@@ -354,7 +348,8 @@ function normalizeToRange(values: number[]): number[] {
 export function calculateTeamAffinity(
   player: Player, 
   cache: PlayerCache,
-  cellContext: CellContext
+  cellContext: CellContext,
+  seasonIndex: SeasonIndex
 ): number {
   const { rowConstraint, colConstraint } = cellContext;
   
@@ -380,7 +375,7 @@ export function calculateTeamAffinity(
   if (SEASON_ALIGNED.has(achievementId)) {
     // Simple check: is player eligible for this team-achievement combination?
     // This replaces complex affinity calculations with direct season index lookup
-    return isPlayerInSeasonIndex(player.pid, teamTid, achievementId, cache.seasonIndex) ? 10 : 0;
+    return isPlayerInSeasonIndex(player.pid, teamTid, achievementId, seasonIndex) ? 10 : 0;
   }
   
   // For career categories, use career team affinity
@@ -401,10 +396,11 @@ function calculateSeasonTeamAffinity(
   player: Player, 
   cache: PlayerCache, 
   teamTid: number, 
-  achievementId: string
+  achievementId: string,
+  seasonIndex: SeasonIndex
 ): number {
   // Replaced with direct season index eligibility check
-  return isPlayerInSeasonIndex(player.pid, teamTid, achievementId, cache.seasonIndex) ? 10 : 0;
+  return isPlayerInSeasonIndex(player.pid, teamTid, achievementId, seasonIndex) ? 10 : 0;
 }
 
 // ===== CATEGORY FIT CALCULATION =====
@@ -412,7 +408,8 @@ function calculateSeasonTeamAffinity(
 export function calculateCategoryFit(
   player: Player,
   cache: PlayerCache,
-  cellContext: CellContext
+  cellContext: CellContext,
+  seasonIndex: SeasonIndex
 ): number {
   const { rowConstraint, colConstraint } = cellContext;
   
@@ -434,7 +431,7 @@ export function calculateCategoryFit(
   
   // Apply team overlap if team is present
   if (teamTid !== undefined) {
-    const overlap = calculateTeamOverlap(player, cache, teamTid, achievementId);
+    const overlap = calculateTeamOverlap(player, cache, teamTid, achievementId, seasonIndex);
     // Softening exponent to avoid annihilating short but legit stints
     baseStrength *= Math.pow(overlap, 0.5);
   }
@@ -578,11 +575,12 @@ function calculateTeamOverlap(
   player: Player, 
   cache: PlayerCache, 
   teamTid: number, 
-  achievementId: string
+  achievementId: string,
+  seasonIndex: SeasonIndex
 ): number {
   if (SEASON_ALIGNED.has(achievementId)) {
     // For season-aligned: check if player is eligible via season index
-    return isPlayerInSeasonIndex(player.pid, teamTid, achievementId, cache.seasonIndex) ? 1.0 : 0.0;
+    return isPlayerInSeasonIndex(player.pid, teamTid, achievementId, seasonIndex) ? 1.0 : 0.0;
   } else {
     // For career categories: fraction of career stat with team
     const teamStat = cache.teamStats.get(teamTid);
@@ -687,8 +685,9 @@ export function computeCellAwareRarity(opts: {
   eligiblePool: Player[];
   cellContext: CellContext;
   puzzleSeed: string;
+  seasonIndex?: SeasonIndex;
 }): CellRarityResult {
-  const { guessed, eligiblePool, cellContext, puzzleSeed } = opts;
+  const { guessed, eligiblePool, cellContext, puzzleSeed, seasonIndex = {} } = opts;
   const N = eligiblePool.length;
   
   if (N <= 0) {
@@ -698,13 +697,13 @@ export function computeCellAwareRarity(opts: {
   // Build caches for all players
   const playersWithCaches = eligiblePool.map(player => ({
     player,
-    cache: buildPlayerCache(player)
+    cache: buildPlayerCache(player, seasonIndex)
   }));
   
   // Calculate components for all players
   const playersWithComponents = playersWithCaches.map(({ player, cache }) => {
-    const teamAffinity = calculateTeamAffinity(player, cache, cellContext);
-    const categoryFit = calculateCategoryFit(player, cache, cellContext);
+    const teamAffinity = calculateTeamAffinity(player, cache, cellContext, seasonIndex);
+    const categoryFit = calculateCategoryFit(player, cache, cellContext, seasonIndex);
     const globalPopularity = cache.globalPopularity;
     
     return {
