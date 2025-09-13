@@ -640,34 +640,19 @@ export default function Home() {
       setRows(importedRows);
       setCols(importedCols);
       
-      // Generate intersections for the new grid
-      const allCellKeys = importedRows.flatMap(row => 
-        importedCols.map(col => cellKey(row.key, col.key, importedRows, importedCols))
-      );
-      
+      // Generate intersections for the new grid using position-based keys
       const newIntersections: Record<string, number[]> = {};
       
-      for (const key of allCellKeys) {
-        let row: CatTeam | undefined;
-        let col: CatTeam | undefined;
-        
-        if (key.includes('|')) {
-          // Traditional format: "rowKey|colKey"
-          const [rowKey, colKey] = key.split('|');
-          row = importedRows.find(r => r.key === rowKey);
-          col = importedCols.find(c => c.key === colKey);
-        } else {
-          // Position-based format: "rowIndex-colIndex"
-          const [rowIndexStr, colIndexStr] = key.split('-');
-          const rowIndex = parseInt(rowIndexStr, 10);
-          const colIndex = parseInt(colIndexStr, 10);
-          row = importedRows[rowIndex];
-          col = importedCols[colIndex];
-        }
-        
-        if (row && col) {
-          const eligible = leagueData.players.filter(p => row.test(p) && col.test(p));
-          newIntersections[key] = eligible.map(p => p.pid);
+      for (let rowIndex = 0; rowIndex < importedRows.length; rowIndex++) {
+        for (let colIndex = 0; colIndex < importedCols.length; colIndex++) {
+          const key = `${rowIndex}-${colIndex}`;
+          const row = importedRows[rowIndex];
+          const col = importedCols[colIndex];
+          
+          if (row && col) {
+            const eligible = leagueData.players.filter(p => row.test(p) && col.test(p));
+            newIntersections[key] = eligible.map(p => p.pid);
+          }
         }
       }
       
