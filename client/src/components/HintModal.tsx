@@ -111,23 +111,23 @@ export function HintModal({
     if (constraint.type === 'team') {
       const team = teams.find(t => t.tid === constraint.tid);
       return (
-        <div className="flex flex-col items-center gap-6">
+        <div className="flex flex-col items-center gap-3">
           {team?.imgURL ? (
-            <div className="w-32 h-32 flex-shrink-0">
+            <div className="w-20 h-20 flex-shrink-0">
               <TeamLogo team={team} className="w-full h-full" />
             </div>
           ) : (
             <div className="text-center">
-              <div className="text-2xl font-bold text-foreground">{team?.region} {team?.name}</div>
+              <div className="text-lg font-bold text-foreground">{team?.region} {team?.name}</div>
             </div>
           )}
         </div>
       );
     } else {
       return (
-        <div className="flex flex-col items-center gap-6">
+        <div className="flex flex-col items-center gap-3">
           <div className="text-center max-w-64">
-            <div className="text-2xl font-bold text-foreground leading-tight">{constraint.label}</div>
+            <div className="text-lg font-bold text-foreground leading-tight">{constraint.label}</div>
           </div>
         </div>
       );
@@ -145,8 +145,8 @@ export function HintModal({
         <DialogTitle className="sr-only">Hint Mode</DialogTitle>
         <DialogDescription className="sr-only">Select a player that matches both constraints</DialogDescription>
         {/* Header */}
-        <div className="flex-none p-8 border-b border-border/20">
-          <div className="flex justify-between items-center mb-8">
+        <div className="flex-none p-4 border-b border-border/20">
+          <div className="flex justify-between items-center mb-4">
             <h2 className="text-3xl font-bold text-foreground text-center w-full">Hint Mode</h2>
             <Button
               variant="ghost"
@@ -159,8 +159,8 @@ export function HintModal({
             </Button>
           </div>
           
-          {/* Constraints side by side - much more prominent */}
-          <div className="grid grid-cols-2 gap-12 items-center py-8">
+          {/* Constraints side by side - compact but prominent */}
+          <div className="grid grid-cols-2 gap-6 items-center py-4">
             <div className="flex justify-center">
               {renderConstraint(rowConstraint)}
             </div>
