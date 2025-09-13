@@ -115,10 +115,6 @@ export function HintModal({
     onClose();
   };
 
-  // Handle reshuffle
-  const handleReshuffle = () => {
-    onReshuffle(cellKey);
-  };
 
   // Handle keyboard navigation
   const handleKeyDown = (event: React.KeyboardEvent) => {
@@ -135,16 +131,18 @@ export function HintModal({
       const team = teams.find(t => t.tid === constraint.tid);
       return (
         <div className="flex flex-col items-center gap-3" data-testid={`constraint-team-${constraint.tid}`}>
-          <div className="w-16 h-16 flex-shrink-0">
+          <div className="w-20 h-20 flex-shrink-0">
             <TeamLogo team={team!} className="w-full h-full" />
           </div>
         </div>
       );
     } else {
       return (
-        <div className="flex flex-col justify-center" data-testid={`constraint-achievement-${constraint.achievementId}`}>
-          <div className="text-2xl font-bold text-foreground leading-tight">
-            {constraint.label}
+        <div className="flex flex-col justify-center items-center" data-testid={`constraint-achievement-${constraint.achievementId}`}>
+          <div className="w-20 h-20 flex items-center justify-center">
+            <div className="text-xl font-bold text-foreground leading-tight text-center">
+              {constraint.label}
+            </div>
           </div>
         </div>
       );
@@ -169,19 +167,6 @@ export function HintModal({
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-foreground">Hint mode</h2>
             <div className="flex items-center gap-3">
-              {hintResult?.canReshuffle && reshuffleCount < 3 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleReshuffle}
-                  disabled={isGenerating}
-                  className="bg-background border-border text-foreground hover:bg-muted"
-                  data-testid="button-reshuffle"
-                >
-                  <RefreshCw className="w-4 h-4 mr-1" />
-                  New options
-                </Button>
-              )}
               <Button
                 variant="ghost"
                 size="sm"
@@ -232,34 +217,33 @@ export function HintModal({
                   <button
                     key={option.player.pid}
                     className={cn(
-                      "aspect-[4/5] bg-card dark:bg-neutral-900 rounded-xl overflow-hidden relative transition-all duration-200 group",
+                      "aspect-square w-full flex items-center justify-center text-center relative overflow-hidden transition-all duration-200 hover:brightness-110 hover:contrast-110 hover:shadow-md",
+                      "bg-muted dark:bg-slate-800 text-muted-foreground hover:bg-accent/30 dark:hover:bg-accent/20 hover:border-accent/40 dark:hover:border-accent/30 border border-transparent",
                       option.isIncorrect
                         ? "opacity-60 cursor-not-allowed"
-                        : "hover:scale-105 hover:shadow-xl focus:ring-2 focus:ring-ring focus:outline-none"
+                        : "focus:ring-2 focus:ring-inset focus:ring-blue-500 dark:focus:ring-blue-400"
                     )}
                     onClick={() => handlePlayerSelect(option)}
                     disabled={option.isIncorrect}
+                    style={{ 
+                      touchAction: 'manipulation',
+                      WebkitTapHighlightColor: 'transparent',
+                      userSelect: 'none'
+                    }}
                     data-testid={`button-hint-player-${option.player.pid}`}
                   >
-                    {/* Player photo - fills most of the card */}
-                    <div className="absolute inset-2 rounded-lg overflow-hidden">
-                      <PlayerFace 
-                        pid={option.player.pid}
-                        name={option.player.name}
-                        imgURL={option.player.imgURL}
-                        face={option.player.face}
-                        size={200}
-                        hideName={true}
-                        player={option.player}
-                        teams={teams}
-                        sport={leagueData?.sport}
-                      />
-                    </div>
-                    
-                    {/* Name overlay at bottom with gradient */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-3 pt-8">
-                      <div className="text-white text-sm font-semibold text-center leading-tight">
-                        {option.player.name}
+                    <div className="text-xs md:text-sm px-1 md:px-2 text-center w-full h-full flex items-center justify-center relative overflow-hidden">
+                      <div className="relative w-full h-full flex items-center justify-center">
+                        <PlayerFace
+                          pid={option.player.pid}
+                          name={option.player.name}
+                          imgURL={option.player.imgURL}
+                          face={option.player.face}
+                          size={Math.min(80, typeof window !== 'undefined' ? Math.min(window.innerWidth / 10, window.innerHeight / 12) : 80)}
+                          player={option.player}
+                          teams={teams}
+                          sport={leagueData?.sport}
+                        />
                       </div>
                     </div>
                     

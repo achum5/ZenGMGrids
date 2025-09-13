@@ -6,6 +6,7 @@
 import type { Player, CatTeam, LeagueData, Team } from '@/types/bbgm';
 import { createSeededRandom } from './seeded';
 import { playerMeetsAchievement } from './achievements';
+import { computeCellAwareRarity, type CellContext } from './cell-aware-rarity';
 
 export interface HintOption {
   player: Player;
@@ -16,7 +17,6 @@ export interface HintOption {
 export interface HintGenerationResult {
   options: HintOption[];
   hasLimitedOptions: boolean;
-  canReshuffle: boolean;
 }
 
 /**
@@ -63,37 +63,53 @@ export function generateHintOptions(
   if (eligiblePlayers.length === 0) {
     const result: HintGenerationResult = {
       options: [],
-      hasLimitedOptions: true,
-      canReshuffle: false
+      hasLimitedOptions: true
     };
     hintCache.set(cacheKey, result);
     return result;
   }
 
-  // Create seeded random generator for correct player selection (deterministic across reshuffles)
-  const correctRng = createSeededRandom(gridId, cellKey);
+  // Sort eligible players by rarity using cell-aware logic
+  const cellContext: CellContext = {
+    rowConstraint: { type: rowConstraint.type, tid: rowConstraint.tid, achievementId: rowConstraint.achievementId, name: rowConstraint.label },
+    colConstraint: { type: colConstraint.type, tid: colConstraint.tid, achievementId: colConstraint.achievementId, name: colConstraint.label },
+    teams: new Map(teams.map(t => [t.tid, t]))
+  };
+
+  // Calculate rarity for all eligible players and sort them
+  const playersWithRarity = eligiblePlayers.map(player => {
+    try {
+      const rarityResult = computeCellAwareRarity({
+        guessed: player,
+        eligiblePool: eligiblePlayers,
+        cellContext,
+        puzzleSeed: gridId,
+        seasonIndex: leagueData?.seasonIndex
+      });
+      return { player, rarity: rarityResult.finalRarity };
+    } catch {
+      // Fallback for any calculation errors
+      return { player, rarity: 50 };
+    }
+  });
+
+  // Sort by rarity (highest rarity = hardest = what we want)
+  playersWithRarity.sort((a, b) => b.rarity - a.rarity);
+
+  // Select correct answer from top 20% hardest players
+  const top20PercentCount = Math.max(1, Math.ceil(playersWithRarity.length * 0.2));
+  const hardestPlayers = playersWithRarity.slice(0, top20PercentCount);
+  const rng = createSeededRandom(gridId, cellKey);
+  const correctPlayerData = rng.pick(hardestPlayers)!;
+  const correctPlayer = correctPlayerData.player;
+
+  // Generate 5 very similar players (all from the top 40% hardest)
+  const top40PercentCount = Math.max(6, Math.ceil(playersWithRarity.length * 0.4));
+  const similarHardPlayers = playersWithRarity.slice(0, top40PercentCount)
+    .map(p => p.player)
+    .filter(p => p.pid !== correctPlayer.pid);
   
-  // Pick one correct answer from eligible players (same player across reshuffles)
-  const correctPlayer = correctRng.pick(eligiblePlayers)!;
-
-  // Create separate seeded random generator for distractor selection and shuffling (changes on reshuffle)
-  const distractorRng = createSeededRandom(gridId, cellKey, reshuffleCount);
-
-  // Convert eligible player IDs to a Set for fast exclusion
-  const eligiblePidSet = new Set(eligiblePlayerIds);
-
-  // Generate distractors
-  const distractors = generateDistractors(
-    correctPlayer,
-    rowConstraint,
-    colConstraint,
-    allPlayers,
-    teams,
-    usedPids,
-    eligiblePidSet,
-    distractorRng,
-    leagueData
-  );
+  const distractors = rng.sample(similarHardPlayers, 5);
 
   // Combine and shuffle options
   const allOptions: HintOption[] = [
@@ -101,145 +117,18 @@ export function generateHintOptions(
     ...distractors.map(p => ({ player: p, isCorrect: false }))
   ];
 
-  // Shuffle to randomize position of correct answer (using distractor RNG so position changes on reshuffle)
-  const shuffledOptions = distractorRng.shuffle(allOptions);
-
-  // Determine if we can reshuffle (need enough players for a different set)
-  const totalAvailablePlayers = eligiblePlayers.length + 
-    estimateDistractorPool(rowConstraint, colConstraint, allPlayers, teams);
-  const canReshuffle = totalAvailablePlayers >= 12 && reshuffleCount < 3;
+  // Shuffle to randomize position of correct answer
+  const shuffledOptions = rng.shuffle(allOptions);
 
   const result: HintGenerationResult = {
     options: shuffledOptions,
-    hasLimitedOptions: shuffledOptions.length < 6,
-    canReshuffle
+    hasLimitedOptions: shuffledOptions.length < 6
   };
 
   hintCache.set(cacheKey, result);
   return result;
 }
 
-/**
- * Generate smart distractors according to the specification priority:
- * 1. Near-miss players (satisfy exactly one category)
- * 2. Era/team context players (teammates, overlap years)  
- * 3. Archetype look-alikes (same position, similar career)
- * 4. General pool (position, decade, conference matches)
- */
-function generateDistractors(
-  correctPlayer: Player,
-  rowConstraint: CatTeam,
-  colConstraint: CatTeam,
-  allPlayers: Player[],
-  teams: Team[],
-  usedPids: Set<number>,
-  eligiblePidSet: Set<number>,
-  rng: ReturnType<typeof createSeededRandom>,
-  leagueData?: LeagueData
-): Player[] {
-  // Exclude the correct player, all used players, AND all other eligible players
-  const excludePids = new Set([correctPlayer.pid, ...Array.from(usedPids), ...Array.from(eligiblePidSet)]);
-  const distractors: Player[] = [];
-  const maxDistractors = 5;
-
-  // Filter out excluded players to ensure no other correct answers can be selected as distractors
-  const availablePlayers = allPlayers.filter(p => 
-    !excludePids.has(p.pid)
-  );
-
-  // 1. Near-miss players (satisfy exactly one constraint)
-  const nearMissPlayers = availablePlayers.filter(player => {
-    const meetsRow = evaluateConstraint(player, rowConstraint, leagueData?.seasonIndex);
-    const meetsCol = evaluateConstraint(player, colConstraint, leagueData?.seasonIndex);
-    return (meetsRow && !meetsCol) || (!meetsRow && meetsCol);
-  });
-  
-  if (nearMissPlayers.length > 0 && distractors.length < maxDistractors) {
-    const selected = rng.sample(nearMissPlayers, Math.min(3, maxDistractors - distractors.length));
-    distractors.push(...selected);
-    selected.forEach(p => excludePids.add(p.pid));
-  }
-
-  // 2. Era/team context players (teammates, overlapping years)
-  if (distractors.length < maxDistractors) {
-    const contextPlayers = availablePlayers.filter(player => {
-      if (excludePids.has(player.pid)) return false;
-      
-      // Check for team overlap
-      const sharedTeams = Array.from(correctPlayer.teamsPlayed).some(tid => 
-        player.teamsPlayed.has(tid)
-      );
-      
-      // Check for era overlap (within 5 years)
-      const correctEra = getPlayerEra(correctPlayer);
-      const playerEra = getPlayerEra(player);
-      const eraOverlap = Math.abs(correctEra - playerEra) <= 5;
-      
-      return sharedTeams || eraOverlap;
-    });
-    
-    if (contextPlayers.length > 0) {
-      const selected = rng.sample(contextPlayers, Math.min(2, maxDistractors - distractors.length));
-      distractors.push(...selected);
-      selected.forEach(p => excludePids.add(p.pid));
-    }
-  }
-
-  // 3. Archetype look-alikes (same position, similar career length)
-  if (distractors.length < maxDistractors) {
-    const archetypePlayers = availablePlayers.filter(player => {
-      if (excludePids.has(player.pid)) return false;
-      
-      // Same position
-      const samePosition = player.pos === correctPlayer.pos;
-      
-      // Similar career length (within 3 seasons)
-      const correctCareerLength = correctPlayer.seasons.length;
-      const playerCareerLength = player.seasons.length;
-      const similarCareer = Math.abs(correctCareerLength - playerCareerLength) <= 3;
-      
-      return samePosition || similarCareer;
-    });
-    
-    if (archetypePlayers.length > 0) {
-      const selected = rng.sample(archetypePlayers, Math.min(2, maxDistractors - distractors.length));
-      distractors.push(...selected);
-      selected.forEach(p => excludePids.add(p.pid));
-    }
-  }
-
-  // 4. General pool (position, decade, conference matches)
-  if (distractors.length < maxDistractors) {
-    const generalPlayers = availablePlayers.filter(player => {
-      if (excludePids.has(player.pid)) return false;
-      
-      // Check for any connection
-      const samePosition = player.pos === correctPlayer.pos;
-      const sameDecade = Math.floor(getPlayerEra(player) / 10) === Math.floor(getPlayerEra(correctPlayer) / 10);
-      const hasAnyTeamOverlap = Array.from(correctPlayer.teamsPlayed).some(tid => 
-        player.teamsPlayed.has(tid)
-      );
-      
-      return samePosition || sameDecade || hasAnyTeamOverlap;
-    });
-    
-    if (generalPlayers.length > 0) {
-      const needed = maxDistractors - distractors.length;
-      const selected = rng.sample(generalPlayers, needed);
-      distractors.push(...selected);
-    } else {
-      // Fallback: completely random players if no good matches
-      const remainingPlayers = availablePlayers.filter(p => !excludePids.has(p.pid));
-      if (remainingPlayers.length > 0) {
-        const needed = maxDistractors - distractors.length;
-        const selected = rng.sample(remainingPlayers, needed);
-        distractors.push(...selected);
-      }
-    }
-  }
-
-  return distractors;
-}
 
 /**
  * Evaluate if a player meets a constraint (team or achievement)
@@ -269,29 +158,6 @@ function getPlayerEra(player: Player): number {
   }
 }
 
-/**
- * Estimate the size of potential distractor pool for reshuffle determination
- */
-function estimateDistractorPool(
-  rowConstraint: CatTeam,
-  colConstraint: CatTeam,
-  allPlayers: Player[],
-  teams: Team[]
-): number {
-  // Rough estimation - count players that satisfy at least one constraint
-  let count = 0;
-  
-  for (const player of allPlayers) {
-    const meetsRow = evaluateConstraint(player, rowConstraint);
-    const meetsCol = evaluateConstraint(player, colConstraint);
-    
-    if (meetsRow || meetsCol) {
-      count++;
-    }
-  }
-  
-  return count;
-}
 
 /**
  * Reset incorrect marks for reshuffle
