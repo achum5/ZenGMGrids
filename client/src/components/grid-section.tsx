@@ -402,7 +402,7 @@ export function GridSection({
       </Card>
 
       {/* Hint mode toggle below the grid */}
-      <div className="flex items-center justify-center gap-2" data-testid="hint-mode-toggle">
+      <div className="flex items-center gap-2" data-testid="hint-mode-toggle">
         <Switch
           id="hint-mode"
           checked={hintMode}

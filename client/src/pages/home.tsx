@@ -961,6 +961,7 @@ export default function Home() {
     setRankCache({});
     setGiveUpPressed(false); // Reset Give Up state
     setReshuffleCounts({}); // Reset reshuffle counts for retry
+    setHintModeLocked(false); // Reset Help Mode lock for retry
     
     // Keep the same rows, cols, and intersections (same puzzle)
   }, [currentGridId, attemptCount]);
