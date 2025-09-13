@@ -494,6 +494,7 @@ export default function Home() {
 
   const processLeagueData = useCallback(async (data: LeagueData) => {
     setLeagueData(data);
+    setHintModeLocked(false); // Reset Help Mode lock when new file is loaded
     
     // Force close any open dropdowns/modals on mobile after file upload
     if (typeof window !== 'undefined' && window.innerWidth < 768) {
