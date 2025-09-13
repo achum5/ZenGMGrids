@@ -96,7 +96,7 @@ export function HintModal({
   const handlePlayerSelect = (player: Player) => {
     console.log('Player selected:', player.name);
     onSelectPlayer(player);
-    onClose();
+    // Let parent component handle closing
   };
 
   // Handle reshuffle
@@ -137,8 +137,11 @@ export function HintModal({
   if (!open) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl w-full h-[80vh] flex flex-col p-0 gap-0 bg-card">
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent 
+        className="max-w-4xl w-full h-[80vh] flex flex-col p-0 gap-0 bg-card"
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
         {/* Header */}
         <div className="flex-none p-6 border-b border-border/20">
           <div className="flex justify-between items-center mb-6">
