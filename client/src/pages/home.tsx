@@ -150,9 +150,8 @@ export default function Home() {
   }, []);
 
   // Handle player selection - moved up to avoid temporal dead zone
-  const handleSelectPlayer = useCallback((player: Player) => {
-    if (!currentCellKey) return;
-    
+  // Core selection logic with explicit cellKey
+  const handleSelectPlayerForCell = useCallback((cellKey: string, player: Player) => {
     // Check if player already used
     if (usedPids.has(player.pid)) {
       toast({
@@ -163,10 +162,8 @@ export default function Home() {
       return;
     }
     
-    // currentCellKey now uses key format: "key1|key2"
-    
     // Validate eligibility
-    const eligiblePids = intersections[currentCellKey] || [];
+    const eligiblePids = intersections[cellKey] || [];
     const isCorrect = eligiblePids.includes(player.pid);
     
     // Compute rarity if correct
@@ -225,7 +222,7 @@ export default function Home() {
     // Update cell state with locking
     setCells(prev => ({
       ...prev,
-      [currentCellKey]: {
+      [cellKey]: {
         name: player.name,
         correct: isCorrect,
         locked: true,
@@ -238,23 +235,27 @@ export default function Home() {
     
     // Add to used players (regardless of correctness to prevent reuse)
     setUsedPids(prev => new Set([...Array.from(prev), player.pid]));
+  }, [intersections, usedPids, leagueData, rows, cols, toast]);
+
+  // Handle search modal player selection
+  const handleSelectPlayer = useCallback((player: Player) => {
+    if (!currentCellKey) return;
     
+    handleSelectPlayerForCell(currentCellKey, player);
     setCurrentCellKey(null);
     setSearchModalOpen(false);
-  }, [currentCellKey, intersections, usedPids, leagueData, rows, cols, toast]);
+  }, [currentCellKey, handleSelectPlayerForCell]);
 
   // Handle hint player selection (route through existing guess logic)
   const handleHintPlayerSelect = useCallback((player: Player) => {
     if (!hintCellKey) return;
     
-    // Set current cell key but DON'T close modal - let HintModal handle that
-    setCurrentCellKey(hintCellKey);
+    // Use explicit cellKey to avoid race conditions
+    handleSelectPlayerForCell(hintCellKey, player);
     
-    // Route through existing player selection logic
-    setTimeout(() => {
-      handleSelectPlayer(player);
-    }, 0);
-  }, [hintCellKey, handleSelectPlayer]);
+    // Close hint modal after successful selection
+    handleHintModalClose();
+  }, [hintCellKey, handleSelectPlayerForCell, handleHintModalClose]);
   
   // Handle hint modal reshuffle
   const handleHintReshuffle = useCallback((cellKey: string) => {
