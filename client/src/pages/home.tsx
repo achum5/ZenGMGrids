@@ -149,16 +149,113 @@ export default function Home() {
     setHintColConstraint(null);
   }, []);
 
+  // Handle player selection - moved up to avoid temporal dead zone
+  const handleSelectPlayer = useCallback((player: Player) => {
+    if (!currentCellKey) return;
+    
+    // Check if player already used
+    if (usedPids.has(player.pid)) {
+      toast({
+        title: 'Player already used',
+        description: 'This player has already been used in this grid.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // currentCellKey now uses key format: "key1|key2"
+    
+    // Validate eligibility
+    const eligiblePids = intersections[currentCellKey] || [];
+    const isCorrect = eligiblePids.includes(player.pid);
+    
+    // Compute rarity if correct
+    let rarity = 0;
+    let points = 0;
+    if (isCorrect && leagueData) {
+      const eligiblePlayers = leagueData.players.filter(p => eligiblePids.includes(p.pid));
+      const eligiblePool = eligiblePlayers.map(p => playerToEligibleLite(p));
+      const guessedPlayer = playerToEligibleLite(player);
+      const puzzleSeed = `${rows.map(r => r.key).join('-')}_${cols.map(c => c.key).join('-')}`;
+      
+      // Get row and column constraints for cell context
+      let rowConstraint: CatTeam | undefined;
+      let colConstraint: CatTeam | undefined;
+      
+      if (currentCellKey.includes('|')) {
+        // Traditional format: "rowKey|colKey"
+        const [rowKey, colKey] = currentCellKey.split('|');
+        rowConstraint = rows.find(r => r.key === rowKey);
+        colConstraint = cols.find(c => c.key === colKey);
+      } else {
+        // Position-based format: "rowIndex-colIndex"
+        const [rowIndexStr, colIndexStr] = currentCellKey.split('-');
+        const rowIndex = parseInt(rowIndexStr, 10);
+        const colIndex = parseInt(colIndexStr, 10);
+        rowConstraint = rows[rowIndex];
+        colConstraint = cols[colIndex];
+      }
+      const teamsMap = new Map(leagueData.teams.map(t => [t.tid, t]));
+      
+      rarity = computeRarityForGuess({
+        guessed: guessedPlayer,
+        eligiblePool: eligiblePool,
+        puzzleSeed: puzzleSeed,
+        cellContext: rowConstraint && colConstraint ? {
+          rowConstraint: {
+            type: rowConstraint.type,
+            tid: rowConstraint.tid,
+            achievementId: rowConstraint.achievementId,
+            label: rowConstraint.label
+          },
+          colConstraint: {
+            type: colConstraint.type,
+            tid: colConstraint.tid,
+            achievementId: colConstraint.achievementId,
+            label: colConstraint.label
+          }
+        } : undefined,
+        fullPlayers: eligiblePlayers,
+        teams: teamsMap,
+        seasonIndex: leagueData.seasonIndex
+      });
+      points = rarity;
+    }
+    
+    // Update cell state with locking
+    setCells(prev => ({
+      ...prev,
+      [currentCellKey]: {
+        name: player.name,
+        correct: isCorrect,
+        locked: true,
+        guessed: true,
+        player: player,
+        rarity: isCorrect ? rarity : undefined,
+        points: isCorrect ? points : undefined,
+      },
+    }));
+    
+    // Add to used players (regardless of correctness to prevent reuse)
+    setUsedPids(prev => new Set([...Array.from(prev), player.pid]));
+    
+    setCurrentCellKey(null);
+    setSearchModalOpen(false);
+  }, [currentCellKey, intersections, usedPids, leagueData, rows, cols, toast]);
+
   // Handle hint player selection (route through existing guess logic)
   const handleHintPlayerSelect = useCallback((player: Player) => {
     if (!hintCellKey) return;
     
-    // Route through existing player selection logic
-    handlePlayerSelect(player, hintCellKey);
-    
-    // Close hint modal
+    // Set current cell key and close hint modal first
+    setCurrentCellKey(hintCellKey);
     handleHintModalClose();
-  }, [hintCellKey]);
+    
+    // Then route through existing player selection logic
+    setTimeout(() => {
+      handleSelectPlayer(player);
+    }, 0);
+  }, [hintCellKey, handleHintModalClose, handleSelectPlayer]);
   
   // Handle hint modal reshuffle
   const handleHintReshuffle = useCallback((cellKey: string) => {
@@ -657,98 +754,6 @@ export default function Home() {
     }
   }, [cells, rows, cols, intersections, leagueData, hintMode, toast]);
 
-  const handleSelectPlayer = useCallback((player: Player) => {
-    if (!currentCellKey) return;
-    
-    // Check if player already used
-    if (usedPids.has(player.pid)) {
-      toast({
-        title: 'Player already used',
-        description: 'This player has already been used in this grid.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    // currentCellKey now uses key format: "key1|key2"
-    
-    // Validate eligibility
-    const eligiblePids = intersections[currentCellKey] || [];
-    const isCorrect = eligiblePids.includes(player.pid);
-    
-    // Compute rarity if correct
-    let rarity = 0;
-    let points = 0;
-    if (isCorrect && leagueData) {
-      const eligiblePlayers = leagueData.players.filter(p => eligiblePids.includes(p.pid));
-      const eligiblePool = eligiblePlayers.map(p => playerToEligibleLite(p));
-      const guessedPlayer = playerToEligibleLite(player);
-      const puzzleSeed = `${rows.map(r => r.key).join('-')}_${cols.map(c => c.key).join('-')}`;
-      
-      // Get row and column constraints for cell context
-      let rowConstraint: CatTeam | undefined;
-      let colConstraint: CatTeam | undefined;
-      
-      if (currentCellKey.includes('|')) {
-        // Traditional format: "rowKey|colKey"
-        const [rowKey, colKey] = currentCellKey.split('|');
-        rowConstraint = rows.find(r => r.key === rowKey);
-        colConstraint = cols.find(c => c.key === colKey);
-      } else {
-        // Position-based format: "rowIndex-colIndex"
-        const [rowIndexStr, colIndexStr] = currentCellKey.split('-');
-        const rowIndex = parseInt(rowIndexStr, 10);
-        const colIndex = parseInt(colIndexStr, 10);
-        rowConstraint = rows[rowIndex];
-        colConstraint = cols[colIndex];
-      }
-      const teamsMap = new Map(leagueData.teams.map(t => [t.tid, t]));
-      
-      rarity = computeRarityForGuess({
-        guessed: guessedPlayer,
-        eligiblePool: eligiblePool,
-        puzzleSeed: puzzleSeed,
-        cellContext: rowConstraint && colConstraint ? {
-          rowConstraint: {
-            type: rowConstraint.type,
-            tid: rowConstraint.tid,
-            achievementId: rowConstraint.achievementId,
-            label: rowConstraint.label
-          },
-          colConstraint: {
-            type: colConstraint.type,
-            tid: colConstraint.tid,
-            achievementId: colConstraint.achievementId,
-            label: colConstraint.label
-          }
-        } : undefined,
-        fullPlayers: eligiblePlayers,
-        teams: teamsMap,
-        seasonIndex: leagueData.seasonIndex
-      });
-      points = rarity;
-    }
-    
-    // Update cell state with locking
-    setCells(prev => ({
-      ...prev,
-      [currentCellKey]: {
-        name: player.name,
-        correct: isCorrect,
-        locked: true,
-        guessed: true,
-        player: player,
-        rarity: isCorrect ? rarity : undefined,
-        points: isCorrect ? points : undefined,
-      },
-    }));
-    
-    // Add to used players (regardless of correctness to prevent reuse)
-    setUsedPids(prev => new Set([...Array.from(prev), player.pid]));
-    
-    setCurrentCellKey(null);
-    setSearchModalOpen(false);
-  }, [currentCellKey, intersections, usedPids, toast]);
 
   const getCurrentCellDescription = () => {
     if (!currentCellKey || !rows || !cols) return '';

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -173,9 +173,9 @@ export function PlayerSearchModal({
       >
         <DialogHeader className="border-b border-border p-4">
           <DialogTitle className="text-lg font-semibold">Search Player</DialogTitle>
-          <p className="text-sm text-muted-foreground text-left mt-2">
+          <DialogDescription className="text-sm text-muted-foreground text-left mt-2">
             {cellDescription}
-          </p>
+          </DialogDescription>
         </DialogHeader>
 
         <div className="p-4 border-b border-border">
