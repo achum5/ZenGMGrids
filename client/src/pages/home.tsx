@@ -168,7 +168,8 @@ export default function Home() {
           }
         },
         fullPlayers: eligiblePlayers,
-        teams: teamsMap
+        teams: teamsMap,
+        seasonIndex: leagueData.seasonIndex
       });
       
       return { player: p, rarity };
@@ -634,7 +635,8 @@ export default function Home() {
           }
         } : undefined,
         fullPlayers: eligiblePlayers,
-        teams: teamsMap
+        teams: teamsMap,
+        seasonIndex: leagueData.seasonIndex
       });
       points = rarity;
     }
