@@ -78,7 +78,6 @@ export function generateHintOptions(
         draft: { round: 1, pick: i + 1, year: 2020 },
         face: undefined,
         imgURL: undefined,
-        mood: undefined,
         injury: { type: 'Healthy', gamesRemaining: 0 },
         salaries: [],
         jerseyNumber: undefined,
@@ -192,7 +191,7 @@ export function generateHintOptions(
   const correctPlayerData = rng.pick(hardestPlayers)!;
   const correctPlayer = correctPlayerData.player;
 
-  // Generate exactly 5 INCORRECT distractors (players who meet only ONE constraint)
+  // Generate exactly 5 INCORRECT distractors (players who meet only ONE constraint and are similar in skill)
   const distractors: Player[] = [];
   
   // Find players who meet ONLY the row constraint (not both)
@@ -213,31 +212,68 @@ export function generateHintOptions(
            player.pid !== correctPlayer.pid;
   });
   
-  // Try to get a good mix of both types of distractors
+  // Calculate skill similarity for the correct player (reference point)
+  const correctPlayerSkill = calculatePlayerSkillLevel(correctPlayer);
+  
+  // Sort both pools by similarity to correct player's skill level
+  const rowOnlySorted = rowOnlyPlayers
+    .map(player => ({
+      player,
+      skillSimilarity: calculateSkillSimilarity(correctPlayerSkill, calculatePlayerSkillLevel(player))
+    }))
+    .sort((a, b) => b.skillSimilarity - a.skillSimilarity) // Most similar first
+    .map(item => item.player);
+    
+  const colOnlySorted = colOnlyPlayers
+    .map(player => ({
+      player,
+      skillSimilarity: calculateSkillSimilarity(correctPlayerSkill, calculatePlayerSkillLevel(player))
+    }))
+    .sort((a, b) => b.skillSimilarity - a.skillSimilarity) // Most similar first
+    .map(item => item.player);
+  
+  // Try to get a good mix of both types of distractors, prioritizing skill similarity
   const maxFromEach = Math.ceil(5 / 2);
   
-  // Add row-only players
-  if (rowOnlyPlayers.length > 0) {
-    const rowSample = rng.sample(rowOnlyPlayers, Math.min(maxFromEach, rowOnlyPlayers.length));
+  // Add most similar row-only players
+  if (rowOnlySorted.length > 0) {
+    const count = Math.min(maxFromEach, rowOnlySorted.length);
+    // Take from top 40% most similar to add some variety but keep quality
+    const topSimilar = rowOnlySorted.slice(0, Math.max(count * 2, 10));
+    const rowSample = rng.sample(topSimilar, count);
     distractors.push(...rowSample);
   }
   
-  // Add column-only players to fill remaining slots
+  // Add most similar column-only players to fill remaining slots
   const remainingSlots = 5 - distractors.length;
-  if (remainingSlots > 0 && colOnlyPlayers.length > 0) {
-    const colSample = rng.sample(colOnlyPlayers, Math.min(remainingSlots, colOnlyPlayers.length));
+  if (remainingSlots > 0 && colOnlySorted.length > 0) {
+    const count = Math.min(remainingSlots, colOnlySorted.length);
+    // Take from top 40% most similar to add some variety but keep quality
+    const topSimilar = colOnlySorted.slice(0, Math.max(count * 2, 10));
+    const colSample = rng.sample(topSimilar, count);
     distractors.push(...colSample);
   }
   
-  // If we still need more players, prioritize row-only then col-only
+  // If we still need more players, prioritize the most skill-similar available
   const stillNeeded = 5 - distractors.length;
   if (stillNeeded > 0) {
-    const allSingleConstraint = [...rowOnlyPlayers, ...colOnlyPlayers].filter(
-      p => !distractors.some(d => d.pid === p.pid)
+    const usedPids = new Set(distractors.map(d => d.pid));
+    const allSingleConstraint = [...rowOnlySorted, ...colOnlySorted].filter(
+      p => !usedPids.has(p.pid)
     );
     
     if (allSingleConstraint.length >= stillNeeded) {
-      distractors.push(...rng.sample(allSingleConstraint, stillNeeded));
+      // Take the most skill-similar remaining players
+      const remaining = allSingleConstraint
+        .map(player => ({
+          player,
+          skillSimilarity: calculateSkillSimilarity(correctPlayerSkill, calculatePlayerSkillLevel(player))
+        }))
+        .sort((a, b) => b.skillSimilarity - a.skillSimilarity)
+        .slice(0, stillNeeded * 2) // Take top options for variety
+        .map(item => item.player);
+      
+      distractors.push(...rng.sample(remaining, stillNeeded));
     } else {
       // Add all available single constraint players
       distractors.push(...allSingleConstraint);
@@ -331,4 +367,46 @@ export function markOptionIncorrect(options: HintOption[], playerPid: number): H
       ? { ...option, isIncorrect: true }
       : option
   );
+}
+
+/**
+ * Calculate a player's overall skill level for similarity comparison
+ */
+function calculatePlayerSkillLevel(player: Player): number {
+  const stats = player.careerStats || player.stats?.reduce((acc, stat) => {
+    if (stat.playoffs) return acc;
+    return {
+      pts: acc.pts + (stat.pts || 0),
+      ast: acc.ast + (stat.ast || 0),
+      trb: acc.trb + (stat.trb || 0),
+      gp: acc.gp + (stat.gp || 0),
+      per: stat.per || 15
+    };
+  }, { pts: 0, ast: 0, trb: 0, gp: 0, per: 15 }) || { pts: 0, ast: 0, trb: 0, gp: 0, per: 15 };
+  
+  // Weight different stats for overall skill assessment
+  const pointsScore = Math.log10(1 + stats.pts) * 2;
+  const assistsScore = Math.log10(1 + stats.ast) * 1.5;
+  const reboundsScore = Math.log10(1 + stats.trb) * 1.5;
+  const efficiencyScore = (stats.per || 15) / 10; // PER normalized around 15
+  const gamesScore = Math.log10(1 + stats.gp) * 0.8;
+  
+  // Awards heavily impact skill perception
+  const awards = player.awards || [];
+  const mvpCount = awards.filter(a => a.type === 'Most Valuable Player').length;
+  const allStarCount = awards.filter(a => a.type === 'All-Star').length;
+  const hofBonus = awards.some(a => a.type === 'Inducted into the Hall of Fame') ? 5 : 0;
+  
+  const awardsScore = mvpCount * 4 + allStarCount * 0.5 + hofBonus;
+  
+  return pointsScore + assistsScore + reboundsScore + efficiencyScore + gamesScore + awardsScore;
+}
+
+/**
+ * Calculate similarity between two skill levels (higher = more similar)
+ */
+function calculateSkillSimilarity(skill1: number, skill2: number): number {
+  const diff = Math.abs(skill1 - skill2);
+  // Exponential decay - players within ~2 skill points are very similar
+  return Math.exp(-diff / 3);
 }
