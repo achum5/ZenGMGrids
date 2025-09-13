@@ -192,70 +192,71 @@ export function generateHintOptions(
   const correctPlayerData = rng.pick(hardestPlayers)!;
   const correctPlayer = correctPlayerData.player;
 
-  // Always generate exactly 5 distractors to reach total of 6 players
-  let distractors: Player[] = [];
+  // Generate exactly 5 INCORRECT distractors (players who meet only ONE constraint)
+  const distractors: Player[] = [];
   
-  // First try to get 5 similar hard players from top 40%
-  const top40PercentCount = Math.max(6, Math.ceil(playersWithRarity.length * 0.4));
-  const similarHardPlayers = playersWithRarity.slice(0, top40PercentCount)
-    .map(p => p.player)
-    .filter(p => p.pid !== correctPlayer.pid);
+  // Find players who meet ONLY the row constraint (not both)
+  const rowOnlyPlayers = allPlayers.filter(player => {
+    const meetsRow = evaluateConstraint(player, rowConstraint, leagueData?.seasonIndex);
+    const meetsCol = evaluateConstraint(player, colConstraint, leagueData?.seasonIndex);
+    return meetsRow && !meetsCol && 
+           !usedPids.has(player.pid) && 
+           player.pid !== correctPlayer.pid;
+  });
   
-  if (similarHardPlayers.length >= 5) {
-    distractors = rng.sample(similarHardPlayers, 5);
-  } else {
-    // If not enough similar players, fill with any available players
-    distractors = similarHardPlayers.slice(0);
-    
-    // Fill remaining slots with any other players from the eligible pool
-    const remainingEligible = eligiblePlayers.filter(p => 
-      p.pid !== correctPlayer.pid && 
-      !distractors.some(d => d.pid === p.pid)
+  // Find players who meet ONLY the column constraint (not both)
+  const colOnlyPlayers = allPlayers.filter(player => {
+    const meetsRow = evaluateConstraint(player, rowConstraint, leagueData?.seasonIndex);
+    const meetsCol = evaluateConstraint(player, colConstraint, leagueData?.seasonIndex);
+    return meetsCol && !meetsRow && 
+           !usedPids.has(player.pid) && 
+           player.pid !== correctPlayer.pid;
+  });
+  
+  // Try to get a good mix of both types of distractors
+  const maxFromEach = Math.ceil(5 / 2);
+  
+  // Add row-only players
+  if (rowOnlyPlayers.length > 0) {
+    const rowSample = rng.sample(rowOnlyPlayers, Math.min(maxFromEach, rowOnlyPlayers.length));
+    distractors.push(...rowSample);
+  }
+  
+  // Add column-only players to fill remaining slots
+  const remainingSlots = 5 - distractors.length;
+  if (remainingSlots > 0 && colOnlyPlayers.length > 0) {
+    const colSample = rng.sample(colOnlyPlayers, Math.min(remainingSlots, colOnlyPlayers.length));
+    distractors.push(...colSample);
+  }
+  
+  // If we still need more players, prioritize row-only then col-only
+  const stillNeeded = 5 - distractors.length;
+  if (stillNeeded > 0) {
+    const allSingleConstraint = [...rowOnlyPlayers, ...colOnlyPlayers].filter(
+      p => !distractors.some(d => d.pid === p.pid)
     );
     
-    const needed = 5 - distractors.length;
-    if (remainingEligible.length >= needed) {
-      distractors.push(...rng.sample(remainingEligible, needed));
+    if (allSingleConstraint.length >= stillNeeded) {
+      distractors.push(...rng.sample(allSingleConstraint, stillNeeded));
     } else {
-      // Add all remaining eligible players
-      distractors.push(...remainingEligible);
+      // Add all available single constraint players
+      distractors.push(...allSingleConstraint);
       
-      // Still need more? Get players who meet just ONE constraint (row OR column)
-      const singleConstraintPlayers = allPlayers.filter(player => {
-        const meetsRow = evaluateConstraint(player, rowConstraint, leagueData?.seasonIndex);
-        const meetsCol = evaluateConstraint(player, colConstraint, leagueData?.seasonIndex);
-        const meetsBoth = meetsRow && meetsCol;
-        const meetsOne = (meetsRow || meetsCol) && !meetsBoth;
-        
-        return meetsOne && 
-               !usedPids.has(player.pid) && 
-               player.pid !== correctPlayer.pid && 
-               !distractors.some(d => d.pid === player.pid);
-      });
-      
-      const stillNeeded = 5 - distractors.length;
-      if (singleConstraintPlayers.length >= stillNeeded) {
-        distractors.push(...rng.sample(singleConstraintPlayers, stillNeeded));
-      } else {
-        // Add all single constraint players
-        distractors.push(...singleConstraintPlayers);
-        
-        // Fill remaining with dummy players based on correct player template
-        for (let i = distractors.length; i < 5; i++) {
-          const dummyPlayer: Player = {
-            ...correctPlayer,
-            pid: -1000 - i, // Negative PIDs for dummy players
-            name: `Player ${i + 1}`,
-            imgURL: undefined,
-            face: undefined
-          };
-          distractors.push(dummyPlayer);
-        }
+      // Fill remaining with dummy players if absolutely necessary
+      for (let i = distractors.length; i < 5; i++) {
+        const dummyPlayer: Player = {
+          ...correctPlayer,
+          pid: -1000 - i, // Negative PIDs for dummy players
+          name: `Player ${i + 1}`,
+          imgURL: undefined,
+          face: undefined
+        };
+        distractors.push(dummyPlayer);
       }
     }
   }
 
-  // Combine and shuffle options
+  // Combine options: 1 correct + 5 incorrect
   const allOptions: HintOption[] = [
     { player: correctPlayer, isCorrect: true },
     ...distractors.map(p => ({ player: p, isCorrect: false }))
@@ -263,6 +264,14 @@ export function generateHintOptions(
 
   // Shuffle to randomize position of correct answer
   const shuffledOptions = rng.shuffle(allOptions);
+  
+  // Debug: Log the options to verify correctness
+  console.log(`🎯 Hint options for ${cellKey}:`);
+  shuffledOptions.forEach((option, i) => {
+    const meetsRow = evaluateConstraint(option.player, rowConstraint, leagueData?.seasonIndex);
+    const meetsCol = evaluateConstraint(option.player, colConstraint, leagueData?.seasonIndex);
+    console.log(`  ${i + 1}. ${option.player.name} - Row: ${meetsRow}, Col: ${meetsCol}, Correct: ${option.isCorrect}`);
+  });
 
   const result: HintGenerationResult = {
     options: shuffledOptions,
