@@ -112,15 +112,11 @@ export default function Home() {
   // Custom grid creation state
   const [customGridModalOpen, setCustomGridModalOpen] = useState(false);
 
-  // Hint mode state
-  const [hintMode, setHintMode] = useState<boolean>(() => {
-    try {
-      const stored = localStorage.getItem('hintMode');
-      return stored === 'true';
-    } catch {
-      return false;
-    }
-  });
+  // Help Mode state - off by default
+  const [hintMode, setHintMode] = useState<boolean>(false);
+  
+  // Help Mode locked state - locks after first guess or opening hint modal
+  const [hintModeLocked, setHintModeLocked] = useState<boolean>(false);
   
   // Hint modal state
   const [hintModalOpen, setHintModalOpen] = useState(false);
@@ -131,15 +127,13 @@ export default function Home() {
   // Reshuffle count tracking per cell
   const [reshuffleCounts, setReshuffleCounts] = useState<Record<string, number>>({});
 
-  // Handle hint mode toggle with localStorage persistence
+  // Handle hint mode toggle with locking logic
   const handleHintModeChange = useCallback((enabled: boolean) => {
+    // Can't change if locked
+    if (hintModeLocked) return;
+    
     setHintMode(enabled);
-    try {
-      localStorage.setItem('hintMode', enabled.toString());
-    } catch {
-      // Storage failed, continue without persistence
-    }
-  }, []);
+  }, [hintModeLocked]);
 
   // Handle hint modal close
   const handleHintModalClose = useCallback(() => {
@@ -219,6 +213,11 @@ export default function Home() {
       points = rarity;
     }
     
+    // Lock Help Mode after first guess
+    if (!hintModeLocked) {
+      setHintModeLocked(true);
+    }
+
     // Update cell state with locking
     setCells(prev => ({
       ...prev,
@@ -235,7 +234,7 @@ export default function Home() {
     
     // Add to used players (regardless of correctness to prevent reuse)
     setUsedPids(prev => new Set([...Array.from(prev), player.pid]));
-  }, [intersections, usedPids, leagueData, rows, cols, toast]);
+  }, [intersections, usedPids, leagueData, rows, cols, toast, hintModeLocked]);
 
   // Handle search modal player selection
   const handleSelectPlayer = useCallback((player: Player) => {
@@ -607,6 +606,7 @@ export default function Home() {
       setGiveUpPressed(false); // Reset Give Up state
       clearHintCache(); // Clear hint cache for new grid
       setReshuffleCounts({}); // Reset reshuffle counts for new grid
+      setHintModeLocked(false); // Reset Help Mode lock for new grid
       
       // Initialize new grid tracking
       const gridId = `${gridResult.rows.map(r => r.key).join('-')}_${gridResult.cols.map(c => c.key).join('-')}`;
@@ -741,6 +741,11 @@ export default function Home() {
           return;
         }
         
+        // Lock Help Mode when hint modal is opened
+        if (!hintModeLocked) {
+          setHintModeLocked(true);
+        }
+        
         // Open hint modal
         setHintCellKey(positionalKey);
         setHintRowConstraint(rowConstraint);
@@ -752,7 +757,7 @@ export default function Home() {
       setCurrentCellKey(positionalKey);
       setSearchModalOpen(true);
     }
-  }, [cells, rows, cols, intersections, leagueData, hintMode, toast]);
+  }, [cells, rows, cols, intersections, leagueData, hintMode, toast, hintModeLocked]);
 
 
   const getCurrentCellDescription = () => {
@@ -1071,6 +1076,7 @@ export default function Home() {
           getOrdinalLabel={getOrdinalLabel}
           hintMode={hintMode}
           onHintModeChange={handleHintModeChange}
+          hintModeLocked={hintModeLocked}
         />
         
         <PlayerSearchModal
