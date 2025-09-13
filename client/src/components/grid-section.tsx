@@ -415,7 +415,7 @@ export function GridSection({
           className="text-sm font-medium cursor-pointer"
           data-testid="label-hint-mode"
         >
-          Help Mode
+          Hint Mode
         </Label>
       </div>
 
