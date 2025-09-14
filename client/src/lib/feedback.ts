@@ -2,6 +2,13 @@ import type { Player, Team } from '@/types/bbgm';
 import { SEASON_ALIGNED_ACHIEVEMENTS } from '@/lib/achievements';
 import { playerMeetsAchievement } from '@/lib/achievements';
 import { SEASON_ACHIEVEMENTS, type SeasonAchievementId } from './season-achievements';
+import { 
+  isMilestoneId, 
+  parseMilestoneId, 
+  getCareerValue, 
+  formatThousands, 
+  getMilestoneFamilyByStatKey 
+} from '@/lib/milestones';
 
 // Season achievement metadata for modal copy
 const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
@@ -162,30 +169,6 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     verbTeam: 'won a championship',
     verbGeneric: 'won a championship'
   },
-  FBPassLeader: {
-    label: 'League Passing Leader',
-    short: 'Pass Leader',
-    verbTeam: 'led the league in passing',
-    verbGeneric: 'led the league in passing'
-  },
-  FBRecLeader: {
-    label: 'League Receiving Leader',
-    short: 'Rec Leader',
-    verbTeam: 'led the league in receiving',
-    verbGeneric: 'led the league in receiving'
-  },
-  FBRushLeader: {
-    label: 'League Rushing Leader',
-    short: 'Rush Leader',
-    verbTeam: 'led the league in rushing',
-    verbGeneric: 'led the league in rushing'
-  },
-  FBScrimmageLeader: {
-    label: 'League Scrimmage Yards Leader',
-    short: 'Scrimmage Leader',
-    verbTeam: 'led the league in scrimmage yards',
-    verbGeneric: 'led the league in scrimmage yards'
-  },
   
   // Hockey GM season achievements
   HKAllStar: {
@@ -206,23 +189,11 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     verbTeam: 'won an MVP',
     verbGeneric: 'won an MVP'
   },
-  HKDPOY: {
-    label: 'Defensive Player of the Year',
-    short: 'DPOY',
-    verbTeam: 'won a Defensive Player of the Year',
-    verbGeneric: 'won a Defensive Player of the Year'
-  },
-  HKDefForward: {
-    label: 'Defensive Forward of the Year',
-    short: 'Def Forward',
-    verbTeam: 'won Defensive Forward of the Year',
-    verbGeneric: 'won Defensive Forward of the Year'
-  },
-  HKGoalie: {
-    label: 'Goalie of the Year',
-    short: 'Goalie',
-    verbTeam: 'won Goalie of the Year',
-    verbGeneric: 'won Goalie of the Year'
+  HKDefenseman: {
+    label: 'Best Defenseman',
+    short: 'Best Defenseman',
+    verbTeam: 'won Best Defenseman',
+    verbGeneric: 'won Best Defenseman'
   },
   HKROY: {
     label: 'Rookie of the Year',
@@ -242,23 +213,11 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     verbTeam: 'made an All-League Team',
     verbGeneric: 'made an All-League Team'
   },
-  HKPointsLeader: {
-    label: 'League Points Leader',
-    short: 'Points Leader',
-    verbTeam: 'led the league in points',
-    verbGeneric: 'led the league in points'
-  },
   HKAssistsLeader: {
     label: 'League Assists Leader',
     short: 'Assists Leader',
     verbTeam: 'led the league in assists',
     verbGeneric: 'led the league in assists'
-  },
-  HKGoalsLeader: {
-    label: 'League Goals Leader',
-    short: 'Goals Leader',
-    verbTeam: 'led the league in goals',
-    verbGeneric: 'led the league in goals'
   },
   HKPlayoffsMVP: {
     label: 'Playoffs MVP',
@@ -272,6 +231,12 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     verbTeam: 'won a championship',
     verbGeneric: 'won a championship'
   },
+  HKFinalsMVP: {
+    label: 'Finals MVP',
+    short: 'Finals MVP',
+    verbTeam: 'won a Finals MVP',
+    verbGeneric: 'won a Finals MVP'
+  },
   
   // Baseball GM season achievements
   BBAllStar: {
@@ -280,23 +245,11 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     verbTeam: 'made an All-Star team',
     verbGeneric: 'made an All-Star team'
   },
-  BBAllStarMVP: {
-    label: 'All-Star MVP',
-    short: 'All-Star MVP',
-    verbTeam: 'won an All-Star MVP',
-    verbGeneric: 'won an All-Star MVP'
-  },
   BBMVP: {
     label: 'Most Valuable Player',
     short: 'MVP',
     verbTeam: 'won an MVP',
     verbGeneric: 'won an MVP'
-  },
-  BBPitcherOTY: {
-    label: 'Pitcher of the Year',
-    short: 'Pitcher OTY',
-    verbTeam: 'won Pitcher of the Year',
-    verbGeneric: 'won Pitcher of the Year'
   },
   BBROY: {
     label: 'Rookie of the Year',
@@ -315,90 +268,6 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     short: 'All-League',
     verbTeam: 'made an All-League Team',
     verbGeneric: 'made an All-League Team'
-  },
-  BBGoldGlove: {
-    label: 'Gold Glove',
-    short: 'Gold Glove',
-    verbTeam: 'won a Gold Glove',
-    verbGeneric: 'won a Gold Glove'
-  },
-  BBSilverSlugger: {
-    label: 'Silver Slugger',
-    short: 'Silver Slugger',
-    verbTeam: 'won a Silver Slugger',
-    verbGeneric: 'won a Silver Slugger'
-  },
-  BBBattingAvgLeader: {
-    label: 'League Batting Average Leader',
-    short: 'Batting Avg Leader',
-    verbTeam: 'led the league in batting average',
-    verbGeneric: 'led the league in batting average'
-  },
-  BBHomeRunLeader: {
-    label: 'League Home Run Leader',
-    short: 'HR Leader',
-    verbTeam: 'led the league in home runs',
-    verbGeneric: 'led the league in home runs'
-  },
-  BBRBILeader: {
-    label: 'League RBI Leader',
-    short: 'RBI Leader',
-    verbTeam: 'led the league in RBIs',
-    verbGeneric: 'led the league in RBIs'
-  },
-  BBStolenBaseLeader: {
-    label: 'League Stolen Base Leader',
-    short: 'SB Leader',
-    verbTeam: 'led the league in stolen bases',
-    verbGeneric: 'led the league in stolen bases'
-  },
-  BBOBPLeader: {
-    label: 'League On-Base Percentage Leader',
-    short: 'OBP Leader',
-    verbTeam: 'led the league in on-base percentage',
-    verbGeneric: 'led the league in on-base percentage'
-  },
-  BBSluggingLeader: {
-    label: 'League Slugging Percentage Leader',
-    short: 'Slugging Leader',
-    verbTeam: 'led the league in slugging percentage',
-    verbGeneric: 'led the league in slugging percentage'
-  },
-  BBOPSLeader: {
-    label: 'League OPS Leader',
-    short: 'OPS Leader',
-    verbTeam: 'led the league in OPS',
-    verbGeneric: 'led the league in OPS'
-  },
-  BBHitsLeader: {
-    label: 'League Hits Leader',
-    short: 'Hits Leader',
-    verbTeam: 'led the league in hits',
-    verbGeneric: 'led the league in hits'
-  },
-  BBERALeader: {
-    label: 'League ERA Leader',
-    short: 'ERA Leader',
-    verbTeam: 'led the league in ERA',
-    verbGeneric: 'led the league in ERA'
-  },
-  BBStrikeoutsLeader: {
-    label: 'League Strikeouts Leader',
-    short: 'Strikeouts Leader',
-    verbTeam: 'led the league in strikeouts',
-    verbGeneric: 'led the league in strikeouts'
-  },
-  BBSavesLeader: {
-    label: 'League Saves Leader',
-    short: 'Saves Leader',
-    verbTeam: 'led the league in saves',
-    verbGeneric: 'led the league in saves'
-  },
-  BBReliefPitcherOTY: {
-    label: 'Relief Pitcher of the Year',
-    short: 'Relief Pitcher OTY',
-    verbTeam: 'won Relief Pitcher of the Year',
-    verbGeneric: 'won Relief Pitcher of the Year'
   },
   BBPlayoffsMVP: {
     label: 'Playoffs MVP',
@@ -459,49 +328,26 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     FBAllLeague: ['First Team All-League', 'Second Team All-League'],
     FBFinalsMVP: ['Finals MVP'],
     FBChampion: ['Won Championship'],
-    FBPassLeader: ['League Passing Leader'],
-    FBRecLeader: ['League Receiving Leader'],
-    FBRushLeader: ['League Rushing Leader'],
-    FBScrimmageLeader: ['League Scrimmage Yards Leader'],
     
     // Hockey GM achievements (case-insensitive matches from ZGMH)
     HKAllStar: ['All-Star', 'all-star'],
     HKAllStarMVP: ['All-Star MVP', 'all-star mvp'],
     HKMVP: ['Most Valuable Player', 'most valuable player'],
-    HKDPOY: ['Defensive Player of the Year', 'defensive player of the year'],
-    HKDefForward: ['Defensive Forward of the Year', 'defensive forward of the year'],
-    HKGoalie: ['Goalie of the Year', 'goalie of the year'],
+    HKDefenseman: ['Best Defenseman', 'best defenseman'],
     HKROY: ['Rookie of the Year', 'rookie of the year'],
     HKAllRookie: ['All-Rookie Team', 'all-rookie team'],
     HKAllLeague: ['All-League Team', 'all-league team', 'First Team All-League', 'Second Team All-League'],
-    HKPointsLeader: ['League Points Leader', 'league points leader'],
     HKAssistsLeader: ['League Assists Leader', 'league assists leader'],
-    HKGoalsLeader: ['League Goals Leader', 'league goals leader'],
     HKPlayoffsMVP: ['Playoffs MVP', 'playoffs mvp'],
+    HKFinalsMVP: ['Finals MVP', 'finals mvp'],
     HKChampion: ['Won Championship', 'won championship'],
     
     // Baseball GM achievements (case-sensitive matches from ZGMB)
     BBAllStar: ['All-Star'],
-    BBAllStarMVP: ['All-Star MVP'],
     BBMVP: ['Most Valuable Player'],
-    BBPitcherOTY: ['Pitcher of the Year', 'Cy Young'],
     BBROY: ['Rookie of the Year'],
     BBAllRookie: ['All-Rookie Team'],
     BBAllLeague: ['All-League Team', 'First Team All-League', 'Second Team All-League'],
-    BBGoldGlove: ['Gold Glove'],
-    BBSilverSlugger: ['Silver Slugger'],
-    BBBattingAvgLeader: ['League Batting Average Leader'],
-    BBHomeRunLeader: ['League Home Run Leader'],
-    BBRBILeader: ['League RBI Leader'],
-    BBStolenBaseLeader: ['League Stolen Base Leader'],
-    BBOBPLeader: ['League On-Base Percentage Leader'],
-    BBSluggingLeader: ['League Slugging Percentage Leader'],
-    BBOPSLeader: ['League OPS Leader'],
-    BBHitsLeader: ['League Hits Leader', 'League Doubles Leader', 'League Triples Leader'],
-    BBERALeader: ['League ERA Leader'],
-    BBStrikeoutsLeader: ['League Strikeouts Leader'],
-    BBSavesLeader: ['League Saves Leader'],
-    BBReliefPitcherOTY: ['Relief Pitcher of the Year', 'Reliever of the Year'],
     BBPlayoffsMVP: ['Playoffs MVP', 'Finals MVP'],
     BBChampion: ['Won Championship']
   };
@@ -509,7 +355,7 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
   const patterns = awardTypePatterns[achievementId] || [];
   const matchingAwards = player.awards.filter(award => {
     const awardType = (award.type || '').toLowerCase();
-    const awardName = (award.name || '').toLowerCase();
+    const awardName = ((award as any).name || '').toLowerCase();
     return patterns.some(pattern => 
       awardType.includes(pattern.toLowerCase()) || 
       awardName.includes(pattern.toLowerCase())
@@ -864,12 +710,12 @@ function getBasketball504090Season(player: Player) {
   for (const season of player.stats) {
     if (season.playoffs) continue;
     
-    const gp = season.gp || season.g || 0;
+    const gp = season.gp || 0;
     if (gp < 10) continue; // Need minimum games
     
-    const fgPct = season.fgp || season.fg_pct || 0;
-    const fg3Pct = season.tpp || season.fg3_pct || 0;
-    const ftPct = season.ftp || season.ft_pct || 0;
+    const fgPct = season.fgp || 0;
+    const fg3Pct = season.tpp || 0;
+    const ftPct = season.ftp || 0;
     
     if (fgPct >= 0.5 && fg3Pct >= 0.4 && ftPct >= 0.9) {
       return {
@@ -903,7 +749,7 @@ function getBasketballAwardSeason(player: Player, awardType: string): string {
   
   for (const award of player.awards) {
     for (const name of possibleNames) {
-      if (award.type?.includes(name) || award.name?.includes(name)) {
+      if (award.type?.includes(name) || ((award as any).name || '').includes(name)) {
         return award.season?.toString() || 'unknown';
       }
     }
@@ -930,7 +776,7 @@ function getBaseballAwardSeason(player: Player, awardType: string): string {
   
   for (const award of player.awards) {
     for (const name of possibleNames) {
-      if (award.type?.includes(name) || award.name?.includes(name)) {
+      if (award.type?.includes(name) || ((award as any).name || '').includes(name)) {
         return award.season?.toString() || 'unknown';
       }
     }
@@ -959,7 +805,7 @@ function getHockeyAwardSeason(player: Player, awardType: string): string {
   
   for (const award of player.awards) {
     for (const name of possibleNames) {
-      if (award.type?.includes(name) || award.name?.includes(name)) {
+      if (award.type?.includes(name) || ((award as any).name || '').includes(name)) {
         return award.season?.toString() || 'unknown';
       }
     }
@@ -1803,6 +1649,10 @@ function getAchievementPositiveMessage(achievementId: string, player?: Player): 
   * Get negative message for achievement constraint
   */
 function getAchievementNegativeMessage(achievementId: string, player?: Player): string {
+  // Handle milestone achievements with specific stat comparisons
+  if (isMilestoneId(achievementId)) {
+    return getMilestoneNegativeMessage(achievementId, player);
+  }
   const messages: Record<string, string> = {
     // Basketball achievements - detailed with stats
     career20kPoints: getBasketballNegativeMessage('career20kPoints', player) || "did not reach 20,000 career points",
@@ -1922,6 +1772,38 @@ function getAchievementNegativeMessage(achievementId: string, player?: Player): 
   }
   
   return messages[achievementId] || `did not achieve ${achievementId}`;
+}
+
+// Generate milestone-specific negative message with actual vs required stat comparison
+function getMilestoneNegativeMessage(achievementId: string, player?: Player): string {
+  if (!player) {
+    return `did not achieve milestone ${achievementId}`;
+  }
+
+  const milestoneData = parseMilestoneId(achievementId);
+  if (!milestoneData) {
+    return `did not achieve milestone ${achievementId}`;
+  }
+
+  const { sport: milestoneSport, statKey, threshold } = milestoneData;
+  
+  // Get the milestone family to access stat information
+  const family = getMilestoneFamilyByStatKey(milestoneSport, statKey);
+  if (!family) {
+    return `did not achieve milestone ${achievementId}`;
+  }
+
+  // Get player's actual career value for this stat
+  const actualValue = getCareerValue(player, family);
+  
+  // Create milestone failure message with formatted numbers showing actual vs required
+  const formattedActual = formatThousands(actualValue);
+  const formattedThreshold = formatThousands(threshold);
+  
+  // Extract the stat description from the label base (e.g., "Career Points" -> "career points")  
+  const statDescription = family.labelBase.toLowerCase();
+  
+  return `had ${formattedActual} ${statDescription}, falling short of the ${formattedThreshold}+ requirement`;
 }
 
 
