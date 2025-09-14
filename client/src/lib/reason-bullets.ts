@@ -6,6 +6,7 @@ import {
   parseMilestoneId, 
   getCareerValue, 
   formatThousands, 
+  formatMilestoneLabel,
   getMilestoneFamilyByStatKey,
   getMilestoneFamilyById 
 } from '@/lib/milestones';
@@ -69,10 +70,6 @@ export interface ReasonBullet {
   type: 'category' | 'team' | 'award' | 'draft' | 'longevity';
 }
 
-// Helper function to format numbers with commas
-function formatNumber(num: number): string {
-  return num.toLocaleString();
-}
 
 // Helper function to get team abbreviation
 function getTeamAbbrev(teams: Team[], tid: number): string {
@@ -616,37 +613,37 @@ function generateHallOfFameBullet(player: Player): ReasonBullet | null {
 function generateCareerThresholdBullet(player: Player, achievementId: string, sport: string): ReasonBullet | null {
   const thresholds: Record<string, { label: string; stat: string }> = {
     // Basketball
-    career20kPoints: { label: '20,000+ Career Points', stat: 'pts' },
-    career10kRebounds: { label: '10,000+ Career Rebounds', stat: 'trb' },
-    career5kAssists: { label: '5,000+ Career Assists', stat: 'ast' },
-    career2kSteals: { label: '2,000+ Career Steals', stat: 'stl' },
-    career1500Blocks: { label: '1,500+ Career Blocks', stat: 'blk' },
-    career2kThrees: { label: '2,000+ Made Threes', stat: 'fg3' },
+    career20kPoints: { label: formatMilestoneLabel(20000, 'Career Points'), stat: 'pts' },
+    career10kRebounds: { label: formatMilestoneLabel(10000, 'Career Rebounds'), stat: 'trb' },
+    career5kAssists: { label: formatMilestoneLabel(5000, 'Career Assists'), stat: 'ast' },
+    career2kSteals: { label: formatMilestoneLabel(2000, 'Career Steals'), stat: 'stl' },
+    career1500Blocks: { label: formatMilestoneLabel(1500, 'Career Blocks'), stat: 'blk' },
+    career2kThrees: { label: formatMilestoneLabel(2000, 'Made Threes'), stat: 'fg3' },
     
     // Football
-    career300PassTDs: { label: '300+ Career Pass TDs', stat: 'pssTD' },
-    career100RushTDs: { label: '100+ Career Rush TDs', stat: 'rusTD' },
-    career12kRecYds: { label: '12,000+ Career Rec Yards', stat: 'recYds' },
-    career100RecTDs: { label: '85+ Career Rec TDs', stat: 'recTD' },
-    career100Sacks: { label: '100+ Career Sacks', stat: 'sk' },
-    career20Ints: { label: '20+ Career Interceptions', stat: 'defInt' },
+    career300PassTDs: { label: formatMilestoneLabel(300, 'Career Pass TDs'), stat: 'pssTD' },
+    career100RushTDs: { label: formatMilestoneLabel(100, 'Career Rush TDs'), stat: 'rusTD' },
+    career12kRecYds: { label: formatMilestoneLabel(12000, 'Career Rec Yards'), stat: 'recYds' },
+    career100RecTDs: { label: formatMilestoneLabel(85, 'Career Rec TDs'), stat: 'recTD' },
+    career100Sacks: { label: formatMilestoneLabel(100, 'Career Sacks'), stat: 'sk' },
+    career20Ints: { label: formatMilestoneLabel(20, 'Career Interceptions'), stat: 'defInt' },
     
     // Baseball
-    career3000Hits: { label: '3,000+ Career Hits', stat: 'h' },
-    career500HRs: { label: '500+ Career Home Runs', stat: 'hr' },
-    career1500RBIs: { label: '1,500+ Career RBIs', stat: 'rbi' },
-    career400SBs: { label: '400+ Career Stolen Bases', stat: 'sb' },
-    career1800Runs: { label: '1,800+ Career Runs', stat: 'r' },
-    career300Wins: { label: '300+ Career Wins', stat: 'w' },
-    career3000Ks: { label: '3,000+ Career Strikeouts', stat: 'so' },
-    career300Saves: { label: '300+ Career Saves', stat: 'sv' },
+    career3000Hits: { label: formatMilestoneLabel(3000, 'Career Hits'), stat: 'h' },
+    career500HRs: { label: formatMilestoneLabel(500, 'Career Home Runs'), stat: 'hr' },
+    career1500RBIs: { label: formatMilestoneLabel(1500, 'Career RBIs'), stat: 'rbi' },
+    career400SBs: { label: formatMilestoneLabel(400, 'Career Stolen Bases'), stat: 'sb' },
+    career1800Runs: { label: formatMilestoneLabel(1800, 'Career Runs'), stat: 'r' },
+    career300Wins: { label: formatMilestoneLabel(300, 'Career Wins'), stat: 'w' },
+    career3000Ks: { label: formatMilestoneLabel(3000, 'Career Strikeouts'), stat: 'so' },
+    career300Saves: { label: formatMilestoneLabel(300, 'Career Saves'), stat: 'sv' },
     
     // Hockey
-    career500Goals: { label: '500+ Career Goals', stat: 'g' },
-    career1000Points: { label: '1,000+ Career Points', stat: 'pts' },
-    career500Assists: { label: '500+ Career Assists', stat: 'a' },
-    career200Wins: { label: '200+ Career Wins (G)', stat: 'w' },
-    career50Shutouts: { label: '50+ Career Shutouts', stat: 'so' }
+    career500Goals: { label: formatMilestoneLabel(500, 'Career Goals'), stat: 'g' },
+    career1000Points: { label: formatMilestoneLabel(1000, 'Career Points'), stat: 'pts' },
+    career500Assists: { label: formatMilestoneLabel(500, 'Career Assists'), stat: 'a' },
+    career200Wins: { label: formatMilestoneLabel(200, 'Career Wins (G)'), stat: 'w' },
+    career50Shutouts: { label: formatMilestoneLabel(50, 'Career Shutouts'), stat: 'so' }
   };
   
   const threshold = thresholds[achievementId];
@@ -665,7 +662,7 @@ function generateCareerThresholdBullet(player: Player, achievementId: string, sp
   }
   
   return {
-    text: `${threshold.label} (${formatNumber(actualValue)})`,
+    text: `${threshold.label} (${formatThousands(actualValue)})`,
     type: 'category'
   };
 }
@@ -718,7 +715,7 @@ function generateSeasonThresholdBullet(player: Player, achievementId: string, sp
   const bestSeason = getBestSeason(player, threshold.stat, threshold.isMin);
   if (bestSeason.year === 0) return null;
   
-  let valueStr = formatNumber(bestSeason.value);
+  let valueStr = formatThousands(bestSeason.value);
   
   // Special formatting for save percentage and ERA
   if (achievementId === 'season925SavePct') {
