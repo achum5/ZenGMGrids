@@ -7,6 +7,7 @@ import {
   isMilestoneId, 
   parseMilestoneId, 
   getMilestoneFamilyById,
+  formatMilestoneLabel,
   type MilestoneSport 
 } from '@/lib/milestones';
 
@@ -1408,8 +1409,8 @@ function buildOppositeAxisForSeed(
       { id: 'AllStar', label: 'All-Star' },
       { id: 'played10PlusSeasons', label: 'Played 10+ Seasons' },
       { id: 'played15PlusSeasons', label: 'Played 15+ Seasons' },
-      { id: 'career2kPoints', label: '2,000+ Career Points' },
-      { id: 'career1kRebounds', label: '1,000+ Career Rebounds' },
+      { id: 'career2kPoints', label: formatMilestoneLabel(2000, 'Career Points') },
+      { id: 'career1kRebounds', label: formatMilestoneLabel(1000, 'Career Rebounds') },
     ];
     
     for (const ca of fallbackCareerAchievements) {

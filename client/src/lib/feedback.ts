@@ -537,9 +537,6 @@ function getFootballSeasonBests(player: Player) {
   return { passTDs, rushYds, rushTDs, recYds, recTDs, sacks, ints };
 }
 
-function formatNumber(num: number): string {
-  return num.toLocaleString();
-}
 
 // Football-specific message generation with detailed stats
 function getFootballPositiveMessage(achievementId: string, player?: Player): string {
@@ -573,29 +570,29 @@ function getFootballPositiveMessage(achievementId: string, player?: Player): str
 
   switch (achievementId) {
     case 'career300PassTDs':
-      return `threw 150+ career pass TDs (${formatNumber(careerStats.passTDs)})`;
+      return `threw 150+ career pass TDs (${formatThousands(careerStats.passTDs)})`;
     case 'season35PassTDs':
       return `had 35+ pass TDs in a season (${seasonBests.passTDs.max}) in ${seasonBests.passTDs.year}`;
     case 'career12kRushYds':
-      return `ran for 8,000+ career rushing yards (${formatNumber(careerStats.rushYds)})`;
+      return `ran for 8,000+ career rushing yards (${formatThousands(careerStats.rushYds)})`;
     case 'career100RushTDs':
-      return `scored 40+ career rushing TDs (${formatNumber(careerStats.rushTDs)})`;
+      return `scored 40+ career rushing TDs (${formatThousands(careerStats.rushTDs)})`;
     case 'season1800RushYds':
-      return `had 1,600+ rushing yards in a season (${formatNumber(seasonBests.rushYds.max)}) in ${seasonBests.rushYds.year}`;
+      return `had 1,600+ rushing yards in a season (${formatThousands(seasonBests.rushYds.max)}) in ${seasonBests.rushYds.year}`;
     case 'season20RushTDs':
       return `had 20+ rushing TDs in a season (${seasonBests.rushTDs.max}) in ${seasonBests.rushTDs.year}`;
     case 'career12kRecYds':
-      return `had 6,000+ career receiving yards (${formatNumber(careerStats.recYds)})`;
+      return `had 6,000+ career receiving yards (${formatThousands(careerStats.recYds)})`;
     case 'career100RecTDs':
-      return `scored 40+ career receiving TDs (${formatNumber(careerStats.recTDs)})`;
+      return `scored 40+ career receiving TDs (${formatThousands(careerStats.recTDs)})`;
     case 'season1400RecYds':
-      return `had 1,400+ receiving yards in a season (${formatNumber(seasonBests.recYds.max)}) in ${seasonBests.recYds.year}`;
+      return `had 1,400+ receiving yards in a season (${formatThousands(seasonBests.recYds.max)}) in ${seasonBests.recYds.year}`;
     case 'season15RecTDs':
       return `had 15+ receiving TDs in a season (${seasonBests.recTDs.max}) in ${seasonBests.recTDs.year}`;
     case 'career100Sacks':
-      return `recorded 60+ career sacks (${formatNumber(careerStats.sacks)})`;
+      return `recorded 60+ career sacks (${formatThousands(careerStats.sacks)})`;
     case 'career20Ints':
-      return `recorded 20+ career interceptions (${formatNumber(careerStats.ints)})`;
+      return `recorded 20+ career interceptions (${formatThousands(careerStats.ints)})`;
     case 'season15Sacks':
       return `had 15+ sacks in a season (${seasonBests.sacks.max}) in ${seasonBests.sacks.year}`;
     case 'season8Ints':
@@ -850,17 +847,17 @@ function getBasketballPositiveMessage(achievementId: string, player?: Player): s
       const draftYear = player.draft?.year || 'unknown';
       return `was a second-round pick in ${draftYear}`;
     case 'career20kPoints':
-      return `reached 20,000+ career points (${formatNumber(careerStats.pts)})`;
+      return `reached 20,000+ career points (${formatThousands(careerStats.pts)})`;
     case 'career10kRebounds':
-      return `reached 10,000+ career rebounds (${formatNumber(careerStats.trb)})`;
+      return `reached 10,000+ career rebounds (${formatThousands(careerStats.trb)})`;
     case 'career5kAssists':
-      return `reached 5,000+ career assists (${formatNumber(careerStats.ast)})`;
+      return `reached 5,000+ career assists (${formatThousands(careerStats.ast)})`;
     case 'career2kSteals':
-      return `reached 2,000+ career steals (${formatNumber(careerStats.stl)})`;
+      return `reached 2,000+ career steals (${formatThousands(careerStats.stl)})`;
     case 'career1500Blocks':
-      return `reached 1,500+ career blocks (${formatNumber(careerStats.blk)})`;
+      return `reached 1,500+ career blocks (${formatThousands(careerStats.blk)})`;
     case 'career2kThrees':
-      return `made 2,000+ career threes (${formatNumber(careerStats.fg3)})`;
+      return `made 2,000+ career threes (${formatThousands(careerStats.fg3)})`;
     case 'season30ppg':
       return `averaged 30+ PPG (${seasonBests.ppg.max.toFixed(1)}) in ${seasonBests.ppg.year}`;
     case 'season10apg':
@@ -915,17 +912,17 @@ function getBasketballNegativeMessage(achievementId: string, player?: Player): s
     case 'isSecondRoundPick':
       return `was not a second-round pick`;
     case 'career20kPoints':
-      return `did not reach 20,000+ career points (career ${formatNumber(careerStats.pts)})`;
+      return `did not reach 20,000+ career points (career ${formatThousands(careerStats.pts)})`;
     case 'career10kRebounds':
-      return `did not reach 10,000+ career rebounds (career ${formatNumber(careerStats.trb)})`;
+      return `did not reach 10,000+ career rebounds (career ${formatThousands(careerStats.trb)})`;
     case 'career5kAssists':
-      return `did not reach 5,000+ career assists (career ${formatNumber(careerStats.ast)})`;
+      return `did not reach 5,000+ career assists (career ${formatThousands(careerStats.ast)})`;
     case 'career2kSteals':
-      return `did not reach 2,000+ career steals (career ${formatNumber(careerStats.stl)})`;
+      return `did not reach 2,000+ career steals (career ${formatThousands(careerStats.stl)})`;
     case 'career1500Blocks':
-      return `did not reach 1,500+ career blocks (career ${formatNumber(careerStats.blk)})`;
+      return `did not reach 1,500+ career blocks (career ${formatThousands(careerStats.blk)})`;
     case 'career2kThrees':
-      return `did not make 2,000+ career threes (career ${formatNumber(careerStats.fg3)})`;
+      return `did not make 2,000+ career threes (career ${formatThousands(careerStats.fg3)})`;
     case 'season30ppg':
       if (seasonBests.ppg.max === 0 && seasonBests.ppg.year === 0) {
         return `never averaged 30+ PPG in a season (never recorded a point)`;
@@ -1070,15 +1067,15 @@ function getHockeyPositiveMessage(achievementId: string, player?: Player): strin
 
   switch (achievementId) {
     case 'career500Goals':
-      return `reached 500+ career goals (${formatNumber(careerStats.g)})`;
+      return `reached 500+ career goals (${formatThousands(careerStats.g)})`;
     case 'career1000Points':
-      return `reached 1,000+ career points (${formatNumber(careerStats.pts)})`;
+      return `reached 1,000+ career points (${formatThousands(careerStats.pts)})`;
     case 'career500Assists':
-      return `reached 500+ career assists (${formatNumber(careerStats.a)})`;
+      return `reached 500+ career assists (${formatThousands(careerStats.a)})`;
     case 'career200Wins':
-      return `recorded 200+ career wins (${formatNumber(careerStats.w)})`;
+      return `recorded 200+ career wins (${formatThousands(careerStats.w)})`;
     case 'career50Shutouts':
-      return `recorded 50+ career shutouts (${formatNumber(careerStats.so)})`;
+      return `recorded 50+ career shutouts (${formatThousands(careerStats.so)})`;
     case 'season50Goals':
       return `scored 50+ goals in a season (${seasonBests.g.max}) in ${seasonBests.g.year}`;
     case 'season100Points':
@@ -1127,15 +1124,15 @@ function getHockeyNegativeMessage(achievementId: string, player?: Player): strin
 
   switch (achievementId) {
     case 'career500Goals':
-      return `did not reach 500+ career goals (career ${formatNumber(careerStats.g)})`;
+      return `did not reach 500+ career goals (career ${formatThousands(careerStats.g)})`;
     case 'career1000Points':
-      return `did not reach 1,000+ career points (career ${formatNumber(careerStats.pts)})`;
+      return `did not reach 1,000+ career points (career ${formatThousands(careerStats.pts)})`;
     case 'career500Assists':
-      return `did not reach 500+ career assists (career ${formatNumber(careerStats.a)})`;
+      return `did not reach 500+ career assists (career ${formatThousands(careerStats.a)})`;
     case 'career200Wins':
-      return `did not reach 200+ career wins (career ${formatNumber(careerStats.w)})`;
+      return `did not reach 200+ career wins (career ${formatThousands(careerStats.w)})`;
     case 'career50Shutouts':
-      return `did not reach 50+ career shutouts (career ${formatNumber(careerStats.so)})`;
+      return `did not reach 50+ career shutouts (career ${formatThousands(careerStats.so)})`;
     case 'season50Goals':
       if (seasonBests.g.max === 0 && seasonBests.g.year === 0) {
         return `never scored 50+ goals in a season (never recorded a goal)`;
@@ -1289,21 +1286,21 @@ function getBaseballPositiveMessage(achievementId: string, player?: Player): str
 
   switch (achievementId) {
     case 'career3000Hits':
-      return `reached 3,000+ career hits (${formatNumber(careerStats.h)})`;
+      return `reached 3,000+ career hits (${formatThousands(careerStats.h)})`;
     case 'career500HRs':
-      return `hit 500+ career home runs (${formatNumber(careerStats.hr)})`;
+      return `hit 500+ career home runs (${formatThousands(careerStats.hr)})`;
     case 'career1500RBIs':
-      return `recorded 1,500+ career RBIs (${formatNumber(careerStats.rbi)})`;
+      return `recorded 1,500+ career RBIs (${formatThousands(careerStats.rbi)})`;
     case 'career400SBs':
-      return `stole 400+ career bases (${formatNumber(careerStats.sb)})`;
+      return `stole 400+ career bases (${formatThousands(careerStats.sb)})`;
     case 'career1800Runs':
-      return `scored 1,800+ career runs (${formatNumber(careerStats.r)})`;
+      return `scored 1,800+ career runs (${formatThousands(careerStats.r)})`;
     case 'career300Wins':
-      return `won 300+ career games (${formatNumber(careerStats.w)})`;
+      return `won 300+ career games (${formatThousands(careerStats.w)})`;
     case 'career3000Ks':
-      return `recorded 3,000+ career strikeouts (${formatNumber(careerStats.so)})`;
+      return `recorded 3,000+ career strikeouts (${formatThousands(careerStats.so)})`;
     case 'career300Saves':
-      return `recorded 300+ career saves (${formatNumber(careerStats.sv)})`;
+      return `recorded 300+ career saves (${formatThousands(careerStats.sv)})`;
     case 'season50HRs':
       return `hit 50+ home runs in a season (${seasonBests.hr.max}) in ${seasonBests.hr.year}`;
     case 'season130RBIs':
@@ -1350,21 +1347,21 @@ function getBaseballNegativeMessage(achievementId: string, player?: Player): str
 
   switch (achievementId) {
     case 'career3000Hits':
-      return `did not reach 3,000+ career hits (career ${formatNumber(careerStats.h)})`;
+      return `did not reach 3,000+ career hits (career ${formatThousands(careerStats.h)})`;
     case 'career500HRs':
-      return `did not hit 500+ career home runs (career ${formatNumber(careerStats.hr)})`;
+      return `did not hit 500+ career home runs (career ${formatThousands(careerStats.hr)})`;
     case 'career1500RBIs':
-      return `did not reach 1,500+ career RBIs (career ${formatNumber(careerStats.rbi)})`;
+      return `did not reach 1,500+ career RBIs (career ${formatThousands(careerStats.rbi)})`;
     case 'career400SBs':
-      return `did not reach 400+ career stolen bases (career ${formatNumber(careerStats.sb)})`;
+      return `did not reach 400+ career stolen bases (career ${formatThousands(careerStats.sb)})`;
     case 'career1800Runs':
-      return `did not reach 1,800+ career runs (career ${formatNumber(careerStats.r)})`;
+      return `did not reach 1,800+ career runs (career ${formatThousands(careerStats.r)})`;
     case 'career300Wins':
-      return `did not reach 300+ career wins (career ${formatNumber(careerStats.w)})`;
+      return `did not reach 300+ career wins (career ${formatThousands(careerStats.w)})`;
     case 'career3000Ks':
-      return `did not reach 3,000+ career strikeouts (career ${formatNumber(careerStats.so)})`;
+      return `did not reach 3,000+ career strikeouts (career ${formatThousands(careerStats.so)})`;
     case 'career300Saves':
-      return `did not reach 300+ career saves (career ${formatNumber(careerStats.sv)})`;
+      return `did not reach 300+ career saves (career ${formatThousands(careerStats.sv)})`;
     case 'season50HRs':
       return `never hit 50+ home runs in a season (best ${seasonBests.hr.max} in ${seasonBests.hr.year})`;
     case 'season130RBIs':
@@ -1407,29 +1404,29 @@ function getFootballNegativeMessage(achievementId: string, player?: Player): str
 
   switch (achievementId) {
     case 'career300PassTDs':
-      return `never threw 300+ career TDs (career ${formatNumber(careerStats.passTDs)})`;
+      return `never threw 300+ career TDs (career ${formatThousands(careerStats.passTDs)})`;
     case 'season35PassTDs':
       return `never had 35+ pass TDs in a season (best ${seasonBests.passTDs.max} in ${seasonBests.passTDs.year})`;
     case 'career12kRushYds':
-      return `did not reach 11,000+ rushing yards (career ${formatNumber(careerStats.rushYds)})`;
+      return `did not reach 11,000+ rushing yards (career ${formatThousands(careerStats.rushYds)})`;
     case 'career100RushTDs':
-      return `did not score 100+ rushing TDs (career ${formatNumber(careerStats.rushTDs)})`;
+      return `did not score 100+ rushing TDs (career ${formatThousands(careerStats.rushTDs)})`;
     case 'season1800RushYds':
-      return `never had 1,600+ rushing yards in a season (best ${formatNumber(seasonBests.rushYds.max)} in ${seasonBests.rushYds.year})`;
+      return `never had 1,600+ rushing yards in a season (best ${formatThousands(seasonBests.rushYds.max)} in ${seasonBests.rushYds.year})`;
     case 'season20RushTDs':
       return `never had 20+ rushing TDs in a season (best ${seasonBests.rushTDs.max} in ${seasonBests.rushTDs.year})`;
     case 'career12kRecYds':
-      return `did not reach 12,000+ receiving yards (career ${formatNumber(careerStats.recYds)})`;
+      return `did not reach 12,000+ receiving yards (career ${formatThousands(careerStats.recYds)})`;
     case 'career100RecTDs':
-      return `did not score 85+ receiving TDs (career ${formatNumber(careerStats.recTDs)})`;
+      return `did not score 85+ receiving TDs (career ${formatThousands(careerStats.recTDs)})`;
     case 'season1400RecYds':
-      return `never had 1,400+ receiving yards in a season (best ${formatNumber(seasonBests.recYds.max)} in ${seasonBests.recYds.year})`;
+      return `never had 1,400+ receiving yards in a season (best ${formatThousands(seasonBests.recYds.max)} in ${seasonBests.recYds.year})`;
     case 'season15RecTDs':
       return `never had 15+ receiving TDs in a season (best ${seasonBests.recTDs.max} in ${seasonBests.recTDs.year})`;
     case 'career100Sacks':
-      return `did not record 100+ career sacks (career ${formatNumber(careerStats.sacks)})`;
+      return `did not record 100+ career sacks (career ${formatThousands(careerStats.sacks)})`;
     case 'career20Ints':
-      return `did not record 20+ career interceptions (career ${formatNumber(careerStats.ints)})`;
+      return `did not record 20+ career interceptions (career ${formatThousands(careerStats.ints)})`;
     case 'season15Sacks':
       return `never had 15+ sacks in a season (best ${seasonBests.sacks.max} in ${seasonBests.sacks.year})`;
     case 'season8Ints':
