@@ -1,5 +1,5 @@
 import type { LeagueData, CatTeam, Player, Team } from '@/types/bbgm';
-import { getViableAchievements, playerMeetsAchievement, getAchievements, type Achievement, debugIndividualAchievements } from '@/lib/achievements';
+import { getViableAchievements, playerMeetsAchievement, getAchievements, type Achievement, debugIndividualAchievements, generateDynamicStatAchievements } from '@/lib/achievements';
 import { evaluateConstraintPair, GridConstraint } from '@/lib/feedback';
 import { getSeasonEligiblePlayers, type SeasonAchievementId, type SeasonIndex, SEASON_ACHIEVEMENTS } from './season-achievements';
 import { calculateOptimizedIntersection, type IntersectionConstraint } from '@/lib/intersection-cache';
@@ -12,6 +12,46 @@ const seasonLengthAchievements = new Set(['played10PlusSeasons', 'played15PlusSe
 const recentlyUsedTeams = new Set<number>();
 const recentlyUsedAchievements = new Set<string>();
 const maxRecentItems = 8; // Remember last 8 items to avoid immediate reuse
+
+// Helper function to check if an achievement is a stat achievement
+function isStatAchievement(achievementId: string): boolean {
+  return achievementId.includes('career') && (
+    // Basketball
+    achievementId.includes('Points') || achievementId.includes('Rebounds') || 
+    achievementId.includes('Assists') || achievementId.includes('Steals') || 
+    achievementId.includes('Blocks') || achievementId.includes('Threes') ||
+    // Football
+    achievementId.includes('PassTDs') || achievementId.includes('RushYards') || 
+    achievementId.includes('RushTDs') || achievementId.includes('RecYards') || 
+    achievementId.includes('RecTDs') || achievementId.includes('Sacks') || 
+    achievementId.includes('Interceptions') ||
+    // Hockey
+    achievementId.includes('Goals') || achievementId.includes('Wins') || 
+    achievementId.includes('Shutouts') ||
+    // Baseball (fixed substring matches)
+    achievementId.includes('Hits') || achievementId.includes('HomeRuns') || 
+    achievementId.includes('RBIs') || achievementId.includes('StolenBases') || 
+    achievementId.includes('Runs') || achievementId.includes('Strikeouts') || 
+    achievementId.includes('Saves')
+  );
+}
+
+// Helper function to select optimal milestone from viable options
+function selectOptimalMilestone(viableMilestones: { milestone: number; count: number; label: string }[]): { milestone: number; count: number; label: string } | null {
+  if (viableMilestones.length === 0) return null;
+  
+  // Prefer milestones that have a good balance: not too many players (too easy) and not too few (too hard)
+  // Ideal range: 5-25 players for most sports, 3-15 for hockey
+  const sortedByCount = [...viableMilestones].sort((a, b) => a.count - b.count);
+  
+  // Find milestone with count in ideal range
+  const idealMilestone = sortedByCount.find(m => m.count >= 5 && m.count <= 25);
+  if (idealMilestone) return idealMilestone;
+  
+  // If no ideal milestone, prefer one with slightly more players over too few
+  const fallbackMilestone = sortedByCount.find(m => m.count >= 3);
+  return fallbackMilestone || viableMilestones[0]; // Last resort: take the first available
+}
 
 function addToRecentlyUsed(teams: CatTeam[], achievements: CatTeam[]) {
   teams.forEach(team => {
@@ -153,15 +193,30 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
     test: (p: Player) => p.teamsPlayed.has(team.tid),
   }));
 
-  const achievementConstraints: CatTeam[] = viableAchievements
+  // Create regular achievement constraints (non-stat achievements)
+  const regularAchievementConstraints: CatTeam[] = viableAchievements
     .filter(achievement => achievement.id !== 'bornOutsideUS50DC') // Temporarily remove born outside US achievement
+    .filter(achievement => !isStatAchievement(achievement.id)) // Exclude stat achievements - they'll be handled dynamically
     .map(achievement => ({
       key: `achievement-${achievement.id}`,
       label: achievement.label,
       achievementId: achievement.id,
       type: 'achievement',
-      test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex),
+      test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex, sport),
     }));
+
+  // Create dynamic milestone achievement constraints
+  const dynamicStatAchievements = generateDynamicStatAchievements(players, sport);
+  const dynamicMilestoneConstraints: CatTeam[] = dynamicStatAchievements.map(achievement => ({
+    key: `achievement-${achievement.id}`,
+    label: achievement.label,
+    achievementId: achievement.id,
+    type: 'achievement',
+    test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex, sport),
+  }));
+
+  // Combine regular and dynamic achievements
+  const achievementConstraints: CatTeam[] = [...regularAchievementConstraints, ...dynamicMilestoneConstraints];
 
   if (teamConstraints.length < 3) {
     throw new Error(`Need at least 3 teams to generate grid (found ${teamConstraints.length})`);
