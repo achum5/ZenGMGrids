@@ -1,15 +1,6 @@
 import type { Player, Team } from '@/types/bbgm';
 import type { GridConstraint } from '@/lib/feedback';
 import { type SeasonAchievementId } from '@/lib/season-achievements';
-import { 
-  isMilestoneId, 
-  parseMilestoneId, 
-  getCareerValue, 
-  formatThousands, 
-  formatMilestoneLabel,
-  getMilestoneFamilyByStatKey,
-  getMilestoneFamilyById 
-} from '@/lib/milestones';
 
 // Season achievement labels for bullet display
 const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, string> = {
@@ -38,29 +29,53 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, string> = {
   FBOffROY: 'Offensive Rookie of the Year',
   FBDefROY: 'Defensive Rookie of the Year',
   FBAllRookie: 'All-Rookie Team',
-  FBAllLeague: 'All-League Team',
+  FBAllLeague1st: 'First Team All-League',
+  FBAllLeague2nd: 'Second Team All-League',
   FBFinalsMVP: 'Finals MVP',
   FBChampion: 'Won Championship',
+  FBPassLeader: 'League Passing Leader',
+  FBRecLeader: 'League Receiving Leader',
+  FBRushLeader: 'League Rushing Leader',
+  FBScrimmageLeader: 'League Scrimmage Yards Leader',
   
   // Hockey GM achievements
   HKAllStar: 'All-Star',
   HKAllStarMVP: 'All-Star MVP',
   HKMVP: 'MVP',
-  HKDefenseman: 'Best Defenseman',
+  HKDPOY: 'Defensive Player of the Year',
+  HKDefForward: 'Defensive Forward of the Year',
+  HKGoalie: 'Goalie of the Year',
   HKROY: 'Rookie of the Year',
   HKAllRookie: 'All-Rookie Team',
   HKAllLeague: 'All-League Team',
+  HKPointsLeader: 'League Points Leader',
   HKAssistsLeader: 'League Assists Leader',
+  HKGoalsLeader: 'League Goals Leader',
   HKPlayoffsMVP: 'Playoffs MVP',
-  HKFinalsMVP: 'Finals MVP',
   HKChampion: 'Won Championship',
   
   // Baseball GM achievements
   BBAllStar: 'All-Star',
+  BBAllStarMVP: 'All-Star MVP',
   BBMVP: 'MVP',
+  BBPitcherOTY: 'Pitcher of the Year',
   BBROY: 'Rookie of the Year',
   BBAllRookie: 'All-Rookie Team',
   BBAllLeague: 'All-League Team',
+  BBGoldGlove: 'Gold Glove',
+  BBSilverSlugger: 'Silver Slugger',
+  BBBattingAvgLeader: 'League Batting Average Leader',
+  BBHomeRunLeader: 'League Home Run Leader',
+  BBRBILeader: 'League RBI Leader',
+  BBStolenBaseLeader: 'League Stolen Base Leader',
+  BBOBPLeader: 'League On-Base Percentage Leader',
+  BBSluggingLeader: 'League Slugging Percentage Leader',
+  BBOPSLeader: 'League OPS Leader',
+  BBHitsLeader: 'League Hits Leader',
+  BBERALeader: 'League ERA Leader',
+  BBStrikeoutsLeader: 'League Strikeouts Leader',
+  BBSavesLeader: 'League Saves Leader',
+  BBReliefPitcherOTY: 'Relief Pitcher of the Year',
   BBPlayoffsMVP: 'Playoffs MVP',
   BBChampion: 'Won Championship'
 };
@@ -70,6 +85,10 @@ export interface ReasonBullet {
   type: 'category' | 'team' | 'award' | 'draft' | 'longevity';
 }
 
+// Helper function to format numbers with commas
+function formatNumber(num: number): string {
+  return num.toLocaleString();
+}
 
 // Helper function to get team abbreviation
 function getTeamAbbrev(teams: Team[], tid: number): string {
@@ -113,29 +132,53 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
     FBOffROY: ['Offensive Rookie of the Year'],
     FBDefROY: ['Defensive Rookie of the Year'],
     FBAllRookie: ['All-Rookie Team'],
-    FBAllLeague: ['First Team All-League', 'Second Team All-League'],
+    FBAllLeague1st: ['First Team All-League'],
+    FBAllLeague2nd: ['Second Team All-League'],
     FBFinalsMVP: ['Finals MVP'],
     FBChampion: ['Won Championship'],
+    FBPassLeader: ['League Passing Leader'],
+    FBRecLeader: ['League Receiving Leader'],
+    FBRushLeader: ['League Rushing Leader'],
+    FBScrimmageLeader: ['League Scrimmage Yards Leader'],
     
     // Hockey GM achievements
     HKAllStar: ['All-Star', 'all-star'],
     HKAllStarMVP: ['All-Star MVP', 'all-star mvp'],
     HKMVP: ['Most Valuable Player', 'most valuable player'],
-    HKDefenseman: ['Best Defenseman', 'best defenseman'],
+    HKDPOY: ['Defensive Player of the Year', 'defensive player of the year'],
+    HKDefForward: ['Defensive Forward of the Year', 'defensive forward of the year'],
+    HKGoalie: ['Goalie of the Year', 'goalie of the year'],
     HKROY: ['Rookie of the Year', 'rookie of the year'],
     HKAllRookie: ['All-Rookie Team', 'all-rookie team'],
     HKAllLeague: ['All-League Team', 'all-league team', 'First Team All-League', 'Second Team All-League'],
+    HKPointsLeader: ['League Points Leader', 'league points leader'],
     HKAssistsLeader: ['League Assists Leader', 'league assists leader'],
+    HKGoalsLeader: ['League Goals Leader', 'league goals leader'],
     HKPlayoffsMVP: ['Playoffs MVP', 'playoffs mvp'],
-    HKFinalsMVP: ['Finals MVP', 'finals mvp'],
     HKChampion: ['Won Championship', 'won championship'],
     
     // Baseball GM achievements
     BBAllStar: ['All-Star'],
+    BBAllStarMVP: ['All-Star MVP'],
     BBMVP: ['Most Valuable Player'],
+    BBPitcherOTY: ['Pitcher of the Year', 'Cy Young'],
     BBROY: ['Rookie of the Year'],
     BBAllRookie: ['All-Rookie Team'],
     BBAllLeague: ['All-League Team', 'First Team All-League', 'Second Team All-League'],
+    BBGoldGlove: ['Gold Glove'],
+    BBSilverSlugger: ['Silver Slugger'],
+    BBBattingAvgLeader: ['League Batting Average Leader'],
+    BBHomeRunLeader: ['League Home Run Leader'],
+    BBRBILeader: ['League RBI Leader'],
+    BBStolenBaseLeader: ['League Stolen Base Leader'],
+    BBOBPLeader: ['League On-Base Percentage Leader'],
+    BBSluggingLeader: ['League Slugging Percentage Leader'],
+    BBOPSLeader: ['League OPS Leader'],
+    BBHitsLeader: ['League Hits Leader', 'League Doubles Leader', 'League Triples Leader'],
+    BBERALeader: ['League ERA Leader'],
+    BBStrikeoutsLeader: ['League Strikeouts Leader'],
+    BBSavesLeader: ['League Saves Leader'],
+    BBReliefPitcherOTY: ['Relief Pitcher of the Year', 'Reliever of the Year'],
     BBPlayoffsMVP: ['Playoffs MVP'],
     BBChampion: ['Won Championship']
   };
@@ -241,7 +284,7 @@ function formatBulletSeasonList(seasons: string[], isFinalsOrCFMVP: boolean = fa
     });
     
     // If all seasons have the same team, group years and append team
-    const uniqueTeams = Array.from(new Set(yearsWithTeams.map(y => y.team)));
+    const uniqueTeams = [...new Set(yearsWithTeams.map(y => y.team))];
     if (uniqueTeams.length === 1 && uniqueTeams[0]) {
       const years = yearsWithTeams.map(y => y.year);
       const yearRanges = groupConsecutiveYears(years);
@@ -492,11 +535,6 @@ function generateAchievementBullet(
   teams: Team[],
   sport: string
 ): ReasonBullet | null {
-  // Milestone achievements
-  if (isMilestoneId(achievementId)) {
-    return generateMilestoneBullet(player, achievementId, sport);
-  }
-  
   // Draft achievements
   if (['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen'].includes(achievementId)) {
     return generateDraftBullet(player, achievementId);
@@ -528,35 +566,6 @@ function generateAchievementBullet(
   }
   
   return null;
-}
-
-// Generate milestone-specific bullet with actual career stat value
-function generateMilestoneBullet(player: Player, achievementId: string, sport: string): ReasonBullet | null {
-  const milestoneData = parseMilestoneId(achievementId);
-  if (!milestoneData) return null;
-
-  const { sport: milestoneSport, statKey, threshold } = milestoneData;
-  
-  // Get the milestone family to access stat information
-  const family = getMilestoneFamilyByStatKey(milestoneSport, statKey);
-  if (!family) return null;
-
-  // Get player's actual career value for this stat
-  const actualValue = getCareerValue(player, family);
-  
-  // Create milestone bullet with formatted numbers
-  const formattedActual = formatThousands(actualValue);
-  const formattedThreshold = formatThousands(threshold);
-  
-  // Extract the stat description from the label base (e.g., "Career Points" -> "career points")
-  const statDescription = family.labelBase.toLowerCase();
-  
-  const text = `${player.name} had ${formattedActual} ${statDescription}, surpassing the ${formattedThreshold}+ threshold`;
-  
-  return {
-    text,
-    type: 'category'
-  };
 }
 
 function generateDraftBullet(player: Player, achievementId: string): ReasonBullet | null {
@@ -613,37 +622,37 @@ function generateHallOfFameBullet(player: Player): ReasonBullet | null {
 function generateCareerThresholdBullet(player: Player, achievementId: string, sport: string): ReasonBullet | null {
   const thresholds: Record<string, { label: string; stat: string }> = {
     // Basketball
-    career20kPoints: { label: formatMilestoneLabel(20000, 'Career Points'), stat: 'pts' },
-    career10kRebounds: { label: formatMilestoneLabel(10000, 'Career Rebounds'), stat: 'trb' },
-    career5kAssists: { label: formatMilestoneLabel(5000, 'Career Assists'), stat: 'ast' },
-    career2kSteals: { label: formatMilestoneLabel(2000, 'Career Steals'), stat: 'stl' },
-    career1500Blocks: { label: formatMilestoneLabel(1500, 'Career Blocks'), stat: 'blk' },
-    career2kThrees: { label: formatMilestoneLabel(2000, 'Made Threes'), stat: 'fg3' },
+    career20kPoints: { label: '20,000+ Career Points', stat: 'pts' },
+    career10kRebounds: { label: '10,000+ Career Rebounds', stat: 'trb' },
+    career5kAssists: { label: '5,000+ Career Assists', stat: 'ast' },
+    career2kSteals: { label: '2,000+ Career Steals', stat: 'stl' },
+    career1500Blocks: { label: '1,500+ Career Blocks', stat: 'blk' },
+    career2kThrees: { label: '2,000+ Made Threes', stat: 'fg3' },
     
     // Football
-    career300PassTDs: { label: formatMilestoneLabel(300, 'Career Pass TDs'), stat: 'pssTD' },
-    career100RushTDs: { label: formatMilestoneLabel(100, 'Career Rush TDs'), stat: 'rusTD' },
-    career12kRecYds: { label: formatMilestoneLabel(12000, 'Career Rec Yards'), stat: 'recYds' },
-    career100RecTDs: { label: formatMilestoneLabel(85, 'Career Rec TDs'), stat: 'recTD' },
-    career100Sacks: { label: formatMilestoneLabel(100, 'Career Sacks'), stat: 'sk' },
-    career20Ints: { label: formatMilestoneLabel(20, 'Career Interceptions'), stat: 'defInt' },
+    career300PassTDs: { label: '300+ Career Pass TDs', stat: 'pssTD' },
+    career100RushTDs: { label: '100+ Career Rush TDs', stat: 'rusTD' },
+    career12kRecYds: { label: '12,000+ Career Rec Yards', stat: 'recYds' },
+    career100RecTDs: { label: '85+ Career Rec TDs', stat: 'recTD' },
+    career100Sacks: { label: '100+ Career Sacks', stat: 'sk' },
+    career20Ints: { label: '20+ Career Interceptions', stat: 'defInt' },
     
     // Baseball
-    career3000Hits: { label: formatMilestoneLabel(3000, 'Career Hits'), stat: 'h' },
-    career500HRs: { label: formatMilestoneLabel(500, 'Career Home Runs'), stat: 'hr' },
-    career1500RBIs: { label: formatMilestoneLabel(1500, 'Career RBIs'), stat: 'rbi' },
-    career400SBs: { label: formatMilestoneLabel(400, 'Career Stolen Bases'), stat: 'sb' },
-    career1800Runs: { label: formatMilestoneLabel(1800, 'Career Runs'), stat: 'r' },
-    career300Wins: { label: formatMilestoneLabel(300, 'Career Wins'), stat: 'w' },
-    career3000Ks: { label: formatMilestoneLabel(3000, 'Career Strikeouts'), stat: 'so' },
-    career300Saves: { label: formatMilestoneLabel(300, 'Career Saves'), stat: 'sv' },
+    career3000Hits: { label: '3,000+ Career Hits', stat: 'h' },
+    career500HRs: { label: '500+ Career Home Runs', stat: 'hr' },
+    career1500RBIs: { label: '1,500+ Career RBIs', stat: 'rbi' },
+    career400SBs: { label: '400+ Career Stolen Bases', stat: 'sb' },
+    career1800Runs: { label: '1,800+ Career Runs', stat: 'r' },
+    career300Wins: { label: '300+ Career Wins', stat: 'w' },
+    career3000Ks: { label: '3,000+ Career Strikeouts', stat: 'so' },
+    career300Saves: { label: '300+ Career Saves', stat: 'sv' },
     
     // Hockey
-    career500Goals: { label: formatMilestoneLabel(500, 'Career Goals'), stat: 'g' },
-    career1000Points: { label: formatMilestoneLabel(1000, 'Career Points'), stat: 'pts' },
-    career500Assists: { label: formatMilestoneLabel(500, 'Career Assists'), stat: 'a' },
-    career200Wins: { label: formatMilestoneLabel(200, 'Career Wins (G)'), stat: 'w' },
-    career50Shutouts: { label: formatMilestoneLabel(50, 'Career Shutouts'), stat: 'so' }
+    career500Goals: { label: '500+ Career Goals', stat: 'g' },
+    career1000Points: { label: '1,000+ Career Points', stat: 'pts' },
+    career500Assists: { label: '500+ Career Assists', stat: 'a' },
+    career200Wins: { label: '200+ Career Wins (G)', stat: 'w' },
+    career50Shutouts: { label: '50+ Career Shutouts', stat: 'so' }
   };
   
   const threshold = thresholds[achievementId];
@@ -662,7 +671,7 @@ function generateCareerThresholdBullet(player: Player, achievementId: string, sp
   }
   
   return {
-    text: `${threshold.label} (${formatThousands(actualValue)})`,
+    text: `${threshold.label} (${formatNumber(actualValue)})`,
     type: 'category'
   };
 }
@@ -715,7 +724,7 @@ function generateSeasonThresholdBullet(player: Player, achievementId: string, sp
   const bestSeason = getBestSeason(player, threshold.stat, threshold.isMin);
   if (bestSeason.year === 0) return null;
   
-  let valueStr = formatThousands(bestSeason.value);
+  let valueStr = formatNumber(bestSeason.value);
   
   // Special formatting for save percentage and ERA
   if (achievementId === 'season925SavePct') {

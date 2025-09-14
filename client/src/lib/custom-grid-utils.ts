@@ -3,7 +3,6 @@ import type { SeasonIndex, SeasonAchievementId } from '@/lib/season-achievements
 import { getAchievements, playerMeetsAchievement } from '@/lib/achievements';
 import { getSeasonEligiblePlayers, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 import { calculateOptimizedIntersection, type IntersectionConstraint } from '@/lib/intersection-cache';
-import { formatMilestoneLabel } from '@/lib/milestones';
 
 // Create Set for O(1) lookup instead of O(N) .some() calls
 const SEASON_ACHIEVEMENT_IDS = new Set(SEASON_ACHIEVEMENTS.map(sa => sa.id));
@@ -67,8 +66,8 @@ export function getTeamOptions(teams: Team[]): TeamOption[] {
 }
 
 // Get available achievement options from league data
-export function getAchievementOptions(sport: string, seasonIndex?: SeasonIndex, players?: Player[]): AchievementOption[] {
-  const achievements = getAchievements(sport as any, seasonIndex, players);
+export function getAchievementOptions(sport: string, seasonIndex?: SeasonIndex): AchievementOption[] {
+  const achievements = getAchievements(sport as any, seasonIndex);
   return achievements
     .filter(achievement => 
       achievement.id !== 'bornOutsideUS50DC' && // Exclude problematic achievement
@@ -285,7 +284,7 @@ export function debugAchievementIntersection(
   const reboundsConfig: HeaderConfig = {
     type: 'achievement',
     selectedId: 'career10kRebounds',
-    selectedLabel: formatMilestoneLabel(10000, 'Career Rebounds')
+    selectedLabel: '10,000+ Career Rebounds'
   };
   
   const assistsConfig: HeaderConfig = {
