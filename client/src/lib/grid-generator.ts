@@ -139,7 +139,7 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
   const DEBUG = import.meta.env.VITE_DEBUG === 'true';
   if (DEBUG) {
     console.log('=== ACHIEVEMENT COUNTS ===');
-    const sportAchievements = getAchievements(sport, seasonIndex, players);
+    const sportAchievements = getAchievements(sport, seasonIndex);
     sportAchievements.forEach((achievement: Achievement) => {
       const count = players.filter(p => p.achievements && (p.achievements as any)[achievement.id]).length;
       const viable = count >= 15 ? '✓' : '✗';
@@ -680,7 +680,7 @@ function generateGridSeeded(leagueData: LeagueData): {
     }
     
     // Find viable season achievements that have >= 3 eligible teams (sport-filtered)
-    const sportFilteredAchievements = getAchievements(sport, seasonIndex, players)
+    const sportFilteredAchievements = getAchievements(sport, seasonIndex)
       .filter(ach => ach.isSeasonSpecific);
     
     const viableSeasonAchievements = sportFilteredAchievements.map(ach => 
@@ -810,7 +810,7 @@ function generateGridSeeded(leagueData: LeagueData): {
       // This prevents impossible season harmonization conflicts
       
       // Only try career achievements (get from achievements passed to function)
-      const achievements = getAchievements(sport, seasonIndex, players);
+      const achievements = getAchievements(sport, seasonIndex);
       for (const ach of achievements) {
         if (ach.isSeasonSpecific) continue;
         if (ach.id === 'bornOutsideUS50DC') continue; // Temporarily remove born outside US achievement
@@ -862,7 +862,7 @@ function generateGridSeeded(leagueData: LeagueData): {
   console.log(`✅ Step 4: Filling remaining slots old-style`);
   
   // Only use career achievements for old-style fill to avoid season harmonization conflicts
-  const allAchievements = getAchievements(sport, seasonIndex, players)
+  const allAchievements = getAchievements(sport, seasonIndex)
     .filter(ach => !ach.isSeasonSpecific)
     .filter(ach => ach.id !== 'bornOutsideUS50DC'); // Temporarily remove born outside US achievement
   
@@ -1382,7 +1382,7 @@ function buildOppositeAxisForSeed(
   // Fill remaining slots with safe achievements/teams
   // For layouts with season achievements, use other season achievements to avoid mixing career/season
   // But don't reuse the seed achievement (and use sport-filtered achievements)
-  const sportFilteredAchievements = getAchievements(sport, seasonIndex, players)
+  const sportFilteredAchievements = getAchievements(sport, seasonIndex)
     .filter(ach => ach.isSeasonSpecific);
   
   const availableSeasonAchievements = sportFilteredAchievements.map(ach => 
