@@ -86,8 +86,43 @@ export const BASKETBALL_ACHIEVEMENTS: Achievement[] = [
     test: (p: Player) => p.achievements?.isSecondRoundPick || false,
     minPlayers: 5
   },
-  // Note: Career stat achievements (points, rebounds, assists, etc.) now handled by milestone system
-  // Note: Single-season awards implemented as season-specific achievements with proper harmonization
+  // Career stat achievements - thresholds will be randomly selected during grid generation
+  {
+    id: 'careerPoints',
+    label: 'Career Points Milestone',
+    test: () => false, // Will be replaced during grid generation with specific threshold
+    minPlayers: 5
+  },
+  {
+    id: 'careerRebounds',
+    label: 'Career Rebounds Milestone',
+    test: () => false, // Will be replaced during grid generation with specific threshold
+    minPlayers: 5
+  },
+  {
+    id: 'careerAssists',
+    label: 'Career Assists Milestone',
+    test: () => false, // Will be replaced during grid generation with specific threshold
+    minPlayers: 5
+  },
+  {
+    id: 'careerSteals',
+    label: 'Career Steals Milestone',
+    test: () => false, // Will be replaced during grid generation with specific threshold
+    minPlayers: 5
+  },
+  {
+    id: 'careerBlocks',
+    label: 'Career Blocks Milestone',
+    test: () => false, // Will be replaced during grid generation with specific threshold
+    minPlayers: 5
+  },
+  {
+    id: 'careerThrees',
+    label: 'Career 3-Pointers Milestone',
+    test: () => false, // Will be replaced during grid generation with specific threshold
+    minPlayers: 5
+  }
 ];
 
 // Convert season achievements to regular Achievement format for grid generation
@@ -155,23 +190,137 @@ function createSeasonAchievementTests(seasonIndex?: SeasonIndex, sport: 'basketb
 
 // Baseball-specific achievements  
 export const BASEBALL_ACHIEVEMENTS: Achievement[] = [
-  // Note: Career stat achievements (hits, home runs, RBIs, etc.) now handled by milestone system
-  // Note: Single-season awards removed from game entirely
-  // wonMVP, wonFinalsMVP, wonPitcherOfYear, wonReliefPitcherOfYear, wonROY, madeAllStar, wonChampionship
+  // Career stat achievements - thresholds will be randomly selected during grid generation
+  {
+    id: 'careerHits',
+    label: 'Career Hits Milestone',
+    test: () => false, // Will be replaced during grid generation with specific threshold
+    minPlayers: 5
+  },
+  {
+    id: 'careerHomeRuns',
+    label: 'Career Home Runs Milestone',
+    test: () => false, // Will be replaced during grid generation with specific threshold
+    minPlayers: 5
+  },
+  {
+    id: 'careerRbis',
+    label: 'Career RBIs Milestone',
+    test: () => false, // Will be replaced during grid generation with specific threshold
+    minPlayers: 5
+  },
+  {
+    id: 'careerStolenBases',
+    label: 'Career Stolen Bases Milestone',
+    test: () => false, // Will be replaced during grid generation with specific threshold
+    minPlayers: 5
+  },
+  {
+    id: 'careerRuns',
+    label: 'Career Runs Milestone',
+    test: () => false, // Will be replaced during grid generation with specific threshold
+    minPlayers: 5
+  },
+  {
+    id: 'careerPitcherWins',
+    label: 'Career Pitcher Wins Milestone',
+    test: () => false, // Will be replaced during grid generation with specific threshold
+    minPlayers: 5
+  },
+  {
+    id: 'careerStrikeouts',
+    label: 'Career Strikeouts Milestone',
+    test: () => false, // Will be replaced during grid generation with specific threshold
+    minPlayers: 5
+  },
+  {
+    id: 'careerSaves',
+    label: 'Career Saves Milestone',
+    test: () => false, // Will be replaced during grid generation with specific threshold
+    minPlayers: 5
+  }
 ];
 
 // Hockey-specific achievements
 export const HOCKEY_ACHIEVEMENTS: Achievement[] = [
-  // Note: Career stat achievements (goals, points, assists, etc.) now handled by milestone system
-  // Note: Single-season awards removed from game entirely
-  // wonMVP, wonDefensiveForward, wonGoalieOfYear, wonROY, wonPlayoffsMVP, madeAllStar, wonChampionship
+  // Career stat achievements - thresholds will be randomly selected during grid generation
+  {
+    id: 'careerGoals',
+    label: 'Career Goals Milestone',
+    test: () => false, // Will be replaced during grid generation with specific threshold
+    minPlayers: 5
+  },
+  {
+    id: 'careerPoints',
+    label: 'Career Points Milestone',
+    test: () => false, // Will be replaced during grid generation with specific threshold
+    minPlayers: 5
+  },
+  {
+    id: 'careerAssists',
+    label: 'Career Assists Milestone',
+    test: () => false, // Will be replaced during grid generation with specific threshold
+    minPlayers: 5
+  },
+  {
+    id: 'careerWins',
+    label: 'Career Goalie Wins Milestone',
+    test: () => false, // Will be replaced during grid generation with specific threshold
+    minPlayers: 5
+  },
+  {
+    id: 'careerShutouts',
+    label: 'Career Shutouts Milestone',
+    test: () => false, // Will be replaced during grid generation with specific threshold
+    minPlayers: 5
+  }
 ];
 
 // Football-specific achievements
 export const FOOTBALL_ACHIEVEMENTS: Achievement[] = [
-  // Note: Career stat achievements (pass TDs, rush yards, sacks, etc.) now handled by milestone system
-  // Note: Single-season awards removed from game entirely
-  // wonMVP, wonDPOY, wonROY
+  // Career stat achievements - thresholds will be randomly selected during grid generation
+  {
+    id: 'careerPassTds',
+    label: 'Career Passing TDs Milestone',
+    test: () => false, // Will be replaced during grid generation with specific threshold
+    minPlayers: 5
+  },
+  {
+    id: 'careerRushYards',
+    label: 'Career Rushing Yards Milestone',
+    test: () => false, // Will be replaced during grid generation with specific threshold
+    minPlayers: 5
+  },
+  {
+    id: 'careerRushTds',
+    label: 'Career Rushing TDs Milestone',
+    test: () => false, // Will be replaced during grid generation with specific threshold
+    minPlayers: 5
+  },
+  {
+    id: 'careerRecYards',
+    label: 'Career Receiving Yards Milestone',
+    test: () => false, // Will be replaced during grid generation with specific threshold
+    minPlayers: 5
+  },
+  {
+    id: 'careerRecTds',
+    label: 'Career Receiving TDs Milestone',
+    test: () => false, // Will be replaced during grid generation with specific threshold
+    minPlayers: 5
+  },
+  {
+    id: 'careerSacks',
+    label: 'Career Sacks Milestone',
+    test: () => false, // Will be replaced during grid generation with specific threshold
+    minPlayers: 5
+  },
+  {
+    id: 'careerInterceptions',
+    label: 'Career Interceptions Milestone',
+    test: () => false, // Will be replaced during grid generation with specific threshold
+    minPlayers: 5
+  }
 ];
 
 // Get achievements based on sport (including milestone achievements)
@@ -187,11 +336,7 @@ export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | '
       const seasonAchievements = createSeasonAchievementTests(seasonIndex, 'football');
       footballAchievements.push(...seasonAchievements);
     }
-    // Add milestone achievements for football if players are available
-    if (players) {
-      const milestoneAchievements = generateMilestoneAchievementsForSport('football', players);
-      footballAchievements.push(...milestoneAchievements);
-    }
+    // Milestone achievements will be handled during grid generation with random threshold selection
     return footballAchievements;
   } else if (sport === 'hockey') {
     const hockeyAchievements = [...common, ...HOCKEY_ACHIEVEMENTS];
@@ -200,11 +345,7 @@ export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | '
       const seasonAchievements = createSeasonAchievementTests(seasonIndex, 'hockey');
       hockeyAchievements.push(...seasonAchievements);
     }
-    // Add milestone achievements for hockey if players are available
-    if (players) {
-      const milestoneAchievements = generateMilestoneAchievementsForSport('hockey', players);
-      hockeyAchievements.push(...milestoneAchievements);
-    }
+    // Milestone achievements will be handled during grid generation with random threshold selection
     return hockeyAchievements;
   } else if (sport === 'baseball') {
     const baseballAchievements = [...common, ...BASEBALL_ACHIEVEMENTS];
@@ -213,11 +354,7 @@ export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | '
       const seasonAchievements = createSeasonAchievementTests(seasonIndex, 'baseball');
       baseballAchievements.push(...seasonAchievements);
     }
-    // Add milestone achievements for baseball if players are available
-    if (players) {
-      const milestoneAchievements = generateMilestoneAchievementsForSport('baseball', players);
-      baseballAchievements.push(...milestoneAchievements);
-    }
+    // Milestone achievements will be handled during grid generation with random threshold selection
     return baseballAchievements;
   } else {
     // Basketball: add season-specific achievements
@@ -226,11 +363,7 @@ export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | '
       const seasonAchievements = createSeasonAchievementTests(seasonIndex, 'basketball');
       basketballAchievements.push(...seasonAchievements);
     }
-    // Add milestone achievements for basketball if players are available
-    if (players) {
-      const milestoneAchievements = generateMilestoneAchievementsForSport('basketball', players);
-      basketballAchievements.push(...milestoneAchievements);
-    }
+    // Milestone achievements will be handled during grid generation with random threshold selection
     return basketballAchievements;
   }
 }
