@@ -3,14 +3,6 @@ import { getViableAchievements, playerMeetsAchievement, getAchievements, type Ac
 import { evaluateConstraintPair, GridConstraint } from '@/lib/feedback';
 import { getSeasonEligiblePlayers, type SeasonAchievementId, type SeasonIndex, SEASON_ACHIEVEMENTS } from './season-achievements';
 import { calculateOptimizedIntersection, type IntersectionConstraint } from '@/lib/intersection-cache';
-import { 
-  isMilestoneId, 
-  parseMilestoneId, 
-  getMilestoneFamilyById,
-  formatMilestoneLabel,
-  getCareerValue,
-  type MilestoneSport 
-} from '@/lib/milestones';
 
 // Define conflicting achievement sets at module level
 const draftAchievements = new Set(['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen']);
@@ -57,10 +49,37 @@ export function generateTeamsGrid(leagueData: LeagueData): {
   const DEBUG = import.meta.env.VITE_DEBUG === 'true';
   if (DEBUG) {
     console.log(`🎯 STARTING GRID GENERATION for ${sport} (${players.length} players, ${teams.length} teams)`);
-    console.log('Using old random builder (forced)');
   }
   
-  // Always use the old random generator for speed and simplicity
+  // Season count gate: compute unique seasons
+  const uniqueSeasons = new Set<number>();
+  players.forEach(player => {
+    if (player.stats) {
+      player.stats.forEach(stat => uniqueSeasons.add(stat.season));
+    }
+    if (player.awards) {
+      player.awards.forEach(award => uniqueSeasons.add(award.season));
+    }
+  });
+
+  if (DEBUG) {
+    console.log(`Unique seasons found: ${uniqueSeasons.size}`);
+  }
+
+  // If < 20 seasons, use old random builder without season-specific achievements
+  if (uniqueSeasons.size < 20) {
+    if (DEBUG) console.log('Using old random builder (< 20 seasons)');
+    return generateGridOldRandom(leagueData);
+  }
+
+  // If >= 20 seasons and basketball, football, hockey, or baseball, use new seeded builder
+  if ((sport === 'basketball' || sport === 'football' || sport === 'hockey' || sport === 'baseball') && leagueData.seasonIndex) {
+    if (DEBUG) console.log(`Using new seeded coverage-aware builder (>= 20 seasons, ${sport})`);
+    return generateGridSeeded(leagueData);
+  }
+
+  // Fallback to old builder for other sports or insufficient seasons
+  if (DEBUG) console.log('Using old random builder (fallback)');
   return generateGridOldRandom(leagueData);
 }
 
@@ -113,7 +132,7 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
   const DEBUG = import.meta.env.VITE_DEBUG === 'true';
   if (DEBUG) {
     console.log('=== ACHIEVEMENT COUNTS ===');
-    const sportAchievements = getAchievements(sport, seasonIndex);
+    const sportAchievements = getAchievements(sport);
     sportAchievements.forEach((achievement: Achievement) => {
       const count = players.filter(p => p.achievements && (p.achievements as any)[achievement.id]).length;
       const viable = count >= 15 ? '✓' : '✗';
@@ -144,100 +163,12 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
       test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex),
     }));
 
-  // Transform career stat achievements into specific milestone achievements with random thresholds
-  const transformCareerAchievements = (constraints: CatTeam[]): CatTeam[] => {
-    return constraints.map(constraint => {
-      if (!constraint.achievementId) return constraint;
-
-      // Map career achievement IDs to milestone family IDs based on sport
-      let careerToFamilyMap: Record<string, string> = {};
-
-      if (sport === 'basketball') {
-        careerToFamilyMap = {
-          'careerPoints': 'basketball-points',
-          'careerRebounds': 'basketball-rebounds',
-          'careerAssists': 'basketball-assists',
-          'careerSteals': 'basketball-steals',
-          'careerBlocks': 'basketball-blocks',
-          'careerThrees': 'basketball-threes'
-        };
-      } else if (sport === 'football') {
-        careerToFamilyMap = {
-          'careerPassTds': 'football-pass-tds',
-          'careerRushYards': 'football-rush-yards',
-          'careerRushTds': 'football-rush-tds',
-          'careerRecYards': 'football-receiving-yards',
-          'careerRecTds': 'football-receiving-tds',
-          'careerSacks': 'football-sacks',
-          'careerInterceptions': 'football-interceptions'
-        };
-      } else if (sport === 'hockey') {
-        careerToFamilyMap = {
-          'careerGoals': 'hockey-goals',
-          'careerPoints': 'hockey-points',
-          'careerAssists': 'hockey-assists',
-          'careerWins': 'hockey-wins-goalie',
-          'careerShutouts': 'hockey-shutouts-goalie'
-        };
-      } else if (sport === 'baseball') {
-        careerToFamilyMap = {
-          'careerHits': 'baseball-hits',
-          'careerHomeRuns': 'baseball-home-runs',
-          'careerRbis': 'baseball-rbis',
-          'careerStolenBases': 'baseball-stolen-bases',
-          'careerRuns': 'baseball-runs',
-          'careerPitcherWins': 'baseball-pitcher-wins',
-          'careerStrikeouts': 'baseball-strikeouts-pitcher',
-          'careerSaves': 'baseball-saves'
-        };
-      }
-
-      const familyId = careerToFamilyMap[constraint.achievementId];
-      if (!familyId) return constraint; // Not a career achievement
-
-      // Get the milestone family
-      const family = getMilestoneFamilyById(familyId);
-      if (!family) return constraint; // Family not found
-
-      // Filter thresholds to only include those with sufficient players
-      const viableThresholds = family.thresholds.filter(threshold => {
-        const playersWithThreshold = players.filter(player => {
-          const careerValue = getCareerValue(player, family);
-          return careerValue >= threshold;
-        });
-        return playersWithThreshold.length >= (sport === 'hockey' ? 3 : 5);
-      });
-
-      if (viableThresholds.length === 0) return constraint; // No viable thresholds
-
-      // Randomly select a threshold
-      const selectedThreshold = viableThresholds[Math.floor(Math.random() * viableThresholds.length)];
-      
-      // Create the specific milestone achievement
-      const milestoneId = `milestone:${family.sport}:${family.statKey}:${selectedThreshold}`;
-      
-      return {
-        ...constraint,
-        key: `achievement-${milestoneId}`,
-        label: formatMilestoneLabel(selectedThreshold, family.labelBase),
-        achievementId: milestoneId,
-        test: (p: Player) => {
-          const careerValue = getCareerValue(p, family);
-          return careerValue >= selectedThreshold;
-        }
-      };
-    });
-  };
-
-  // Apply the transformation to convert career achievements to specific milestones
-  const transformedAchievementConstraints = transformCareerAchievements(achievementConstraints);
-
   if (teamConstraints.length < 3) {
     throw new Error(`Need at least 3 teams to generate grid (found ${teamConstraints.length})`);
   }
 
-  if (transformedAchievementConstraints.length < 2) {
-    throw new Error(`Need at least 2 viable achievements to generate grid (found ${transformedAchievementConstraints.length})`);
+  if (achievementConstraints.length < 2) {
+    throw new Error(`Need at least 2 viable achievements to generate grid (found ${achievementConstraints.length})`);
   }
 
   // Determine number of achievements (2 or 3)
@@ -246,36 +177,7 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
 
   // Define draft achievements that should not appear together (using module-level definitions)
   
-  // Helper function to ensure only one milestone per stat family
-  const ensureNoConflictingMilestoneFamilies = (achievements: CatTeam[]): CatTeam[] => {
-    
-    const milestoneAchievements = achievements.filter(a => a.achievementId?.startsWith('milestone:'));
-    const nonMilestoneAchievements = achievements.filter(a => !a.achievementId?.startsWith('milestone:'));
-    
-    // Group milestones by stat family (sport:statKey)
-    const familyGroups = new Map<string, CatTeam[]>();
-    
-    for (const achievement of milestoneAchievements) {
-      const parsed = parseMilestoneId(achievement.achievementId!);
-      if (parsed) {
-        const familyKey = `${parsed.sport}:${parsed.statKey}`;
-        if (!familyGroups.has(familyKey)) {
-          familyGroups.set(familyKey, []);
-        }
-        familyGroups.get(familyKey)!.push(achievement);
-      }
-    }
-    
-    // Keep only one achievement per family (first one)
-    const selectedMilestones: CatTeam[] = [];
-    for (const group of Array.from(familyGroups.values())) {
-      selectedMilestones.push(group[0]);
-    }
-    
-    return [...nonMilestoneAchievements, ...selectedMilestones];
-  };
-  
-  // Helper function to ensure only one draft achievement, one season length achievement, and one milestone per family
+  // Helper function to ensure only one draft achievement and one season length achievement in selection
   const ensureNoConflictingAchievements = (achievements: CatTeam[]): CatTeam[] => {
     const draftAchs = achievements.filter(a => draftAchievements.has(a.achievementId!));
     const seasonLengthAchs = achievements.filter(a => seasonLengthAchievements.has(a.achievementId!));
@@ -284,12 +186,8 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
       !seasonLengthAchievements.has(a.achievementId!)
     );
     
-    // Apply milestone family constraints to otherAchs
-    const familyFilteredOthers = ensureNoConflictingMilestoneFamilies(otherAchs);
-    
     if (draftAchs.length <= 1 && seasonLengthAchs.length <= 1) {
-      // No conflicts in draft/season length, but still need to check milestone families
-      return ensureNoConflictingMilestoneFamilies([...draftAchs, ...seasonLengthAchs, ...familyFilteredOthers]);
+      return achievements; // Already compliant
     }
     
     // Log conflict resolution for debugging
@@ -303,17 +201,14 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
     const selectedDraft = draftAchs.length > 0 ? draftAchs[0] : null;
     const selectedSeasonLength = seasonLengthAchs.length > 0 ? seasonLengthAchs[0] : null;
     
-    const availableNonConflicting = transformedAchievementConstraints.filter(a => 
+    const availableNonConflicting = achievementConstraints.filter(a => 
       !draftAchievements.has(a.achievementId!) && 
       !seasonLengthAchievements.has(a.achievementId!) &&
-      !familyFilteredOthers.some((selected: CatTeam) => selected.achievementId === a.achievementId)
+      !otherAchs.some(selected => selected.achievementId === a.achievementId)
     );
     
-    // Apply milestone family constraints to available options
-    const familyFilteredAvailable = ensureNoConflictingMilestoneFamilies(availableNonConflicting);
-    
     // Build final selection
-    const result = [...familyFilteredOthers];
+    const result = [...otherAchs];
     if (selectedDraft) result.push(selectedDraft);
     if (selectedSeasonLength) result.push(selectedSeasonLength);
     
@@ -351,7 +246,7 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
   if (leagueData.teamOverlaps && Object.keys(leagueData.teamOverlaps.achievementTeamCounts).length > 0) {
     // Filter achievements to only those with decent team coverage
     // Lower requirement for stat achievements since they're rarer but valuable
-    const viableAchievements = transformedAchievementConstraints.filter(achievement => {
+    const viableAchievements = achievementConstraints.filter(achievement => {
       const teamCoverage = leagueData.teamOverlaps!.achievementTeamCounts[achievement.achievementId!] || 0;
       const isStatAchievement = achievement.achievementId!.includes('career') || achievement.achievementId!.includes('season');
       
@@ -390,7 +285,7 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
       ];
     } else {
       // Not enough high-coverage achievements, include some with lower coverage
-      const allByTeamCoverage = transformedAchievementConstraints
+      const allByTeamCoverage = achievementConstraints
         .map(achievement => ({
           achievement,
           teamCoverage: leagueData.teamOverlaps!.achievementTeamCounts[achievement.achievementId!] || 0
@@ -403,7 +298,7 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
     }
   } else {
     // Fallback: random selection
-    selectedAchievements = transformedAchievementConstraints
+    selectedAchievements = achievementConstraints
       .sort(() => Math.random() - 0.5)
       .slice(0, numAchievements);
   }
@@ -872,7 +767,7 @@ function generateGridSeeded(leagueData: LeagueData): {
       // This prevents impossible season harmonization conflicts
       
       // Only try career achievements (get from achievements passed to function)
-      const achievements = getAchievements(sport, seasonIndex);
+      const achievements = getAchievements('basketball');
       for (const ach of achievements) {
         if (ach.isSeasonSpecific) continue;
         if (ach.id === 'bornOutsideUS50DC') continue; // Temporarily remove born outside US achievement
@@ -924,7 +819,7 @@ function generateGridSeeded(leagueData: LeagueData): {
   console.log(`✅ Step 4: Filling remaining slots old-style`);
   
   // Only use career achievements for old-style fill to avoid season harmonization conflicts
-  const allAchievements = getAchievements(sport, seasonIndex)
+  const allAchievements = getAchievements('basketball')
     .filter(ach => !ach.isSeasonSpecific)
     .filter(ach => ach.id !== 'bornOutsideUS50DC'); // Temporarily remove born outside US achievement
   
@@ -1000,39 +895,15 @@ function generateGridSeeded(leagueData: LeagueData): {
           
           if (achAlreadyUsed) continue;
           
-          // Check for conflicting achievements (draft, season length, and milestone families)
+          // Check for conflicting achievements (draft and season length)
           const hasConflictingDraft = draftAchievements.has(ach.id) && 
             [...rows, ...cols].some(slot => slot && slot.type === 'achievement' && draftAchievements.has(slot.achievementId!));
           const hasConflictingSeasonLength = seasonLengthAchievements.has(ach.id) && 
             [...rows, ...cols].some(slot => slot && slot.type === 'achievement' && seasonLengthAchievements.has(slot.achievementId!));
           
-          // Check for milestone family conflicts
-          let hasConflictingMilestoneFamily = false;
-          if (isMilestoneId(ach.id)) {
-            const achParsed = parseMilestoneId(ach.id);
-            if (achParsed) {
-              const achFamilyKey = `${achParsed.sport}:${achParsed.statKey}`;
-              for (const slot of [...rows, ...cols]) {
-                if (slot && slot.type === 'achievement' && slot.achievementId && isMilestoneId(slot.achievementId)) {
-                  const slotParsed = parseMilestoneId(slot.achievementId);
-                  if (slotParsed) {
-                    const slotFamilyKey = `${slotParsed.sport}:${slotParsed.statKey}`;
-                    if (achFamilyKey === slotFamilyKey) {
-                      hasConflictingMilestoneFamily = true;
-                      break;
-                    }
-                  }
-                }
-              }
-            }
-          }
-          
-          if (hasConflictingDraft || hasConflictingSeasonLength || hasConflictingMilestoneFamily) {
+          if (hasConflictingDraft || hasConflictingSeasonLength) {
             if (hasConflictingSeasonLength) {
               console.log(`⚠️ Skipping ${ach.label} - conflicts with existing season length achievement`);
-            }
-            if (hasConflictingMilestoneFamily) {
-              console.log(`⚠️ Skipping ${ach.label} - conflicts with existing milestone family`);
             }
             continue;
           }
@@ -1153,39 +1024,15 @@ function generateGridSeeded(leagueData: LeagueData): {
           
           if (achAlreadyUsed) continue;
           
-          // Check for conflicting achievements (draft, season length, and milestone families)
+          // Check for conflicting achievements (draft and season length)
           const hasConflictingDraft = draftAchievements.has(ach.id) && 
             [...rows, ...cols].some(slot => slot && slot.type === 'achievement' && draftAchievements.has(slot.achievementId!));
           const hasConflictingSeasonLength = seasonLengthAchievements.has(ach.id) && 
             [...rows, ...cols].some(slot => slot && slot.type === 'achievement' && seasonLengthAchievements.has(slot.achievementId!));
           
-          // Check for milestone family conflicts
-          let hasConflictingMilestoneFamily = false;
-          if (isMilestoneId(ach.id)) {
-            const achParsed = parseMilestoneId(ach.id);
-            if (achParsed) {
-              const achFamilyKey = `${achParsed.sport}:${achParsed.statKey}`;
-              for (const slot of [...rows, ...cols]) {
-                if (slot && slot.type === 'achievement' && slot.achievementId && isMilestoneId(slot.achievementId)) {
-                  const slotParsed = parseMilestoneId(slot.achievementId);
-                  if (slotParsed) {
-                    const slotFamilyKey = `${slotParsed.sport}:${slotParsed.statKey}`;
-                    if (achFamilyKey === slotFamilyKey) {
-                      hasConflictingMilestoneFamily = true;
-                      break;
-                    }
-                  }
-                }
-              }
-            }
-          }
-          
-          if (hasConflictingDraft || hasConflictingSeasonLength || hasConflictingMilestoneFamily) {
+          if (hasConflictingDraft || hasConflictingSeasonLength) {
             if (hasConflictingSeasonLength) {
               console.log(`⚠️ Skipping ${ach.label} - conflicts with existing season length achievement`);
-            }
-            if (hasConflictingMilestoneFamily) {
-              console.log(`⚠️ Skipping ${ach.label} - conflicts with existing milestone family`);
             }
             continue;
           }
@@ -1471,8 +1318,8 @@ function buildOppositeAxisForSeed(
       { id: 'AllStar', label: 'All-Star' },
       { id: 'played10PlusSeasons', label: 'Played 10+ Seasons' },
       { id: 'played15PlusSeasons', label: 'Played 15+ Seasons' },
-      { id: 'career2kPoints', label: formatMilestoneLabel(2000, 'Career Points') },
-      { id: 'career1kRebounds', label: formatMilestoneLabel(1000, 'Career Rebounds') },
+      { id: 'career2kPoints', label: '2,000+ Career Points' },
+      { id: 'career1kRebounds', label: '1,000+ Career Rebounds' },
     ];
     
     for (const ca of fallbackCareerAchievements) {

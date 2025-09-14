@@ -14,7 +14,6 @@ import { detectSport } from '@/lib/grid-sharing';
 import { getTeamOptions, getAchievementOptions, calculateCustomCellIntersection, headerConfigToCatTeam, type TeamOption, type AchievementOption, type HeaderConfig } from '@/lib/custom-grid-utils';
 import { SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 import { getCachedSeasonIndex } from '@/lib/season-index-cache';
-import { isMilestoneId, parseMilestoneId, formatThousands, formatMilestoneLabel, getMilestoneFamilyById, getCareerValue, type MilestoneFamily } from '@/lib/milestones';
 
 // Team logo icon component for combobox
 function TeamLogoIcon({ teamData }: { teamData?: Team }) {
@@ -117,16 +116,6 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     colSelectors: SelectorState[];
   } | null>(null);
 
-  // Milestone input modal state
-  const [milestoneInputOpen, setMilestoneInputOpen] = useState(false);
-  const [milestoneTarget, setMilestoneTarget] = useState<{
-    isRow: boolean;
-    index: number;
-  } | null>(null);
-  const [milestoneFamily, setMilestoneFamily] = useState<MilestoneFamily | null>(null);
-  const [milestoneThreshold, setMilestoneThreshold] = useState<string>('');
-  const [milestoneValidationError, setMilestoneValidationError] = useState<string | null>(null);
-
   const sport = leagueData ? detectSport(leagueData) : 'basketball';
   
   // Memoize expensive computations to prevent performance issues
@@ -140,8 +129,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
   }, [leagueData?.players, sport]);
   
   const achievementOptions = useMemo<AchievementOption[]>(() => {
-    return leagueData ? getAchievementOptions(sport, seasonIndex, leagueData.players) : [];
-  }, [sport, seasonIndex, leagueData?.players]);
+    return leagueData ? getAchievementOptions(sport, seasonIndex) : [];
+  }, [sport, seasonIndex]);
 
   // Clear all selections
   const handleClearAll = useCallback(() => {
@@ -195,100 +184,6 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
   // Helper function to determine if an achievement is season-specific
   const isSeasonAchievement = useCallback((achievementId: string) => {
     return SEASON_ACHIEVEMENTS.some(sa => sa.id === achievementId);
-  }, []);
-
-  // Handle milestone achievement selection - open input modal instead of immediate selection
-  const handleMilestoneSelection = useCallback((isRow: boolean, index: number, achievementId: string) => {
-    if (!leagueData || !isMilestoneId(achievementId)) return;
-
-    const parsed = parseMilestoneId(achievementId);
-    if (!parsed) return;
-
-    const family = getMilestoneFamilyById(`${parsed.sport}-${parsed.statKey}`);
-    if (!family) return;
-
-    // Set up milestone input modal
-    setMilestoneTarget({ isRow, index });
-    setMilestoneFamily(family);
-    setMilestoneThreshold(parsed.threshold.toString());
-    setMilestoneValidationError(null);
-    setMilestoneInputOpen(true);
-  }, [leagueData]);
-
-  // Validate milestone threshold input
-  const validateMilestoneThreshold = useCallback((thresholdStr: string): string | null => {
-    if (!thresholdStr.trim()) {
-      return 'Please enter a threshold value';
-    }
-
-    const threshold = parseInt(thresholdStr, 10);
-    if (isNaN(threshold) || threshold <= 0) {
-      return 'Please enter a positive integer';
-    }
-
-    if (!leagueData || !milestoneFamily) {
-      return 'Missing data for validation';
-    }
-
-    // Check if any players meet this milestone
-    const eligiblePlayers = leagueData.players.filter(player => {
-      const careerValue = getCareerValue(player, milestoneFamily);
-      return careerValue >= threshold;
-    });
-
-    if (eligiblePlayers.length === 0) {
-      return 'No players meet this milestone in the current league';
-    }
-
-    // Check for family conflicts (same stat already used)
-    const allSelectors = [...rowSelectors, ...colSelectors];
-    for (const selector of allSelectors) {
-      if (selector.type === 'achievement' && selector.value && isMilestoneId(selector.value)) {
-        const existingParsed = parseMilestoneId(selector.value);
-        if (existingParsed && existingParsed.sport === sport && existingParsed.statKey === milestoneFamily.statKey) {
-          return 'This stat is already used in this grid';
-        }
-      }
-    }
-
-    return null;
-  }, [leagueData, milestoneFamily, rowSelectors, colSelectors, sport]);
-
-  // Confirm milestone selection
-  const handleMilestoneConfirm = useCallback(() => {
-    if (!milestoneTarget || !milestoneFamily || !leagueData) return;
-
-    const threshold = parseInt(milestoneThreshold, 10);
-    if (isNaN(threshold) || threshold <= 0) return;
-
-    const validationError = validateMilestoneThreshold(milestoneThreshold);
-    if (validationError) {
-      setMilestoneValidationError(validationError);
-      return;
-    }
-
-    // Create custom milestone ID and label
-    const customMilestoneId = `milestone:${sport}:${milestoneFamily.statKey}:${threshold}`;
-    const customLabel = formatMilestoneLabel(threshold, milestoneFamily.labelBase);
-
-    // Update the selector
-    updateSelectorValue(milestoneTarget.isRow, milestoneTarget.index, 'achievement', customMilestoneId, customLabel);
-
-    // Close milestone input modal
-    setMilestoneInputOpen(false);
-    setMilestoneTarget(null);
-    setMilestoneFamily(null);
-    setMilestoneThreshold('');
-    setMilestoneValidationError(null);
-  }, [milestoneTarget, milestoneFamily, milestoneThreshold, leagueData, sport, validateMilestoneThreshold, updateSelectorValue]);
-
-  // Cancel milestone selection
-  const handleMilestoneCancel = useCallback(() => {
-    setMilestoneInputOpen(false);
-    setMilestoneTarget(null);
-    setMilestoneFamily(null);
-    setMilestoneThreshold('');
-    setMilestoneValidationError(null);
   }, []);
 
   // Autofill empty headers with intelligent choices
@@ -684,7 +579,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     // Get achievements and categorize them
     const sport = detectSport(leagueData);
     const seasonIndex = getCachedSeasonIndex(leagueData.players, sport);
-    const achievementOptions = getAchievementOptions(sport, seasonIndex, leagueData.players);
+    const achievementOptions = getAchievementOptions(sport, seasonIndex);
     
     const seasonAchievements: Array<{id: string, name: string, type: 'achievement'}> = [];
     const careerAchievements: Array<{id: string, name: string, type: 'achievement'}> = [];
@@ -798,13 +693,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                     {careerAchievements.map(achievement => (
                       <DropdownMenuItem
                         key={achievement.id}
-                        onSelect={() => {
-                          if (isMilestoneId(achievement.id)) {
-                            handleMilestoneSelection(isRow, index, achievement.id);
-                          } else {
-                            updateSelectorValue(isRow, index, 'achievement', achievement.id, achievement.name);
-                          }
-                        }}
+                        onSelect={() => updateSelectorValue(isRow, index, 'achievement', achievement.id, achievement.name)}
                         className="px-3 py-2 text-sm cursor-pointer"
                         data-testid={`achievement-option-${achievement.id}`}
                       >
@@ -823,13 +712,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                     {seasonAchievements.map(achievement => (
                       <DropdownMenuItem
                         key={achievement.id}
-                        onSelect={() => {
-                          if (isMilestoneId(achievement.id)) {
-                            handleMilestoneSelection(isRow, index, achievement.id);
-                          } else {
-                            updateSelectorValue(isRow, index, 'achievement', achievement.id, achievement.name);
-                          }
-                        }}
+                        onSelect={() => updateSelectorValue(isRow, index, 'achievement', achievement.id, achievement.name)}
                         className="px-3 py-2 text-sm cursor-pointer"
                         data-testid={`achievement-option-${achievement.id}`}
                       >
@@ -874,7 +757,6 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
   };
 
   return (
-    <>
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-[96vw] max-w-[96vw] sm:w-[90vw] sm:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto overflow-x-hidden p-2 sm:p-4 lg:p-6">
         <DialogHeader>
@@ -1039,97 +921,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
           </div>
         </div>
       </DialogContent>
+      
     </Dialog>
-
-    {/* Milestone Input Dialog */}
-    <Dialog open={milestoneInputOpen} onOpenChange={handleMilestoneCancel}>
-      <DialogContent className="w-[90vw] max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            Custom Milestone Threshold
-          </DialogTitle>
-        </DialogHeader>
-        
-        <div className="space-y-4">
-          {milestoneFamily && (
-            <>
-              <div className="text-sm text-muted-foreground">
-                Set custom threshold for <strong>{milestoneFamily.labelBase}</strong>
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="milestone-threshold" className="text-sm font-medium">
-                  Threshold Value
-                </label>
-                <Input
-                  id="milestone-threshold"
-                  type="number"
-                  min="1"
-                  value={milestoneThreshold}
-                  onChange={(e) => {
-                    setMilestoneThreshold(e.target.value);
-                    setMilestoneValidationError(null);
-                  }}
-                  placeholder="Enter threshold (e.g., 25000)"
-                  className="text-base"
-                  data-testid="input-milestone-threshold"
-                />
-              </div>
-              
-              {/* Live Preview */}
-              {milestoneThreshold && !isNaN(parseInt(milestoneThreshold, 10)) && parseInt(milestoneThreshold, 10) > 0 && milestoneFamily && (
-                <div className="p-3 bg-muted/50 rounded-lg">
-                  <div className="text-sm text-muted-foreground mb-1">Preview:</div>
-                  <div className="font-medium" data-testid="text-milestone-preview">
-                    {formatMilestoneLabel(parseInt(milestoneThreshold, 10), milestoneFamily.labelBase)}
-                  </div>
-                </div>
-              )}
-              
-              {/* Validation Error */}
-              {milestoneValidationError && (
-                <div className="text-sm text-red-600 dark:text-red-400" data-testid="text-milestone-error">
-                  {milestoneValidationError}
-                </div>
-              )}
-              
-              {/* Player Count Info */}
-              {milestoneThreshold && !isNaN(parseInt(milestoneThreshold, 10)) && parseInt(milestoneThreshold, 10) > 0 && leagueData && milestoneFamily && (
-                <div className="text-xs text-muted-foreground">
-                  {(() => {
-                    const threshold = parseInt(milestoneThreshold, 10);
-                    const eligibleCount = leagueData.players.filter(player => {
-                      const careerValue = getCareerValue(player, milestoneFamily);
-                      return careerValue >= threshold;
-                    }).length;
-                    return `${eligibleCount} players meet this milestone`;
-                  })()}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-        
-        <div className="flex gap-2 justify-end">
-          <Button
-            onClick={handleMilestoneCancel}
-            variant="ghost"
-            size="sm"
-            data-testid="button-milestone-cancel"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleMilestoneConfirm}
-            disabled={!milestoneThreshold || isNaN(parseInt(milestoneThreshold, 10)) || parseInt(milestoneThreshold, 10) <= 0}
-            size="sm"
-            data-testid="button-milestone-confirm"
-          >
-            Confirm
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-    </>
   );
 }
