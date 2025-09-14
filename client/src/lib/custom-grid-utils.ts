@@ -66,8 +66,8 @@ export function getTeamOptions(teams: Team[]): TeamOption[] {
 }
 
 // Get available achievement options from league data
-export function getAchievementOptions(sport: string, seasonIndex?: SeasonIndex): AchievementOption[] {
-  const achievements = getAchievements(sport as any, seasonIndex);
+export function getAchievementOptions(sport: string, seasonIndex?: SeasonIndex, players?: Player[]): AchievementOption[] {
+  const achievements = getAchievements(sport as any, seasonIndex, players);
   return achievements
     .filter(achievement => 
       achievement.id !== 'bornOutsideUS50DC' && // Exclude problematic achievement
