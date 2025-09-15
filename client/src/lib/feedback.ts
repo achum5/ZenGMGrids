@@ -2168,17 +2168,11 @@ export function evaluateConstraintPair(player: Player, rowConstraint: GridConstr
   // Team × Achievement case: use same-season alignment
   if (rowConstraint.type === 'team' && colConstraint.type === 'achievement') {
     const result = evaluateTeamAchievementWithAlignment(player, rowConstraint.tid!, colConstraint.achievementId!);
-    if (isCelticsAllLeague && isJaylenBrown) {
-      console.log(`   🎯 [DEBUG] Team × Achievement result: ${result}`);
-    }
     return result;
   }
   
   if (rowConstraint.type === 'achievement' && colConstraint.type === 'team') {
     const result = evaluateTeamAchievementWithAlignment(player, colConstraint.tid!, rowConstraint.achievementId!);
-    if (isCelticsAllLeague && isJaylenBrown) {
-      console.log(`   🎯 [DEBUG] Achievement × Team result: ${result}`);
-    }
     return result;
   }
   
