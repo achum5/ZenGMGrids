@@ -3,6 +3,7 @@ import { getViableAchievements, playerMeetsAchievement, getAchievements, type Ac
 import { evaluateConstraintPair, GridConstraint } from '@/lib/feedback';
 import { getSeasonEligiblePlayers, type SeasonAchievementId, type SeasonIndex, SEASON_ACHIEVEMENTS } from './season-achievements';
 import { calculateOptimizedIntersection, type IntersectionConstraint } from '@/lib/intersection-cache';
+import { FOOTBALL_MILESTONES } from '@/lib/milestones';
 
 // Define conflicting achievement sets at module level
 const draftAchievements = new Set(['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen']);
@@ -34,6 +35,34 @@ function isStatAchievement(achievementId: string): boolean {
     achievementId.includes('Runs') || achievementId.includes('Strikeouts') || 
     achievementId.includes('Saves')
   );
+}
+
+// Simple function to generate a statistical achievement label with random milestone
+function generateStatLabel(achievementId: string, players: Player[]): string {
+  const footballMilestones = FOOTBALL_MILESTONES;
+  
+  // Map achievement IDs to milestone configs
+  const achievementMap: Record<string, string> = {
+    'career300PassTDs': 'careerPassTDs',
+    'career12kRushYds': 'careerRushYards', 
+    'career100RushTDs': 'careerRushTDs',
+    'career12kRecYds': 'careerRecYards',
+    'career100RecTDs': 'careerRecTDs',
+    'career100Sacks': 'careerSacks',
+    'career20Ints': 'careerInterceptions'
+  };
+  
+  const configId = achievementMap[achievementId];
+  if (!configId) return 'Statistical Achievement'; // fallback
+  
+  const config = footballMilestones.find((c: any) => c.id === configId);
+  if (!config || config.milestones.length === 0) return 'Statistical Achievement';
+  
+  // Pick a random milestone number
+  const randomIndex = Math.floor(Math.random() * config.milestones.length);
+  const milestone = config.milestones[randomIndex];
+  
+  return config.labelTemplate.replace('{milestone}', milestone.toString());
 }
 
 // Helper function to select optimal milestone from viable options
@@ -905,38 +934,9 @@ function generateGridSeeded(leagueData: LeagueData): {
   console.log(`✅ Step 4: Filling remaining slots old-style`);
   
   // Only use career achievements for old-style fill to avoid season harmonization conflicts
-  const regularAchievements = getAchievements(sport || 'basketball')
+  const allAchievements = getAchievements(sport || 'basketball')
     .filter(ach => !ach.isSeasonSpecific)
     .filter(ach => ach.id !== 'bornOutsideUS50DC'); // Temporarily remove born outside US achievement
-  
-  // Add dynamic statistical achievements for more variety
-  const dynamicStatAchievements = generateDynamicStatAchievements(players, sport || 'basketball');
-  
-  // Combine regular achievements with dynamic statistical ones
-  let allAchievements = [
-    ...regularAchievements,
-    ...dynamicStatAchievements.map(achievement => ({
-      id: achievement.id,
-      label: achievement.label,
-      isSeasonSpecific: false,
-      minPlayers: achievement.minPlayers,
-      test: (player: Player) => playerMeetsAchievement(player, achievement.id, seasonIndex, sport),
-    }))
-  ];
-  
-  // For football, prioritize statistical achievements in selection order
-  if (sport === 'football' && dynamicStatAchievements.length > 0) {
-    const statAchievements = allAchievements.filter(a => isStatAchievement(a.id));
-    const nonStatAchievements = allAchievements.filter(a => !isStatAchievement(a.id));
-    
-    // Reorder to prioritize stat achievements (but keep some randomness)
-    allAchievements = [
-      ...statAchievements.sort(() => Math.random() - 0.5),
-      ...nonStatAchievements.sort(() => Math.random() - 0.5)
-    ];
-    
-    console.log(`📊 Football: Prioritized ${statAchievements.length} statistical achievements for seeded grid`);
-  }
   
   // Filter out disabled teams for old-style fill
   const activeTeams = teams.filter(team => !team.disabled);
@@ -1052,10 +1052,16 @@ function generateGridSeeded(leagueData: LeagueData): {
           }
           
           if (validForAllCols) {
+            // For statistical achievements, pick a random milestone number
+            let finalLabel = ach.label;
+            if (sport === 'football' && isStatAchievement(ach.id)) {
+              finalLabel = generateStatLabel(ach.id, players);
+            }
+            
             rows[i] = {
               type: 'achievement',
               achievementId: ach.id,
-              label: ach.label,
+              label: finalLabel,
               key: `achievement-${ach.id}`,
               test: (p: Player) => playerMeetsAchievement(p, ach.id, seasonIndex),
             };
@@ -1181,10 +1187,16 @@ function generateGridSeeded(leagueData: LeagueData): {
           }
           
           if (validForAllRows) {
+            // For statistical achievements, pick a random milestone number
+            let finalLabel = ach.label;
+            if (sport === 'football' && isStatAchievement(ach.id)) {
+              finalLabel = generateStatLabel(ach.id, players);
+            }
+            
             cols[i] = {
               type: 'achievement',
               achievementId: ach.id,
-              label: ach.label,
+              label: finalLabel,
               key: `achievement-${ach.id}`,
               test: (p: Player) => playerMeetsAchievement(p, ach.id, seasonIndex),
             };
