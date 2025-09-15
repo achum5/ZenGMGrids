@@ -157,6 +157,13 @@ export function generateTeamsGrid(leagueData: LeagueData): {
   // If >= 20 seasons and basketball, football, hockey, or baseball, use new seeded builder
   if ((sport === 'basketball' || sport === 'football' || sport === 'hockey' || sport === 'baseball') && leagueData.seasonIndex) {
     if (DEBUG) console.log(`Using new seeded coverage-aware builder (>= 20 seasons, ${sport})`);
+    
+    // For football, ALWAYS use the specialized football generator with low milestones
+    if (sport === 'football') {
+      if (DEBUG) console.log('🏈 Redirecting large football dataset to use low milestone generator');
+      return generateGridFootballSmallSeasons(leagueData);
+    }
+    
     return generateGridSeeded(leagueData);
   }
 
