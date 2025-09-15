@@ -206,7 +206,7 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
     }));
 
   // Create dynamic milestone achievement constraints
-  const dynamicStatAchievements = generateDynamicStatAchievements(players, sport);
+  const dynamicStatAchievements = generateDynamicStatAchievements(players, sport || 'basketball');
   const dynamicMilestoneConstraints: CatTeam[] = dynamicStatAchievements.map(achievement => ({
     key: `achievement-${achievement.id}`,
     label: achievement.label,
@@ -216,7 +216,25 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
   }));
 
   // Combine regular and dynamic achievements
-  const achievementConstraints: CatTeam[] = [...regularAchievementConstraints, ...dynamicMilestoneConstraints];
+  let achievementConstraints: CatTeam[] = [...regularAchievementConstraints, ...dynamicMilestoneConstraints];
+  
+  // For football, prioritize statistical achievements to ensure they appear in grids
+  if (sport === 'football' && dynamicMilestoneConstraints.length > 0) {
+    // Ensure at least 70% of achievements are statistical for football
+    const statRatio = dynamicMilestoneConstraints.length / achievementConstraints.length;
+    if (statRatio < 0.7) {
+      // Reduce regular achievements and increase stat achievements representation
+      const targetStatCount = Math.max(2, Math.ceil(achievementConstraints.length * 0.7));
+      const availableStats = Math.min(dynamicMilestoneConstraints.length, targetStatCount);
+      const availableRegular = Math.max(1, achievementConstraints.length - availableStats);
+      
+      // Reconstruct with better ratio
+      achievementConstraints = [
+        ...dynamicMilestoneConstraints.slice(0, availableStats),
+        ...regularAchievementConstraints.slice(0, availableRegular)
+      ];
+    }
+  }
 
   if (teamConstraints.length < 3) {
     throw new Error(`Need at least 3 teams to generate grid (found ${teamConstraints.length})`);
@@ -298,6 +316,19 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
 
   // Smart random selection: filter out low-coverage achievements, then randomize
   let selectedAchievements: CatTeam[] = [];
+  
+  // For football, prioritize statistical achievements in selection order
+  if (sport === 'football') {
+    const statAchievements = achievementConstraints.filter(a => isStatAchievement(a.achievementId || ''));
+    const nonStatAchievements = achievementConstraints.filter(a => !isStatAchievement(a.achievementId || ''));
+    
+    // Reorder to prioritize stat achievements (but keep some randomness)
+    achievementConstraints.splice(0, achievementConstraints.length, 
+      ...statAchievements.sort(() => Math.random() - 0.5),
+      ...nonStatAchievements.sort(() => Math.random() - 0.5)
+    );
+  }
+  
   if (leagueData.teamOverlaps && Object.keys(leagueData.teamOverlaps.achievementTeamCounts).length > 0) {
     // Filter achievements to only those with decent team coverage
     // Lower requirement for stat achievements since they're rarer but valuable
