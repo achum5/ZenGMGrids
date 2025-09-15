@@ -384,10 +384,13 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
       return teamCoverage >= 3;
     });
     
+    // For football with small datasets, be less restrictive about reusing achievements
+    const allowRecentReuse = sport === 'football' && viableAchievements.length < 10;
+    
     // Separate recently used vs fresh achievements
-    const freshAchievements = viableAchievements.filter(a => 
-      !recentlyUsedAchievements.has(a.achievementId!)
-    );
+    const freshAchievements = allowRecentReuse 
+      ? viableAchievements // Allow reuse for football 
+      : viableAchievements.filter(a => !recentlyUsedAchievements.has(a.achievementId!));
     const recentAchievements = viableAchievements.filter(a => 
       recentlyUsedAchievements.has(a.achievementId!)
     );
@@ -672,9 +675,14 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
   console.log(`✅ Grid solvability validated: ${singlePlayerCells.length} single-player cells, no conflicts detected`);
   
   // Track used teams and achievements for variety in future generations
+  // For football with limited viable achievements, skip caching to prevent grid generation failures
   const usedTeams = [...rows, ...cols].filter(item => item.type === 'team');
   const usedAchievements = [...rows, ...cols].filter(item => item.type === 'achievement');
-  addToRecentlyUsed(usedTeams, usedAchievements);
+  
+  const shouldSkipCaching = sport === 'football' && achievementConstraints.length < 8;
+  if (!shouldSkipCaching) {
+    addToRecentlyUsed(usedTeams, usedAchievements);
+  }
   
   return { rows, cols, intersections };
 }
