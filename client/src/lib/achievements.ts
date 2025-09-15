@@ -745,6 +745,15 @@ function selectOptimalMilestone(
     return idealMilestones[randomIndex].milestone;
   }
   
+  // 30% chance to pick easier milestones (higher player counts) for variety
+  if (Math.random() < 0.3) {
+    const easierMilestones = milestoneData.filter(m => m.count > maxIdeal);
+    if (easierMilestones.length > 0) {
+      const randomIndex = Math.floor(Math.random() * easierMilestones.length);
+      return easierMilestones[randomIndex].milestone;
+    }
+  }
+  
   // Fallback: prefer milestone with more players over too few
   const sortedByCount = milestoneData.sort((a, b) => a.count - b.count);
   const fallback = sortedByCount.find(m => m.count >= minIdeal);
