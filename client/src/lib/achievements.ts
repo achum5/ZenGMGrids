@@ -734,7 +734,23 @@ function selectOptimalMilestone(
     count: players.filter(player => testDynamicMilestone(player, config.id, milestone, sport)).length
   }));
   
-  // Prefer milestones with ideal player counts (5-25 players, 3-15 for hockey)
+  // For football, prioritize LOWEST thresholds with enough players to make grids easier
+  if (sport === 'football') {
+    // Sort by milestone value (ascending = lower numbers first)
+    const sortedByThreshold = milestoneData.sort((a, b) => a.milestone - b.milestone);
+    
+    // Find lowest threshold that has at least 2 players (very permissive for small datasets)
+    const lowestViable = sortedByThreshold.find(m => m.count >= 2);
+    if (lowestViable) {
+      return lowestViable.milestone;
+    }
+    
+    // If nothing has 2+ players, take the one with most players even if just 1
+    const sortedByCount = milestoneData.sort((a, b) => b.count - a.count);
+    return sortedByCount[0].milestone;
+  }
+  
+  // For other sports, use original logic
   const minIdeal = sport === 'hockey' ? 3 : 5;
   const maxIdeal = sport === 'hockey' ? 15 : 25;
   
