@@ -154,6 +154,12 @@ export function generateTeamsGrid(leagueData: LeagueData): {
     return generateGridSeeded(leagueData);
   }
 
+  // For football with small datasets, use coverage-aware selector
+  if (sport === 'football') {
+    if (DEBUG) console.log('Using coverage-aware builder for small football dataset');
+    return generateGridFootballSmallSeasons(leagueData);
+  }
+
   // Fallback to old builder for other sports or insufficient seasons
   if (DEBUG) console.log('Using old random builder (fallback)');
   return generateGridOldRandom(leagueData);
@@ -1249,6 +1255,190 @@ function generateGridSeeded(leagueData: LeagueData): {
   }
   
   console.log('✅ Simplified seeded grid generated successfully');
+  
+  return { rows, cols, intersections };
+}
+
+// Coverage-aware grid generator specifically for football with small datasets (<20 seasons)
+function generateGridFootballSmallSeasons(leagueData: LeagueData): {
+  rows: CatTeam[];
+  cols: CatTeam[];
+  intersections: Record<string, number[]>;
+} {
+  const { players, teams, sport, seasonIndex } = leagueData;
+  const DEBUG = import.meta.env.VITE_DEBUG === 'true';
+  
+  if (DEBUG) console.log('🏈 Starting coverage-aware football grid generation');
+  
+  // Step 1: Build achievement pool with lowered requirements for small datasets
+  const minPlayersGlobal = 2; // Lowered from 3 for better coverage
+  const allAchievements = getViableAchievements(players, minPlayersGlobal, sport, seasonIndex);
+  
+  // Filter out season-specific achievements for small datasets
+  const viableAchievements = allAchievements.filter(achievement => 
+    !SEASON_ACHIEVEMENTS.some(sa => sa.id === achievement.id)
+  );
+  
+  // Generate dynamic stat milestones with lower requirements
+  const dynamicStatAchievements = generateDynamicStatAchievements(players, sport || 'basketball');
+  const filteredStatAchievements = dynamicStatAchievements.filter(achievement => {
+    const qualifyingPlayers = players.filter(p => achievement.test(p));
+    return qualifyingPlayers.length >= 2; // Lowered threshold
+  });
+  
+  // Step 2: Collapse by base stat - only one milestone per base type to avoid duplication
+  const statsByBase = new Map<string, any[]>();
+  filteredStatAchievements.forEach(achievement => {
+    const baseId = achievement.id.replace(/\d+/g, ''); // Remove numbers to get base
+    if (!statsByBase.has(baseId)) {
+      statsByBase.set(baseId, []);
+    }
+    statsByBase.get(baseId)!.push(achievement);
+  });
+  
+  // Pick one milestone per base using coverage scoring
+  const selectedStatAchievements = [];
+  for (const [baseId, achievements] of statsByBase) {
+    if (achievements.length > 0) {
+      // Score by number of teams that have players meeting this achievement
+      const scored = achievements.map(ach => {
+        const teamCoverage = new Set();
+        players.filter(p => ach.test(p)).forEach(p => {
+          p.teamsPlayed.forEach(tid => teamCoverage.add(tid));
+        });
+        return { achievement: ach, teamCoverage: teamCoverage.size };
+      });
+      
+      // Pick the one with best team coverage
+      scored.sort((a, b) => b.teamCoverage - a.teamCoverage);
+      selectedStatAchievements.push(scored[0].achievement);
+    }
+  }
+  
+  // Step 3: Create combined achievement constraints
+  const regularAchievementConstraints: CatTeam[] = viableAchievements
+    .filter(achievement => !isStatAchievement(achievement.id))
+    .map(achievement => ({
+      key: `achievement-${achievement.id}`,
+      label: achievement.label,
+      achievementId: achievement.id,
+      type: 'achievement',
+      test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex, sport),
+    }));
+    
+  const statAchievementConstraints: CatTeam[] = selectedStatAchievements.map(achievement => ({
+    key: `achievement-${achievement.id}`,
+    label: achievement.label,
+    achievementId: achievement.id,
+    type: 'achievement',
+    test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex, sport),
+  }));
+  
+  const allAchievementConstraints = [...regularAchievementConstraints, ...statAchievementConstraints];
+  
+  // Step 4: Score achievements by team coverage and select 2-3 best
+  const achievementsByTeamCoverage = allAchievementConstraints.map(achievement => {
+    const teamCoverage = new Set<number>();
+    players.filter(p => achievement.test!(p)).forEach(p => {
+      p.teamsPlayed.forEach(tid => teamCoverage.add(tid));
+    });
+    return { achievement, teamCoverage: teamCoverage.size };
+  }).sort((a, b) => b.teamCoverage - a.teamCoverage);
+  
+  if (achievementsByTeamCoverage.length < 2) {
+    throw new Error(`Insufficient achievements for football grid (found ${achievementsByTeamCoverage.length})`);
+  }
+  
+  const numAchievements = Math.min(3, Math.max(2, achievementsByTeamCoverage.length));
+  const selectedAchievements = achievementsByTeamCoverage
+    .slice(0, numAchievements)
+    .map(item => item.achievement);
+  
+  if (DEBUG) {
+    console.log(`🎯 Selected ${selectedAchievements.length} achievements by coverage:`);
+    selectedAchievements.forEach((ach, i) => {
+      const coverage = achievementsByTeamCoverage.find(item => item.achievement === ach)?.teamCoverage || 0;
+      console.log(`  ${i+1}. ${ach.label} (covers ${coverage} teams)`);
+    });
+  }
+  
+  // Step 5: Create team constraints
+  const teamConstraints: CatTeam[] = teams
+    .filter(team => !team.disabled)
+    .map(team => ({
+      key: `team-${team.tid}`,
+      label: team.region ? `${team.region} ${team.name}` : team.name,
+      tid: team.tid,
+      type: 'team',
+      test: (p: Player) => p.teamsPlayed.has(team.tid),
+    }));
+  
+  if (teamConstraints.length < 4) {
+    throw new Error(`Insufficient teams for football grid (found ${teamConstraints.length})`);
+  }
+  
+  // Step 6: Select teams greedily to maximize coverage across chosen achievements
+  const numTeams = 6 - numAchievements; // Total 6 slots minus achievements
+  const selectedTeams: CatTeam[] = [];
+  
+  // Score teams by their coverage across the selected achievements
+  const teamsByTotalCoverage = teamConstraints.map(team => {
+    let totalPlayers = 0;
+    selectedAchievements.forEach(achievement => {
+      const intersection = players.filter(p => 
+        achievement.test!(p) && p.teamsPlayed.has(team.tid!)
+      );
+      totalPlayers += intersection.length;
+    });
+    return { team, totalPlayers };
+  }).sort((a, b) => b.totalPlayers - a.totalPlayers);
+  
+  selectedTeams.push(...teamsByTotalCoverage.slice(0, numTeams).map(item => item.team));
+  
+  if (DEBUG) {
+    console.log(`🏟️ Selected ${selectedTeams.length} teams by total coverage across achievements`);
+  }
+  
+  // Step 7: Distribute teams and achievements into rows and columns
+  const rows: CatTeam[] = [];
+  const cols: CatTeam[] = [];
+  
+  // Simple distribution: put teams first, then achievements
+  if (numAchievements === 2) {
+    // 2 achievements, 4 teams: put achievements in different axes
+    rows.push(selectedTeams[0], selectedAchievements[0], selectedTeams[1]);
+    cols.push(selectedTeams[2], selectedAchievements[1], selectedTeams[3]);
+  } else {
+    // 3 achievements, 3 teams: 2 achievements in one axis, 1 in the other
+    rows.push(selectedTeams[0], selectedAchievements[0], selectedAchievements[1]);
+    cols.push(selectedTeams[1], selectedAchievements[2], selectedTeams[2]);
+  }
+  
+  // Step 8: Calculate and validate intersections
+  const intersections: Record<string, number[]> = {};
+  for (let rowIndex = 0; rowIndex < 3; rowIndex++) {
+    for (let colIndex = 0; colIndex < 3; colIndex++) {
+      const row = rows[rowIndex];
+      const col = cols[colIndex];
+      const cellKey = `${rowIndex}-${colIndex}`;
+      
+      const eligiblePids = players
+        .filter(p => row.test!(p) && col.test!(p))
+        .map(p => p.pid);
+      
+      if (eligiblePids.length === 0) {
+        throw new Error(`No eligible players for intersection ${row.label} × ${col.label}`);
+      }
+      
+      intersections[cellKey] = eligiblePids;
+    }
+  }
+  
+  if (DEBUG) {
+    console.log('✅ Coverage-aware football grid generated successfully');
+    console.log(`   Rows: ${rows.map(r => r.label).join(', ')}`);
+    console.log(`   Cols: ${cols.map(c => c.label).join(', ')}`);
+  }
   
   return { rows, cols, intersections };
 }
