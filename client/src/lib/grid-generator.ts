@@ -905,9 +905,38 @@ function generateGridSeeded(leagueData: LeagueData): {
   console.log(`✅ Step 4: Filling remaining slots old-style`);
   
   // Only use career achievements for old-style fill to avoid season harmonization conflicts
-  const allAchievements = getAchievements('basketball')
+  const regularAchievements = getAchievements(sport || 'basketball')
     .filter(ach => !ach.isSeasonSpecific)
     .filter(ach => ach.id !== 'bornOutsideUS50DC'); // Temporarily remove born outside US achievement
+  
+  // Add dynamic statistical achievements for more variety
+  const dynamicStatAchievements = generateDynamicStatAchievements(players, sport || 'basketball');
+  
+  // Combine regular achievements with dynamic statistical ones
+  let allAchievements = [
+    ...regularAchievements,
+    ...dynamicStatAchievements.map(achievement => ({
+      id: achievement.id,
+      label: achievement.label,
+      isSeasonSpecific: false,
+      minPlayers: achievement.minPlayers,
+      test: (player: Player) => playerMeetsAchievement(player, achievement.id, seasonIndex, sport),
+    }))
+  ];
+  
+  // For football, prioritize statistical achievements in selection order
+  if (sport === 'football' && dynamicStatAchievements.length > 0) {
+    const statAchievements = allAchievements.filter(a => isStatAchievement(a.id));
+    const nonStatAchievements = allAchievements.filter(a => !isStatAchievement(a.id));
+    
+    // Reorder to prioritize stat achievements (but keep some randomness)
+    allAchievements = [
+      ...statAchievements.sort(() => Math.random() - 0.5),
+      ...nonStatAchievements.sort(() => Math.random() - 0.5)
+    ];
+    
+    console.log(`📊 Football: Prioritized ${statAchievements.length} statistical achievements for seeded grid`);
+  }
   
   // Filter out disabled teams for old-style fill
   const activeTeams = teams.filter(team => !team.disabled);
