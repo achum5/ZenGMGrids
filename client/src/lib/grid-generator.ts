@@ -1300,12 +1300,22 @@ function attemptFootballGridGeneration(leagueData: LeagueData, minPlayersGlobal:
     !SEASON_ACHIEVEMENTS.some(sa => sa.id === achievement.id)
   );
   
-  // Generate dynamic stat milestones with lower requirements
+  // Generate dynamic stat milestones with guardrails
   const dynamicStatAchievements = generateDynamicStatAchievements(players, sport || 'basketball');
   const filteredStatAchievements = dynamicStatAchievements.filter(achievement => {
     const qualifyingPlayers = players.filter(p => achievement.test(p));
-    return qualifyingPlayers.length >= minPlayersGlobal; // Use adaptive threshold
+    // For football, be more permissive - allow achievements with at least 1 player
+    const minimumRequired = sport === 'football' ? 1 : minPlayersGlobal;
+    return qualifyingPlayers.length >= minimumRequired;
   });
+  
+  if (DEBUG) {
+    console.log(`🎯 Generated ${filteredStatAchievements.length} viable stat achievements for football`);
+    filteredStatAchievements.forEach(ach => {
+      const count = players.filter(p => ach.test(p)).length;
+      console.log(`   ${ach.label}: ${count} eligible players`);
+    });
+  }
   
   // Step 2: Collapse by base stat - only one milestone per base type to avoid duplication
   const statsByBase = new Map<string, any[]>();
@@ -1478,7 +1488,16 @@ function attemptFootballGridGeneration(leagueData: LeagueData, minPlayersGlobal:
         .map(p => p.pid);
       
       if (eligiblePids.length === 0) {
+        if (DEBUG) {
+          console.log(`❌ No eligible players for intersection ${row.label} × ${col.label}`);
+          console.log(`   Row players: ${players.filter(p => row.test!(p)).length}`);
+          console.log(`   Col players: ${players.filter(p => col.test!(p)).length}`);
+        }
         throw new Error(`No eligible players for intersection ${row.label} × ${col.label}`);
+      }
+      
+      if (DEBUG) {
+        console.log(`✅ ${eligiblePids.length} eligible players for ${row.label} × ${col.label}`);
       }
       
       intersections[cellKey] = eligiblePids;

@@ -734,20 +734,37 @@ function selectOptimalMilestone(
     count: players.filter(player => testDynamicMilestone(player, config.id, milestone, sport)).length
   }));
   
-  // For football, prioritize LOWEST thresholds with enough players to make grids easier
+  // For football, implement guardrails that automatically step down to lower numbers
   if (sport === 'football') {
     // Sort by milestone value (ascending = lower numbers first)
     const sortedByThreshold = milestoneData.sort((a, b) => a.milestone - b.milestone);
     
-    // Find lowest threshold that has at least 2 players (very permissive for small datasets)
-    const lowestViable = sortedByThreshold.find(m => m.count >= 2);
-    if (lowestViable) {
-      return lowestViable.milestone;
+    // Target: Find a threshold with a healthy amount of players (5-15 ideal)
+    const healthyThreshold = sortedByThreshold.find(m => m.count >= 5 && m.count <= 15);
+    if (healthyThreshold) {
+      return healthyThreshold.milestone;
     }
     
-    // If nothing has 2+ players, take the one with most players even if just 1
+    // Fallback 1: Find threshold with at least 3 players (minimum viable)
+    const viableThreshold = sortedByThreshold.find(m => m.count >= 3);
+    if (viableThreshold) {
+      return viableThreshold.milestone;
+    }
+    
+    // Fallback 2: Find threshold with at least 2 players 
+    const minimumThreshold = sortedByThreshold.find(m => m.count >= 2);
+    if (minimumThreshold) {
+      return minimumThreshold.milestone;
+    }
+    
+    // Final safety: Take the threshold with most players, even if just 1
     const sortedByCount = milestoneData.sort((a, b) => b.count - a.count);
-    return sortedByCount[0].milestone;
+    if (sortedByCount.length > 0 && sortedByCount[0].count > 0) {
+      return sortedByCount[0].milestone;
+    }
+    
+    // Ultimate fallback: Return null to skip this achievement entirely
+    return null;
   }
   
   // For other sports, use original logic
