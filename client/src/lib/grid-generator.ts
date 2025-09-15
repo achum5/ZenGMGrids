@@ -1330,8 +1330,16 @@ function attemptFootballGridGeneration(leagueData: LeagueData, minPlayersGlobal:
         return { achievement: ach, teamCoverage: teamCoverage.size };
       });
       
-      // Pick the one with best team coverage
-      scored.sort((a: any, b: any) => b.teamCoverage - a.teamCoverage);
+      // Sort by team coverage first, but prefer LOWER thresholds when coverage is similar
+      scored.sort((a: any, b: any) => {
+        // If team coverage is the same or very close, prefer lower threshold
+        if (Math.abs(a.teamCoverage - b.teamCoverage) <= 1) {
+          const aThreshold = parseInt(a.achievement.label.match(/\d+/)?.[0] || '999');
+          const bThreshold = parseInt(b.achievement.label.match(/\d+/)?.[0] || '999');
+          return aThreshold - bThreshold; // Lower threshold wins
+        }
+        return b.teamCoverage - a.teamCoverage; // Higher coverage wins
+      });
       selectedStatAchievements.push(scored[0].achievement);
     }
   }
@@ -1358,13 +1366,35 @@ function attemptFootballGridGeneration(leagueData: LeagueData, minPlayersGlobal:
   const allAchievementConstraints = [...regularAchievementConstraints, ...statAchievementConstraints];
   
   // Step 4: Score achievements by team coverage and select 2-3 best
+  // Prioritize LOWER thresholds that still have good coverage
   const achievementsByTeamCoverage = allAchievementConstraints.map(achievement => {
     const teamCoverage = new Set<number>();
-    players.filter(p => achievement.test!(p)).forEach(p => {
+    const eligiblePlayers = players.filter(p => achievement.test!(p));
+    eligiblePlayers.forEach(p => {
       p.teamsPlayed.forEach(tid => teamCoverage.add(tid));
     });
-    return { achievement, teamCoverage: teamCoverage.size };
-  }).sort((a, b) => b.teamCoverage - a.teamCoverage);
+    
+    // Extract threshold number for stat achievements
+    const threshold = achievement.label.match(/\d+/) ? parseInt(achievement.label.match(/\d+/)![0]) : 0;
+    
+    return { 
+      achievement, 
+      teamCoverage: teamCoverage.size, 
+      playerCount: eligiblePlayers.length,
+      threshold 
+    };
+  }).sort((a, b) => {
+    // First prioritize by team coverage (need at least 3 teams)
+    if (a.teamCoverage !== b.teamCoverage) {
+      return b.teamCoverage - a.teamCoverage;
+    }
+    // Then prioritize by player count (more players = better)
+    if (a.playerCount !== b.playerCount) {
+      return b.playerCount - a.playerCount;
+    }
+    // Finally, prefer LOWER thresholds when everything else is equal
+    return a.threshold - b.threshold;
+  });
   
   if (achievementsByTeamCoverage.length < 2) {
     throw new Error(`Insufficient achievements for football grid (found ${achievementsByTeamCoverage.length})`);
