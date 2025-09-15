@@ -367,7 +367,6 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
       
       // COMPLETELY BYPASS team coverage for stat achievements
       if (isStatAchievement) {
-        console.log(`Stat achievement ${achievement.achievementId}: BYPASSING coverage check, always viable=true`);
         return true; // Always allow stat achievements regardless of team coverage
       }
       
@@ -529,14 +528,10 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
   // cols.sort(() => Math.random() - 0.5);
 
   // Debug: Log the selected constraints
-  console.log(`Selected: ${numAchievements} achievements, ${numTeams} teams`);
-  console.log(`Rows (${rows.length}):`, rows.map(r => r.label));
-  console.log(`Cols (${cols.length}):`, cols.map(c => c.label));
   
   // Log the achievement distribution for debugging
   const rowAchievements = rows.filter(r => r.type === 'achievement').length;
   const colAchievements = cols.filter(c => c.type === 'achievement').length;
-  console.log(`Grid generated with ${numAchievements} total achievements: ${rowAchievements} in rows, ${colAchievements} in columns`);
 
   // Build intersections and validate
   const intersections: Record<string, number[]> = {};
@@ -618,7 +613,6 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
       // Debug logging removed for performance - was logging for every intersection calculation
       const DEBUG = import.meta.env.VITE_DEBUG === 'true';
       if (DEBUG) {
-        console.log(`Intersection ${row.label} × ${col.label}: ${eligiblePids.length} eligible players`);
       }
     }
   }
@@ -726,7 +720,6 @@ function generateGridSeeded(leagueData: LeagueData): {
     throw new Error('Season index required for seeded builder');
   }
   
-  console.log('🎯 Starting simplified seeded grid generation...');
   
   // Step 1: Pick layout randomly (seeded by current time)
   const ALLOWED_LAYOUTS = [
@@ -739,7 +732,6 @@ function generateGridSeeded(leagueData: LeagueData): {
   const gridId = Date.now().toString();
   const layoutIndex = simpleHash(gridId) % ALLOWED_LAYOUTS.length;
   const layout = ALLOWED_LAYOUTS[layoutIndex];
-  console.log(`✅ Step 1: Selected layout: ${layout.name}`);
   
   // Step 2: Seed with one random season achievement
   let retryCount = 0;
@@ -769,7 +761,6 @@ function generateGridSeeded(leagueData: LeagueData): {
       return eligibleTeams.size >= 3;
     });
     
-    console.log(`Found ${viableSeasonAchievements.length} viable season achievements:`, viableSeasonAchievements.map(sa => sa.id));
     
     if (viableSeasonAchievements.length === 0) {
       throw new Error('No viable season achievements found for seeded generation');
@@ -798,7 +789,6 @@ function generateGridSeeded(leagueData: LeagueData): {
     retryCount++;
   } while (retryCount < 10);
   
-  console.log(`✅ Step 2: Seeded with ${seedAchievement.label} at ${seedSlot.axis} ${seedSlot.index}`);
   
   // Track used season achievements to prevent duplicates
   const usedSeasonAchievements = new Set<SeasonAchievementId>();
@@ -827,7 +817,6 @@ function generateGridSeeded(leagueData: LeagueData): {
   const oppositeLayout = oppositeAxis === 'row' ? layout.rows : layout.cols;
   const oppositeArray = oppositeAxis === 'row' ? rows : cols;
   
-  console.log(`✅ Step 3: Filling opposite ${oppositeAxis} with layout [${oppositeLayout.join(', ')}]`);
   
   const eligibleTeams = getTeamsForAchievement(seasonIndex, seedAchievement.id, teams);
   const eligibleTeamsList = Array.from(eligibleTeams)
@@ -1499,14 +1488,12 @@ function buildOppositeAxisForSeed(
           test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex),
         };
         usedAchievementIds.add(achievement.id);
-        console.log(`Filled row ${i} with achievement: ${achievement.label || achievement.id}`);
         availableAchievementIndex++;
       } else {
         // Find a fallback achievement that hasn't been used yet
         const fallbackAchievement = findUnusedFallbackAchievement(usedAchievementIds);
         rows[i] = fallbackAchievement;
         usedAchievementIds.add(fallbackAchievement.achievementId!);
-        console.log(`Filled row ${i} with fallback achievement: ${fallbackAchievement.label}`);
       }
     }
   }
