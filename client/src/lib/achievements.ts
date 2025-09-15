@@ -430,27 +430,27 @@ export const SEASON_ALIGNED_ACHIEVEMENTS = new Set([
 ]);
 
 // Cache for dynamic milestone achievements to avoid recalculation
-const dynamicAchievementCache = new Map<string, DynamicMilestoneAchievement[]>();
+const dynamicAchievementCache = new Map<string, DynamicStatAchievement[]>();
 
 // Generate dynamic milestone achievements for a given sport
 export function generateDynamicMilestoneAchievements(
   players: Player[], 
   sport: 'basketball' | 'football' | 'hockey' | 'baseball'
-): DynamicMilestoneAchievement[] {
+): DynamicStatAchievement[] {
   const cacheKey = `${sport}_${players.length}`;
   if (dynamicAchievementCache.has(cacheKey)) {
     return dynamicAchievementCache.get(cacheKey)!;
   }
 
-  const milestoneConfigs = getMilestonesBySport(sport);
-  const dynamicAchievements: DynamicMilestoneAchievement[] = [];
+  const milestoneConfigs = STAT_MILESTONES[sport] || [];
+  const dynamicAchievements: DynamicStatAchievement[] = [];
 
   milestoneConfigs.forEach(config => {
     config.milestones.forEach(milestone => {
       const achievementId = `${config.id}_${milestone}`;
-      const label = generateMilestoneLabel(config, milestone);
+      const label = config.labelTemplate.replace('{milestone}', formatMilestone(milestone));
       
-      const dynamicAchievement: DynamicMilestoneAchievement = {
+      const dynamicAchievement: DynamicStatAchievement = {
         id: achievementId,
         baseId: config.id,
         label: label,
@@ -691,7 +691,7 @@ export function generateDynamicStatAchievements(
     // Find the best viable milestone for this stat type
     const viableMilestones = config.milestones.filter(milestone => {
       const count = players.filter(player => 
-        testStatMilestone(player, config.id, milestone, sport)
+        testDynamicMilestone(player, config.id, milestone, sport)
       ).length;
       return count >= minPlayersRequired;
     });
@@ -710,7 +710,7 @@ export function generateDynamicStatAchievements(
           label: label,
           milestone: selectedMilestone,
           minPlayers: config.minPlayers,
-          test: (player: Player) => testStatMilestone(player, config.id, selectedMilestone, sport)
+          test: (player: Player) => testDynamicMilestone(player, config.id, selectedMilestone, sport)
         });
       }
     }
@@ -731,15 +731,19 @@ function selectOptimalMilestone(
   // Get player counts for each viable milestone
   const milestoneData = viableMilestones.map(milestone => ({
     milestone,
-    count: players.filter(player => testStatMilestone(player, config.id, milestone, sport)).length
+    count: players.filter(player => testDynamicMilestone(player, config.id, milestone, sport)).length
   }));
   
   // Prefer milestones with ideal player counts (5-25 players, 3-15 for hockey)
   const minIdeal = sport === 'hockey' ? 3 : 5;
   const maxIdeal = sport === 'hockey' ? 15 : 25;
   
-  const idealMilestone = milestoneData.find(m => m.count >= minIdeal && m.count <= maxIdeal);
-  if (idealMilestone) return idealMilestone.milestone;
+  // Get ALL milestones in the ideal range, then pick randomly for variety
+  const idealMilestones = milestoneData.filter(m => m.count >= minIdeal && m.count <= maxIdeal);
+  if (idealMilestones.length > 0) {
+    const randomIndex = Math.floor(Math.random() * idealMilestones.length);
+    return idealMilestones[randomIndex].milestone;
+  }
   
   // Fallback: prefer milestone with more players over too few
   const sortedByCount = milestoneData.sort((a, b) => a.count - b.count);
