@@ -189,7 +189,7 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
   const { players, teams, sport, seasonIndex } = leagueData;
   // Get viable achievements - use sport-specific minimum requirements to avoid infinite loops
   // For old random builder, exclude season-specific achievements
-  const minPlayersRequired = sport === 'hockey' ? 3 : 5; // Lower requirement for hockey due to fewer players
+  const minPlayersRequired = (sport === 'hockey' || sport === 'football') ? 3 : 5; // Lower requirement for hockey/football due to fewer players
   const allAchievements = getViableAchievements(players, minPlayersRequired, sport, seasonIndex);
   
   // Filter out season-specific achievements for old builder
@@ -236,7 +236,17 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
 
   // Create dynamic milestone achievement constraints
   const dynamicStatAchievements = generateDynamicStatAchievements(players, sport || 'basketball');
-  const dynamicMilestoneConstraints: CatTeam[] = dynamicStatAchievements.map(achievement => ({
+  
+  // For football with small datasets, filter out ultra-rare milestones to prevent infinite loops
+  const filteredStatAchievements = (sport === 'football' && teams.length < 20) 
+    ? dynamicStatAchievements.filter(achievement => {
+        // Count players who meet this achievement
+        const qualifyingPlayers = players.filter(p => achievement.test(p));
+        return qualifyingPlayers.length >= 3; // Only keep achievements with at least 3 qualifying players
+      })
+    : dynamicStatAchievements;
+  
+  const dynamicMilestoneConstraints: CatTeam[] = filteredStatAchievements.map(achievement => ({
     key: `achievement-${achievement.id}`,
     label: achievement.label,
     achievementId: achievement.id,
@@ -605,7 +615,11 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
         .map(p => p.pid);
       
       if (eligiblePids.length === 0) {
-        throw new Error(`No eligible players for intersection ${row.label} × ${col.label}`);
+        // For football, provide more detailed error to help debug
+        const debugInfo = sport === 'football' 
+          ? ` (Sport: ${sport}, Row type: ${rowConstraint.type}, Col type: ${colConstraint.type})`
+          : '';
+        throw new Error(`No eligible players for intersection ${row.label} × ${col.label}${debugInfo}`);
       }
       
       intersections[cellKey] = eligiblePids;
