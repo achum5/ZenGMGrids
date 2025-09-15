@@ -113,7 +113,14 @@ export function generateTeamsGrid(leagueData: LeagueData): {
   cols: CatTeam[];
   intersections: Record<string, number[]>;
 } {
-  const { players, teams, sport } = leagueData;
+  const { players, teams, sport, seasons } = leagueData;
+  
+  // Clear recently used caches for football small datasets to prevent starvation
+  if (sport === 'football' && seasons.length < 20) {
+    console.log('🧹 Clearing recently used caches for small football dataset');
+    recentlyUsedTeams.clear();
+    recentlyUsedAchievements.clear();
+  }
   
   const DEBUG = import.meta.env.VITE_DEBUG === 'true';
   if (DEBUG) {
