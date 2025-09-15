@@ -693,7 +693,16 @@ export function generateDynamicStatAchievements(
       const count = players.filter(player => 
         testDynamicMilestone(player, config.id, milestone, sport)
       ).length;
-      return count >= minPlayersRequired;
+      
+      // For football, be EXTREMELY permissive - accept milestones with ANY players
+      const actualMinRequired = sport === 'football' ? 1 : minPlayersRequired;
+      const isViable = count >= actualMinRequired;
+      
+      if (sport === 'football' && config.id.includes('careerPass')) {
+        console.log(`🏈 ${config.id} milestone ${milestone}: ${count} players (viable: ${isViable})`);
+      }
+      
+      return isViable;
     });
     
     if (viableMilestones.length > 0) {
@@ -734,37 +743,23 @@ function selectOptimalMilestone(
     count: players.filter(player => testDynamicMilestone(player, config.id, milestone, sport)).length
   }));
   
-  // For football, implement guardrails that automatically step down to lower numbers
+  // For football, ALWAYS pick the LOWEST threshold with at least 1 player - no exceptions!
   if (sport === 'football') {
-    // Sort by milestone value (ascending = lower numbers first)
+    console.log(`🔍 [FOOTBALL] Selecting milestone for ${config.id} from ${milestoneData.length} options`);
+    milestoneData.forEach(m => console.log(`  ${m.milestone}: ${m.count} players`));
+    
+    // Sort by milestone value (ascending = LOWEST numbers first)
     const sortedByThreshold = milestoneData.sort((a, b) => a.milestone - b.milestone);
     
-    // Target: Find a threshold with a healthy amount of players (5-15 ideal)
-    const healthyThreshold = sortedByThreshold.find(m => m.count >= 5 && m.count <= 15);
-    if (healthyThreshold) {
-      return healthyThreshold.milestone;
+    // Find the LOWEST threshold that has ANY players at all
+    const lowestWithPlayers = sortedByThreshold.find(m => m.count >= 1);
+    if (lowestWithPlayers) {
+      console.log(`✅ [FOOTBALL] Selected LOWEST viable: ${lowestWithPlayers.milestone} (${lowestWithPlayers.count} players)`);
+      return lowestWithPlayers.milestone;
     }
     
-    // Fallback 1: Find threshold with at least 3 players (minimum viable)
-    const viableThreshold = sortedByThreshold.find(m => m.count >= 3);
-    if (viableThreshold) {
-      return viableThreshold.milestone;
-    }
-    
-    // Fallback 2: Find threshold with at least 2 players 
-    const minimumThreshold = sortedByThreshold.find(m => m.count >= 2);
-    if (minimumThreshold) {
-      return minimumThreshold.milestone;
-    }
-    
-    // Final safety: Take the threshold with most players, even if just 1
-    const sortedByCount = milestoneData.sort((a, b) => b.count - a.count);
-    if (sortedByCount.length > 0 && sortedByCount[0].count > 0) {
-      return sortedByCount[0].milestone;
-    }
-    
-    // Ultimate fallback: Return null to skip this achievement entirely
-    return null;
+    console.log(`❌ [FOOTBALL] No milestones found with any players for ${config.id}`);
+    return null; // No milestones have any players
   }
   
   // For other sports, use original logic
