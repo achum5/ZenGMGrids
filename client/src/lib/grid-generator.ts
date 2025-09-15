@@ -1261,23 +1261,26 @@ function generateGridFootballSmallSeasons(leagueData: LeagueData): {
   
   if (DEBUG) console.log('🏈 Starting coverage-aware football grid generation');
   
-  // Adaptive fallback logic: try with stricter requirements first, then relax
-  for (let attempt = 0; attempt < 3; attempt++) {
-    let minPlayersGlobal = 2;
+  // Try multiple different approaches instead of the same combination repeatedly
+  const maxAttempts = 10; // Much lower since we're trying different approaches
+  
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    let minPlayersGlobal = attempt < 3 ? 2 : 1; // Start strict, then relax
     
-    if (attempt === 1) {
-      minPlayersGlobal = 1; // Relax to 1 player minimum
-      if (DEBUG) console.log('🔄 Attempt 2: Relaxing minimum players to 1');
-    } else if (attempt === 2) {
-      minPlayersGlobal = 1; // Keep at 1 but ignore all caches
-      if (DEBUG) console.log('🔄 Attempt 3: Final fallback with minimal constraints');
-    }
+    if (DEBUG) console.log(`🔄 Football grid attempt ${attempt + 1}/${maxAttempts} (minPlayers: ${minPlayersGlobal})`);
     
     try {
-      return attemptFootballGridGeneration(leagueData, minPlayersGlobal, DEBUG);
+      return attemptFootballGridGeneration(leagueData, minPlayersGlobal, DEBUG, attempt);
     } catch (error) {
-      if (DEBUG) console.log(`❌ Football grid attempt ${attempt + 1} failed: ${error}`);
-      if (attempt === 2) throw error; // Final attempt failed
+      if (DEBUG) console.log(`❌ Attempt ${attempt + 1} failed: ${error}`);
+      
+      // After a few failures, force regeneration of different stat achievements
+      if (attempt >= 5) {
+        if (DEBUG) console.log('🔄 Forcing regeneration of different stat achievements');
+        // The randomness in milestone selection will pick different ones
+      }
+      
+      if (attempt === maxAttempts - 1) throw error; // Final attempt failed
     }
   }
   
@@ -1285,7 +1288,7 @@ function generateGridFootballSmallSeasons(leagueData: LeagueData): {
 }
 
 // Helper function for football grid generation attempts
-function attemptFootballGridGeneration(leagueData: LeagueData, minPlayersGlobal: number, DEBUG: boolean): {
+function attemptFootballGridGeneration(leagueData: LeagueData, minPlayersGlobal: number, DEBUG: boolean, attemptNum: number = 0): {
   rows: CatTeam[];
   cols: CatTeam[];
   intersections: Record<string, number[]>;
@@ -1300,14 +1303,22 @@ function attemptFootballGridGeneration(leagueData: LeagueData, minPlayersGlobal:
     !SEASON_ACHIEVEMENTS.some(sa => sa.id === achievement.id)
   );
   
-  // Generate dynamic stat milestones with guardrails
+  // Generate dynamic stat milestones with guardrails  
+  // Add randomness seed based on attempt number to get different milestones each try
   const dynamicStatAchievements = generateDynamicStatAchievements(players, sport || 'basketball');
-  const filteredStatAchievements = dynamicStatAchievements.filter(achievement => {
+  let filteredStatAchievements = dynamicStatAchievements.filter(achievement => {
     const qualifyingPlayers = players.filter(p => achievement.test(p));
     // For football, be more permissive - allow achievements with at least 1 player
     const minimumRequired = sport === 'football' ? 1 : minPlayersGlobal;
     return qualifyingPlayers.length >= minimumRequired;
   });
+  
+  // On later attempts, shuffle the achievements to try different combinations
+  if (attemptNum > 2) {
+    filteredStatAchievements = filteredStatAchievements
+      .sort(() => Math.random() - 0.5)  // Randomize order
+      .slice(0, Math.max(3, Math.floor(filteredStatAchievements.length * 0.7))); // Try subset
+  }
   
   if (DEBUG) {
     console.log(`🎯 Generated ${filteredStatAchievements.length} viable stat achievements for football`);
@@ -1411,9 +1422,21 @@ function attemptFootballGridGeneration(leagueData: LeagueData, minPlayersGlobal:
   }
   
   const numAchievements = Math.min(3, Math.max(2, achievementsByTeamCoverage.length));
-  const selectedAchievements = achievementsByTeamCoverage
-    .slice(0, numAchievements)
-    .map(item => item.achievement);
+  
+  // On later attempts, try different achievement combinations instead of just top ones
+  let selectedAchievements;
+  if (attemptNum < 3) {
+    // Early attempts: use best coverage
+    selectedAchievements = achievementsByTeamCoverage
+      .slice(0, numAchievements)
+      .map(item => item.achievement);
+  } else {
+    // Later attempts: try different combinations
+    const startIndex = Math.min(attemptNum - 3, achievementsByTeamCoverage.length - numAchievements);
+    selectedAchievements = achievementsByTeamCoverage
+      .slice(startIndex, startIndex + numAchievements)
+      .map(item => item.achievement);
+  }
   
   if (DEBUG) {
     console.log(`🎯 Selected ${selectedAchievements.length} achievements by coverage:`);
