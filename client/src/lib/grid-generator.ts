@@ -113,10 +113,10 @@ export function generateTeamsGrid(leagueData: LeagueData): {
   cols: CatTeam[];
   intersections: Record<string, number[]>;
 } {
-  const { players, teams, sport, seasons } = leagueData;
+  const { players, teams, sport } = leagueData;
   
   // Clear recently used caches for football small datasets to prevent starvation
-  if (sport === 'football' && seasons.length < 20) {
+  if (sport === 'football' && players.length < 5000) { // Use player count as proxy for dataset size
     console.log('🧹 Clearing recently used caches for small football dataset');
     recentlyUsedTeams.clear();
     recentlyUsedAchievements.clear();
@@ -142,7 +142,13 @@ export function generateTeamsGrid(leagueData: LeagueData): {
     console.log(`Unique seasons found: ${uniqueSeasons.size}`);
   }
 
-  // If < 20 seasons, use old random builder without season-specific achievements
+  // For football with small datasets, use coverage-aware selector FIRST (before season count check)
+  if (sport === 'football' && uniqueSeasons.size < 20) {
+    if (DEBUG) console.log('Using coverage-aware builder for small football dataset');
+    return generateGridFootballSmallSeasons(leagueData);
+  }
+
+  // If < 20 seasons (non-football), use old random builder without season-specific achievements
   if (uniqueSeasons.size < 20) {
     if (DEBUG) console.log('Using old random builder (< 20 seasons)');
     return generateGridOldRandom(leagueData);
@@ -154,9 +160,9 @@ export function generateTeamsGrid(leagueData: LeagueData): {
     return generateGridSeeded(leagueData);
   }
 
-  // For football with small datasets, use coverage-aware selector
+  // For football with large datasets (fallback - shouldn't reach here normally)
   if (sport === 'football') {
-    if (DEBUG) console.log('Using coverage-aware builder for small football dataset');
+    if (DEBUG) console.log('Using coverage-aware builder for large football dataset (fallback)');
     return generateGridFootballSmallSeasons(leagueData);
   }
 
@@ -270,23 +276,8 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
   // Combine regular and dynamic achievements
   let achievementConstraints: CatTeam[] = [...regularAchievementConstraints, ...dynamicMilestoneConstraints];
   
-  // For football, prioritize statistical achievements to ensure they appear in grids
-  if (sport === 'football' && dynamicMilestoneConstraints.length > 0) {
-    // Ensure at least 70% of achievements are statistical for football
-    const statRatio = dynamicMilestoneConstraints.length / achievementConstraints.length;
-    if (statRatio < 0.7) {
-      // Reduce regular achievements and increase stat achievements representation
-      const targetStatCount = Math.max(2, Math.ceil(achievementConstraints.length * 0.7));
-      const availableStats = Math.min(dynamicMilestoneConstraints.length, targetStatCount);
-      const availableRegular = Math.max(1, achievementConstraints.length - availableStats);
-      
-      // Reconstruct with better ratio
-      achievementConstraints = [
-        ...dynamicMilestoneConstraints.slice(0, availableStats),
-        ...regularAchievementConstraints.slice(0, availableRegular)
-      ];
-    }
-  }
+  // For football, allow natural balance of achievements without forcing ratios
+  // Removed 70% stat ratio constraint that over-constrained small datasets
 
   if (teamConstraints.length < 3) {
     throw new Error(`Need at least 3 teams to generate grid (found ${teamConstraints.length})`);
@@ -1270,8 +1261,38 @@ function generateGridFootballSmallSeasons(leagueData: LeagueData): {
   
   if (DEBUG) console.log('🏈 Starting coverage-aware football grid generation');
   
-  // Step 1: Build achievement pool with lowered requirements for small datasets
-  const minPlayersGlobal = 2; // Lowered from 3 for better coverage
+  // Adaptive fallback logic: try with stricter requirements first, then relax
+  for (let attempt = 0; attempt < 3; attempt++) {
+    let minPlayersGlobal = 2;
+    
+    if (attempt === 1) {
+      minPlayersGlobal = 1; // Relax to 1 player minimum
+      if (DEBUG) console.log('🔄 Attempt 2: Relaxing minimum players to 1');
+    } else if (attempt === 2) {
+      minPlayersGlobal = 1; // Keep at 1 but ignore all caches
+      if (DEBUG) console.log('🔄 Attempt 3: Final fallback with minimal constraints');
+    }
+    
+    try {
+      return attemptFootballGridGeneration(leagueData, minPlayersGlobal, DEBUG);
+    } catch (error) {
+      if (DEBUG) console.log(`❌ Football grid attempt ${attempt + 1} failed: ${error}`);
+      if (attempt === 2) throw error; // Final attempt failed
+    }
+  }
+  
+  throw new Error('Football grid generation failed after all attempts');
+}
+
+// Helper function for football grid generation attempts
+function attemptFootballGridGeneration(leagueData: LeagueData, minPlayersGlobal: number, DEBUG: boolean): {
+  rows: CatTeam[];
+  cols: CatTeam[];
+  intersections: Record<string, number[]>;
+} {
+  const { players, teams, sport, seasonIndex } = leagueData;
+  
+  // Step 1: Build achievement pool with adaptive requirements  
   const allAchievements = getViableAchievements(players, minPlayersGlobal, sport, seasonIndex);
   
   // Filter out season-specific achievements for small datasets
@@ -1283,12 +1304,12 @@ function generateGridFootballSmallSeasons(leagueData: LeagueData): {
   const dynamicStatAchievements = generateDynamicStatAchievements(players, sport || 'basketball');
   const filteredStatAchievements = dynamicStatAchievements.filter(achievement => {
     const qualifyingPlayers = players.filter(p => achievement.test(p));
-    return qualifyingPlayers.length >= 2; // Lowered threshold
+    return qualifyingPlayers.length >= minPlayersGlobal; // Use adaptive threshold
   });
   
   // Step 2: Collapse by base stat - only one milestone per base type to avoid duplication
   const statsByBase = new Map<string, any[]>();
-  filteredStatAchievements.forEach(achievement => {
+  filteredStatAchievements.forEach((achievement: any) => {
     const baseId = achievement.id.replace(/\d+/g, ''); // Remove numbers to get base
     if (!statsByBase.has(baseId)) {
       statsByBase.set(baseId, []);
@@ -1297,11 +1318,11 @@ function generateGridFootballSmallSeasons(leagueData: LeagueData): {
   });
   
   // Pick one milestone per base using coverage scoring
-  const selectedStatAchievements = [];
-  for (const [baseId, achievements] of statsByBase) {
+  const selectedStatAchievements: any[] = [];
+  for (const [baseId, achievements] of Array.from(statsByBase.entries())) {
     if (achievements.length > 0) {
       // Score by number of teams that have players meeting this achievement
-      const scored = achievements.map(ach => {
+      const scored = achievements.map((ach: any) => {
         const teamCoverage = new Set();
         players.filter(p => ach.test(p)).forEach(p => {
           p.teamsPlayed.forEach(tid => teamCoverage.add(tid));
@@ -1310,7 +1331,7 @@ function generateGridFootballSmallSeasons(leagueData: LeagueData): {
       });
       
       // Pick the one with best team coverage
-      scored.sort((a, b) => b.teamCoverage - a.teamCoverage);
+      scored.sort((a: any, b: any) => b.teamCoverage - a.teamCoverage);
       selectedStatAchievements.push(scored[0].achievement);
     }
   }
