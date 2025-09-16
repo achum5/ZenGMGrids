@@ -261,7 +261,7 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
       
       // COMPLETELY BYPASS team coverage for decade achievements
       if (isDecadeAchievement) {
-        console.log(`🎯 Decade achievement ${achievement.achievementId}: BYPASSING coverage check, always viable=true`);
+        console.log(`🎯 Decade achievement ${achievement.achievementId}: BYPASSING coverage check (coverage=${teamCoverage}), always viable=true`);
         return true; // Always allow decade achievements regardless of team coverage
       }
       
@@ -269,13 +269,66 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
       return teamCoverage >= 3;
     });
     
-    // Separate recently used vs fresh achievements
-    const freshAchievements = viableAchievements.filter(a => 
-      !recentlyUsedAchievements.has(a.achievementId!)
+    // Apply decade probability skewing - favor recent decades, phase out old ones (50+ years)
+    const currentYear = leagueData.leagueYears?.maxSeason || new Date().getFullYear();
+    const weightedAchievements = viableAchievements.map(achievement => {
+      let weight = 1;
+      
+      // Apply decade skewing for decade achievements
+      const isDecadeAchievement = achievement.achievementId!.includes('playedIn') || 
+                                  achievement.achievementId!.includes('debutedIn') || 
+                                  achievement.achievementId!.includes('retiredIn');
+      
+      if (isDecadeAchievement) {
+        // Extract decade year from achievement ID (e.g., "playedIn2040s" -> 2040)
+        const decadeMatch = achievement.achievementId!.match(/(\d{4})s/);
+        if (decadeMatch) {
+          const decade = parseInt(decadeMatch[1]);
+          const yearsDiff = currentYear - decade;
+          
+          // Phase out achievements older than 50 years (drastically reduce weight)
+          if (yearsDiff > 50) {
+            weight = 0.1;
+            console.log(`📅 Decade ${decade}s is ${yearsDiff} years old, reducing weight to ${weight}`);
+          } 
+          // Recent decades (within 30 years) get boosted weight
+          else if (yearsDiff <= 30) {
+            weight = 3 - (yearsDiff / 15); // Weight 3.0 for current decade, down to 1.0 for 30 years ago
+            console.log(`📅 Decade ${decade}s is ${yearsDiff} years old, boosting weight to ${weight.toFixed(2)}`);
+          }
+          // Middle decades (30-50 years) get normal weight
+          else {
+            weight = 1;
+            console.log(`📅 Decade ${decade}s is ${yearsDiff} years old, normal weight ${weight}`);
+          }
+        }
+      }
+      
+      return { achievement, weight };
+    });
+
+    // Separate by usage recency
+    const freshWeightedAchievements = weightedAchievements.filter(w => 
+      !recentlyUsedAchievements.has(w.achievement.achievementId!)
     );
-    const recentAchievements = viableAchievements.filter(a => 
-      recentlyUsedAchievements.has(a.achievementId!)
+    const recentWeightedAchievements = weightedAchievements.filter(w => 
+      recentlyUsedAchievements.has(w.achievement.achievementId!)
     );
+    
+    // Convert to weighted selection arrays (duplicate items based on weight)
+    const createWeightedArray = (weightedItems: Array<{achievement: CatTeam, weight: number}>) => {
+      const result: CatTeam[] = [];
+      weightedItems.forEach(({achievement, weight}) => {
+        const copies = Math.max(1, Math.round(weight * 10)); // Scale weights and ensure at least 1 copy
+        for (let i = 0; i < copies; i++) {
+          result.push(achievement);
+        }
+      });
+      return result;
+    };
+    
+    const freshAchievements = createWeightedArray(freshWeightedAchievements);
+    const recentAchievements = createWeightedArray(recentWeightedAchievements);
     
     // Prefer fresh achievements, but use recent ones if needed
     if (freshAchievements.length >= numAchievements) {
@@ -306,8 +359,42 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
         .map(item => item.achievement);
     }
   } else {
-    // Fallback: random selection
-    selectedAchievements = achievementConstraints
+    // Fallback: apply decade skewing even without team coverage data
+    const currentYear = leagueData.leagueYears?.maxSeason || new Date().getFullYear();
+    const weightedFallbackAchievements = achievementConstraints.map(achievement => {
+      let weight = 1;
+      
+      const isDecadeAchievement = achievement.achievementId!.includes('playedIn') || 
+                                  achievement.achievementId!.includes('debutedIn') || 
+                                  achievement.achievementId!.includes('retiredIn');
+      
+      if (isDecadeAchievement) {
+        const decadeMatch = achievement.achievementId!.match(/(\d{4})s/);
+        if (decadeMatch) {
+          const decade = parseInt(decadeMatch[1]);
+          const yearsDiff = currentYear - decade;
+          
+          if (yearsDiff > 50) {
+            weight = 0.1;
+          } else if (yearsDiff <= 30) {
+            weight = 3 - (yearsDiff / 15);
+          }
+        }
+      }
+      
+      return { achievement, weight };
+    });
+    
+    // Create weighted array for fallback selection
+    const weightedFallbackArray: CatTeam[] = [];
+    weightedFallbackAchievements.forEach(({achievement, weight}) => {
+      const copies = Math.max(1, Math.round(weight * 10));
+      for (let i = 0; i < copies; i++) {
+        weightedFallbackArray.push(achievement);
+      }
+    });
+    
+    selectedAchievements = weightedFallbackArray
       .sort(() => Math.random() - 0.5)
       .slice(0, numAchievements);
   }
