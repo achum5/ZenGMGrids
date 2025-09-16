@@ -267,6 +267,12 @@ export interface Player {
   college?: string | null;
   injury?: { type?: string; gamesRemaining?: number };
   jerseyNumber?: string | number | null;
+  // Decade metadata for dynamic decade achievements
+  firstSeason?: number;
+  lastSeason?: number;
+  debutDecade?: number; // Start year of debut decade (e.g., 1990 for 1990s)
+  retiredDecade?: number; // Start year of retirement decade (e.g., 2000 for 2000s)
+  decadesPlayed?: Set<number>; // Set of decade start years (e.g., [1990, 2000, 2010])
 }
 
 // Team overlap analysis types
@@ -286,6 +292,8 @@ export interface LeagueData {
   sport?: 'basketball' | 'football' | 'hockey' | 'baseball';
   // Season index for season-specific achievements (basketball only)
   seasonIndex?: any; // SeasonIndex from season-achievements
+  // League year bounds for dynamic decade achievements
+  leagueYears?: { minSeason: number; maxSeason: number };
 }
 
 export interface CatTeam {
