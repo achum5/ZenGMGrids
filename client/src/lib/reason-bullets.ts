@@ -535,6 +535,19 @@ function generateAchievementBullet(
   teams: Team[],
   sport: string
 ): ReasonBullet | null {
+  // Decade achievements
+  if (achievementId.includes('playedIn') && achievementId.endsWith('s')) {
+    return generateDecadeBullet(player, achievementId, 'played');
+  }
+  
+  if (achievementId.includes('debutedIn') && achievementId.endsWith('s')) {
+    return generateDecadeBullet(player, achievementId, 'debuted');
+  }
+  
+  if (achievementId.includes('retiredIn') && achievementId.endsWith('s')) {
+    return generateDecadeBullet(player, achievementId, 'retired');
+  }
+  
   // Draft achievements
   if (['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen'].includes(achievementId)) {
     return generateDraftBullet(player, achievementId);
@@ -616,6 +629,44 @@ function generateHallOfFameBullet(player: Player): ReasonBullet | null {
   return {
     text: `Hall of Fame (${hofAward.season})`,
     type: 'award'
+  };
+}
+
+function generateDecadeBullet(player: Player, achievementId: string, type: 'played' | 'debuted' | 'retired'): ReasonBullet | null {
+  if (!player.stats || player.stats.length === 0) return null;
+  
+  const regularSeasonStats = player.stats.filter(s => !s.playoffs && (s.gp || 0) > 0);
+  if (regularSeasonStats.length === 0) return null;
+  
+  let actualYear: number;
+  let labelText: string;
+  
+  if (type === 'played') {
+    // For "played", show the year span or range
+    const seasons = regularSeasonStats.map(s => s.season).sort((a, b) => a - b);
+    const firstSeason = seasons[0];
+    const lastSeason = seasons[seasons.length - 1];
+    
+    if (firstSeason === lastSeason) {
+      labelText = `Played in ${firstSeason}`;
+    } else {
+      labelText = `Played ${firstSeason}–${lastSeason}`;
+    }
+  } else if (type === 'debuted') {
+    // For "debuted", show the first season
+    actualYear = Math.min(...regularSeasonStats.map(s => s.season));
+    labelText = `Debuted in ${actualYear}`;
+  } else if (type === 'retired') {
+    // For "retired", show the last season
+    actualYear = Math.max(...regularSeasonStats.map(s => s.season));
+    labelText = `Retired in ${actualYear}`;
+  } else {
+    return null;
+  }
+  
+  return {
+    text: labelText,
+    type: 'decade'
   };
 }
 
