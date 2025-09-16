@@ -29,30 +29,53 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, string> = {
   FBOffROY: 'Offensive Rookie of the Year',
   FBDefROY: 'Defensive Rookie of the Year',
   FBAllRookie: 'All-Rookie Team',
-  FBAllLeague: 'All-League Team',
-  // FBAllLeague2nd: 'Second Team All-League', // Removed - not in SeasonAchievementId type
+  FBAllLeague1st: 'First Team All-League',
+  FBAllLeague2nd: 'Second Team All-League',
   FBFinalsMVP: 'Finals MVP',
   FBChampion: 'Won Championship',
+  FBPassLeader: 'League Passing Leader',
+  FBRecLeader: 'League Receiving Leader',
+  FBRushLeader: 'League Rushing Leader',
+  FBScrimmageLeader: 'League Scrimmage Yards Leader',
   
   // Hockey GM achievements
   HKAllStar: 'All-Star',
   HKAllStarMVP: 'All-Star MVP',
   HKMVP: 'MVP',
-  HKDefenseman: 'Defenseman of the Year',
+  HKDPOY: 'Defensive Player of the Year',
+  HKDefForward: 'Defensive Forward of the Year',
+  HKGoalie: 'Goalie of the Year',
   HKROY: 'Rookie of the Year',
   HKAllRookie: 'All-Rookie Team',
   HKAllLeague: 'All-League Team',
-  HKFinalsMVP: 'Finals MVP',
+  HKPointsLeader: 'League Points Leader',
   HKAssistsLeader: 'League Assists Leader',
+  HKGoalsLeader: 'League Goals Leader',
   HKPlayoffsMVP: 'Playoffs MVP',
   HKChampion: 'Won Championship',
   
   // Baseball GM achievements
   BBAllStar: 'All-Star',
+  BBAllStarMVP: 'All-Star MVP',
   BBMVP: 'MVP',
+  BBPitcherOTY: 'Pitcher of the Year',
   BBROY: 'Rookie of the Year',
   BBAllRookie: 'All-Rookie Team',
   BBAllLeague: 'All-League Team',
+  BBGoldGlove: 'Gold Glove',
+  BBSilverSlugger: 'Silver Slugger',
+  BBBattingAvgLeader: 'League Batting Average Leader',
+  BBHomeRunLeader: 'League Home Run Leader',
+  BBRBILeader: 'League RBI Leader',
+  BBStolenBaseLeader: 'League Stolen Base Leader',
+  BBOBPLeader: 'League On-Base Percentage Leader',
+  BBSluggingLeader: 'League Slugging Percentage Leader',
+  BBOPSLeader: 'League OPS Leader',
+  BBHitsLeader: 'League Hits Leader',
+  BBERALeader: 'League ERA Leader',
+  BBStrikeoutsLeader: 'League Strikeouts Leader',
+  BBSavesLeader: 'League Saves Leader',
+  BBReliefPitcherOTY: 'Relief Pitcher of the Year',
   BBPlayoffsMVP: 'Playoffs MVP',
   BBChampion: 'Won Championship'
 };
@@ -109,30 +132,53 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
     FBOffROY: ['Offensive Rookie of the Year'],
     FBDefROY: ['Defensive Rookie of the Year'],
     FBAllRookie: ['All-Rookie Team'],
-    FBAllLeague: ['First Team All-League', 'All-League Team'],
-    // FBAllLeague2nd: ['Second Team All-League'], // Removed - not in SeasonAchievementId type
+    FBAllLeague1st: ['First Team All-League'],
+    FBAllLeague2nd: ['Second Team All-League'],
     FBFinalsMVP: ['Finals MVP'],
     FBChampion: ['Won Championship'],
+    FBPassLeader: ['League Passing Leader'],
+    FBRecLeader: ['League Receiving Leader'],
+    FBRushLeader: ['League Rushing Leader'],
+    FBScrimmageLeader: ['League Scrimmage Yards Leader'],
     
     // Hockey GM achievements
     HKAllStar: ['All-Star', 'all-star'],
     HKAllStarMVP: ['All-Star MVP', 'all-star mvp'],
     HKMVP: ['Most Valuable Player', 'most valuable player'],
-    HKDefenseman: ['Defenseman of the Year', 'defenseman of the year'],
+    HKDPOY: ['Defensive Player of the Year', 'defensive player of the year'],
+    HKDefForward: ['Defensive Forward of the Year', 'defensive forward of the year'],
+    HKGoalie: ['Goalie of the Year', 'goalie of the year'],
     HKROY: ['Rookie of the Year', 'rookie of the year'],
     HKAllRookie: ['All-Rookie Team', 'all-rookie team'],
     HKAllLeague: ['All-League Team', 'all-league team', 'First Team All-League', 'Second Team All-League'],
-    HKFinalsMVP: ['Finals MVP', 'finals mvp'],
+    HKPointsLeader: ['League Points Leader', 'league points leader'],
     HKAssistsLeader: ['League Assists Leader', 'league assists leader'],
+    HKGoalsLeader: ['League Goals Leader', 'league goals leader'],
     HKPlayoffsMVP: ['Playoffs MVP', 'playoffs mvp'],
     HKChampion: ['Won Championship', 'won championship'],
     
     // Baseball GM achievements
     BBAllStar: ['All-Star'],
+    BBAllStarMVP: ['All-Star MVP'],
     BBMVP: ['Most Valuable Player'],
+    BBPitcherOTY: ['Pitcher of the Year', 'Cy Young'],
     BBROY: ['Rookie of the Year'],
     BBAllRookie: ['All-Rookie Team'],
     BBAllLeague: ['All-League Team', 'First Team All-League', 'Second Team All-League'],
+    BBGoldGlove: ['Gold Glove'],
+    BBSilverSlugger: ['Silver Slugger'],
+    BBBattingAvgLeader: ['League Batting Average Leader'],
+    BBHomeRunLeader: ['League Home Run Leader'],
+    BBRBILeader: ['League RBI Leader'],
+    BBStolenBaseLeader: ['League Stolen Base Leader'],
+    BBOBPLeader: ['League On-Base Percentage Leader'],
+    BBSluggingLeader: ['League Slugging Percentage Leader'],
+    BBOPSLeader: ['League OPS Leader'],
+    BBHitsLeader: ['League Hits Leader', 'League Doubles Leader', 'League Triples Leader'],
+    BBERALeader: ['League ERA Leader'],
+    BBStrikeoutsLeader: ['League Strikeouts Leader'],
+    BBSavesLeader: ['League Saves Leader'],
+    BBReliefPitcherOTY: ['Relief Pitcher of the Year', 'Reliever of the Year'],
     BBPlayoffsMVP: ['Playoffs MVP'],
     BBChampion: ['Won Championship']
   };
@@ -238,7 +284,7 @@ function formatBulletSeasonList(seasons: string[], isFinalsOrCFMVP: boolean = fa
     });
     
     // If all seasons have the same team, group years and append team
-    const uniqueTeams = Array.from(new Set(yearsWithTeams.map(y => y.team)));
+    const uniqueTeams = [...new Set(yearsWithTeams.map(y => y.team))];
     if (uniqueTeams.length === 1 && uniqueTeams[0]) {
       const years = yearsWithTeams.map(y => y.year);
       const yearRanges = groupConsecutiveYears(years);
@@ -574,63 +620,6 @@ function generateHallOfFameBullet(player: Player): ReasonBullet | null {
 }
 
 function generateCareerThresholdBullet(player: Player, achievementId: string, sport: string): ReasonBullet | null {
-  // Handle dynamic milestone achievement IDs (format: statType_threshold, e.g., "careerPoints_25000")
-  if (achievementId.includes('_') && /\d+$/.test(achievementId)) {
-    const [statType, thresholdStr] = achievementId.split('_');
-    const threshold = parseInt(thresholdStr, 10);
-    
-    if (!isNaN(threshold)) {
-      const statMappings: Record<string, { stat: string; name: string }> = {
-        // Basketball
-        careerPoints: { stat: 'pts', name: 'Points' },
-        careerRebounds: { stat: 'trb', name: 'Rebounds' },
-        careerAssists: { stat: 'ast', name: 'Assists' },
-        careerSteals: { stat: 'stl', name: 'Steals' },
-        careerBlocks: { stat: 'blk', name: 'Blocks' },
-        careerThrees: { stat: 'fg3', name: 'Made Threes' },
-        
-        // Football  
-        careerPassTDs: { stat: 'pssTD', name: 'Pass TDs' },
-        careerRushYards: { stat: 'rusTD', name: 'Rush Yards' }, // Note: This should be rushYds but using rusTD for now
-        careerRushTDs: { stat: 'rusTD', name: 'Rush TDs' },
-        careerRecYards: { stat: 'recYds', name: 'Receiving Yards' },
-        careerRecTDs: { stat: 'recTD', name: 'Receiving TDs' },
-        careerSacks: { stat: 'sk', name: 'Sacks' },
-        careerInterceptions: { stat: 'defInt', name: 'Interceptions' },
-        
-        // Baseball
-        careerHits: { stat: 'h', name: 'Hits' },
-        careerHomeRuns: { stat: 'hr', name: 'Home Runs' },
-        careerRBIs: { stat: 'rbi', name: 'RBIs' },
-        careerStolenBases: { stat: 'sb', name: 'Stolen Bases' },
-        careerRuns: { stat: 'r', name: 'Runs' },
-        careerWinsPitcher: { stat: 'w', name: 'Wins (P)' },
-        careerStrikeouts: { stat: 'so', name: 'Strikeouts' },
-        careerSaves: { stat: 'sv', name: 'Saves' },
-        
-        // Hockey
-        careerGoals: { stat: 'g', name: 'Goals' },
-        careerWins: { stat: 'w', name: 'Wins (G)' },
-        careerShutouts: { stat: 'so', name: 'Shutouts (G)' }
-      };
-      
-      const statMapping = statMappings[statType];
-      if (statMapping) {
-        const careerStats = getCareerStats(player, [statMapping.stat]);
-        const actualValue = careerStats[statMapping.stat] || 0;
-        
-        const formattedThreshold = threshold.toLocaleString();
-        const label = `${formattedThreshold}+ Career ${statMapping.name}`;
-        
-        return {
-          text: `${label} (${formatNumber(actualValue)})`,
-          type: 'category'
-        };
-      }
-    }
-  }
-  
-  // Fallback to original hardcoded thresholds for backward compatibility
   const thresholds: Record<string, { label: string; stat: string }> = {
     // Basketball
     career20kPoints: { label: '20,000+ Career Points', stat: 'pts' },

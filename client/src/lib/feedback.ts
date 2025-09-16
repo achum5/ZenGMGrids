@@ -2154,6 +2154,22 @@ function getConstraintDetails(player: Player, constraint: GridConstraint) {
   * Evaluate if a player meets both constraints with proper Team × Achievement alignment
   */
 export function evaluateConstraintPair(player: Player, rowConstraint: GridConstraint, colConstraint: GridConstraint): boolean {
+  // DEBUG: Track Celtics × All-League Team evaluations specifically
+  const isCelticsAllLeague = (
+    (rowConstraint.type === 'team' && rowConstraint.tid !== undefined && [0, 1].includes(rowConstraint.tid) && 
+     colConstraint.type === 'achievement' && colConstraint.achievementId === 'AllLeagueAny') ||
+    (colConstraint.type === 'team' && colConstraint.tid !== undefined && [0, 1].includes(colConstraint.tid) && 
+     rowConstraint.type === 'achievement' && rowConstraint.achievementId === 'AllLeagueAny')
+  );
+  
+  const isJaylenBrown = player.name && (player.name.includes('Jaylen') || player.name.includes('Brown'));
+  
+  if (isCelticsAllLeague && isJaylenBrown) {
+    console.log(`\n🔥 [DEBUG evaluateConstraintPair] Jaylen Brown Celtics × All-League evaluation:`);
+    console.log(`   - Player: ${player.name} (pid: ${player.pid})`);
+    console.log(`   - Row: ${rowConstraint.type} (tid: ${rowConstraint.tid}, achievement: ${rowConstraint.achievementId})`);
+    console.log(`   - Col: ${colConstraint.type} (tid: ${colConstraint.tid}, achievement: ${colConstraint.achievementId})`);
+  }
   
   // If both constraints are teams, check both separately
   if (rowConstraint.type === 'team' && colConstraint.type === 'team') {
@@ -2168,11 +2184,17 @@ export function evaluateConstraintPair(player: Player, rowConstraint: GridConstr
   // Team × Achievement case: use same-season alignment
   if (rowConstraint.type === 'team' && colConstraint.type === 'achievement') {
     const result = evaluateTeamAchievementWithAlignment(player, rowConstraint.tid!, colConstraint.achievementId!);
+    if (isCelticsAllLeague && isJaylenBrown) {
+      console.log(`   🎯 [DEBUG] Team × Achievement result: ${result}`);
+    }
     return result;
   }
   
   if (rowConstraint.type === 'achievement' && colConstraint.type === 'team') {
     const result = evaluateTeamAchievementWithAlignment(player, colConstraint.tid!, rowConstraint.achievementId!);
+    if (isCelticsAllLeague && isJaylenBrown) {
+      console.log(`   🎯 [DEBUG] Achievement × Team result: ${result}`);
+    }
     return result;
   }
   
