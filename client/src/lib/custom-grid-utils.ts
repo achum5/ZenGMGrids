@@ -281,7 +281,7 @@ export function debugAchievementIntersection(
   const DEBUG = import.meta.env.VITE_DEBUG === 'true';
   if (!DEBUG) return;
   
-  console.log(`🚀 [DEBUG] Starting achievement intersection debug test`);
+  console.log('Starting achievement intersection debug test');
   console.log(`   Players: ${players.length}, Teams: ${teams.length}, SeasonIndex: ${!!seasonIndex}`);
   
   // Create test configurations for our problematic intersection
@@ -306,7 +306,7 @@ export function debugAchievementIntersection(
     seasonIndex
   );
   
-  console.log(`🎯 [DEBUG] Final intersection result: ${intersection} players`);
+  console.log(`Final intersection result: ${intersection} players`);
 }
 
 // Convert custom grid state to grid generation format

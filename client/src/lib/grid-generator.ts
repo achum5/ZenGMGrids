@@ -48,7 +48,7 @@ export function generateTeamsGrid(leagueData: LeagueData): {
   
   const DEBUG = import.meta.env.VITE_DEBUG === 'true';
   if (DEBUG) {
-    console.log(`🎯 STARTING GRID GENERATION for ${sport} (${players.length} players, ${teams.length} teams)`);
+    console.log(`Starting grid generation for ${sport} (${players.length} players, ${teams.length} teams)`);
   }
   
   // Season count gate: compute unique seasons
@@ -97,7 +97,7 @@ function generateGridOldRandom(leagueData: LeagueData): {
     try {
       const result = attemptGridGenerationOldRandom(leagueData);
       const DEBUG = import.meta.env.VITE_DEBUG === 'true';
-      if (DEBUG) console.log(`✅ GRID GENERATION SUCCESSFUL after ${attempt + 1} attempts`);
+      if (DEBUG) console.log(`Grid generation successful after ${attempt + 1} attempts`);
       return result;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));

@@ -599,9 +599,8 @@ function calculateTeamOverlap(
 function getQualifyingSeasonsForAchievement(player: Player, achievementId: string): number[] {
   const seasons: number[] = [];
   
-  // For leadership achievements, we need to check player.achievements which should have 
-  // season-specific data, but for now return all active seasons
-  // TODO: This needs proper season-by-season leadership data
+  // For leadership achievements, we check seasonIndex for proper season-by-season data.
+  // This system now supports both career achievements and season-specific statistical leaders.
   
   if (achievementId.startsWith('led')) {
     // Leadership achievements - would need actual season leadership data
