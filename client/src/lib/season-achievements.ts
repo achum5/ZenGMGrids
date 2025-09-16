@@ -23,6 +23,10 @@ export type SeasonAchievementId =
   | 'AssistsLeader'
   | 'StealsLeader'
   | 'BlocksLeader'
+  // New Basketball achievements (season-aligned)
+  | 'Champion'
+  | 'AllRookieTeam'
+  | 'Season250ThreePM'
   // Football GM achievements
   | 'FBAllStar'
   | 'FBMVP'
@@ -72,13 +76,14 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId | null> = {
   'most improved player': 'MIP',
   'finals mvp': 'FinalsMVP',
   'all-league team': 'AllLeagueAny',
+  'won championship': 'Champion',
   'first team all-league': 'AllLeagueAny',
   'second team all-league': 'AllLeagueAny',
   'third team all-league': 'AllLeagueAny',
   'all-defensive team': 'AllDefAny',
   'first team all-defensive': 'AllDefAny',
   'second team all-defensive': 'AllDefAny',
-  'all-rookie team': 'AllRookieAny',
+  'all-rookie team': 'AllRookieTeam',
 
   // Alternative Basketball GM naming
   'bbgm all-star': 'AllStar',
@@ -741,6 +746,30 @@ export function buildSeasonIndex(
     Object.values(season).flatMap(team => Object.keys(team))
   ).length;
   
+  // Add stats-based achievements like 250+ 3PM Season
+  for (const player of players) {
+    if (!player.stats || player.stats.length === 0) continue;
+    
+    for (const seasonStat of player.stats) {
+      if (seasonStat.playoffs) continue; // Only regular season
+      if ((seasonStat.gp || 0) === 0) continue; // Must have played games
+      
+      const season = seasonStat.season;
+      const tid = seasonStat.tid;
+      
+      // 250+ Made Threes Season achievement
+      const threesMade = seasonStat.tpm || seasonStat.tp || 0;
+      if (threesMade >= 250) {
+        if (!seasonIndex[season]) seasonIndex[season] = {};
+        if (!seasonIndex[season][tid]) seasonIndex[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
+        if (!seasonIndex[season][tid]['Season250ThreePM']) seasonIndex[season][tid]['Season250ThreePM'] = new Set();
+        
+        seasonIndex[season][tid]['Season250ThreePM'].add(player.pid);
+        totalIndexed++;
+      }
+    }
+  }
+  
   // Debug logging removed for performance
   
   return seasonIndex;
@@ -785,6 +814,24 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
     label: 'All-Star',
     isSeasonSpecific: true,
     minPlayers: 10
+  },
+  {
+    id: 'Champion',
+    label: 'Champion',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'AllRookieTeam',
+    label: 'All-Rookie Team',
+    isSeasonSpecific: true,
+    minPlayers: 5
+  },
+  {
+    id: 'Season250ThreePM',
+    label: '250+ Made Threes Season',
+    isSeasonSpecific: true,
+    minPlayers: 3
   },
   {
     id: 'MVP',
