@@ -115,6 +115,182 @@ export const BASKETBALL_ACHIEVEMENTS: Achievement[] = [
     test: (p: Player) => p.achievements?.career2kThrees || false,
     minPlayers: 5
   },
+  // Contest achievements (not season-aligned)
+  {
+    id: 'threePointContestWinner',
+    label: '3-Point Contest Champion',
+    test: (p: Player) => p.achievements?.threePointContestWinner || false,
+    minPlayers: 3
+  },
+  {
+    id: 'dunkContestWinner',
+    label: 'Dunk Contest Champion',
+    test: (p: Player) => p.achievements?.dunkContestWinner || false,
+    minPlayers: 3
+  },
+  // Age achievements (not season-aligned)
+  {
+    id: 'playedAtAge40Plus',
+    label: 'Played at Age 40+',
+    test: (p: Player) => p.achievements?.playedAtAge40Plus || false,
+    minPlayers: 5
+  },
+  // Special career arc achievements (not season-aligned)
+  {
+    id: 'royLaterMVP',
+    label: 'ROY Who Later Won MVP',
+    test: (p: Player) => p.achievements?.royLaterMVP || false,
+    minPlayers: 3
+  },
+  // Franchise achievements (not season-aligned)
+  {
+    id: 'played5PlusFranchises',
+    label: 'Played for 5+ Franchises',
+    test: (p: Player) => p.achievements?.played5PlusFranchises || false,
+    minPlayers: 5
+  },
+  // Decade achievements (not season-aligned)
+  {
+    id: 'playedIn1970s',
+    label: 'Played in the 1970s',
+    test: (p: Player) => p.achievements?.playedIn1970s || false,
+    minPlayers: 5
+  },
+  {
+    id: 'playedIn1980s',
+    label: 'Played in the 1980s',
+    test: (p: Player) => p.achievements?.playedIn1980s || false,
+    minPlayers: 5
+  },
+  {
+    id: 'playedIn1990s',
+    label: 'Played in the 1990s',
+    test: (p: Player) => p.achievements?.playedIn1990s || false,
+    minPlayers: 5
+  },
+  {
+    id: 'playedIn2000s',
+    label: 'Played in the 2000s',
+    test: (p: Player) => p.achievements?.playedIn2000s || false,
+    minPlayers: 5
+  },
+  {
+    id: 'playedIn2010s',
+    label: 'Played in the 2010s',
+    test: (p: Player) => p.achievements?.playedIn2010s || false,
+    minPlayers: 5
+  },
+  {
+    id: 'playedIn2020s',
+    label: 'Played in the 2020s',
+    test: (p: Player) => p.achievements?.playedIn2020s || false,
+    minPlayers: 5
+  },
+  {
+    id: 'playedIn2030s',
+    label: 'Played in the 2030s',
+    test: (p: Player) => p.achievements?.playedIn2030s || false,
+    minPlayers: 5
+  },
+  // Debut decade achievements (not season-aligned)
+  {
+    id: 'debutedIn1970s',
+    label: 'Debuted in the 1970s',
+    test: (p: Player) => p.achievements?.debutedIn1970s || false,
+    minPlayers: 5
+  },
+  {
+    id: 'debutedIn1980s',
+    label: 'Debuted in the 1980s',
+    test: (p: Player) => p.achievements?.debutedIn1980s || false,
+    minPlayers: 5
+  },
+  {
+    id: 'debutedIn1990s',
+    label: 'Debuted in the 1990s',
+    test: (p: Player) => p.achievements?.debutedIn1990s || false,
+    minPlayers: 5
+  },
+  {
+    id: 'debutedIn2000s',
+    label: 'Debuted in the 2000s',
+    test: (p: Player) => p.achievements?.debutedIn2000s || false,
+    minPlayers: 5
+  },
+  {
+    id: 'debutedIn2010s',
+    label: 'Debuted in the 2010s',
+    test: (p: Player) => p.achievements?.debutedIn2010s || false,
+    minPlayers: 5
+  },
+  {
+    id: 'debutedIn2020s',
+    label: 'Debuted in the 2020s',
+    test: (p: Player) => p.achievements?.debutedIn2020s || false,
+    minPlayers: 5
+  },
+  {
+    id: 'debutedIn2030s',
+    label: 'Debuted in the 2030s',
+    test: (p: Player) => p.achievements?.debutedIn2030s || false,
+    minPlayers: 5
+  },
+  // Retirement decade achievements (not season-aligned)
+  {
+    id: 'retiredIn1970s',
+    label: 'Retired in the 1970s',
+    test: (p: Player) => p.achievements?.retiredIn1970s || false,
+    minPlayers: 5
+  },
+  {
+    id: 'retiredIn1980s',
+    label: 'Retired in the 1980s',
+    test: (p: Player) => p.achievements?.retiredIn1980s || false,
+    minPlayers: 5
+  },
+  {
+    id: 'retiredIn1990s',
+    label: 'Retired in the 1990s',
+    test: (p: Player) => p.achievements?.retiredIn1990s || false,
+    minPlayers: 5
+  },
+  {
+    id: 'retiredIn2000s',
+    label: 'Retired in the 2000s',
+    test: (p: Player) => p.achievements?.retiredIn2000s || false,
+    minPlayers: 5
+  },
+  {
+    id: 'retiredIn2010s',
+    label: 'Retired in the 2010s',
+    test: (p: Player) => p.achievements?.retiredIn2010s || false,
+    minPlayers: 5
+  },
+  {
+    id: 'retiredIn2020s',
+    label: 'Retired in the 2020s',
+    test: (p: Player) => p.achievements?.retiredIn2020s || false,
+    minPlayers: 5
+  },
+  {
+    id: 'retiredIn2030s',
+    label: 'Retired in the 2030s',
+    test: (p: Player) => p.achievements?.retiredIn2030s || false,
+    minPlayers: 5
+  },
+  // Multi-decade achievements (not season-aligned)
+  {
+    id: 'playedIn1990sAnd2000s',
+    label: 'Played in both 1990s & 2000s',
+    test: (p: Player) => p.achievements?.playedIn1990sAnd2000s || false,
+    minPlayers: 5
+  },
+  {
+    id: 'playedInThreeDecades',
+    label: 'Played in 3+ Decades',
+    test: (p: Player) => p.achievements?.playedInThreeDecades || false,
+    minPlayers: 5
+  },
   // Note: Single-season awards removed from career achievements
   // Now implemented as season-specific achievements with proper harmonization
 ];
@@ -778,6 +954,84 @@ function calculateBasketballAchievements(player: Player, achievements: any): voi
   achievements.career1500Blocks = careerBlk >= 1500;
   achievements.career2kThrees = careerThree >= 2000;
   
+  // Helper function to get decade from season
+  const getDecade = (season: number) => Math.floor(season / 10) * 10;
+  
+  // Contest achievements (check awards)
+  const awards = player.awards || [];
+  achievements.threePointContestWinner = awards.some(a => a.type === 'Three-Point Contest Winner');
+  achievements.dunkContestWinner = awards.some(a => a.type === 'Slam Dunk Contest Winner');
+  
+  // Age 40+ achievement
+  achievements.playedAtAge40Plus = stats.some(s => 
+    !s.playoffs && (s.gp || 0) > 0 && s.season - (player.born?.year || 0) >= 40
+  );
+  
+  // ROY who later won MVP achievement
+  const roySeasons = awards.filter(a => a.type === 'Rookie of the Year').map(a => a.season);
+  const mvpSeasons = awards.filter(a => a.type === 'Most Valuable Player').map(a => a.season);
+  achievements.royLaterMVP = roySeasons.length > 0 && mvpSeasons.length > 0 && 
+    mvpSeasons.some(mvp => roySeasons.some(roy => mvp > roy));
+  
+  // Played for 5+ franchises (use statsTids if available)
+  if (player.statsTids && player.statsTids.length >= 5) {
+    achievements.played5PlusFranchises = true;
+  } else {
+    // Fallback: count unique team IDs from stats
+    const uniqueTids = new Set(stats.filter(s => !s.playoffs && (s.gp || 0) > 0).map(s => s.tid));
+    achievements.played5PlusFranchises = uniqueTids.size >= 5;
+  }
+  
+  // Regular season stats for decade calculations
+  const regularSeasonStats = stats.filter(s => !s.playoffs && (s.gp || 0) > 0);
+  const playedDecades = new Set(regularSeasonStats.map(s => getDecade(s.season)));
+  
+  // Decade achievements
+  achievements.playedIn1970s = playedDecades.has(1970);
+  achievements.playedIn1980s = playedDecades.has(1980);
+  achievements.playedIn1990s = playedDecades.has(1990);
+  achievements.playedIn2000s = playedDecades.has(2000);
+  achievements.playedIn2010s = playedDecades.has(2010);
+  achievements.playedIn2020s = playedDecades.has(2020);
+  achievements.playedIn2030s = playedDecades.has(2030);
+  
+  // Debut decade achievements
+  const firstSeason = regularSeasonStats.length > 0 ? Math.min(...regularSeasonStats.map(s => s.season)) : null;
+  if (firstSeason) {
+    const debutDecade = getDecade(firstSeason);
+    achievements.debutedIn1970s = debutDecade === 1970;
+    achievements.debutedIn1980s = debutDecade === 1980;
+    achievements.debutedIn1990s = debutDecade === 1990;
+    achievements.debutedIn2000s = debutDecade === 2000;
+    achievements.debutedIn2010s = debutDecade === 2010;
+    achievements.debutedIn2020s = debutDecade === 2020;
+    achievements.debutedIn2030s = debutDecade === 2030;
+  }
+  
+  // Retirement decade achievements
+  let retirementYear: number;
+  if (player.retiredYear) {
+    retirementYear = player.retiredYear;
+  } else if (regularSeasonStats.length > 0) {
+    retirementYear = Math.max(...regularSeasonStats.map(s => s.season));
+  } else {
+    retirementYear = 0;
+  }
+  
+  if (retirementYear > 0) {
+    const retiredDecade = getDecade(retirementYear);
+    achievements.retiredIn1970s = retiredDecade === 1970;
+    achievements.retiredIn1980s = retiredDecade === 1980;
+    achievements.retiredIn1990s = retiredDecade === 1990;
+    achievements.retiredIn2000s = retiredDecade === 2000;
+    achievements.retiredIn2010s = retiredDecade === 2010;
+    achievements.retiredIn2020s = retiredDecade === 2020;
+    achievements.retiredIn2030s = retiredDecade === 2030;
+  }
+  
+  // Multi-decade achievements
+  achievements.playedIn1990sAnd2000s = playedDecades.has(1990) && playedDecades.has(2000);
+  achievements.playedInThreeDecades = playedDecades.size >= 3;
   
   // Note: Single-season award calculations removed from game entirely
 }

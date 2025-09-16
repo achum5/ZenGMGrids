@@ -29,6 +29,7 @@ export interface Player {
   name: string;
   seasons: SeasonLine[];
   teamsPlayed: Set<number>;
+  statsTids?: number[]; // Unique team IDs player recorded stats with
   imgURL?: string | null;
   face?: any | null;
   // Additional BBGM fields for rarity and modal
@@ -191,6 +192,35 @@ export interface Player {
     allStar35Plus: boolean;
     oneTeamOnly: boolean;
     isHallOfFamer: boolean;
+    // New Basketball GM achievements
+    threePointContestWinner?: boolean;
+    dunkContestWinner?: boolean;
+    playedAtAge40Plus?: boolean;
+    royLaterMVP?: boolean;
+    played5PlusFranchises?: boolean;
+    playedIn1970s?: boolean;
+    playedIn1980s?: boolean;
+    playedIn1990s?: boolean;
+    playedIn2000s?: boolean;
+    playedIn2010s?: boolean;
+    playedIn2020s?: boolean;
+    playedIn2030s?: boolean;
+    debutedIn1970s?: boolean;
+    debutedIn1980s?: boolean;
+    debutedIn1990s?: boolean;
+    debutedIn2000s?: boolean;
+    debutedIn2010s?: boolean;
+    debutedIn2020s?: boolean;
+    debutedIn2030s?: boolean;
+    retiredIn1970s?: boolean;
+    retiredIn1980s?: boolean;
+    retiredIn1990s?: boolean;
+    retiredIn2000s?: boolean;
+    retiredIn2010s?: boolean;
+    retiredIn2020s?: boolean;
+    retiredIn2030s?: boolean;
+    playedIn1990sAnd2000s?: boolean;
+    playedInThreeDecades?: boolean;
   };
   // New: Season-specific data for same-season alignment
   teamSeasonsPaired?: Set<string>; // Set of "season|tid" strings
