@@ -515,6 +515,62 @@ export default function Home() {
     setSearchablePlayers(indices.searchablePlayers);
     setTeamsByTid(indices.teamsByTid);
     
+    // Direct intersection test (bypass grid generation)
+    console.log('🎯 [DIRECT TEST] Testing the problematic intersection directly...');
+    
+    // Test each achievement individually
+    let reboundsPlayers: Player[] = [];
+    let assistsPlayers: Player[] = [];
+    let intersectionPlayers: Player[] = [];
+    
+    console.log(`   Testing ${data.players.length} players...`);
+    
+    for (const player of data.players) {
+      const hasRebounds = playerMeetsAchievement(player, 'career10kRebounds', data.seasonIndex);
+      const hasAssists = playerMeetsAchievement(player, 'AssistsLeader', data.seasonIndex);
+      
+      if (hasRebounds) {
+        reboundsPlayers.push(player);
+      }
+      
+      if (hasAssists) {
+        assistsPlayers.push(player);
+      }
+      
+      if (hasRebounds && hasAssists) {
+        intersectionPlayers.push(player);
+      }
+    }
+    
+    console.log(`📊 [DIRECT TEST] Results:`);
+    console.log(`   Career 10k Rebounds: ${reboundsPlayers.length} players`);
+    console.log(`     - Players: ${reboundsPlayers.map(p => p.name).join(', ')}`);
+    
+    console.log(`   Assists Leader: ${assistsPlayers.length} players`);
+    console.log(`     - Players: ${assistsPlayers.map(p => p.name).join(', ')}`);
+    
+    console.log(`   🎯 INTERSECTION: ${intersectionPlayers.length} players`);
+    if (intersectionPlayers.length > 0) {
+      console.log(`     - These are the players that should appear in the intersection!`);
+      console.log(`     - Players: ${intersectionPlayers.map(p => p.name).join(', ')}`);
+    } else {
+      console.log(`     - ❌ NO INTERSECTION! This is the bug we need to fix.`);
+    }
+    
+    // Test the intersection calculation function directly
+    console.log(`🔧 [INTERSECTION FUNCTION TEST] Using calculateCustomCellIntersection...`);
+    const testIntersection = calculateCustomCellIntersection(
+      { type: 'achievement', selectedId: 'career10kRebounds', selectedLabel: '10,000+ Career Rebounds' },
+      { type: 'achievement', selectedId: 'AssistsLeader', selectedLabel: 'League Assists Leader' },
+      data.players,
+      data.teams,
+      data.seasonIndex
+    );
+    console.log(`   Function result: ${testIntersection} players`);
+    
+    // Debug individual achievements first to understand the data
+    console.log('🐛 [DEBUG] Testing individual achievements first...');
+    debugIndividualAchievements(data.players, data.seasonIndex);
     
     // Generate initial grid
     const gridResult = generateTeamsGrid(data);
