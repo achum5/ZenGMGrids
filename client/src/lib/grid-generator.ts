@@ -858,6 +858,7 @@ function generateGridSeeded(leagueData: LeagueData): {
   }
   
   let teamIndex = 0;
+  const usedAchievementIds = new Set<string>([seedAchievement.id]); // Track used achievements to prevent duplicates, starting with seed
   
   for (let i = 0; i < 3; i++) {
     if (oppositeLayout[i] === 'T') {
@@ -938,6 +939,11 @@ function generateGridSeeded(leagueData: LeagueData): {
       }
       
       for (const ach of weightedAchievements) {
+        // Skip if this achievement ID is already used
+        if (usedAchievementIds.has(ach.id)) {
+          continue;
+        }
+        
         // Check if any player has both seed achievement (any season) and this career achievement
         const seedPlayerIds = new Set<number>();
         for (const season of Object.keys(seasonIndex)) {
@@ -958,11 +964,14 @@ function generateGridSeeded(leagueData: LeagueData): {
       }
       
       if (viableAchievements.length === 0) {
-        throw new Error(`No viable achievements found for opposite axis with seed ${seedAchievement.label}`);
+        throw new Error(`No viable achievements found for opposite axis with seed ${seedAchievement.label} (slot ${i})`);
       }
       
       const achIndex = simpleHash(gridId + '_oppach' + i) % viableAchievements.length;
       const selectedAch = viableAchievements[achIndex];
+      
+      // Track this achievement as used to prevent duplicates
+      usedAchievementIds.add(selectedAch.id);
       
       oppositeArray[i] = {
         type: 'achievement',
