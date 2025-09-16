@@ -303,6 +303,26 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
     };
   }) || [];
 
+  // Compute league bounds from all player season data (excluding playoffs)
+  let allSeasons: number[] = [];
+  
+  if (raw.players) {
+    for (const rawPlayer of raw.players) {
+      if (rawPlayer.stats) {
+        // Get regular season stats only for league bounds
+        const regularSeasonStats = rawPlayer.stats.filter((stat: any) => !stat.playoffs);
+        allSeasons.push(...regularSeasonStats.map((stat: any) => stat.season));
+      }
+    }
+  }
+  
+  // Calculate league year bounds
+  const minSeason = allSeasons.length > 0 ? Math.min(...allSeasons) : currentSeason;
+  const maxSeason = allSeasons.length > 0 ? Math.max(...allSeasons) : currentSeason;
+  const leagueYears = { minSeason, maxSeason };
+  
+  console.log(`📅 League bounds: ${minSeason}-${maxSeason} (${maxSeason - minSeason + 1} seasons)`);
+  
   // Extract and normalize players
   const players: Player[] = [];
   
@@ -346,6 +366,27 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
 
       // Only include players who actually played games
       if (teamsPlayed.size > 0) {
+        // Compute decade metadata for this player
+        const allPlayerSeasons = [
+          ...regularSeasonStats.map((stat: any) => stat.season),
+          ...playoffStats.map((stat: any) => stat.season)
+        ];
+        const firstSeason = allPlayerSeasons.length > 0 ? Math.min(...allPlayerSeasons) : 0;
+        const lastSeason = allPlayerSeasons.length > 0 ? Math.max(...allPlayerSeasons) : 0;
+        
+        // Calculate decades (e.g., 1990s = 1990, 2000s = 2000)
+        const debutDecade = firstSeason > 0 ? Math.floor(firstSeason / 10) * 10 : 0;
+        const retiredDecade = lastSeason > 0 ? Math.floor(lastSeason / 10) * 10 : 0;
+        
+        // Calculate all decades played (set of decade start years)
+        const decadesPlayed = new Set<number>();
+        allPlayerSeasons.forEach(season => {
+          if (season > 0) {
+            const decade = Math.floor(season / 10) * 10;
+            decadesPlayed.add(decade);
+          }
+        });
+        
         const player: Player = {
           pid: rawPlayer.pid,
           name: `${rawPlayer.firstName || ''} ${rawPlayer.lastName || ''}`.trim() || 'Unknown Player',
@@ -370,6 +411,12 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
           college: rawPlayer.college,
           injury: rawPlayer.injury,
           jerseyNumber: rawPlayer.jerseyNumber,
+          // Decade metadata
+          firstSeason: firstSeason > 0 ? firstSeason : undefined,
+          lastSeason: lastSeason > 0 ? lastSeason : undefined,
+          debutDecade: debutDecade > 0 ? debutDecade : undefined,
+          retiredDecade: retiredDecade > 0 ? retiredDecade : undefined,
+          decadesPlayed: decadesPlayed.size > 0 ? decadesPlayed : undefined,
         };
 
         // Note: achievements will be calculated after all players are processed
@@ -523,6 +570,30 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
   console.log(`Parsed ${players.length} players and ${teams.length} teams`);
   console.log('Achievement qualifiers:', achievementCounts);
   
+  // Debug: Log decade metadata for the first few players to verify implementation
+  const playersWithDecades = players.filter(p => p.decadesPlayed && p.decadesPlayed.size > 0);
+  if (playersWithDecades.length > 0) {
+    console.log('📅 Decade metadata verification:');
+    const samplePlayers = playersWithDecades.slice(0, 5);
+    samplePlayers.forEach(p => {
+      const decades = p.decadesPlayed ? Array.from(p.decadesPlayed).sort() : [];
+      console.log(`  ${p.name}: ${p.firstSeason}-${p.lastSeason} (${decades.map(d => d + 's').join(', ')})`);
+    });
+    
+    // Summary stats
+    const decadeCounts: Record<number, number> = {};
+    playersWithDecades.forEach(p => {
+      if (p.decadesPlayed) {
+        p.decadesPlayed.forEach(decade => {
+          decadeCounts[decade] = (decadeCounts[decade] || 0) + 1;
+        });
+      }
+    });
+    
+    const sortedDecades = Object.keys(decadeCounts).map(Number).sort();
+    console.log(`📊 Players by decade: ${sortedDecades.map(d => `${d}s: ${decadeCounts[d]}`).join(', ')}`);
+  }
+  
   // Analyze team overlaps for intelligent grid generation
   const teamOverlaps = analyzeTeamOverlaps(players, teams);
   console.log(`📊 Team overlap analysis: ${teamOverlaps.viableTeamPairs.length} viable team pairs found`);
@@ -613,7 +684,7 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
     console.log(`⚾ Skipping season achievements for baseball (${seasonCount} seasons < 20)`);
   }
   
-  return { players, teams, sport, teamOverlaps, seasonIndex };
+  return { players, teams, sport, teamOverlaps, seasonIndex, leagueYears };
   
   } catch (error) {
     console.error('Error in normalizeLeague:', error);
