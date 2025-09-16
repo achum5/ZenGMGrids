@@ -861,12 +861,46 @@ function generateGridSeeded(leagueData: LeagueData): {
       // Skip season achievements entirely - only use career achievements for opposite axis
       // This prevents impossible season harmonization conflicts
       
-      // Only try career achievements (get from achievements passed to function)
-      const achievements = getAllAchievements(sport, seasonIndex, leagueData.leagueYears);
-      for (const ach of achievements) {
+      // Only try career achievements with decade weighting applied
+      const rawAchievements = getAllAchievements(sport, seasonIndex, leagueData.leagueYears);
+      
+      // Apply decade weighting for achievement selection 
+      const currentYear = leagueData.leagueYears?.maxSeason || new Date().getFullYear();
+      const weightedAchievements: Achievement[] = [];
+      
+      for (const ach of rawAchievements) {
         if (ach.isSeasonSpecific) continue;
-        if (ach.id === 'bornOutsideUS50DC') continue; // Temporarily remove born outside US achievement
+        if (ach.id === 'bornOutsideUS50DC') continue;
         
+        let weight = 1;
+        
+        // Apply decade skewing for decade achievements
+        const isDecadeAchievement = ach.id.includes('playedIn') || ach.id.includes('debutedIn') || ach.id.includes('retiredIn');
+        
+        if (isDecadeAchievement) {
+          const decadeMatch = ach.id.match(/(\d{4})s/);
+          if (decadeMatch) {
+            const decade = parseInt(decadeMatch[1]);
+            const yearsDiff = currentYear - decade;
+            
+            if (yearsDiff >= 40) {
+              weight = 0.05; // Extremely rare for 40+ year old decades
+            } else if (yearsDiff <= 20) {
+              weight = 5 - (yearsDiff / 8); // Max boost for recent decades
+            } else {
+              weight = 1.5 - ((yearsDiff - 20) / 40); // Moderate for 20-40 years ago
+            }
+          }
+        }
+        
+        // Create weighted array (duplicate items based on weight)
+        const copies = Math.max(1, Math.round(weight * 10));
+        for (let i = 0; i < copies; i++) {
+          weightedAchievements.push(ach);
+        }
+      }
+      
+      for (const ach of weightedAchievements) {
         // Check if any player has both seed achievement (any season) and this career achievement
         const seedPlayerIds = new Set<number>();
         for (const season of Object.keys(seasonIndex)) {
@@ -913,10 +947,43 @@ function generateGridSeeded(leagueData: LeagueData): {
   // Step 4: Fill remaining slots using old-style approach
   console.log(`✅ Step 4: Filling remaining slots old-style`);
   
-  // Only use career achievements for old-style fill to avoid season harmonization conflicts
-  const allAchievements = getAllAchievements(sport, seasonIndex, leagueData.leagueYears)
+  // Only use career achievements for old-style fill with decade weighting
+  const rawAllAchievements = getAllAchievements(sport, seasonIndex, leagueData.leagueYears)
     .filter(ach => !ach.isSeasonSpecific)
-    .filter(ach => ach.id !== 'bornOutsideUS50DC'); // Temporarily remove born outside US achievement
+    .filter(ach => ach.id !== 'bornOutsideUS50DC');
+  
+  // Apply decade weighting to create final achievement list
+  const currentYear = leagueData.leagueYears?.maxSeason || new Date().getFullYear();
+  const allAchievements: Achievement[] = [];
+  
+  for (const ach of rawAllAchievements) {
+    let weight = 1;
+    
+    // Apply decade skewing for decade achievements
+    const isDecadeAchievement = ach.id.includes('playedIn') || ach.id.includes('debutedIn') || ach.id.includes('retiredIn');
+    
+    if (isDecadeAchievement) {
+      const decadeMatch = ach.id.match(/(\d{4})s/);
+      if (decadeMatch) {
+        const decade = parseInt(decadeMatch[1]);
+        const yearsDiff = currentYear - decade;
+        
+        if (yearsDiff >= 40) {
+          weight = 0.05; // Extremely rare for 40+ year old decades
+        } else if (yearsDiff <= 20) {
+          weight = 5 - (yearsDiff / 8); // Max boost for recent decades
+        } else {
+          weight = 1.5 - ((yearsDiff - 20) / 40); // Moderate for 20-40 years ago
+        }
+      }
+    }
+    
+    // Create weighted array (duplicate items based on weight)
+    const copies = Math.max(1, Math.round(weight * 10));
+    for (let i = 0; i < copies; i++) {
+      allAchievements.push(ach);
+    }
+  }
   
   // Filter out disabled teams for old-style fill
   const activeTeams = teams.filter(team => !team.disabled);
