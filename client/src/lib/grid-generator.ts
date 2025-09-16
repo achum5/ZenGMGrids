@@ -249,6 +249,9 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
     const viableAchievements = achievementConstraints.filter(achievement => {
       const teamCoverage = leagueData.teamOverlaps!.achievementTeamCounts[achievement.achievementId!] || 0;
       const isStatAchievement = achievement.achievementId!.includes('career') || achievement.achievementId!.includes('season');
+      const isDecadeAchievement = achievement.achievementId!.includes('playedIn') || 
+                                  achievement.achievementId!.includes('debutedIn') || 
+                                  achievement.achievementId!.includes('retiredIn');
       
       // COMPLETELY BYPASS team coverage for stat achievements
       if (isStatAchievement) {
@@ -256,7 +259,13 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
         return true; // Always allow stat achievements regardless of team coverage
       }
       
-      // Only apply team coverage filtering to non-stat achievements
+      // COMPLETELY BYPASS team coverage for decade achievements
+      if (isDecadeAchievement) {
+        console.log(`🎯 Decade achievement ${achievement.achievementId}: BYPASSING coverage check, always viable=true`);
+        return true; // Always allow decade achievements regardless of team coverage
+      }
+      
+      // Only apply team coverage filtering to non-stat, non-decade achievements
       return teamCoverage >= 3;
     });
     
