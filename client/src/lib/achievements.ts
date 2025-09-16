@@ -377,9 +377,6 @@ function buildDecadeAchievements(
   const minDecade = Math.floor(leagueYears.minSeason / 10) * 10;
   const maxDecade = Math.floor(leagueYears.maxSeason / 10) * 10;
   
-  console.log(`🎯 Dynamic decade generation: League spans ${leagueYears.minSeason}-${leagueYears.maxSeason}`);
-  console.log(`🎯 Generating decades from ${minDecade}s to ${maxDecade}s`);
-  
   // Generate achievements for each decade in range
   for (let decade = minDecade; decade <= maxDecade; decade += 10) {
     const decadeStr = decade.toString();
@@ -389,7 +386,7 @@ function buildDecadeAchievements(
       id: `playedIn${decadeStr}s`,
       label: `Played in the ${decadeStr}s`,
       test: (player: Player) => player.decadesPlayed?.has(decade) || false,
-      minPlayers: 5
+      minPlayers: 1  // Lowered from 5 to 1 to ensure future decades appear
     });
     
     // "Debuted in the {YYYY}s" achievement  
@@ -397,7 +394,7 @@ function buildDecadeAchievements(
       id: `debutedIn${decadeStr}s`,
       label: `Debuted in the ${decadeStr}s`,
       test: (player: Player) => player.debutDecade === decade,
-      minPlayers: 5
+      minPlayers: 1  // Lowered from 5 to 1 to ensure future decades appear
     });
     
     // "Retired in the {YYYY}s" achievement
@@ -405,7 +402,7 @@ function buildDecadeAchievements(
       id: `retiredIn${decadeStr}s`,
       label: `Retired in the ${decadeStr}s`,
       test: (player: Player) => player.retiredDecade === decade,
-      minPlayers: 5
+      minPlayers: 1  // Lowered from 5 to 1 to ensure future decades appear
     });
   }
   
