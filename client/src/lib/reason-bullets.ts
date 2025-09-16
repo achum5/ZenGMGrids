@@ -82,7 +82,7 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, string> = {
 
 export interface ReasonBullet {
   text: string;
-  type: 'category' | 'team' | 'award' | 'draft' | 'longevity';
+  type: 'category' | 'team' | 'award' | 'draft' | 'longevity' | 'decade';
 }
 
 // Helper function to format numbers with commas
