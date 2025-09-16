@@ -1,6 +1,6 @@
 import type { Player, Team, CatTeam, LeagueData } from '@/types/bbgm';
 import type { SeasonIndex, SeasonAchievementId } from '@/lib/season-achievements';
-import { getAchievements, playerMeetsAchievement } from '@/lib/achievements';
+import { getAllAchievements, playerMeetsAchievement } from '@/lib/achievements';
 import { getSeasonEligiblePlayers, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 import { calculateOptimizedIntersection, type IntersectionConstraint } from '@/lib/intersection-cache';
 
@@ -66,8 +66,12 @@ export function getTeamOptions(teams: Team[]): TeamOption[] {
 }
 
 // Get available achievement options from league data
-export function getAchievementOptions(sport: string, seasonIndex?: SeasonIndex): AchievementOption[] {
-  const achievements = getAchievements(sport as any, seasonIndex);
+export function getAchievementOptions(
+  sport: string, 
+  seasonIndex?: SeasonIndex,
+  leagueYears?: { minSeason: number; maxSeason: number }
+): AchievementOption[] {
+  const achievements = getAllAchievements(sport as any, seasonIndex, leagueYears);
   return achievements
     .filter(achievement => 
       achievement.id !== 'bornOutsideUS50DC' && // Exclude problematic achievement

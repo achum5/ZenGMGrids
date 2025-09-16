@@ -694,7 +694,7 @@ export function calculatePlayerAchievements(player: Player, allPlayers: Player[]
   const sport = getCachedSportDetection() || 'basketball';
   
   // Initialize all achievements as false
-  const allAchievementIds = getAchievements(sport).map(a => a.id);
+  const allAchievementIds = getAllAchievements(sport).map(a => a.id);
   allAchievementIds.forEach(id => {
     achievements[id] = false;
   });
@@ -1358,9 +1358,10 @@ export function getViableAchievements(
   players: Player[], 
   minCount = 15, 
   sport?: 'basketball' | 'football' | 'hockey' | 'baseball',
-  seasonIndex?: any // SeasonIndex from season-achievements
+  seasonIndex?: any, // SeasonIndex from season-achievements
+  leagueYears?: { minSeason: number; maxSeason: number }
 ): Achievement[] {
-  const achievements = getAchievements(sport, seasonIndex);
+  const achievements = getAllAchievements(sport, seasonIndex, leagueYears);
   
   return achievements.filter(achievement => {
     // For season-specific achievements, use playerMeetsAchievement which properly handles seasonIndex

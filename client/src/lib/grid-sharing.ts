@@ -1,5 +1,5 @@
 import type { CatTeam, LeagueData } from '@/types/bbgm';
-import { getAchievements, playerMeetsAchievement } from './achievements';
+import { getAllAchievements, playerMeetsAchievement } from './achievements';
 
 export interface SharedGrid {
   rows: (number | string)[];  // tid for teams, achievementId for achievements
@@ -53,7 +53,7 @@ export function importGrid(
 ): { rows: CatTeam[]; cols: CatTeam[] } | null {
   try {
     // Get all available achievements to find proper labels
-    const allAchievements = getAchievements(leagueData.sport, leagueData.seasonIndex);
+    const allAchievements = getAllAchievements(leagueData.sport, leagueData.seasonIndex, leagueData.leagueYears);
     const achievementMap = new Map(allAchievements.map(a => [a.id, a.label]));
 
     // Just reconstruct the grid with the team IDs and achievement IDs
