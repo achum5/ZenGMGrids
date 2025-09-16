@@ -377,6 +377,9 @@ function buildDecadeAchievements(
   const minDecade = Math.floor(leagueYears.minSeason / 10) * 10;
   const maxDecade = Math.floor(leagueYears.maxSeason / 10) * 10;
   
+  console.log(`🎯 Dynamic decade generation: League spans ${leagueYears.minSeason}-${leagueYears.maxSeason}`);
+  console.log(`🎯 Generating decades from ${minDecade}s to ${maxDecade}s`);
+  
   // Generate achievements for each decade in range
   for (let decade = minDecade; decade <= maxDecade; decade += 10) {
     const decadeStr = decade.toString();
