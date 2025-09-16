@@ -1800,9 +1800,74 @@ function getAchievementPositiveMessage(achievementId: string, player?: Player): 
 }
 
 /**
+  * Helper function to get player's actual retirement year
+  */
+function getPlayerRetirementYear(player: Player): number | null {
+  if (!player.stats || player.stats.length === 0) return null;
+  
+  // Get the last season this player played
+  const regularSeasonStats = player.stats.filter(s => !s.playoffs && (s.gp || 0) > 0);
+  if (regularSeasonStats.length === 0) return null;
+  
+  const lastSeason = Math.max(...regularSeasonStats.map(s => s.season));
+  return lastSeason;
+}
+
+/**
+  * Helper function to get player's actual debut year
+  */
+function getPlayerDebutYear(player: Player): number | null {
+  if (!player.stats || player.stats.length === 0) return null;
+  
+  // Get the first season this player played
+  const regularSeasonStats = player.stats.filter(s => !s.playoffs && (s.gp || 0) > 0);
+  if (regularSeasonStats.length === 0) return null;
+  
+  const firstSeason = Math.min(...regularSeasonStats.map(s => s.season));
+  return firstSeason;
+}
+
+/**
   * Get negative message for achievement constraint
   */
 function getAchievementNegativeMessage(achievementId: string, player?: Player): string {
+  // Handle decade achievements dynamically
+  if (achievementId.includes('playedIn') && achievementId.endsWith('s')) {
+    const decadeMatch = achievementId.match(/playedIn(\d{4})s/);
+    if (decadeMatch) {
+      const decade = decadeMatch[1];
+      return `but did not play in the ${decade}s`;
+    }
+  }
+  
+  if (achievementId.includes('debutedIn') && achievementId.endsWith('s')) {
+    const decadeMatch = achievementId.match(/debutedIn(\d{4})s/);
+    if (decadeMatch && player) {
+      const decade = decadeMatch[1];
+      // Try to get the actual debut year
+      const actualDebutYear = getPlayerDebutYear(player);
+      if (actualDebutYear) {
+        return `but did not debut in the ${decade}s (${actualDebutYear})`;
+      } else {
+        return `but did not debut in the ${decade}s`;
+      }
+    }
+  }
+  
+  if (achievementId.includes('retiredIn') && achievementId.endsWith('s')) {
+    const decadeMatch = achievementId.match(/retiredIn(\d{4})s/);
+    if (decadeMatch && player) {
+      const decade = decadeMatch[1];
+      // Try to get the actual retirement year
+      const actualRetirementYear = getPlayerRetirementYear(player);
+      if (actualRetirementYear) {
+        return `but did not retire in the ${decade}s (${actualRetirementYear})`;
+      } else {
+        return `but did not retire in the ${decade}s`;
+      }
+    }
+  }
+  
   const messages: Record<string, string> = {
     // Basketball achievements - detailed with stats
     career20kPoints: getBasketballNegativeMessage('career20kPoints', player) || "did not reach 20,000 career points",
