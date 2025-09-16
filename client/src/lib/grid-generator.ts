@@ -177,16 +177,33 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
 
   // Define draft achievements that should not appear together (using module-level definitions)
   
-  // Helper function to ensure only one draft achievement and one season length achievement in selection
+  // Helper function to ensure only one draft achievement, one season length achievement, and one per decade
   const ensureNoConflictingAchievements = (achievements: CatTeam[]): CatTeam[] => {
     const draftAchs = achievements.filter(a => draftAchievements.has(a.achievementId!));
     const seasonLengthAchs = achievements.filter(a => seasonLengthAchievements.has(a.achievementId!));
-    const otherAchs = achievements.filter(a => 
-      !draftAchievements.has(a.achievementId!) && 
-      !seasonLengthAchievements.has(a.achievementId!)
-    );
     
-    if (draftAchs.length <= 1 && seasonLengthAchs.length <= 1) {
+    // Group decade achievements by decade
+    const decadeGroups = new Map<number, CatTeam[]>();
+    const nonDecadeAchs: CatTeam[] = [];
+    
+    achievements.forEach(a => {
+      if (!draftAchievements.has(a.achievementId!) && !seasonLengthAchievements.has(a.achievementId!)) {
+        const decade = extractDecadeFromAchievement(a.achievementId!);
+        if (decade !== null) {
+          if (!decadeGroups.has(decade)) {
+            decadeGroups.set(decade, []);
+          }
+          decadeGroups.get(decade)!.push(a);
+        } else {
+          nonDecadeAchs.push(a);
+        }
+      }
+    });
+    
+    // Check if we have conflicts
+    const hasDecadeConflicts = Array.from(decadeGroups.values()).some(group => group.length > 1);
+    
+    if (draftAchs.length <= 1 && seasonLengthAchs.length <= 1 && !hasDecadeConflicts) {
       return achievements; // Already compliant
     }
     
@@ -197,18 +214,38 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
       }
     }
     
+    if (hasDecadeConflicts) {
+      if (import.meta.env.VITE_DEBUG === 'true') {
+        console.log(`🔧 Resolving decade conflicts: found multiple achievements from same decades`);
+        decadeGroups.forEach((group, decade) => {
+          if (group.length > 1) {
+            console.log(`   ${decade}s: ${group.map(a => a.label).join(' + ')}, keeping only first`);
+          }
+        });
+      }
+    }
+    
     // Keep only one from each conflicting category
     const selectedDraft = draftAchs.length > 0 ? draftAchs[0] : null;
     const selectedSeasonLength = seasonLengthAchs.length > 0 ? seasonLengthAchs[0] : null;
+    const selectedDecadeAchs = Array.from(decadeGroups.values()).map(group => group[0]); // Keep first from each decade
+    
+    const alreadySelectedIds = new Set([
+      selectedDraft?.achievementId,
+      selectedSeasonLength?.achievementId,
+      ...selectedDecadeAchs.map(a => a.achievementId),
+      ...nonDecadeAchs.map(a => a.achievementId)
+    ].filter(Boolean));
     
     const availableNonConflicting = achievementConstraints.filter(a => 
       !draftAchievements.has(a.achievementId!) && 
       !seasonLengthAchievements.has(a.achievementId!) &&
-      !otherAchs.some(selected => selected.achievementId === a.achievementId)
+      !alreadySelectedIds.has(a.achievementId!) &&
+      extractDecadeFromAchievement(a.achievementId!) === null // No more decade achievements
     );
     
     // Build final selection
-    const result = [...otherAchs];
+    const result = [...nonDecadeAchs, ...selectedDecadeAchs];
     if (selectedDraft) result.push(selectedDraft);
     if (selectedSeasonLength) result.push(selectedSeasonLength);
     
@@ -1057,6 +1094,11 @@ function generateGridSeeded(leagueData: LeagueData): {
           
           if (achAlreadyUsed) continue;
           
+          // Check for decade conflicts (prevent multiple decade achievements from same decade)
+          if (hasDecadeConflict(ach.id, [...rows, ...cols])) {
+            continue;
+          }
+          
           // Check for conflicting achievements (draft and season length)
           const hasConflictingDraft = draftAchievements.has(ach.id) && 
             [...rows, ...cols].some(slot => slot && slot.type === 'achievement' && draftAchievements.has(slot.achievementId!));
@@ -1186,6 +1228,11 @@ function generateGridSeeded(leagueData: LeagueData): {
           
           if (achAlreadyUsed) continue;
           
+          // Check for decade conflicts (prevent multiple decade achievements from same decade)
+          if (hasDecadeConflict(ach.id, [...rows, ...cols])) {
+            continue;
+          }
+          
           // Check for conflicting achievements (draft and season length)
           const hasConflictingDraft = draftAchievements.has(ach.id) && 
             [...rows, ...cols].some(slot => slot && slot.type === 'achievement' && draftAchievements.has(slot.achievementId!));
@@ -1279,6 +1326,35 @@ function simpleHash(str: string): number {
     hash = hash & hash; // Convert to 32bit integer
   }
   return Math.abs(hash);
+}
+
+// Extract decade from achievement ID (e.g., "playedIn2040s" -> 2040)
+function extractDecadeFromAchievement(achievementId: string): number | null {
+  const isDecadeAchievement = achievementId.includes('playedIn') || 
+                              achievementId.includes('debutedIn') || 
+                              achievementId.includes('retiredIn');
+  
+  if (!isDecadeAchievement) return null;
+  
+  const decadeMatch = achievementId.match(/(\d{4})s/);
+  return decadeMatch ? parseInt(decadeMatch[1]) : null;
+}
+
+// Check if adding this achievement would create a decade conflict
+function hasDecadeConflict(achievementId: string, existingSlots: (CatTeam | null)[]): boolean {
+  const decade = extractDecadeFromAchievement(achievementId);
+  if (!decade) return false; // Not a decade achievement, no conflict
+  
+  for (const slot of existingSlots) {
+    if (slot && slot.type === 'achievement' && slot.achievementId) {
+      const existingDecade = extractDecadeFromAchievement(slot.achievementId);
+      if (existingDecade === decade) {
+        return true; // Same decade already exists
+      }
+    }
+  }
+  
+  return false;
 }
 
 // Get teams that have players for a specific achievement (only active teams)
