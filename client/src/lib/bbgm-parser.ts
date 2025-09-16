@@ -449,7 +449,7 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
       console.log(`Processing player ${index + 1}/${players.length}...`);
     }
     try {
-      player.achievements = calculatePlayerAchievements(player, players, leadershipMap, playerFeats);
+      player.achievements = calculatePlayerAchievements(player, players, leadershipMap, playerFeats, leagueYears);
       // Calculate season-specific data for same-season alignment
       calculateTeamSeasonsAndAchievementSeasons(player, leadershipMap, raw.gameAttributes);
     } catch (error) {

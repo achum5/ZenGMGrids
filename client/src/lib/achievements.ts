@@ -689,12 +689,12 @@ export function calculateLeagueLeadership(players: Player[], gameAttributes: any
 }
 
 // Calculate player achievements based on stats
-export function calculatePlayerAchievements(player: Player, allPlayers: Player[], leadershipMap: any, playerFeats: any[]): any {
+export function calculatePlayerAchievements(player: Player, allPlayers: Player[], leadershipMap: any, playerFeats: any[], leagueYears?: { minSeason: number; maxSeason: number }): any {
   const achievements: any = {};
   const sport = getCachedSportDetection() || 'basketball';
   
-  // Initialize all achievements as false
-  const allAchievementIds = getAllAchievements(sport).map(a => a.id);
+  // Initialize all achievements as false - MUST pass leagueYears to include decade achievements
+  const allAchievementIds = getAllAchievements(sport, undefined, leagueYears).map(a => a.id);
   allAchievementIds.forEach(id => {
     achievements[id] = false;
   });
@@ -715,6 +715,19 @@ export function calculatePlayerAchievements(player: Player, allPlayers: Player[]
   
   // Common achievements for both sports
   calculateCommonAchievements(player, achievements);
+  
+  // CRITICAL: Set decade achievement flags based on player's decade data
+  if (player.debutDecade !== undefined) {
+    achievements[`debutedIn${player.debutDecade}s`] = true;
+  }
+  if (player.retiredDecade !== undefined) {
+    achievements[`retiredIn${player.retiredDecade}s`] = true;
+  }
+  if (player.decadesPlayed) {
+    for (const decade of player.decadesPlayed) {
+      achievements[`playedIn${decade}s`] = true;
+    }
+  }
   
   return achievements;
 }
