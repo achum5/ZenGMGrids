@@ -149,148 +149,6 @@ export const BASKETBALL_ACHIEVEMENTS: Achievement[] = [
     test: (p: Player) => p.achievements?.played5PlusFranchises || false,
     minPlayers: 5
   },
-  // Decade achievements (not season-aligned)
-  {
-    id: 'playedIn1970s',
-    label: 'Played in the 1970s',
-    test: (p: Player) => p.achievements?.playedIn1970s || false,
-    minPlayers: 5
-  },
-  {
-    id: 'playedIn1980s',
-    label: 'Played in the 1980s',
-    test: (p: Player) => p.achievements?.playedIn1980s || false,
-    minPlayers: 5
-  },
-  {
-    id: 'playedIn1990s',
-    label: 'Played in the 1990s',
-    test: (p: Player) => p.achievements?.playedIn1990s || false,
-    minPlayers: 5
-  },
-  {
-    id: 'playedIn2000s',
-    label: 'Played in the 2000s',
-    test: (p: Player) => p.achievements?.playedIn2000s || false,
-    minPlayers: 5
-  },
-  {
-    id: 'playedIn2010s',
-    label: 'Played in the 2010s',
-    test: (p: Player) => p.achievements?.playedIn2010s || false,
-    minPlayers: 5
-  },
-  {
-    id: 'playedIn2020s',
-    label: 'Played in the 2020s',
-    test: (p: Player) => p.achievements?.playedIn2020s || false,
-    minPlayers: 5
-  },
-  {
-    id: 'playedIn2030s',
-    label: 'Played in the 2030s',
-    test: (p: Player) => p.achievements?.playedIn2030s || false,
-    minPlayers: 5
-  },
-  // Debut decade achievements (not season-aligned)
-  {
-    id: 'debutedIn1970s',
-    label: 'Debuted in the 1970s',
-    test: (p: Player) => p.achievements?.debutedIn1970s || false,
-    minPlayers: 5
-  },
-  {
-    id: 'debutedIn1980s',
-    label: 'Debuted in the 1980s',
-    test: (p: Player) => p.achievements?.debutedIn1980s || false,
-    minPlayers: 5
-  },
-  {
-    id: 'debutedIn1990s',
-    label: 'Debuted in the 1990s',
-    test: (p: Player) => p.achievements?.debutedIn1990s || false,
-    minPlayers: 5
-  },
-  {
-    id: 'debutedIn2000s',
-    label: 'Debuted in the 2000s',
-    test: (p: Player) => p.achievements?.debutedIn2000s || false,
-    minPlayers: 5
-  },
-  {
-    id: 'debutedIn2010s',
-    label: 'Debuted in the 2010s',
-    test: (p: Player) => p.achievements?.debutedIn2010s || false,
-    minPlayers: 5
-  },
-  {
-    id: 'debutedIn2020s',
-    label: 'Debuted in the 2020s',
-    test: (p: Player) => p.achievements?.debutedIn2020s || false,
-    minPlayers: 5
-  },
-  {
-    id: 'debutedIn2030s',
-    label: 'Debuted in the 2030s',
-    test: (p: Player) => p.achievements?.debutedIn2030s || false,
-    minPlayers: 5
-  },
-  // Retirement decade achievements (not season-aligned)
-  {
-    id: 'retiredIn1970s',
-    label: 'Retired in the 1970s',
-    test: (p: Player) => p.achievements?.retiredIn1970s || false,
-    minPlayers: 5
-  },
-  {
-    id: 'retiredIn1980s',
-    label: 'Retired in the 1980s',
-    test: (p: Player) => p.achievements?.retiredIn1980s || false,
-    minPlayers: 5
-  },
-  {
-    id: 'retiredIn1990s',
-    label: 'Retired in the 1990s',
-    test: (p: Player) => p.achievements?.retiredIn1990s || false,
-    minPlayers: 5
-  },
-  {
-    id: 'retiredIn2000s',
-    label: 'Retired in the 2000s',
-    test: (p: Player) => p.achievements?.retiredIn2000s || false,
-    minPlayers: 5
-  },
-  {
-    id: 'retiredIn2010s',
-    label: 'Retired in the 2010s',
-    test: (p: Player) => p.achievements?.retiredIn2010s || false,
-    minPlayers: 5
-  },
-  {
-    id: 'retiredIn2020s',
-    label: 'Retired in the 2020s',
-    test: (p: Player) => p.achievements?.retiredIn2020s || false,
-    minPlayers: 5
-  },
-  {
-    id: 'retiredIn2030s',
-    label: 'Retired in the 2030s',
-    test: (p: Player) => p.achievements?.retiredIn2030s || false,
-    minPlayers: 5
-  },
-  // Multi-decade achievements (not season-aligned)
-  {
-    id: 'playedIn1990sAnd2000s',
-    label: 'Played in both 1990s & 2000s',
-    test: (p: Player) => p.achievements?.playedIn1990sAnd2000s || false,
-    minPlayers: 5
-  },
-  {
-    id: 'playedInThreeDecades',
-    label: 'Played in 3+ Decades',
-    test: (p: Player) => p.achievements?.playedInThreeDecades || false,
-    minPlayers: 5
-  },
   // Note: Single-season awards removed from career achievements
   // Now implemented as season-specific achievements with proper harmonization
 ];
@@ -503,8 +361,124 @@ export const FOOTBALL_ACHIEVEMENTS: Achievement[] = [
   // wonMVP, wonDPOY, wonROY
 ];
 
-// Get achievements based on sport
+// Build dynamic decade achievements based on league year range
+function buildDecadeAchievements(
+  leagueYears: { minSeason: number; maxSeason: number }, 
+  sport: 'basketball' | 'football' | 'hockey' | 'baseball'
+): Achievement[] {
+  // Handle edge cases - only exclude invalid data where minSeason > maxSeason
+  if (!leagueYears || leagueYears.minSeason > leagueYears.maxSeason) {
+    return [];
+  }
+
+  const achievements: Achievement[] = [];
+  
+  // Calculate decade range
+  const minDecade = Math.floor(leagueYears.minSeason / 10) * 10;
+  const maxDecade = Math.floor(leagueYears.maxSeason / 10) * 10;
+  
+  // Generate achievements for each decade in range
+  for (let decade = minDecade; decade <= maxDecade; decade += 10) {
+    const decadeStr = decade.toString();
+    
+    // "Played in the {YYYY}s" achievement
+    achievements.push({
+      id: `playedIn${decadeStr}s`,
+      label: `Played in the ${decadeStr}s`,
+      test: (player: Player) => player.decadesPlayed?.has(decade) || false,
+      minPlayers: 5
+    });
+    
+    // "Debuted in the {YYYY}s" achievement  
+    achievements.push({
+      id: `debutedIn${decadeStr}s`,
+      label: `Debuted in the ${decadeStr}s`,
+      test: (player: Player) => player.debutDecade === decade,
+      minPlayers: 5
+    });
+    
+    // "Retired in the {YYYY}s" achievement
+    achievements.push({
+      id: `retiredIn${decadeStr}s`,
+      label: `Retired in the ${decadeStr}s`,
+      test: (player: Player) => player.retiredDecade === decade,
+      minPlayers: 5
+    });
+  }
+  
+  return achievements;
+}
+
+// Get all achievements combining static and dynamic decade achievements
+export function getAllAchievements(
+  sport?: 'basketball' | 'football' | 'hockey' | 'baseball', 
+  seasonIndex?: SeasonIndex,
+  leagueYears?: { minSeason: number; maxSeason: number }
+): Achievement[] {
+  const common = COMMON_ACHIEVEMENTS;
+  let achievements: Achievement[] = [];
+  
+  if (sport === 'football') {
+    // Exclude draftedTeen for football
+    const footballCommon = common.filter(a => a.id !== 'draftedTeen');
+    achievements = [...footballCommon, ...FOOTBALL_ACHIEVEMENTS];
+  } else if (sport === 'hockey') {
+    achievements = [...common, ...HOCKEY_ACHIEVEMENTS];
+  } else if (sport === 'baseball') {
+    achievements = [...common, ...BASEBALL_ACHIEVEMENTS];
+  } else {
+    // Basketball - remove hardcoded decade achievements from static list
+    const basketballWithoutDecades = BASKETBALL_ACHIEVEMENTS.filter(a => 
+      !a.id.includes('playedIn') && !a.id.includes('debutedIn') && !a.id.includes('retiredIn') && 
+      !a.id.includes('playedInThreeDecades') && !a.id.includes('playedIn1990sAnd2000s')
+    );
+    achievements = [...common, ...basketballWithoutDecades];
+  }
+  
+  // Add dynamic decade achievements if league years provided
+  if (leagueYears && sport) {
+    const decadeAchievements = buildDecadeAchievements(leagueYears, sport);
+    achievements.push(...decadeAchievements);
+    
+    // Add multi-decade achievements for any sport if applicable
+    const minDecade = Math.floor(leagueYears.minSeason / 10) * 10;
+    const maxDecade = Math.floor(leagueYears.maxSeason / 10) * 10;
+    const decadeCount = (maxDecade - minDecade) / 10 + 1;
+    
+    if (decadeCount >= 3) {
+      achievements.push({
+        id: 'playedInThreeDecades',
+        label: 'Played in 3+ Decades',
+        test: (player: Player) => (player.decadesPlayed?.size || 0) >= 3,
+        minPlayers: 5
+      });
+    }
+    
+    // Add specific multi-decade combinations if relevant decades exist
+    if (minDecade <= 1990 && maxDecade >= 2000) {
+      achievements.push({
+        id: 'playedIn1990sAnd2000s',
+        label: 'Played in both 1990s & 2000s',
+        test: (player: Player) => (player.decadesPlayed?.has(1990) && player.decadesPlayed?.has(2000)) || false,
+        minPlayers: 5
+      });
+    }
+  }
+  
+  // Add season-specific achievements if season index is available
+  if (seasonIndex) {
+    const seasonAchievements = createSeasonAchievementTests(seasonIndex, sport);
+    achievements.push(...seasonAchievements);
+  }
+  
+  return achievements;
+}
+
+// Get achievements based on sport (legacy function for backward compatibility)
+// For new code, prefer getAllAchievements with leagueYears parameter
 export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | 'baseball', seasonIndex?: SeasonIndex): Achievement[] {
+  // Legacy function that includes all hardcoded achievements
+  // For full dynamic functionality, use getAllAchievements with leagueYears
   const common = COMMON_ACHIEVEMENTS;
   
   if (sport === 'football') {
@@ -534,7 +508,7 @@ export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | '
     }
     return baseballAchievements;
   } else {
-    // Basketball: add season-specific achievements
+    // Basketball: Add static achievements only (no dynamic decades in legacy function)
     const basketballAchievements = [...common, ...BASKETBALL_ACHIEVEMENTS];
     if (seasonIndex) {
       const seasonAchievements = createSeasonAchievementTests(seasonIndex, 'basketball');
@@ -552,6 +526,43 @@ export const SEASON_ALIGNED_ACHIEVEMENTS = new Set([
 // Check if a player meets a specific achievement criteria
 export function playerMeetsAchievement(player: Player, achievementId: string, seasonIndex?: SeasonIndex): boolean {
   // Debug logging removed for performance - was causing thousands of logs in hot paths
+
+  // Check if it's a dynamic decade achievement first
+  if (achievementId.includes('playedIn') && achievementId.endsWith('s')) {
+    // Extract decade from achievement ID (e.g., "playedIn1990s" -> 1990)
+    const decadeMatch = achievementId.match(/playedIn(\d{4})s/);
+    if (decadeMatch) {
+      const decade = parseInt(decadeMatch[1]);
+      return player.decadesPlayed?.has(decade) || false;
+    }
+  }
+  
+  if (achievementId.includes('debutedIn') && achievementId.endsWith('s')) {
+    // Extract decade from achievement ID (e.g., "debutedIn1990s" -> 1990)
+    const decadeMatch = achievementId.match(/debutedIn(\d{4})s/);
+    if (decadeMatch) {
+      const decade = parseInt(decadeMatch[1]);
+      return player.debutDecade === decade;
+    }
+  }
+  
+  if (achievementId.includes('retiredIn') && achievementId.endsWith('s')) {
+    // Extract decade from achievement ID (e.g., "retiredIn1990s" -> 1990)
+    const decadeMatch = achievementId.match(/retiredIn(\d{4})s/);
+    if (decadeMatch) {
+      const decade = parseInt(decadeMatch[1]);
+      return player.retiredDecade === decade;
+    }
+  }
+  
+  // Handle special multi-decade achievements
+  if (achievementId === 'playedInThreeDecades') {
+    return (player.decadesPlayed?.size || 0) >= 3;
+  }
+  
+  if (achievementId === 'playedIn1990sAnd2000s') {
+    return (player.decadesPlayed?.has(1990) && player.decadesPlayed?.has(2000)) || false;
+  }
 
   // First, check if it's a statistical leader achievement that needs season index
   const statisticalLeaders = ['PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader'];
