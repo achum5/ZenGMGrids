@@ -286,20 +286,17 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
           const decade = parseInt(decadeMatch[1]);
           const yearsDiff = currentYear - decade;
           
-          // Phase out achievements older than 50 years (drastically reduce weight)
-          if (yearsDiff > 50) {
-            weight = 0.1;
-            console.log(`📅 Decade ${decade}s is ${yearsDiff} years old, reducing weight to ${weight}`);
-          } 
-          // Recent decades (within 30 years) get boosted weight
-          else if (yearsDiff <= 30) {
-            weight = 3 - (yearsDiff / 15); // Weight 3.0 for current decade, down to 1.0 for 30 years ago
-            console.log(`📅 Decade ${decade}s is ${yearsDiff} years old, boosting weight to ${weight.toFixed(2)}`);
+          // Make decades 40+ years ago VERY RARE (user request: 2020s and earlier in 2059)
+          if (yearsDiff >= 40) {
+            weight = 0.05; // Extremely rare - 5% chance vs normal
           }
-          // Middle decades (30-50 years) get normal weight
+          // Recent decades (within 20 years) get maximum boost
+          else if (yearsDiff <= 20) {
+            weight = 5 - (yearsDiff / 8); // Weight 5.0 for current decade, down to 2.5 for 20 years ago
+          }
+          // Somewhat recent decades (20-40 years) get moderate weight
           else {
-            weight = 1;
-            console.log(`📅 Decade ${decade}s is ${yearsDiff} years old, normal weight ${weight}`);
+            weight = 1.5 - ((yearsDiff - 20) / 40); // 1.5 down to 1.0 for 20-40 years ago
           }
         }
       }
@@ -374,10 +371,12 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
           const decade = parseInt(decadeMatch[1]);
           const yearsDiff = currentYear - decade;
           
-          if (yearsDiff > 50) {
-            weight = 0.1;
-          } else if (yearsDiff <= 30) {
-            weight = 3 - (yearsDiff / 15);
+          if (yearsDiff >= 40) {
+            weight = 0.05; // Extremely rare for 40+ year old decades
+          } else if (yearsDiff <= 20) {
+            weight = 5 - (yearsDiff / 8); // Max boost for recent decades
+          } else {
+            weight = 1.5 - ((yearsDiff - 20) / 40); // Moderate for 20-40 years ago
           }
         }
       }
