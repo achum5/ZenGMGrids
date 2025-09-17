@@ -601,6 +601,179 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     short: 'Champion',
     verbTeam: 'won a championship',
     verbGeneric: 'won a championship'
+  },
+
+  // Baseball GM Season Statistical Achievements (28 new achievements)
+  // Hitters (15 achievements)
+  BBSeason40HR: {
+    label: '40+ HR (Season)',
+    short: '40+ HR',
+    verbTeam: 'hit 40+ home runs in a season',
+    verbGeneric: 'hit 40+ home runs in a season'
+  },
+  BBSeason200Hits: {
+    label: '200+ Hits (Season)',
+    short: '200+ Hits',
+    verbTeam: 'recorded 200+ hits in a season',
+    verbGeneric: 'recorded 200+ hits in a season'
+  },
+  BBSeason100RBI: {
+    label: '100+ RBI (Season)',
+    short: '100+ RBI',
+    verbTeam: 'drove in 100+ runs in a season',
+    verbGeneric: 'drove in 100+ runs in a season'
+  },
+  BBSeason100Runs: {
+    label: '100+ Runs (Season)',
+    short: '100+ Runs',
+    verbTeam: 'scored 100+ runs in a season',
+    verbGeneric: 'scored 100+ runs in a season'
+  },
+  BBSeason50SB: {
+    label: '50+ SB (Season)',
+    short: '50+ SB',
+    verbTeam: 'stole 50+ bases in a season',
+    verbGeneric: 'stole 50+ bases in a season'
+  },
+  BBSeason100BB: {
+    label: '100+ BB (Season)',
+    short: '100+ BB',
+    verbTeam: 'drew 100+ walks in a season',
+    verbGeneric: 'drew 100+ walks in a season'
+  },
+  BBSeason300TB: {
+    label: '300+ TB (Season)',
+    short: '300+ TB',
+    verbTeam: 'recorded 300+ total bases in a season',
+    verbGeneric: 'recorded 300+ total bases in a season'
+  },
+  BBSeason60XBH: {
+    label: '60+ XBH (Season)',
+    short: '60+ XBH',
+    verbTeam: 'recorded 60+ extra base hits in a season',
+    verbGeneric: 'recorded 60+ extra base hits in a season'
+  },
+  BBSeason300Avg500PA: {
+    label: '.300+ AVG on ≥500 PA (Season)',
+    short: '.300+ AVG',
+    verbTeam: 'batted .300+ with 500+ plate appearances in a season',
+    verbGeneric: 'batted .300+ with 500+ plate appearances in a season'
+  },
+  BBSeason400OBP500PA: {
+    label: '.400+ OBP on ≥500 PA (Season)',
+    short: '.400+ OBP',
+    verbTeam: 'had a .400+ OBP with 500+ plate appearances in a season',
+    verbGeneric: 'had a .400+ OBP with 500+ plate appearances in a season'
+  },
+  BBSeason550SLG500PA: {
+    label: '.550+ SLG on ≥500 PA (Season)',
+    short: '.550+ SLG',
+    verbTeam: 'had a .550+ SLG with 500+ plate appearances in a season',
+    verbGeneric: 'had a .550+ SLG with 500+ plate appearances in a season'
+  },
+  BBSeason900OPS500PA: {
+    label: '.900+ OPS on ≥500 PA (Season)',
+    short: '.900+ OPS',
+    verbTeam: 'had a .900+ OPS with 500+ plate appearances in a season',
+    verbGeneric: 'had a .900+ OPS with 500+ plate appearances in a season'
+  },
+  BBSeason10Triples: {
+    label: '10+ Triples (Season)',
+    short: '10+ 3B',
+    verbTeam: 'hit 10+ triples in a season',
+    verbGeneric: 'hit 10+ triples in a season'
+  },
+  BBSeason20HBP: {
+    label: '20+ HBP (Season)',
+    short: '20+ HBP',
+    verbTeam: 'was hit by 20+ pitches in a season',
+    verbGeneric: 'was hit by 20+ pitches in a season'
+  },
+  BBSeason25_25Club: {
+    label: '25/25 Club HR/SB (Season)',
+    short: '25/25 Club',
+    verbTeam: 'joined the 25/25 club (HR/SB) in a season',
+    verbGeneric: 'joined the 25/25 club (HR/SB) in a season'
+  },
+  // Pitchers (12 achievements)
+  BBSeason200SO: {
+    label: '200+ SO (Season)',
+    short: '200+ SO',
+    verbTeam: 'struck out 200+ batters in a season',
+    verbGeneric: 'struck out 200+ batters in a season'
+  },
+  BBSeason250ERA162IP: {
+    label: '≤2.50 ERA on ≥162 IP (Season)',
+    short: '≤2.50 ERA',
+    verbTeam: 'had a 2.50 or lower ERA with 162+ innings in a season',
+    verbGeneric: 'had a 2.50 or lower ERA with 162+ innings in a season'
+  },
+  BBSeason105WHIP162IP: {
+    label: '≤1.05 WHIP on ≥162 IP (Season)',
+    short: '≤1.05 WHIP',
+    verbTeam: 'had a 1.05 or lower WHIP with 162+ innings in a season',
+    verbGeneric: 'had a 1.05 or lower WHIP with 162+ innings in a season'
+  },
+  BBSeason20Wins: {
+    label: '20+ Wins (Season)',
+    short: '20+ Wins',
+    verbTeam: 'won 20+ games in a season',
+    verbGeneric: 'won 20+ games in a season'
+  },
+  BBSeason40Saves: {
+    label: '40+ Saves (Season)',
+    short: '40+ Saves',
+    verbTeam: 'recorded 40+ saves in a season',
+    verbGeneric: 'recorded 40+ saves in a season'
+  },
+  BBSeason3CG: {
+    label: '3+ CG (Season)',
+    short: '3+ CG',
+    verbTeam: 'threw 3+ complete games in a season',
+    verbGeneric: 'threw 3+ complete games in a season'
+  },
+  BBSeason4SHO: {
+    label: '4+ SHO (Season)',
+    short: '4+ SHO',
+    verbTeam: 'threw 4+ shutouts in a season',
+    verbGeneric: 'threw 4+ shutouts in a season'
+  },
+  BBSeason220IP: {
+    label: '220+ IP (Season)',
+    short: '220+ IP',
+    verbTeam: 'pitched 220+ innings in a season',
+    verbGeneric: 'pitched 220+ innings in a season'
+  },
+  BBSeasonKBB4_162IP: {
+    label: 'K/BB ≥ 4.0 on ≥162 IP (Season)',
+    short: 'K/BB ≥ 4.0',
+    verbTeam: 'had a K/BB ratio of 4.0+ with 162+ innings in a season',
+    verbGeneric: 'had a K/BB ratio of 4.0+ with 162+ innings in a season'
+  },
+  BBSeasonK9_10_100IP: {
+    label: 'K/9 ≥ 10.0 on ≥100 IP (Season)',
+    short: 'K/9 ≥ 10.0',
+    verbTeam: 'had 10.0+ strikeouts per 9 innings with 100+ innings in a season',
+    verbGeneric: 'had 10.0+ strikeouts per 9 innings with 100+ innings in a season'
+  },
+  BBSeason30GS: {
+    label: '30+ GS (Season)',
+    short: '30+ GS',
+    verbTeam: 'made 30+ starts in a season',
+    verbGeneric: 'made 30+ starts in a season'
+  },
+  BBSeason50APP: {
+    label: '50+ APP (Season)',
+    short: '50+ APP',
+    verbTeam: 'made 50+ appearances in a season',
+    verbGeneric: 'made 50+ appearances in a season'
+  },
+  // Two-Way (1 achievement)
+  BBSeasonTwoWay20HR100IP: {
+    label: 'Two-Way 20+ HR & 100+ IP (Season)',
+    short: 'Two-Way Season',
+    verbTeam: 'had a two-way season with 20+ HR & 100+ IP',
+    verbGeneric: 'had a two-way season with 20+ HR & 100+ IP'
   }
 };
 
