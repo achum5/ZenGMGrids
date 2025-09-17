@@ -37,6 +37,7 @@ export type SeasonAchievementId =
   | 'FBAllRookie'
   | 'FBAllLeague'
   | 'FBFinalsMVP'
+  | 'FBSeason4kPassYds'
   // Hockey achievements
   | 'HKAllStar'
   | 'HKMVP'
@@ -740,6 +741,53 @@ export function buildSeasonIndex(
     // Debug logging removed for performance
   }
   
+  // Calculate Football GM season achievements (FBSeason4kPassYds)
+  if (sport === 'football') {
+    let footballEntriesAdded = 0;
+    
+    // Get all seasons from player stats
+    const allSeasons = new Set<number>();
+    for (const player of players) {
+      if (player.stats) {
+        for (const stat of player.stats) {
+          if (stat.season && !stat.playoffs) {
+            allSeasons.add(stat.season);
+          }
+        }
+      }
+    }
+    
+    // Calculate achievements for each season
+    for (const season of Array.from(allSeasons)) {
+      // Process each player's stats for this season
+      for (const player of players) {
+        if (!player.stats) continue;
+        
+        // Get all regular season stats for this season
+        const seasonStats = player.stats.filter(stat => 
+          stat.season === season && !stat.playoffs && (stat.gp || 0) > 0
+        );
+        
+        for (const stat of seasonStats) {
+          const pssYds = (stat as any).pssYds || 0;
+          const tid = stat.tid;
+          
+          // Check for 4,000+ passing yards achievement
+          if (pssYds >= 4000) {
+            if (!seasonIndex[season]) seasonIndex[season] = {};
+            if (!seasonIndex[season][tid]) seasonIndex[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
+            if (!seasonIndex[season][tid]['FBSeason4kPassYds']) seasonIndex[season][tid]['FBSeason4kPassYds'] = new Set();
+            
+            seasonIndex[season][tid]['FBSeason4kPassYds'].add(player.pid);
+            footballEntriesAdded++;
+          }
+        }
+      }
+    }
+    
+    // Debug logging removed for performance
+  }
+  
   // Log statistics
   const seasons = Object.keys(seasonIndex).length;
   const achievements = Object.values(seasonIndex).flatMap(season => 
@@ -970,6 +1018,12 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
   {
     id: 'FBFinalsMVP',
     label: 'Finals MVP',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'FBSeason4kPassYds',
+    label: '4,000+ Passing Yards (Season)',
     isSeasonSpecific: true,
     minPlayers: 3
   },

@@ -318,6 +318,18 @@ export const FOOTBALL_ACHIEVEMENTS: Achievement[] = [
     test: (p: Player) => p.achievements?.career300PassTDs || false,
     minPlayers: 5
   },
+  {
+    id: 'FBCareer50kPassYds',
+    label: '50,000+ Career Passing Yards',
+    test: (p: Player) => {
+      if (!p.stats) return false;
+      const totalPassingYards = p.stats
+        .filter(stat => !stat.playoffs && (stat.gp || 0) > 0)
+        .reduce((sum, stat) => sum + ((stat as any).pssYds || 0), 0);
+      return totalPassingYards >= 50000;
+    },
+    minPlayers: 3
+  },
   // Rushing achievements
   {
     id: 'career12kRushYds',
