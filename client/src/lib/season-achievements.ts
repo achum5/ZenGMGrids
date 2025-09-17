@@ -119,7 +119,12 @@ export type SeasonAchievementId =
   | 'SFMVP'; // Requires special team resolution logic
 
 // Type for the season index - maps season -> teamId -> achievementId -> Set of player IDs
-export type SeasonIndex = Record<number, Record<number, Record<SeasonAchievementId, Set<number>>>>;
+export type SeasonIndex = {
+  // Main achievement data: season -> teamId -> achievementId -> Set of player IDs
+  achievements: Record<number, Record<number, Record<SeasonAchievementId, Set<number>>>>;
+  // Championship team mapping: season -> championTeamId (fixes traded player championship attribution)
+  championTidBySeason: Record<number, number>;
+};
 
 import type { Player } from "@/types/bbgm";
 
