@@ -62,6 +62,26 @@ export type SeasonAchievementId =
   | 'HKAllLeague'
   | 'HKAllStarMVP'
   | 'HKAssistsLeader'
+  // Hockey GM season statistical achievements (19 new achievements)
+  | 'HKSeason40Goals'
+  | 'HKSeason60Assists'
+  | 'HKSeason90Points'
+  | 'HKSeason25Plus'
+  | 'HKSeason250Shots'
+  | 'HKSeason150Hits'
+  | 'HKSeason100Blocks'
+  | 'HKSeason60Takeaways'
+  | 'HKSeason20PowerPlay'
+  | 'HKSeason3SHGoals'
+  | 'HKSeason7GWGoals'
+  | 'HKSeason55FaceoffPct'
+  | 'HKSeason22TOI'
+  | 'HKSeason70PIM'
+  | 'HKSeason920SavePct'
+  | 'HKSeason260GAA'
+  | 'HKSeason6Shutouts'
+  | 'HKSeason2000Saves'
+  | 'HKSeason60Starts'
   // Baseball achievements
   | 'BBAllStar'
   | 'BBMVP'
@@ -885,6 +905,186 @@ export function buildSeasonIndex(
     // Debug logging removed for performance
   }
   
+  // Calculate Hockey GM season achievements (HKSeason achievements)
+  if (sport === 'hockey') {
+    let hockeyEntriesAdded = 0;
+    
+    // Get all seasons from player stats
+    const allSeasons = new Set<number>();
+    for (const player of players) {
+      if (player.stats) {
+        for (const stat of player.stats) {
+          if (stat.season && !stat.playoffs) {
+            allSeasons.add(stat.season);
+          }
+        }
+      }
+    }
+    
+    // Calculate achievements for each season
+    for (const season of Array.from(allSeasons)) {
+      // Process each player's stats for this season
+      for (const player of players) {
+        if (!player.stats) continue;
+        
+        // Get all regular season stats for this season, excluding TOT rows
+        const seasonStats = player.stats.filter(stat => 
+          stat.season === season && !stat.playoffs && (stat.gp || 0) > 0 && stat.tid !== -1
+        );
+        
+        for (const stat of seasonStats) {
+          const tid = stat.tid;
+          
+          // Extract all relevant Hockey GM stats from the season stat
+          const evG = (stat as any).evG || 0;
+          const ppG = (stat as any).ppG || 0;
+          const shG = (stat as any).shG || 0;
+          const evA = (stat as any).evA || 0;
+          const ppA = (stat as any).ppA || 0;
+          const shA = (stat as any).shA || 0;
+          const pm = (stat as any).pm || 0;
+          const s = (stat as any).s || 0;  // shots
+          const hit = (stat as any).hit || 0;
+          const blk = (stat as any).blk || 0;
+          const tk = (stat as any).tk || 0;  // takeaways
+          const gwG = (stat as any).gwG || 0;  // game-winning goals
+          const fow = (stat as any).fow || 0;  // faceoffs won
+          const fol = (stat as any).fol || 0;  // faceoffs lost
+          const min = (stat as any).min || 0;  // minutes
+          const pim = (stat as any).pim || 0;  // penalty minutes
+          const gp = stat.gp || 0;
+          
+          // Goalie stats
+          const sv = (stat as any).sv || 0;  // saves
+          const ga = (stat as any).ga || 0;  // goals against
+          const so = (stat as any).so || 0;  // shutouts
+          const gs = (stat as any).gs || 0;  // games started
+          
+          // Computed values
+          const goals = evG + ppG + shG;
+          const assists = evA + ppA + shA;
+          const points = goals + assists;
+          const powerPlayPoints = ppG + ppA;
+          const faceoffTotal = fow + fol;
+          const faceoffPct = faceoffTotal > 0 ? fow / faceoffTotal : 0;
+          const toiPerGame = gp > 0 ? min / gp : 0;
+          const savesTotal = sv + ga;
+          const savePct = savesTotal > 0 ? sv / savesTotal : 0;
+          const gaaRate = min > 0 ? (ga / (min / 60)) : 0;
+          
+          // Helper function to add achievement
+          const addAchievement = (achievementId: SeasonAchievementId) => {
+            if (!seasonIndex[season]) seasonIndex[season] = {};
+            if (!seasonIndex[season][tid]) seasonIndex[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
+            if (!seasonIndex[season][tid][achievementId]) seasonIndex[season][tid][achievementId] = new Set();
+            
+            seasonIndex[season][tid][achievementId].add(player.pid);
+            hockeyEntriesAdded++;
+          };
+          
+          // Skater achievements
+          // Check for 40+ goals achievement
+          if (goals >= 40) {
+            addAchievement('HKSeason40Goals');
+          }
+          
+          // Check for 60+ assists achievement
+          if (assists >= 60) {
+            addAchievement('HKSeason60Assists');
+          }
+          
+          // Check for 90+ points achievement
+          if (points >= 90) {
+            addAchievement('HKSeason90Points');
+          }
+          
+          // Check for +25 plus/minus achievement
+          if (pm >= 25) {
+            addAchievement('HKSeason25Plus');
+          }
+          
+          // Check for 250+ shots achievement
+          if (s >= 250) {
+            addAchievement('HKSeason250Shots');
+          }
+          
+          // Check for 150+ hits achievement
+          if (hit >= 150) {
+            addAchievement('HKSeason150Hits');
+          }
+          
+          // Check for 100+ blocks achievement
+          if (blk >= 100) {
+            addAchievement('HKSeason100Blocks');
+          }
+          
+          // Check for 60+ takeaways achievement
+          if (tk >= 60) {
+            addAchievement('HKSeason60Takeaways');
+          }
+          
+          // Check for 20+ power-play points achievement
+          if (powerPlayPoints >= 20) {
+            addAchievement('HKSeason20PowerPlay');
+          }
+          
+          // Check for 3+ short-handed goals achievement
+          if (shG >= 3) {
+            addAchievement('HKSeason3SHGoals');
+          }
+          
+          // Check for 7+ game-winning goals achievement
+          if (gwG >= 7) {
+            addAchievement('HKSeason7GWGoals');
+          }
+          
+          // Check for 55%+ faceoff win rate achievement (with qualifier)
+          if (faceoffTotal >= 600 && faceoffPct >= 0.55) {
+            addAchievement('HKSeason55FaceoffPct');
+          }
+          
+          // Check for 22:00+ TOI per game achievement
+          if (toiPerGame >= 22) {
+            addAchievement('HKSeason22TOI');
+          }
+          
+          // Check for 70+ PIM achievement
+          if (pim >= 70) {
+            addAchievement('HKSeason70PIM');
+          }
+          
+          // Goalie achievements (with qualifiers)
+          // Check for .920+ save percentage achievement (with qualifier)
+          if (min >= 1500 && savePct >= 0.920) {
+            addAchievement('HKSeason920SavePct');
+          }
+          
+          // Check for ≤2.60 GAA achievement (with qualifier)
+          if (min >= 1500 && gaaRate <= 2.60) {
+            addAchievement('HKSeason260GAA');
+          }
+          
+          // Check for 6+ shutouts achievement
+          if (so >= 6) {
+            addAchievement('HKSeason6Shutouts');
+          }
+          
+          // Check for 2000+ saves achievement
+          if (sv >= 2000) {
+            addAchievement('HKSeason2000Saves');
+          }
+          
+          // Check for 60+ starts achievement
+          if (gs >= 60) {
+            addAchievement('HKSeason60Starts');
+          }
+        }
+      }
+    }
+    
+    // Debug logging removed for performance
+  }
+  
   // Log statistics
   const seasons = Object.keys(seasonIndex).length;
   const achievements = Object.values(seasonIndex).flatMap(season => 
@@ -1261,6 +1461,121 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
   {
     id: 'HKAssistsLeader',
     label: 'Assists Leader',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  // Hockey GM Season Statistical Achievements (19 new achievements)
+  {
+    id: 'HKSeason40Goals',
+    label: '40+ Goals (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKSeason60Assists',
+    label: '60+ Assists (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKSeason90Points',
+    label: '90+ Points (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKSeason25Plus',
+    label: '+25 Plus/Minus (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKSeason250Shots',
+    label: '250+ Shots (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKSeason150Hits',
+    label: '150+ Hits (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKSeason100Blocks',
+    label: '100+ Blocks (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKSeason60Takeaways',
+    label: '60+ Takeaways (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKSeason20PowerPlay',
+    label: '20+ Power-Play Points (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKSeason3SHGoals',
+    label: '3+ Short-Handed Goals (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKSeason7GWGoals',
+    label: '7+ Game-Winning Goals (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKSeason55FaceoffPct',
+    label: '55%+ Faceoff Win Rate (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKSeason22TOI',
+    label: '22:00+ TOI per Game (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKSeason70PIM',
+    label: '70+ PIM (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKSeason920SavePct',
+    label: '.920+ Save Percentage (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKSeason260GAA',
+    label: '≤2.60 GAA (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKSeason6Shutouts',
+    label: '6+ Shutouts (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKSeason2000Saves',
+    label: '2000+ Saves (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKSeason60Starts',
+    label: '60+ Starts (Season)',
     isSeasonSpecific: true,
     minPlayers: 3
   },
