@@ -187,8 +187,8 @@ function createSeasonAchievementTests(seasonIndex?: SeasonIndex, sport: 'basketb
         // For statistical leaders, check if player appears in any season/team for this achievement
         if (!seasonIndex) return false;
         
-        for (const seasonStr of Object.keys(seasonIndex.achievements)) {
-          const seasonData = seasonIndex.achievements[parseInt(seasonStr)];
+        for (const seasonStr of Object.keys(seasonIndex)) {
+          const seasonData = seasonIndex[parseInt(seasonStr)];
           for (const teamData of Object.values(seasonData)) {
             if (teamData[seasonAch.id as keyof typeof teamData]?.has(player.pid)) {
               return true;
@@ -584,8 +584,8 @@ export function playerMeetsAchievement(player: Player, achievementId: string, se
       return false;
     }
     
-    for (const seasonStr of Object.keys(seasonIndex.achievements)) {
-      const seasonData = seasonIndex.achievements[parseInt(seasonStr)];
+    for (const seasonStr of Object.keys(seasonIndex)) {
+      const seasonData = seasonIndex[parseInt(seasonStr)];
       for (const teamData of Object.values(seasonData)) {
         if (teamData[achievementId as keyof typeof teamData]?.has(player.pid)) {
           return true;
@@ -736,7 +736,7 @@ export function calculatePlayerAchievements(player: Player, allPlayers: Player[]
     achievements[`retiredIn${player.retiredDecade}s`] = true;
   }
   if (player.decadesPlayed) {
-    for (const decade of Array.from(player.decadesPlayed)) {
+    for (const decade of player.decadesPlayed) {
       achievements[`playedIn${decade}s`] = true;
     }
   }
