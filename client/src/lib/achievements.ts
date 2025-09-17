@@ -1,17 +1,5 @@
 import type { Player } from "@/types/bbgm";
-import {
-  SEASON_ACHIEVEMENTS, 
-  type SeasonAchievement, 
-  type SeasonIndex, 
-  type SeasonAchievementId, 
-  getSeasonEligiblePlayers,
-  STAT_SPECS,
-  type ThresholdSpec,
-  makeSeasonKey,
-  parseSeasonKey,
-  resolveDynamicLabel,
-  buildSeasonIndex
-} from './season-achievements';
+import { SEASON_ACHIEVEMENTS, type SeasonAchievement, type SeasonIndex, type SeasonAchievementId, getSeasonEligiblePlayers } from './season-achievements';
 
 export interface Achievement {
   id: string;
@@ -19,93 +7,6 @@ export interface Achievement {
   test: (player: Player) => boolean;
   minPlayers: number;
   isSeasonSpecific?: boolean;
-}
-
-// ==================== DYNAMIC ACHIEVEMENT GENERATION ====================
-
-/**
- * Generate career achievements from threshold specifications
- */
-export function generateCareerAchievements(sport: 'basketball' | 'football' | 'hockey' | 'baseball'): Achievement[] {
-  const specs = STAT_SPECS[sport] || [];
-  const careerSpecs = specs.filter(spec => spec.category === 'career');
-  const achievements: Achievement[] = [];
-  
-  for (const spec of careerSpecs) {
-    for (const threshold of spec.thresholds) {
-      const achievementId = makeSeasonKey(spec.key, threshold);
-      const achievement: Achievement = {
-        id: achievementId,
-        label: spec.labelTemplate.replace('{value}', String(threshold)),
-        minPlayers: spec.minPlayers,
-        test: (player: Player) => {
-          // For career achievements, aggregate across all seasons
-          if (!player.stats) return false;
-          let totalValue = 0;
-          for (const stat of player.stats) {
-            if (!stat.playoffs && (stat.gp || 0) > 0) {
-              const seasonValue = spec.valueExtractor(stat, stat.season);
-              if (seasonValue !== null && seasonValue !== undefined) {
-                totalValue += seasonValue;
-              }
-            }
-          }
-          if (totalValue === 0) return false;
-          
-          switch (spec.comparator) {
-            case '>=': return totalValue >= threshold;
-            case '>': return totalValue > threshold;
-            case '<=': return totalValue <= threshold;
-            case '<': return totalValue < threshold;
-            case '=': return Math.abs(totalValue - threshold) < 0.001;
-            default: return false;
-          }
-        }
-      };
-      achievements.push(achievement);
-    }
-  }
-  
-  return achievements;
-}
-
-
-/**
- * Test dynamic career achievement for a player
- */
-export function testDynamicCareerAchievement(
-  player: Player, 
-  achievementKey: string, 
-  sport: 'basketball' | 'football' | 'hockey' | 'baseball'
-): boolean {
-  const parsed = parseSeasonKey(achievementKey);
-  if (!parsed) return false;
-  
-  const specs = STAT_SPECS[sport] || [];
-  const spec = specs.find(s => s.key === parsed.base && s.category === 'career');
-  if (!spec) return false;
-  
-  // For career achievements, aggregate across all seasons
-  if (!player.stats) return false;
-  let totalValue = 0;
-  for (const stat of player.stats) {
-    if (!stat.playoffs && (stat.gp || 0) > 0) {
-      const seasonValue = spec.valueExtractor(stat, stat.season);
-      if (seasonValue !== null && seasonValue !== undefined) {
-        totalValue += seasonValue;
-      }
-    }
-  }
-  if (totalValue === 0) return false;
-  
-  switch (spec.comparator) {
-    case '>=': return totalValue >= parsed.threshold;
-    case '>': return totalValue > parsed.threshold;
-    case '<=': return totalValue <= parsed.threshold;
-    case '<': return totalValue < parsed.threshold;
-    case '=': return Math.abs(totalValue - parsed.threshold) < 0.001;
-    default: return false;
-  }
 }
 
 // Extended achievement interface for season-specific achievements
@@ -252,65 +153,29 @@ export const BASKETBALL_ACHIEVEMENTS: Achievement[] = [
   // Now implemented as season-specific achievements with proper harmonization
 ];
 
-// Generate dynamic season achievements from STAT_SPECS for grid generation
+// Convert season achievements to regular Achievement format for grid generation
 function createSeasonAchievementTests(seasonIndex?: SeasonIndex, sport: 'basketball' | 'football' | 'hockey' | 'baseball' = 'basketball'): Achievement[] {
-  const achievements: Achievement[] = [];
+  if (!seasonIndex) return [];
   
-  // Get sport-specific threshold specifications
-  const specs = STAT_SPECS[sport] || [];
-  
-  // Generate achievements from individual season and efficiency specs
-  const seasonSpecs = specs.filter(spec => 
-    spec.category === 'individual-season' || 
-    spec.category === 'efficiency' ||
-    spec.category === 'statistical-leader'
-  );
-  
-  for (const spec of seasonSpecs) {
-    for (const threshold of spec.thresholds) {
-      const achievementId = makeSeasonKey(spec.key, threshold);
-      const achievement: Achievement = {
-        id: achievementId,
-        label: spec.labelTemplate.replace('{value}', String(threshold)),
-        minPlayers: spec.minPlayers,
-        isSeasonSpecific: true,
-        test: (player: Player) => {
-          if (!seasonIndex) return false;
-          
-          // Check if player appears in any season/team for this achievement
-          for (const seasonStr of Object.keys(seasonIndex)) {
-            const seasonData = seasonIndex[parseInt(seasonStr)];
-            if (!seasonData) continue;
-            
-            for (const teamData of Object.values(seasonData)) {
-              if (teamData[achievementId]?.has(player.pid)) {
-                return true;
-              }
-            }
-          }
-          return false;
-        }
-      };
-      achievements.push(achievement);
-    }
-  }
-  
-  // Also include legacy static achievements for backward compatibility
-  const legacyAchievements = SEASON_ACHIEVEMENTS.filter(seasonAch => {
+  // Filter achievements by sport
+  const sportFilteredAchievements = SEASON_ACHIEVEMENTS.filter(seasonAch => {
     if (sport === 'basketball') {
+      // Basketball: exclude FB*, HK*, BB* prefixed achievements
       return !seasonAch.id.startsWith('FB') && !seasonAch.id.startsWith('HK') && !seasonAch.id.startsWith('BB');
     } else if (sport === 'football') {
+      // Football: only FB* prefixed achievements, exclude basketball-specific ones
       return seasonAch.id.startsWith('FB');
     } else if (sport === 'hockey') {
+      // Hockey: only HK* prefixed achievements, exclude basketball-specific ones
       return seasonAch.id.startsWith('HK');
     } else if (sport === 'baseball') {
+      // Baseball: only BB* prefixed achievements, exclude basketball-specific ones
       return seasonAch.id.startsWith('BB');
     }
     return false;
   });
   
-  // Convert legacy achievements to Achievement format and add to the list
-  const legacyAchievementTests = legacyAchievements.map(seasonAch => ({
+  return sportFilteredAchievements.map(seasonAch => ({
     id: seasonAch.id,
     label: seasonAch.label,
     isSeasonSpecific: true,
@@ -349,9 +214,6 @@ function createSeasonAchievementTests(seasonIndex?: SeasonIndex, sport: 'basketb
       }) || false;
     }
   }));
-  
-  // Combine dynamic achievements with legacy achievements
-  return [...achievements, ...legacyAchievementTests];
 }
 
 // Baseball-specific achievements  
@@ -790,21 +652,6 @@ export function playerMeetsAchievement(player: Player, achievementId: string, se
       
       return false;
     }) || false;
-  }
-  
-  // Check if it's a dynamic threshold-based achievement (contains @ symbol)
-  if (achievementId.includes('@')) {
-    // Try to determine sport from achievement key pattern
-    let sport: 'basketball' | 'football' | 'hockey' | 'baseball' = 'basketball';
-    if (achievementId.startsWith('FB') || achievementId.includes('Pass') || achievementId.includes('Rush') || achievementId.includes('Rec')) {
-      sport = 'football';
-    } else if (achievementId.startsWith('HK') || achievementId.includes('Goals') || achievementId.includes('Assists') || achievementId.includes('Save')) {
-      sport = 'hockey';
-    } else if (achievementId.startsWith('BB') || achievementId.includes('HR') || achievementId.includes('Hits') || achievementId.includes('RBI')) {
-      sport = 'baseball';
-    }
-    
-    return testDynamicCareerAchievement(player, achievementId, sport);
   }
   
   // For regular career achievements, use the static achievement arrays
