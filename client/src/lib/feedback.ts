@@ -2164,7 +2164,51 @@ function getAchievementNegativeMessage(achievementId: string, player?: Player): 
     return getDraftNegativeMessage(player, achievementId);
   }
   
-  return messages[achievementId] || `did not achieve ${achievementId}`;
+  // Fallback for unknown achievement IDs - try to create a human-readable message
+  const fallbackMessage = messages[achievementId];
+  if (fallbackMessage) {
+    return fallbackMessage;
+  }
+  
+  // Handle age-related achievements
+  if (achievementId.includes('playedAt') && achievementId.includes('Plus')) {
+    const ageMatch = achievementId.match(/playedAt(\d+)Plus/);
+    if (ageMatch) {
+      const age = ageMatch[1];
+      return `never played at age ${age}+`;
+    }
+  }
+  
+  // Handle career milestone achievements
+  if (achievementId.startsWith('career') && player) {
+    // Extract milestone from ID, e.g., "career10kPoints" -> "10,000 points"
+    const milestoneMatch = achievementId.match(/career(\d+)k?(.+)/);
+    if (milestoneMatch) {
+      const [, number, stat] = milestoneMatch;
+      const formattedNumber = achievementId.includes('k') ? `${number},000` : number;
+      const formattedStat = stat.toLowerCase();
+      return `did not reach ${formattedNumber} career ${formattedStat}`;
+    }
+  }
+  
+  // Handle season milestone achievements
+  if (achievementId.startsWith('season') && player) {
+    const seasonMatch = achievementId.match(/season(\d+)(.+)/);
+    if (seasonMatch) {
+      const [, number, stat] = seasonMatch;
+      const formattedStat = stat.toLowerCase();
+      return `never achieved ${number}+ ${formattedStat} in a season`;
+    }
+  }
+  
+  // Final fallback - convert camelCase to readable text
+  const readableId = achievementId
+    .replace(/([A-Z])/g, ' $1') // Add space before capital letters
+    .replace(/^\w/, c => c.toLowerCase()) // Lowercase first letter
+    .replace(/\s+/g, ' ') // Clean up multiple spaces
+    .trim();
+    
+  return `did not ${readableId}`;
 }
 
 
