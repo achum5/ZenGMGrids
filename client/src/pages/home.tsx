@@ -21,6 +21,7 @@ import { parseLeagueFile, parseLeagueUrl, buildSearchIndex } from '@/lib/bbgm-pa
 import { generateTeamsGrid, cellKey } from '@/lib/grid-generator';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
 import { debugAchievementIntersection, calculateCustomCellIntersection } from '@/lib/custom-grid-utils';
+import { calculateOptimizedIntersection, type IntersectionConstraint } from '@/lib/intersection-cache';
 import { getSeasonEligiblePlayers, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 import { debugIndividualAchievements, playerMeetsAchievement } from '@/lib/achievements';
 import { clearHintCache } from '@/lib/hint-generation';
@@ -287,8 +288,31 @@ export default function Home() {
     
     if (!rowConstraint || !colConstraint) return [];
     
-    // Get eligible players for this cell
-    const eligiblePids = intersections[cellKey] || [];
+    // Get eligible players for this cell using dynamic intersection calculation
+    // Convert CatTeam constraints to IntersectionConstraint format
+    const rowIntersectionConstraint: IntersectionConstraint = {
+      type: rowConstraint.type,
+      id: rowConstraint.type === 'team' ? rowConstraint.tid! : rowConstraint.achievementId!,
+      label: rowConstraint.label
+    };
+    
+    const colIntersectionConstraint: IntersectionConstraint = {
+      type: colConstraint.type,
+      id: colConstraint.type === 'team' ? colConstraint.tid! : colConstraint.achievementId!,
+      label: colConstraint.label
+    };
+    
+    // Use the same optimized intersection calculation as custom grid creation
+    const eligiblePidsSet = calculateOptimizedIntersection(
+      rowIntersectionConstraint,
+      colIntersectionConstraint,
+      leagueData.players,
+      leagueData.teams,
+      leagueData.seasonIndex,
+      false // returnCount = false to get the Set of player IDs
+    ) as Set<number>;
+    
+    const eligiblePids = Array.from(eligiblePidsSet);
     const eligiblePlayers = eligiblePids
       .map(pid => byPid[pid])
       .filter(player => player);
