@@ -550,8 +550,12 @@ function buildRandomNumericalAchievements(
   for (const selected of selectedAchievements) {
     const { type, stat, threshold, config: statConfig } = selected;
     
+    // CRITICAL FIX: Generate safe achievement IDs that don't conflict with static season achievements
+    // Use "Random" prefix to clearly distinguish from static achievements
+    const safeId = `Random${type}${threshold}${stat}`;
+    
     const achievement: Achievement = {
-      id: `${type}${threshold}${stat}`,
+      id: safeId,
       label: statConfig.label(threshold),
       minPlayers: 5,
       test: (player: Player) => {
