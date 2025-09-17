@@ -710,9 +710,56 @@ export default function Home() {
     if (cellState?.locked && cellState?.player) {
       setModalPlayer(cellState.player);
       
-      // Get eligible players for this cell to show in modal
-      const eligiblePids = intersections[positionalKey] || [];
-      const eligiblePlayers = leagueData?.players.filter(p => eligiblePids.includes(p.pid)) || [];
+      // Get eligible players for this cell using dynamic intersection calculation
+      let eligiblePlayers: Player[] = [];
+      if (leagueData && rows.length && cols.length) {
+        let rowConstraint: CatTeam | undefined;
+        let colConstraint: CatTeam | undefined;
+        
+        if (positionalKey.includes('|')) {
+          // Traditional format: "rowKey|colKey"
+          const [rowKey, colKey] = positionalKey.split('|');
+          rowConstraint = rows.find(r => r.key === rowKey);
+          colConstraint = cols.find(c => c.key === colKey);
+        } else {
+          // Position-based format: "rowIndex-colIndex"
+          const [rowIndexStr, colIndexStr] = positionalKey.split('-');
+          const rowIndex = parseInt(rowIndexStr, 10);
+          const colIndex = parseInt(colIndexStr, 10);
+          rowConstraint = rows[rowIndex];
+          colConstraint = cols[colIndex];
+        }
+        
+        if (rowConstraint && colConstraint) {
+          // Convert CatTeam constraints to IntersectionConstraint format
+          const rowIntersectionConstraint: IntersectionConstraint = {
+            type: rowConstraint.type,
+            id: rowConstraint.type === 'team' ? rowConstraint.tid! : rowConstraint.achievementId!,
+            label: rowConstraint.label
+          };
+          
+          const colIntersectionConstraint: IntersectionConstraint = {
+            type: colConstraint.type,
+            id: colConstraint.type === 'team' ? colConstraint.tid! : colConstraint.achievementId!,
+            label: colConstraint.label
+          };
+          
+          // Use optimized intersection calculation to get eligible players
+          const eligiblePidsSet = calculateOptimizedIntersection(
+            rowIntersectionConstraint,
+            colIntersectionConstraint,
+            leagueData.players,
+            leagueData.teams,
+            leagueData.seasonIndex,
+            false // returnCount = false to get the Set of player IDs
+          ) as Set<number>;
+          
+          const eligiblePids = Array.from(eligiblePidsSet);
+          eligiblePlayers = eligiblePids
+            .map(pid => byPid[pid])
+            .filter(player => player);
+        }
+      }
       setModalEligiblePlayers(eligiblePlayers);
       
       // Set puzzle seed for consistent rarity calculations
