@@ -162,11 +162,11 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     verbTeam: 'won a championship',
     verbGeneric: 'won a championship'
   },
-  FBPassLeader: {
-    label: 'League Passing Leader',
-    short: 'Pass Leader',
-    verbTeam: 'led the league in passing',
-    verbGeneric: 'led the league in passing'
+  FBSeason4kPassYds: {
+    label: '4,000+ Passing Yards (Season)',
+    short: '4K Pass Yds',
+    verbTeam: 'threw for 4,000+ yards in a season',
+    verbGeneric: 'threw for 4,000+ yards in a season'
   },
   FBRecLeader: {
     label: 'League Receiving Leader',
@@ -459,7 +459,6 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     FBAllLeague: ['First Team All-League', 'Second Team All-League'],
     FBFinalsMVP: ['Finals MVP'],
     FBChampion: ['Won Championship'],
-    FBPassLeader: ['League Passing Leader'],
     FBRecLeader: ['League Receiving Leader'],
     FBRushLeader: ['League Rushing Leader'],
     FBScrimmageLeader: ['League Scrimmage Yards Leader'],
