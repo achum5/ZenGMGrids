@@ -108,145 +108,145 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
   },
   
   // Basketball GM Season Statistical Achievements (24 new achievements)
-  BBSeason30PPG: {
+  Season30PPG: {
     label: '30+ PPG (Season)',
     short: '30+ PPG',
     verbTeam: 'averaged 30+ points per game in a season',
     verbGeneric: 'averaged 30+ points per game in a season'
   },
-  BBSeason2000Points: {
+  Season2000Points: {
     label: '2,000+ Points (Season)',
     short: '2K Points',
     verbTeam: 'scored 2,000+ points in a season',
     verbGeneric: 'scored 2,000+ points in a season'
   },
-  BBSeason300_3PM: {
+  Season300_3PM: {
     label: '300+ 3PM (Season)',
     short: '300+ 3PM',
     verbTeam: 'made 300+ three-pointers in a season',
     verbGeneric: 'made 300+ three-pointers in a season'
   },
-  BBSeason200_3PM: {
+  Season200_3PM: {
     label: '200+ 3PM (Season)',
     short: '200+ 3PM',
     verbTeam: 'made 200+ three-pointers in a season',
     verbGeneric: 'made 200+ three-pointers in a season'
   },
-  BBSeason12RPG: {
+  Season12RPG: {
     label: '12+ RPG (Season)',
     short: '12+ RPG',
     verbTeam: 'averaged 12+ rebounds per game in a season',
     verbGeneric: 'averaged 12+ rebounds per game in a season'
   },
-  BBSeason10APG: {
+  Season10APG: {
     label: '10+ APG (Season)',
     short: '10+ APG',
     verbTeam: 'averaged 10+ assists per game in a season',
     verbGeneric: 'averaged 10+ assists per game in a season'
   },
-  BBSeason800Rebounds: {
+  Season800Rebounds: {
     label: '800+ Rebounds (Season)',
     short: '800+ Rebounds',
     verbTeam: 'grabbed 800+ rebounds in a season',
     verbGeneric: 'grabbed 800+ rebounds in a season'
   },
-  BBSeason700Assists: {
+  Season700Assists: {
     label: '700+ Assists (Season)',
     short: '700+ Assists',
     verbTeam: 'dished 700+ assists in a season',
     verbGeneric: 'dished 700+ assists in a season'
   },
-  BBSeason2SPG: {
+  Season2SPG: {
     label: '2.0+ SPG (Season)',
     short: '2.0+ SPG',
     verbTeam: 'averaged 2.0+ steals per game in a season',
     verbGeneric: 'averaged 2.0+ steals per game in a season'
   },
-  BBSeason2_5BPG: {
+  Season2_5BPG: {
     label: '2.5+ BPG (Season)',
     short: '2.5+ BPG',
     verbTeam: 'averaged 2.5+ blocks per game in a season',
     verbGeneric: 'averaged 2.5+ blocks per game in a season'
   },
-  BBSeason150Steals: {
+  Season150Steals: {
     label: '150+ Steals (Season)',
     short: '150+ Steals',
     verbTeam: 'recorded 150+ steals in a season',
     verbGeneric: 'recorded 150+ steals in a season'
   },
-  BBSeason150Blocks: {
+  Season150Blocks: {
     label: '150+ Blocks (Season)',
     short: '150+ Blocks',
     verbTeam: 'recorded 150+ blocks in a season',
     verbGeneric: 'recorded 150+ blocks in a season'
   },
-  BBSeason200Stocks: {
+  Season200Stocks: {
     label: '200+ Stocks (Season)',
     short: '200+ Stocks',
     verbTeam: 'recorded 200+ combined steals and blocks in a season',
     verbGeneric: 'recorded 200+ combined steals and blocks in a season'
   },
-  BBSeason50_40_90: {
+  Season50_40_90: {
     label: '50/40/90 Club (Season)',
     short: '50/40/90 Club',
     verbTeam: 'joined the 50/40/90 club in a season',
     verbGeneric: 'joined the 50/40/90 club in a season'
   },
-  BBSeason60TS20PPG: {
+  Season60TS20PPG: {
     label: '60%+ TS on 20+ PPG (Season)',
     short: '60% TS/20 PPG',
     verbTeam: 'shot 60%+ TS while averaging 20+ PPG in a season',
     verbGeneric: 'shot 60%+ TS while averaging 20+ PPG in a season'
   },
-  BBSeason60eFG500FGA: {
+  Season60eFG500FGA: {
     label: '60%+ eFG on ≥500 FGA (Season)',
     short: '60% eFG/500 FGA',
     verbTeam: 'shot 60%+ eFG on 500+ field goal attempts in a season',
     verbGeneric: 'shot 60%+ eFG on 500+ field goal attempts in a season'
   },
-  BBSeason90FT250FTA: {
+  Season90FT250FTA: {
     label: '90%+ FT on ≥250 FTA (Season)',
     short: '90% FT/250 FTA',
     verbTeam: 'shot 90%+ FT on 250+ free throw attempts in a season',
     verbGeneric: 'shot 90%+ FT on 250+ free throw attempts in a season'
   },
-  BBSeason40_3PT200_3PA: {
+  Season40_3PT200_3PA: {
     label: '40%+ 3PT on ≥200 3PA (Season)',
     short: '40% 3PT/200 3PA',
     verbTeam: 'shot 40%+ from three on 200+ attempts in a season',
     verbGeneric: 'shot 40%+ from three on 200+ attempts in a season'
   },
-  BBSeason70Games: {
+  Season70Games: {
     label: '70+ Games Played (Season)',
     short: '70+ Games',
     verbTeam: 'played 70+ games in a season',
     verbGeneric: 'played 70+ games in a season'
   },
-  BBSeason36MPG: {
+  Season36MPG: {
     label: '36.0+ MPG (Season)',
     short: '36+ MPG',
     verbTeam: 'averaged 36.0+ minutes per game in a season',
     verbGeneric: 'averaged 36.0+ minutes per game in a season'
   },
-  BBSeason25_10: {
+  Season25_10: {
     label: '25/10 Season (PPG/RPG)',
     short: '25/10 Season',
     verbTeam: 'had a 25/10 season (PPG/RPG)',
     verbGeneric: 'had a 25/10 season (PPG/RPG)'
   },
-  BBSeason25_5_5: {
+  Season25_5_5: {
     label: '25/5/5 Season (PPG/RPG/APG)',
     short: '25/5/5 Season',
     verbTeam: 'had a 25/5/5 season (PPG/RPG/APG)',
     verbGeneric: 'had a 25/5/5 season (PPG/RPG/APG)'
   },
-  BBSeason20_10_5: {
+  Season20_10_5: {
     label: '20/10/5 Season (PPG/RPG/APG)',
     short: '20/10/5 Season',
     verbTeam: 'had a 20/10/5 season (PPG/RPG/APG)',
     verbGeneric: 'had a 20/10/5 season (PPG/RPG/APG)'
   },
-  BBSeason1_1_1: {
+  Season1_1_1: {
     label: '1/1/1 Season (SPG/BPG/3PM/G)',
     short: '1/1/1 Season',
     verbTeam: 'had a 1/1/1 season (SPG/BPG/3PM/G)',
