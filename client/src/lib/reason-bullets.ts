@@ -112,7 +112,40 @@ const SEASON_ACHIEVEMENT_LABELS: Partial<Record<SeasonAchievementId, string>> = 
   BBAllRookie: 'All-Rookie Team',
   BBAllLeague: 'All-League Team',
   BBPlayoffsMVP: 'Playoffs MVP',
-  BBChampion: 'Won Championship'
+  BBChampion: 'Won Championship',
+
+  // Baseball GM Season Statistical Achievements (28 new achievements)
+  // Hitters (15 achievements)
+  BBSeason40HR: '40+ HR (Season)',
+  BBSeason200Hits: '200+ Hits (Season)',
+  BBSeason100RBI: '100+ RBI (Season)',
+  BBSeason100Runs: '100+ Runs (Season)',
+  BBSeason50SB: '50+ SB (Season)',
+  BBSeason100BB: '100+ BB (Season)',
+  BBSeason300TB: '300+ TB (Season)',
+  BBSeason60XBH: '60+ XBH (Season)',
+  BBSeason300Avg500PA: '.300+ AVG on ≥500 PA (Season)',
+  BBSeason400OBP500PA: '.400+ OBP on ≥500 PA (Season)',
+  BBSeason550SLG500PA: '.550+ SLG on ≥500 PA (Season)',
+  BBSeason900OPS500PA: '.900+ OPS on ≥500 PA (Season)',
+  BBSeason10Triples: '10+ Triples (Season)',
+  BBSeason20HBP: '20+ HBP (Season)',
+  BBSeason25_25Club: '25/25 Club HR/SB (Season)',
+  // Pitchers (12 achievements)
+  BBSeason200SO: '200+ SO (Season)',
+  BBSeason250ERA162IP: '≤2.50 ERA on ≥162 IP (Season)',
+  BBSeason105WHIP162IP: '≤1.05 WHIP on ≥162 IP (Season)',
+  BBSeason20Wins: '20+ Wins (Season)',
+  BBSeason40Saves: '40+ Saves (Season)',
+  BBSeason3CG: '3+ CG (Season)',
+  BBSeason4SHO: '4+ SHO (Season)',
+  BBSeason220IP: '220+ IP (Season)',
+  BBSeasonKBB4_162IP: 'K/BB ≥ 4.0 on ≥162 IP (Season)',
+  BBSeasonK9_10_100IP: 'K/9 ≥ 10.0 on ≥100 IP (Season)',
+  BBSeason30GS: '30+ GS (Season)',
+  BBSeason50APP: '50+ APP (Season)',
+  // Two-Way (1 achievement)
+  BBSeasonTwoWay20HR100IP: 'Two-Way 20+ HR & 100+ IP (Season)'
 };
 
 export interface ReasonBullet {

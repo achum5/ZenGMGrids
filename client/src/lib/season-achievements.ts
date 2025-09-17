@@ -115,6 +115,38 @@ export type SeasonAchievementId =
   | 'BBAllRookie'
   | 'BBAllLeague'
   | 'BBPlayoffsMVP'
+  // Baseball GM season statistical achievements (28 new achievements)
+  // Hitters (15 achievements)
+  | 'BBSeason40HR'
+  | 'BBSeason200Hits'
+  | 'BBSeason100RBI'
+  | 'BBSeason100Runs'
+  | 'BBSeason50SB'
+  | 'BBSeason100BB'
+  | 'BBSeason300TB'
+  | 'BBSeason60XBH'
+  | 'BBSeason300Avg500PA'
+  | 'BBSeason400OBP500PA'
+  | 'BBSeason550SLG500PA'
+  | 'BBSeason900OPS500PA'
+  | 'BBSeason10Triples'
+  | 'BBSeason20HBP'
+  | 'BBSeason25_25Club'
+  // Pitchers (12 achievements)
+  | 'BBSeason200SO'
+  | 'BBSeason250ERA162IP'
+  | 'BBSeason105WHIP162IP'
+  | 'BBSeason20Wins'
+  | 'BBSeason40Saves'
+  | 'BBSeason3CG'
+  | 'BBSeason4SHO'
+  | 'BBSeason220IP'
+  | 'BBSeasonKBB4_162IP'
+  | 'BBSeasonK9_10_100IP'
+  | 'BBSeason30GS'
+  | 'BBSeason50APP'
+  // Two-Way (1 achievement)
+  | 'BBSeasonTwoWay20HR100IP'
   // Special handling achievements
   | 'SFMVP'; // Requires special team resolution logic
 
@@ -1323,6 +1355,241 @@ export function buildSeasonIndex(
     // Debug logging removed for performance
   }
   
+  // Calculate Baseball GM season achievements (BBSeason achievements)
+  if (sport === 'baseball') {
+    let baseballEntriesAdded = 0;
+    
+    // Get all seasons from player stats
+    const allSeasons = new Set<number>();
+    for (const player of players) {
+      if (player.stats) {
+        for (const stat of player.stats) {
+          if (stat.season && !stat.playoffs) {
+            allSeasons.add(stat.season);
+          }
+        }
+      }
+    }
+    
+    // Calculate achievements for each season
+    for (const season of Array.from(allSeasons)) {
+      // Process each player's stats for this season
+      for (const player of players) {
+        if (!player.stats) continue;
+        
+        // Get all regular season stats for this season, excluding TOT rows
+        const seasonStats = player.stats.filter(stat => 
+          stat.season === season && !stat.playoffs && (stat.gp || 0) > 0 && stat.tid !== -1
+        );
+        
+        for (const stat of seasonStats) {
+          const tid = stat.tid;
+          
+          // Extract all relevant Baseball GM stats from the season stat using proper ZGMB field names
+          const hr = (stat as any).hr || 0; // home runs
+          const h = (stat as any).h || 0; // hits
+          const rbi = (stat as any).rbi || 0; // runs batted in
+          const r = (stat as any).r || 0; // runs scored
+          const sb = (stat as any).sb || 0; // stolen bases
+          const bb = (stat as any).bb || 0; // walks
+          const tb = (stat as any).tb || 0; // total bases
+          const doubles = (stat as any)["2b"] || 0; // doubles
+          const triples = (stat as any)["3b"] || 0; // triples
+          const ab = (stat as any).ab || 0; // at bats
+          const pa = (stat as any).pa || 0; // plate appearances
+          const hbp = (stat as any).hbp || 0; // hit by pitch
+          const sf = (stat as any).sf || 0; // sacrifice flies
+          const ibb = (stat as any).ibb || 0; // intentional walks
+          const gp = stat.gp || 0;
+          
+          // Pitching stats
+          const so = (stat as any).so || 0; // strikeouts (pitching)
+          const ip = (stat as any).ip || 0; // innings pitched
+          const er = (stat as any).er || 0; // earned runs
+          const w = (stat as any).w || 0; // wins
+          const sv = (stat as any).sv || 0; // saves
+          const cg = (stat as any).cg || 0; // complete games
+          const sho = (stat as any).sho || 0; // shutouts
+          const ha = (stat as any).ha || 0; // hits allowed
+          const bba = (stat as any).bba || 0; // walks allowed
+          const gs = (stat as any).gs || 0; // games started
+          const app = (stat as any).app || (stat as any).g || 0; // appearances
+          
+          // Computed batting values with zero-division guards
+          const xbh = doubles + triples + hr; // extra base hits
+          const avg = ab > 0 ? h / ab : 0;
+          const obp = pa > 0 ? (h + bb + hbp) / pa : 0; // Simple OBP calculation
+          const slg = ab > 0 ? tb / ab : 0;
+          const ops = obp + slg;
+          
+          // Computed pitching values with zero-division guards
+          const era = ip > 0 ? (er * 9) / ip : 999; // ERA
+          const whip = ip > 0 ? (ha + bba) / ip : 999; // WHIP
+          const kbb = bba > 0 ? so / bba : (so > 0 ? 999 : 0); // K/BB ratio (treat 0 BB as infinite when SO > 0)
+          const k9 = ip > 0 ? (so * 9) / ip : 0; // K/9
+          
+          // Helper function to add achievement
+          const addAchievement = (achievementId: SeasonAchievementId) => {
+            if (!seasonIndex[season]) seasonIndex[season] = {};
+            if (!seasonIndex[season][tid]) seasonIndex[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
+            if (!seasonIndex[season][tid][achievementId]) seasonIndex[season][tid][achievementId] = new Set();
+            
+            seasonIndex[season][tid][achievementId].add(player.pid);
+            baseballEntriesAdded++;
+          };
+          
+          // Hitting achievements (15 achievements)
+          
+          // Check for 40+ HR achievement
+          if (hr >= 40) {
+            addAchievement('BBSeason40HR');
+          }
+          
+          // Check for 200+ Hits achievement
+          if (h >= 200) {
+            addAchievement('BBSeason200Hits');
+          }
+          
+          // Check for 100+ RBI achievement
+          if (rbi >= 100) {
+            addAchievement('BBSeason100RBI');
+          }
+          
+          // Check for 100+ Runs achievement
+          if (r >= 100) {
+            addAchievement('BBSeason100Runs');
+          }
+          
+          // Check for 50+ SB achievement
+          if (sb >= 50) {
+            addAchievement('BBSeason50SB');
+          }
+          
+          // Check for 100+ BB achievement
+          if (bb >= 100) {
+            addAchievement('BBSeason100BB');
+          }
+          
+          // Check for 300+ TB achievement
+          if (tb >= 300) {
+            addAchievement('BBSeason300TB');
+          }
+          
+          // Check for 60+ XBH achievement
+          if (xbh >= 60) {
+            addAchievement('BBSeason60XBH');
+          }
+          
+          // Check for .300+ AVG on ≥500 PA achievement (qualifier enforced first)
+          if (pa >= 500 && avg >= 0.300) {
+            addAchievement('BBSeason300Avg500PA');
+          }
+          
+          // Check for .400+ OBP on ≥500 PA achievement (qualifier enforced first)
+          if (pa >= 500 && obp >= 0.400) {
+            addAchievement('BBSeason400OBP500PA');
+          }
+          
+          // Check for .550+ SLG on ≥500 PA achievement (qualifier enforced first)
+          if (pa >= 500 && slg >= 0.550) {
+            addAchievement('BBSeason550SLG500PA');
+          }
+          
+          // Check for .900+ OPS on ≥500 PA achievement (qualifier enforced first)
+          if (pa >= 500 && ops >= 0.900) {
+            addAchievement('BBSeason900OPS500PA');
+          }
+          
+          // Check for 10+ Triples achievement
+          if (triples >= 10) {
+            addAchievement('BBSeason10Triples');
+          }
+          
+          // Check for 20+ HBP achievement
+          if (hbp >= 20) {
+            addAchievement('BBSeason20HBP');
+          }
+          
+          // Check for 25/25 Club HR/SB achievement
+          if (hr >= 25 && sb >= 25) {
+            addAchievement('BBSeason25_25Club');
+          }
+          
+          // Pitching achievements (12 achievements)
+          
+          // Check for 200+ SO achievement
+          if (so >= 200) {
+            addAchievement('BBSeason200SO');
+          }
+          
+          // Check for ≤2.50 ERA on ≥162 IP achievement (qualifier enforced first)
+          if (ip >= 162 && era <= 2.50) {
+            addAchievement('BBSeason250ERA162IP');
+          }
+          
+          // Check for ≤1.05 WHIP on ≥162 IP achievement (qualifier enforced first)
+          if (ip >= 162 && whip <= 1.05) {
+            addAchievement('BBSeason105WHIP162IP');
+          }
+          
+          // Check for 20+ Wins achievement
+          if (w >= 20) {
+            addAchievement('BBSeason20Wins');
+          }
+          
+          // Check for 40+ Saves achievement
+          if (sv >= 40) {
+            addAchievement('BBSeason40Saves');
+          }
+          
+          // Check for 3+ CG achievement
+          if (cg >= 3) {
+            addAchievement('BBSeason3CG');
+          }
+          
+          // Check for 4+ SHO achievement
+          if (sho >= 4) {
+            addAchievement('BBSeason4SHO');
+          }
+          
+          // Check for 220+ IP achievement
+          if (ip >= 220) {
+            addAchievement('BBSeason220IP');
+          }
+          
+          // Check for K/BB ≥ 4.0 on ≥162 IP achievement (qualifier enforced first)
+          if (ip >= 162 && kbb >= 4.0) {
+            addAchievement('BBSeasonKBB4_162IP');
+          }
+          
+          // Check for K/9 ≥ 10.0 on ≥100 IP achievement (qualifier enforced first)
+          if (ip >= 100 && k9 >= 10.0) {
+            addAchievement('BBSeasonK9_10_100IP');
+          }
+          
+          // Check for 30+ GS achievement
+          if (gs >= 30) {
+            addAchievement('BBSeason30GS');
+          }
+          
+          // Check for 50+ APP achievement
+          if (app >= 50) {
+            addAchievement('BBSeason50APP');
+          }
+          
+          // Two-Way achievement (1 achievement)
+          
+          // Check for Two-Way 20+ HR & 100+ IP achievement
+          if (hr >= 20 && ip >= 100) {
+            addAchievement('BBSeasonTwoWay20HR100IP');
+          }
+        }
+      }
+    }
+    
+    // Debug logging removed for performance
+  }
+  
   // Log statistics
   const seasons = Object.keys(seasonIndex).length;
   const achievements = Object.values(seasonIndex).flatMap(season => 
@@ -2004,6 +2271,179 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
   {
     id: 'BBPlayoffsMVP',
     label: 'Playoffs MVP',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+
+  // Baseball GM season statistical achievements (28 new achievements)
+  // Hitters (15 achievements)
+  {
+    id: 'BBSeason40HR',
+    label: '40+ HR (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason200Hits',
+    label: '200+ Hits (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason100RBI',
+    label: '100+ RBI (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason100Runs',
+    label: '100+ Runs (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason50SB',
+    label: '50+ SB (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason100BB',
+    label: '100+ BB (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason300TB',
+    label: '300+ TB (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason60XBH',
+    label: '60+ XBH (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason300Avg500PA',
+    label: '.300+ AVG on ≥500 PA (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason400OBP500PA',
+    label: '.400+ OBP on ≥500 PA (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason550SLG500PA',
+    label: '.550+ SLG on ≥500 PA (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason900OPS500PA',
+    label: '.900+ OPS on ≥500 PA (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason10Triples',
+    label: '10+ Triples (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason20HBP',
+    label: '20+ HBP (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason25_25Club',
+    label: '25/25 Club HR/SB (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  // Pitchers (12 achievements)
+  {
+    id: 'BBSeason200SO',
+    label: '200+ SO (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason250ERA162IP',
+    label: '≤2.50 ERA on ≥162 IP (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason105WHIP162IP',
+    label: '≤1.05 WHIP on ≥162 IP (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason20Wins',
+    label: '20+ Wins (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason40Saves',
+    label: '40+ Saves (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason3CG',
+    label: '3+ CG (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason4SHO',
+    label: '4+ SHO (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason220IP',
+    label: '220+ IP (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeasonKBB4_162IP',
+    label: 'K/BB ≥ 4.0 on ≥162 IP (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeasonK9_10_100IP',
+    label: 'K/9 ≥ 10.0 on ≥100 IP (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason30GS',
+    label: '30+ GS (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason50APP',
+    label: '50+ APP (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  // Two-Way (1 achievement)
+  {
+    id: 'BBSeasonTwoWay20HR100IP',
+    label: 'Two-Way 20+ HR & 100+ IP (Season)',
     isSeasonSpecific: true,
     minPlayers: 3
   },
