@@ -1506,7 +1506,7 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
     id: 'Season30PPG',
     label: '30+ PPG (Season)',
     isSeasonSpecific: true,
-    minPlayers: 3
+    minPlayers: 1
   },
   {
     id: 'Season2000Points',
@@ -1518,7 +1518,7 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
     id: 'Season300_3PM',
     label: '300+ 3PM (Season)',
     isSeasonSpecific: true,
-    minPlayers: 3
+    minPlayers: 1
   },
   {
     id: 'Season200_3PM',
@@ -1560,7 +1560,7 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
     id: 'Season2_5BPG',
     label: '2.5+ BPG (Season)',
     isSeasonSpecific: true,
-    minPlayers: 3
+    minPlayers: 1
   },
   {
     id: 'Season150Steals',
@@ -1578,37 +1578,37 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
     id: 'Season200Stocks',
     label: '200+ Stocks (Season)',
     isSeasonSpecific: true,
-    minPlayers: 3
+    minPlayers: 1
   },
   {
     id: 'Season50_40_90',
     label: '50/40/90 Club (Season)',
     isSeasonSpecific: true,
-    minPlayers: 3
+    minPlayers: 1
   },
   {
     id: 'Season60TS20PPG',
     label: '60%+ TS on 20+ PPG (Season)',
     isSeasonSpecific: true,
-    minPlayers: 3
+    minPlayers: 1
   },
   {
     id: 'Season60eFG500FGA',
     label: '60%+ eFG on ≥500 FGA (Season)',
     isSeasonSpecific: true,
-    minPlayers: 3
+    minPlayers: 1
   },
   {
     id: 'Season90FT250FTA',
     label: '90%+ FT on ≥250 FTA (Season)',
     isSeasonSpecific: true,
-    minPlayers: 3
+    minPlayers: 1
   },
   {
     id: 'Season40_3PT200_3PA',
     label: '40%+ 3PT on ≥200 3PA (Season)',
     isSeasonSpecific: true,
-    minPlayers: 3
+    minPlayers: 1
   },
   {
     id: 'Season70Games',
@@ -1620,31 +1620,31 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
     id: 'Season36MPG',
     label: '36.0+ MPG (Season)',
     isSeasonSpecific: true,
-    minPlayers: 3
+    minPlayers: 1
   },
   {
     id: 'Season25_10',
     label: '25/10 Season (PPG/RPG)',
     isSeasonSpecific: true,
-    minPlayers: 3
+    minPlayers: 1
   },
   {
     id: 'Season25_5_5',
     label: '25/5/5 Season (PPG/RPG/APG)',
     isSeasonSpecific: true,
-    minPlayers: 3
+    minPlayers: 1
   },
   {
     id: 'Season20_10_5',
     label: '20/10/5 Season (PPG/RPG/APG)',
     isSeasonSpecific: true,
-    minPlayers: 3
+    minPlayers: 1
   },
   {
     id: 'Season1_1_1',
     label: '1/1/1 Season (SPG/BPG/3PM/G)',
     isSeasonSpecific: true,
-    minPlayers: 3
+    minPlayers: 1
   },
   
   // Football GM achievements
