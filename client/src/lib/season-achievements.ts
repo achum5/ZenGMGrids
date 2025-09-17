@@ -28,30 +28,30 @@ export type SeasonAchievementId =
   | 'AllRookieTeam'
   | 'Season250ThreePM'
   // Basketball GM season statistical achievements (24 new achievements)
-  | 'BBSeason30PPG'
-  | 'BBSeason2000Points'
-  | 'BBSeason300_3PM'
-  | 'BBSeason200_3PM'
-  | 'BBSeason12RPG'
-  | 'BBSeason10APG'
-  | 'BBSeason800Rebounds'
-  | 'BBSeason700Assists'
-  | 'BBSeason2SPG'
-  | 'BBSeason2_5BPG'
-  | 'BBSeason150Steals'
-  | 'BBSeason150Blocks'
-  | 'BBSeason200Stocks'
-  | 'BBSeason50_40_90'
-  | 'BBSeason60TS20PPG'
-  | 'BBSeason60eFG500FGA'
-  | 'BBSeason90FT250FTA'
-  | 'BBSeason40_3PT200_3PA'
-  | 'BBSeason70Games'
-  | 'BBSeason36MPG'
-  | 'BBSeason25_10'
-  | 'BBSeason25_5_5'
-  | 'BBSeason20_10_5'
-  | 'BBSeason1_1_1'
+  | 'Season30PPG'
+  | 'Season2000Points'
+  | 'Season300_3PM'
+  | 'Season200_3PM'
+  | 'Season12RPG'
+  | 'Season10APG'
+  | 'Season800Rebounds'
+  | 'Season700Assists'
+  | 'Season2SPG'
+  | 'Season2_5BPG'
+  | 'Season150Steals'
+  | 'Season150Blocks'
+  | 'Season200Stocks'
+  | 'Season50_40_90'
+  | 'Season60TS20PPG'
+  | 'Season60eFG500FGA'
+  | 'Season90FT250FTA'
+  | 'Season40_3PT200_3PA'
+  | 'Season70Games'
+  | 'Season36MPG'
+  | 'Season25_10'
+  | 'Season25_5_5'
+  | 'Season20_10_5'
+  | 'Season1_1_1'
   // Football GM achievements
   | 'FBAllStar'
   | 'FBMVP'
@@ -877,132 +877,132 @@ export function buildSeasonIndex(
           
           // 30+ PPG (Season): ppg >= 30 and gp >= 50
           if (ppg >= 30 && gp >= 50) {
-            addAchievement('BBSeason30PPG');
+            addAchievement('Season30PPG');
           }
           
           // 2,000+ Points (Season): pts >= 2000
           if (pts >= 2000) {
-            addAchievement('BBSeason2000Points');
+            addAchievement('Season2000Points');
           }
           
           // 300+ 3PM (Season): tp >= 300
           if (tp >= 300) {
-            addAchievement('BBSeason300_3PM');
+            addAchievement('Season300_3PM');
           }
           
           // 200+ 3PM (Season): tp >= 200
           if (tp >= 200) {
-            addAchievement('BBSeason200_3PM');
+            addAchievement('Season200_3PM');
           }
           
           // Rebounding & Playmaking achievements
           
           // 12+ RPG (Season): rpg >= 12 and gp >= 50
           if (rpg >= 12 && gp >= 50) {
-            addAchievement('BBSeason12RPG');
+            addAchievement('Season12RPG');
           }
           
           // 10+ APG (Season): apg >= 10 and gp >= 50
           if (apg >= 10 && gp >= 50) {
-            addAchievement('BBSeason10APG');
+            addAchievement('Season10APG');
           }
           
           // 800+ Rebounds (Season): trb >= 800
           if (trb >= 800) {
-            addAchievement('BBSeason800Rebounds');
+            addAchievement('Season800Rebounds');
           }
           
           // 700+ Assists (Season): ast >= 700
           if (ast >= 700) {
-            addAchievement('BBSeason700Assists');
+            addAchievement('Season700Assists');
           }
           
           // Defense achievements
           
           // 2.0+ SPG (Season): spg >= 2.0 and gp >= 50
           if (spg >= 2.0 && gp >= 50) {
-            addAchievement('BBSeason2SPG');
+            addAchievement('Season2SPG');
           }
           
           // 2.5+ BPG (Season): bpg >= 2.5 and gp >= 50
           if (bpg >= 2.5 && gp >= 50) {
-            addAchievement('BBSeason2_5BPG');
+            addAchievement('Season2_5BPG');
           }
           
           // 150+ Steals (Season): stl >= 150
           if (stl >= 150) {
-            addAchievement('BBSeason150Steals');
+            addAchievement('Season150Steals');
           }
           
           // 150+ Blocks (Season): blk >= 150
           if (blk >= 150) {
-            addAchievement('BBSeason150Blocks');
+            addAchievement('Season150Blocks');
           }
           
           // 200+ Stocks (Season): (stl + blk) >= 200
           if (stocks >= 200) {
-            addAchievement('BBSeason200Stocks');
+            addAchievement('Season200Stocks');
           }
           
           // Efficiency achievements (with attempt qualifiers)
           
           // 50/40/90 Club (Season): FG% >= .500 (fga >= 500), 3P% >= .400 (tpa >= 125), FT% >= .900 (fta >= 250)
           if (fga >= 500 && tpa >= 125 && fta >= 250 && fgPct >= 0.500 && tpPct >= 0.400 && ftPct >= 0.900) {
-            addAchievement('BBSeason50_40_90');
+            addAchievement('Season50_40_90');
           }
           
           // 60%+ TS on 20+ PPG (Season): TS >= .600, ppg >= 20, gp >= 50
           if (tsPct >= 0.600 && ppg >= 20 && gp >= 50) {
-            addAchievement('BBSeason60TS20PPG');
+            addAchievement('Season60TS20PPG');
           }
           
           // 60%+ eFG on >= 500 FGA (Season): eFG >= .600, fga >= 500
           if (eFgPct >= 0.600 && fga >= 500) {
-            addAchievement('BBSeason60eFG500FGA');
+            addAchievement('Season60eFG500FGA');
           }
           
           // 90%+ FT on >= 250 FTA (Season): ft/fta >= .900, fta >= 250
           if (ftPct >= 0.900 && fta >= 250) {
-            addAchievement('BBSeason90FT250FTA');
+            addAchievement('Season90FT250FTA');
           }
           
           // 40%+ 3PT on >= 200 3PA (Season): tp/tpa >= .400, tpa >= 200
           if (tpPct >= 0.400 && tpa >= 200) {
-            addAchievement('BBSeason40_3PT200_3PA');
+            addAchievement('Season40_3PT200_3PA');
           }
           
           // Workload / durability achievements
           
           // 70+ Games Played (Season): gp >= 70
           if (gp >= 70) {
-            addAchievement('BBSeason70Games');
+            addAchievement('Season70Games');
           }
           
           // 36.0+ MPG (Season): mpg >= 36.0 and gp >= 50
           if (mpg >= 36.0 && gp >= 50) {
-            addAchievement('BBSeason36MPG');
+            addAchievement('Season36MPG');
           }
           
           // "Combo" seasons achievements
           
           // 25/10 Season (PPG/RPG): ppg >= 25 and rpg >= 10 and gp >= 50
           if (ppg >= 25 && rpg >= 10 && gp >= 50) {
-            addAchievement('BBSeason25_10');
+            addAchievement('Season25_10');
           }
           
           // 25/5/5 Season (PPG/RPG/APG): ppg >= 25 and rpg >= 5 and apg >= 5 and gp >= 50
           if (ppg >= 25 && rpg >= 5 && apg >= 5 && gp >= 50) {
-            addAchievement('BBSeason25_5_5');
+            addAchievement('Season25_5_5');
           }
           
           // 20/10/5 Season (PPG/RPG/APG): ppg >= 20 and rpg >= 10 and apg >= 5 and gp >= 50
           if (ppg >= 20 && rpg >= 10 && apg >= 5 && gp >= 50) {
-            addAchievement('BBSeason20_10_5');
+            addAchievement('Season20_10_5');
           }
           
           // 1/1/1 Season (SPG/BPG/3PM/G): spg >= 1.0 and bpg >= 1.0 and tpg >= 1.0 and gp >= 50
           if (spg >= 1.0 && bpg >= 1.0 && tpg >= 1.0 && gp >= 50) {
-            addAchievement('BBSeason1_1_1');
+            addAchievement('Season1_1_1');
           }
         }
       }
@@ -1503,145 +1503,145 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
   
   // Basketball GM Season Statistical Achievements (24 new achievements)
   {
-    id: 'BBSeason30PPG',
+    id: 'Season30PPG',
     label: '30+ PPG (Season)',
     isSeasonSpecific: true,
     minPlayers: 3
   },
   {
-    id: 'BBSeason2000Points',
+    id: 'Season2000Points',
     label: '2,000+ Points (Season)',
     isSeasonSpecific: true,
     minPlayers: 3
   },
   {
-    id: 'BBSeason300_3PM',
+    id: 'Season300_3PM',
     label: '300+ 3PM (Season)',
     isSeasonSpecific: true,
     minPlayers: 3
   },
   {
-    id: 'BBSeason200_3PM',
+    id: 'Season200_3PM',
     label: '200+ 3PM (Season)',
     isSeasonSpecific: true,
     minPlayers: 3
   },
   {
-    id: 'BBSeason12RPG',
+    id: 'Season12RPG',
     label: '12+ RPG (Season)',
     isSeasonSpecific: true,
     minPlayers: 3
   },
   {
-    id: 'BBSeason10APG',
+    id: 'Season10APG',
     label: '10+ APG (Season)',
     isSeasonSpecific: true,
     minPlayers: 3
   },
   {
-    id: 'BBSeason800Rebounds',
+    id: 'Season800Rebounds',
     label: '800+ Rebounds (Season)',
     isSeasonSpecific: true,
     minPlayers: 3
   },
   {
-    id: 'BBSeason700Assists',
+    id: 'Season700Assists',
     label: '700+ Assists (Season)',
     isSeasonSpecific: true,
     minPlayers: 3
   },
   {
-    id: 'BBSeason2SPG',
+    id: 'Season2SPG',
     label: '2.0+ SPG (Season)',
     isSeasonSpecific: true,
     minPlayers: 3
   },
   {
-    id: 'BBSeason2_5BPG',
+    id: 'Season2_5BPG',
     label: '2.5+ BPG (Season)',
     isSeasonSpecific: true,
     minPlayers: 3
   },
   {
-    id: 'BBSeason150Steals',
+    id: 'Season150Steals',
     label: '150+ Steals (Season)',
     isSeasonSpecific: true,
     minPlayers: 3
   },
   {
-    id: 'BBSeason150Blocks',
+    id: 'Season150Blocks',
     label: '150+ Blocks (Season)',
     isSeasonSpecific: true,
     minPlayers: 3
   },
   {
-    id: 'BBSeason200Stocks',
+    id: 'Season200Stocks',
     label: '200+ Stocks (Season)',
     isSeasonSpecific: true,
     minPlayers: 3
   },
   {
-    id: 'BBSeason50_40_90',
+    id: 'Season50_40_90',
     label: '50/40/90 Club (Season)',
     isSeasonSpecific: true,
     minPlayers: 3
   },
   {
-    id: 'BBSeason60TS20PPG',
+    id: 'Season60TS20PPG',
     label: '60%+ TS on 20+ PPG (Season)',
     isSeasonSpecific: true,
     minPlayers: 3
   },
   {
-    id: 'BBSeason60eFG500FGA',
+    id: 'Season60eFG500FGA',
     label: '60%+ eFG on ≥500 FGA (Season)',
     isSeasonSpecific: true,
     minPlayers: 3
   },
   {
-    id: 'BBSeason90FT250FTA',
+    id: 'Season90FT250FTA',
     label: '90%+ FT on ≥250 FTA (Season)',
     isSeasonSpecific: true,
     minPlayers: 3
   },
   {
-    id: 'BBSeason40_3PT200_3PA',
+    id: 'Season40_3PT200_3PA',
     label: '40%+ 3PT on ≥200 3PA (Season)',
     isSeasonSpecific: true,
     minPlayers: 3
   },
   {
-    id: 'BBSeason70Games',
+    id: 'Season70Games',
     label: '70+ Games Played (Season)',
     isSeasonSpecific: true,
     minPlayers: 3
   },
   {
-    id: 'BBSeason36MPG',
+    id: 'Season36MPG',
     label: '36.0+ MPG (Season)',
     isSeasonSpecific: true,
     minPlayers: 3
   },
   {
-    id: 'BBSeason25_10',
+    id: 'Season25_10',
     label: '25/10 Season (PPG/RPG)',
     isSeasonSpecific: true,
     minPlayers: 3
   },
   {
-    id: 'BBSeason25_5_5',
+    id: 'Season25_5_5',
     label: '25/5/5 Season (PPG/RPG/APG)',
     isSeasonSpecific: true,
     minPlayers: 3
   },
   {
-    id: 'BBSeason20_10_5',
+    id: 'Season20_10_5',
     label: '20/10/5 Season (PPG/RPG/APG)',
     isSeasonSpecific: true,
     minPlayers: 3
   },
   {
-    id: 'BBSeason1_1_1',
+    id: 'Season1_1_1',
     label: '1/1/1 Season (SPG/BPG/3PM/G)',
     isSeasonSpecific: true,
     minPlayers: 3
