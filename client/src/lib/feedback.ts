@@ -873,6 +873,122 @@ function formatNumber(num: number): string {
   return num.toLocaleString();
 }
 
+/**
+ * Universal function to convert achievement IDs to human-readable text
+ * Handles dynamic decade achievements, Season* achievements, and other patterns
+ */
+function getHumanReadableAchievementText(achievementId: string): string {
+  // Handle dynamic decade achievements
+  if (achievementId.includes('playedIn') && achievementId.endsWith('s')) {
+    const decadeMatch = achievementId.match(/playedIn(\d{4})s/);
+    if (decadeMatch) {
+      const decade = decadeMatch[1];
+      return `played in the ${decade}s`;
+    }
+  }
+  
+  if (achievementId.includes('debutedIn') && achievementId.endsWith('s')) {
+    const decadeMatch = achievementId.match(/debutedIn(\d{4})s/);
+    if (decadeMatch) {
+      const decade = decadeMatch[1];
+      return `debuted in the ${decade}s`;
+    }
+  }
+  
+  if (achievementId.includes('retiredIn') && achievementId.endsWith('s')) {
+    const decadeMatch = achievementId.match(/retiredIn(\d{4})s/);
+    if (decadeMatch) {
+      const decade = decadeMatch[1];
+      return `retired in the ${decade}s`;
+    }
+  }
+  
+  // Handle age-related achievements
+  if (achievementId.includes('playedAt') && achievementId.includes('Plus')) {
+    const ageMatch = achievementId.match(/playedAt(\d+)Plus/);
+    if (ageMatch) {
+      const age = ageMatch[1];
+      return `played at age ${age}+`;
+    }
+  }
+  
+  // Handle Season* achievements
+  if (achievementId.startsWith('Season')) {
+    // Map common Season* achievement patterns
+    const seasonMappings: Record<string, string> = {
+      'Season30PPG': 'averaged 30+ PPG in a season',
+      'Season2000Points': 'scored 2,000+ points in a season',
+      'Season300_3PM': 'made 300+ threes in a season',
+      'Season200_3PM': 'made 200+ threes in a season',
+      'Season12RPG': 'averaged 12+ RPG in a season',
+      'Season10APG': 'averaged 10+ APG in a season',
+      'Season800Rebounds': 'grabbed 800+ rebounds in a season',
+      'Season700Assists': 'recorded 700+ assists in a season',
+      'Season2SPG': 'averaged 2.0+ SPG in a season',
+      'Season2_5BPG': 'averaged 2.5+ BPG in a season',
+      'Season150Steals': 'recorded 150+ steals in a season',
+      'Season150Blocks': 'recorded 150+ blocks in a season',
+      'Season200Stocks': 'recorded 200+ stocks in a season',
+      'Season50_40_90': 'achieved 50/40/90 shooting in a season',
+      'Season60TS20PPG': 'shot 60%+ TS on 20+ PPG in a season',
+      'Season60eFG500FGA': 'shot 60%+ eFG on 500+ FGA in a season',
+      'Season90FT250FTA': 'shot 90%+ FT on 250+ FTA in a season',
+      'Season40_3PT200_3PA': 'shot 40%+ 3PT on 200+ 3PA in a season',
+      'Season70Games': 'played 70+ games in a season',
+      'Season36MPG': 'averaged 36.0+ MPG in a season',
+      'Season25_10': 'achieved 25/10 season (PPG/RPG)',
+      'Season25_5_5': 'achieved 25/5/5 season (PPG/RPG/APG)',
+      'Season20_10_5': 'achieved 20/10/5 season (PPG/RPG/APG)',
+      'Season1_1_1': 'achieved 1/1/1 season (SPG/BPG/3PM/G)'
+    };
+    
+    if (seasonMappings[achievementId]) {
+      return seasonMappings[achievementId];
+    }
+  }
+  
+  // Handle career achievements
+  if (achievementId.includes('career')) {
+    // Use pattern matching for career achievements
+    const careerMatch = achievementId.match(/career(\d+)k?(.+)/);
+    if (careerMatch) {
+      const [, number, stat] = careerMatch;
+      const formattedNumber = number.includes('k') ? `${number}000` : number;
+      const formattedStat = stat.toLowerCase();
+      return `reached ${formattedNumber}+ career ${formattedStat}`;
+    }
+  }
+  
+  // Handle other common patterns
+  const commonMappings: Record<string, string> = {
+    'oneTeamOnly': 'spent entire career with one team',
+    'isHallOfFamer': 'was inducted into the Hall of Fame',
+    'isPick1Overall': 'was the #1 overall draft pick',
+    'isFirstRoundPick': 'was a first round draft pick',
+    'isSecondRoundPick': 'was a second round draft pick',
+    'isUndrafted': 'went undrafted',
+    'draftedTeen': 'was drafted as a teenager',
+    'bornOutsideUS50DC': 'was born outside the US (50 states + DC)',
+    'played15PlusSeasons': 'played 15+ seasons',
+    'playedInThreeDecades': 'played in three different decades',
+    'playedIn1990sAnd2000s': 'played in both the 1990s and 2000s',
+    'allStar35Plus': 'made All-Star team at age 35+'
+  };
+  
+  if (commonMappings[achievementId]) {
+    return commonMappings[achievementId];
+  }
+  
+  // Final fallback: convert camelCase to readable text
+  const readable = achievementId
+    .replace(/([A-Z])/g, ' $1')
+    .toLowerCase()
+    .replace(/^\s+/, '')
+    .replace(/\s+/g, ' ');
+    
+  return `achieved ${readable}`;
+}
+
 // Football-specific message generation with detailed stats
 function getFootballPositiveMessage(achievementId: string, player?: Player): string {
   if (!player) {
@@ -897,7 +1013,7 @@ function getFootballPositiveMessage(achievementId: string, player?: Player): str
       wonDPOY: "won Defensive Player of the Year",
       wonROY: "won Rookie of the Year"
     };
-    return fallbacks[achievementId] || `achieved ${achievementId}`;
+    return fallbacks[achievementId] || getHumanReadableAchievementText(achievementId);
   }
 
   const careerStats = getFootballCareerStats(player);
@@ -946,7 +1062,7 @@ function getFootballPositiveMessage(achievementId: string, player?: Player): str
       };
       return awardNames[achievementId] || `won ${achievementId}`;
     default:
-      return `achieved ${achievementId}`;
+      return getHumanReadableAchievementText(achievementId);
   }
 }
 
@@ -1171,7 +1287,7 @@ function getBasketballPositiveMessage(achievementId: string, player?: Player): s
       hasAllStar: "was an All-Star",
       wonChampionship: "won a championship"
     };
-    return fallbacks[achievementId] || `achieved ${achievementId}`;
+    return fallbacks[achievementId] || getHumanReadableAchievementText(achievementId);
   }
 
   const careerStats = getBasketballCareerStats(player);
@@ -1231,7 +1347,7 @@ function getBasketballPositiveMessage(achievementId: string, player?: Player): s
       const champSeason = getBasketballAwardSeason(player, 'champion');
       return `won a championship in ${champSeason}`;
     default:
-      return `achieved ${achievementId}`;
+      return getHumanReadableAchievementText(achievementId);
   }
 }
 
@@ -1394,7 +1510,7 @@ function getHockeyPositiveMessage(achievementId: string, player?: Player): strin
       madeAllStar: "was an All-Star",
       wonChampionship: "won a championship"
     };
-    return fallbacks[achievementId] || `achieved ${achievementId}`;
+    return fallbacks[achievementId] || getHumanReadableAchievementText(achievementId);
   }
 
   const careerStats = getHockeyCareerStats(player);
@@ -1445,7 +1561,7 @@ function getHockeyPositiveMessage(achievementId: string, player?: Player): strin
       const champSeason = getHockeyAwardSeason(player, 'champion');
       return `won a championship in ${champSeason}`;
     default:
-      return `achieved ${achievementId}`;
+      return getHumanReadableAchievementText(achievementId);
   }
 }
 
@@ -1613,7 +1729,7 @@ function getBaseballPositiveMessage(achievementId: string, player?: Player): str
       madeAllStar: "was an All-Star",
       wonChampionship: "won a championship"
     };
-    return fallbacks[achievementId] || `achieved ${achievementId}`;
+    return fallbacks[achievementId] || getHumanReadableAchievementText(achievementId);
   }
 
   const careerStats = getBaseballCareerStats(player);
@@ -1668,7 +1784,7 @@ function getBaseballPositiveMessage(achievementId: string, player?: Player): str
       const champSeason = getBaseballAwardSeason(player, 'champion');
       return `won a championship in ${champSeason}`;
     default:
-      return `achieved ${achievementId}`;
+      return getHumanReadableAchievementText(achievementId);
   }
 }
 
@@ -1974,7 +2090,7 @@ function getAchievementPositiveMessage(achievementId: string, player?: Player): 
     season200ERA: getBaseballPositiveMessage('season200ERA', player)
   };
   
-  return messages[achievementId] || `achieved ${achievementId}`;
+  return messages[achievementId] || getHumanReadableAchievementText(achievementId);
 }
 
 /**
