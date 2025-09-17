@@ -439,7 +439,7 @@ export function generateHintOptions(
     distractors.push(...colSample);
   }
   
-  // If we still need more players, prioritize the most career-similar available
+  // If we still need more players, use sophisticated fallback system
   const stillNeeded = 5 - distractors.length;
   if (stillNeeded > 0) {
     const usedPids = new Set(distractors.map(d => d.pid));
@@ -463,16 +463,36 @@ export function generateHintOptions(
       // Add all available single constraint players
       distractors.push(...allSingleConstraint);
       
-      // Fill remaining with dummy players if absolutely necessary
-      for (let i = distractors.length; i < 5; i++) {
-        const dummyPlayer: Player = {
-          ...correctPlayer,
-          pid: -1000 - i, // Negative PIDs for dummy players
-          name: `Player ${i + 1}`,
-          imgURL: undefined,
-          face: undefined
-        };
-        distractors.push(dummyPlayer);
+      // ENHANCED FALLBACK: Find "near miss" players who are close to meeting both constraints
+      const remainingNeeded = 5 - distractors.length;
+      if (remainingNeeded > 0) {
+        const nearMissPlayers = findNearMissPlayers(
+          allPlayers,
+          rowConstraint,
+          colConstraint,
+          usedPids,
+          correctPlayer.pid,
+          leagueData?.seasonIndex
+        );
+        
+        const availableNearMiss = nearMissPlayers.filter(p => !usedPids.has(p.pid));
+        
+        if (availableNearMiss.length > 0) {
+          const count = Math.min(remainingNeeded, availableNearMiss.length);
+          distractors.push(...rng.sample(availableNearMiss, count));
+        }
+        
+        // Only create dummy players as absolute last resort
+        for (let i = distractors.length; i < 5; i++) {
+          const dummyPlayer: Player = {
+            ...correctPlayer,
+            pid: -1000 - i, // Negative PIDs for dummy players
+            name: `Player ${i + 1}`,
+            imgURL: undefined,
+            face: undefined
+          };
+          distractors.push(dummyPlayer);
+        }
       }
     }
   }
@@ -514,6 +534,211 @@ function evaluateConstraint(player: Player, constraint: CatTeam, seasonIndex?: a
     return playerMeetsAchievement(player, constraint.achievementId!, seasonIndex);
   }
   return false;
+}
+
+/**
+ * Find "near miss" players who meet one constraint and are close on the other
+ * Example: For "40%+ 3PT AND debuted in 2050s", find players who debuted in 2050s 
+ * and had high 3PT% (like 38-39%) but didn't quite reach 40%
+ */
+function findNearMissPlayers(
+  allPlayers: Player[],
+  rowConstraint: CatTeam,
+  colConstraint: CatTeam,
+  usedPids: Set<number>,
+  correctPid: number,
+  seasonIndex?: any
+): Player[] {
+  const nearMissPlayers: Player[] = [];
+  
+  for (const player of allPlayers) {
+    if (usedPids.has(player.pid) || player.pid === correctPid) continue;
+    
+    const meetsRow = evaluateConstraint(player, rowConstraint, seasonIndex);
+    const meetsCol = evaluateConstraint(player, colConstraint, seasonIndex);
+    
+    // Skip players who already meet both or neither constraint
+    if ((meetsRow && meetsCol) || (!meetsRow && !meetsCol)) continue;
+    
+    // Check if player is "close" to meeting the other constraint
+    let isNearMiss = false;
+    
+    // If meets row but not column, check if close on column
+    if (meetsRow && !meetsCol) {
+      isNearMiss = isCloseToConstraint(player, colConstraint, seasonIndex);
+    }
+    
+    // If meets column but not row, check if close on row
+    if (meetsCol && !meetsRow) {
+      isNearMiss = isCloseToConstraint(player, rowConstraint, seasonIndex);
+    }
+    
+    if (isNearMiss) {
+      nearMissPlayers.push(player);
+    }
+  }
+  
+  return nearMissPlayers;
+}
+
+/**
+ * Check if a player is "close" to meeting a constraint
+ * Returns true for players who are close but don't quite meet the threshold
+ */
+function isCloseToConstraint(player: Player, constraint: CatTeam, seasonIndex?: any): boolean {
+  if (constraint.type !== 'achievement' || !constraint.achievementId) return false;
+  
+  const achievementId = constraint.achievementId;
+  
+  // For statistical achievements, check if player is close to the threshold
+  if (achievementId.includes('3PT') && achievementId.includes('40')) {
+    // For 40%+ 3PT achievements, find players with 35-39% 3PT
+    return isClose3PTPercentage(player, 35, 39);
+  }
+  
+  if (achievementId.includes('PPG') && achievementId.includes('30')) {
+    // For 30+ PPG achievements, find players with 25-29.9 PPG
+    return isCloseSeasonStat(player, 'pts', 25, 29.9, 'average');
+  }
+  
+  if (achievementId.includes('RPG') && achievementId.includes('12')) {
+    // For 12+ RPG achievements, find players with 10-11.9 RPG
+    return isCloseSeasonStat(player, 'trb', 10, 11.9, 'average');
+  }
+  
+  if (achievementId.includes('APG') && achievementId.includes('10')) {
+    // For 10+ APG achievements, find players with 8-9.9 APG
+    return isCloseSeasonStat(player, 'ast', 8, 9.9, 'average');
+  }
+  
+  // For decade achievements (debuted/played/retired), check adjacent decades
+  if (achievementId.includes('debutedIn') || achievementId.includes('playedIn') || achievementId.includes('retiredIn')) {
+    return isCloseToDecade(player, achievementId);
+  }
+  
+  // For career achievements, check if player is close to threshold
+  if (achievementId.includes('career') && achievementId.includes('k')) {
+    return isCloseToCareerThreshold(player, achievementId);
+  }
+  
+  return false;
+}
+
+/**
+ * Check if player has close 3PT percentage in any season
+ */
+function isClose3PTPercentage(player: Player, minPercent: number, maxPercent: number): boolean {
+  if (!player.stats) return false;
+  
+  for (const stat of player.stats) {
+    if (stat.playoffs) continue;
+    
+    const made = stat.tpm || stat.tp || 0;
+    const attempted = stat.tpa || 0;
+    
+    if (attempted >= 100) { // Minimum attempts for meaningful percentage
+      const percentage = (made / attempted) * 100;
+      if (percentage >= minPercent && percentage <= maxPercent) {
+        return true;
+      }
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Check if player is close to a season statistical threshold
+ */
+function isCloseSeasonStat(
+  player: Player, 
+  statField: string, 
+  minValue: number, 
+  maxValue: number, 
+  type: 'total' | 'average'
+): boolean {
+  if (!player.stats) return false;
+  
+  for (const stat of player.stats) {
+    if (stat.playoffs) continue;
+    
+    const gamesPlayed = stat.gp || 0;
+    if (gamesPlayed < 20) continue; // Minimum games for meaningful season
+    
+    const statValue = (stat as any)[statField] || 0;
+    
+    let checkValue = statValue;
+    if (type === 'average' && gamesPlayed > 0) {
+      checkValue = statValue / gamesPlayed;
+    }
+    
+    if (checkValue >= minValue && checkValue <= maxValue) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Check if player is close to a decade achievement (adjacent decades)
+ */
+function isCloseToDecade(player: Player, achievementId: string): boolean {
+  if (!player.stats || player.stats.length === 0) return false;
+  
+  // Extract target decade from achievement ID
+  const decadeMatch = achievementId.match(/(\d{4})s/);
+  if (!decadeMatch) return false;
+  
+  const targetDecade = parseInt(decadeMatch[1]);
+  const adjacentDecades = [targetDecade - 10, targetDecade + 10];
+  
+  // Check if player has stats in adjacent decades
+  for (const stat of player.stats) {
+    if (stat.playoffs) continue;
+    
+    const season = stat.season;
+    const playerDecade = Math.floor(season / 10) * 10;
+    
+    if (adjacentDecades.includes(playerDecade)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Check if player is close to a career threshold
+ */
+function isCloseToCareerThreshold(player: Player, achievementId: string): boolean {
+  if (!player.stats) return false;
+  
+  // Extract number and stat from achievement ID (e.g., "career20kPoints" -> 20000 points)
+  const match = achievementId.match(/career(\d+)k?(.+)/);
+  if (!match) return false;
+  
+  const [, numberStr, statType] = match;
+  const threshold = parseInt(numberStr) * (achievementId.includes('k') ? 1000 : 1);
+  const closeThreshold = threshold * 0.8; // 80% of threshold is "close"
+  
+  // Calculate career total for the relevant stat
+  let careerTotal = 0;
+  
+  for (const stat of player.stats) {
+    if (stat.playoffs) continue;
+    
+    if (statType.includes('Points') || statType.includes('Pts')) {
+      careerTotal += stat.pts || 0;
+    } else if (statType.includes('Rebounds') || statType.includes('Reb')) {
+      careerTotal += stat.trb || 0;
+    } else if (statType.includes('Assists') || statType.includes('Ast')) {
+      careerTotal += stat.ast || 0;
+    }
+    // Add more stat mappings as needed
+  }
+  
+  return careerTotal >= closeThreshold && careerTotal < threshold;
 }
 
 /**
