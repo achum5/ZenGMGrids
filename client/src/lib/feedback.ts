@@ -2014,7 +2014,7 @@ function getAchievementNegativeMessage(achievementId: string, player?: Player): 
     const decadeMatch = achievementId.match(/playedIn(\d{4})s/);
     if (decadeMatch) {
       const decade = decadeMatch[1];
-      return `but did not play in the ${decade}s`;
+      return `did not play in the ${decade}s`;
     }
   }
   
@@ -2025,9 +2025,9 @@ function getAchievementNegativeMessage(achievementId: string, player?: Player): 
       // Try to get the actual debut year
       const actualDebutYear = getPlayerDebutYear(player);
       if (actualDebutYear) {
-        return `but did not debut in the ${decade}s (${actualDebutYear})`;
+        return `did not debut in the ${decade}s (${actualDebutYear})`;
       } else {
-        return `but did not debut in the ${decade}s`;
+        return `did not debut in the ${decade}s`;
       }
     }
   }
@@ -2039,9 +2039,9 @@ function getAchievementNegativeMessage(achievementId: string, player?: Player): 
       // Try to get the actual retirement year
       const actualRetirementYear = getPlayerRetirementYear(player);
       if (actualRetirementYear) {
-        return `but did not retire in the ${decade}s (${actualRetirementYear})`;
+        return `did not retire in the ${decade}s (${actualRetirementYear})`;
       } else {
-        return `but did not retire in the ${decade}s`;
+        return `did not retire in the ${decade}s`;
       }
     }
   }
