@@ -3,7 +3,7 @@ import type { GridConstraint } from '@/lib/feedback';
 import { type SeasonAchievementId } from '@/lib/season-achievements';
 
 // Season achievement labels for bullet display
-const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, string> = {
+const SEASON_ACHIEVEMENT_LABELS: Partial<Record<SeasonAchievementId, string>> = {
   // Basketball GM achievements
   AllStar: 'All-Star',
   MVP: 'MVP',
@@ -21,6 +21,32 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, string> = {
   AssistsLeader: 'League Assists Leader',
   StealsLeader: 'League Steals Leader',
   BlocksLeader: 'League Blocks Leader',
+  
+  // Basketball GM Season Statistical Achievements (24 new achievements)
+  BBSeason30PPG: '30+ PPG (Season)',
+  BBSeason2000Points: '2,000+ Points (Season)',
+  BBSeason300_3PM: '300+ 3PM (Season)',
+  BBSeason200_3PM: '200+ 3PM (Season)',
+  BBSeason12RPG: '12+ RPG (Season)',
+  BBSeason10APG: '10+ APG (Season)',
+  BBSeason800Rebounds: '800+ Rebounds (Season)',
+  BBSeason700Assists: '700+ Assists (Season)',
+  BBSeason2SPG: '2.0+ SPG (Season)',
+  BBSeason2_5BPG: '2.5+ BPG (Season)',
+  BBSeason150Steals: '150+ Steals (Season)',
+  BBSeason150Blocks: '150+ Blocks (Season)',
+  BBSeason200Stocks: '200+ Stocks (Season)',
+  BBSeason50_40_90: '50/40/90 Club (Season)',
+  BBSeason60TS20PPG: '60%+ TS on 20+ PPG (Season)',
+  BBSeason60eFG500FGA: '60%+ eFG on ≥500 FGA (Season)',
+  BBSeason90FT250FTA: '90%+ FT on ≥250 FTA (Season)',
+  BBSeason40_3PT200_3PA: '40%+ 3PT on ≥200 3PA (Season)',
+  BBSeason70Games: '70+ Games Played (Season)',
+  BBSeason36MPG: '36.0+ MPG (Season)',
+  BBSeason25_10: '25/10 Season (PPG/RPG)',
+  BBSeason25_5_5: '25/5/5 Season (PPG/RPG/APG)',
+  BBSeason20_10_5: '20/10/5 Season (PPG/RPG/APG)',
+  BBSeason1_1_1: '1/1/1 Season (SPG/BPG/3PM/G)',
   
   // Football GM achievements
   FBAllStar: 'All-Star',
@@ -85,20 +111,6 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, string> = {
   BBROY: 'Rookie of the Year',
   BBAllRookie: 'All-Rookie Team',
   BBAllLeague: 'All-League Team',
-  BBGoldGlove: 'Gold Glove',
-  BBSilverSlugger: 'Silver Slugger',
-  BBBattingAvgLeader: 'League Batting Average Leader',
-  BBHomeRunLeader: 'League Home Run Leader',
-  BBRBILeader: 'League RBI Leader',
-  BBStolenBaseLeader: 'League Stolen Base Leader',
-  BBOBPLeader: 'League On-Base Percentage Leader',
-  BBSluggingLeader: 'League Slugging Percentage Leader',
-  BBOPSLeader: 'League OPS Leader',
-  BBHitsLeader: 'League Hits Leader',
-  BBERALeader: 'League ERA Leader',
-  BBStrikeoutsLeader: 'League Strikeouts Leader',
-  BBSavesLeader: 'League Saves Leader',
-  BBReliefPitcherOTY: 'Relief Pitcher of the Year',
   BBPlayoffsMVP: 'Playoffs MVP',
   BBChampion: 'Won Championship'
 };
@@ -129,7 +141,7 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
   if (!player.awards) return [];
 
   // Map achievement ID to award type patterns
-  const awardTypePatterns: Record<SeasonAchievementId, string[]> = {
+  const awardTypePatterns: Partial<Record<SeasonAchievementId, string[]>> = {
     // Basketball GM achievements
     AllStar: ['All-Star', 'all-star', 'allstar'],
     MVP: ['MVP', 'Most Valuable Player', 'most valuable player'],
@@ -176,7 +188,6 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
     HKAllStar: ['All-Star', 'all-star'],
     HKAllStarMVP: ['All-Star MVP', 'all-star mvp'],
     HKMVP: ['Most Valuable Player', 'most valuable player'],
-    HKDefenseman: ['Best Defenseman', 'best defenseman', 'defenseman of the year'],
     HKROY: ['Rookie of the Year', 'rookie of the year'],
     HKAllRookie: ['All-Rookie Team', 'all-rookie team'],
     HKAllLeague: ['All-League Team', 'all-league team', 'First Team All-League', 'Second Team All-League'],
@@ -190,21 +201,7 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
     BBROY: ['Rookie of the Year'],
     BBAllRookie: ['All-Rookie Team'],
     BBAllLeague: ['All-League Team', 'First Team All-League', 'Second Team All-League'],
-    BBGoldGlove: ['Gold Glove'],
-    BBSilverSlugger: ['Silver Slugger'],
-    BBBattingAvgLeader: ['League Batting Average Leader'],
-    BBHomeRunLeader: ['League Home Run Leader'],
-    BBRBILeader: ['League RBI Leader'],
-    BBStolenBaseLeader: ['League Stolen Base Leader'],
-    BBOBPLeader: ['League On-Base Percentage Leader'],
-    BBSluggingLeader: ['League Slugging Percentage Leader'],
-    BBOPSLeader: ['League OPS Leader'],
-    BBHitsLeader: ['League Hits Leader', 'League Doubles Leader', 'League Triples Leader'],
-    BBERALeader: ['League ERA Leader'],
-    BBStrikeoutsLeader: ['League Strikeouts Leader'],
-    BBSavesLeader: ['League Saves Leader'],
-    BBReliefPitcherOTY: ['Relief Pitcher of the Year', 'Reliever of the Year'],
-    BBPlayoffsMVP: ['Playoffs MVP'],
+    BBPlayoffsMVP: ['Playoffs MVP', 'Finals MVP'],
     BBChampion: ['Won Championship']
   };
 
@@ -309,7 +306,7 @@ function formatBulletSeasonList(seasons: string[], isFinalsOrCFMVP: boolean = fa
     });
     
     // If all seasons have the same team, group years and append team
-    const uniqueTeams = [...new Set(yearsWithTeams.map(y => y.team))];
+    const uniqueTeams = Array.from(new Set(yearsWithTeams.map(y => y.team)));
     if (uniqueTeams.length === 1 && uniqueTeams[0]) {
       const years = yearsWithTeams.map(y => y.year);
       const yearRanges = groupConsecutiveYears(years);

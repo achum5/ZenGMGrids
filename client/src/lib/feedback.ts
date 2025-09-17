@@ -107,6 +107,152 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     verbGeneric: 'led the league in blocks'
   },
   
+  // Basketball GM Season Statistical Achievements (24 new achievements)
+  BBSeason30PPG: {
+    label: '30+ PPG (Season)',
+    short: '30+ PPG',
+    verbTeam: 'averaged 30+ points per game in a season',
+    verbGeneric: 'averaged 30+ points per game in a season'
+  },
+  BBSeason2000Points: {
+    label: '2,000+ Points (Season)',
+    short: '2K Points',
+    verbTeam: 'scored 2,000+ points in a season',
+    verbGeneric: 'scored 2,000+ points in a season'
+  },
+  BBSeason300_3PM: {
+    label: '300+ 3PM (Season)',
+    short: '300+ 3PM',
+    verbTeam: 'made 300+ three-pointers in a season',
+    verbGeneric: 'made 300+ three-pointers in a season'
+  },
+  BBSeason200_3PM: {
+    label: '200+ 3PM (Season)',
+    short: '200+ 3PM',
+    verbTeam: 'made 200+ three-pointers in a season',
+    verbGeneric: 'made 200+ three-pointers in a season'
+  },
+  BBSeason12RPG: {
+    label: '12+ RPG (Season)',
+    short: '12+ RPG',
+    verbTeam: 'averaged 12+ rebounds per game in a season',
+    verbGeneric: 'averaged 12+ rebounds per game in a season'
+  },
+  BBSeason10APG: {
+    label: '10+ APG (Season)',
+    short: '10+ APG',
+    verbTeam: 'averaged 10+ assists per game in a season',
+    verbGeneric: 'averaged 10+ assists per game in a season'
+  },
+  BBSeason800Rebounds: {
+    label: '800+ Rebounds (Season)',
+    short: '800+ Rebounds',
+    verbTeam: 'grabbed 800+ rebounds in a season',
+    verbGeneric: 'grabbed 800+ rebounds in a season'
+  },
+  BBSeason700Assists: {
+    label: '700+ Assists (Season)',
+    short: '700+ Assists',
+    verbTeam: 'dished 700+ assists in a season',
+    verbGeneric: 'dished 700+ assists in a season'
+  },
+  BBSeason2SPG: {
+    label: '2.0+ SPG (Season)',
+    short: '2.0+ SPG',
+    verbTeam: 'averaged 2.0+ steals per game in a season',
+    verbGeneric: 'averaged 2.0+ steals per game in a season'
+  },
+  BBSeason2_5BPG: {
+    label: '2.5+ BPG (Season)',
+    short: '2.5+ BPG',
+    verbTeam: 'averaged 2.5+ blocks per game in a season',
+    verbGeneric: 'averaged 2.5+ blocks per game in a season'
+  },
+  BBSeason150Steals: {
+    label: '150+ Steals (Season)',
+    short: '150+ Steals',
+    verbTeam: 'recorded 150+ steals in a season',
+    verbGeneric: 'recorded 150+ steals in a season'
+  },
+  BBSeason150Blocks: {
+    label: '150+ Blocks (Season)',
+    short: '150+ Blocks',
+    verbTeam: 'recorded 150+ blocks in a season',
+    verbGeneric: 'recorded 150+ blocks in a season'
+  },
+  BBSeason200Stocks: {
+    label: '200+ Stocks (Season)',
+    short: '200+ Stocks',
+    verbTeam: 'recorded 200+ combined steals and blocks in a season',
+    verbGeneric: 'recorded 200+ combined steals and blocks in a season'
+  },
+  BBSeason50_40_90: {
+    label: '50/40/90 Club (Season)',
+    short: '50/40/90 Club',
+    verbTeam: 'joined the 50/40/90 club in a season',
+    verbGeneric: 'joined the 50/40/90 club in a season'
+  },
+  BBSeason60TS20PPG: {
+    label: '60%+ TS on 20+ PPG (Season)',
+    short: '60% TS/20 PPG',
+    verbTeam: 'shot 60%+ TS while averaging 20+ PPG in a season',
+    verbGeneric: 'shot 60%+ TS while averaging 20+ PPG in a season'
+  },
+  BBSeason60eFG500FGA: {
+    label: '60%+ eFG on ≥500 FGA (Season)',
+    short: '60% eFG/500 FGA',
+    verbTeam: 'shot 60%+ eFG on 500+ field goal attempts in a season',
+    verbGeneric: 'shot 60%+ eFG on 500+ field goal attempts in a season'
+  },
+  BBSeason90FT250FTA: {
+    label: '90%+ FT on ≥250 FTA (Season)',
+    short: '90% FT/250 FTA',
+    verbTeam: 'shot 90%+ FT on 250+ free throw attempts in a season',
+    verbGeneric: 'shot 90%+ FT on 250+ free throw attempts in a season'
+  },
+  BBSeason40_3PT200_3PA: {
+    label: '40%+ 3PT on ≥200 3PA (Season)',
+    short: '40% 3PT/200 3PA',
+    verbTeam: 'shot 40%+ from three on 200+ attempts in a season',
+    verbGeneric: 'shot 40%+ from three on 200+ attempts in a season'
+  },
+  BBSeason70Games: {
+    label: '70+ Games Played (Season)',
+    short: '70+ Games',
+    verbTeam: 'played 70+ games in a season',
+    verbGeneric: 'played 70+ games in a season'
+  },
+  BBSeason36MPG: {
+    label: '36.0+ MPG (Season)',
+    short: '36+ MPG',
+    verbTeam: 'averaged 36.0+ minutes per game in a season',
+    verbGeneric: 'averaged 36.0+ minutes per game in a season'
+  },
+  BBSeason25_10: {
+    label: '25/10 Season (PPG/RPG)',
+    short: '25/10 Season',
+    verbTeam: 'had a 25/10 season (PPG/RPG)',
+    verbGeneric: 'had a 25/10 season (PPG/RPG)'
+  },
+  BBSeason25_5_5: {
+    label: '25/5/5 Season (PPG/RPG/APG)',
+    short: '25/5/5 Season',
+    verbTeam: 'had a 25/5/5 season (PPG/RPG/APG)',
+    verbGeneric: 'had a 25/5/5 season (PPG/RPG/APG)'
+  },
+  BBSeason20_10_5: {
+    label: '20/10/5 Season (PPG/RPG/APG)',
+    short: '20/10/5 Season',
+    verbTeam: 'had a 20/10/5 season (PPG/RPG/APG)',
+    verbGeneric: 'had a 20/10/5 season (PPG/RPG/APG)'
+  },
+  BBSeason1_1_1: {
+    label: '1/1/1 Season (SPG/BPG/3PM/G)',
+    short: '1/1/1 Season',
+    verbTeam: 'had a 1/1/1 season (SPG/BPG/3PM/G)',
+    verbGeneric: 'had a 1/1/1 season (SPG/BPG/3PM/G)'
+  },
+  
   // Football GM season achievements
   FBAllStar: {
     label: 'All-Star',
@@ -260,24 +406,6 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     verbTeam: 'won an MVP',
     verbGeneric: 'won an MVP'
   },
-  HKDPOY: {
-    label: 'Defensive Player of the Year',
-    short: 'DPOY',
-    verbTeam: 'won a Defensive Player of the Year',
-    verbGeneric: 'won a Defensive Player of the Year'
-  },
-  HKDefForward: {
-    label: 'Defensive Forward of the Year',
-    short: 'Def Forward',
-    verbTeam: 'won Defensive Forward of the Year',
-    verbGeneric: 'won Defensive Forward of the Year'
-  },
-  HKGoalie: {
-    label: 'Goalie of the Year',
-    short: 'Goalie',
-    verbTeam: 'won Goalie of the Year',
-    verbGeneric: 'won Goalie of the Year'
-  },
   HKROY: {
     label: 'Rookie of the Year',
     short: 'ROY',
@@ -296,23 +424,11 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     verbTeam: 'made an All-League Team',
     verbGeneric: 'made an All-League Team'
   },
-  HKPointsLeader: {
-    label: 'League Points Leader',
-    short: 'Points Leader',
-    verbTeam: 'led the league in points',
-    verbGeneric: 'led the league in points'
-  },
   HKAssistsLeader: {
     label: 'League Assists Leader',
     short: 'Assists Leader',
     verbTeam: 'led the league in assists',
     verbGeneric: 'led the league in assists'
-  },
-  HKGoalsLeader: {
-    label: 'League Goals Leader',
-    short: 'Goals Leader',
-    verbTeam: 'led the league in goals',
-    verbGeneric: 'led the league in goals'
   },
   HKPlayoffsMVP: {
     label: 'Playoffs MVP',
@@ -450,23 +566,11 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     verbTeam: 'made an All-Star team',
     verbGeneric: 'made an All-Star team'
   },
-  BBAllStarMVP: {
-    label: 'All-Star MVP',
-    short: 'All-Star MVP',
-    verbTeam: 'won an All-Star MVP',
-    verbGeneric: 'won an All-Star MVP'
-  },
   BBMVP: {
     label: 'Most Valuable Player',
     short: 'MVP',
     verbTeam: 'won an MVP',
     verbGeneric: 'won an MVP'
-  },
-  BBPitcherOTY: {
-    label: 'Pitcher of the Year',
-    short: 'Pitcher OTY',
-    verbTeam: 'won Pitcher of the Year',
-    verbGeneric: 'won Pitcher of the Year'
   },
   BBROY: {
     label: 'Rookie of the Year',
@@ -485,90 +589,6 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     short: 'All-League',
     verbTeam: 'made an All-League Team',
     verbGeneric: 'made an All-League Team'
-  },
-  BBGoldGlove: {
-    label: 'Gold Glove',
-    short: 'Gold Glove',
-    verbTeam: 'won a Gold Glove',
-    verbGeneric: 'won a Gold Glove'
-  },
-  BBSilverSlugger: {
-    label: 'Silver Slugger',
-    short: 'Silver Slugger',
-    verbTeam: 'won a Silver Slugger',
-    verbGeneric: 'won a Silver Slugger'
-  },
-  BBBattingAvgLeader: {
-    label: 'League Batting Average Leader',
-    short: 'Batting Avg Leader',
-    verbTeam: 'led the league in batting average',
-    verbGeneric: 'led the league in batting average'
-  },
-  BBHomeRunLeader: {
-    label: 'League Home Run Leader',
-    short: 'HR Leader',
-    verbTeam: 'led the league in home runs',
-    verbGeneric: 'led the league in home runs'
-  },
-  BBRBILeader: {
-    label: 'League RBI Leader',
-    short: 'RBI Leader',
-    verbTeam: 'led the league in RBIs',
-    verbGeneric: 'led the league in RBIs'
-  },
-  BBStolenBaseLeader: {
-    label: 'League Stolen Base Leader',
-    short: 'SB Leader',
-    verbTeam: 'led the league in stolen bases',
-    verbGeneric: 'led the league in stolen bases'
-  },
-  BBOBPLeader: {
-    label: 'League On-Base Percentage Leader',
-    short: 'OBP Leader',
-    verbTeam: 'led the league in on-base percentage',
-    verbGeneric: 'led the league in on-base percentage'
-  },
-  BBSluggingLeader: {
-    label: 'League Slugging Percentage Leader',
-    short: 'Slugging Leader',
-    verbTeam: 'led the league in slugging percentage',
-    verbGeneric: 'led the league in slugging percentage'
-  },
-  BBOPSLeader: {
-    label: 'League OPS Leader',
-    short: 'OPS Leader',
-    verbTeam: 'led the league in OPS',
-    verbGeneric: 'led the league in OPS'
-  },
-  BBHitsLeader: {
-    label: 'League Hits Leader',
-    short: 'Hits Leader',
-    verbTeam: 'led the league in hits',
-    verbGeneric: 'led the league in hits'
-  },
-  BBERALeader: {
-    label: 'League ERA Leader',
-    short: 'ERA Leader',
-    verbTeam: 'led the league in ERA',
-    verbGeneric: 'led the league in ERA'
-  },
-  BBStrikeoutsLeader: {
-    label: 'League Strikeouts Leader',
-    short: 'Strikeouts Leader',
-    verbTeam: 'led the league in strikeouts',
-    verbGeneric: 'led the league in strikeouts'
-  },
-  BBSavesLeader: {
-    label: 'League Saves Leader',
-    short: 'Saves Leader',
-    verbTeam: 'led the league in saves',
-    verbGeneric: 'led the league in saves'
-  },
-  BBReliefPitcherOTY: {
-    label: 'Relief Pitcher of the Year',
-    short: 'Relief Pitcher OTY',
-    verbTeam: 'won Relief Pitcher of the Year',
-    verbGeneric: 'won Relief Pitcher of the Year'
   },
   BBPlayoffsMVP: {
     label: 'Playoffs MVP',
@@ -647,40 +667,19 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     HKAllStar: ['All-Star', 'all-star'],
     HKAllStarMVP: ['All-Star MVP', 'all-star mvp'],
     HKMVP: ['Most Valuable Player', 'most valuable player'],
-    HKDPOY: ['Defensive Player of the Year', 'defensive player of the year'],
-    HKDefForward: ['Defensive Forward of the Year', 'defensive forward of the year'],
-    HKGoalie: ['Goalie of the Year', 'goalie of the year'],
     HKROY: ['Rookie of the Year', 'rookie of the year'],
     HKAllRookie: ['All-Rookie Team', 'all-rookie team'],
     HKAllLeague: ['All-League Team', 'all-league team', 'First Team All-League', 'Second Team All-League'],
-    HKPointsLeader: ['League Points Leader', 'league points leader'],
     HKAssistsLeader: ['League Assists Leader', 'league assists leader'],
-    HKGoalsLeader: ['League Goals Leader', 'league goals leader'],
     HKPlayoffsMVP: ['Playoffs MVP', 'playoffs mvp'],
     HKChampion: ['Won Championship', 'won championship'],
     
     // Baseball GM achievements (case-sensitive matches from ZGMB)
     BBAllStar: ['All-Star'],
-    BBAllStarMVP: ['All-Star MVP'],
     BBMVP: ['Most Valuable Player'],
-    BBPitcherOTY: ['Pitcher of the Year', 'Cy Young'],
     BBROY: ['Rookie of the Year'],
     BBAllRookie: ['All-Rookie Team'],
     BBAllLeague: ['All-League Team', 'First Team All-League', 'Second Team All-League'],
-    BBGoldGlove: ['Gold Glove'],
-    BBSilverSlugger: ['Silver Slugger'],
-    BBBattingAvgLeader: ['League Batting Average Leader'],
-    BBHomeRunLeader: ['League Home Run Leader'],
-    BBRBILeader: ['League RBI Leader'],
-    BBStolenBaseLeader: ['League Stolen Base Leader'],
-    BBOBPLeader: ['League On-Base Percentage Leader'],
-    BBSluggingLeader: ['League Slugging Percentage Leader'],
-    BBOPSLeader: ['League OPS Leader'],
-    BBHitsLeader: ['League Hits Leader', 'League Doubles Leader', 'League Triples Leader'],
-    BBERALeader: ['League ERA Leader'],
-    BBStrikeoutsLeader: ['League Strikeouts Leader'],
-    BBSavesLeader: ['League Saves Leader'],
-    BBReliefPitcherOTY: ['Relief Pitcher of the Year', 'Reliever of the Year'],
     BBPlayoffsMVP: ['Playoffs MVP', 'Finals MVP'],
     BBChampion: ['Won Championship']
   };
@@ -688,7 +687,7 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
   const patterns = awardTypePatterns[achievementId] || [];
   const matchingAwards = player.awards.filter(award => {
     const awardType = (award.type || '').toLowerCase();
-    const awardName = (award.name || '').toLowerCase();
+    const awardName = '';
     return patterns.some(pattern => 
       awardType.includes(pattern.toLowerCase()) || 
       awardName.includes(pattern.toLowerCase())
@@ -1043,12 +1042,12 @@ function getBasketball504090Season(player: Player) {
   for (const season of player.stats) {
     if (season.playoffs) continue;
     
-    const gp = season.gp || season.g || 0;
+    const gp = season.gp || 0;
     if (gp < 10) continue; // Need minimum games
     
-    const fgPct = season.fgp || season.fg_pct || 0;
-    const fg3Pct = season.tpp || season.fg3_pct || 0;
-    const ftPct = season.ftp || season.ft_pct || 0;
+    const fgPct = season.fgp || (season.fg && season.fga ? season.fg / season.fga : 0) || 0;
+    const fg3Pct = season.tpp || (season.tp && season.tpa ? season.tp / season.tpa : 0) || 0;
+    const ftPct = season.ftp || (season.ft && season.fta ? season.ft / season.fta : 0) || 0;
     
     if (fgPct >= 0.5 && fg3Pct >= 0.4 && ftPct >= 0.9) {
       return {
@@ -1082,7 +1081,7 @@ function getBasketballAwardSeason(player: Player, awardType: string): string {
   
   for (const award of player.awards) {
     for (const name of possibleNames) {
-      if (award.type?.includes(name) || award.name?.includes(name)) {
+      if (award.type?.includes(name)) {
         return award.season?.toString() || 'unknown';
       }
     }
@@ -1109,7 +1108,7 @@ function getBaseballAwardSeason(player: Player, awardType: string): string {
   
   for (const award of player.awards) {
     for (const name of possibleNames) {
-      if (award.type?.includes(name) || award.name?.includes(name)) {
+      if (award.type?.includes(name)) {
         return award.season?.toString() || 'unknown';
       }
     }
@@ -1138,7 +1137,7 @@ function getHockeyAwardSeason(player: Player, awardType: string): string {
   
   for (const award of player.awards) {
     for (const name of possibleNames) {
-      if (award.type?.includes(name) || award.name?.includes(name)) {
+      if (award.type?.includes(name)) {
         return award.season?.toString() || 'unknown';
       }
     }
