@@ -33,9 +33,6 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, string> = {
   FBFinalsMVP: 'Finals MVP',
   FBChampion: 'Won Championship',
   FBSeason4kPassYds: '4,000+ Passing Yards (Season)',
-  FBRecLeader: 'League Receiving Leader',
-  FBRushLeader: 'League Rushing Leader',
-  FBScrimmageLeader: 'League Scrimmage Yards Leader',
   
   // Hockey GM achievements
   HKAllStar: 'All-Star',
@@ -131,14 +128,10 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
     FBOffROY: ['Offensive Rookie of the Year'],
     FBDefROY: ['Defensive Rookie of the Year'],
     FBAllRookie: ['All-Rookie Team'],
-    FBAllLeague1st: ['First Team All-League'],
-    FBAllLeague2nd: ['Second Team All-League'],
+    FBAllLeague: ['First Team All-League', 'Second Team All-League', 'All-League Team'],
+    FBSeason4kPassYds: ['4,000+ Passing Yards', '4000+ passing yards', 'passing yards'],
     FBFinalsMVP: ['Finals MVP'],
     FBChampion: ['Won Championship'],
-    FBPassLeader: ['League Passing Leader'],
-    FBRecLeader: ['League Receiving Leader'],
-    FBRushLeader: ['League Rushing Leader'],
-    FBScrimmageLeader: ['League Scrimmage Yards Leader'],
     
     // Hockey GM achievements
     HKAllStar: ['All-Star', 'all-star'],
