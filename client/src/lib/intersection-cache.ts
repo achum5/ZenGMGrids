@@ -240,9 +240,9 @@ export function calculateOptimizedIntersection(
       if (rowConstraint.id === colConstraint.id) {
         // Same achievement - count all players who have it
         const eligiblePids = new Set<number>();
-        for (const seasonStr of Object.keys(seasonIndex.achievements)) {
+        for (const seasonStr of Object.keys(seasonIndex)) {
           const season = parseInt(seasonStr);
-          const seasonData = seasonIndex.achievements[season];
+          const seasonData = seasonIndex[season];
           for (const teamStr of Object.keys(seasonData)) {
             const teamId = parseInt(teamStr);
             const teamData = seasonData[teamId];
@@ -259,9 +259,9 @@ export function calculateOptimizedIntersection(
         const colAchievementPids = new Set<number>();
         
         // Collect players with row achievement
-        for (const seasonStr of Object.keys(seasonIndex.achievements)) {
+        for (const seasonStr of Object.keys(seasonIndex)) {
           const season = parseInt(seasonStr);
-          const seasonData = seasonIndex.achievements[season];
+          const seasonData = seasonIndex[season];
           for (const teamStr of Object.keys(seasonData)) {
             const teamId = parseInt(teamStr);
             const teamData = seasonData[teamId];
@@ -273,9 +273,9 @@ export function calculateOptimizedIntersection(
         }
         
         // Collect players with col achievement
-        for (const seasonStr of Object.keys(seasonIndex.achievements)) {
+        for (const seasonStr of Object.keys(seasonIndex)) {
           const season = parseInt(seasonStr);
-          const seasonData = seasonIndex.achievements[season];
+          const seasonData = seasonIndex[season];
           for (const teamStr of Object.keys(seasonData)) {
             const teamId = parseInt(teamStr);
             const teamData = seasonData[teamId];
@@ -334,9 +334,9 @@ export function calculateOptimizedIntersection(
       
       // Get all players with the season achievement
       const seasonAchievementPlayers = new Set<number>();
-      for (const seasonStr of Object.keys(seasonIndex.achievements)) {
+      for (const seasonStr of Object.keys(seasonIndex)) {
         const season = parseInt(seasonStr);
-        const seasonData = seasonIndex.achievements[season];
+        const seasonData = seasonIndex[season];
         for (const teamStr of Object.keys(seasonData)) {
           const teamId = parseInt(teamStr);
           const teamData = seasonData[teamId];
@@ -361,9 +361,9 @@ export function calculateOptimizedIntersection(
       
       // Get all players with the season achievement
       const seasonAchievementPlayers = new Set<number>();
-      for (const seasonStr of Object.keys(seasonIndex.achievements)) {
+      for (const seasonStr of Object.keys(seasonIndex)) {
         const season = parseInt(seasonStr);
-        const seasonData = seasonIndex.achievements[season];
+        const seasonData = seasonIndex[season];
         for (const teamStr of Object.keys(seasonData)) {
           const teamId = parseInt(teamStr);
           const teamData = seasonData[teamId];

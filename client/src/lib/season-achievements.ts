@@ -119,12 +119,7 @@ export type SeasonAchievementId =
   | 'SFMVP'; // Requires special team resolution logic
 
 // Type for the season index - maps season -> teamId -> achievementId -> Set of player IDs
-export type SeasonIndex = {
-  // Main achievement data: season -> teamId -> achievementId -> Set of player IDs
-  achievements: Record<number, Record<number, Record<SeasonAchievementId, Set<number>>>>;
-  // Championship team mapping: season -> championTeamId (fixes traded player championship attribution)
-  championTidBySeason: Record<number, number>;
-};
+export type SeasonIndex = Record<number, Record<number, Record<SeasonAchievementId, Set<number>>>>;
 
 import type { Player } from "@/types/bbgm";
 
@@ -656,152 +651,13 @@ function resolveSFMVPTeam(player: Player, season: number): number | null {
 }
 
 /**
- * Resolve championship team for a player in a specific season
- * Used for building championTidBySeason mapping
- * CRITICAL: Prefers playoffs stats, falls back to regular season
- */
-function resolveChampionshipTeam(player: Player, season: number): number | null {
-  if (!player.stats) return null;
-  
-  // First preference: playoffs stats
-  const playoffStats = player.stats.filter(s => 
-    s.season === season && s.playoffs && s.tid !== -1
-  );
-  
-  if (playoffStats.length > 0) {
-    // If only one playoffs team, use that
-    if (playoffStats.length === 1) {
-      return playoffStats[0].tid;
-    }
-    
-    // Multiple playoff teams - pick the one with most minutes
-    let bestTeam = playoffStats[0].tid;
-    let maxMinutes = playoffStats[0].min || 0;
-    
-    for (const stat of playoffStats.slice(1)) {
-      const minutes = stat.min || 0;
-      if (minutes > maxMinutes) {
-        maxMinutes = minutes;
-        bestTeam = stat.tid;
-      }
-    }
-    
-    return bestTeam;
-  }
-  
-  // Fallback: regular season stats (same logic as resolvePrimaryTeamForSeason)
-  const regularStats = player.stats.filter(s => 
-    s.season === season && !s.playoffs && s.tid !== -1
-  );
-  
-  if (regularStats.length === 0) return null;
-  
-  // Find team with most minutes played
-  let maxMinutes = 0;
-  let primaryTeam: number | null = null;
-  
-  for (const stat of regularStats) {
-    const minutes = stat.min || 0;
-    if (minutes > maxMinutes) {
-      maxMinutes = minutes;
-      primaryTeam = stat.tid;
-    }
-  }
-  
-  // Fallback to games played if no minutes data
-  if (primaryTeam === null) {
-    let maxGames = 0;
-    for (const stat of regularStats) {
-      const games = stat.gp || 0;
-      if (games > maxGames) {
-        maxGames = games;
-        primaryTeam = stat.tid;
-      }
-    }
-  }
-  
-  return primaryTeam;
-}
-
-/**
- * Build championTidBySeason mapping from championship awards
- * Analyzes all championship awards to determine the actual winning team for each season
- */
-function buildChampionTidBySeason(
-  players: Player[],
-  sport: 'basketball' | 'football' | 'hockey' | 'baseball' = 'basketball'
-): Record<number, number> {
-  const championTidBySeason: Record<number, number> = {};
-  
-  // Championship achievement IDs by sport
-  const championshipIds = ['Champion', 'FBChampion', 'HKChampion', 'BBChampion'];
-  
-  // Count championship team votes per season
-  const seasonTeamCounts: Record<number, Record<number, number>> = {};
-  
-  for (const player of players) {
-    if (!player.awards || player.awards.length === 0) continue;
-    
-    for (const award of player.awards) {
-      const achievementId = mapAwardToAchievement(award.type, sport);
-      
-      // Only process championship awards
-      if (!achievementId || !championshipIds.includes(achievementId)) continue;
-      
-      const season = award.season;
-      if (!season) continue;
-      
-      // Resolve which team this player was on when they won the championship
-      const championshipTeam = resolveChampionshipTeam(player, season);
-      if (championshipTeam === null) continue;
-      
-      // Tally the vote for this team in this season
-      if (!seasonTeamCounts[season]) {
-        seasonTeamCounts[season] = {};
-      }
-      
-      if (!seasonTeamCounts[season][championshipTeam]) {
-        seasonTeamCounts[season][championshipTeam] = 0;
-      }
-      
-      seasonTeamCounts[season][championshipTeam]++;
-    }
-  }
-  
-  // For each season, select the team with the most championship players
-  for (const [seasonStr, teamCounts] of Object.entries(seasonTeamCounts)) {
-    const season = parseInt(seasonStr);
-    
-    let maxCount = 0;
-    let championTeam: number | null = null;
-    
-    for (const [tidStr, count] of Object.entries(teamCounts)) {
-      const tid = parseInt(tidStr);
-      if (count > maxCount) {
-        maxCount = count;
-        championTeam = tid;
-      }
-    }
-    
-    if (championTeam !== null) {
-      championTidBySeason[season] = championTeam;
-    }
-  }
-  
-  return championTidBySeason;
-}
-
-/**
  * Build comprehensive season achievement index from player data
  */
 export function buildSeasonIndex(
   players: Player[],
   sport: 'basketball' | 'football' | 'hockey' | 'baseball' = 'basketball'
 ): SeasonIndex {
-  const seasonIndex: SeasonIndex = {
-    achievements: {},
-    championTidBySeason: {}
-  };
+  const seasonIndex: SeasonIndex = {};
   let totalIndexed = 0;
   let skippedEntries = 0;
 
@@ -834,11 +690,11 @@ export function buildSeasonIndex(
       if (achievementId === 'FBFinalsMVP' || achievementId === 'FinalsMVP') {
         const playoffsTeam = resolveFinalsMVPTeam(player, season);
         if (playoffsTeam !== null) {
-          if (!seasonIndex.achievements[season]) seasonIndex.achievements[season] = {};
-          if (!seasonIndex.achievements[season][playoffsTeam]) seasonIndex.achievements[season][playoffsTeam] = {} as Record<SeasonAchievementId, Set<number>>;
-          if (!seasonIndex.achievements[season][playoffsTeam][achievementId]) seasonIndex.achievements[season][playoffsTeam][achievementId] = new Set();
+          if (!seasonIndex[season]) seasonIndex[season] = {};
+          if (!seasonIndex[season][playoffsTeam]) seasonIndex[season][playoffsTeam] = {} as Record<SeasonAchievementId, Set<number>>;
+          if (!seasonIndex[season][playoffsTeam][achievementId]) seasonIndex[season][playoffsTeam][achievementId] = new Set();
           
-          seasonIndex.achievements[season][playoffsTeam][achievementId].add(player.pid);
+          seasonIndex[season][playoffsTeam][achievementId].add(player.pid);
           totalIndexed++;
         } else {
           skippedEntries++;
@@ -849,11 +705,11 @@ export function buildSeasonIndex(
       if (achievementId === 'SFMVP') {
         const playoffsTeam = resolveSFMVPTeam(player, season);
         if (playoffsTeam !== null) {
-          if (!seasonIndex.achievements[season]) seasonIndex.achievements[season] = {};
-          if (!seasonIndex.achievements[season][playoffsTeam]) seasonIndex.achievements[season][playoffsTeam] = {} as Record<SeasonAchievementId, Set<number>>;
-          if (!seasonIndex.achievements[season][playoffsTeam][achievementId]) seasonIndex.achievements[season][playoffsTeam][achievementId] = new Set();
+          if (!seasonIndex[season]) seasonIndex[season] = {};
+          if (!seasonIndex[season][playoffsTeam]) seasonIndex[season][playoffsTeam] = {} as Record<SeasonAchievementId, Set<number>>;
+          if (!seasonIndex[season][playoffsTeam][achievementId]) seasonIndex[season][playoffsTeam][achievementId] = new Set();
           
-          seasonIndex.achievements[season][playoffsTeam][achievementId].add(player.pid);
+          seasonIndex[season][playoffsTeam][achievementId].add(player.pid);
           totalIndexed++;
         } else {
           skippedEntries++;
@@ -875,11 +731,11 @@ export function buildSeasonIndex(
       }
       
       // Add to the primary team (the team they played the most minutes for)
-      if (!seasonIndex.achievements[season]) seasonIndex.achievements[season] = {};
-      if (!seasonIndex.achievements[season][primaryTeam]) seasonIndex.achievements[season][primaryTeam] = {} as Record<SeasonAchievementId, Set<number>>;
-      if (!seasonIndex.achievements[season][primaryTeam][achievementId]) seasonIndex.achievements[season][primaryTeam][achievementId] = new Set();
+      if (!seasonIndex[season]) seasonIndex[season] = {};
+      if (!seasonIndex[season][primaryTeam]) seasonIndex[season][primaryTeam] = {} as Record<SeasonAchievementId, Set<number>>;
+      if (!seasonIndex[season][primaryTeam][achievementId]) seasonIndex[season][primaryTeam][achievementId] = new Set();
       
-      seasonIndex.achievements[season][primaryTeam][achievementId].add(player.pid);
+      seasonIndex[season][primaryTeam][achievementId].add(player.pid);
       totalIndexed++;
       
       // Debug logging removed for performance
@@ -928,11 +784,11 @@ export function buildSeasonIndex(
           
           // Attach leader achievement to all teams they played for
           for (const tid of Array.from(seasonTeams)) {
-            if (!seasonIndex.achievements[season]) seasonIndex.achievements[season] = {};
-            if (!seasonIndex.achievements[season][tid]) seasonIndex.achievements[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
-            if (!seasonIndex.achievements[season][tid][achievementId]) seasonIndex.achievements[season][tid][achievementId] = new Set();
+            if (!seasonIndex[season]) seasonIndex[season] = {};
+            if (!seasonIndex[season][tid]) seasonIndex[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
+            if (!seasonIndex[season][tid][achievementId]) seasonIndex[season][tid][achievementId] = new Set();
             
-            seasonIndex.achievements[season][tid][achievementId].add(pid);
+            seasonIndex[season][tid][achievementId].add(pid);
             leaderEntriesAdded++;
           }
         }
@@ -1009,11 +865,11 @@ export function buildSeasonIndex(
           
           // Helper function to add achievement
           const addAchievement = (achievementId: SeasonAchievementId) => {
-            if (!seasonIndex.achievements[season]) seasonIndex.achievements[season] = {};
-            if (!seasonIndex.achievements[season][tid]) seasonIndex.achievements[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
-            if (!seasonIndex.achievements[season][tid][achievementId]) seasonIndex.achievements[season][tid][achievementId] = new Set();
+            if (!seasonIndex[season]) seasonIndex[season] = {};
+            if (!seasonIndex[season][tid]) seasonIndex[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
+            if (!seasonIndex[season][tid][achievementId]) seasonIndex[season][tid][achievementId] = new Set();
             
-            seasonIndex.achievements[season][tid][achievementId].add(player.pid);
+            seasonIndex[season][tid][achievementId].add(player.pid);
             basketballEntriesAdded++;
           };
           
@@ -1208,11 +1064,11 @@ export function buildSeasonIndex(
           
           // Helper function to add achievement
           const addAchievement = (achievementId: SeasonAchievementId) => {
-            if (!seasonIndex.achievements[season]) seasonIndex.achievements[season] = {};
-            if (!seasonIndex.achievements[season][tid]) seasonIndex.achievements[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
-            if (!seasonIndex.achievements[season][tid][achievementId]) seasonIndex.achievements[season][tid][achievementId] = new Set();
+            if (!seasonIndex[season]) seasonIndex[season] = {};
+            if (!seasonIndex[season][tid]) seasonIndex[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
+            if (!seasonIndex[season][tid][achievementId]) seasonIndex[season][tid][achievementId] = new Set();
             
-            seasonIndex.achievements[season][tid][achievementId].add(player.pid);
+            seasonIndex[season][tid][achievementId].add(player.pid);
             footballEntriesAdded++;
           };
           
@@ -1356,11 +1212,11 @@ export function buildSeasonIndex(
           
           // Helper function to add achievement
           const addAchievement = (achievementId: SeasonAchievementId) => {
-            if (!seasonIndex.achievements[season]) seasonIndex.achievements[season] = {};
-            if (!seasonIndex.achievements[season][tid]) seasonIndex.achievements[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
-            if (!seasonIndex.achievements[season][tid][achievementId]) seasonIndex.achievements[season][tid][achievementId] = new Set();
+            if (!seasonIndex[season]) seasonIndex[season] = {};
+            if (!seasonIndex[season][tid]) seasonIndex[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
+            if (!seasonIndex[season][tid][achievementId]) seasonIndex[season][tid][achievementId] = new Set();
             
-            seasonIndex.achievements[season][tid][achievementId].add(player.pid);
+            seasonIndex[season][tid][achievementId].add(player.pid);
             hockeyEntriesAdded++;
           };
           
@@ -1467,12 +1323,9 @@ export function buildSeasonIndex(
     // Debug logging removed for performance
   }
   
-  // Build championTidBySeason mapping
-  seasonIndex.championTidBySeason = buildChampionTidBySeason(players, sport);
-  
   // Log statistics
-  const seasons = Object.keys(seasonIndex.achievements).length;
-  const achievements = Object.values(seasonIndex.achievements).flatMap(season => 
+  const seasons = Object.keys(seasonIndex).length;
+  const achievements = Object.values(seasonIndex).flatMap(season => 
     Object.values(season).flatMap(team => Object.keys(team))
   ).length;
   
@@ -1490,11 +1343,11 @@ export function buildSeasonIndex(
       // 250+ Made Threes Season achievement
       const threesMade = seasonStat.tpm || seasonStat.tp || 0;
       if (threesMade >= 250) {
-        if (!seasonIndex.achievements[season]) seasonIndex.achievements[season] = {};
-        if (!seasonIndex.achievements[season][tid]) seasonIndex.achievements[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
-        if (!seasonIndex.achievements[season][tid]['Season250ThreePM']) seasonIndex.achievements[season][tid]['Season250ThreePM'] = new Set();
+        if (!seasonIndex[season]) seasonIndex[season] = {};
+        if (!seasonIndex[season][tid]) seasonIndex[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
+        if (!seasonIndex[season][tid]['Season250ThreePM']) seasonIndex[season][tid]['Season250ThreePM'] = new Set();
         
-        seasonIndex.achievements[season][tid]['Season250ThreePM'].add(player.pid);
+        seasonIndex[season][tid]['Season250ThreePM'].add(player.pid);
         totalIndexed++;
       }
     }
@@ -1515,23 +1368,14 @@ export function getSeasonEligiblePlayers(
 ): Set<number> {
   const allPlayers = new Set<number>();
   
-  // Championship achievement IDs that require championTidBySeason validation
-  const championshipAchievements = new Set(['Champion', 'FBChampion', 'HKChampion', 'BBChampion']);
-  const isChampionshipAchievement = championshipAchievements.has(achievementId);
+  // Debug logging removed for performance
   
   // Search across all seasons for this team-achievement combination
-  for (const seasonStr of Object.keys(seasonIndex.achievements)) {
+  for (const seasonStr of Object.keys(seasonIndex)) {
     const season = parseInt(seasonStr);
-    const seasonData = seasonIndex.achievements[season];
+    const seasonData = seasonIndex[season];
     
-    // For championship achievements, validate that this team actually won the championship in this season
-    if (isChampionshipAchievement) {
-      const championTeamId = seasonIndex.championTidBySeason[season];
-      if (championTeamId !== teamId) {
-        // This team did not win the championship in this season, skip
-        continue;
-      }
-    }
+    // Debug logging removed for performance
     
     if (seasonData[teamId] && seasonData[teamId][achievementId]) {
       for (const pid of Array.from(seasonData[teamId][achievementId])) {
@@ -1539,6 +1383,8 @@ export function getSeasonEligiblePlayers(
       }
     }
   }
+  
+  // Debug logging removed for performance
   
   return allPlayers;
 }

@@ -946,8 +946,8 @@ function generateGridSeeded(leagueData: LeagueData): {
         
         // Check if any player has both seed achievement (any season) and this career achievement
         const seedPlayerIds = new Set<number>();
-        for (const season of Object.keys(seasonIndex.achievements)) {
-          const seasonData = seasonIndex.achievements[parseInt(season)];
+        for (const season of Object.keys(seasonIndex)) {
+          const seasonData = seasonIndex[parseInt(season)];
           for (const teamId of Object.keys(seasonData)) {
             const teamData = seasonData[parseInt(teamId)];
             const achPlayers = teamData[seedAchievement.id] || new Set();
@@ -1714,9 +1714,9 @@ function buildOppositeAxisForSeed(
         if (rowConstraint.achievementId === colConstraint.achievementId) {
           // Same achievement - just find all players who have it
           const eligiblePids = new Set<number>();
-          for (const seasonStr of Object.keys(seasonIndex.achievements)) {
+          for (const seasonStr of Object.keys(seasonIndex)) {
             const season = parseInt(seasonStr);
-            const seasonData = seasonIndex.achievements[season];
+            const seasonData = seasonIndex[season];
             for (const teamStr of Object.keys(seasonData)) {
               const teamId = parseInt(teamStr);
               const teamData = seasonData[teamId];
@@ -1730,9 +1730,9 @@ function buildOppositeAxisForSeed(
         } else {
           // Different achievements - find players who have both in the same season
           const eligiblePids = new Set<number>();
-          for (const seasonStr of Object.keys(seasonIndex.achievements)) {
+          for (const seasonStr of Object.keys(seasonIndex)) {
             const season = parseInt(seasonStr);
-            const seasonData = seasonIndex.achievements[season];
+            const seasonData = seasonIndex[season];
             for (const teamStr of Object.keys(seasonData)) {
               const teamId = parseInt(teamStr);
               const teamData = seasonData[teamId];
