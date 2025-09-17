@@ -168,6 +168,78 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     verbTeam: 'threw for 4,000+ yards in a season',
     verbGeneric: 'threw for 4,000+ yards in a season'
   },
+  FBSeason1200RushYds: {
+    label: '1,200+ Rushing Yards (Season)',
+    short: '1.2K Rush Yds',
+    verbTeam: 'rushed for 1,200+ yards in a season',
+    verbGeneric: 'rushed for 1,200+ yards in a season'
+  },
+  FBSeason100Receptions: {
+    label: '100+ Receptions (Season)',
+    short: '100 Rec',
+    verbTeam: 'had 100+ receptions in a season',
+    verbGeneric: 'had 100+ receptions in a season'
+  },
+  FBSeason15Sacks: {
+    label: '15+ Sacks (Season)',
+    short: '15 Sacks',
+    verbTeam: 'had 15+ sacks in a season',
+    verbGeneric: 'had 15+ sacks in a season'
+  },
+  FBSeason140Tackles: {
+    label: '140+ Tackles (Season)',
+    short: '140 Tackles',
+    verbTeam: 'had 140+ tackles in a season',
+    verbGeneric: 'had 140+ tackles in a season'
+  },
+  FBSeason5Interceptions: {
+    label: '5+ Interceptions (Season)',
+    short: '5 INTs',
+    verbTeam: 'had 5+ interceptions in a season',
+    verbGeneric: 'had 5+ interceptions in a season'
+  },
+  FBSeason30PassTD: {
+    label: '30+ Passing TD (Season)',
+    short: '30 Pass TD',
+    verbTeam: 'threw 30+ touchdown passes in a season',
+    verbGeneric: 'threw 30+ touchdown passes in a season'
+  },
+  FBSeason1300RecYds: {
+    label: '1,300+ Receiving Yards (Season)',
+    short: '1.3K Rec Yds',
+    verbTeam: 'had 1,300+ receiving yards in a season',
+    verbGeneric: 'had 1,300+ receiving yards in a season'
+  },
+  FBSeason10RecTD: {
+    label: '10+ Receiving TD (Season)',
+    short: '10 Rec TD',
+    verbTeam: 'had 10+ receiving touchdowns in a season',
+    verbGeneric: 'had 10+ receiving touchdowns in a season'
+  },
+  FBSeason12RushTD: {
+    label: '12+ Rushing TD (Season)',
+    short: '12 Rush TD',
+    verbTeam: 'had 12+ rushing touchdowns in a season',
+    verbGeneric: 'had 12+ rushing touchdowns in a season'
+  },
+  FBSeason1600Scrimmage: {
+    label: '1,600+ Yards from Scrimmage (Season)',
+    short: '1.6K Scrimmage',
+    verbTeam: 'had 1,600+ yards from scrimmage in a season',
+    verbGeneric: 'had 1,600+ yards from scrimmage in a season'
+  },
+  FBSeason2000AllPurpose: {
+    label: '2,000+ All-Purpose Yards (Season)',
+    short: '2K All-Purpose',
+    verbTeam: 'had 2,000+ all-purpose yards in a season',
+    verbGeneric: 'had 2,000+ all-purpose yards in a season'
+  },
+  FBSeason15TFL: {
+    label: '15+ Tackles for Loss (Season)',
+    short: '15 TFL',
+    verbTeam: 'had 15+ tackles for loss in a season',
+    verbGeneric: 'had 15+ tackles for loss in a season'
+  },
   FBRecLeader: {
     label: 'League Receiving Leader',
     short: 'Rec Leader',
@@ -459,6 +531,19 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     FBAllLeague: ['First Team All-League', 'Second Team All-League'],
     FBFinalsMVP: ['Finals MVP'],
     FBChampion: ['Won Championship'],
+    FBSeason4kPassYds: ['4,000+ Passing Yards', '4000+ passing yards', 'passing yards'],
+    FBSeason1200RushYds: ['1,200+ Rushing Yards', '1200+ rushing yards', 'rushing yards'],
+    FBSeason100Receptions: ['100+ Receptions', '100+ receptions', 'receptions'],
+    FBSeason15Sacks: ['15+ Sacks', '15+ sacks', 'sacks'],
+    FBSeason140Tackles: ['140+ Tackles', '140+ tackles', 'tackles'],
+    FBSeason5Interceptions: ['5+ Interceptions', '5+ interceptions', 'interceptions'],
+    FBSeason30PassTD: ['30+ Passing TD', '30+ passing td', 'passing touchdowns'],
+    FBSeason1300RecYds: ['1,300+ Receiving Yards', '1300+ receiving yards', 'receiving yards'],
+    FBSeason10RecTD: ['10+ Receiving TD', '10+ receiving td', 'receiving touchdowns'],
+    FBSeason12RushTD: ['12+ Rushing TD', '12+ rushing td', 'rushing touchdowns'],
+    FBSeason1600Scrimmage: ['1,600+ Yards from Scrimmage', '1600+ scrimmage yards', 'scrimmage yards'],
+    FBSeason2000AllPurpose: ['2,000+ All-Purpose Yards', '2000+ all-purpose yards', 'all-purpose yards'],
+    FBSeason15TFL: ['15+ Tackles for Loss', '15+ tackles for loss', 'tackles for loss'],
     FBRecLeader: ['League Receiving Leader'],
     FBRushLeader: ['League Rushing Leader'],
     FBScrimmageLeader: ['League Scrimmage Yards Leader'],
