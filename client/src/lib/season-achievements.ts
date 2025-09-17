@@ -38,6 +38,18 @@ export type SeasonAchievementId =
   | 'FBAllLeague'
   | 'FBFinalsMVP'
   | 'FBSeason4kPassYds'
+  | 'FBSeason1200RushYds'
+  | 'FBSeason100Receptions'
+  | 'FBSeason15Sacks'
+  | 'FBSeason140Tackles'
+  | 'FBSeason5Interceptions'
+  | 'FBSeason30PassTD'
+  | 'FBSeason1300RecYds'
+  | 'FBSeason10RecTD'
+  | 'FBSeason12RushTD'
+  | 'FBSeason1600Scrimmage'
+  | 'FBSeason2000AllPurpose'
+  | 'FBSeason15TFL'
   // Hockey achievements
   | 'HKAllStar'
   | 'HKMVP'
@@ -769,17 +781,102 @@ export function buildSeasonIndex(
         );
         
         for (const stat of seasonStats) {
-          const pssYds = (stat as any).pssYds || 0;
           const tid = stat.tid;
+          
+          // Extract all relevant stats from the season stat
+          const pssYds = (stat as any).pssYds || 0;
+          const rusYds = (stat as any).rusYds || 0;
+          const rec = (stat as any).rec || 0;
+          const defSk = (stat as any).defSk || 0;
+          const defTckSolo = (stat as any).defTckSolo || 0;
+          const defTckAst = (stat as any).defTckAst || 0;
+          const defInt = (stat as any).defInt || 0;
+          const pssTD = (stat as any).pssTD || 0;
+          const recYds = (stat as any).recYds || 0;
+          const recTD = (stat as any).recTD || 0;
+          const rusTD = (stat as any).rusTD || 0;
+          const prYds = (stat as any).prYds || 0;
+          const krYds = (stat as any).krYds || 0;
+          const defTckLoss = (stat as any).defTckLoss || 0;
+          
+          // Computed values
+          const totalTackles = defTckSolo + defTckAst;
+          const scrimmageYards = rusYds + recYds;
+          const allPurposeYards = rusYds + recYds + prYds + krYds;
+          
+          // Helper function to add achievement
+          const addAchievement = (achievementId: SeasonAchievementId) => {
+            if (!seasonIndex[season]) seasonIndex[season] = {};
+            if (!seasonIndex[season][tid]) seasonIndex[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
+            if (!seasonIndex[season][tid][achievementId]) seasonIndex[season][tid][achievementId] = new Set();
+            
+            seasonIndex[season][tid][achievementId].add(player.pid);
+            footballEntriesAdded++;
+          };
           
           // Check for 4,000+ passing yards achievement
           if (pssYds >= 4000) {
-            if (!seasonIndex[season]) seasonIndex[season] = {};
-            if (!seasonIndex[season][tid]) seasonIndex[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
-            if (!seasonIndex[season][tid]['FBSeason4kPassYds']) seasonIndex[season][tid]['FBSeason4kPassYds'] = new Set();
-            
-            seasonIndex[season][tid]['FBSeason4kPassYds'].add(player.pid);
-            footballEntriesAdded++;
+            addAchievement('FBSeason4kPassYds');
+          }
+          
+          // Check for 1,200+ rushing yards achievement
+          if (rusYds >= 1200) {
+            addAchievement('FBSeason1200RushYds');
+          }
+          
+          // Check for 100+ receptions achievement
+          if (rec >= 100) {
+            addAchievement('FBSeason100Receptions');
+          }
+          
+          // Check for 15+ sacks achievement
+          if (defSk >= 15) {
+            addAchievement('FBSeason15Sacks');
+          }
+          
+          // Check for 140+ tackles achievement
+          if (totalTackles >= 140) {
+            addAchievement('FBSeason140Tackles');
+          }
+          
+          // Check for 5+ interceptions achievement
+          if (defInt >= 5) {
+            addAchievement('FBSeason5Interceptions');
+          }
+          
+          // Check for 30+ passing TD achievement
+          if (pssTD >= 30) {
+            addAchievement('FBSeason30PassTD');
+          }
+          
+          // Check for 1,300+ receiving yards achievement
+          if (recYds >= 1300) {
+            addAchievement('FBSeason1300RecYds');
+          }
+          
+          // Check for 10+ receiving TD achievement
+          if (recTD >= 10) {
+            addAchievement('FBSeason10RecTD');
+          }
+          
+          // Check for 12+ rushing TD achievement
+          if (rusTD >= 12) {
+            addAchievement('FBSeason12RushTD');
+          }
+          
+          // Check for 1,600+ yards from scrimmage achievement
+          if (scrimmageYards >= 1600) {
+            addAchievement('FBSeason1600Scrimmage');
+          }
+          
+          // Check for 2,000+ all-purpose yards achievement
+          if (allPurposeYards >= 2000) {
+            addAchievement('FBSeason2000AllPurpose');
+          }
+          
+          // Check for 15+ tackles for loss achievement
+          if (defTckLoss >= 15) {
+            addAchievement('FBSeason15TFL');
           }
         }
       }
@@ -1024,6 +1121,78 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
   {
     id: 'FBSeason4kPassYds',
     label: '4,000+ Passing Yards (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'FBSeason1200RushYds',
+    label: '1,200+ Rushing Yards (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'FBSeason100Receptions',
+    label: '100+ Receptions (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'FBSeason15Sacks',
+    label: '15+ Sacks (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'FBSeason140Tackles',
+    label: '140+ Tackles (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'FBSeason5Interceptions',
+    label: '5+ Interceptions (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'FBSeason30PassTD',
+    label: '30+ Passing TD (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'FBSeason1300RecYds',
+    label: '1,300+ Receiving Yards (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'FBSeason10RecTD',
+    label: '10+ Receiving TD (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'FBSeason12RushTD',
+    label: '12+ Rushing TD (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'FBSeason1600Scrimmage',
+    label: '1,600+ Yards from Scrimmage (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'FBSeason2000AllPurpose',
+    label: '2,000+ All-Purpose Yards (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'FBSeason15TFL',
+    label: '15+ Tackles for Loss (Season)',
     isSeasonSpecific: true,
     minPlayers: 3
   },

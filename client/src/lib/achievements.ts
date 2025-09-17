@@ -182,7 +182,7 @@ function createSeasonAchievementTests(seasonIndex?: SeasonIndex, sport: 'basketb
     minPlayers: seasonAch.minPlayers,
     test: (player: Player) => {
       // For statistical leader achievements (PointsLeader, BlocksLeader, etc.), check seasonIndex
-      const statisticalLeaders = ['PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader', 'FBSeason4kPassYds'];
+      const statisticalLeaders = ['PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader', 'FBSeason4kPassYds', 'FBSeason1200RushYds', 'FBSeason100Receptions', 'FBSeason15Sacks', 'FBSeason140Tackles', 'FBSeason5Interceptions', 'FBSeason30PassTD', 'FBSeason1300RecYds', 'FBSeason10RecTD', 'FBSeason12RushTD', 'FBSeason1600Scrimmage', 'FBSeason2000AllPurpose', 'FBSeason15TFL'];
       if (statisticalLeaders.includes(seasonAch.id)) {
         // For statistical leaders, check if player appears in any season/team for this achievement
         if (!seasonIndex) return false;
