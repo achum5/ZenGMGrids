@@ -240,24 +240,6 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     verbTeam: 'had 15+ tackles for loss in a season',
     verbGeneric: 'had 15+ tackles for loss in a season'
   },
-  FBRecLeader: {
-    label: 'League Receiving Leader',
-    short: 'Rec Leader',
-    verbTeam: 'led the league in receiving',
-    verbGeneric: 'led the league in receiving'
-  },
-  FBRushLeader: {
-    label: 'League Rushing Leader',
-    short: 'Rush Leader',
-    verbTeam: 'led the league in rushing',
-    verbGeneric: 'led the league in rushing'
-  },
-  FBScrimmageLeader: {
-    label: 'League Scrimmage Yards Leader',
-    short: 'Scrimmage Leader',
-    verbTeam: 'led the league in scrimmage yards',
-    verbGeneric: 'led the league in scrimmage yards'
-  },
   
   // Hockey GM season achievements
   HKAllStar: {
@@ -343,6 +325,122 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     short: 'Champion',
     verbTeam: 'won a championship',
     verbGeneric: 'won a championship'
+  },
+  
+  // Hockey GM Season Statistical Achievements (19 new achievements)
+  HKSeason40Goals: {
+    label: '40+ Goals (Season)',
+    short: '40+ Goals',
+    verbTeam: 'scored 40+ goals in a season',
+    verbGeneric: 'scored 40+ goals in a season'
+  },
+  HKSeason60Assists: {
+    label: '60+ Assists (Season)',
+    short: '60+ Assists',
+    verbTeam: 'recorded 60+ assists in a season',
+    verbGeneric: 'recorded 60+ assists in a season'
+  },
+  HKSeason90Points: {
+    label: '90+ Points (Season)',
+    short: '90+ Points',
+    verbTeam: 'recorded 90+ points in a season',
+    verbGeneric: 'recorded 90+ points in a season'
+  },
+  HKSeason25Plus: {
+    label: '+25 Plus/Minus (Season)',
+    short: '+25 Plus/Minus',
+    verbTeam: 'had a +25 or better plus/minus in a season',
+    verbGeneric: 'had a +25 or better plus/minus in a season'
+  },
+  HKSeason250Shots: {
+    label: '250+ Shots (Season)',
+    short: '250+ Shots',
+    verbTeam: 'recorded 250+ shots in a season',
+    verbGeneric: 'recorded 250+ shots in a season'
+  },
+  HKSeason150Hits: {
+    label: '150+ Hits (Season)',
+    short: '150+ Hits',
+    verbTeam: 'recorded 150+ hits in a season',
+    verbGeneric: 'recorded 150+ hits in a season'
+  },
+  HKSeason100Blocks: {
+    label: '100+ Blocks (Season)',
+    short: '100+ Blocks',
+    verbTeam: 'recorded 100+ blocked shots in a season',
+    verbGeneric: 'recorded 100+ blocked shots in a season'
+  },
+  HKSeason60Takeaways: {
+    label: '60+ Takeaways (Season)',
+    short: '60+ Takeaways',
+    verbTeam: 'recorded 60+ takeaways in a season',
+    verbGeneric: 'recorded 60+ takeaways in a season'
+  },
+  HKSeason20PowerPlay: {
+    label: '20+ Power-Play Points (Season)',
+    short: '20+ PP Points',
+    verbTeam: 'recorded 20+ power-play points in a season',
+    verbGeneric: 'recorded 20+ power-play points in a season'
+  },
+  HKSeason3SHGoals: {
+    label: '3+ Short-Handed Goals (Season)',
+    short: '3+ SH Goals',
+    verbTeam: 'scored 3+ short-handed goals in a season',
+    verbGeneric: 'scored 3+ short-handed goals in a season'
+  },
+  HKSeason7GWGoals: {
+    label: '7+ Game-Winning Goals (Season)',
+    short: '7+ GW Goals',
+    verbTeam: 'scored 7+ game-winning goals in a season',
+    verbGeneric: 'scored 7+ game-winning goals in a season'
+  },
+  HKSeason55FaceoffPct: {
+    label: '55%+ Faceoff Win Rate (Season)',
+    short: '55%+ Faceoffs',
+    verbTeam: 'had a 55%+ faceoff win rate in a season',
+    verbGeneric: 'had a 55%+ faceoff win rate in a season'
+  },
+  HKSeason22TOI: {
+    label: '22:00+ TOI per Game (Season)',
+    short: '22:00+ TOI/Game',
+    verbTeam: 'averaged 22:00+ TOI per game in a season',
+    verbGeneric: 'averaged 22:00+ TOI per game in a season'
+  },
+  HKSeason70PIM: {
+    label: '70+ PIM (Season)',
+    short: '70+ PIM',
+    verbTeam: 'recorded 70+ penalty minutes in a season',
+    verbGeneric: 'recorded 70+ penalty minutes in a season'
+  },
+  HKSeason920SavePct: {
+    label: '.920+ Save Percentage (Season)',
+    short: '.920+ SV%',
+    verbTeam: 'had a .920+ save percentage in a season',
+    verbGeneric: 'had a .920+ save percentage in a season'
+  },
+  HKSeason260GAA: {
+    label: '≤2.60 GAA (Season)',
+    short: '≤2.60 GAA',
+    verbTeam: 'had a 2.60 or lower GAA in a season',
+    verbGeneric: 'had a 2.60 or lower GAA in a season'
+  },
+  HKSeason6Shutouts: {
+    label: '6+ Shutouts (Season)',
+    short: '6+ Shutouts',
+    verbTeam: 'recorded 6+ shutouts in a season',
+    verbGeneric: 'recorded 6+ shutouts in a season'
+  },
+  HKSeason2000Saves: {
+    label: '2000+ Saves (Season)',
+    short: '2000+ Saves',
+    verbTeam: 'made 2000+ saves in a season',
+    verbGeneric: 'made 2000+ saves in a season'
+  },
+  HKSeason60Starts: {
+    label: '60+ Starts (Season)',
+    short: '60+ Starts',
+    verbTeam: 'made 60+ starts in a season',
+    verbGeneric: 'made 60+ starts in a season'
   },
   
   // Baseball GM season achievements
@@ -544,9 +642,6 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     FBSeason1600Scrimmage: ['1,600+ Yards from Scrimmage', '1600+ scrimmage yards', 'scrimmage yards'],
     FBSeason2000AllPurpose: ['2,000+ All-Purpose Yards', '2000+ all-purpose yards', 'all-purpose yards'],
     FBSeason15TFL: ['15+ Tackles for Loss', '15+ tackles for loss', 'tackles for loss'],
-    FBRecLeader: ['League Receiving Leader'],
-    FBRushLeader: ['League Rushing Leader'],
-    FBScrimmageLeader: ['League Scrimmage Yards Leader'],
     
     // Hockey GM achievements (case-insensitive matches from ZGMH)
     HKAllStar: ['All-Star', 'all-star'],
