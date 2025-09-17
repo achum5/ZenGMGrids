@@ -772,29 +772,35 @@ function generateGridSeeded(leagueData: LeagueData): {
     const sportFilteredAchievements = getAllAchievements(sport, seasonIndex, leagueData.leagueYears)
       .filter(ach => ach.isSeasonSpecific);
     
-    const viableSeasonAchievements = sportFilteredAchievements.map(ach => 
-      SEASON_ACHIEVEMENTS.find(sa => sa.id === ach.id)
-    ).filter((sa): sa is NonNullable<typeof sa> => {
-      if (!sa) return false;
-      const eligibleTeams = getTeamsForAchievement(seasonIndex, sa.id, teams);
+    // Work directly with the dynamic achievements - no need to map back to static array
+    const viableSeasonAchievements = sportFilteredAchievements.filter(ach => {
+      const eligibleTeams = getTeamsForAchievement(seasonIndex, ach.id, teams);
       
-      // Debug baseball achievements specifically
-      if (sport === 'baseball') {
-        console.log(`🏀 Baseball achievement ${sa.id}: ${eligibleTeams.size} eligible teams`, Array.from(eligibleTeams));
+      // Debug achievements specifically for troubleshooting
+      if (sport === 'basketball' && ach.id.includes('@')) {
+        console.log(`🏀 Dynamic achievement ${ach.id}: ${eligibleTeams.size} eligible teams`, Array.from(eligibleTeams));
       }
       
       return eligibleTeams.size >= 3;
     });
     
-    console.log(`Found ${viableSeasonAchievements.length} viable season achievements:`, viableSeasonAchievements.map(sa => sa.id));
+    console.log(`Found ${viableSeasonAchievements.length} viable season achievements:`, viableSeasonAchievements.map(ach => ach.id));
     
     if (viableSeasonAchievements.length === 0) {
       throw new Error('No viable season achievements found for seeded generation');
     }
     
-    // Pick random season achievement
+    // Pick random season achievement  
     const achievementIndex = simpleHash(gridId + '_seed' + retryCount) % viableSeasonAchievements.length;
-    seedAchievement = viableSeasonAchievements[achievementIndex];
+    const selectedAchievement = viableSeasonAchievements[achievementIndex];
+    
+    // Convert Achievement to SeasonAchievement format for compatibility
+    seedAchievement = {
+      id: selectedAchievement.id as SeasonAchievementId,
+      label: selectedAchievement.label,
+      isSeasonSpecific: true,
+      minPlayers: selectedAchievement.minPlayers
+    };
     
     // Find achievement slots and pick one randomly
     const achievementSlots: Array<{ axis: 'row' | 'col', index: number }> = [];

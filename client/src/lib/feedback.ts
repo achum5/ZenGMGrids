@@ -274,6 +274,11 @@ export interface GridConstraint {
   decade?: string;
   draft?: number;
   longevity?: number;
+  // Properties needed for PlayerModal compatibility
+  type?: 'team' | 'achievement';
+  tid?: number;
+  achievementId?: string;
+  label?: string;
 }
 
 // Season achievement feedback for team-based constraints
@@ -427,7 +432,7 @@ function evaluateConstraint(player: Player, constraint: GridConstraint): boolean
     }
     
     // For career/aligned achievements, use existing system
-    if (SEASON_ALIGNED_ACHIEVEMENTS[constraint.achievement]) {
+    if (SEASON_ALIGNED_ACHIEVEMENTS && constraint.achievement && Object.prototype.hasOwnProperty.call(SEASON_ALIGNED_ACHIEVEMENTS, constraint.achievement)) {
       return playerMeetsAchievement(player, constraint.achievement);
     }
     
