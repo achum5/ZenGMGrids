@@ -1040,9 +1040,9 @@ function generateGridSeeded(leagueData: LeagueData): {
       console.log(`   Filling empty row ${i} slot (type: ${layout.rows[i]})`);
       
       if (layout.rows[i] === 'T') {
-        // Fill team slot - try up to 50 random teams
+        // Fill team slot - try up to 100 random teams
         let found = false;
-        for (let attempt = 0; attempt < 50; attempt++) {
+        for (let attempt = 0; attempt < 100; attempt++) {
           const teamIndex = simpleHash(gridId + '_rowteam' + i + '_' + attempt) % activeTeams.length;
           const team = activeTeams[teamIndex];
           
@@ -1086,13 +1086,13 @@ function generateGridSeeded(leagueData: LeagueData): {
         }
         
         if (!found) {
-          throw new Error(`Could not find valid team for row ${i} after trying 50 candidates`);
+          throw new Error(`Could not find valid team for row ${i} after trying 100 candidates`);
         }
         
       } else if (layout.rows[i] === 'A') {
-        // Fill achievement slot - try up to 50 random achievements
+        // Fill achievement slot - try up to 100 random achievements
         let found = false;
-        for (let attempt = 0; attempt < 50; attempt++) {
+        for (let attempt = 0; attempt < 100; attempt++) {
           const achIndex = simpleHash(gridId + '_rowach' + i + '_' + attempt) % allAchievements.length;
           const ach = allAchievements[achIndex];
           
@@ -1165,7 +1165,7 @@ function generateGridSeeded(leagueData: LeagueData): {
         }
         
         if (!found) {
-          throw new Error(`Could not find valid achievement for row ${i} after trying 50 candidates`);
+          throw new Error(`Could not find valid achievement for row ${i} after trying 100 candidates`);
         }
       }
     }
@@ -1174,9 +1174,9 @@ function generateGridSeeded(leagueData: LeagueData): {
       console.log(`   Filling empty col ${i} slot (type: ${layout.cols[i]})`);
       
       if (layout.cols[i] === 'T') {
-        // Fill team slot - try up to 50 random teams
+        // Fill team slot - try up to 100 random teams
         let found = false;
-        for (let attempt = 0; attempt < 50; attempt++) {
+        for (let attempt = 0; attempt < 100; attempt++) {
           const teamIndex = simpleHash(gridId + '_colteam' + i + '_' + attempt) % activeTeams.length;
           const team = activeTeams[teamIndex];
           
@@ -1220,13 +1220,13 @@ function generateGridSeeded(leagueData: LeagueData): {
         }
         
         if (!found) {
-          throw new Error(`Could not find valid team for col ${i} after trying 50 candidates`);
+          throw new Error(`Could not find valid team for col ${i} after trying 100 candidates`);
         }
         
       } else if (layout.cols[i] === 'A') {
-        // Fill achievement slot - try up to 50 random achievements
+        // Fill achievement slot - try up to 100 random achievements
         let found = false;
-        for (let attempt = 0; attempt < 50; attempt++) {
+        for (let attempt = 0; attempt < 100; attempt++) {
           const achIndex = simpleHash(gridId + '_colach' + i + '_' + attempt) % allAchievements.length;
           const ach = allAchievements[achIndex];
           
@@ -1299,7 +1299,7 @@ function generateGridSeeded(leagueData: LeagueData): {
         }
         
         if (!found) {
-          throw new Error(`Could not find valid achievement for col ${i} after trying 50 candidates`);
+          throw new Error(`Could not find valid achievement for col ${i} after trying 100 candidates`);
         }
       }
     }
