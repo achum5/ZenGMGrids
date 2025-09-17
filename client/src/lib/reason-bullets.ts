@@ -1,9 +1,16 @@
 import type { Player, Team } from '@/types/bbgm';
 import type { GridConstraint } from '@/lib/feedback';
-import { type SeasonAchievementId } from '@/lib/season-achievements';
+import { type SeasonAchievementId, resolveDynamicLabel } from '@/lib/season-achievements';
 
-// Season achievement labels for bullet display
-const SEASON_ACHIEVEMENT_LABELS: Partial<Record<SeasonAchievementId, string>> = {
+// Dynamic achievement label resolver for bullet display
+function getSeasonAchievementLabel(achievementId: string): string {
+  // Handle dynamic threshold-based achievements (with @ symbol)
+  if (achievementId.includes('@')) {
+    return resolveDynamicLabel(achievementId);
+  }
+  
+  // Fallback to static achievement labels for legacy achievements
+  const staticLabels: Partial<Record<SeasonAchievementId, string>> = {
   // Basketball GM achievements
   AllStar: 'All-Star',
   MVP: 'MVP',
@@ -166,7 +173,9 @@ function getTeamAbbrev(teams: Team[], tid: number): string {
 
 // Helper function to check if an achievement ID is a season achievement
 function isSeasonAchievement(achievementId: string): achievementId is SeasonAchievementId {
-  return Object.keys(SEASON_ACHIEVEMENT_LABELS).includes(achievementId as SeasonAchievementId);
+  // Check if it's a dynamic achievement (contains @) or a known static achievement
+  if (achievementId.includes('@')) return false; // Dynamic achievements are handled separately
+  return Object.keys(staticLabels).includes(achievementId);
 }
 
 // Helper function to extract season achievement data from player
