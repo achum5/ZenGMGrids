@@ -26,32 +26,119 @@ export type SeasonAchievementId =
   // New Basketball achievements (season-aligned)
   | 'Champion'
   | 'AllRookieTeam'
-  | 'Season250ThreePM'
-  // Basketball GM season statistical achievements (24 new achievements)
-  | 'Season30PPG'
-  | 'Season2000Points'
-  | 'Season300_3PM'
-  | 'Season200_3PM'
-  | 'Season12RPG'
-  | 'Season10APG'
-  | 'Season800Rebounds'
-  | 'Season700Assists'
-  | 'Season2SPG'
-  | 'Season2_5BPG'
-  | 'Season150Steals'
-  | 'Season150Blocks'
-  | 'Season200Stocks'
-  | 'Season50_40_90'
-  | 'Season60TS20PPG'
-  | 'Season60eFG500FGA'
-  | 'Season90FT250FTA'
-  | 'Season40_3PT200_3PA'
-  | 'Season70Games'
-  | 'Season36MPG'
-  | 'Season25_10'
-  | 'Season25_5_5'
-  | 'Season20_10_5'
-  | 'Season1_1_1'
+  
+  // Statistical Leaders with Rank Variations (36 new achievements)
+  | 'PointsLeader1st' | 'PointsLeader3rd' | 'PointsLeader5th' | 'PointsLeader10th' | 'PointsLeader15th' | 'PointsLeader20th'
+  | 'ReboundsLeader1st' | 'ReboundsLeader3rd' | 'ReboundsLeader5th' | 'ReboundsLeader10th' | 'ReboundsLeader15th' | 'ReboundsLeader20th'
+  | 'AssistsLeader1st' | 'AssistsLeader3rd' | 'AssistsLeader5th' | 'AssistsLeader10th' | 'AssistsLeader15th' | 'AssistsLeader20th'
+  | 'StealsLeader1st' | 'StealsLeader3rd' | 'StealsLeader5th' | 'StealsLeader10th' | 'StealsLeader15th' | 'StealsLeader20th'
+  | 'BlocksLeader1st' | 'BlocksLeader3rd' | 'BlocksLeader5th' | 'BlocksLeader10th' | 'BlocksLeader15th' | 'BlocksLeader20th'
+  | 'ThreePMLeader1st' | 'ThreePMLeader3rd' | 'ThreePMLeader5th' | 'ThreePMLeader10th' | 'ThreePMLeader15th' | 'ThreePMLeader20th'
+  
+  // PPG Variations (18 achievements)
+  | 'SeasonPPG1' | 'SeasonPPG2' | 'SeasonPPG3' | 'SeasonPPG4' | 'SeasonPPG5' | 'SeasonPPG8' | 'SeasonPPG10' | 'SeasonPPG12' | 'SeasonPPG15'
+  | 'SeasonPPG18' | 'SeasonPPG20' | 'SeasonPPG22' | 'SeasonPPG24' | 'SeasonPPG26' | 'SeasonPPG28' | 'SeasonPPG30' | 'SeasonPPG32' | 'SeasonPPG35'
+  
+  // Points Variations (10 achievements)
+  | 'SeasonPoints800' | 'SeasonPoints1000' | 'SeasonPoints1100' | 'SeasonPoints1200' | 'SeasonPoints1400'
+  | 'SeasonPoints1600' | 'SeasonPoints1800' | 'SeasonPoints2000' | 'SeasonPoints2200' | 'SeasonPoints2400'
+  
+  // 3PM Variations (12 achievements)
+  | 'Season3PM50' | 'Season3PM75' | 'Season3PM100' | 'Season3PM125' | 'Season3PM150' | 'Season3PM175'
+  | 'Season3PM200' | 'Season3PM225' | 'Season3PM250' | 'Season3PM275' | 'Season3PM300' | 'Season3PM325'
+  
+  // RPG Variations (12 achievements)
+  | 'SeasonRPG3' | 'SeasonRPG4' | 'SeasonRPG5' | 'SeasonRPG6' | 'SeasonRPG7' | 'SeasonRPG8'
+  | 'SeasonRPG9' | 'SeasonRPG10' | 'SeasonRPG11' | 'SeasonRPG12' | 'SeasonRPG13' | 'SeasonRPG15'
+  
+  // APG Variations (11 achievements)
+  | 'SeasonAPG2' | 'SeasonAPG3' | 'SeasonAPG4' | 'SeasonAPG5' | 'SeasonAPG6' | 'SeasonAPG7'
+  | 'SeasonAPG8' | 'SeasonAPG9' | 'SeasonAPG10' | 'SeasonAPG11' | 'SeasonAPG12'
+  
+  // Rebounds Variations (8 achievements)
+  | 'SeasonRebounds300' | 'SeasonRebounds400' | 'SeasonRebounds500' | 'SeasonRebounds600'
+  | 'SeasonRebounds700' | 'SeasonRebounds800' | 'SeasonRebounds900' | 'SeasonRebounds1000'
+  
+  // Assists Variations (7 achievements)
+  | 'SeasonAssists200' | 'SeasonAssists300' | 'SeasonAssists400' | 'SeasonAssists500'
+  | 'SeasonAssists600' | 'SeasonAssists700' | 'SeasonAssists800'
+  
+  // SPG Variations (9 achievements)
+  | 'SeasonSPG0_5' | 'SeasonSPG0_8' | 'SeasonSPG0_9' | 'SeasonSPG1_0' | 'SeasonSPG1_3'
+  | 'SeasonSPG1_5' | 'SeasonSPG1_7' | 'SeasonSPG2_0' | 'SeasonSPG2_3'
+  
+  // BPG Variations (8 achievements)
+  | 'SeasonBPG0_5' | 'SeasonBPG0_8' | 'SeasonBPG0_9' | 'SeasonBPG1_0'
+  | 'SeasonBPG1_5' | 'SeasonBPG2_0' | 'SeasonBPG2_5' | 'SeasonBPG3_0'
+  
+  // Steals Variations (8 achievements)
+  | 'SeasonSteals50' | 'SeasonSteals75' | 'SeasonSteals90' | 'SeasonSteals100'
+  | 'SeasonSteals125' | 'SeasonSteals150' | 'SeasonSteals175' | 'SeasonSteals200'
+  
+  // Blocks Variations (8 achievements)
+  | 'SeasonBlocks50' | 'SeasonBlocks75' | 'SeasonBlocks90' | 'SeasonBlocks100'
+  | 'SeasonBlocks125' | 'SeasonBlocks150' | 'SeasonBlocks175' | 'SeasonBlocks200'
+  
+  // Stocks Variations (9 achievements)
+  | 'SeasonStocks100' | 'SeasonStocks120' | 'SeasonStocks130' | 'SeasonStocks140' | 'SeasonStocks150'
+  | 'SeasonStocks175' | 'SeasonStocks200' | 'SeasonStocks225' | 'SeasonStocks250'
+  
+  // TS% Variations (6 achievements)
+  | 'SeasonTSPct54' | 'SeasonTSPct56' | 'SeasonTSPct58' | 'SeasonTSPct60' | 'SeasonTSPct62' | 'SeasonTSPct64'
+  
+  // eFG% Variations (7 achievements)
+  | 'SeasoneFGPct54' | 'SeasoneFGPct55' | 'SeasoneFGPct56' | 'SeasoneFGPct57'
+  | 'SeasoneFGPct60' | 'SeasoneFGPct63' | 'SeasoneFGPct65'
+  
+  // FT% Variations (6 achievements)
+  | 'SeasonFTPct80' | 'SeasonFTPct83' | 'SeasonFTPct85' | 'SeasonFTPct88' | 'SeasonFTPct90' | 'SeasonFTPct92'
+  
+  // 3PT% Variations (7 achievements)
+  | 'Season3PPct33' | 'Season3PPct35' | 'Season3PPct36' | 'Season3PPct37'
+  | 'Season3PPct38' | 'Season3PPct40' | 'Season3PPct42'
+  
+  // Games Played Variations (8 achievements)
+  | 'SeasonGames40' | 'SeasonGames45' | 'SeasonGames50' | 'SeasonGames55'
+  | 'SeasonGames60' | 'SeasonGames65' | 'SeasonGames70' | 'SeasonGames75'
+  
+  // MPG Variations (7 achievements)
+  | 'SeasonMPG28' | 'SeasonMPG30' | 'SeasonMPG31' | 'SeasonMPG32' | 'SeasonMPG34' | 'SeasonMPG36' | 'SeasonMPG38'
+  
+  // Career Threshold Variations
+  // Career Points (12 achievements)
+  | 'Career6kPoints' | 'Career8kPoints' | 'Career10kPoints' | 'Career11kPoints' | 'Career12kPoints' | 'Career15kPoints'
+  | 'Career18kPoints' | 'Career20kPoints' | 'Career22kPoints' | 'Career25kPoints' | 'Career28kPoints' | 'Career30kPoints'
+  
+  // Career Rebounds (6 achievements)
+  | 'Career4kRebounds' | 'Career5kRebounds' | 'Career6kRebounds' | 'Career8kRebounds' | 'Career10kRebounds' | 'Career12kRebounds'
+  
+  // Career Assists (8 achievements)
+  | 'Career1_5kAssists' | 'Career2kAssists' | 'Career2_5kAssists' | 'Career3kAssists'
+  | 'Career4kAssists' | 'Career5kAssists' | 'Career6kAssists' | 'Career8kAssists'
+  
+  // Career Steals (7 achievements)
+  | 'Career600Steals' | 'Career800Steals' | 'Career900Steals' | 'Career1kSteals' | 'Career1_5kSteals' | 'Career2kSteals' | 'Career2_5kSteals'
+  
+  // Career Blocks (7 achievements)
+  | 'Career600Blocks' | 'Career800Blocks' | 'Career900Blocks' | 'Career1kBlocks' | 'Career1_2kBlocks' | 'Career1_5kBlocks' | 'Career2kBlocks'
+  
+  // Career 3PM (8 achievements)
+  | 'Career600_3PM' | 'Career800_3PM' | 'Career900_3PM' | 'Career1k_3PM' | 'Career1_5k_3PM' | 'Career2k_3PM' | 'Career2_5k_3PM' | 'Career3k_3PM'
+  
+  // Seasons Played (9 achievements)
+  | 'Seasons5' | 'Seasons6' | 'Seasons7' | 'Seasons8' | 'Seasons10' | 'Seasons12' | 'Seasons15' | 'Seasons18' | 'Seasons20'
+  
+  // Combo Season Variations (sampling key combinations)
+  | 'Season18_8' | 'Season20_8' | 'Season22_8' | 'Season24_10' | 'Season25_10' | 'Season26_10' | 'Season28_12' | 'Season30_15'
+  | 'Season18_4_4' | 'Season20_5_5' | 'Season22_5_5' | 'Season24_6_6' | 'Season25_5_5' | 'Season26_6_6' | 'Season28_8_8'
+  | 'Season16_7_4' | 'Season18_8_5' | 'Season20_10_5' | 'Season22_10_6' | 'Season24_12_7'
+  | 'Season0_5_0_5_0_5' | 'Season0_8_0_8_0_8' | 'Season1_0_1_0_1_0' | 'Season1_2_1_2_1_2'
+  
+  // Legacy achievements maintained for compatibility
+  | 'Season250ThreePM' | 'Season30PPG' | 'Season2000Points' | 'Season300_3PM' | 'Season200_3PM' | 'Season12RPG' | 'Season10APG'
+  | 'Season800Rebounds' | 'Season700Assists' | 'Season2SPG' | 'Season2_5BPG' | 'Season150Steals' | 'Season150Blocks'
+  | 'Season200Stocks' | 'Season50_40_90' | 'Season60TS20PPG' | 'Season60eFG500FGA' | 'Season90FT250FTA'
+  | 'Season40_3PT200_3PA' | 'Season70Games' | 'Season36MPG' | 'Season25_10' | 'Season25_5_5' | 'Season20_10_5' | 'Season1_1_1'
   // Football GM achievements
   | 'FBAllStar'
   | 'FBMVP'
@@ -367,7 +454,14 @@ function calculateBBGMSeasonLeaders(
     ReboundsLeader: [],
     AssistsLeader: [],
     StealsLeader: [],
-    BlocksLeader: []
+    BlocksLeader: [],
+    // Add ranked leader variations
+    PointsLeader1st: [], PointsLeader3rd: [], PointsLeader5th: [], PointsLeader10th: [], PointsLeader15th: [], PointsLeader20th: [],
+    ReboundsLeader1st: [], ReboundsLeader3rd: [], ReboundsLeader5th: [], ReboundsLeader10th: [], ReboundsLeader15th: [], ReboundsLeader20th: [],
+    AssistsLeader1st: [], AssistsLeader3rd: [], AssistsLeader5th: [], AssistsLeader10th: [], AssistsLeader15th: [], AssistsLeader20th: [],
+    StealsLeader1st: [], StealsLeader3rd: [], StealsLeader5th: [], StealsLeader10th: [], StealsLeader15th: [], StealsLeader20th: [],
+    BlocksLeader1st: [], BlocksLeader3rd: [], BlocksLeader5th: [], BlocksLeader10th: [], BlocksLeader15th: [], BlocksLeader20th: [],
+    ThreePMLeader1st: [], ThreePMLeader3rd: [], ThreePMLeader5th: [], ThreePMLeader10th: [], ThreePMLeader15th: [], ThreePMLeader20th: []
   };
 
   // Step 1: Get season length G
@@ -452,6 +546,42 @@ function calculateBBGMSeasonLeaders(
   try {
     // Step 4: Find leaders for each category using 1e-9 epsilon and tie-breaking by totals
     
+    // Helper function to calculate rankings
+    const calculateRankings = (players: typeof playerSeasonStats, getValue: (p: typeof playerSeasonStats[0]) => number, getTieBreaker: (p: typeof playerSeasonStats[0]) => number) => {
+      if (players.length === 0) return {};
+      
+      // Sort by value (descending), then by tie-breaker (descending), then by pid for consistency
+      const sorted = [...players].sort((a, b) => {
+        const aVal = getValue(a);
+        const bVal = getValue(b);
+        if (Math.abs(aVal - bVal) < 1e-9) {
+          const aTie = getTieBreaker(a);
+          const bTie = getTieBreaker(b);
+          if (aTie !== bTie) return bTie - aTie;
+          return a.pid - b.pid; // Final tie-breaker for consistency
+        }
+        return bVal - aVal;
+      });
+      
+      // Calculate rankings
+      const rankings: Record<string, number[]> = {
+        '1st': [],
+        '3rd': [],
+        '5th': [],
+        '10th': [],
+        '15th': [],
+        '20th': []
+      };
+      
+      const ranks = [1, 3, 5, 10, 15, 20];
+      for (const rank of ranks) {
+        const players = sorted.slice(0, Math.min(rank, sorted.length));
+        rankings[rank === 1 ? '1st' : rank === 3 ? '3rd' : rank === 5 ? '5th' : rank === 10 ? '10th' : rank === 15 ? '15th' : '20th'] = players.map(p => p.pid);
+      }
+      
+      return rankings;
+    };
+    
     // Points Leader - exclude players with 0 total points (early seasons might not track points properly)
     const playersWithPoints = playerSeasonStats.filter(p => p.pts > 0);
     if (playersWithPoints.length > 0) {
@@ -469,6 +599,19 @@ function calculateBBGMSeasonLeaders(
       } else {
         leaders.PointsLeader = pointsLeaderCandidates.map(p => p.pid);
       }
+      
+      // Calculate ranked positions
+      const pointsRankings = calculateRankings(
+        playersWithPoints,
+        p => p.pts / p.gp,
+        p => p.pts
+      );
+      leaders.PointsLeader1st = pointsRankings['1st'];
+      leaders.PointsLeader3rd = pointsRankings['3rd'];
+      leaders.PointsLeader5th = pointsRankings['5th'];
+      leaders.PointsLeader10th = pointsRankings['10th'];
+      leaders.PointsLeader15th = pointsRankings['15th'];
+      leaders.PointsLeader20th = pointsRankings['20th'];
     }
 
     // Rebounds Leader - exclude players with 0 total rebounds (early seasons didn't track rebounds)
@@ -1036,6 +1179,221 @@ export function buildSeasonIndex(
           if (spg >= 1.0 && bpg >= 1.0 && tpg >= 1.0 && gp >= 50) {
             addAchievement('Season1_1_1');
           }
+
+          // ===== EXPANDED MULTI-THRESHOLD ACHIEVEMENT CALCULATIONS =====
+          
+          // PPG Variations (18 achievements)
+          const ppgThresholds = [1, 2, 3, 4, 5, 8, 10, 12, 15, 18, 20, 22, 24, 26, 28, 32, 35];
+          const ppgIds = ['SeasonPPG1', 'SeasonPPG2', 'SeasonPPG3', 'SeasonPPG4', 'SeasonPPG5', 'SeasonPPG8', 'SeasonPPG10', 'SeasonPPG12', 'SeasonPPG15', 'SeasonPPG18', 'SeasonPPG20', 'SeasonPPG22', 'SeasonPPG24', 'SeasonPPG26', 'SeasonPPG28', 'SeasonPPG32', 'SeasonPPG35'];
+          for (let i = 0; i < ppgThresholds.length; i++) {
+            const threshold = ppgThresholds[i];
+            const minGames = threshold >= 26 ? 40 : (threshold >= 18 ? 50 : 55);
+            if (ppg >= threshold && gp >= minGames) {
+              addAchievement(ppgIds[i] as SeasonAchievementId);
+            }
+          }
+          
+          // Points Variations (10 achievements)
+          const pointsThresholds = [800, 1000, 1100, 1200, 1400, 1600, 1800, 2200, 2400];
+          const pointsIds = ['SeasonPoints800', 'SeasonPoints1000', 'SeasonPoints1100', 'SeasonPoints1200', 'SeasonPoints1400', 'SeasonPoints1600', 'SeasonPoints1800', 'SeasonPoints2200', 'SeasonPoints2400'];
+          for (let i = 0; i < pointsThresholds.length; i++) {
+            if (pts >= pointsThresholds[i]) {
+              addAchievement(pointsIds[i] as SeasonAchievementId);
+            }
+          }
+          
+          // 3PM Variations (12 achievements)  
+          const threePMThresholds = [50, 75, 100, 125, 150, 175, 225, 275, 325];
+          const threePMIds = ['Season3PM50', 'Season3PM75', 'Season3PM100', 'Season3PM125', 'Season3PM150', 'Season3PM175', 'Season3PM225', 'Season3PM275', 'Season3PM325'];
+          for (let i = 0; i < threePMThresholds.length; i++) {
+            if (tp >= threePMThresholds[i]) {
+              addAchievement(threePMIds[i] as SeasonAchievementId);
+            }
+          }
+          
+          // RPG Variations (12 achievements)
+          const rpgThresholds = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15];
+          const rpgIds = ['SeasonRPG3', 'SeasonRPG4', 'SeasonRPG5', 'SeasonRPG6', 'SeasonRPG7', 'SeasonRPG8', 'SeasonRPG9', 'SeasonRPG10', 'SeasonRPG11', 'SeasonRPG13', 'SeasonRPG15'];
+          for (let i = 0; i < rpgThresholds.length; i++) {
+            const threshold = rpgThresholds[i];
+            const minGames = threshold >= 13 ? 40 : (threshold >= 9 ? 50 : 55);
+            if (rpg >= threshold && gp >= minGames) {
+              addAchievement(rpgIds[i] as SeasonAchievementId);
+            }
+          }
+          
+          // APG Variations (11 achievements)
+          const apgThresholds = [2, 3, 4, 5, 6, 7, 8, 9, 11, 12];
+          const apgIds = ['SeasonAPG2', 'SeasonAPG3', 'SeasonAPG4', 'SeasonAPG5', 'SeasonAPG6', 'SeasonAPG7', 'SeasonAPG8', 'SeasonAPG9', 'SeasonAPG11', 'SeasonAPG12'];
+          for (let i = 0; i < apgThresholds.length; i++) {
+            const threshold = apgThresholds[i];
+            const minGames = threshold >= 11 ? 40 : (threshold >= 7 ? 50 : 55);
+            if (apg >= threshold && gp >= minGames) {
+              addAchievement(apgIds[i] as SeasonAchievementId);
+            }
+          }
+          
+          // Rebounds Variations (8 achievements)
+          const reboundsThresholds = [300, 400, 500, 600, 700, 900, 1000];
+          const reboundsIds = ['SeasonRebounds300', 'SeasonRebounds400', 'SeasonRebounds500', 'SeasonRebounds600', 'SeasonRebounds700', 'SeasonRebounds900', 'SeasonRebounds1000'];
+          for (let i = 0; i < reboundsThresholds.length; i++) {
+            if (trb >= reboundsThresholds[i]) {
+              addAchievement(reboundsIds[i] as SeasonAchievementId);
+            }
+          }
+          
+          // Assists Variations (7 achievements)
+          const assistsThresholds = [200, 300, 400, 500, 600, 800];
+          const assistsIds = ['SeasonAssists200', 'SeasonAssists300', 'SeasonAssists400', 'SeasonAssists500', 'SeasonAssists600', 'SeasonAssists800'];
+          for (let i = 0; i < assistsThresholds.length; i++) {
+            if (ast >= assistsThresholds[i]) {
+              addAchievement(assistsIds[i] as SeasonAchievementId);
+            }
+          }
+          
+          // SPG Variations (9 achievements)
+          const spgThresholds = [0.5, 0.8, 0.9, 1.0, 1.3, 1.5, 1.7, 2.3];
+          const spgIds = ['SeasonSPG0_5', 'SeasonSPG0_8', 'SeasonSPG0_9', 'SeasonSPG1_0', 'SeasonSPG1_3', 'SeasonSPG1_5', 'SeasonSPG1_7', 'SeasonSPG2_3'];
+          for (let i = 0; i < spgThresholds.length; i++) {
+            const threshold = spgThresholds[i];
+            const minGames = threshold >= 2.3 ? 40 : (threshold >= 1.5 ? 50 : 55);
+            if (spg >= threshold && gp >= minGames) {
+              addAchievement(spgIds[i] as SeasonAchievementId);
+            }
+          }
+          
+          // BPG Variations (8 achievements)
+          const bpgThresholds = [0.5, 0.8, 0.9, 1.0, 1.5, 2.0, 3.0];
+          const bpgIds = ['SeasonBPG0_5', 'SeasonBPG0_8', 'SeasonBPG0_9', 'SeasonBPG1_0', 'SeasonBPG1_5', 'SeasonBPG2_0', 'SeasonBPG3_0'];
+          for (let i = 0; i < bpgThresholds.length; i++) {
+            const threshold = bpgThresholds[i];
+            const minGames = threshold >= 3.0 ? 40 : (threshold >= 1.5 ? 50 : 55);
+            if (bpg >= threshold && gp >= minGames) {
+              addAchievement(bpgIds[i] as SeasonAchievementId);
+            }
+          }
+          
+          // Steals Variations (8 achievements)
+          const stealsThresholds = [50, 75, 90, 100, 125, 175, 200];
+          const stealsIds = ['SeasonSteals50', 'SeasonSteals75', 'SeasonSteals90', 'SeasonSteals100', 'SeasonSteals125', 'SeasonSteals175', 'SeasonSteals200'];
+          for (let i = 0; i < stealsThresholds.length; i++) {
+            if (stl >= stealsThresholds[i]) {
+              addAchievement(stealsIds[i] as SeasonAchievementId);
+            }
+          }
+          
+          // Blocks Variations (8 achievements)
+          const blocksThresholds = [50, 75, 90, 100, 125, 175, 200];
+          const blocksIds = ['SeasonBlocks50', 'SeasonBlocks75', 'SeasonBlocks90', 'SeasonBlocks100', 'SeasonBlocks125', 'SeasonBlocks175', 'SeasonBlocks200'];
+          for (let i = 0; i < blocksThresholds.length; i++) {
+            if (blk >= blocksThresholds[i]) {
+              addAchievement(blocksIds[i] as SeasonAchievementId);
+            }
+          }
+          
+          // Stocks Variations (9 achievements)
+          const stocksThresholds = [100, 120, 130, 140, 150, 175, 225, 250];
+          const stocksIds = ['SeasonStocks100', 'SeasonStocks120', 'SeasonStocks130', 'SeasonStocks140', 'SeasonStocks150', 'SeasonStocks175', 'SeasonStocks225', 'SeasonStocks250'];
+          for (let i = 0; i < stocksThresholds.length; i++) {
+            if (stocks >= stocksThresholds[i]) {
+              addAchievement(stocksIds[i] as SeasonAchievementId);
+            }
+          }
+          
+          // TS% Variations (6 achievements)
+          const tsPctThresholds = [0.54, 0.56, 0.58, 0.60, 0.62, 0.64];
+          const tsPctIds = ['SeasonTSPct54', 'SeasonTSPct56', 'SeasonTSPct58', 'SeasonTSPct60', 'SeasonTSPct62', 'SeasonTSPct64'];
+          for (let i = 0; i < tsPctThresholds.length; i++) {
+            const threshold = tsPctThresholds[i];
+            const minPPG = threshold >= 0.62 ? 18 : (threshold >= 0.60 ? 20 : 15);
+            const minGames = threshold >= 0.60 ? 50 : 55;
+            if (tsPct >= threshold && ppg >= minPPG && gp >= minGames && fga >= 400) {
+              addAchievement(tsPctIds[i] as SeasonAchievementId);
+            }
+          }
+          
+          // eFG% Variations (7 achievements)
+          const eFgPctThresholds = [0.54, 0.55, 0.56, 0.57, 0.60, 0.63, 0.65];
+          const eFgPctIds = ['SeasoneFGPct54', 'SeasoneFGPct55', 'SeasoneFGPct56', 'SeasoneFGPct57', 'SeasoneFGPct60', 'SeasoneFGPct63', 'SeasoneFGPct65'];
+          for (let i = 0; i < eFgPctThresholds.length; i++) {
+            const threshold = eFgPctThresholds[i];
+            const minFGA = threshold >= 0.60 ? 500 : 400;
+            if (eFgPct >= threshold && fga >= minFGA) {
+              addAchievement(eFgPctIds[i] as SeasonAchievementId);
+            }
+          }
+          
+          // FT% Variations (6 achievements)
+          const ftPctThresholds = [0.80, 0.83, 0.85, 0.88, 0.92];
+          const ftPctIds = ['SeasonFTPct80', 'SeasonFTPct83', 'SeasonFTPct85', 'SeasonFTPct88', 'SeasonFTPct92'];
+          for (let i = 0; i < ftPctThresholds.length; i++) {
+            const threshold = ftPctThresholds[i];
+            const minFTA = threshold >= 0.88 ? 250 : 200;
+            if (ftPct >= threshold && fta >= minFTA) {
+              addAchievement(ftPctIds[i] as SeasonAchievementId);
+            }
+          }
+          
+          // 3PT% Variations (7 achievements)
+          const threePPctThresholds = [0.33, 0.35, 0.36, 0.37, 0.38, 0.42];
+          const threePPctIds = ['Season3PPct33', 'Season3PPct35', 'Season3PPct36', 'Season3PPct37', 'Season3PPct38', 'Season3PPct42'];
+          for (let i = 0; i < threePPctThresholds.length; i++) {
+            const threshold = threePPctThresholds[i];
+            const minTPA = threshold >= 0.42 ? 200 : (threshold >= 0.38 ? 175 : 150);
+            if (tpPct >= threshold && tpa >= minTPA) {
+              addAchievement(threePPctIds[i] as SeasonAchievementId);
+            }
+          }
+          
+          // Games Played Variations (8 achievements)
+          const gamesThresholds = [40, 45, 50, 55, 60, 65, 75];
+          const gamesIds = ['SeasonGames40', 'SeasonGames45', 'SeasonGames50', 'SeasonGames55', 'SeasonGames60', 'SeasonGames65', 'SeasonGames75'];
+          for (let i = 0; i < gamesThresholds.length; i++) {
+            if (gp >= gamesThresholds[i]) {
+              addAchievement(gamesIds[i] as SeasonAchievementId);
+            }
+          }
+          
+          // MPG Variations (7 achievements)
+          const mpgThresholds = [28.0, 30.0, 31.0, 32.0, 34.0, 38.0];
+          const mpgIds = ['SeasonMPG28', 'SeasonMPG30', 'SeasonMPG31', 'SeasonMPG32', 'SeasonMPG34', 'SeasonMPG38'];
+          for (let i = 0; i < mpgThresholds.length; i++) {
+            const threshold = mpgThresholds[i];
+            const minGames = threshold >= 38.0 ? 40 : (threshold >= 34.0 ? 50 : 55);
+            if (mpg >= threshold && gp >= minGames) {
+              addAchievement(mpgIds[i] as SeasonAchievementId);
+            }
+          }
+          
+          // Combo Season Variations
+          
+          // PPG/RPG Combos (7 achievements)
+          if (ppg >= 18 && rpg >= 8 && gp >= 50) addAchievement('Season18_8');
+          if (ppg >= 20 && rpg >= 8 && gp >= 50) addAchievement('Season20_8');
+          if (ppg >= 22 && rpg >= 8 && gp >= 50) addAchievement('Season22_8');
+          if (ppg >= 24 && rpg >= 10 && gp >= 50) addAchievement('Season24_10');
+          if (ppg >= 26 && rpg >= 10 && gp >= 40) addAchievement('Season26_10');
+          if (ppg >= 28 && rpg >= 12 && gp >= 40) addAchievement('Season28_12');
+          if (ppg >= 30 && rpg >= 15 && gp >= 40) addAchievement('Season30_15');
+          
+          // PPG/RPG/APG Combos (6 achievements)
+          if (ppg >= 18 && rpg >= 4 && apg >= 4 && gp >= 50) addAchievement('Season18_4_4');
+          if (ppg >= 22 && rpg >= 5 && apg >= 5 && gp >= 50) addAchievement('Season22_5_5');
+          if (ppg >= 24 && rpg >= 6 && apg >= 6 && gp >= 50) addAchievement('Season24_6_6');
+          if (ppg >= 26 && rpg >= 6 && apg >= 6 && gp >= 40) addAchievement('Season26_6_6');
+          if (ppg >= 28 && rpg >= 8 && apg >= 8 && gp >= 40) addAchievement('Season28_8_8');
+          
+          // Additional PPG/RPG/APG Combos (4 achievements)
+          if (ppg >= 16 && rpg >= 7 && apg >= 4 && gp >= 50) addAchievement('Season16_7_4');
+          if (ppg >= 18 && rpg >= 8 && apg >= 5 && gp >= 50) addAchievement('Season18_8_5');
+          if (ppg >= 22 && rpg >= 10 && apg >= 6 && gp >= 50) addAchievement('Season22_10_6');
+          if (ppg >= 24 && rpg >= 12 && apg >= 7 && gp >= 50) addAchievement('Season24_12_7');
+          
+          // SPG/BPG/3PM/G Combos (4 achievements)
+          if (spg >= 0.5 && bpg >= 0.5 && tpg >= 0.5 && gp >= 55) addAchievement('Season0_5_0_5_0_5');
+          if (spg >= 0.8 && bpg >= 0.8 && tpg >= 0.8 && gp >= 50) addAchievement('Season0_8_0_8_0_8');
+          if (spg >= 1.0 && bpg >= 1.0 && tpg >= 1.0 && gp >= 50) addAchievement('Season1_0_1_0_1_0');
+          if (spg >= 1.2 && bpg >= 1.2 && tpg >= 1.2 && gp >= 40) addAchievement('Season1_2_1_2_1_2');
         }
       }
     }
@@ -1913,6 +2271,311 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
     isSeasonSpecific: true,
     minPlayers: 1
   },
+  
+  // Statistical Leaders with Rank Variations (36 new achievements)
+  { id: 'PointsLeader1st', label: 'Points Leader (1st)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'PointsLeader3rd', label: 'Points Leader (≤3rd)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'PointsLeader5th', label: 'Points Leader (≤5th)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'PointsLeader10th', label: 'Points Leader (≤10th)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'PointsLeader15th', label: 'Points Leader (≤15th)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'PointsLeader20th', label: 'Points Leader (≤20th)', isSeasonSpecific: true, minPlayers: 5 },
+  
+  { id: 'ReboundsLeader1st', label: 'Rebounds Leader (1st)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'ReboundsLeader3rd', label: 'Rebounds Leader (≤3rd)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'ReboundsLeader5th', label: 'Rebounds Leader (≤5th)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'ReboundsLeader10th', label: 'Rebounds Leader (≤10th)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'ReboundsLeader15th', label: 'Rebounds Leader (≤15th)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'ReboundsLeader20th', label: 'Rebounds Leader (≤20th)', isSeasonSpecific: true, minPlayers: 5 },
+  
+  { id: 'AssistsLeader1st', label: 'Assists Leader (1st)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'AssistsLeader3rd', label: 'Assists Leader (≤3rd)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'AssistsLeader5th', label: 'Assists Leader (≤5th)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'AssistsLeader10th', label: 'Assists Leader (≤10th)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'AssistsLeader15th', label: 'Assists Leader (≤15th)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'AssistsLeader20th', label: 'Assists Leader (≤20th)', isSeasonSpecific: true, minPlayers: 5 },
+  
+  { id: 'StealsLeader1st', label: 'Steals Leader (1st)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'StealsLeader3rd', label: 'Steals Leader (≤3rd)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'StealsLeader5th', label: 'Steals Leader (≤5th)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'StealsLeader10th', label: 'Steals Leader (≤10th)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'StealsLeader15th', label: 'Steals Leader (≤15th)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'StealsLeader20th', label: 'Steals Leader (≤20th)', isSeasonSpecific: true, minPlayers: 5 },
+  
+  { id: 'BlocksLeader1st', label: 'Blocks Leader (1st)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'BlocksLeader3rd', label: 'Blocks Leader (≤3rd)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'BlocksLeader5th', label: 'Blocks Leader (≤5th)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'BlocksLeader10th', label: 'Blocks Leader (≤10th)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'BlocksLeader15th', label: 'Blocks Leader (≤15th)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'BlocksLeader20th', label: 'Blocks Leader (≤20th)', isSeasonSpecific: true, minPlayers: 5 },
+  
+  { id: 'ThreePMLeader1st', label: '3PM Leader (1st)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'ThreePMLeader3rd', label: '3PM Leader (≤3rd)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'ThreePMLeader5th', label: '3PM Leader (≤5th)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'ThreePMLeader10th', label: '3PM Leader (≤10th)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'ThreePMLeader15th', label: '3PM Leader (≤15th)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'ThreePMLeader20th', label: '3PM Leader (≤20th)', isSeasonSpecific: true, minPlayers: 5 },
+  
+  // PPG Variations (18 achievements)
+  { id: 'SeasonPPG1', label: '1+ PPG (Season)', isSeasonSpecific: true, minPlayers: 10 },
+  { id: 'SeasonPPG2', label: '2+ PPG (Season)', isSeasonSpecific: true, minPlayers: 10 },
+  { id: 'SeasonPPG3', label: '3+ PPG (Season)', isSeasonSpecific: true, minPlayers: 8 },
+  { id: 'SeasonPPG4', label: '4+ PPG (Season)', isSeasonSpecific: true, minPlayers: 8 },
+  { id: 'SeasonPPG5', label: '5+ PPG (Season)', isSeasonSpecific: true, minPlayers: 8 },
+  { id: 'SeasonPPG8', label: '8+ PPG (Season)', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'SeasonPPG10', label: '10+ PPG (Season)', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'SeasonPPG12', label: '12+ PPG (Season)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'SeasonPPG15', label: '15+ PPG (Season)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'SeasonPPG18', label: '18+ PPG (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonPPG20', label: '20+ PPG (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonPPG22', label: '22+ PPG (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonPPG24', label: '24+ PPG (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonPPG26', label: '26+ PPG (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'SeasonPPG28', label: '28+ PPG (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'SeasonPPG32', label: '32+ PPG (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'SeasonPPG35', label: '35+ PPG (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  
+  // Points Variations (10 achievements)
+  { id: 'SeasonPoints800', label: '800+ Points (Season)', isSeasonSpecific: true, minPlayers: 8 },
+  { id: 'SeasonPoints1000', label: '1,000+ Points (Season)', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'SeasonPoints1100', label: '1,100+ Points (Season)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'SeasonPoints1200', label: '1,200+ Points (Season)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'SeasonPoints1400', label: '1,400+ Points (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonPoints1600', label: '1,600+ Points (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonPoints1800', label: '1,800+ Points (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonPoints2200', label: '2,200+ Points (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'SeasonPoints2400', label: '2,400+ Points (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  
+  // 3PM Variations (12 achievements)
+  { id: 'Season3PM50', label: '50+ 3PM (Season)', isSeasonSpecific: true, minPlayers: 8 },
+  { id: 'Season3PM75', label: '75+ 3PM (Season)', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'Season3PM100', label: '100+ 3PM (Season)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'Season3PM125', label: '125+ 3PM (Season)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'Season3PM150', label: '150+ 3PM (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Season3PM175', label: '175+ 3PM (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Season3PM225', label: '225+ 3PM (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Season3PM275', label: '275+ 3PM (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'Season3PM325', label: '325+ 3PM (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  
+  // RPG Variations (12 achievements)
+  { id: 'SeasonRPG3', label: '3+ RPG (Season)', isSeasonSpecific: true, minPlayers: 10 },
+  { id: 'SeasonRPG4', label: '4+ RPG (Season)', isSeasonSpecific: true, minPlayers: 8 },
+  { id: 'SeasonRPG5', label: '5+ RPG (Season)', isSeasonSpecific: true, minPlayers: 8 },
+  { id: 'SeasonRPG6', label: '6+ RPG (Season)', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'SeasonRPG7', label: '7+ RPG (Season)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'SeasonRPG8', label: '8+ RPG (Season)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'SeasonRPG9', label: '9+ RPG (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonRPG10', label: '10+ RPG (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonRPG11', label: '11+ RPG (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonRPG13', label: '13+ RPG (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'SeasonRPG15', label: '15+ RPG (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  
+  // APG Variations (11 achievements)
+  { id: 'SeasonAPG2', label: '2+ APG (Season)', isSeasonSpecific: true, minPlayers: 10 },
+  { id: 'SeasonAPG3', label: '3+ APG (Season)', isSeasonSpecific: true, minPlayers: 8 },
+  { id: 'SeasonAPG4', label: '4+ APG (Season)', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'SeasonAPG5', label: '5+ APG (Season)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'SeasonAPG6', label: '6+ APG (Season)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'SeasonAPG7', label: '7+ APG (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonAPG8', label: '8+ APG (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonAPG9', label: '9+ APG (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonAPG11', label: '11+ APG (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'SeasonAPG12', label: '12+ APG (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  
+  // Rebounds Variations (8 achievements)
+  { id: 'SeasonRebounds300', label: '300+ Rebounds (Season)', isSeasonSpecific: true, minPlayers: 8 },
+  { id: 'SeasonRebounds400', label: '400+ Rebounds (Season)', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'SeasonRebounds500', label: '500+ Rebounds (Season)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'SeasonRebounds600', label: '600+ Rebounds (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonRebounds700', label: '700+ Rebounds (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonRebounds900', label: '900+ Rebounds (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'SeasonRebounds1000', label: '1,000+ Rebounds (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  
+  // Assists Variations (7 achievements)
+  { id: 'SeasonAssists200', label: '200+ Assists (Season)', isSeasonSpecific: true, minPlayers: 8 },
+  { id: 'SeasonAssists300', label: '300+ Assists (Season)', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'SeasonAssists400', label: '400+ Assists (Season)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'SeasonAssists500', label: '500+ Assists (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonAssists600', label: '600+ Assists (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonAssists800', label: '800+ Assists (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  
+  // SPG Variations (9 achievements)
+  { id: 'SeasonSPG0_5', label: '0.5+ SPG (Season)', isSeasonSpecific: true, minPlayers: 10 },
+  { id: 'SeasonSPG0_8', label: '0.8+ SPG (Season)', isSeasonSpecific: true, minPlayers: 8 },
+  { id: 'SeasonSPG0_9', label: '0.9+ SPG (Season)', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'SeasonSPG1_0', label: '1.0+ SPG (Season)', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'SeasonSPG1_3', label: '1.3+ SPG (Season)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'SeasonSPG1_5', label: '1.5+ SPG (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonSPG1_7', label: '1.7+ SPG (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonSPG2_3', label: '2.3+ SPG (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  
+  // BPG Variations (8 achievements)
+  { id: 'SeasonBPG0_5', label: '0.5+ BPG (Season)', isSeasonSpecific: true, minPlayers: 8 },
+  { id: 'SeasonBPG0_8', label: '0.8+ BPG (Season)', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'SeasonBPG0_9', label: '0.9+ BPG (Season)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'SeasonBPG1_0', label: '1.0+ BPG (Season)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'SeasonBPG1_5', label: '1.5+ BPG (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonBPG2_0', label: '2.0+ BPG (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonBPG3_0', label: '3.0+ BPG (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  
+  // Steals Variations (8 achievements)
+  { id: 'SeasonSteals50', label: '50+ Steals (Season)', isSeasonSpecific: true, minPlayers: 8 },
+  { id: 'SeasonSteals75', label: '75+ Steals (Season)', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'SeasonSteals90', label: '90+ Steals (Season)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'SeasonSteals100', label: '100+ Steals (Season)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'SeasonSteals125', label: '125+ Steals (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonSteals175', label: '175+ Steals (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'SeasonSteals200', label: '200+ Steals (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  
+  // Blocks Variations (8 achievements)
+  { id: 'SeasonBlocks50', label: '50+ Blocks (Season)', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'SeasonBlocks75', label: '75+ Blocks (Season)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'SeasonBlocks90', label: '90+ Blocks (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonBlocks100', label: '100+ Blocks (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonBlocks125', label: '125+ Blocks (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonBlocks175', label: '175+ Blocks (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'SeasonBlocks200', label: '200+ Blocks (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  
+  // Stocks Variations (9 achievements)
+  { id: 'SeasonStocks100', label: '100+ Stocks (Season)', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'SeasonStocks120', label: '120+ Stocks (Season)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'SeasonStocks130', label: '130+ Stocks (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonStocks140', label: '140+ Stocks (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonStocks150', label: '150+ Stocks (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonStocks175', label: '175+ Stocks (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'SeasonStocks225', label: '225+ Stocks (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'SeasonStocks250', label: '250+ Stocks (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  
+  // TS% Variations (6 achievements)
+  { id: 'SeasonTSPct54', label: '54%+ TS (Season)', isSeasonSpecific: true, minPlayers: 8 },
+  { id: 'SeasonTSPct56', label: '56%+ TS (Season)', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'SeasonTSPct58', label: '58%+ TS (Season)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'SeasonTSPct60', label: '60%+ TS (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonTSPct62', label: '62%+ TS (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'SeasonTSPct64', label: '64%+ TS (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  
+  // eFG% Variations (7 achievements)
+  { id: 'SeasoneFGPct54', label: '54%+ eFG (Season)', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'SeasoneFGPct55', label: '55%+ eFG (Season)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'SeasoneFGPct56', label: '56%+ eFG (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasoneFGPct57', label: '57%+ eFG (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasoneFGPct60', label: '60%+ eFG (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'SeasoneFGPct63', label: '63%+ eFG (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'SeasoneFGPct65', label: '65%+ eFG (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  
+  // FT% Variations (6 achievements)
+  { id: 'SeasonFTPct80', label: '80%+ FT (Season)', isSeasonSpecific: true, minPlayers: 8 },
+  { id: 'SeasonFTPct83', label: '83%+ FT (Season)', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'SeasonFTPct85', label: '85%+ FT (Season)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'SeasonFTPct88', label: '88%+ FT (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonFTPct92', label: '92%+ FT (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  
+  // 3PT% Variations (7 achievements)
+  { id: 'Season3PPct33', label: '33%+ 3PT (Season)', isSeasonSpecific: true, minPlayers: 8 },
+  { id: 'Season3PPct35', label: '35%+ 3PT (Season)', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'Season3PPct36', label: '36%+ 3PT (Season)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'Season3PPct37', label: '37%+ 3PT (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Season3PPct38', label: '38%+ 3PT (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Season3PPct42', label: '42%+ 3PT (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  
+  // Games Played Variations (8 achievements)
+  { id: 'SeasonGames40', label: '40+ Games (Season)', isSeasonSpecific: true, minPlayers: 10 },
+  { id: 'SeasonGames45', label: '45+ Games (Season)', isSeasonSpecific: true, minPlayers: 8 },
+  { id: 'SeasonGames50', label: '50+ Games (Season)', isSeasonSpecific: true, minPlayers: 8 },
+  { id: 'SeasonGames55', label: '55+ Games (Season)', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'SeasonGames60', label: '60+ Games (Season)', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'SeasonGames65', label: '65+ Games (Season)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'SeasonGames75', label: '75+ Games (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  
+  // MPG Variations (7 achievements)
+  { id: 'SeasonMPG28', label: '28+ MPG (Season)', isSeasonSpecific: true, minPlayers: 8 },
+  { id: 'SeasonMPG30', label: '30+ MPG (Season)', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'SeasonMPG31', label: '31+ MPG (Season)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'SeasonMPG32', label: '32+ MPG (Season)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'SeasonMPG34', label: '34+ MPG (Season)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'SeasonMPG38', label: '38+ MPG (Season)', isSeasonSpecific: true, minPlayers: 1 },
+  
+  // Career Threshold Variations
+  { id: 'Career6kPoints', label: '6,000+ Career Points', isSeasonSpecific: true, minPlayers: 8 },
+  { id: 'Career8kPoints', label: '8,000+ Career Points', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'Career10kPoints', label: '10,000+ Career Points', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'Career11kPoints', label: '11,000+ Career Points', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'Career12kPoints', label: '12,000+ Career Points', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Career15kPoints', label: '15,000+ Career Points', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Career18kPoints', label: '18,000+ Career Points', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Career22kPoints', label: '22,000+ Career Points', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'Career25kPoints', label: '25,000+ Career Points', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'Career28kPoints', label: '28,000+ Career Points', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'Career30kPoints', label: '30,000+ Career Points', isSeasonSpecific: true, minPlayers: 1 },
+  
+  { id: 'Career4kRebounds', label: '4,000+ Career Rebounds', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'Career5kRebounds', label: '5,000+ Career Rebounds', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Career6kRebounds', label: '6,000+ Career Rebounds', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Career8kRebounds', label: '8,000+ Career Rebounds', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Career12kRebounds', label: '12,000+ Career Rebounds', isSeasonSpecific: true, minPlayers: 1 },
+  
+  { id: 'Career1_5kAssists', label: '1,500+ Career Assists', isSeasonSpecific: true, minPlayers: 8 },
+  { id: 'Career2kAssists', label: '2,000+ Career Assists', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'Career2_5kAssists', label: '2,500+ Career Assists', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'Career3kAssists', label: '3,000+ Career Assists', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Career4kAssists', label: '4,000+ Career Assists', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Career6kAssists', label: '6,000+ Career Assists', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'Career8kAssists', label: '8,000+ Career Assists', isSeasonSpecific: true, minPlayers: 1 },
+  
+  { id: 'Career600Steals', label: '600+ Career Steals', isSeasonSpecific: true, minPlayers: 8 },
+  { id: 'Career800Steals', label: '800+ Career Steals', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'Career900Steals', label: '900+ Career Steals', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'Career1kSteals', label: '1,000+ Career Steals', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Career1_5kSteals', label: '1,500+ Career Steals', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Career2_5kSteals', label: '2,500+ Career Steals', isSeasonSpecific: true, minPlayers: 1 },
+  
+  { id: 'Career600Blocks', label: '600+ Career Blocks', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'Career800Blocks', label: '800+ Career Blocks', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'Career900Blocks', label: '900+ Career Blocks', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Career1kBlocks', label: '1,000+ Career Blocks', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Career1_2kBlocks', label: '1,200+ Career Blocks', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Career2kBlocks', label: '2,000+ Career Blocks', isSeasonSpecific: true, minPlayers: 1 },
+  
+  { id: 'Career600_3PM', label: '600+ Career 3PM', isSeasonSpecific: true, minPlayers: 8 },
+  { id: 'Career800_3PM', label: '800+ Career 3PM', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'Career900_3PM', label: '900+ Career 3PM', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'Career1k_3PM', label: '1,000+ Career 3PM', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'Career1_5k_3PM', label: '1,500+ Career 3PM', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Career2_5k_3PM', label: '2,500+ Career 3PM', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'Career3k_3PM', label: '3,000+ Career 3PM', isSeasonSpecific: true, minPlayers: 1 },
+  
+  { id: 'Seasons5', label: '5+ Seasons Played', isSeasonSpecific: true, minPlayers: 10 },
+  { id: 'Seasons6', label: '6+ Seasons Played', isSeasonSpecific: true, minPlayers: 8 },
+  { id: 'Seasons7', label: '7+ Seasons Played', isSeasonSpecific: true, minPlayers: 6 },
+  { id: 'Seasons8', label: '8+ Seasons Played', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'Seasons12', label: '12+ Seasons Played', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Seasons18', label: '18+ Seasons Played', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'Seasons20', label: '20+ Seasons Played', isSeasonSpecific: true, minPlayers: 1 },
+  
+  // Combo Season Variations (sampling key combinations)
+  { id: 'Season18_8', label: '18/8 Season (PPG/RPG)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Season20_8', label: '20/8 Season (PPG/RPG)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Season22_8', label: '22/8 Season (PPG/RPG)', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'Season24_10', label: '24/10 Season (PPG/RPG)', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'Season26_10', label: '26/10 Season (PPG/RPG)', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'Season28_12', label: '28/12 Season (PPG/RPG)', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'Season30_15', label: '30/15 Season (PPG/RPG)', isSeasonSpecific: true, minPlayers: 1 },
+  
+  { id: 'Season18_4_4', label: '18/4/4 Season (PPG/RPG/APG)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Season20_5_5', label: '20/5/5 Season (PPG/RPG/APG)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Season22_5_5', label: '22/5/5 Season (PPG/RPG/APG)', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'Season24_6_6', label: '24/6/6 Season (PPG/RPG/APG)', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'Season26_6_6', label: '26/6/6 Season (PPG/RPG/APG)', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'Season28_8_8', label: '28/8/8 Season (PPG/RPG/APG)', isSeasonSpecific: true, minPlayers: 1 },
+  
+  { id: 'Season16_7_4', label: '16/7/4 Season (PPG/RPG/APG)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Season18_8_5', label: '18/8/5 Season (PPG/RPG/APG)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Season22_10_6', label: '22/10/6 Season (PPG/RPG/APG)', isSeasonSpecific: true, minPlayers: 1 },
+  { id: 'Season24_12_7', label: '24/12/7 Season (PPG/RPG/APG)', isSeasonSpecific: true, minPlayers: 1 },
+  
+  { id: 'Season0_5_0_5_0_5', label: '0.5/0.5/0.5 Season (SPG/BPG/3PM/G)', isSeasonSpecific: true, minPlayers: 8 },
+  { id: 'Season0_8_0_8_0_8', label: '0.8/0.8/0.8 Season (SPG/BPG/3PM/G)', isSeasonSpecific: true, minPlayers: 5 },
+  { id: 'Season1_0_1_0_1_0', label: '1.0/1.0/1.0 Season (SPG/BPG/3PM/G)', isSeasonSpecific: true, minPlayers: 3 },
+  { id: 'Season1_2_1_2_1_2', label: '1.2/1.2/1.2 Season (SPG/BPG/3PM/G)', isSeasonSpecific: true, minPlayers: 1 },
   
   // Football GM achievements
   {

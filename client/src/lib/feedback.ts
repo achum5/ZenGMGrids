@@ -107,6 +107,26 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     verbGeneric: 'led the league in blocks'
   },
   
+  // New Basketball achievements (season-aligned)
+  Champion: {
+    label: 'Won Championship',
+    short: 'Champion',
+    verbTeam: 'won a championship',
+    verbGeneric: 'won a championship'
+  },
+  AllRookieTeam: {
+    label: 'All-Rookie Team',
+    short: 'All-Rookie',
+    verbTeam: 'made an All-Rookie Team',
+    verbGeneric: 'made the All-Rookie team his rookie season'
+  },
+  Season250ThreePM: {
+    label: '250+ 3PM (Season)',
+    short: '250+ 3PM',
+    verbTeam: 'made 250+ three-pointers in a season',
+    verbGeneric: 'made 250+ three-pointers in a season'
+  },
+  
   // Basketball GM Season Statistical Achievements (24 new achievements)
   Season30PPG: {
     label: '30+ PPG (Season)',
@@ -429,6 +449,18 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     short: 'Assists Leader',
     verbTeam: 'led the league in assists',
     verbGeneric: 'led the league in assists'
+  },
+  HKDefenseman: {
+    label: 'Best Defenseman',
+    short: 'Best Defenseman',
+    verbTeam: 'won Best Defenseman',
+    verbGeneric: 'won Best Defenseman'
+  },
+  HKFinalsMVP: {
+    label: 'Finals MVP',
+    short: 'Finals MVP',
+    verbTeam: 'won a Finals MVP',
+    verbGeneric: 'won a Finals MVP'
   },
   HKPlayoffsMVP: {
     label: 'Playoffs MVP',
@@ -812,6 +844,37 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     StealsLeader: ['League Steals Leader', 'league steals leader', 'steals leader'],
     BlocksLeader: ['League Blocks Leader', 'league blocks leader', 'blocks leader'],
     
+    // New Basketball achievements (season-aligned)
+    Champion: ['Won Championship', 'championship', 'champion'],
+    AllRookieTeam: ['All-Rookie Team', 'all-rookie team'],
+    Season250ThreePM: ['250+ Three-Pointers Made', '250+ 3PM', 'three-pointers'],
+    
+    // Basketball GM season statistical achievements (24 achievements)
+    Season30PPG: ['30+ PPG', '30+ points per game', 'points per game'],
+    Season2000Points: ['2,000+ Points', '2000+ points', 'season points'],
+    Season300_3PM: ['300+ 3PM', '300+ three-pointers', 'three-pointers made'],
+    Season200_3PM: ['200+ 3PM', '200+ three-pointers', 'three-pointers made'],
+    Season12RPG: ['12+ RPG', '12+ rebounds per game', 'rebounds per game'],
+    Season10APG: ['10+ APG', '10+ assists per game', 'assists per game'],
+    Season800Rebounds: ['800+ Rebounds', '800+ rebounds', 'season rebounds'],
+    Season700Assists: ['700+ Assists', '700+ assists', 'season assists'],
+    Season2SPG: ['2.0+ SPG', '2+ steals per game', 'steals per game'],
+    Season2_5BPG: ['2.5+ BPG', '2.5+ blocks per game', 'blocks per game'],
+    Season150Steals: ['150+ Steals', '150+ steals', 'season steals'],
+    Season150Blocks: ['150+ Blocks', '150+ blocks', 'season blocks'],
+    Season200Stocks: ['200+ Stocks', '200+ combined steals blocks', 'steals and blocks'],
+    Season50_40_90: ['50/40/90 Club', '50-40-90 club', 'shooting efficiency'],
+    Season60TS20PPG: ['60%+ TS on 20+ PPG', '60% true shooting', 'efficient scoring'],
+    Season60eFG500FGA: ['60%+ eFG on ≥500 FGA', '60% effective field goal', 'shooting efficiency'],
+    Season90FT250FTA: ['90%+ FT on ≥250 FTA', '90% free throw', 'free throw shooting'],
+    Season40_3PT200_3PA: ['40%+ 3PT on ≥200 3PA', '40% three-point', 'three-point shooting'],
+    Season70Games: ['70+ Games Played', '70+ games', 'games played'],
+    Season36MPG: ['36.0+ MPG', '36+ minutes per game', 'minutes per game'],
+    Season25_10: ['25/10 Season', '25 points 10 rebounds', 'scoring rebounding'],
+    Season25_5_5: ['25/5/5 Season', '25 points 5 rebounds 5 assists', 'all-around'],
+    Season20_10_5: ['20/10/5 Season', '20 points 10 rebounds 5 assists', 'all-around'],
+    Season1_1_1: ['1/1/1 Season', '1 steal 1 block 1 three-pointer', 'defensive versatility'],
+    
     // Football GM achievements (exact case-sensitive matches from FBGM)
     FBAllStar: ['All-Star'],
     FBMVP: ['Most Valuable Player'],
@@ -845,7 +908,30 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     HKAllLeague: ['All-League Team', 'all-league team', 'First Team All-League', 'Second Team All-League'],
     HKAssistsLeader: ['League Assists Leader', 'league assists leader'],
     HKPlayoffsMVP: ['Playoffs MVP', 'playoffs mvp'],
+    HKFinalsMVP: ['Finals MVP', 'finals mvp'],
     HKChampion: ['Won Championship', 'won championship'],
+    HKDefenseman: ['Best Defenseman', 'defenseman', 'best defenseman'],
+    
+    // Hockey GM season statistical achievements (19 achievements)
+    HKSeason40Goals: ['40+ Goals', '40+ goals', 'season goals'],
+    HKSeason60Assists: ['60+ Assists', '60+ assists', 'season assists'],
+    HKSeason90Points: ['90+ Points', '90+ points', 'season points'],
+    HKSeason25Plus: ['+25 Plus/Minus', '25+ plus minus', 'plus minus'],
+    HKSeason250Shots: ['250+ Shots', '250+ shots', 'season shots'],
+    HKSeason150Hits: ['150+ Hits', '150+ hits', 'season hits'],
+    HKSeason100Blocks: ['100+ Blocks', '100+ blocks', 'season blocks'],
+    HKSeason60Takeaways: ['60+ Takeaways', '60+ takeaways', 'season takeaways'],
+    HKSeason20PowerPlay: ['20+ Power-Play Points', '20+ power play', 'power play points'],
+    HKSeason3SHGoals: ['3+ Short-Handed Goals', '3+ short handed', 'short handed goals'],
+    HKSeason7GWGoals: ['7+ Game-Winning Goals', '7+ game winning', 'game winning goals'],
+    HKSeason55FaceoffPct: ['55%+ Faceoff Win Rate', '55% faceoff', 'faceoff percentage'],
+    HKSeason22TOI: ['22:00+ TOI per Game', '22+ time on ice', 'time on ice'],
+    HKSeason70PIM: ['70+ PIM', '70+ penalty minutes', 'penalty minutes'],
+    HKSeason920SavePct: ['.920+ Save Percentage', '920+ save percentage', 'save percentage'],
+    HKSeason260GAA: ['≤2.60 GAA', '2.60 goals against', 'goals against average'],
+    HKSeason6Shutouts: ['6+ Shutouts', '6+ shutouts', 'season shutouts'],
+    HKSeason2000Saves: ['2000+ Saves', '2000+ saves', 'season saves'],
+    HKSeason60Starts: ['60+ Starts', '60+ starts', 'season starts'],
     
     // Baseball GM achievements (case-sensitive matches from ZGMB)
     BBAllStar: ['All-Star'],
@@ -854,7 +940,40 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     BBAllRookie: ['All-Rookie Team'],
     BBAllLeague: ['All-League Team', 'First Team All-League', 'Second Team All-League'],
     BBPlayoffsMVP: ['Playoffs MVP', 'Finals MVP'],
-    BBChampion: ['Won Championship']
+    BBChampion: ['Won Championship'],
+    
+    // Baseball GM season statistical achievements (28 achievements)
+    // Hitters (15 achievements)
+    BBSeason40HR: ['40+ HR', '40+ home runs', 'season home runs'],
+    BBSeason200Hits: ['200+ Hits', '200+ hits', 'season hits'],
+    BBSeason100RBI: ['100+ RBI', '100+ runs batted in', 'season rbi'],
+    BBSeason100Runs: ['100+ Runs', '100+ runs', 'season runs'],
+    BBSeason50SB: ['50+ SB', '50+ stolen bases', 'season stolen bases'],
+    BBSeason100BB: ['100+ BB', '100+ walks', 'season walks'],
+    BBSeason300TB: ['300+ TB', '300+ total bases', 'season total bases'],
+    BBSeason60XBH: ['60+ XBH', '60+ extra base hits', 'extra base hits'],
+    BBSeason300Avg500PA: ['.300+ AVG on ≥500 PA', '300+ batting average', 'batting average'],
+    BBSeason400OBP500PA: ['.400+ OBP on ≥500 PA', '400+ on base percentage', 'on base percentage'],
+    BBSeason550SLG500PA: ['.550+ SLG on ≥500 PA', '550+ slugging percentage', 'slugging percentage'],
+    BBSeason900OPS500PA: ['.900+ OPS on ≥500 PA', '900+ ops', 'on base plus slugging'],
+    BBSeason10Triples: ['10+ Triples', '10+ triples', 'season triples'],
+    BBSeason20HBP: ['20+ HBP', '20+ hit by pitch', 'hit by pitch'],
+    BBSeason25_25Club: ['25/25 Club HR/SB', '25 home runs 25 stolen bases', '25-25 club'],
+    // Pitchers (12 achievements)
+    BBSeason200SO: ['200+ SO', '200+ strikeouts', 'season strikeouts'],
+    BBSeason250ERA162IP: ['≤2.50 ERA on ≥162 IP', '2.50 era', 'earned run average'],
+    BBSeason105WHIP162IP: ['≤1.05 WHIP on ≥162 IP', '1.05 whip', 'walks hits per inning'],
+    BBSeason20Wins: ['20+ Wins', '20+ wins', 'season wins'],
+    BBSeason40Saves: ['40+ Saves', '40+ saves', 'season saves'],
+    BBSeason3CG: ['3+ CG', '3+ complete games', 'complete games'],
+    BBSeason4SHO: ['4+ SHO', '4+ shutouts', 'season shutouts'],
+    BBSeason220IP: ['220+ IP', '220+ innings pitched', 'innings pitched'],
+    BBSeasonKBB4_162IP: ['K/BB ≥ 4.0 on ≥162 IP', '4+ strikeout walk ratio', 'strikeout walk ratio'],
+    BBSeasonK9_10_100IP: ['K/9 ≥ 10.0 on ≥100 IP', '10+ strikeouts per 9', 'strikeout rate'],
+    BBSeason30GS: ['30+ GS', '30+ games started', 'games started'],
+    BBSeason50APP: ['50+ APP', '50+ appearances', 'season appearances'],
+    // Two-Way (1 achievement)
+    BBSeasonTwoWay20HR100IP: ['Two-Way 20+ HR & 100+ IP', 'two way player', 'hitting and pitching']
   };
 
   const patterns = awardTypePatterns[achievementId] || [];
