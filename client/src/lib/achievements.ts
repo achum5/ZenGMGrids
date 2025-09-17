@@ -1,5 +1,17 @@
 import type { Player } from "@/types/bbgm";
-import { SEASON_ACHIEVEMENTS, type SeasonAchievement, type SeasonIndex, type SeasonAchievementId, getSeasonEligiblePlayers } from './season-achievements';
+import {
+  SEASON_ACHIEVEMENTS, 
+  type SeasonAchievement, 
+  type SeasonIndex, 
+  type SeasonAchievementId, 
+  getSeasonEligiblePlayers,
+  STAT_SPECS,
+  type ThresholdSpec,
+  makeSeasonKey,
+  parseSeasonKey,
+  resolveDynamicLabel,
+  buildSeasonIndex
+} from './season-achievements';
 
 export interface Achievement {
   id: string;
@@ -7,6 +19,73 @@ export interface Achievement {
   test: (player: Player) => boolean;
   minPlayers: number;
   isSeasonSpecific?: boolean;
+}
+
+// ==================== DYNAMIC ACHIEVEMENT GENERATION ====================
+
+/**
+ * Generate career achievements from threshold specifications
+ */
+export function generateCareerAchievements(sport: 'basketball' | 'football' | 'hockey' | 'baseball'): Achievement[] {
+  const specs = STAT_SPECS[sport] || [];
+  const careerSpecs = specs.filter(spec => spec.category === 'career');
+  const achievements: Achievement[] = [];
+  
+  for (const spec of careerSpecs) {
+    for (const threshold of spec.thresholds) {
+      const achievementId = makeSeasonKey(spec.key, threshold);
+      const achievement: Achievement = {
+        id: achievementId,
+        label: spec.labelTemplate.replace('{value}', String(threshold)),
+        minPlayers: spec.minPlayers,
+        test: (player: Player) => {
+          const value = spec.valueExtractor(player);
+          if (value === null || value === undefined) return false;
+          
+          switch (spec.comparator) {
+            case '>=': return value >= threshold;
+            case '>': return value > threshold;
+            case '<=': return value <= threshold;
+            case '<': return value < threshold;
+            case '=': return Math.abs(value - threshold) < 0.001;
+            default: return false;
+          }
+        }
+      };
+      achievements.push(achievement);
+    }
+  }
+  
+  return achievements;
+}
+
+
+/**
+ * Test dynamic career achievement for a player
+ */
+export function testDynamicCareerAchievement(
+  player: Player, 
+  achievementKey: string, 
+  sport: 'basketball' | 'football' | 'hockey' | 'baseball'
+): boolean {
+  const parsed = parseSeasonKey(achievementKey);
+  if (!parsed) return false;
+  
+  const specs = STAT_SPECS[sport] || [];
+  const spec = specs.find(s => s.key === parsed.base && s.category === 'career');
+  if (!spec) return false;
+  
+  const value = spec.valueExtractor(player);
+  if (value === null || value === undefined) return false;
+  
+  switch (spec.comparator) {
+    case '>=': return value >= parsed.threshold;
+    case '>': return value > parsed.threshold;
+    case '<=': return value <= parsed.threshold;
+    case '<': return value < parsed.threshold;
+    case '=': return Math.abs(value - parsed.threshold) < 0.001;
+    default: return false;
+  }
 }
 
 // Extended achievement interface for season-specific achievements
@@ -652,6 +731,21 @@ export function playerMeetsAchievement(player: Player, achievementId: string, se
       
       return false;
     }) || false;
+  }
+  
+  // Check if it's a dynamic threshold-based achievement (contains @ symbol)
+  if (achievementId.includes('@')) {
+    // Try to determine sport from achievement key pattern
+    let sport: 'basketball' | 'football' | 'hockey' | 'baseball' = 'basketball';
+    if (achievementId.startsWith('FB') || achievementId.includes('Pass') || achievementId.includes('Rush') || achievementId.includes('Rec')) {
+      sport = 'football';
+    } else if (achievementId.startsWith('HK') || achievementId.includes('Goals') || achievementId.includes('Assists') || achievementId.includes('Save')) {
+      sport = 'hockey';
+    } else if (achievementId.startsWith('BB') || achievementId.includes('HR') || achievementId.includes('Hits') || achievementId.includes('RBI')) {
+      sport = 'baseball';
+    }
+    
+    return testDynamicCareerAchievement(player, achievementId, sport);
   }
   
   // For regular career achievements, use the static achievement arrays
