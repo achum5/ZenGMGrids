@@ -21,6 +21,10 @@ const SEASON_ACHIEVEMENT_LABELS: Partial<Record<SeasonAchievementId, string>> = 
   AssistsLeader: 'League Assists Leader',
   StealsLeader: 'League Steals Leader',
   BlocksLeader: 'League Blocks Leader',
+  // New Basketball achievements (season-aligned)
+  Champion: 'Won Championship',
+  AllRookieTeam: 'All-Rookie Team',
+  Season250ThreePM: '250+ 3PM (Season)',
   
   // Basketball GM Season Statistical Achievements (24 new achievements)
   Season30PPG: '30+ PPG (Season)',
@@ -82,6 +86,7 @@ const SEASON_ACHIEVEMENT_LABELS: Partial<Record<SeasonAchievementId, string>> = 
   HKAllLeague: 'All-League Team',
   HKAssistsLeader: 'League Assists Leader',
   HKPlayoffsMVP: 'Playoffs MVP',
+  HKFinalsMVP: 'Finals MVP',
   HKChampion: 'Won Championship',
   
   // Hockey GM Season Statistical Achievements (19 new achievements)
@@ -192,6 +197,10 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
     AssistsLeader: ['League Assists Leader', 'league assists leader', 'assists leader'],
     StealsLeader: ['League Steals Leader', 'league steals leader', 'steals leader'],
     BlocksLeader: ['League Blocks Leader', 'league blocks leader', 'blocks leader'],
+    // New Basketball achievements (season-aligned)
+    Champion: ['Won Championship', 'championship', 'champion'],
+    AllRookieTeam: ['All-Rookie Team', 'all-rookie team'],
+    Season250ThreePM: ['250+ Three-Pointers Made', '250+ 3PM', 'three-pointers'],
     
     // Football GM achievements
     FBAllStar: ['All-Star'],
@@ -226,6 +235,7 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
     HKAllLeague: ['All-League Team', 'all-league team', 'First Team All-League', 'Second Team All-League'],
     HKAssistsLeader: ['League Assists Leader', 'league assists leader'],
     HKPlayoffsMVP: ['Playoffs MVP', 'playoffs mvp'],
+    HKFinalsMVP: ['Finals MVP', 'finals mvp'],
     HKChampion: ['Won Championship', 'won championship'],
     
     // Baseball GM achievements
