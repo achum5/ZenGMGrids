@@ -487,7 +487,7 @@ function getSeasonTeams(player: Player, season: number): Set<number> {
   if (!player.stats) return teams;
   
   for (const stat of player.stats) {
-    if (stat.season === season && !stat.playoffs && ((stat.gp || 0) > 0 || (stat.min || 0) > 0)) {
+    if (stat.season === season && !stat.playoffs && ((stat.gp || 0) > 0 || (stat.min || 0) > 0) && stat.tid !== -1) {
       teams.add(stat.tid);
     }
   }
@@ -775,9 +775,9 @@ export function buildSeasonIndex(
       for (const player of players) {
         if (!player.stats) continue;
         
-        // Get all regular season stats for this season
+        // Get all regular season stats for this season, excluding TOT rows
         const seasonStats = player.stats.filter(stat => 
-          stat.season === season && !stat.playoffs && (stat.gp || 0) > 0
+          stat.season === season && !stat.playoffs && (stat.gp || 0) > 0 && stat.tid !== -1
         );
         
         for (const stat of seasonStats) {
