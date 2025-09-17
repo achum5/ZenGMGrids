@@ -15,9 +15,9 @@ function isPlayerInSeasonIndex(
   seasonIndex: SeasonIndex
 ): boolean {
   // Search across all seasons for this team-achievement combination
-  for (const seasonStr of Object.keys(seasonIndex)) {
+  for (const seasonStr of Object.keys(seasonIndex.achievements)) {
     const season = parseInt(seasonStr);
-    const seasonData = seasonIndex[season];
+    const seasonData = seasonIndex.achievements[season];
     if (seasonData[teamId] && seasonData[teamId][achievementId as SeasonAchievementId]) {
       if (seasonData[teamId][achievementId as SeasonAchievementId].has(playerId)) {
         return true;
@@ -154,7 +154,7 @@ const DRAFT_HOF_SPECIAL = new Set([
 
 const playerCacheMap = new Map<number, PlayerCache>();
 
-export function buildPlayerCache(player: Player, seasonIndex: SeasonIndex = {}): PlayerCache {
+export function buildPlayerCache(player: Player, seasonIndex: SeasonIndex = { achievements: {}, championTidBySeason: {} }): PlayerCache {
   if (playerCacheMap.has(player.pid)) {
     return playerCacheMap.get(player.pid)!;
   }
@@ -686,7 +686,7 @@ export function computeCellAwareRarity(opts: {
   puzzleSeed: string;
   seasonIndex?: SeasonIndex;
 }): CellRarityResult {
-  const { guessed, eligiblePool, cellContext, puzzleSeed, seasonIndex = {} } = opts;
+  const { guessed, eligiblePool, cellContext, puzzleSeed, seasonIndex = { achievements: {}, championTidBySeason: {} } } = opts;
   const N = eligiblePool.length;
   
   if (N <= 0) {
