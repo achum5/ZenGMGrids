@@ -1,6 +1,6 @@
 import type { Player, Team, CatTeam, LeagueData } from '@/types/bbgm';
 import type { SeasonIndex, SeasonAchievementId } from '@/lib/season-achievements';
-import { getAllAchievements, playerMeetsAchievement } from '@/lib/achievements';
+import { getAllAchievements, playerMeetsAchievement, getViableAchievements } from '@/lib/achievements';
 import { getSeasonEligiblePlayers, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 import { calculateOptimizedIntersection, type IntersectionConstraint } from '@/lib/intersection-cache';
 
@@ -69,9 +69,14 @@ export function getTeamOptions(teams: Team[]): TeamOption[] {
 export function getAchievementOptions(
   sport: string, 
   seasonIndex?: SeasonIndex,
-  leagueYears?: { minSeason: number; maxSeason: number }
+  leagueYears?: { minSeason: number; maxSeason: number },
+  leagueData?: LeagueData // Added for scaling support
 ): AchievementOption[] {
-  const achievements = getAllAchievements(sport as any, seasonIndex, leagueYears);
+  // Use getViableAchievements to get scaled achievements if leagueData is provided
+  const achievements = leagueData 
+    ? getViableAchievements(leagueData.players, 1, sport as any, seasonIndex, leagueYears, leagueData)
+    : getAllAchievements(sport as any, seasonIndex, leagueYears);
+    
   return achievements
     .filter(achievement => 
       achievement.id !== 'bornOutsideUS50DC' && // Exclude problematic achievement
@@ -98,7 +103,8 @@ export function getAchievementOptions(
 export function headerConfigToCatTeam(
   config: HeaderConfig,
   teams: Team[],
-  seasonIndex?: SeasonIndex
+  seasonIndex?: SeasonIndex,
+  leagueData?: LeagueData // Added for scaling support
 ): CatTeam | null {
   // Fix: Allow selectedId of 0 (some teams have tid 0)
   if (config.type == null || config.selectedId == null || config.selectedLabel == null) {
@@ -122,7 +128,33 @@ export function headerConfigToCatTeam(
       label: config.selectedLabel,
       achievementId: config.selectedId as string,
       type: 'achievement',
-      test: (p: Player) => playerMeetsAchievement(p, config.selectedId as string, seasonIndex),
+      test: (p: Player) => {
+        // Check if it's a season-specific achievement
+        const isSeasonAchievement = SEASON_ACHIEVEMENTS.some(sa => sa.id === config.selectedId);
+        if (isSeasonAchievement) {
+          // For season achievements, use playerMeetsAchievement which properly handles seasonIndex
+          return playerMeetsAchievement(p, config.selectedId as string, seasonIndex);
+        } else {
+          // For career achievements, use scaled test function if available
+          if (leagueData) {
+            // Get scaled achievements and find the specific one
+            const scaledAchievements = getViableAchievements(
+              leagueData.players, 
+              1, 
+              leagueData.sport as any, 
+              seasonIndex, 
+              leagueData.leagueYears, 
+              leagueData
+            );
+            const scaledAchievement = scaledAchievements.find(ach => ach.id === config.selectedId);
+            if (scaledAchievement) {
+              return scaledAchievement.test(p);
+            }
+          }
+          // Fallback to playerMeetsAchievement for non-scaled or not found achievements
+          return playerMeetsAchievement(p, config.selectedId as string, seasonIndex);
+        }
+      },
     };
   }
 }
@@ -133,10 +165,11 @@ export function calculateCustomCellIntersection(
   colConfig: HeaderConfig,
   players: Player[],
   teams: Team[],
-  seasonIndex?: SeasonIndex
+  seasonIndex?: SeasonIndex,
+  leagueData?: LeagueData
 ): number {
-  const rowConstraint = headerConfigToCatTeam(rowConfig, teams, seasonIndex);
-  const colConstraint = headerConfigToCatTeam(colConfig, teams, seasonIndex);
+  const rowConstraint = headerConfigToCatTeam(rowConfig, teams, seasonIndex, leagueData);
+  const colConstraint = headerConfigToCatTeam(colConfig, teams, seasonIndex, leagueData);
   
   if (!rowConstraint || !colConstraint) {
     return 0;
@@ -170,7 +203,8 @@ export function updateCellResults(
   state: CustomGridState,
   players: Player[],
   teams: Team[],
-  seasonIndex?: SeasonIndex
+  seasonIndex?: SeasonIndex,
+  leagueData?: LeagueData
 ): number[][] {
   const results: number[][] = [[], [], []];
   
@@ -181,7 +215,8 @@ export function updateCellResults(
         state.cols[col],
         players,
         teams,
-        seasonIndex
+        seasonIndex,
+        leagueData
       );
       results[row][col] = count;
     }
@@ -207,7 +242,8 @@ export function isGridSolvable(
   state: CustomGridState,
   players: Player[],
   teams: Team[],
-  seasonIndex?: SeasonIndex
+  seasonIndex?: SeasonIndex,
+  leagueData?: LeagueData
 ): boolean {
   // Get all cells with exactly 1 eligible player
   const singlePlayerCells: { row: number; col: number; playerId: number }[] = [];
@@ -216,8 +252,8 @@ export function isGridSolvable(
     for (let col = 0; col < 3; col++) {
       if (state.cellResults[row][col] === 1) {
         // Find the single eligible player for this cell
-        const rowConstraint = headerConfigToCatTeam(state.rows[row], teams, seasonIndex);
-        const colConstraint = headerConfigToCatTeam(state.cols[col], teams, seasonIndex);
+        const rowConstraint = headerConfigToCatTeam(state.rows[row], teams, seasonIndex, leagueData);
+        const colConstraint = headerConfigToCatTeam(state.cols[col], teams, seasonIndex, leagueData);
         
         if (rowConstraint && colConstraint) {
           const eligiblePlayers = players.filter(player => 
@@ -258,11 +294,12 @@ export function updateCustomGridState(
   state: CustomGridState,
   players: Player[],
   teams: Team[],
-  seasonIndex?: SeasonIndex
+  seasonIndex?: SeasonIndex,
+  leagueData?: LeagueData
 ): CustomGridState {
-  const cellResults = updateCellResults(state, players, teams, seasonIndex);
+  const cellResults = updateCellResults(state, players, teams, seasonIndex, leagueData);
   const isValid = isGridValid(cellResults);
-  const isSolvable = isValid ? isGridSolvable(state, players, teams, seasonIndex) : false;
+  const isSolvable = isValid ? isGridSolvable(state, players, teams, seasonIndex, leagueData) : false;
   
   return {
     ...state,
@@ -313,7 +350,8 @@ export function debugAchievementIntersection(
 export function customGridToGenerated(
   state: CustomGridState,
   teams: Team[],
-  seasonIndex?: SeasonIndex
+  seasonIndex?: SeasonIndex,
+  leagueData?: LeagueData
 ): { rows: CatTeam[]; cols: CatTeam[] } | null {
   if (!state.isValid || !state.isSolvable) {
     return null;
@@ -324,14 +362,14 @@ export function customGridToGenerated(
   
   // Convert rows
   for (let i = 0; i < 3; i++) {
-    const constraint = headerConfigToCatTeam(state.rows[i], teams, seasonIndex);
+    const constraint = headerConfigToCatTeam(state.rows[i], teams, seasonIndex, leagueData);
     if (!constraint) return null;
     rows.push(constraint);
   }
   
   // Convert cols
   for (let i = 0; i < 3; i++) {
-    const constraint = headerConfigToCatTeam(state.cols[i], teams, seasonIndex);
+    const constraint = headerConfigToCatTeam(state.cols[i], teams, seasonIndex, leagueData);
     if (!constraint) return null;
     cols.push(constraint);
   }

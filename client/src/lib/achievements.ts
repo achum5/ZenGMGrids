@@ -1,6 +1,7 @@
-import type { Player } from "@/types/bbgm";
+import type { Player, LeagueData } from "@/types/bbgm";
 import { SEASON_ACHIEVEMENTS, type SeasonAchievement, type SeasonIndex, type SeasonAchievementId, getSeasonEligiblePlayers } from './season-achievements';
 import { SeededRandom } from './seeded';
+import { createScaledAchievements, analyzeLeagueMaturity, debugScaling } from './achievement-scaling';
 
 export interface Achievement {
   id: string;
@@ -1601,14 +1602,34 @@ export function calculateTeamSeasonsAndAchievementSeasons(player: Player, leader
 }
 
 // Get viable achievements that have at least the minimum number of qualifying players
+// Now supports automatic scaling for smaller leagues
 export function getViableAchievements(
   players: Player[], 
   minCount = 15, 
   sport?: 'basketball' | 'football' | 'hockey' | 'baseball',
   seasonIndex?: any, // SeasonIndex from season-achievements
-  leagueYears?: { minSeason: number; maxSeason: number }
+  leagueYears?: { minSeason: number; maxSeason: number },
+  leagueData?: LeagueData // Optional league data for scaling
 ): Achievement[] {
-  const achievements = getAllAchievements(sport, seasonIndex, leagueYears);
+  let achievements = getAllAchievements(sport, seasonIndex, leagueYears);
+  
+  // Apply scaling if league data is provided
+  if (leagueData) {
+    const maturityAnalysis = analyzeLeagueMaturity(leagueData);
+    
+    // Log scaling info for debugging
+    const DEBUG = import.meta.env.VITE_DEBUG === 'true';
+    if (DEBUG) {
+      console.log('🎯 League maturity analysis:', maturityAnalysis);
+      if (maturityAnalysis.maturity !== 'mature') {
+        console.log(`📈 Applying ${(maturityAnalysis.scalingFactor * 100).toFixed(0)}% scaling for ${maturityAnalysis.maturity} league`);
+        debugScaling(leagueData);
+      }
+    }
+    
+    // Apply scaling to achievements
+    achievements = createScaledAchievements(achievements, leagueData);
+  }
   
   return achievements.filter(achievement => {
     // For season-specific achievements, use playerMeetsAchievement which properly handles seasonIndex
