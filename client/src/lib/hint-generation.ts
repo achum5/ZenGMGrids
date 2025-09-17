@@ -33,6 +33,213 @@ export function clearHintCache(): void {
 }
 
 /**
+ * Check if a player has recorded relevant stats for a specific achievement
+ * @param player - Player to check
+ * @param achievementId - Achievement ID to check stats for
+ * @returns true if player has relevant stats, false otherwise
+ */
+function hasRelevantStats(player: Player, achievementId: string): boolean {
+  if (!player.stats || player.stats.length === 0) {
+    return false;
+  }
+
+  // Check if player has any stats in the relevant category across all seasons
+  for (const stat of player.stats) {
+    if (stat.playoffs) continue; // Only check regular season stats
+
+    // Basketball GM achievements
+    if (achievementId.includes('Points') || achievementId.includes('30PPG') || achievementId.includes('2000Points') || 
+        achievementId.includes('PointsLeader') || achievementId.includes('Scoring')) {
+      if ((stat.pts || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('Rebounds') || achievementId.includes('RPG') || achievementId.includes('ReboundsLeader') || 
+        achievementId.includes('Reb')) {
+      if ((stat.trb || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('Assists') || achievementId.includes('APG') || achievementId.includes('AssistsLeader') || 
+        achievementId.includes('Ast')) {
+      if ((stat.ast || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('Steals') || achievementId.includes('SPG') || achievementId.includes('StealsLeader') || 
+        achievementId.includes('Stl')) {
+      if ((stat.stl || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('Blocks') || achievementId.includes('BPG') || achievementId.includes('BlocksLeader') || 
+        achievementId.includes('Blk')) {
+      if ((stat.blk || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('3PM') || achievementId.includes('Threes') || achievementId.includes('3PT')) {
+      if ((stat.tpm || stat.tp || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('FGA') || achievementId.includes('FG') || achievementId.includes('eFG')) {
+      if ((stat.fga || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('FT') && achievementId.includes('FTA')) {
+      if ((stat.fta || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('Minutes') || achievementId.includes('MPG')) {
+      if ((stat.min || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('Games') || achievementId.includes('GP')) {
+      if ((stat.gp || 0) > 0) return true;
+    }
+
+    // Football GM achievements
+    const footballStat = stat as any; // Cast to access football-specific properties
+    
+    if (achievementId.includes('Pass') && (achievementId.includes('Yds') || achievementId.includes('TD'))) {
+      if ((footballStat.pssYds || 0) > 0 || (footballStat.pssTD || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('Rush') && (achievementId.includes('Yds') || achievementId.includes('TD'))) {
+      if ((footballStat.rusYds || 0) > 0 || (footballStat.rusTD || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('Rec') && (achievementId.includes('Yds') || achievementId.includes('TD') || achievementId.includes('Receptions'))) {
+      if ((footballStat.recYds || 0) > 0 || (footballStat.recTD || 0) > 0 || (footballStat.rec || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('Sacks')) {
+      if ((footballStat.defSk || footballStat.sacks || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('Tackles')) {
+      if ((footballStat.defTck || footballStat.tackles || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('Interceptions') || achievementId.includes('Ints')) {
+      if ((footballStat.defInt || footballStat.ints || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('Scrimmage') || achievementId.includes('AllPurpose')) {
+      if ((footballStat.rusYds || 0) > 0 || (footballStat.recYds || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('TFL')) {
+      if ((footballStat.defTfl || footballStat.tfl || 0) > 0) return true;
+    }
+
+    // Hockey GM achievements
+    const hockeyStat = stat as any; // Cast to access hockey-specific properties
+    
+    if (achievementId.includes('Goals')) {
+      if ((hockeyStat.g || hockeyStat.goals || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('Assists') && (achievementId.startsWith('HK') || achievementId.includes('Hockey'))) {
+      if ((hockeyStat.a || hockeyStat.assists || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('Points') && (achievementId.startsWith('HK') || achievementId.includes('Hockey'))) {
+      if ((hockeyStat.pts || hockeyStat.points || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('Saves')) {
+      if ((hockeyStat.sv || hockeyStat.saves || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('SavePct') || achievementId.includes('GAA') || achievementId.includes('Shutouts')) {
+      if ((hockeyStat.sv || hockeyStat.saves || 0) > 0) return true; // Goalie stats
+    }
+
+    if (achievementId.includes('Shots')) {
+      if ((hockeyStat.s || hockeyStat.shots || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('Hits')) {
+      if ((hockeyStat.hit || hockeyStat.hits || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('Blocks') && (achievementId.startsWith('HK') || achievementId.includes('Hockey'))) {
+      if ((hockeyStat.blk || hockeyStat.blocks || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('Takeaways')) {
+      if ((hockeyStat.tk || hockeyStat.takeaways || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('PowerPlay')) {
+      if ((hockeyStat.ppG || hockeyStat.ppA || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('SHGoals')) {
+      if ((hockeyStat.shG || hockeyStat.shGoals || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('GWGoals')) {
+      if ((hockeyStat.gwG || hockeyStat.gwGoals || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('FaceoffPct')) {
+      if ((hockeyStat.fow || hockeyStat.faceoffWins || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('TOI')) {
+      if ((hockeyStat.toi || hockeyStat.timeOnIce || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('PIM')) {
+      if ((hockeyStat.pim || hockeyStat.penaltyMinutes || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('Starts')) {
+      if ((hockeyStat.gs || hockeyStat.starts || 0) > 0) return true;
+    }
+
+    // Baseball GM achievements
+    const baseballStat = stat as any; // Cast to access baseball-specific properties
+    
+    if (achievementId.includes('Hits')) {
+      if ((baseballStat.h || baseballStat.hits || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('HRs') || achievementId.includes('HomeRuns')) {
+      if ((baseballStat.hr || baseballStat.homeRuns || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('RBIs')) {
+      if ((baseballStat.rbi || baseballStat.rbis || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('SBs') || achievementId.includes('StolenBases')) {
+      if ((baseballStat.sb || baseballStat.stolenBases || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('Runs')) {
+      if ((baseballStat.r || baseballStat.runs || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('Wins') && (achievementId.startsWith('BB') || achievementId.includes('Baseball'))) {
+      if ((baseballStat.w || baseballStat.wins || 0) > 0) return true; // Pitcher wins
+    }
+
+    if (achievementId.includes('Ks') || achievementId.includes('Strikeouts')) {
+      if ((baseballStat.so || baseballStat.strikeouts || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('Saves')) {
+      if ((baseballStat.sv || baseballStat.saves || 0) > 0) return true;
+    }
+
+    if (achievementId.includes('ERA')) {
+      if ((baseballStat.ip || baseballStat.inningsPitched || 0) > 0) return true; // Pitched innings
+    }
+  }
+
+  // If no relevant stats found, return false
+  return false;
+}
+
+/**
  * Generate hint options for a specific cell
  */
 export function generateHintOptions(
@@ -68,41 +275,12 @@ export function generateHintOptions(
       const dummyPlayer: Player = {
         pid: -1000 - i,
         name: `Player ${i + 1}`,
+        seasons: [],
+        teamsPlayed: new Set([]),
+        tid: -1,
         firstName: `Player`,
         lastName: `${i + 1}`,
         pos: 'G',
-        hgt: 72,
-        weight: 200,
-        born: { year: 1999, loc: 'Unknown' },
-        college: 'Unknown',
-        draft: { round: 1, pick: i + 1, year: 2020 },
-        face: undefined,
-        imgURL: undefined,
-        injury: { type: 'Healthy', gamesRemaining: 0 },
-        jerseyNumber: undefined,
-        srID: undefined,
-        real: false,
-        awards: [],
-        freeAgent: false,
-        yearsFreeAgent: 0,
-        untradable: false,
-        retiredYear: undefined,
-        hof: false,
-        statsTids: [],
-        seasons: [],
-        careerStats: {
-          gp: 0, min: 0, fg: 0, fga: 0, fgp: 0,
-          tp: 0, tpa: 0, tpp: 0, ft: 0, fta: 0, ftp: 0,
-          orb: 0, drb: 0, trb: 0, ast: 0, tov: 0, stl: 0, blk: 0, pf: 0, pts: 0,
-          per: 0, ewa: 0, ws: 0, vorp: 0
-        },
-        careerStatsPlayoffs: {
-          gp: 0, min: 0, fg: 0, fga: 0, fgp: 0,
-          tp: 0, tpa: 0, tpp: 0, ft: 0, fta: 0, ftp: 0,
-          orb: 0, drb: 0, trb: 0, ast: 0, tov: 0, stl: 0, blk: 0, pf: 0, pts: 0,
-          per: 0, ewa: 0, ws: 0, vorp: 0
-        },
-        teamsPlayed: new Set([]),
         achievements: {
           career20kPoints: false,
           career10kRebounds: false,
@@ -204,7 +382,8 @@ export function generateHintOptions(
   const rowOnlyPlayers = allPlayers.filter(player => {
     const meetsRow = evaluateConstraint(player, rowConstraint, leagueData?.seasonIndex);
     const meetsCol = evaluateConstraint(player, colConstraint, leagueData?.seasonIndex);
-    return meetsRow && !meetsCol && 
+    const hasRowStats = rowConstraint.type === 'achievement' ? hasRelevantStats(player, rowConstraint.achievementId!) : true;
+    return meetsRow && !meetsCol && hasRowStats &&
            !usedPids.has(player.pid) && 
            player.pid !== correctPlayer.pid;
   });
@@ -213,7 +392,8 @@ export function generateHintOptions(
   const colOnlyPlayers = allPlayers.filter(player => {
     const meetsRow = evaluateConstraint(player, rowConstraint, leagueData?.seasonIndex);
     const meetsCol = evaluateConstraint(player, colConstraint, leagueData?.seasonIndex);
-    return meetsCol && !meetsRow && 
+    const hasColStats = colConstraint.type === 'achievement' ? hasRelevantStats(player, colConstraint.achievementId!) : true;
+    return meetsCol && !meetsRow && hasColStats &&
            !usedPids.has(player.pid) && 
            player.pid !== correctPlayer.pid;
   });
