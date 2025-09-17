@@ -129,8 +129,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
   }, [leagueData?.players, sport]);
   
   const achievementOptions = useMemo<AchievementOption[]>(() => {
-    return leagueData ? getAchievementOptions(sport, seasonIndex, leagueData.leagueYears, leagueData) : [];
-  }, [sport, seasonIndex, leagueData?.leagueYears, leagueData]);
+    return leagueData ? getAchievementOptions(sport, seasonIndex, leagueData.leagueYears) : [];
+  }, [sport, seasonIndex, leagueData?.leagueYears]);
 
   // Clear all selections
   const handleClearAll = useCallback(() => {
@@ -579,7 +579,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     // Get achievements and categorize them
     const sport = detectSport(leagueData);
     const seasonIndex = getCachedSeasonIndex(leagueData.players, sport);
-    const achievementOptions = getAchievementOptions(sport, seasonIndex, leagueData.leagueYears, leagueData);
+    const achievementOptions = getAchievementOptions(sport, seasonIndex, leagueData.leagueYears);
     
     const seasonAchievements: Array<{id: string, name: string, type: 'achievement'}> = [];
     const careerAchievements: Array<{id: string, name: string, type: 'achievement'}> = [];
