@@ -39,15 +39,25 @@ export function generateCareerAchievements(sport: 'basketball' | 'football' | 'h
         label: spec.labelTemplate.replace('{value}', String(threshold)),
         minPlayers: spec.minPlayers,
         test: (player: Player) => {
-          const value = spec.valueExtractor(player);
-          if (value === null || value === undefined) return false;
+          // For career achievements, aggregate across all seasons
+          if (!player.stats) return false;
+          let totalValue = 0;
+          for (const stat of player.stats) {
+            if (!stat.playoffs && (stat.gp || 0) > 0) {
+              const seasonValue = spec.valueExtractor(stat, stat.season);
+              if (seasonValue !== null && seasonValue !== undefined) {
+                totalValue += seasonValue;
+              }
+            }
+          }
+          if (totalValue === 0) return false;
           
           switch (spec.comparator) {
-            case '>=': return value >= threshold;
-            case '>': return value > threshold;
-            case '<=': return value <= threshold;
-            case '<': return value < threshold;
-            case '=': return Math.abs(value - threshold) < 0.001;
+            case '>=': return totalValue >= threshold;
+            case '>': return totalValue > threshold;
+            case '<=': return totalValue <= threshold;
+            case '<': return totalValue < threshold;
+            case '=': return Math.abs(totalValue - threshold) < 0.001;
             default: return false;
           }
         }
@@ -75,15 +85,25 @@ export function testDynamicCareerAchievement(
   const spec = specs.find(s => s.key === parsed.base && s.category === 'career');
   if (!spec) return false;
   
-  const value = spec.valueExtractor(player);
-  if (value === null || value === undefined) return false;
+  // For career achievements, aggregate across all seasons
+  if (!player.stats) return false;
+  let totalValue = 0;
+  for (const stat of player.stats) {
+    if (!stat.playoffs && (stat.gp || 0) > 0) {
+      const seasonValue = spec.valueExtractor(stat, stat.season);
+      if (seasonValue !== null && seasonValue !== undefined) {
+        totalValue += seasonValue;
+      }
+    }
+  }
+  if (totalValue === 0) return false;
   
   switch (spec.comparator) {
-    case '>=': return value >= parsed.threshold;
-    case '>': return value > parsed.threshold;
-    case '<=': return value <= parsed.threshold;
-    case '<': return value < parsed.threshold;
-    case '=': return Math.abs(value - parsed.threshold) < 0.001;
+    case '>=': return totalValue >= parsed.threshold;
+    case '>': return totalValue > parsed.threshold;
+    case '<=': return totalValue <= parsed.threshold;
+    case '<': return totalValue < parsed.threshold;
+    case '=': return Math.abs(totalValue - parsed.threshold) < 0.001;
     default: return false;
   }
 }
@@ -232,29 +252,65 @@ export const BASKETBALL_ACHIEVEMENTS: Achievement[] = [
   // Now implemented as season-specific achievements with proper harmonization
 ];
 
-// Convert season achievements to regular Achievement format for grid generation
+// Generate dynamic season achievements from STAT_SPECS for grid generation
 function createSeasonAchievementTests(seasonIndex?: SeasonIndex, sport: 'basketball' | 'football' | 'hockey' | 'baseball' = 'basketball'): Achievement[] {
-  if (!seasonIndex) return [];
+  const achievements: Achievement[] = [];
   
-  // Filter achievements by sport
-  const sportFilteredAchievements = SEASON_ACHIEVEMENTS.filter(seasonAch => {
+  // Get sport-specific threshold specifications
+  const specs = STAT_SPECS[sport] || [];
+  
+  // Generate achievements from individual season and efficiency specs
+  const seasonSpecs = specs.filter(spec => 
+    spec.category === 'individual-season' || 
+    spec.category === 'efficiency' ||
+    spec.category === 'statistical-leader'
+  );
+  
+  for (const spec of seasonSpecs) {
+    for (const threshold of spec.thresholds) {
+      const achievementId = makeSeasonKey(spec.key, threshold);
+      const achievement: Achievement = {
+        id: achievementId,
+        label: spec.labelTemplate.replace('{value}', String(threshold)),
+        minPlayers: spec.minPlayers,
+        isSeasonSpecific: true,
+        test: (player: Player) => {
+          if (!seasonIndex) return false;
+          
+          // Check if player appears in any season/team for this achievement
+          for (const seasonStr of Object.keys(seasonIndex)) {
+            const seasonData = seasonIndex[parseInt(seasonStr)];
+            if (!seasonData) continue;
+            
+            for (const teamData of Object.values(seasonData)) {
+              if (teamData[achievementId]?.has(player.pid)) {
+                return true;
+              }
+            }
+          }
+          return false;
+        }
+      };
+      achievements.push(achievement);
+    }
+  }
+  
+  // Also include legacy static achievements for backward compatibility
+  const legacyAchievements = SEASON_ACHIEVEMENTS.filter(seasonAch => {
     if (sport === 'basketball') {
-      // Basketball: exclude FB*, HK*, BB* prefixed achievements
       return !seasonAch.id.startsWith('FB') && !seasonAch.id.startsWith('HK') && !seasonAch.id.startsWith('BB');
     } else if (sport === 'football') {
-      // Football: only FB* prefixed achievements, exclude basketball-specific ones
       return seasonAch.id.startsWith('FB');
     } else if (sport === 'hockey') {
-      // Hockey: only HK* prefixed achievements, exclude basketball-specific ones
       return seasonAch.id.startsWith('HK');
     } else if (sport === 'baseball') {
-      // Baseball: only BB* prefixed achievements, exclude basketball-specific ones
       return seasonAch.id.startsWith('BB');
     }
     return false;
   });
   
-  return sportFilteredAchievements.map(seasonAch => ({
+  // Convert legacy achievements to Achievement format and add to the list
+  const legacyAchievementTests = legacyAchievements.map(seasonAch => ({
     id: seasonAch.id,
     label: seasonAch.label,
     isSeasonSpecific: true,
@@ -293,6 +349,9 @@ function createSeasonAchievementTests(seasonIndex?: SeasonIndex, sport: 'basketb
       }) || false;
     }
   }));
+  
+  // Combine dynamic achievements with legacy achievements
+  return [...achievements, ...legacyAchievementTests];
 }
 
 // Baseball-specific achievements  
