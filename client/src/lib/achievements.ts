@@ -153,26 +153,6 @@ export const BASKETBALL_ACHIEVEMENTS: Achievement[] = [
   // Now implemented as season-specific achievements with proper harmonization
 ];
 
-// Helper function to determine if an achievement should use seasonIndex for detection
-function isStatisticalAchievement(achievementId: SeasonAchievementId): boolean {
-  // Award-based achievements that should check player.awards
-  const awardBasedAchievements = [
-    'AllStar', 'MVP', 'DPOY', 'ROY', 'SMOY', 'MIP', 'FinalsMVP', 'SFMVP',
-    'AllLeagueAny', 'AllDefAny', 'AllRookieAny', 'Champion', 'AllRookieTeam',
-    'FBAllStar', 'FBMVP', 'FBDPOY', 'FBOffROY', 'FBDefROY', 'FBAllRookie', 'FBAllLeague', 'FBFinalsMVP', 'FBChampion',
-    'HKAllStar', 'HKAllStarMVP', 'HKMVP', 'HKROY', 'HKAllRookie', 'HKAllLeague', 'HKPlayoffsMVP', 'HKFinalsMVP', 'HKChampion', 'HKDefenseman',
-    'BBAllStar', 'BBMVP', 'BBROY', 'BBAllRookie', 'BBAllLeague', 'BBPlayoffsMVP', 'BBChampion'
-  ];
-  
-  // If it's an award-based achievement, it should NOT use seasonIndex
-  if (awardBasedAchievements.includes(achievementId)) {
-    return false;
-  }
-  
-  // All other achievements are statistical and should use seasonIndex
-  return true;
-}
-
 // Convert season achievements to regular Achievement format for grid generation
 function createSeasonAchievementTests(seasonIndex?: SeasonIndex, sport: 'basketball' | 'football' | 'hockey' | 'baseball' = 'basketball'): Achievement[] {
   if (!seasonIndex) return [];
@@ -201,8 +181,9 @@ function createSeasonAchievementTests(seasonIndex?: SeasonIndex, sport: 'basketb
     isSeasonSpecific: true,
     minPlayers: seasonAch.minPlayers,
     test: (player: Player) => {
-      // Use dynamic detection instead of hardcoded array
-      if (isStatisticalAchievement(seasonAch.id)) {
+      // For statistical leader achievements (PointsLeader, BlocksLeader, etc.), check seasonIndex
+      const statisticalLeaders = ['PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader', 'Season30PPG', 'Season2000Points', 'Season300_3PM', 'Season200_3PM', 'Season12RPG', 'Season10APG', 'Season800Rebounds', 'Season700Assists', 'Season2SPG', 'Season2_5BPG', 'Season150Steals', 'Season150Blocks', 'Season200Stocks', 'Season50_40_90', 'Season60TS20PPG', 'Season60eFG500FGA', 'Season90FT250FTA', 'Season40_3PT200_3PA', 'Season70Games', 'Season36MPG', 'Season25_10', 'Season25_5_5', 'Season20_10_5', 'Season1_1_1', 'FBSeason4kPassYds', 'FBSeason1200RushYds', 'FBSeason100Receptions', 'FBSeason15Sacks', 'FBSeason140Tackles', 'FBSeason5Interceptions', 'FBSeason30PassTD', 'FBSeason1300RecYds', 'FBSeason10RecTD', 'FBSeason12RushTD', 'FBSeason1600Scrimmage', 'FBSeason2000AllPurpose', 'FBSeason15TFL', 'HKSeason40Goals', 'HKSeason60Assists', 'HKSeason90Points', 'HKSeason25Plus', 'HKSeason250Shots', 'HKSeason150Hits', 'HKSeason100Blocks', 'HKSeason60Takeaways', 'HKSeason20PowerPlay', 'HKSeason3SHGoals', 'HKSeason7GWGoals', 'HKSeason55FaceoffPct', 'HKSeason22TOI', 'HKSeason70PIM', 'HKSeason920SavePct', 'HKSeason260GAA', 'HKSeason6Shutouts', 'HKSeason2000Saves', 'HKSeason60Starts'];
+      if (statisticalLeaders.includes(seasonAch.id)) {
         // For statistical leaders, check if player appears in any season/team for this achievement
         if (!seasonIndex) return false;
         
@@ -595,8 +576,9 @@ export function playerMeetsAchievement(player: Player, achievementId: string, se
     return (player.decadesPlayed?.has(1990) && player.decadesPlayed?.has(2000)) || false;
   }
 
-  // First, check if it's a statistical achievement that needs season index
-  if (isStatisticalAchievement(achievementId as SeasonAchievementId)) {
+  // First, check if it's a statistical leader achievement that needs season index
+  const statisticalLeaders = ['PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader'];
+  if (statisticalLeaders.includes(achievementId)) {
     // For statistical leaders, check if player appears in any season/team for this achievement
     if (!seasonIndex) {
       return false;
@@ -754,7 +736,7 @@ export function calculatePlayerAchievements(player: Player, allPlayers: Player[]
     achievements[`retiredIn${player.retiredDecade}s`] = true;
   }
   if (player.decadesPlayed) {
-    for (const decade of Array.from(player.decadesPlayed)) {
+    for (const decade of player.decadesPlayed) {
       achievements[`playedIn${decade}s`] = true;
     }
   }
