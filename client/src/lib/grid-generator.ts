@@ -121,7 +121,7 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
   // Get viable achievements - use sport-specific minimum requirements to avoid infinite loops
   // For old random builder, exclude season-specific achievements
   const minPlayersRequired = sport === 'hockey' ? 3 : 5; // Lower requirement for hockey due to fewer players
-  const allAchievements = getViableAchievements(players, minPlayersRequired, sport, seasonIndex, leagueYears);
+  const allAchievements = getViableAchievements(players, minPlayersRequired, sport, seasonIndex, leagueYears, leagueData);
   
   // Filter out season-specific achievements for old builder
   const viableAchievements = allAchievements.filter(achievement => 
@@ -160,7 +160,16 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
       label: achievement.label,
       achievementId: achievement.id,
       type: 'achievement',
-      test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex),
+      // Use the scaled achievement's test function for career achievements, seasonIndex for season-specific achievements
+      test: (p: Player) => {
+        // For season-specific achievements, use playerMeetsAchievement which properly handles seasonIndex
+        if (achievement.isSeasonSpecific) {
+          return playerMeetsAchievement(p, achievement.id, seasonIndex);
+        } else {
+          // For career achievements, use the scaled test function to ensure proper threshold handling
+          return achievement.test(p);
+        }
+      },
     }));
 
   if (teamConstraints.length < 3) {
@@ -269,9 +278,9 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
       const eligiblePids = getSeasonEligiblePlayers(seasonIndex, team.tid!, seasonAchievementId);
       return eligiblePids.size > 0;
     } else {
-      // Use traditional validation for career achievements
+      // For career achievements, use the scaled test function from the achievement constraint if available
       const eligiblePlayers = players.filter(p => 
-        playerMeetsAchievement(p, achievement.achievementId!, seasonIndex) && 
+        achievement.test(p) && 
         p.teamsPlayed.has(team.tid!)
       );
       return eligiblePlayers.length > 0;
@@ -768,8 +777,10 @@ function generateGridSeeded(leagueData: LeagueData): {
       throw new Error('Could not find viable seed achievement after 10 tries');
     }
     
-    // Find viable season achievements that have >= 3 eligible teams (sport-filtered)
-    const sportFilteredAchievements = getAllAchievements(sport, seasonIndex, leagueData.leagueYears)
+    // Find viable season achievements that have >= 3 eligible teams (sport-filtered with scaling)
+    const minPlayersRequired = sport === 'hockey' ? 3 : 5; // Lower requirement for hockey due to fewer players
+    const allScaledAchievements = getViableAchievements(players, minPlayersRequired, sport, seasonIndex, leagueData.leagueYears, leagueData);
+    const sportFilteredAchievements = allScaledAchievements
       .filter(ach => ach.isSeasonSpecific);
     
     const viableSeasonAchievements = sportFilteredAchievements.map(ach => 
@@ -830,6 +841,7 @@ function generateGridSeeded(leagueData: LeagueData): {
     achievementId: seedAchievement.id,
     label: seedAchievement.label,
     key: `achievement-${seedAchievement.id}`,
+    // For season achievements, always use playerMeetsAchievement with seasonIndex
     test: (p: Player) => playerMeetsAchievement(p, seedAchievement.id, seasonIndex),
   };
   
@@ -978,7 +990,16 @@ function generateGridSeeded(leagueData: LeagueData): {
         achievementId: selectedAch.id,
         label: selectedAch.label,
         key: `achievement-${selectedAch.id}`,
-        test: (p: Player) => playerMeetsAchievement(p, selectedAch.id, seasonIndex),
+        // Use the scaled achievement's test function for career achievements, seasonIndex for season-specific achievements
+        test: (p: Player) => {
+          // For season-specific achievements, use playerMeetsAchievement which properly handles seasonIndex
+          if (selectedAch.isSeasonSpecific) {
+            return playerMeetsAchievement(p, selectedAch.id, seasonIndex);
+          } else {
+            // For career achievements, use the scaled test function to ensure proper threshold handling
+            return selectedAch.test(p);
+          }
+        },
       };
       
       // Mark season achievement as used
@@ -993,8 +1014,10 @@ function generateGridSeeded(leagueData: LeagueData): {
   // Step 4: Fill remaining slots using old-style approach
   console.log(`✅ Step 4: Filling remaining slots old-style`);
   
-  // Only use career achievements for old-style fill with decade weighting
-  const rawAllAchievements = getAllAchievements(sport, seasonIndex, leagueData.leagueYears)
+  // Only use career achievements for old-style fill with decade weighting (with scaling)
+  const minPlayersRequired = sport === 'hockey' ? 3 : 5; // Lower requirement for hockey due to fewer players
+  const allScaledAchievements = getViableAchievements(players, minPlayersRequired, sport, seasonIndex, leagueData.leagueYears, leagueData);
+  const rawAllAchievements = allScaledAchievements
     .filter(ach => !ach.isSeasonSpecific)
     .filter(ach => ach.id !== 'bornOutsideUS50DC');
   
@@ -1392,16 +1415,25 @@ function validateAchievementIntersection(
   seasonIndex?: SeasonIndex,
   minPlayers: number = 3
 ): boolean {
+  // Get achievements from scaled achievement list to ensure we use proper test functions
+  const minPlayersRequired = 3; // Reuse conservative minimum for validation
+  const allScaledAchievements = getViableAchievements(players, minPlayersRequired, 'basketball', seasonIndex, undefined, { players, teams: [], sport: 'basketball', seasonIndex, leagueYears: undefined });
+  
+  const scaledAch1 = allScaledAchievements.find(ach => ach.id === achievement1);
+  const scaledAch2 = allScaledAchievements.find(ach => ach.id === achievement2);
+  
   if (achievement1 === achievement2) {
-    // Same achievement - just check if enough players have it
-    return players.filter(p => playerMeetsAchievement(p, achievement1, seasonIndex)).length >= minPlayers;
+    // Same achievement - just check if enough players have it using scaled test
+    const testFunc = scaledAch1 ? scaledAch1.test : (p: Player) => playerMeetsAchievement(p, achievement1, seasonIndex);
+    return players.filter(testFunc).length >= minPlayers;
   }
   
-  // Different achievements - check for players who have both
-  const eligiblePlayers = players.filter(p => 
-    playerMeetsAchievement(p, achievement1, seasonIndex) && 
-    playerMeetsAchievement(p, achievement2, seasonIndex)
-  );
+  // Different achievements - check for players who have both using scaled test functions
+  const eligiblePlayers = players.filter(p => {
+    const meetsAch1 = scaledAch1 ? scaledAch1.test(p) : playerMeetsAchievement(p, achievement1, seasonIndex);
+    const meetsAch2 = scaledAch2 ? scaledAch2.test(p) : playerMeetsAchievement(p, achievement2, seasonIndex);
+    return meetsAch1 && meetsAch2;
+  });
   
   return eligiblePlayers.length >= minPlayers;
 }
@@ -1537,8 +1569,10 @@ function buildOppositeAxisForSeed(
   
   // Fill remaining slots with safe achievements/teams
   // For layouts with season achievements, use other season achievements to avoid mixing career/season
-  // But don't reuse the seed achievement (and use sport-filtered achievements)
-  const sportFilteredAchievements = getAllAchievements(sport, seasonIndex, undefined)
+  // But don't reuse the seed achievement (and use sport-filtered achievements with scaling)
+  const minPlayersRequiredForFill = sport === 'hockey' ? 3 : 5; // Lower requirement for hockey due to fewer players
+  const allScaledAchievementsForFill = getViableAchievements(players, minPlayersRequiredForFill, sport, seasonIndex, leagueData.leagueYears, leagueData);
+  const sportFilteredAchievements = allScaledAchievementsForFill
     .filter(ach => ach.isSeasonSpecific);
   
   const availableSeasonAchievements = sportFilteredAchievements.map(ach => 
@@ -1571,12 +1605,15 @@ function buildOppositeAxisForSeed(
     
     for (const ca of fallbackCareerAchievements) {
       if (!usedIds.has(ca.id)) {
+        // Find the scaled achievement from allScaledAchievementsForFill if available
+        const scaledAchievement = allScaledAchievementsForFill.find(ach => ach.id === ca.id);
         return {
           key: `achievement-${ca.id}`,
           label: ca.label,
           achievementId: ca.id,
           type: 'achievement',
-          test: (p: Player) => playerMeetsAchievement(p, ca.id, seasonIndex),
+          // Use scaled test function if available, otherwise fallback to playerMeetsAchievement
+          test: scaledAchievement ? scaledAchievement.test : (p: Player) => playerMeetsAchievement(p, ca.id, seasonIndex),
         };
       }
     }
@@ -1585,12 +1622,15 @@ function buildOppositeAxisForSeed(
     throw new Error('No unused achievements available for grid generation');
   };
   
+  // Find the scaled achievement if available for safe career achievement
+  const scaledSafeAchievement = allScaledAchievementsForFill.find(ach => ach.id === 'played10PlusSeasons');
   const safeCareerAchievement: CatTeam = {
     key: 'achievement-played10PlusSeasons',
     label: 'Played 10+ Seasons',
     achievementId: 'played10PlusSeasons',
     type: 'achievement',
-    test: (p: Player) => playerMeetsAchievement(p, 'played10PlusSeasons', seasonIndex),
+    // Use scaled test function if available, otherwise fallback to playerMeetsAchievement
+    test: scaledSafeAchievement ? scaledSafeAchievement.test : (p: Player) => playerMeetsAchievement(p, 'played10PlusSeasons', seasonIndex),
   };
   
   // Now fill all achievement slots
