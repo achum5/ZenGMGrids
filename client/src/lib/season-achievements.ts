@@ -1501,6 +1501,152 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
     minPlayers: 3
   },
   
+  // Basketball GM Season Statistical Achievements (24 new achievements)
+  {
+    id: 'BBSeason30PPG',
+    label: '30+ PPG (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason2000Points',
+    label: '2,000+ Points (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason300_3PM',
+    label: '300+ 3PM (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason200_3PM',
+    label: '200+ 3PM (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason12RPG',
+    label: '12+ RPG (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason10APG',
+    label: '10+ APG (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason800Rebounds',
+    label: '800+ Rebounds (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason700Assists',
+    label: '700+ Assists (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason2SPG',
+    label: '2.0+ SPG (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason2_5BPG',
+    label: '2.5+ BPG (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason150Steals',
+    label: '150+ Steals (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason150Blocks',
+    label: '150+ Blocks (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason200Stocks',
+    label: '200+ Stocks (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason50_40_90',
+    label: '50/40/90 Club (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason60TS20PPG',
+    label: '60%+ TS on 20+ PPG (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason60eFG500FGA',
+    label: '60%+ eFG on ≥500 FGA (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason90FT250FTA',
+    label: '90%+ FT on ≥250 FTA (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason40_3PT200_3PA',
+    label: '40%+ 3PT on ≥200 3PA (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason70Games',
+    label: '70+ Games Played (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason36MPG',
+    label: '36.0+ MPG (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason25_10',
+    label: '25/10 Season (PPG/RPG)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason25_5_5',
+    label: '25/5/5 Season (PPG/RPG/APG)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason20_10_5',
+    label: '20/10/5 Season (PPG/RPG/APG)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'BBSeason1_1_1',
+    label: '1/1/1 Season (SPG/BPG/3PM/G)',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  
   // Football GM achievements
   {
     id: 'FBAllStar',
