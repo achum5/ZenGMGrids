@@ -798,6 +798,219 @@ export function buildSeasonIndex(
     // Debug logging removed for performance
   }
   
+  // Calculate Basketball GM season achievements (BBSeason achievements)
+  if (sport === 'basketball') {
+    let basketballEntriesAdded = 0;
+    
+    // Get all seasons from player stats
+    const allSeasons = new Set<number>();
+    for (const player of players) {
+      if (player.stats) {
+        for (const stat of player.stats) {
+          if (stat.season && !stat.playoffs) {
+            allSeasons.add(stat.season);
+          }
+        }
+      }
+    }
+    
+    // Calculate achievements for each season
+    for (const season of Array.from(allSeasons)) {
+      // Process each player's stats for this season
+      for (const player of players) {
+        if (!player.stats) continue;
+        
+        // Get all regular season stats for this season, excluding TOT rows
+        const seasonStats = player.stats.filter(stat => 
+          stat.season === season && !stat.playoffs && (stat.gp || 0) > 0 && stat.tid !== -1
+        );
+        
+        for (const stat of seasonStats) {
+          const tid = stat.tid;
+          
+          // Extract all relevant Basketball GM stats from the season stat
+          const pts = stat.pts || 0;
+          const trb = stat.trb || ((stat as any).orb || 0) + ((stat as any).drb || 0) || 0;
+          const ast = stat.ast || 0;
+          const stl = stat.stl || 0;
+          const blk = stat.blk || 0;
+          const fg = stat.fg || 0;
+          const fga = stat.fga || 0;
+          const tp = stat.tp || (stat as any).tpm || 0;
+          const tpa = stat.tpa || (stat as any).tpat || 0;
+          const ft = stat.ft || (stat as any).ftm || 0;
+          const fta = stat.fta || 0;
+          const gp = stat.gp || 0;
+          const min = stat.min || 0;
+          
+          // Guard against zero division
+          const ppg = gp > 0 ? pts / gp : 0;
+          const rpg = gp > 0 ? trb / gp : 0;
+          const apg = gp > 0 ? ast / gp : 0;
+          const spg = gp > 0 ? stl / gp : 0;
+          const bpg = gp > 0 ? blk / gp : 0;
+          const tpg = gp > 0 ? tp / gp : 0;
+          const mpg = gp > 0 ? min / gp : 0;
+          
+          // Efficiency calculations with guards
+          const fgPct = fga > 0 ? fg / fga : 0;
+          const tpPct = tpa > 0 ? tp / tpa : 0;
+          const ftPct = fta > 0 ? ft / fta : 0;
+          const tsDenom = 2 * (fga + 0.44 * fta);
+          const tsPct = tsDenom > 0 ? pts / tsDenom : 0;
+          const eFgPct = fga > 0 ? (fg + 0.5 * tp) / fga : 0;
+          
+          // Computed values
+          const stocks = stl + blk;
+          
+          // Helper function to add achievement
+          const addAchievement = (achievementId: SeasonAchievementId) => {
+            if (!seasonIndex[season]) seasonIndex[season] = {};
+            if (!seasonIndex[season][tid]) seasonIndex[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
+            if (!seasonIndex[season][tid][achievementId]) seasonIndex[season][tid][achievementId] = new Set();
+            
+            seasonIndex[season][tid][achievementId].add(player.pid);
+            basketballEntriesAdded++;
+          };
+          
+          // Scoring & Volume achievements
+          
+          // 30+ PPG (Season): ppg >= 30 and gp >= 50
+          if (ppg >= 30 && gp >= 50) {
+            addAchievement('BBSeason30PPG');
+          }
+          
+          // 2,000+ Points (Season): pts >= 2000
+          if (pts >= 2000) {
+            addAchievement('BBSeason2000Points');
+          }
+          
+          // 300+ 3PM (Season): tp >= 300
+          if (tp >= 300) {
+            addAchievement('BBSeason300_3PM');
+          }
+          
+          // 200+ 3PM (Season): tp >= 200
+          if (tp >= 200) {
+            addAchievement('BBSeason200_3PM');
+          }
+          
+          // Rebounding & Playmaking achievements
+          
+          // 12+ RPG (Season): rpg >= 12 and gp >= 50
+          if (rpg >= 12 && gp >= 50) {
+            addAchievement('BBSeason12RPG');
+          }
+          
+          // 10+ APG (Season): apg >= 10 and gp >= 50
+          if (apg >= 10 && gp >= 50) {
+            addAchievement('BBSeason10APG');
+          }
+          
+          // 800+ Rebounds (Season): trb >= 800
+          if (trb >= 800) {
+            addAchievement('BBSeason800Rebounds');
+          }
+          
+          // 700+ Assists (Season): ast >= 700
+          if (ast >= 700) {
+            addAchievement('BBSeason700Assists');
+          }
+          
+          // Defense achievements
+          
+          // 2.0+ SPG (Season): spg >= 2.0 and gp >= 50
+          if (spg >= 2.0 && gp >= 50) {
+            addAchievement('BBSeason2SPG');
+          }
+          
+          // 2.5+ BPG (Season): bpg >= 2.5 and gp >= 50
+          if (bpg >= 2.5 && gp >= 50) {
+            addAchievement('BBSeason2_5BPG');
+          }
+          
+          // 150+ Steals (Season): stl >= 150
+          if (stl >= 150) {
+            addAchievement('BBSeason150Steals');
+          }
+          
+          // 150+ Blocks (Season): blk >= 150
+          if (blk >= 150) {
+            addAchievement('BBSeason150Blocks');
+          }
+          
+          // 200+ Stocks (Season): (stl + blk) >= 200
+          if (stocks >= 200) {
+            addAchievement('BBSeason200Stocks');
+          }
+          
+          // Efficiency achievements (with attempt qualifiers)
+          
+          // 50/40/90 Club (Season): FG% >= .500 (fga >= 500), 3P% >= .400 (tpa >= 125), FT% >= .900 (fta >= 250)
+          if (fga >= 500 && tpa >= 125 && fta >= 250 && fgPct >= 0.500 && tpPct >= 0.400 && ftPct >= 0.900) {
+            addAchievement('BBSeason50_40_90');
+          }
+          
+          // 60%+ TS on 20+ PPG (Season): TS >= .600, ppg >= 20, gp >= 50
+          if (tsPct >= 0.600 && ppg >= 20 && gp >= 50) {
+            addAchievement('BBSeason60TS20PPG');
+          }
+          
+          // 60%+ eFG on >= 500 FGA (Season): eFG >= .600, fga >= 500
+          if (eFgPct >= 0.600 && fga >= 500) {
+            addAchievement('BBSeason60eFG500FGA');
+          }
+          
+          // 90%+ FT on >= 250 FTA (Season): ft/fta >= .900, fta >= 250
+          if (ftPct >= 0.900 && fta >= 250) {
+            addAchievement('BBSeason90FT250FTA');
+          }
+          
+          // 40%+ 3PT on >= 200 3PA (Season): tp/tpa >= .400, tpa >= 200
+          if (tpPct >= 0.400 && tpa >= 200) {
+            addAchievement('BBSeason40_3PT200_3PA');
+          }
+          
+          // Workload / durability achievements
+          
+          // 70+ Games Played (Season): gp >= 70
+          if (gp >= 70) {
+            addAchievement('BBSeason70Games');
+          }
+          
+          // 36.0+ MPG (Season): mpg >= 36.0 and gp >= 50
+          if (mpg >= 36.0 && gp >= 50) {
+            addAchievement('BBSeason36MPG');
+          }
+          
+          // "Combo" seasons achievements
+          
+          // 25/10 Season (PPG/RPG): ppg >= 25 and rpg >= 10 and gp >= 50
+          if (ppg >= 25 && rpg >= 10 && gp >= 50) {
+            addAchievement('BBSeason25_10');
+          }
+          
+          // 25/5/5 Season (PPG/RPG/APG): ppg >= 25 and rpg >= 5 and apg >= 5 and gp >= 50
+          if (ppg >= 25 && rpg >= 5 && apg >= 5 && gp >= 50) {
+            addAchievement('BBSeason25_5_5');
+          }
+          
+          // 20/10/5 Season (PPG/RPG/APG): ppg >= 20 and rpg >= 10 and apg >= 5 and gp >= 50
+          if (ppg >= 20 && rpg >= 10 && apg >= 5 && gp >= 50) {
+            addAchievement('BBSeason20_10_5');
+          }
+          
+          // 1/1/1 Season (SPG/BPG/3PM/G): spg >= 1.0 and bpg >= 1.0 and tpg >= 1.0 and gp >= 50
+          if (spg >= 1.0 && bpg >= 1.0 && tpg >= 1.0 && gp >= 50) {
+            addAchievement('BBSeason1_1_1');
+          }
+        }
+      }
+    }
+    
+    // Debug logging removed for performance
+  }
+  
   // Calculate Football GM season achievements (FBSeason4kPassYds)
   if (sport === 'football') {
     let footballEntriesAdded = 0;
