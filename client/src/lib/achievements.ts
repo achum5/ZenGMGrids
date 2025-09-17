@@ -1,5 +1,6 @@
 import type { Player } from "@/types/bbgm";
 import { SEASON_ACHIEVEMENTS, type SeasonAchievement, type SeasonIndex, type SeasonAchievementId, getSeasonEligiblePlayers } from './season-achievements';
+import { SeededRandom } from './seeded';
 
 export interface Achievement {
   id: string;
@@ -421,6 +422,213 @@ function buildDecadeAchievements(
   return achievements;
 }
 
+/**
+ * Configuration for random numerical achievements
+ */
+interface StatConfig {
+  thresholds: number[];
+  label: (n: number) => string;
+  testField: string;
+  testType?: 'total' | 'average';
+}
+
+const NUMERICAL_ACHIEVEMENT_CONFIGS: Record<string, { career?: Record<string, StatConfig>; season?: Record<string, StatConfig> }> = {
+  basketball: {
+    career: {
+      points: { 
+        thresholds: [1000, 2000, 3000, 5000, 7500, 10000, 12500, 15000, 17500, 20000, 22500, 25000, 30000, 35000, 40000, 45000, 50000],
+        label: (n: number) => `${n.toLocaleString()}+ Career Points`,
+        testField: 'pts'
+      },
+      rebounds: { 
+        thresholds: [500, 1000, 1500, 2000, 3000, 4000, 5000, 6000, 7500, 10000, 12000, 15000],
+        label: (n: number) => `${n.toLocaleString()}+ Career Rebounds`,
+        testField: 'trb'
+      },
+      assists: { 
+        thresholds: [500, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 7500, 10000],
+        label: (n: number) => `${n.toLocaleString()}+ Career Assists`,
+        testField: 'ast'
+      },
+      steals: { 
+        thresholds: [200, 400, 600, 800, 1000, 1250, 1500, 2000, 2500],
+        label: (n: number) => `${n.toLocaleString()}+ Career Steals`,
+        testField: 'stl'
+      },
+      blocks: { 
+        thresholds: [200, 400, 600, 800, 1000, 1250, 1500, 2000, 2500],
+        label: (n: number) => `${n.toLocaleString()}+ Career Blocks`,
+        testField: 'blk'
+      },
+      threes: { 
+        thresholds: [100, 200, 300, 500, 750, 1000, 1250, 1500, 2000, 2500, 3000],
+        label: (n: number) => `${n.toLocaleString()}+ Career 3PM`,
+        testField: 'tpm'
+      }
+    },
+    season: {
+      ppg: { 
+        thresholds: [10, 12, 15, 18, 20, 22, 24, 26, 28, 30, 32, 35],
+        label: (n: number) => `${n}+ PPG in a Season`,
+        testType: 'average' as const,
+        testField: 'pts'
+      },
+      rpg: { 
+        thresholds: [8, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+        label: (n: number) => `${n}+ RPG in a Season`,
+        testType: 'average' as const,
+        testField: 'trb'
+      },
+      apg: { 
+        thresholds: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+        label: (n: number) => `${n}+ APG in a Season`,
+        testType: 'average' as const,
+        testField: 'ast'
+      },
+      points: { 
+        thresholds: [1200, 1500, 1800, 2000, 2200, 2400, 2600, 2800, 3000],
+        label: (n: number) => `${n.toLocaleString()}+ Points in a Season`,
+        testType: 'total' as const,
+        testField: 'pts'
+      },
+      threes: { 
+        thresholds: [100, 150, 200, 250, 300, 350, 400, 450],
+        label: (n: number) => `${n}+ 3PM in a Season`,
+        testType: 'total' as const,
+        testField: 'tpm'
+      }
+    }
+  }
+};
+
+/**
+ * Generate random numerical achievements for variety in grid generation
+ */
+function buildRandomNumericalAchievements(
+  sport: 'basketball' | 'football' | 'hockey' | 'baseball',
+  seed?: string,
+  count: number = 8
+): Achievement[] {
+  const achievements: Achievement[] = [];
+  const config = NUMERICAL_ACHIEVEMENT_CONFIGS[sport];
+  
+  if (!config) return achievements;
+  
+  // Create seeded random function for consistent results per grid
+  const seedValue = seed ? hashString(seed) : Date.now();
+  const rng = new SeededRandom(seedValue);
+  
+  // Collect all possible achievements
+  const possibleAchievements: Array<{
+    type: 'career' | 'season';
+    stat: string;
+    threshold: number;
+    config: StatConfig;
+  }> = [];
+  
+  // Career achievements
+  if (config.career) {
+    for (const [stat, statConfig] of Object.entries(config.career)) {
+      for (const threshold of statConfig.thresholds) {
+        possibleAchievements.push({ type: 'career', stat, threshold, config: statConfig });
+      }
+    }
+  }
+  
+  // Season achievements  
+  if (config.season) {
+    for (const [stat, statConfig] of Object.entries(config.season)) {
+      for (const threshold of statConfig.thresholds) {
+        possibleAchievements.push({ type: 'season', stat, threshold, config: statConfig });
+      }
+    }
+  }
+  
+  // Randomly select achievements
+  const selectedAchievements = rng.sample(possibleAchievements, Math.min(count, possibleAchievements.length));
+  
+  for (const selected of selectedAchievements) {
+    const { type, stat, threshold, config: statConfig } = selected;
+    
+    const achievement: Achievement = {
+      id: `${type}${threshold}${stat}`,
+      label: statConfig.label(threshold),
+      minPlayers: 5,
+      test: (player: Player) => {
+        if (!player.stats || player.stats.length === 0) return false;
+        
+        if (type === 'career') {
+          return getCareerStatTotal(player, statConfig.testField) >= threshold;
+        } else {
+          return getBestSeasonStat(player, statConfig.testField, statConfig.testType || 'total') >= threshold;
+        }
+      }
+    };
+    
+    achievements.push(achievement);
+  }
+  
+  return achievements;
+}
+
+/**
+ * Hash string to number for seeding
+ */
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return Math.abs(hash);
+}
+
+/**
+ * Get career total for a stat field
+ */
+function getCareerStatTotal(player: Player, statField: string): number {
+  if (!player.stats) return 0;
+  
+  let total = 0;
+  for (const stat of player.stats) {
+    if (stat.playoffs) continue; // Only regular season
+    
+    const value = (stat as any)[statField] || 0;
+    total += value;
+  }
+  
+  return total;
+}
+
+/**
+ * Get best season stat (total or average)
+ */
+function getBestSeasonStat(player: Player, statField: string, testType: 'total' | 'average'): number {
+  if (!player.stats) return 0;
+  
+  let best = 0;
+  for (const stat of player.stats) {
+    if (stat.playoffs) continue; // Only regular season
+    
+    const gp = stat.gp || 0;
+    if (gp < 20) continue; // Minimum games for meaningful season
+    
+    const value = (stat as any)[statField] || 0;
+    
+    let checkValue = value;
+    if (testType === 'average' && gp > 0) {
+      checkValue = value / gp;
+    }
+    
+    if (checkValue > best) {
+      best = checkValue;
+    }
+  }
+  
+  return best;
+}
+
 // Get all achievements combining static and dynamic decade achievements
 export function getAllAchievements(
   sport?: 'basketball' | 'football' | 'hockey' | 'baseball', 
@@ -471,7 +679,10 @@ export function getAllAchievements(
       achievements.push({
         id: 'playedIn1990sAnd2000s',
         label: 'Played in both 1990s & 2000s',
-        test: (player: Player) => (player.decadesPlayed?.has(1990) && player.decadesPlayed?.has(2000)) || false,
+        test: (player: Player) => {
+        const decades = player.decadesPlayed;
+        return (decades?.has(1990) && decades?.has(2000)) || false;
+      },
         minPlayers: 5
       });
     }
@@ -481,6 +692,13 @@ export function getAllAchievements(
   if (seasonIndex) {
     const seasonAchievements = createSeasonAchievementTests(seasonIndex, sport);
     achievements.push(...seasonAchievements);
+  }
+  
+  // Add random numerical achievements for variety (basketball only for now)
+  if (sport === 'basketball' && leagueYears) {
+    const gridSeed = `${leagueYears.minSeason}-${leagueYears.maxSeason}`;
+    const numericalAchievements = buildRandomNumericalAchievements(sport, gridSeed, 6);
+    achievements.push(...numericalAchievements);
   }
   
   return achievements;
@@ -736,9 +954,9 @@ export function calculatePlayerAchievements(player: Player, allPlayers: Player[]
     achievements[`retiredIn${player.retiredDecade}s`] = true;
   }
   if (player.decadesPlayed) {
-    for (const decade of player.decadesPlayed) {
+    Array.from(player.decadesPlayed).forEach(decade => {
       achievements[`playedIn${decade}s`] = true;
-    }
+    });
   }
   
   return achievements;
