@@ -136,8 +136,148 @@ function isSeasonAchievement(achievementId: string): achievementId is SeasonAchi
   return Object.keys(SEASON_ACHIEVEMENT_LABELS).includes(achievementId as SeasonAchievementId);
 }
 
+// Helper function to calculate seasons where player achieved Season* statistical thresholds
+function getSeasonsForSeasonStatAchievement(player: Player, achievementId: SeasonAchievementId): string[] {
+  if (!player.stats || player.stats.length === 0) return [];
+  
+  const qualifyingSeasons: number[] = [];
+  
+  // Only check regular season stats (not playoffs)
+  const regularSeasonStats = player.stats.filter(s => !s.playoffs);
+  
+  for (const stat of regularSeasonStats) {
+    const season = stat.season;
+    const gp = stat.gp || 0;
+    const min = stat.min || 0;
+    const pts = stat.pts || 0;
+    const trb = stat.trb || 0;
+    const ast = stat.ast || 0;
+    const stl = stat.stl || 0;
+    const blk = stat.blk || 0;
+    const tp = stat.tp || 0; // 3PM
+    const tpa = stat.tpa || 0; // 3PA
+    const fga = stat.fga || 0;
+    const fta = stat.fta || 0;
+    const ft = stat.ft || 0;
+    const fg = stat.fg || 0;
+    
+    // Basketball GM Season achievements
+    switch (achievementId) {
+      case 'Season30PPG':
+        if (gp >= 50 && (pts / gp) >= 30) qualifyingSeasons.push(season);
+        break;
+      case 'Season2000Points':
+        if (pts >= 2000) qualifyingSeasons.push(season);
+        break;
+      case 'Season300_3PM':
+        if (tp >= 300) qualifyingSeasons.push(season);
+        break;
+      case 'Season200_3PM':
+        if (tp >= 200) qualifyingSeasons.push(season);
+        break;
+      case 'Season12RPG':
+        if (gp >= 50 && (trb / gp) >= 12) qualifyingSeasons.push(season);
+        break;
+      case 'Season10APG':
+        if (gp >= 50 && (ast / gp) >= 10) qualifyingSeasons.push(season);
+        break;
+      case 'Season800Rebounds':
+        if (trb >= 800) qualifyingSeasons.push(season);
+        break;
+      case 'Season700Assists':
+        if (ast >= 700) qualifyingSeasons.push(season);
+        break;
+      case 'Season2SPG':
+        if (gp >= 50 && (stl / gp) >= 2.0) qualifyingSeasons.push(season);
+        break;
+      case 'Season2_5BPG':
+        if (gp >= 50 && (blk / gp) >= 2.5) qualifyingSeasons.push(season);
+        break;
+      case 'Season150Steals':
+        if (stl >= 150) qualifyingSeasons.push(season);
+        break;
+      case 'Season150Blocks':
+        if (blk >= 150) qualifyingSeasons.push(season);
+        break;
+      case 'Season200Stocks':
+        if ((stl + blk) >= 200) qualifyingSeasons.push(season);
+        break;
+      case 'Season50_40_90':
+        if (fga >= 400 && tpa >= 100 && fta >= 100) {
+          const fgPct = fg / fga;
+          const tpPct = tp / tpa;
+          const ftPct = ft / fta;
+          if (fgPct >= 0.50 && tpPct >= 0.40 && ftPct >= 0.90) {
+            qualifyingSeasons.push(season);
+          }
+        }
+        break;
+      case 'Season60TS20PPG':
+        if (gp >= 50 && (pts / gp) >= 20 && fga >= 400) {
+          const ts = pts / (2 * (fga + 0.44 * fta));
+          if (ts >= 0.60) qualifyingSeasons.push(season);
+        }
+        break;
+      case 'Season60eFG500FGA':
+        if (fga >= 500) {
+          const eFG = (fg + 0.5 * tp) / fga;
+          if (eFG >= 0.60) qualifyingSeasons.push(season);
+        }
+        break;
+      case 'Season90FT250FTA':
+        if (fta >= 250 && (ft / fta) >= 0.90) qualifyingSeasons.push(season);
+        break;
+      case 'Season40_3PT200_3PA':
+        if (tpa >= 200 && (tp / tpa) >= 0.40) qualifyingSeasons.push(season);
+        break;
+      case 'Season70Games':
+        if (gp >= 70) qualifyingSeasons.push(season);
+        break;
+      case 'Season36MPG':
+        if (gp >= 50 && (min / gp) >= 36.0) qualifyingSeasons.push(season);
+        break;
+      case 'Season25_10':
+        if (gp >= 50 && (pts / gp) >= 25 && (trb / gp) >= 10) qualifyingSeasons.push(season);
+        break;
+      case 'Season25_5_5':
+        if (gp >= 50 && (pts / gp) >= 25 && (trb / gp) >= 5 && (ast / gp) >= 5) qualifyingSeasons.push(season);
+        break;
+      case 'Season20_10_5':
+        if (gp >= 50 && (pts / gp) >= 20 && (trb / gp) >= 10 && (ast / gp) >= 5) qualifyingSeasons.push(season);
+        break;
+      case 'Season1_1_1':
+        if (gp >= 50 && (stl / gp) >= 1 && (blk / gp) >= 1 && (tp / gp) >= 1) qualifyingSeasons.push(season);
+        break;
+        
+      // Football GM Season achievements would go here
+      case 'FBSeason4kPassYds':
+        if ((stat as any).passYds >= 4000) qualifyingSeasons.push(season);
+        break;
+      case 'FBSeason1200RushYds':
+        if ((stat as any).rushYds >= 1200) qualifyingSeasons.push(season);
+        break;
+      // Add more FB achievements as needed...
+        
+      // Hockey GM Season achievements would go here  
+      // Add HK achievements as needed...
+        
+      // Baseball GM Season achievements would go here
+      // Add BB achievements as needed...
+    }
+  }
+  
+  // Remove duplicates and sort
+  const uniqueSeasons = qualifyingSeasons.filter((value, index, self) => self.indexOf(value) === index).sort();
+  return uniqueSeasons.map(s => s.toString());
+}
+
 // Helper function to extract season achievement data from player
 function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchievementId, teams: Team[], teamId?: number): string[] {
+  // Handle Season* statistical achievements by calculating from stats
+  if (achievementId.startsWith('Season')) {
+    return getSeasonsForSeasonStatAchievement(player, achievementId);
+  }
+
   if (!player.awards) return [];
 
   // Map achievement ID to award type patterns
