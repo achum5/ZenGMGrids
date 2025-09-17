@@ -368,7 +368,46 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                         condensedAwards.push({ text: count > 1 ? `${count}x Blocks Leader` : "Blocks Leader" });
                         break;
                       default:
-                        condensedAwards.push({ text: count > 1 ? `${count}x ${type}` : type });
+                        // Handle dynamic decade achievements
+                        if (type.includes('playedIn') && type.endsWith('s')) {
+                          const decadeMatch = type.match(/playedIn(\d{4})s/);
+                          if (decadeMatch) {
+                            const decade = decadeMatch[1];
+                            condensedAwards.push({ text: `Played in the ${decade}s` });
+                            break;
+                          }
+                        }
+                        if (type.includes('debutedIn') && type.endsWith('s')) {
+                          const decadeMatch = type.match(/debutedIn(\d{4})s/);
+                          if (decadeMatch) {
+                            const decade = decadeMatch[1];
+                            condensedAwards.push({ text: `Debuted in the ${decade}s` });
+                            break;
+                          }
+                        }
+                        if (type.includes('retiredIn') && type.endsWith('s')) {
+                          const decadeMatch = type.match(/retiredIn(\d{4})s/);
+                          if (decadeMatch) {
+                            const decade = decadeMatch[1];
+                            condensedAwards.push({ text: `Retired in the ${decade}s` });
+                            break;
+                          }
+                        }
+                        
+                        // Handle other achievement types with improved naming  
+                        let displayText = type;
+                        
+                        // Handle age-related achievements
+                        if (type.includes('playedAt') && type.includes('Plus')) {
+                          const ageMatch = type.match(/playedAt(\d+)Plus/);
+                          if (ageMatch) {
+                            const age = ageMatch[1];
+                            displayText = `Played at Age ${age}+`;
+                          }
+                        }
+                        
+                        // Default case for unknown types
+                        condensedAwards.push({ text: count > 1 ? `${count}x ${displayText}` : displayText });
                         break;
                     }
                   });
