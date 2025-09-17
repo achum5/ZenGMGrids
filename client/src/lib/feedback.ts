@@ -107,6 +107,224 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     verbGeneric: 'led the league in blocks'
   },
   
+  // Statistical Leaders with Rank Variations (36 achievements)
+  PointsLeader1st: {
+    label: 'Points Leader (1st)',
+    short: '1st in Points',
+    verbTeam: 'led the league in points',
+    verbGeneric: 'led the league in points'
+  },
+  PointsLeader3rd: {
+    label: 'Points Leader (Top 3)',
+    short: 'Top 3 Points',
+    verbTeam: 'finished top 3 in points',
+    verbGeneric: 'finished top 3 in points'
+  },
+  PointsLeader5th: {
+    label: 'Points Leader (Top 5)',
+    short: 'Top 5 Points',
+    verbTeam: 'finished top 5 in points',
+    verbGeneric: 'finished top 5 in points'
+  },
+  PointsLeader10th: {
+    label: 'Points Leader (Top 10)',
+    short: 'Top 10 Points',
+    verbTeam: 'finished top 10 in points',
+    verbGeneric: 'finished top 10 in points'
+  },
+  PointsLeader15th: {
+    label: 'Points Leader (Top 15)',
+    short: 'Top 15 Points',
+    verbTeam: 'finished top 15 in points',
+    verbGeneric: 'finished top 15 in points'
+  },
+  PointsLeader20th: {
+    label: 'Points Leader (Top 20)',
+    short: 'Top 20 Points',
+    verbTeam: 'finished top 20 in points',
+    verbGeneric: 'finished top 20 in points'
+  },
+  ReboundsLeader1st: {
+    label: 'Rebounds Leader (1st)',
+    short: '1st in Rebounds',
+    verbTeam: 'led the league in rebounds',
+    verbGeneric: 'led the league in rebounds'
+  },
+  ReboundsLeader3rd: {
+    label: 'Rebounds Leader (Top 3)',
+    short: 'Top 3 Rebounds',
+    verbTeam: 'finished top 3 in rebounds',
+    verbGeneric: 'finished top 3 in rebounds'
+  },
+  ReboundsLeader5th: {
+    label: 'Rebounds Leader (Top 5)',
+    short: 'Top 5 Rebounds',
+    verbTeam: 'finished top 5 in rebounds',
+    verbGeneric: 'finished top 5 in rebounds'
+  },
+  ReboundsLeader10th: {
+    label: 'Rebounds Leader (Top 10)',
+    short: 'Top 10 Rebounds',
+    verbTeam: 'finished top 10 in rebounds',
+    verbGeneric: 'finished top 10 in rebounds'
+  },
+  ReboundsLeader15th: {
+    label: 'Rebounds Leader (Top 15)',
+    short: 'Top 15 Rebounds',
+    verbTeam: 'finished top 15 in rebounds',
+    verbGeneric: 'finished top 15 in rebounds'
+  },
+  ReboundsLeader20th: {
+    label: 'Rebounds Leader (Top 20)',
+    short: 'Top 20 Rebounds',
+    verbTeam: 'finished top 20 in rebounds',
+    verbGeneric: 'finished top 20 in rebounds'
+  },
+  AssistsLeader1st: {
+    label: 'Assists Leader (1st)',
+    short: '1st in Assists',
+    verbTeam: 'led the league in assists',
+    verbGeneric: 'led the league in assists'
+  },
+  AssistsLeader3rd: {
+    label: 'Assists Leader (Top 3)',
+    short: 'Top 3 Assists',
+    verbTeam: 'finished top 3 in assists',
+    verbGeneric: 'finished top 3 in assists'
+  },
+  AssistsLeader5th: {
+    label: 'Assists Leader (Top 5)',
+    short: 'Top 5 Assists',
+    verbTeam: 'finished top 5 in assists',
+    verbGeneric: 'finished top 5 in assists'
+  },
+  AssistsLeader10th: {
+    label: 'Assists Leader (Top 10)',
+    short: 'Top 10 Assists',
+    verbTeam: 'finished top 10 in assists',
+    verbGeneric: 'finished top 10 in assists'
+  },
+  AssistsLeader15th: {
+    label: 'Assists Leader (Top 15)',
+    short: 'Top 15 Assists',
+    verbTeam: 'finished top 15 in assists',
+    verbGeneric: 'finished top 15 in assists'
+  },
+  AssistsLeader20th: {
+    label: 'Assists Leader (Top 20)',
+    short: 'Top 20 Assists',
+    verbTeam: 'finished top 20 in assists',
+    verbGeneric: 'finished top 20 in assists'
+  },
+  StealsLeader1st: {
+    label: 'Steals Leader (1st)',
+    short: '1st in Steals',
+    verbTeam: 'led the league in steals',
+    verbGeneric: 'led the league in steals'
+  },
+  StealsLeader3rd: {
+    label: 'Steals Leader (Top 3)',
+    short: 'Top 3 Steals',
+    verbTeam: 'finished top 3 in steals',
+    verbGeneric: 'finished top 3 in steals'
+  },
+  StealsLeader5th: {
+    label: 'Steals Leader (Top 5)',
+    short: 'Top 5 Steals',
+    verbTeam: 'finished top 5 in steals',
+    verbGeneric: 'finished top 5 in steals'
+  },
+  StealsLeader10th: {
+    label: 'Steals Leader (Top 10)',
+    short: 'Top 10 Steals',
+    verbTeam: 'finished top 10 in steals',
+    verbGeneric: 'finished top 10 in steals'
+  },
+  StealsLeader15th: {
+    label: 'Steals Leader (Top 15)',
+    short: 'Top 15 Steals',
+    verbTeam: 'finished top 15 in steals',
+    verbGeneric: 'finished top 15 in steals'
+  },
+  StealsLeader20th: {
+    label: 'Steals Leader (Top 20)',
+    short: 'Top 20 Steals',
+    verbTeam: 'finished top 20 in steals',
+    verbGeneric: 'finished top 20 in steals'
+  },
+  BlocksLeader1st: {
+    label: 'Blocks Leader (1st)',
+    short: '1st in Blocks',
+    verbTeam: 'led the league in blocks',
+    verbGeneric: 'led the league in blocks'
+  },
+  BlocksLeader3rd: {
+    label: 'Blocks Leader (Top 3)',
+    short: 'Top 3 Blocks',
+    verbTeam: 'finished top 3 in blocks',
+    verbGeneric: 'finished top 3 in blocks'
+  },
+  BlocksLeader5th: {
+    label: 'Blocks Leader (Top 5)',
+    short: 'Top 5 Blocks',
+    verbTeam: 'finished top 5 in blocks',
+    verbGeneric: 'finished top 5 in blocks'
+  },
+  BlocksLeader10th: {
+    label: 'Blocks Leader (Top 10)',
+    short: 'Top 10 Blocks',
+    verbTeam: 'finished top 10 in blocks',
+    verbGeneric: 'finished top 10 in blocks'
+  },
+  BlocksLeader15th: {
+    label: 'Blocks Leader (Top 15)',
+    short: 'Top 15 Blocks',
+    verbTeam: 'finished top 15 in blocks',
+    verbGeneric: 'finished top 15 in blocks'
+  },
+  BlocksLeader20th: {
+    label: 'Blocks Leader (Top 20)',
+    short: 'Top 20 Blocks',
+    verbTeam: 'finished top 20 in blocks',
+    verbGeneric: 'finished top 20 in blocks'
+  },
+  ThreePMLeader1st: {
+    label: '3PM Leader (1st)',
+    short: '1st in 3PM',
+    verbTeam: 'led the league in three-pointers made',
+    verbGeneric: 'led the league in three-pointers made'
+  },
+  ThreePMLeader3rd: {
+    label: '3PM Leader (Top 3)',
+    short: 'Top 3 3PM',
+    verbTeam: 'finished top 3 in three-pointers made',
+    verbGeneric: 'finished top 3 in three-pointers made'
+  },
+  ThreePMLeader5th: {
+    label: '3PM Leader (Top 5)',
+    short: 'Top 5 3PM',
+    verbTeam: 'finished top 5 in three-pointers made',
+    verbGeneric: 'finished top 5 in three-pointers made'
+  },
+  ThreePMLeader10th: {
+    label: '3PM Leader (Top 10)',
+    short: 'Top 10 3PM',
+    verbTeam: 'finished top 10 in three-pointers made',
+    verbGeneric: 'finished top 10 in three-pointers made'
+  },
+  ThreePMLeader15th: {
+    label: '3PM Leader (Top 15)',
+    short: 'Top 15 3PM',
+    verbTeam: 'finished top 15 in three-pointers made',
+    verbGeneric: 'finished top 15 in three-pointers made'
+  },
+  ThreePMLeader20th: {
+    label: '3PM Leader (Top 20)',
+    short: 'Top 20 3PM',
+    verbTeam: 'finished top 20 in three-pointers made',
+    verbGeneric: 'finished top 20 in three-pointers made'
+  },
+  
   // New Basketball achievements (season-aligned)
   Champion: {
     label: 'Won Championship',
@@ -271,6 +489,1492 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     short: '1/1/1 Season',
     verbTeam: 'had a 1/1/1 season (SPG/BPG/3PM/G)',
     verbGeneric: 'had a 1/1/1 season (SPG/BPG/3PM/G)'
+  },
+  
+  // PPG Variations (18 achievements)
+  SeasonPPG1: {
+    label: '1+ PPG (Season)',
+    short: '1+ PPG',
+    verbTeam: 'averaged 1+ points per game in a season',
+    verbGeneric: 'averaged 1+ points per game in a season'
+  },
+  SeasonPPG2: {
+    label: '2+ PPG (Season)',
+    short: '2+ PPG',
+    verbTeam: 'averaged 2+ points per game in a season',
+    verbGeneric: 'averaged 2+ points per game in a season'
+  },
+  SeasonPPG3: {
+    label: '3+ PPG (Season)',
+    short: '3+ PPG',
+    verbTeam: 'averaged 3+ points per game in a season',
+    verbGeneric: 'averaged 3+ points per game in a season'
+  },
+  SeasonPPG4: {
+    label: '4+ PPG (Season)',
+    short: '4+ PPG',
+    verbTeam: 'averaged 4+ points per game in a season',
+    verbGeneric: 'averaged 4+ points per game in a season'
+  },
+  SeasonPPG5: {
+    label: '5+ PPG (Season)',
+    short: '5+ PPG',
+    verbTeam: 'averaged 5+ points per game in a season',
+    verbGeneric: 'averaged 5+ points per game in a season'
+  },
+  SeasonPPG8: {
+    label: '8+ PPG (Season)',
+    short: '8+ PPG',
+    verbTeam: 'averaged 8+ points per game in a season',
+    verbGeneric: 'averaged 8+ points per game in a season'
+  },
+  SeasonPPG10: {
+    label: '10+ PPG (Season)',
+    short: '10+ PPG',
+    verbTeam: 'averaged 10+ points per game in a season',
+    verbGeneric: 'averaged 10+ points per game in a season'
+  },
+  SeasonPPG12: {
+    label: '12+ PPG (Season)',
+    short: '12+ PPG',
+    verbTeam: 'averaged 12+ points per game in a season',
+    verbGeneric: 'averaged 12+ points per game in a season'
+  },
+  SeasonPPG15: {
+    label: '15+ PPG (Season)',
+    short: '15+ PPG',
+    verbTeam: 'averaged 15+ points per game in a season',
+    verbGeneric: 'averaged 15+ points per game in a season'
+  },
+  SeasonPPG18: {
+    label: '18+ PPG (Season)',
+    short: '18+ PPG',
+    verbTeam: 'averaged 18+ points per game in a season',
+    verbGeneric: 'averaged 18+ points per game in a season'
+  },
+  SeasonPPG20: {
+    label: '20+ PPG (Season)',
+    short: '20+ PPG',
+    verbTeam: 'averaged 20+ points per game in a season',
+    verbGeneric: 'averaged 20+ points per game in a season'
+  },
+  SeasonPPG22: {
+    label: '22+ PPG (Season)',
+    short: '22+ PPG',
+    verbTeam: 'averaged 22+ points per game in a season',
+    verbGeneric: 'averaged 22+ points per game in a season'
+  },
+  SeasonPPG24: {
+    label: '24+ PPG (Season)',
+    short: '24+ PPG',
+    verbTeam: 'averaged 24+ points per game in a season',
+    verbGeneric: 'averaged 24+ points per game in a season'
+  },
+  SeasonPPG26: {
+    label: '26+ PPG (Season)',
+    short: '26+ PPG',
+    verbTeam: 'averaged 26+ points per game in a season',
+    verbGeneric: 'averaged 26+ points per game in a season'
+  },
+  SeasonPPG28: {
+    label: '28+ PPG (Season)',
+    short: '28+ PPG',
+    verbTeam: 'averaged 28+ points per game in a season',
+    verbGeneric: 'averaged 28+ points per game in a season'
+  },
+  SeasonPPG30: {
+    label: '30+ PPG (Season)',
+    short: '30+ PPG',
+    verbTeam: 'averaged 30+ points per game in a season',
+    verbGeneric: 'averaged 30+ points per game in a season'
+  },
+  SeasonPPG32: {
+    label: '32+ PPG (Season)',
+    short: '32+ PPG',
+    verbTeam: 'averaged 32+ points per game in a season',
+    verbGeneric: 'averaged 32+ points per game in a season'
+  },
+  SeasonPPG35: {
+    label: '35+ PPG (Season)',
+    short: '35+ PPG',
+    verbTeam: 'averaged 35+ points per game in a season',
+    verbGeneric: 'averaged 35+ points per game in a season'
+  },
+  
+  // Points Variations (10 achievements)
+  SeasonPoints800: {
+    label: '800+ Points (Season)',
+    short: '800+ Points',
+    verbTeam: 'scored 800+ points in a season',
+    verbGeneric: 'scored 800+ points in a season'
+  },
+  SeasonPoints1000: {
+    label: '1,000+ Points (Season)',
+    short: '1K Points',
+    verbTeam: 'scored 1,000+ points in a season',
+    verbGeneric: 'scored 1,000+ points in a season'
+  },
+  SeasonPoints1100: {
+    label: '1,100+ Points (Season)',
+    short: '1.1K Points',
+    verbTeam: 'scored 1,100+ points in a season',
+    verbGeneric: 'scored 1,100+ points in a season'
+  },
+  SeasonPoints1200: {
+    label: '1,200+ Points (Season)',
+    short: '1.2K Points',
+    verbTeam: 'scored 1,200+ points in a season',
+    verbGeneric: 'scored 1,200+ points in a season'
+  },
+  SeasonPoints1400: {
+    label: '1,400+ Points (Season)',
+    short: '1.4K Points',
+    verbTeam: 'scored 1,400+ points in a season',
+    verbGeneric: 'scored 1,400+ points in a season'
+  },
+  SeasonPoints1600: {
+    label: '1,600+ Points (Season)',
+    short: '1.6K Points',
+    verbTeam: 'scored 1,600+ points in a season',
+    verbGeneric: 'scored 1,600+ points in a season'
+  },
+  SeasonPoints1800: {
+    label: '1,800+ Points (Season)',
+    short: '1.8K Points',
+    verbTeam: 'scored 1,800+ points in a season',
+    verbGeneric: 'scored 1,800+ points in a season'
+  },
+  SeasonPoints2000: {
+    label: '2,000+ Points (Season)',
+    short: '2K Points',
+    verbTeam: 'scored 2,000+ points in a season',
+    verbGeneric: 'scored 2,000+ points in a season'
+  },
+  SeasonPoints2200: {
+    label: '2,200+ Points (Season)',
+    short: '2.2K Points',
+    verbTeam: 'scored 2,200+ points in a season',
+    verbGeneric: 'scored 2,200+ points in a season'
+  },
+  SeasonPoints2400: {
+    label: '2,400+ Points (Season)',
+    short: '2.4K Points',
+    verbTeam: 'scored 2,400+ points in a season',
+    verbGeneric: 'scored 2,400+ points in a season'
+  },
+  
+  // 3PM Variations (12 achievements)
+  Season3PM50: {
+    label: '50+ 3PM (Season)',
+    short: '50+ 3PM',
+    verbTeam: 'made 50+ three-pointers in a season',
+    verbGeneric: 'made 50+ three-pointers in a season'
+  },
+  Season3PM75: {
+    label: '75+ 3PM (Season)',
+    short: '75+ 3PM',
+    verbTeam: 'made 75+ three-pointers in a season',
+    verbGeneric: 'made 75+ three-pointers in a season'
+  },
+  Season3PM100: {
+    label: '100+ 3PM (Season)',
+    short: '100+ 3PM',
+    verbTeam: 'made 100+ three-pointers in a season',
+    verbGeneric: 'made 100+ three-pointers in a season'
+  },
+  Season3PM125: {
+    label: '125+ 3PM (Season)',
+    short: '125+ 3PM',
+    verbTeam: 'made 125+ three-pointers in a season',
+    verbGeneric: 'made 125+ three-pointers in a season'
+  },
+  Season3PM150: {
+    label: '150+ 3PM (Season)',
+    short: '150+ 3PM',
+    verbTeam: 'made 150+ three-pointers in a season',
+    verbGeneric: 'made 150+ three-pointers in a season'
+  },
+  Season3PM175: {
+    label: '175+ 3PM (Season)',
+    short: '175+ 3PM',
+    verbTeam: 'made 175+ three-pointers in a season',
+    verbGeneric: 'made 175+ three-pointers in a season'
+  },
+  Season3PM200: {
+    label: '200+ 3PM (Season)',
+    short: '200+ 3PM',
+    verbTeam: 'made 200+ three-pointers in a season',
+    verbGeneric: 'made 200+ three-pointers in a season'
+  },
+  Season3PM225: {
+    label: '225+ 3PM (Season)',
+    short: '225+ 3PM',
+    verbTeam: 'made 225+ three-pointers in a season',
+    verbGeneric: 'made 225+ three-pointers in a season'
+  },
+  Season3PM250: {
+    label: '250+ 3PM (Season)',
+    short: '250+ 3PM',
+    verbTeam: 'made 250+ three-pointers in a season',
+    verbGeneric: 'made 250+ three-pointers in a season'
+  },
+  Season3PM275: {
+    label: '275+ 3PM (Season)',
+    short: '275+ 3PM',
+    verbTeam: 'made 275+ three-pointers in a season',
+    verbGeneric: 'made 275+ three-pointers in a season'
+  },
+  Season3PM300: {
+    label: '300+ 3PM (Season)',
+    short: '300+ 3PM',
+    verbTeam: 'made 300+ three-pointers in a season',
+    verbGeneric: 'made 300+ three-pointers in a season'
+  },
+  Season3PM325: {
+    label: '325+ 3PM (Season)',
+    short: '325+ 3PM',
+    verbTeam: 'made 325+ three-pointers in a season',
+    verbGeneric: 'made 325+ three-pointers in a season'
+  },
+  
+  // RPG Variations (12 achievements)
+  SeasonRPG3: {
+    label: '3+ RPG (Season)',
+    short: '3+ RPG',
+    verbTeam: 'averaged 3+ rebounds per game in a season',
+    verbGeneric: 'averaged 3+ rebounds per game in a season'
+  },
+  SeasonRPG4: {
+    label: '4+ RPG (Season)',
+    short: '4+ RPG',
+    verbTeam: 'averaged 4+ rebounds per game in a season',
+    verbGeneric: 'averaged 4+ rebounds per game in a season'
+  },
+  SeasonRPG5: {
+    label: '5+ RPG (Season)',
+    short: '5+ RPG',
+    verbTeam: 'averaged 5+ rebounds per game in a season',
+    verbGeneric: 'averaged 5+ rebounds per game in a season'
+  },
+  SeasonRPG6: {
+    label: '6+ RPG (Season)',
+    short: '6+ RPG',
+    verbTeam: 'averaged 6+ rebounds per game in a season',
+    verbGeneric: 'averaged 6+ rebounds per game in a season'
+  },
+  SeasonRPG7: {
+    label: '7+ RPG (Season)',
+    short: '7+ RPG',
+    verbTeam: 'averaged 7+ rebounds per game in a season',
+    verbGeneric: 'averaged 7+ rebounds per game in a season'
+  },
+  SeasonRPG8: {
+    label: '8+ RPG (Season)',
+    short: '8+ RPG',
+    verbTeam: 'averaged 8+ rebounds per game in a season',
+    verbGeneric: 'averaged 8+ rebounds per game in a season'
+  },
+  SeasonRPG9: {
+    label: '9+ RPG (Season)',
+    short: '9+ RPG',
+    verbTeam: 'averaged 9+ rebounds per game in a season',
+    verbGeneric: 'averaged 9+ rebounds per game in a season'
+  },
+  SeasonRPG10: {
+    label: '10+ RPG (Season)',
+    short: '10+ RPG',
+    verbTeam: 'averaged 10+ rebounds per game in a season',
+    verbGeneric: 'averaged 10+ rebounds per game in a season'
+  },
+  SeasonRPG11: {
+    label: '11+ RPG (Season)',
+    short: '11+ RPG',
+    verbTeam: 'averaged 11+ rebounds per game in a season',
+    verbGeneric: 'averaged 11+ rebounds per game in a season'
+  },
+  SeasonRPG12: {
+    label: '12+ RPG (Season)',
+    short: '12+ RPG',
+    verbTeam: 'averaged 12+ rebounds per game in a season',
+    verbGeneric: 'averaged 12+ rebounds per game in a season'
+  },
+  SeasonRPG13: {
+    label: '13+ RPG (Season)',
+    short: '13+ RPG',
+    verbTeam: 'averaged 13+ rebounds per game in a season',
+    verbGeneric: 'averaged 13+ rebounds per game in a season'
+  },
+  SeasonRPG15: {
+    label: '15+ RPG (Season)',
+    short: '15+ RPG',
+    verbTeam: 'averaged 15+ rebounds per game in a season',
+    verbGeneric: 'averaged 15+ rebounds per game in a season'
+  },
+  
+  // APG Variations (11 achievements)
+  SeasonAPG2: {
+    label: '2+ APG (Season)',
+    short: '2+ APG',
+    verbTeam: 'averaged 2+ assists per game in a season',
+    verbGeneric: 'averaged 2+ assists per game in a season'
+  },
+  SeasonAPG3: {
+    label: '3+ APG (Season)',
+    short: '3+ APG',
+    verbTeam: 'averaged 3+ assists per game in a season',
+    verbGeneric: 'averaged 3+ assists per game in a season'
+  },
+  SeasonAPG4: {
+    label: '4+ APG (Season)',
+    short: '4+ APG',
+    verbTeam: 'averaged 4+ assists per game in a season',
+    verbGeneric: 'averaged 4+ assists per game in a season'
+  },
+  SeasonAPG5: {
+    label: '5+ APG (Season)',
+    short: '5+ APG',
+    verbTeam: 'averaged 5+ assists per game in a season',
+    verbGeneric: 'averaged 5+ assists per game in a season'
+  },
+  SeasonAPG6: {
+    label: '6+ APG (Season)',
+    short: '6+ APG',
+    verbTeam: 'averaged 6+ assists per game in a season',
+    verbGeneric: 'averaged 6+ assists per game in a season'
+  },
+  SeasonAPG7: {
+    label: '7+ APG (Season)',
+    short: '7+ APG',
+    verbTeam: 'averaged 7+ assists per game in a season',
+    verbGeneric: 'averaged 7+ assists per game in a season'
+  },
+  SeasonAPG8: {
+    label: '8+ APG (Season)',
+    short: '8+ APG',
+    verbTeam: 'averaged 8+ assists per game in a season',
+    verbGeneric: 'averaged 8+ assists per game in a season'
+  },
+  SeasonAPG9: {
+    label: '9+ APG (Season)',
+    short: '9+ APG',
+    verbTeam: 'averaged 9+ assists per game in a season',
+    verbGeneric: 'averaged 9+ assists per game in a season'
+  },
+  SeasonAPG10: {
+    label: '10+ APG (Season)',
+    short: '10+ APG',
+    verbTeam: 'averaged 10+ assists per game in a season',
+    verbGeneric: 'averaged 10+ assists per game in a season'
+  },
+  SeasonAPG11: {
+    label: '11+ APG (Season)',
+    short: '11+ APG',
+    verbTeam: 'averaged 11+ assists per game in a season',
+    verbGeneric: 'averaged 11+ assists per game in a season'
+  },
+  SeasonAPG12: {
+    label: '12+ APG (Season)',
+    short: '12+ APG',
+    verbTeam: 'averaged 12+ assists per game in a season',
+    verbGeneric: 'averaged 12+ assists per game in a season'
+  },
+  
+  // Rebounds Variations (8 achievements)
+  SeasonRebounds300: {
+    label: '300+ Rebounds (Season)',
+    short: '300+ Rebounds',
+    verbTeam: 'grabbed 300+ rebounds in a season',
+    verbGeneric: 'grabbed 300+ rebounds in a season'
+  },
+  SeasonRebounds400: {
+    label: '400+ Rebounds (Season)',
+    short: '400+ Rebounds',
+    verbTeam: 'grabbed 400+ rebounds in a season',
+    verbGeneric: 'grabbed 400+ rebounds in a season'
+  },
+  SeasonRebounds500: {
+    label: '500+ Rebounds (Season)',
+    short: '500+ Rebounds',
+    verbTeam: 'grabbed 500+ rebounds in a season',
+    verbGeneric: 'grabbed 500+ rebounds in a season'
+  },
+  SeasonRebounds600: {
+    label: '600+ Rebounds (Season)',
+    short: '600+ Rebounds',
+    verbTeam: 'grabbed 600+ rebounds in a season',
+    verbGeneric: 'grabbed 600+ rebounds in a season'
+  },
+  SeasonRebounds700: {
+    label: '700+ Rebounds (Season)',
+    short: '700+ Rebounds',
+    verbTeam: 'grabbed 700+ rebounds in a season',
+    verbGeneric: 'grabbed 700+ rebounds in a season'
+  },
+  SeasonRebounds800: {
+    label: '800+ Rebounds (Season)',
+    short: '800+ Rebounds',
+    verbTeam: 'grabbed 800+ rebounds in a season',
+    verbGeneric: 'grabbed 800+ rebounds in a season'
+  },
+  SeasonRebounds900: {
+    label: '900+ Rebounds (Season)',
+    short: '900+ Rebounds',
+    verbTeam: 'grabbed 900+ rebounds in a season',
+    verbGeneric: 'grabbed 900+ rebounds in a season'
+  },
+  SeasonRebounds1000: {
+    label: '1,000+ Rebounds (Season)',
+    short: '1K Rebounds',
+    verbTeam: 'grabbed 1,000+ rebounds in a season',
+    verbGeneric: 'grabbed 1,000+ rebounds in a season'
+  },
+  
+  // Assists Variations (7 achievements)
+  SeasonAssists200: {
+    label: '200+ Assists (Season)',
+    short: '200+ Assists',
+    verbTeam: 'dished 200+ assists in a season',
+    verbGeneric: 'dished 200+ assists in a season'
+  },
+  SeasonAssists300: {
+    label: '300+ Assists (Season)',
+    short: '300+ Assists',
+    verbTeam: 'dished 300+ assists in a season',
+    verbGeneric: 'dished 300+ assists in a season'
+  },
+  SeasonAssists400: {
+    label: '400+ Assists (Season)',
+    short: '400+ Assists',
+    verbTeam: 'dished 400+ assists in a season',
+    verbGeneric: 'dished 400+ assists in a season'
+  },
+  SeasonAssists500: {
+    label: '500+ Assists (Season)',
+    short: '500+ Assists',
+    verbTeam: 'dished 500+ assists in a season',
+    verbGeneric: 'dished 500+ assists in a season'
+  },
+  SeasonAssists600: {
+    label: '600+ Assists (Season)',
+    short: '600+ Assists',
+    verbTeam: 'dished 600+ assists in a season',
+    verbGeneric: 'dished 600+ assists in a season'
+  },
+  SeasonAssists700: {
+    label: '700+ Assists (Season)',
+    short: '700+ Assists',
+    verbTeam: 'dished 700+ assists in a season',
+    verbGeneric: 'dished 700+ assists in a season'
+  },
+  SeasonAssists800: {
+    label: '800+ Assists (Season)',
+    short: '800+ Assists',
+    verbTeam: 'dished 800+ assists in a season',
+    verbGeneric: 'dished 800+ assists in a season'
+  },
+  
+  // SPG Variations (9 achievements)
+  SeasonSPG0_5: {
+    label: '0.5+ SPG (Season)',
+    short: '0.5+ SPG',
+    verbTeam: 'averaged 0.5+ steals per game in a season',
+    verbGeneric: 'averaged 0.5+ steals per game in a season'
+  },
+  SeasonSPG0_8: {
+    label: '0.8+ SPG (Season)',
+    short: '0.8+ SPG',
+    verbTeam: 'averaged 0.8+ steals per game in a season',
+    verbGeneric: 'averaged 0.8+ steals per game in a season'
+  },
+  SeasonSPG0_9: {
+    label: '0.9+ SPG (Season)',
+    short: '0.9+ SPG',
+    verbTeam: 'averaged 0.9+ steals per game in a season',
+    verbGeneric: 'averaged 0.9+ steals per game in a season'
+  },
+  SeasonSPG1_0: {
+    label: '1.0+ SPG (Season)',
+    short: '1.0+ SPG',
+    verbTeam: 'averaged 1.0+ steals per game in a season',
+    verbGeneric: 'averaged 1.0+ steals per game in a season'
+  },
+  SeasonSPG1_3: {
+    label: '1.3+ SPG (Season)',
+    short: '1.3+ SPG',
+    verbTeam: 'averaged 1.3+ steals per game in a season',
+    verbGeneric: 'averaged 1.3+ steals per game in a season'
+  },
+  SeasonSPG1_5: {
+    label: '1.5+ SPG (Season)',
+    short: '1.5+ SPG',
+    verbTeam: 'averaged 1.5+ steals per game in a season',
+    verbGeneric: 'averaged 1.5+ steals per game in a season'
+  },
+  SeasonSPG1_7: {
+    label: '1.7+ SPG (Season)',
+    short: '1.7+ SPG',
+    verbTeam: 'averaged 1.7+ steals per game in a season',
+    verbGeneric: 'averaged 1.7+ steals per game in a season'
+  },
+  SeasonSPG2_0: {
+    label: '2.0+ SPG (Season)',
+    short: '2.0+ SPG',
+    verbTeam: 'averaged 2.0+ steals per game in a season',
+    verbGeneric: 'averaged 2.0+ steals per game in a season'
+  },
+  SeasonSPG2_3: {
+    label: '2.3+ SPG (Season)',
+    short: '2.3+ SPG',
+    verbTeam: 'averaged 2.3+ steals per game in a season',
+    verbGeneric: 'averaged 2.3+ steals per game in a season'
+  },
+  
+  // BPG Variations (8 achievements)
+  SeasonBPG0_5: {
+    label: '0.5+ BPG (Season)',
+    short: '0.5+ BPG',
+    verbTeam: 'averaged 0.5+ blocks per game in a season',
+    verbGeneric: 'averaged 0.5+ blocks per game in a season'
+  },
+  SeasonBPG0_8: {
+    label: '0.8+ BPG (Season)',
+    short: '0.8+ BPG',
+    verbTeam: 'averaged 0.8+ blocks per game in a season',
+    verbGeneric: 'averaged 0.8+ blocks per game in a season'
+  },
+  SeasonBPG0_9: {
+    label: '0.9+ BPG (Season)',
+    short: '0.9+ BPG',
+    verbTeam: 'averaged 0.9+ blocks per game in a season',
+    verbGeneric: 'averaged 0.9+ blocks per game in a season'
+  },
+  SeasonBPG1_0: {
+    label: '1.0+ BPG (Season)',
+    short: '1.0+ BPG',
+    verbTeam: 'averaged 1.0+ blocks per game in a season',
+    verbGeneric: 'averaged 1.0+ blocks per game in a season'
+  },
+  SeasonBPG1_5: {
+    label: '1.5+ BPG (Season)',
+    short: '1.5+ BPG',
+    verbTeam: 'averaged 1.5+ blocks per game in a season',
+    verbGeneric: 'averaged 1.5+ blocks per game in a season'
+  },
+  SeasonBPG2_0: {
+    label: '2.0+ BPG (Season)',
+    short: '2.0+ BPG',
+    verbTeam: 'averaged 2.0+ blocks per game in a season',
+    verbGeneric: 'averaged 2.0+ blocks per game in a season'
+  },
+  SeasonBPG2_5: {
+    label: '2.5+ BPG (Season)',
+    short: '2.5+ BPG',
+    verbTeam: 'averaged 2.5+ blocks per game in a season',
+    verbGeneric: 'averaged 2.5+ blocks per game in a season'
+  },
+  SeasonBPG3_0: {
+    label: '3.0+ BPG (Season)',
+    short: '3.0+ BPG',
+    verbTeam: 'averaged 3.0+ blocks per game in a season',
+    verbGeneric: 'averaged 3.0+ blocks per game in a season'
+  },
+  
+  // Steals Variations (8 achievements)
+  SeasonSteals50: {
+    label: '50+ Steals (Season)',
+    short: '50+ Steals',
+    verbTeam: 'recorded 50+ steals in a season',
+    verbGeneric: 'recorded 50+ steals in a season'
+  },
+  SeasonSteals75: {
+    label: '75+ Steals (Season)',
+    short: '75+ Steals',
+    verbTeam: 'recorded 75+ steals in a season',
+    verbGeneric: 'recorded 75+ steals in a season'
+  },
+  SeasonSteals90: {
+    label: '90+ Steals (Season)',
+    short: '90+ Steals',
+    verbTeam: 'recorded 90+ steals in a season',
+    verbGeneric: 'recorded 90+ steals in a season'
+  },
+  SeasonSteals100: {
+    label: '100+ Steals (Season)',
+    short: '100+ Steals',
+    verbTeam: 'recorded 100+ steals in a season',
+    verbGeneric: 'recorded 100+ steals in a season'
+  },
+  SeasonSteals125: {
+    label: '125+ Steals (Season)',
+    short: '125+ Steals',
+    verbTeam: 'recorded 125+ steals in a season',
+    verbGeneric: 'recorded 125+ steals in a season'
+  },
+  SeasonSteals150: {
+    label: '150+ Steals (Season)',
+    short: '150+ Steals',
+    verbTeam: 'recorded 150+ steals in a season',
+    verbGeneric: 'recorded 150+ steals in a season'
+  },
+  SeasonSteals175: {
+    label: '175+ Steals (Season)',
+    short: '175+ Steals',
+    verbTeam: 'recorded 175+ steals in a season',
+    verbGeneric: 'recorded 175+ steals in a season'
+  },
+  SeasonSteals200: {
+    label: '200+ Steals (Season)',
+    short: '200+ Steals',
+    verbTeam: 'recorded 200+ steals in a season',
+    verbGeneric: 'recorded 200+ steals in a season'
+  },
+  
+  // Blocks Variations (8 achievements)
+  SeasonBlocks50: {
+    label: '50+ Blocks (Season)',
+    short: '50+ Blocks',
+    verbTeam: 'recorded 50+ blocks in a season',
+    verbGeneric: 'recorded 50+ blocks in a season'
+  },
+  SeasonBlocks75: {
+    label: '75+ Blocks (Season)',
+    short: '75+ Blocks',
+    verbTeam: 'recorded 75+ blocks in a season',
+    verbGeneric: 'recorded 75+ blocks in a season'
+  },
+  SeasonBlocks90: {
+    label: '90+ Blocks (Season)',
+    short: '90+ Blocks',
+    verbTeam: 'recorded 90+ blocks in a season',
+    verbGeneric: 'recorded 90+ blocks in a season'
+  },
+  SeasonBlocks100: {
+    label: '100+ Blocks (Season)',
+    short: '100+ Blocks',
+    verbTeam: 'recorded 100+ blocks in a season',
+    verbGeneric: 'recorded 100+ blocks in a season'
+  },
+  SeasonBlocks125: {
+    label: '125+ Blocks (Season)',
+    short: '125+ Blocks',
+    verbTeam: 'recorded 125+ blocks in a season',
+    verbGeneric: 'recorded 125+ blocks in a season'
+  },
+  SeasonBlocks150: {
+    label: '150+ Blocks (Season)',
+    short: '150+ Blocks',
+    verbTeam: 'recorded 150+ blocks in a season',
+    verbGeneric: 'recorded 150+ blocks in a season'
+  },
+  SeasonBlocks175: {
+    label: '175+ Blocks (Season)',
+    short: '175+ Blocks',
+    verbTeam: 'recorded 175+ blocks in a season',
+    verbGeneric: 'recorded 175+ blocks in a season'
+  },
+  SeasonBlocks200: {
+    label: '200+ Blocks (Season)',
+    short: '200+ Blocks',
+    verbTeam: 'recorded 200+ blocks in a season',
+    verbGeneric: 'recorded 200+ blocks in a season'
+  },
+  
+  // Stocks Variations (9 achievements)
+  SeasonStocks100: {
+    label: '100+ Stocks (Season)',
+    short: '100+ Stocks',
+    verbTeam: 'recorded 100+ combined steals and blocks in a season',
+    verbGeneric: 'recorded 100+ combined steals and blocks in a season'
+  },
+  SeasonStocks120: {
+    label: '120+ Stocks (Season)',
+    short: '120+ Stocks',
+    verbTeam: 'recorded 120+ combined steals and blocks in a season',
+    verbGeneric: 'recorded 120+ combined steals and blocks in a season'
+  },
+  SeasonStocks130: {
+    label: '130+ Stocks (Season)',
+    short: '130+ Stocks',
+    verbTeam: 'recorded 130+ combined steals and blocks in a season',
+    verbGeneric: 'recorded 130+ combined steals and blocks in a season'
+  },
+  SeasonStocks140: {
+    label: '140+ Stocks (Season)',
+    short: '140+ Stocks',
+    verbTeam: 'recorded 140+ combined steals and blocks in a season',
+    verbGeneric: 'recorded 140+ combined steals and blocks in a season'
+  },
+  SeasonStocks150: {
+    label: '150+ Stocks (Season)',
+    short: '150+ Stocks',
+    verbTeam: 'recorded 150+ combined steals and blocks in a season',
+    verbGeneric: 'recorded 150+ combined steals and blocks in a season'
+  },
+  SeasonStocks175: {
+    label: '175+ Stocks (Season)',
+    short: '175+ Stocks',
+    verbTeam: 'recorded 175+ combined steals and blocks in a season',
+    verbGeneric: 'recorded 175+ combined steals and blocks in a season'
+  },
+  SeasonStocks200: {
+    label: '200+ Stocks (Season)',
+    short: '200+ Stocks',
+    verbTeam: 'recorded 200+ combined steals and blocks in a season',
+    verbGeneric: 'recorded 200+ combined steals and blocks in a season'
+  },
+  SeasonStocks225: {
+    label: '225+ Stocks (Season)',
+    short: '225+ Stocks',
+    verbTeam: 'recorded 225+ combined steals and blocks in a season',
+    verbGeneric: 'recorded 225+ combined steals and blocks in a season'
+  },
+  SeasonStocks250: {
+    label: '250+ Stocks (Season)',
+    short: '250+ Stocks',
+    verbTeam: 'recorded 250+ combined steals and blocks in a season',
+    verbGeneric: 'recorded 250+ combined steals and blocks in a season'
+  },
+  
+  // TS% Variations (6 achievements)
+  SeasonTSPct54: {
+    label: '54%+ TS (Season)',
+    short: '54%+ TS',
+    verbTeam: 'shot 54%+ TS in a season',
+    verbGeneric: 'shot 54%+ TS in a season'
+  },
+  SeasonTSPct56: {
+    label: '56%+ TS (Season)',
+    short: '56%+ TS',
+    verbTeam: 'shot 56%+ TS in a season',
+    verbGeneric: 'shot 56%+ TS in a season'
+  },
+  SeasonTSPct58: {
+    label: '58%+ TS (Season)',
+    short: '58%+ TS',
+    verbTeam: 'shot 58%+ TS in a season',
+    verbGeneric: 'shot 58%+ TS in a season'
+  },
+  SeasonTSPct60: {
+    label: '60%+ TS (Season)',
+    short: '60%+ TS',
+    verbTeam: 'shot 60%+ TS in a season',
+    verbGeneric: 'shot 60%+ TS in a season'
+  },
+  SeasonTSPct62: {
+    label: '62%+ TS (Season)',
+    short: '62%+ TS',
+    verbTeam: 'shot 62%+ TS in a season',
+    verbGeneric: 'shot 62%+ TS in a season'
+  },
+  SeasonTSPct64: {
+    label: '64%+ TS (Season)',
+    short: '64%+ TS',
+    verbTeam: 'shot 64%+ TS in a season',
+    verbGeneric: 'shot 64%+ TS in a season'
+  },
+  
+  // eFG% Variations (7 achievements)
+  SeasoneFGPct54: {
+    label: '54%+ eFG (Season)',
+    short: '54%+ eFG',
+    verbTeam: 'shot 54%+ eFG in a season',
+    verbGeneric: 'shot 54%+ eFG in a season'
+  },
+  SeasoneFGPct55: {
+    label: '55%+ eFG (Season)',
+    short: '55%+ eFG',
+    verbTeam: 'shot 55%+ eFG in a season',
+    verbGeneric: 'shot 55%+ eFG in a season'
+  },
+  SeasoneFGPct56: {
+    label: '56%+ eFG (Season)',
+    short: '56%+ eFG',
+    verbTeam: 'shot 56%+ eFG in a season',
+    verbGeneric: 'shot 56%+ eFG in a season'
+  },
+  SeasoneFGPct57: {
+    label: '57%+ eFG (Season)',
+    short: '57%+ eFG',
+    verbTeam: 'shot 57%+ eFG in a season',
+    verbGeneric: 'shot 57%+ eFG in a season'
+  },
+  SeasoneFGPct60: {
+    label: '60%+ eFG (Season)',
+    short: '60%+ eFG',
+    verbTeam: 'shot 60%+ eFG in a season',
+    verbGeneric: 'shot 60%+ eFG in a season'
+  },
+  SeasoneFGPct63: {
+    label: '63%+ eFG (Season)',
+    short: '63%+ eFG',
+    verbTeam: 'shot 63%+ eFG in a season',
+    verbGeneric: 'shot 63%+ eFG in a season'
+  },
+  SeasoneFGPct65: {
+    label: '65%+ eFG (Season)',
+    short: '65%+ eFG',
+    verbTeam: 'shot 65%+ eFG in a season',
+    verbGeneric: 'shot 65%+ eFG in a season'
+  },
+  
+  // FT% Variations (6 achievements)
+  SeasonFTPct80: {
+    label: '80%+ FT (Season)',
+    short: '80%+ FT',
+    verbTeam: 'shot 80%+ FT in a season',
+    verbGeneric: 'shot 80%+ FT in a season'
+  },
+  SeasonFTPct83: {
+    label: '83%+ FT (Season)',
+    short: '83%+ FT',
+    verbTeam: 'shot 83%+ FT in a season',
+    verbGeneric: 'shot 83%+ FT in a season'
+  },
+  SeasonFTPct85: {
+    label: '85%+ FT (Season)',
+    short: '85%+ FT',
+    verbTeam: 'shot 85%+ FT in a season',
+    verbGeneric: 'shot 85%+ FT in a season'
+  },
+  SeasonFTPct88: {
+    label: '88%+ FT (Season)',
+    short: '88%+ FT',
+    verbTeam: 'shot 88%+ FT in a season',
+    verbGeneric: 'shot 88%+ FT in a season'
+  },
+  SeasonFTPct90: {
+    label: '90%+ FT (Season)',
+    short: '90%+ FT',
+    verbTeam: 'shot 90%+ FT in a season',
+    verbGeneric: 'shot 90%+ FT in a season'
+  },
+  SeasonFTPct92: {
+    label: '92%+ FT (Season)',
+    short: '92%+ FT',
+    verbTeam: 'shot 92%+ FT in a season',
+    verbGeneric: 'shot 92%+ FT in a season'
+  },
+  
+  // 3PT% Variations (7 achievements)
+  Season3PPct33: {
+    label: '33%+ 3PT (Season)',
+    short: '33%+ 3PT',
+    verbTeam: 'shot 33%+ from three in a season',
+    verbGeneric: 'shot 33%+ from three in a season'
+  },
+  Season3PPct35: {
+    label: '35%+ 3PT (Season)',
+    short: '35%+ 3PT',
+    verbTeam: 'shot 35%+ from three in a season',
+    verbGeneric: 'shot 35%+ from three in a season'
+  },
+  Season3PPct36: {
+    label: '36%+ 3PT (Season)',
+    short: '36%+ 3PT',
+    verbTeam: 'shot 36%+ from three in a season',
+    verbGeneric: 'shot 36%+ from three in a season'
+  },
+  Season3PPct37: {
+    label: '37%+ 3PT (Season)',
+    short: '37%+ 3PT',
+    verbTeam: 'shot 37%+ from three in a season',
+    verbGeneric: 'shot 37%+ from three in a season'
+  },
+  Season3PPct38: {
+    label: '38%+ 3PT (Season)',
+    short: '38%+ 3PT',
+    verbTeam: 'shot 38%+ from three in a season',
+    verbGeneric: 'shot 38%+ from three in a season'
+  },
+  Season3PPct40: {
+    label: '40%+ 3PT (Season)',
+    short: '40%+ 3PT',
+    verbTeam: 'shot 40%+ from three in a season',
+    verbGeneric: 'shot 40%+ from three in a season'
+  },
+  Season3PPct42: {
+    label: '42%+ 3PT (Season)',
+    short: '42%+ 3PT',
+    verbTeam: 'shot 42%+ from three in a season',
+    verbGeneric: 'shot 42%+ from three in a season'
+  },
+  
+  // Games Played Variations (8 achievements)
+  SeasonGames40: {
+    label: '40+ Games (Season)',
+    short: '40+ Games',
+    verbTeam: 'played 40+ games in a season',
+    verbGeneric: 'played 40+ games in a season'
+  },
+  SeasonGames45: {
+    label: '45+ Games (Season)',
+    short: '45+ Games',
+    verbTeam: 'played 45+ games in a season',
+    verbGeneric: 'played 45+ games in a season'
+  },
+  SeasonGames50: {
+    label: '50+ Games (Season)',
+    short: '50+ Games',
+    verbTeam: 'played 50+ games in a season',
+    verbGeneric: 'played 50+ games in a season'
+  },
+  SeasonGames55: {
+    label: '55+ Games (Season)',
+    short: '55+ Games',
+    verbTeam: 'played 55+ games in a season',
+    verbGeneric: 'played 55+ games in a season'
+  },
+  SeasonGames60: {
+    label: '60+ Games (Season)',
+    short: '60+ Games',
+    verbTeam: 'played 60+ games in a season',
+    verbGeneric: 'played 60+ games in a season'
+  },
+  SeasonGames65: {
+    label: '65+ Games (Season)',
+    short: '65+ Games',
+    verbTeam: 'played 65+ games in a season',
+    verbGeneric: 'played 65+ games in a season'
+  },
+  SeasonGames70: {
+    label: '70+ Games (Season)',
+    short: '70+ Games',
+    verbTeam: 'played 70+ games in a season',
+    verbGeneric: 'played 70+ games in a season'
+  },
+  SeasonGames75: {
+    label: '75+ Games (Season)',
+    short: '75+ Games',
+    verbTeam: 'played 75+ games in a season',
+    verbGeneric: 'played 75+ games in a season'
+  },
+  
+  // MPG Variations (7 achievements)
+  SeasonMPG28: {
+    label: '28+ MPG (Season)',
+    short: '28+ MPG',
+    verbTeam: 'averaged 28+ minutes per game in a season',
+    verbGeneric: 'averaged 28+ minutes per game in a season'
+  },
+  SeasonMPG30: {
+    label: '30+ MPG (Season)',
+    short: '30+ MPG',
+    verbTeam: 'averaged 30+ minutes per game in a season',
+    verbGeneric: 'averaged 30+ minutes per game in a season'
+  },
+  SeasonMPG31: {
+    label: '31+ MPG (Season)',
+    short: '31+ MPG',
+    verbTeam: 'averaged 31+ minutes per game in a season',
+    verbGeneric: 'averaged 31+ minutes per game in a season'
+  },
+  SeasonMPG32: {
+    label: '32+ MPG (Season)',
+    short: '32+ MPG',
+    verbTeam: 'averaged 32+ minutes per game in a season',
+    verbGeneric: 'averaged 32+ minutes per game in a season'
+  },
+  SeasonMPG34: {
+    label: '34+ MPG (Season)',
+    short: '34+ MPG',
+    verbTeam: 'averaged 34+ minutes per game in a season',
+    verbGeneric: 'averaged 34+ minutes per game in a season'
+  },
+  SeasonMPG36: {
+    label: '36+ MPG (Season)',
+    short: '36+ MPG',
+    verbTeam: 'averaged 36+ minutes per game in a season',
+    verbGeneric: 'averaged 36+ minutes per game in a season'
+  },
+  SeasonMPG38: {
+    label: '38+ MPG (Season)',
+    short: '38+ MPG',
+    verbTeam: 'averaged 38+ minutes per game in a season',
+    verbGeneric: 'averaged 38+ minutes per game in a season'
+  },
+  
+  // Career Points Variations (12 achievements)
+  Career6kPoints: {
+    label: '6,000+ Career Points',
+    short: '6K Career Pts',
+    verbTeam: 'scored 6,000+ career points',
+    verbGeneric: 'scored 6,000+ career points'
+  },
+  Career8kPoints: {
+    label: '8,000+ Career Points',
+    short: '8K Career Pts',
+    verbTeam: 'scored 8,000+ career points',
+    verbGeneric: 'scored 8,000+ career points'
+  },
+  Career10kPoints: {
+    label: '10,000+ Career Points',
+    short: '10K Career Pts',
+    verbTeam: 'scored 10,000+ career points',
+    verbGeneric: 'scored 10,000+ career points'
+  },
+  Career11kPoints: {
+    label: '11,000+ Career Points',
+    short: '11K Career Pts',
+    verbTeam: 'scored 11,000+ career points',
+    verbGeneric: 'scored 11,000+ career points'
+  },
+  Career12kPoints: {
+    label: '12,000+ Career Points',
+    short: '12K Career Pts',
+    verbTeam: 'scored 12,000+ career points',
+    verbGeneric: 'scored 12,000+ career points'
+  },
+  Career15kPoints: {
+    label: '15,000+ Career Points',
+    short: '15K Career Pts',
+    verbTeam: 'scored 15,000+ career points',
+    verbGeneric: 'scored 15,000+ career points'
+  },
+  Career18kPoints: {
+    label: '18,000+ Career Points',
+    short: '18K Career Pts',
+    verbTeam: 'scored 18,000+ career points',
+    verbGeneric: 'scored 18,000+ career points'
+  },
+  Career20kPoints: {
+    label: '20,000+ Career Points',
+    short: '20K Career Pts',
+    verbTeam: 'scored 20,000+ career points',
+    verbGeneric: 'scored 20,000+ career points'
+  },
+  Career22kPoints: {
+    label: '22,000+ Career Points',
+    short: '22K Career Pts',
+    verbTeam: 'scored 22,000+ career points',
+    verbGeneric: 'scored 22,000+ career points'
+  },
+  Career25kPoints: {
+    label: '25,000+ Career Points',
+    short: '25K Career Pts',
+    verbTeam: 'scored 25,000+ career points',
+    verbGeneric: 'scored 25,000+ career points'
+  },
+  Career28kPoints: {
+    label: '28,000+ Career Points',
+    short: '28K Career Pts',
+    verbTeam: 'scored 28,000+ career points',
+    verbGeneric: 'scored 28,000+ career points'
+  },
+  Career30kPoints: {
+    label: '30,000+ Career Points',
+    short: '30K Career Pts',
+    verbTeam: 'scored 30,000+ career points',
+    verbGeneric: 'scored 30,000+ career points'
+  },
+  
+  // Career Rebounds Variations (6 achievements)
+  Career4kRebounds: {
+    label: '4,000+ Career Rebounds',
+    short: '4K Career Reb',
+    verbTeam: 'grabbed 4,000+ career rebounds',
+    verbGeneric: 'grabbed 4,000+ career rebounds'
+  },
+  Career5kRebounds: {
+    label: '5,000+ Career Rebounds',
+    short: '5K Career Reb',
+    verbTeam: 'grabbed 5,000+ career rebounds',
+    verbGeneric: 'grabbed 5,000+ career rebounds'
+  },
+  Career6kRebounds: {
+    label: '6,000+ Career Rebounds',
+    short: '6K Career Reb',
+    verbTeam: 'grabbed 6,000+ career rebounds',
+    verbGeneric: 'grabbed 6,000+ career rebounds'
+  },
+  Career8kRebounds: {
+    label: '8,000+ Career Rebounds',
+    short: '8K Career Reb',
+    verbTeam: 'grabbed 8,000+ career rebounds',
+    verbGeneric: 'grabbed 8,000+ career rebounds'
+  },
+  Career10kRebounds: {
+    label: '10,000+ Career Rebounds',
+    short: '10K Career Reb',
+    verbTeam: 'grabbed 10,000+ career rebounds',
+    verbGeneric: 'grabbed 10,000+ career rebounds'
+  },
+  Career12kRebounds: {
+    label: '12,000+ Career Rebounds',
+    short: '12K Career Reb',
+    verbTeam: 'grabbed 12,000+ career rebounds',
+    verbGeneric: 'grabbed 12,000+ career rebounds'
+  },
+  
+  // Career Assists Variations (8 achievements)
+  Career1_5kAssists: {
+    label: '1,500+ Career Assists',
+    short: '1.5K Career Ast',
+    verbTeam: 'dished 1,500+ career assists',
+    verbGeneric: 'dished 1,500+ career assists'
+  },
+  Career2kAssists: {
+    label: '2,000+ Career Assists',
+    short: '2K Career Ast',
+    verbTeam: 'dished 2,000+ career assists',
+    verbGeneric: 'dished 2,000+ career assists'
+  },
+  Career2_5kAssists: {
+    label: '2,500+ Career Assists',
+    short: '2.5K Career Ast',
+    verbTeam: 'dished 2,500+ career assists',
+    verbGeneric: 'dished 2,500+ career assists'
+  },
+  Career3kAssists: {
+    label: '3,000+ Career Assists',
+    short: '3K Career Ast',
+    verbTeam: 'dished 3,000+ career assists',
+    verbGeneric: 'dished 3,000+ career assists'
+  },
+  Career4kAssists: {
+    label: '4,000+ Career Assists',
+    short: '4K Career Ast',
+    verbTeam: 'dished 4,000+ career assists',
+    verbGeneric: 'dished 4,000+ career assists'
+  },
+  Career5kAssists: {
+    label: '5,000+ Career Assists',
+    short: '5K Career Ast',
+    verbTeam: 'dished 5,000+ career assists',
+    verbGeneric: 'dished 5,000+ career assists'
+  },
+  Career6kAssists: {
+    label: '6,000+ Career Assists',
+    short: '6K Career Ast',
+    verbTeam: 'dished 6,000+ career assists',
+    verbGeneric: 'dished 6,000+ career assists'
+  },
+  Career8kAssists: {
+    label: '8,000+ Career Assists',
+    short: '8K Career Ast',
+    verbTeam: 'dished 8,000+ career assists',
+    verbGeneric: 'dished 8,000+ career assists'
+  },
+  
+  // Career Steals Variations (7 achievements)
+  Career600Steals: {
+    label: '600+ Career Steals',
+    short: '600+ Career Stl',
+    verbTeam: 'recorded 600+ career steals',
+    verbGeneric: 'recorded 600+ career steals'
+  },
+  Career800Steals: {
+    label: '800+ Career Steals',
+    short: '800+ Career Stl',
+    verbTeam: 'recorded 800+ career steals',
+    verbGeneric: 'recorded 800+ career steals'
+  },
+  Career900Steals: {
+    label: '900+ Career Steals',
+    short: '900+ Career Stl',
+    verbTeam: 'recorded 900+ career steals',
+    verbGeneric: 'recorded 900+ career steals'
+  },
+  Career1kSteals: {
+    label: '1,000+ Career Steals',
+    short: '1K Career Stl',
+    verbTeam: 'recorded 1,000+ career steals',
+    verbGeneric: 'recorded 1,000+ career steals'
+  },
+  Career1_5kSteals: {
+    label: '1,500+ Career Steals',
+    short: '1.5K Career Stl',
+    verbTeam: 'recorded 1,500+ career steals',
+    verbGeneric: 'recorded 1,500+ career steals'
+  },
+  Career2kSteals: {
+    label: '2,000+ Career Steals',
+    short: '2K Career Stl',
+    verbTeam: 'recorded 2,000+ career steals',
+    verbGeneric: 'recorded 2,000+ career steals'
+  },
+  Career2_5kSteals: {
+    label: '2,500+ Career Steals',
+    short: '2.5K Career Stl',
+    verbTeam: 'recorded 2,500+ career steals',
+    verbGeneric: 'recorded 2,500+ career steals'
+  },
+  
+  // Career Blocks Variations (7 achievements)
+  Career600Blocks: {
+    label: '600+ Career Blocks',
+    short: '600+ Career Blk',
+    verbTeam: 'recorded 600+ career blocks',
+    verbGeneric: 'recorded 600+ career blocks'
+  },
+  Career800Blocks: {
+    label: '800+ Career Blocks',
+    short: '800+ Career Blk',
+    verbTeam: 'recorded 800+ career blocks',
+    verbGeneric: 'recorded 800+ career blocks'
+  },
+  Career900Blocks: {
+    label: '900+ Career Blocks',
+    short: '900+ Career Blk',
+    verbTeam: 'recorded 900+ career blocks',
+    verbGeneric: 'recorded 900+ career blocks'
+  },
+  Career1kBlocks: {
+    label: '1,000+ Career Blocks',
+    short: '1K Career Blk',
+    verbTeam: 'recorded 1,000+ career blocks',
+    verbGeneric: 'recorded 1,000+ career blocks'
+  },
+  Career1_2kBlocks: {
+    label: '1,200+ Career Blocks',
+    short: '1.2K Career Blk',
+    verbTeam: 'recorded 1,200+ career blocks',
+    verbGeneric: 'recorded 1,200+ career blocks'
+  },
+  Career1_5kBlocks: {
+    label: '1,500+ Career Blocks',
+    short: '1.5K Career Blk',
+    verbTeam: 'recorded 1,500+ career blocks',
+    verbGeneric: 'recorded 1,500+ career blocks'
+  },
+  Career2kBlocks: {
+    label: '2,000+ Career Blocks',
+    short: '2K Career Blk',
+    verbTeam: 'recorded 2,000+ career blocks',
+    verbGeneric: 'recorded 2,000+ career blocks'
+  },
+  
+  // Career 3PM Variations (8 achievements)
+  Career600_3PM: {
+    label: '600+ Career 3PM',
+    short: '600+ Career 3PM',
+    verbTeam: 'made 600+ career three-pointers',
+    verbGeneric: 'made 600+ career three-pointers'
+  },
+  Career800_3PM: {
+    label: '800+ Career 3PM',
+    short: '800+ Career 3PM',
+    verbTeam: 'made 800+ career three-pointers',
+    verbGeneric: 'made 800+ career three-pointers'
+  },
+  Career900_3PM: {
+    label: '900+ Career 3PM',
+    short: '900+ Career 3PM',
+    verbTeam: 'made 900+ career three-pointers',
+    verbGeneric: 'made 900+ career three-pointers'
+  },
+  Career1k_3PM: {
+    label: '1,000+ Career 3PM',
+    short: '1K Career 3PM',
+    verbTeam: 'made 1,000+ career three-pointers',
+    verbGeneric: 'made 1,000+ career three-pointers'
+  },
+  Career1_5k_3PM: {
+    label: '1,500+ Career 3PM',
+    short: '1.5K Career 3PM',
+    verbTeam: 'made 1,500+ career three-pointers',
+    verbGeneric: 'made 1,500+ career three-pointers'
+  },
+  Career2k_3PM: {
+    label: '2,000+ Career 3PM',
+    short: '2K Career 3PM',
+    verbTeam: 'made 2,000+ career three-pointers',
+    verbGeneric: 'made 2,000+ career three-pointers'
+  },
+  Career2_5k_3PM: {
+    label: '2,500+ Career 3PM',
+    short: '2.5K Career 3PM',
+    verbTeam: 'made 2,500+ career three-pointers',
+    verbGeneric: 'made 2,500+ career three-pointers'
+  },
+  Career3k_3PM: {
+    label: '3,000+ Career 3PM',
+    short: '3K Career 3PM',
+    verbTeam: 'made 3,000+ career three-pointers',
+    verbGeneric: 'made 3,000+ career three-pointers'
+  },
+  
+  // Seasons Played Variations (9 achievements)
+  Seasons5: {
+    label: '5+ Seasons Played',
+    short: '5+ Seasons',
+    verbTeam: 'played 5+ seasons',
+    verbGeneric: 'played 5+ seasons'
+  },
+  Seasons6: {
+    label: '6+ Seasons Played',
+    short: '6+ Seasons',
+    verbTeam: 'played 6+ seasons',
+    verbGeneric: 'played 6+ seasons'
+  },
+  Seasons7: {
+    label: '7+ Seasons Played',
+    short: '7+ Seasons',
+    verbTeam: 'played 7+ seasons',
+    verbGeneric: 'played 7+ seasons'
+  },
+  Seasons8: {
+    label: '8+ Seasons Played',
+    short: '8+ Seasons',
+    verbTeam: 'played 8+ seasons',
+    verbGeneric: 'played 8+ seasons'
+  },
+  Seasons10: {
+    label: '10+ Seasons Played',
+    short: '10+ Seasons',
+    verbTeam: 'played 10+ seasons',
+    verbGeneric: 'played 10+ seasons'
+  },
+  Seasons12: {
+    label: '12+ Seasons Played',
+    short: '12+ Seasons',
+    verbTeam: 'played 12+ seasons',
+    verbGeneric: 'played 12+ seasons'
+  },
+  Seasons15: {
+    label: '15+ Seasons Played',
+    short: '15+ Seasons',
+    verbTeam: 'played 15+ seasons',
+    verbGeneric: 'played 15+ seasons'
+  },
+  Seasons18: {
+    label: '18+ Seasons Played',
+    short: '18+ Seasons',
+    verbTeam: 'played 18+ seasons',
+    verbGeneric: 'played 18+ seasons'
+  },
+  Seasons20: {
+    label: '20+ Seasons Played',
+    short: '20+ Seasons',
+    verbTeam: 'played 20+ seasons',
+    verbGeneric: 'played 20+ seasons'
+  },
+  
+  // Combo Season Variations
+  Season18_8: {
+    label: '18/8 Season (PPG/RPG)',
+    short: '18/8 Season',
+    verbTeam: 'had an 18/8 season (PPG/RPG)',
+    verbGeneric: 'had an 18/8 season (PPG/RPG)'
+  },
+  Season20_8: {
+    label: '20/8 Season (PPG/RPG)',
+    short: '20/8 Season',
+    verbTeam: 'had a 20/8 season (PPG/RPG)',
+    verbGeneric: 'had a 20/8 season (PPG/RPG)'
+  },
+  Season22_8: {
+    label: '22/8 Season (PPG/RPG)',
+    short: '22/8 Season',
+    verbTeam: 'had a 22/8 season (PPG/RPG)',
+    verbGeneric: 'had a 22/8 season (PPG/RPG)'
+  },
+  Season24_10: {
+    label: '24/10 Season (PPG/RPG)',
+    short: '24/10 Season',
+    verbTeam: 'had a 24/10 season (PPG/RPG)',
+    verbGeneric: 'had a 24/10 season (PPG/RPG)'
+  },
+  Season26_10: {
+    label: '26/10 Season (PPG/RPG)',
+    short: '26/10 Season',
+    verbTeam: 'had a 26/10 season (PPG/RPG)',
+    verbGeneric: 'had a 26/10 season (PPG/RPG)'
+  },
+  Season28_12: {
+    label: '28/12 Season (PPG/RPG)',
+    short: '28/12 Season',
+    verbTeam: 'had a 28/12 season (PPG/RPG)',
+    verbGeneric: 'had a 28/12 season (PPG/RPG)'
+  },
+  Season30_15: {
+    label: '30/15 Season (PPG/RPG)',
+    short: '30/15 Season',
+    verbTeam: 'had a 30/15 season (PPG/RPG)',
+    verbGeneric: 'had a 30/15 season (PPG/RPG)'
+  },
+  Season18_4_4: {
+    label: '18/4/4 Season (PPG/RPG/APG)',
+    short: '18/4/4 Season',
+    verbTeam: 'had an 18/4/4 season (PPG/RPG/APG)',
+    verbGeneric: 'had an 18/4/4 season (PPG/RPG/APG)'
+  },
+  Season20_5_5: {
+    label: '20/5/5 Season (PPG/RPG/APG)',
+    short: '20/5/5 Season',
+    verbTeam: 'had a 20/5/5 season (PPG/RPG/APG)',
+    verbGeneric: 'had a 20/5/5 season (PPG/RPG/APG)'
+  },
+  Season22_5_5: {
+    label: '22/5/5 Season (PPG/RPG/APG)',
+    short: '22/5/5 Season',
+    verbTeam: 'had a 22/5/5 season (PPG/RPG/APG)',
+    verbGeneric: 'had a 22/5/5 season (PPG/RPG/APG)'
+  },
+  Season24_6_6: {
+    label: '24/6/6 Season (PPG/RPG/APG)',
+    short: '24/6/6 Season',
+    verbTeam: 'had a 24/6/6 season (PPG/RPG/APG)',
+    verbGeneric: 'had a 24/6/6 season (PPG/RPG/APG)'
+  },
+  Season26_6_6: {
+    label: '26/6/6 Season (PPG/RPG/APG)',
+    short: '26/6/6 Season',
+    verbTeam: 'had a 26/6/6 season (PPG/RPG/APG)',
+    verbGeneric: 'had a 26/6/6 season (PPG/RPG/APG)'
+  },
+  Season28_8_8: {
+    label: '28/8/8 Season (PPG/RPG/APG)',
+    short: '28/8/8 Season',
+    verbTeam: 'had a 28/8/8 season (PPG/RPG/APG)',
+    verbGeneric: 'had a 28/8/8 season (PPG/RPG/APG)'
+  },
+  Season16_7_4: {
+    label: '16/7/4 Season (PPG/RPG/APG)',
+    short: '16/7/4 Season',
+    verbTeam: 'had a 16/7/4 season (PPG/RPG/APG)',
+    verbGeneric: 'had a 16/7/4 season (PPG/RPG/APG)'
+  },
+  Season18_8_5: {
+    label: '18/8/5 Season (PPG/RPG/APG)',
+    short: '18/8/5 Season',
+    verbTeam: 'had an 18/8/5 season (PPG/RPG/APG)',
+    verbGeneric: 'had an 18/8/5 season (PPG/RPG/APG)'
+  },
+  Season22_10_6: {
+    label: '22/10/6 Season (PPG/RPG/APG)',
+    short: '22/10/6 Season',
+    verbTeam: 'had a 22/10/6 season (PPG/RPG/APG)',
+    verbGeneric: 'had a 22/10/6 season (PPG/RPG/APG)'
+  },
+  Season24_12_7: {
+    label: '24/12/7 Season (PPG/RPG/APG)',
+    short: '24/12/7 Season',
+    verbTeam: 'had a 24/12/7 season (PPG/RPG/APG)',
+    verbGeneric: 'had a 24/12/7 season (PPG/RPG/APG)'
+  },
+  Season0_5_0_5_0_5: {
+    label: '0.5/0.5/0.5 Season (SPG/BPG/3PM/G)',
+    short: '0.5/0.5/0.5 Season',
+    verbTeam: 'had a 0.5/0.5/0.5 season (SPG/BPG/3PM/G)',
+    verbGeneric: 'had a 0.5/0.5/0.5 season (SPG/BPG/3PM/G)'
+  },
+  Season0_8_0_8_0_8: {
+    label: '0.8/0.8/0.8 Season (SPG/BPG/3PM/G)',
+    short: '0.8/0.8/0.8 Season',
+    verbTeam: 'had a 0.8/0.8/0.8 season (SPG/BPG/3PM/G)',
+    verbGeneric: 'had a 0.8/0.8/0.8 season (SPG/BPG/3PM/G)'
+  },
+  Season1_0_1_0_1_0: {
+    label: '1.0/1.0/1.0 Season (SPG/BPG/3PM/G)',
+    short: '1.0/1.0/1.0 Season',
+    verbTeam: 'had a 1.0/1.0/1.0 season (SPG/BPG/3PM/G)',
+    verbGeneric: 'had a 1.0/1.0/1.0 season (SPG/BPG/3PM/G)'
+  },
+  Season1_2_1_2_1_2: {
+    label: '1.2/1.2/1.2 Season (SPG/BPG/3PM/G)',
+    short: '1.2/1.2/1.2 Season',
+    verbTeam: 'had a 1.2/1.2/1.2 season (SPG/BPG/3PM/G)',
+    verbGeneric: 'had a 1.2/1.2/1.2 season (SPG/BPG/3PM/G)'
   },
   
   // Football GM season achievements
@@ -863,17 +2567,346 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     Season150Steals: ['150+ Steals', '150+ steals', 'season steals'],
     Season150Blocks: ['150+ Blocks', '150+ blocks', 'season blocks'],
     Season200Stocks: ['200+ Stocks', '200+ combined steals blocks', 'steals and blocks'],
-    Season50_40_90: ['50/40/90 Club', '50-40-90 club', 'shooting efficiency'],
     Season60TS20PPG: ['60%+ TS on 20+ PPG', '60% true shooting', 'efficient scoring'],
     Season60eFG500FGA: ['60%+ eFG on ≥500 FGA', '60% effective field goal', 'shooting efficiency'],
     Season90FT250FTA: ['90%+ FT on ≥250 FTA', '90% free throw', 'free throw shooting'],
     Season40_3PT200_3PA: ['40%+ 3PT on ≥200 3PA', '40% three-point', 'three-point shooting'],
     Season70Games: ['70+ Games Played', '70+ games', 'games played'],
     Season36MPG: ['36.0+ MPG', '36+ minutes per game', 'minutes per game'],
-    Season25_10: ['25/10 Season', '25 points 10 rebounds', 'scoring rebounding'],
-    Season25_5_5: ['25/5/5 Season', '25 points 5 rebounds 5 assists', 'all-around'],
-    Season20_10_5: ['20/10/5 Season', '20 points 10 rebounds 5 assists', 'all-around'],
     Season1_1_1: ['1/1/1 Season', '1 steal 1 block 1 three-pointer', 'defensive versatility'],
+    Season25_10: ['25/10 Season', '25+ points 10+ rebounds', 'scoring rebounding'],
+    Season25_5_5: ['25/5/5 Season', '25+ points 5+ rebounds 5+ assists', 'triple threat'],
+    Season20_10_5: ['20/10/5 Season', '20+ points 10+ rebounds 5+ assists', 'all around'],
+    Season50_40_90: ['50/40/90 Club', '50% fg 40% 3pt 90% ft', 'shooting efficiency'],
+    
+    // Statistical Leaders with Rank Variations
+    PointsLeader1st: ['Points Leader', 'points leader', '1st in points'],
+    PointsLeader3rd: ['Points Leader', 'points leader', 'top 3 points'],
+    PointsLeader5th: ['Points Leader', 'points leader', 'top 5 points'],
+    PointsLeader10th: ['Points Leader', 'points leader', 'top 10 points'],
+    PointsLeader15th: ['Points Leader', 'points leader', 'top 15 points'],
+    PointsLeader20th: ['Points Leader', 'points leader', 'top 20 points'],
+    ReboundsLeader1st: ['Rebounds Leader', 'rebounds leader', '1st in rebounds'],
+    ReboundsLeader3rd: ['Rebounds Leader', 'rebounds leader', 'top 3 rebounds'],
+    ReboundsLeader5th: ['Rebounds Leader', 'rebounds leader', 'top 5 rebounds'],
+    ReboundsLeader10th: ['Rebounds Leader', 'rebounds leader', 'top 10 rebounds'],
+    ReboundsLeader15th: ['Rebounds Leader', 'rebounds leader', 'top 15 rebounds'],
+    ReboundsLeader20th: ['Rebounds Leader', 'rebounds leader', 'top 20 rebounds'],
+    AssistsLeader1st: ['Assists Leader', 'assists leader', '1st in assists'],
+    AssistsLeader3rd: ['Assists Leader', 'assists leader', 'top 3 assists'],
+    AssistsLeader5th: ['Assists Leader', 'assists leader', 'top 5 assists'],
+    AssistsLeader10th: ['Assists Leader', 'assists leader', 'top 10 assists'],
+    AssistsLeader15th: ['Assists Leader', 'assists leader', 'top 15 assists'],
+    AssistsLeader20th: ['Assists Leader', 'assists leader', 'top 20 assists'],
+    StealsLeader1st: ['Steals Leader', 'steals leader', '1st in steals'],
+    StealsLeader3rd: ['Steals Leader', 'steals leader', 'top 3 steals'],
+    StealsLeader5th: ['Steals Leader', 'steals leader', 'top 5 steals'],
+    StealsLeader10th: ['Steals Leader', 'steals leader', 'top 10 steals'],
+    StealsLeader15th: ['Steals Leader', 'steals leader', 'top 15 steals'],
+    StealsLeader20th: ['Steals Leader', 'steals leader', 'top 20 steals'],
+    BlocksLeader1st: ['Blocks Leader', 'blocks leader', '1st in blocks'],
+    BlocksLeader3rd: ['Blocks Leader', 'blocks leader', 'top 3 blocks'],
+    BlocksLeader5th: ['Blocks Leader', 'blocks leader', 'top 5 blocks'],
+    BlocksLeader10th: ['Blocks Leader', 'blocks leader', 'top 10 blocks'],
+    BlocksLeader15th: ['Blocks Leader', 'blocks leader', 'top 15 blocks'],
+    BlocksLeader20th: ['Blocks Leader', 'blocks leader', 'top 20 blocks'],
+    ThreePMLeader1st: ['3PM Leader', '3pm leader', '1st in three-pointers'],
+    ThreePMLeader3rd: ['3PM Leader', '3pm leader', 'top 3 three-pointers'],
+    ThreePMLeader5th: ['3PM Leader', '3pm leader', 'top 5 three-pointers'],
+    ThreePMLeader10th: ['3PM Leader', '3pm leader', 'top 10 three-pointers'],
+    ThreePMLeader15th: ['3PM Leader', '3pm leader', 'top 15 three-pointers'],
+    ThreePMLeader20th: ['3PM Leader', '3pm leader', 'top 20 three-pointers'],
+    
+    // PPG Variations (18 achievements)
+    SeasonPPG1: [],
+    SeasonPPG2: [],
+    SeasonPPG3: [],
+    SeasonPPG4: [],
+    SeasonPPG5: [],
+    SeasonPPG8: [],
+    SeasonPPG10: [],
+    SeasonPPG12: [],
+    SeasonPPG15: [],
+    SeasonPPG18: [],
+    SeasonPPG20: [],
+    SeasonPPG22: [],
+    SeasonPPG24: [],
+    SeasonPPG26: [],
+    SeasonPPG28: [],
+    SeasonPPG30: [],
+    SeasonPPG32: [],
+    SeasonPPG35: [],
+    
+    // Points Variations (10 achievements)
+    SeasonPoints800: [],
+    SeasonPoints1000: [],
+    SeasonPoints1100: [],
+    SeasonPoints1200: [],
+    SeasonPoints1400: [],
+    SeasonPoints1600: [],
+    SeasonPoints1800: [],
+    SeasonPoints2000: [],
+    SeasonPoints2200: [],
+    SeasonPoints2400: [],
+    
+    // 3PM Variations (12 achievements)
+    Season3PM50: [],
+    Season3PM75: [],
+    Season3PM100: [],
+    Season3PM125: [],
+    Season3PM150: [],
+    Season3PM175: [],
+    Season3PM200: [],
+    Season3PM225: [],
+    Season3PM250: [],
+    Season3PM275: [],
+    Season3PM300: [],
+    Season3PM325: [],
+    
+    // RPG Variations (12 achievements)
+    SeasonRPG3: [],
+    SeasonRPG4: [],
+    SeasonRPG5: [],
+    SeasonRPG6: [],
+    SeasonRPG7: [],
+    SeasonRPG8: [],
+    SeasonRPG9: [],
+    SeasonRPG10: [],
+    SeasonRPG11: [],
+    SeasonRPG12: [],
+    SeasonRPG13: [],
+    SeasonRPG15: [],
+    
+    // APG Variations (11 achievements)
+    SeasonAPG2: [],
+    SeasonAPG3: [],
+    SeasonAPG4: [],
+    SeasonAPG5: [],
+    SeasonAPG6: [],
+    SeasonAPG7: [],
+    SeasonAPG8: [],
+    SeasonAPG9: [],
+    SeasonAPG10: [],
+    SeasonAPG11: [],
+    SeasonAPG12: [],
+    
+    // Rebounds Variations (8 achievements)
+    SeasonRebounds300: [],
+    SeasonRebounds400: [],
+    SeasonRebounds500: [],
+    SeasonRebounds600: [],
+    SeasonRebounds700: [],
+    SeasonRebounds800: [],
+    SeasonRebounds900: [],
+    SeasonRebounds1000: [],
+    
+    // Assists Variations (7 achievements)
+    SeasonAssists200: [],
+    SeasonAssists300: [],
+    SeasonAssists400: [],
+    SeasonAssists500: [],
+    SeasonAssists600: [],
+    SeasonAssists700: [],
+    SeasonAssists800: [],
+    
+    // SPG Variations (9 achievements)
+    SeasonSPG0_5: [],
+    SeasonSPG0_8: [],
+    SeasonSPG0_9: [],
+    SeasonSPG1_0: [],
+    SeasonSPG1_3: [],
+    SeasonSPG1_5: [],
+    SeasonSPG1_7: [],
+    SeasonSPG2_0: [],
+    SeasonSPG2_3: [],
+    
+    // BPG Variations (8 achievements)
+    SeasonBPG0_5: [],
+    SeasonBPG0_8: [],
+    SeasonBPG0_9: [],
+    SeasonBPG1_0: [],
+    SeasonBPG1_5: [],
+    SeasonBPG2_0: [],
+    SeasonBPG2_5: [],
+    SeasonBPG3_0: [],
+    
+    // Steals Variations (8 achievements)
+    SeasonSteals50: [],
+    SeasonSteals75: [],
+    SeasonSteals90: [],
+    SeasonSteals100: [],
+    SeasonSteals125: [],
+    SeasonSteals150: [],
+    SeasonSteals175: [],
+    SeasonSteals200: [],
+    
+    // Blocks Variations (8 achievements)
+    SeasonBlocks50: [],
+    SeasonBlocks75: [],
+    SeasonBlocks90: [],
+    SeasonBlocks100: [],
+    SeasonBlocks125: [],
+    SeasonBlocks150: [],
+    SeasonBlocks175: [],
+    SeasonBlocks200: [],
+    
+    // Stocks Variations (9 achievements)
+    SeasonStocks100: [],
+    SeasonStocks120: [],
+    SeasonStocks130: [],
+    SeasonStocks140: [],
+    SeasonStocks150: [],
+    SeasonStocks175: [],
+    SeasonStocks200: [],
+    SeasonStocks225: [],
+    SeasonStocks250: [],
+    
+    // TS% Variations (6 achievements)
+    SeasonTSPct54: [],
+    SeasonTSPct56: [],
+    SeasonTSPct58: [],
+    SeasonTSPct60: [],
+    SeasonTSPct62: [],
+    SeasonTSPct64: [],
+    
+    // eFG% Variations (7 achievements)
+    SeasoneFGPct54: [],
+    SeasoneFGPct55: [],
+    SeasoneFGPct56: [],
+    SeasoneFGPct57: [],
+    SeasoneFGPct60: [],
+    SeasoneFGPct63: [],
+    SeasoneFGPct65: [],
+    
+    // FT% Variations (6 achievements)
+    SeasonFTPct80: [],
+    SeasonFTPct83: [],
+    SeasonFTPct85: [],
+    SeasonFTPct88: [],
+    SeasonFTPct90: [],
+    SeasonFTPct92: [],
+    
+    // 3PT% Variations (7 achievements)
+    Season3PPct33: [],
+    Season3PPct35: [],
+    Season3PPct36: [],
+    Season3PPct37: [],
+    Season3PPct38: [],
+    Season3PPct40: [],
+    Season3PPct42: [],
+    
+    // Games Played Variations (8 achievements)
+    SeasonGames40: [],
+    SeasonGames45: [],
+    SeasonGames50: [],
+    SeasonGames55: [],
+    SeasonGames60: [],
+    SeasonGames65: [],
+    SeasonGames70: [],
+    SeasonGames75: [],
+    
+    // MPG Variations (7 achievements)
+    SeasonMPG28: [],
+    SeasonMPG30: [],
+    SeasonMPG31: [],
+    SeasonMPG32: [],
+    SeasonMPG34: [],
+    SeasonMPG36: [],
+    SeasonMPG38: [],
+    
+    // Career Points (12 achievements)
+    Career6kPoints: [],
+    Career8kPoints: [],
+    Career10kPoints: [],
+    Career11kPoints: [],
+    Career12kPoints: [],
+    Career15kPoints: [],
+    Career18kPoints: [],
+    Career20kPoints: [],
+    Career22kPoints: [],
+    Career25kPoints: [],
+    Career28kPoints: [],
+    Career30kPoints: [],
+    
+    // Career Rebounds (6 achievements)
+    Career4kRebounds: [],
+    Career5kRebounds: [],
+    Career6kRebounds: [],
+    Career8kRebounds: [],
+    Career10kRebounds: [],
+    Career12kRebounds: [],
+    
+    // Career Assists (8 achievements)
+    Career1_5kAssists: [],
+    Career2kAssists: [],
+    Career2_5kAssists: [],
+    Career3kAssists: [],
+    Career4kAssists: [],
+    Career5kAssists: [],
+    Career6kAssists: [],
+    Career8kAssists: [],
+    
+    // Career Steals (7 achievements)
+    Career600Steals: [],
+    Career800Steals: [],
+    Career900Steals: [],
+    Career1kSteals: [],
+    Career1_5kSteals: [],
+    Career2kSteals: [],
+    Career2_5kSteals: [],
+    
+    // Career Blocks (7 achievements)
+    Career600Blocks: [],
+    Career800Blocks: [],
+    Career900Blocks: [],
+    Career1kBlocks: [],
+    Career1_2kBlocks: [],
+    Career1_5kBlocks: [],
+    Career2kBlocks: [],
+    
+    // Career 3PM (8 achievements)
+    Career600_3PM: [],
+    Career800_3PM: [],
+    Career900_3PM: [],
+    Career1k_3PM: [],
+    Career1_5k_3PM: [],
+    Career2k_3PM: [],
+    Career2_5k_3PM: [],
+    Career3k_3PM: [],
+    
+    // Seasons Played (9 achievements)
+    Seasons5: [],
+    Seasons6: [],
+    Seasons7: [],
+    Seasons8: [],
+    Seasons10: [],
+    Seasons12: [],
+    Seasons15: [],
+    Seasons18: [],
+    Seasons20: [],
+    
+    // Combo Season Variations (removing duplicates that are already defined above)
+    Season18_8: [],
+    Season20_8: [],
+    Season22_8: [],
+    Season24_10: [],
+    Season26_10: [],
+    Season28_12: [],
+    Season30_15: [],
+    Season18_4_4: [],
+    Season20_5_5: [],
+    Season22_5_5: [],
+    Season24_6_6: [],
+    Season26_6_6: [],
+    Season28_8_8: [],
+    Season16_7_4: [],
+    Season18_8_5: [],
+    Season22_10_6: [],
+    Season24_12_7: [],
+    Season0_5_0_5_0_5: [],
+    Season0_8_0_8_0_8: [],
+    Season1_0_1_0_1_0: [],
+    Season1_2_1_2_1_2: [],
     
     // Football GM achievements (exact case-sensitive matches from FBGM)
     FBAllStar: ['All-Star'],
