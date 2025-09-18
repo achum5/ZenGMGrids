@@ -254,7 +254,7 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId | null> = {
 /**
  * Map award type to achievement ID, handling different sports and naming conventions
  */
-export function mapAwardToAchievement(awardType: string, sport?: 'basketball' | 'football' | 'hockey' | 'baseball'): SeasonAchievementId | null {
+function mapAwardToAchievement(awardType: string, sport?: 'basketball' | 'football' | 'hockey' | 'baseball'): SeasonAchievementId | null {
   if (!awardType) return null;
   
   // Debug logging removed for performance
