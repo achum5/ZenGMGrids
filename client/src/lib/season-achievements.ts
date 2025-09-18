@@ -25,7 +25,6 @@ export type SeasonAchievementId =
   | 'BlocksLeader'
   // New Basketball achievements (season-aligned)
   | 'Champion'
-  | 'AllRookieTeam'
   | 'Season250ThreePM'
   // Basketball GM season statistical achievements (24 new achievements)
   | 'Season30PPG'
@@ -141,7 +140,7 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId | null> = {
   'all-defensive team': 'AllDefAny',
   'first team all-defensive': 'AllDefAny',
   'second team all-defensive': 'AllDefAny',
-  'all-rookie team': 'AllRookieTeam',
+  'all-rookie team': 'AllRookieAny',
 
   // Alternative Basketball GM naming
   'bbgm all-star': 'AllStar',
@@ -238,6 +237,16 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId | null> = {
   'All-Star Game MVP': 'HKAllStarMVP',
   'Assists Leader': 'HKAssistsLeader',
   
+  // Common variants for Basketball GM
+  'roy': 'ROY',
+  'r.o.y.': 'ROY',
+  'rookie of year': 'ROY',
+  'finals most valuable player': 'FinalsMVP',
+  'finalsmvp': 'FinalsMVP',
+  'finals m.v.p.': 'FinalsMVP',
+  'playoffs mvp': 'FinalsMVP',
+  'championship mvp': 'FinalsMVP',
+  
   // Special handling for certain achievements
   'Superstar Finals MVP': 'SFMVP', // Requires special team resolution
 };
@@ -251,7 +260,18 @@ function mapAwardToAchievement(awardType: string, sport?: 'basketball' | 'footba
   // Debug logging removed for performance
   
   // Sport-specific handling FIRST (takes priority over global mapping)
-  if (sport === 'football') {
+  if (sport === 'basketball') {
+    // Basketball GM specific mappings (case-sensitive exact matches from BBGM)
+    if (awardType === 'All-Star') return 'AllStar';
+    if (awardType === 'Most Valuable Player') return 'MVP';
+    if (awardType === 'Defensive Player of the Year') return 'DPOY';
+    if (awardType === 'Rookie of the Year') return 'ROY';
+    if (awardType === 'Sixth Man of the Year') return 'SMOY';
+    if (awardType === 'Most Improved Player') return 'MIP';
+    if (awardType === 'Finals MVP') return 'FinalsMVP';
+    if (awardType === 'All-Rookie Team') return 'AllRookieAny';
+    if (awardType === 'Won Championship') return 'Champion';
+  } else if (sport === 'football') {
     // Football GM specific mappings (case-sensitive exact matches from FBGM)
     if (awardType === 'All-Star') return 'FBAllStar';
     if (awardType === 'Most Valuable Player') return 'FBMVP';
@@ -1403,12 +1423,6 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
     label: 'Champion',
     isSeasonSpecific: true,
     minPlayers: 3
-  },
-  {
-    id: 'AllRookieTeam',
-    label: 'All-Rookie Team',
-    isSeasonSpecific: true,
-    minPlayers: 5
   },
   {
     id: 'Season250ThreePM',
