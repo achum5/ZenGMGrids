@@ -226,9 +226,6 @@ export function RulesModal({ sport }: RulesModalProps) {
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[85vh] sm:max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {isGeneralRules ? "ZenGM Grids - General Rules" : sportRules?.title}
-          </DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4 text-sm">
