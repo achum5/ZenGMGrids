@@ -199,19 +199,19 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     verbGeneric: 'shot 60%+ TS while averaging 20+ PPG in a season'
   },
   Season60eFG500FGA: {
-    label: '60%+ eFG on ≥500 FGA (Season)',
+    label: '60%+ eFG (Season)',
     short: '60% eFG/500 FGA',
     verbTeam: 'shot 60%+ eFG on 500+ field goal attempts in a season',
     verbGeneric: 'shot 60%+ eFG on 500+ field goal attempts in a season'
   },
   Season90FT250FTA: {
-    label: '90%+ FT on ≥250 FTA (Season)',
+    label: '90%+ FT (Season)',
     short: '90% FT/250 FTA',
     verbTeam: 'shot 90%+ FT on 250+ free throw attempts in a season',
     verbGeneric: 'shot 90%+ FT on 250+ free throw attempts in a season'
   },
   Season40_3PT200_3PA: {
-    label: '40%+ 3PT on ≥200 3PA (Season)',
+    label: '40%+ 3PT (Season)',
     short: '40% 3PT/200 3PA',
     verbTeam: 'shot 40%+ from three on 200+ attempts in a season',
     verbGeneric: 'shot 40%+ from three on 200+ attempts in a season'

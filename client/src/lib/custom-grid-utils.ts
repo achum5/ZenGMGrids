@@ -75,7 +75,14 @@ export function getAchievementOptions(
   return achievements
     .filter(achievement => 
       achievement.id !== 'bornOutsideUS50DC' && // Exclude problematic achievement
-      achievement.id !== 'SFMVP' // Exclude Superstar Finals MVP
+      achievement.id !== 'SFMVP' && // Exclude Superstar Finals MVP
+      achievement.id !== 'career10kRebounds' && // 10k+ career rebounds returns 0 players
+      achievement.id !== 'Season22PPG' && // 22+ ppg in a season returns 0 players
+      achievement.id !== 'RandomPoints25000pts' && // 25k+ career points returns 0 players  
+      achievement.id !== 'RandomRebounds6000trb' && // 6k+ career rebounds returns 0 players
+      achievement.id !== 'AllRookieAny' && // all-rookie team returns 0 players
+      achievement.id !== 'FinalsMVP' && // finals mvp returns 0 players
+      achievement.id !== 'ROY' // rookie of the year returns 0 players
     )
     .map(achievement => ({
       id: achievement.id,

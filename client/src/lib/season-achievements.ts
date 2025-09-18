@@ -1594,19 +1594,19 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
   },
   {
     id: 'Season60eFG500FGA',
-    label: '60%+ eFG on ≥500 FGA (Season)',
+    label: '60%+ eFG (Season)',
     isSeasonSpecific: true,
     minPlayers: 1
   },
   {
     id: 'Season90FT250FTA',
-    label: '90%+ FT on ≥250 FTA (Season)',
+    label: '90%+ FT (Season)',
     isSeasonSpecific: true,
     minPlayers: 1
   },
   {
     id: 'Season40_3PT200_3PA',
-    label: '40%+ 3PT on ≥200 3PA (Season)',
+    label: '40%+ 3PT (Season)',
     isSeasonSpecific: true,
     minPlayers: 1
   },
