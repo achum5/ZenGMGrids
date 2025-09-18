@@ -888,19 +888,42 @@ function generateAchievementBullet(
 }
 
 function generateDraftBullet(player: Player, achievementId: string): ReasonBullet | null {
-  const draftYear = player.draft?.year || 'unknown';
+  const draftInfo = player.draft;
   
   const draftLabels: Record<string, string> = {
     isPick1Overall: '#1 Overall Pick',
-    isFirstRoundPick: 'First-Round Pick', 
-    isSecondRoundPick: 'Second-Round Pick',
-    isUndrafted: 'Undrafted',
+    isFirstRoundPick: 'First Round Pick', 
+    isSecondRoundPick: 'Second Round Pick',
+    isUndrafted: 'Went Undrafted',
     draftedTeen: 'Drafted as Teenager'
   };
   
   const label = draftLabels[achievementId];
   if (!label) return null;
   
+  // Handle undrafted players - just show the year
+  if (achievementId === 'isUndrafted') {
+    const draftYear = draftInfo?.year || 'unknown';
+    return {
+      text: `${label} (${draftYear})`,
+      type: 'draft'
+    };
+  }
+  
+  // Handle drafted players - show full draft information
+  if (draftInfo?.year && draftInfo?.round && draftInfo?.pick) {
+    const draftYear = draftInfo.year;
+    const round = draftInfo.round;
+    const pick = draftInfo.pick;
+    
+    return {
+      text: `${label} (${draftYear} - Round ${round} Pick ${pick})`,
+      type: 'draft'
+    };
+  }
+  
+  // Fallback for incomplete draft data - just show year if available
+  const draftYear = draftInfo?.year || 'unknown';
   return {
     text: `${label} (${draftYear})`,
     type: 'draft'
