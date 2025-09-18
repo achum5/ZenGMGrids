@@ -713,6 +713,11 @@ function getActualDecadeYears(player: Player, achievementType: 'played' | 'debut
 
 // Generate simple career achievement bullet
 function generateSimpleCareerAchievementBullet(player: Player, achievementId: string, constraintLabel?: string): ReasonBullet | null {
+  // Handle draft achievements FIRST
+  if (['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen'].includes(achievementId)) {
+    return generateDraftBullet(player, achievementId);
+  }
+  
   // Fix 2: Handle specific career achievement patterns with actual years
   if (achievementId.includes('playedIn') && achievementId.endsWith('s')) {
     const decadeMatch = achievementId.match(/playedIn(\d{4})s/);
