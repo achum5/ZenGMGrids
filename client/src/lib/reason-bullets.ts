@@ -136,6 +136,25 @@ function isSeasonAchievement(achievementId: string): achievementId is SeasonAchi
   return Object.keys(SEASON_ACHIEVEMENT_LABELS).includes(achievementId as SeasonAchievementId);
 }
 
+// Helper function to calculate franchise count for a player
+export function getFranchiseCount(player: Player): number {
+  if (!player.stats || player.stats.length === 0) return 0;
+  
+  // Use statsTids if available (more accurate for franchise count)
+  if (player.statsTids && player.statsTids.length > 0) {
+    return player.statsTids.length;
+  }
+  
+  // Fallback: count unique team IDs from regular season stats with games played
+  const uniqueTids = new Set(
+    player.stats
+      .filter(s => !s.playoffs && (s.gp || 0) > 0)
+      .map(s => s.tid)
+  );
+  
+  return uniqueTids.size;
+}
+
 // Helper function to calculate seasons where player achieved Season* statistical thresholds
 export function getSeasonsForSeasonStatAchievement(player: Player, achievementId: SeasonAchievementId): string[] {
   if (!player.stats || player.stats.length === 0) return [];
