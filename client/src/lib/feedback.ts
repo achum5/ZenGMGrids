@@ -601,34 +601,6 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     short: 'Champion',
     verbTeam: 'won a championship',
     verbGeneric: 'won a championship'
-  },
-  
-  // Missing Basketball achievements
-  Champion: {
-    label: 'Won Championship',
-    short: 'Champion',
-    verbTeam: 'won a championship',
-    verbGeneric: 'won a championship'
-  },
-  Season250ThreePM: {
-    label: '250+ 3PM (Season)',
-    short: '250+ 3PM',
-    verbTeam: 'made 250+ three-pointers in a season',
-    verbGeneric: 'made 250+ three-pointers in a season'
-  },
-  
-  // Missing Hockey achievements
-  HKDefenseman: {
-    label: 'Best Defenseman',
-    short: 'Best Defenseman',
-    verbTeam: 'won Best Defenseman',
-    verbGeneric: 'won Best Defenseman'
-  },
-  HKFinalsMVP: {
-    label: 'Finals MVP',
-    short: 'Finals MVP',
-    verbTeam: 'won a Finals MVP',
-    verbGeneric: 'won a Finals MVP'
   }
 };
 
@@ -709,62 +681,7 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     BBAllRookie: ['All-Rookie Team'],
     BBAllLeague: ['All-League Team', 'First Team All-League', 'Second Team All-League'],
     BBPlayoffsMVP: ['Playoffs MVP', 'Finals MVP'],
-    BBChampion: ['Won Championship'],
-    
-    // Missing Basketball achievements
-    Champion: ['Won Championship', 'championship', 'won championship'],
-    Season250ThreePM: ['250+ 3PM', '250+ three-pointers', '250+ 3PM (Season)'],
-    
-    // Basketball GM season statistical achievements (24 achievements)
-    Season30PPG: ['30+ PPG', '30+ points per game', '30+ PPG (Season)'],
-    Season2000Points: ['2,000+ Points', '2000+ points', '2,000+ Points (Season)'],
-    Season300_3PM: ['300+ 3PM', '300+ three-pointers', '300+ 3PM (Season)'],
-    Season200_3PM: ['200+ 3PM', '200+ three-pointers', '200+ 3PM (Season)'],
-    Season12RPG: ['12+ RPG', '12+ rebounds per game', '12+ RPG (Season)'],
-    Season10APG: ['10+ APG', '10+ assists per game', '10+ APG (Season)'],
-    Season800Rebounds: ['800+ Rebounds', '800+ rebounds', '800+ Rebounds (Season)'],
-    Season700Assists: ['700+ Assists', '700+ assists', '700+ Assists (Season)'],
-    Season2SPG: ['2.0+ SPG', '2.0+ steals per game', '2.0+ SPG (Season)'],
-    Season2_5BPG: ['2.5+ BPG', '2.5+ blocks per game', '2.5+ BPG (Season)'],
-    Season150Steals: ['150+ Steals', '150+ steals', '150+ Steals (Season)'],
-    Season150Blocks: ['150+ Blocks', '150+ blocks', '150+ Blocks (Season)'],
-    Season200Stocks: ['200+ Stocks', '200+ steals and blocks', '200+ Stocks (Season)'],
-    Season50_40_90: ['50/40/90 Club', '50/40/90', '50/40/90 Club (Season)'],
-    Season60TS20PPG: ['60%+ TS on 20+ PPG', '60% TS/20 PPG', '60%+ TS on 20+ PPG (Season)'],
-    Season60eFG500FGA: ['60%+ eFG', '60% eFG/500 FGA', '60%+ eFG (Season)'],
-    Season90FT250FTA: ['90%+ FT', '90% FT/250 FTA', '90%+ FT (Season)'],
-    Season40_3PT200_3PA: ['40%+ 3PT', '40% 3PT/200 3PA', '40%+ 3PT (Season)'],
-    Season70Games: ['70+ Games', '70+ games played', '70+ Games Played (Season)'],
-    Season36MPG: ['36.0+ MPG', '36+ minutes per game', '36.0+ MPG (Season)'],
-    Season25_10: ['25/10 Season', '25/10', '25/10 Season (PPG/RPG)'],
-    Season25_5_5: ['25/5/5 Season', '25/5/5', '25/5/5 Season (PPG/RPG/APG)'],
-    Season20_10_5: ['20/10/5 Season', '20/10/5', '20/10/5 Season (PPG/RPG/APG)'],
-    Season1_1_1: ['1/1/1 Season', '1/1/1', '1/1/1 Season (SPG/BPG/3PM/G)'],
-    
-    // Missing Hockey achievements
-    HKDefenseman: ['Best Defenseman', 'best defenseman', 'defenseman'],
-    HKFinalsMVP: ['Finals MVP', 'finals mvp'],
-    
-    // Hockey GM season statistical achievements (19 achievements)
-    HKSeason40Goals: ['40+ Goals', '40+ goals', '40+ Goals (Season)'],
-    HKSeason60Assists: ['60+ Assists', '60+ assists', '60+ Assists (Season)'],
-    HKSeason90Points: ['90+ Points', '90+ points', '90+ Points (Season)'],
-    HKSeason25Plus: ['+25 Plus/Minus', '+25 plus/minus', '+25 Plus/Minus (Season)'],
-    HKSeason250Shots: ['250+ Shots', '250+ shots', '250+ Shots (Season)'],
-    HKSeason150Hits: ['150+ Hits', '150+ hits', '150+ Hits (Season)'],
-    HKSeason100Blocks: ['100+ Blocks', '100+ blocks', '100+ Blocks (Season)'],
-    HKSeason60Takeaways: ['60+ Takeaways', '60+ takeaways', '60+ Takeaways (Season)'],
-    HKSeason20PowerPlay: ['20+ Power-Play Points', '20+ power-play points', '20+ PP Points'],
-    HKSeason3SHGoals: ['3+ Short-Handed Goals', '3+ short-handed goals', '3+ SH Goals'],
-    HKSeason7GWGoals: ['7+ Game-Winning Goals', '7+ game-winning goals', '7+ GW Goals'],
-    HKSeason55FaceoffPct: ['55%+ Faceoff Win Rate', '55%+ faceoffs', '55%+ Faceoffs'],
-    HKSeason22TOI: ['22:00+ TOI per Game', '22+ minutes', '22:00+ TOI/Game'],
-    HKSeason70PIM: ['70+ PIM', '70+ penalty minutes', '70+ PIM (Season)'],
-    HKSeason920SavePct: ['.920+ Save Percentage', '.920+ save percentage', '.920+ SV%'],
-    HKSeason260GAA: ['≤2.60 GAA', '2.60 GAA', '≤2.60 GAA (Season)'],
-    HKSeason6Shutouts: ['6+ Shutouts', '6+ shutouts', '6+ Shutouts (Season)'],
-    HKSeason2000Saves: ['2000+ Saves', '2000+ saves', '2000+ Saves (Season)'],
-    HKSeason60Starts: ['60+ Starts', '60+ starts', '60+ Starts (Season)']
+    BBChampion: ['Won Championship']
   };
 
   const patterns = awardTypePatterns[achievementId] || [];
@@ -1053,7 +970,6 @@ function getHumanReadableAchievementText(achievementId: string): string {
     'draftedTeen': 'was drafted as a teenager',
     'bornOutsideUS50DC': 'was born outside the US (50 states + DC)',
     'played15PlusSeasons': 'played 15+ seasons',
-    'played5PlusFranchises': 'played for 5+ franchises',
     'playedInThreeDecades': 'played in three different decades',
     'playedIn1990sAnd2000s': 'played in both the 1990s and 2000s',
     'allStar35Plus': 'made All-Star team at age 35+'
