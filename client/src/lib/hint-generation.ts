@@ -828,11 +828,6 @@ function extractDecadeFromAchievement(achievementId: string): number | null {
     }
   }
   
-  // Handle special combo achievements
-  if (achievementId.includes('1990sAnd2000s')) {
-    console.log(`🎯 [Decade Detection] Special combo achievement detected: 1990s-2000s`);
-    return 1995; // Use mid-point between decades for chronological filtering
-  }
   
   console.log(`🎯 [Decade Detection] ❌ No decade pattern found in: "${achievementId}"`);
   return null;
