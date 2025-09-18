@@ -810,7 +810,7 @@ function extractDecadeFromAchievement(achievementId: string): number | null {
   // First try robust pattern matching
   const robustMatch = achievementId.match(robustDecadeRegex);
   if (robustMatch) {
-    const decade = parseInt(robustMatch[6] + '0'); // Extract 3-digit + add 0
+    const decade = parseInt(robustMatch[5] + '0'); // Extract 3-digit + add 0 (robustMatch[5] is the (\d{3}) group)
     console.log(`🎯 [Decade Detection] ✅ Robust pattern matched: ${decade}`);
     return decade;
   }
