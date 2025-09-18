@@ -409,14 +409,6 @@ function buildDecadeAchievements(
       test: (player: Player) => player.debutDecade === decade,
       minPlayers: 1  // Lowered from 5 to 1 to ensure future decades appear
     });
-    
-    // "Retired in the {YYYY}s" achievement
-    achievements.push({
-      id: `retiredIn${decadeStr}s`,
-      label: `Retired in the ${decadeStr}s`,
-      test: (player: Player) => player.retiredDecade === decade,
-      minPlayers: 1  // Lowered from 5 to 1 to ensure future decades appear
-    });
   }
   
   return achievements;
@@ -653,7 +645,7 @@ export function getAllAchievements(
   } else {
     // Basketball - remove hardcoded decade achievements from static list
     const basketballWithoutDecades = BASKETBALL_ACHIEVEMENTS.filter(a => 
-      !a.id.includes('playedIn') && !a.id.includes('debutedIn') && !a.id.includes('retiredIn') && 
+      !a.id.includes('playedIn') && !a.id.includes('debutedIn') && 
       !a.id.includes('playedInThreeDecades') && !a.id.includes('playedIn1990sAnd2000s')
     );
     achievements = [...common, ...basketballWithoutDecades];
@@ -768,14 +760,6 @@ export function playerMeetsAchievement(player: Player, achievementId: string, se
     }
   }
   
-  if (achievementId.includes('retiredIn') && achievementId.endsWith('s')) {
-    // Extract decade from achievement ID (e.g., "retiredIn1990s" -> 1990)
-    const decadeMatch = achievementId.match(/retiredIn(\d{4})s/);
-    if (decadeMatch) {
-      const decade = parseInt(decadeMatch[1]);
-      return player.retiredDecade === decade;
-    }
-  }
   
   // Handle special multi-decade achievements
   if (achievementId === 'playedInThreeDecades') {
@@ -938,9 +922,6 @@ export function calculatePlayerAchievements(player: Player, allPlayers: Player[]
   // CRITICAL: Set decade achievement flags based on player's decade data
   if (player.debutDecade !== undefined) {
     achievements[`debutedIn${player.debutDecade}s`] = true;
-  }
-  if (player.retiredDecade !== undefined) {
-    achievements[`retiredIn${player.retiredDecade}s`] = true;
   }
   if (player.decadesPlayed) {
     Array.from(player.decadesPlayed).forEach(decade => {
@@ -1251,26 +1232,6 @@ function calculateBasketballAchievements(player: Player, achievements: any): voi
     achievements.debutedIn2030s = debutDecade === 2030;
   }
   
-  // Retirement decade achievements
-  let retirementYear: number;
-  if (player.retiredYear) {
-    retirementYear = player.retiredYear;
-  } else if (regularSeasonStats.length > 0) {
-    retirementYear = Math.max(...regularSeasonStats.map(s => s.season));
-  } else {
-    retirementYear = 0;
-  }
-  
-  if (retirementYear > 0) {
-    const retiredDecade = getDecade(retirementYear);
-    achievements.retiredIn1970s = retiredDecade === 1970;
-    achievements.retiredIn1980s = retiredDecade === 1980;
-    achievements.retiredIn1990s = retiredDecade === 1990;
-    achievements.retiredIn2000s = retiredDecade === 2000;
-    achievements.retiredIn2010s = retiredDecade === 2010;
-    achievements.retiredIn2020s = retiredDecade === 2020;
-    achievements.retiredIn2030s = retiredDecade === 2030;
-  }
   
   // Multi-decade achievements
   achievements.playedInThreeDecades = playedDecades.size >= 3;

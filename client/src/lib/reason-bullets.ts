@@ -681,7 +681,7 @@ function generateSimpleSeasonAchievementBullet(player: Player, achievementId: Se
 }
 
 // Helper function to calculate actual years for decade achievements
-function getActualDecadeYears(player: Player, achievementType: 'played' | 'debuted' | 'retired'): string {
+function getActualDecadeYears(player: Player, achievementType: 'played' | 'debuted'): string {
   if (!player.stats || player.stats.length === 0) return '';
   
   const regularSeasonStats = player.stats.filter(s => !s.playoffs && (s.gp || 0) > 0);
@@ -701,10 +701,6 @@ function getActualDecadeYears(player: Player, achievementType: 'played' | 'debut
   } else if (achievementType === 'debuted') {
     // For "debuted", show the first season
     const actualYear = Math.min(...regularSeasonStats.map(s => s.season));
-    return actualYear.toString();
-  } else if (achievementType === 'retired') {
-    // For "retired", show the last season
-    const actualYear = Math.max(...regularSeasonStats.map(s => s.season));
     return actualYear.toString();
   }
   
@@ -739,20 +735,6 @@ function generateSimpleCareerAchievementBullet(player: Player, achievementId: st
       const decade = decadeMatch[1];
       const label = constraintLabel || `Debuted in the ${decade}s`;
       const actualYears = getActualDecadeYears(player, 'debuted');
-      
-      return {
-        text: actualYears ? `${label} (${actualYears})` : `${label} (${decade}s)`,
-        type: 'decade'
-      };
-    }
-  }
-  
-  if (achievementId.includes('retiredIn') && achievementId.endsWith('s')) {
-    const decadeMatch = achievementId.match(/retiredIn(\d{4})s/);
-    if (decadeMatch) {
-      const decade = decadeMatch[1];
-      const label = constraintLabel || `Retired in the ${decade}s`;
-      const actualYears = getActualDecadeYears(player, 'retired');
       
       return {
         text: actualYears ? `${label} (${actualYears})` : `${label} (${decade}s)`,
@@ -853,10 +835,6 @@ function generateAchievementBullet(
   
   if (achievementId.includes('debutedIn') && achievementId.endsWith('s')) {
     return generateDecadeBullet(player, achievementId, 'debuted');
-  }
-  
-  if (achievementId.includes('retiredIn') && achievementId.endsWith('s')) {
-    return generateDecadeBullet(player, achievementId, 'retired');
   }
   
   // Draft achievements

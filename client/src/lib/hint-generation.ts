@@ -660,8 +660,8 @@ function isCloseToConstraint(player: Player, constraint: CatTeam, seasonIndex?: 
     return isCloseSeasonStat(player, 'ast', 8, 9.9, 'average');
   }
   
-  // For decade achievements (debuted/played/retired), check adjacent decades
-  if (achievementId.includes('debutedIn') || achievementId.includes('playedIn') || achievementId.includes('retiredIn')) {
+  // For decade achievements (debuted/played), check adjacent decades
+  if (achievementId.includes('debutedIn') || achievementId.includes('playedIn')) {
     return isCloseToDecade(player, achievementId);
   }
   
@@ -800,8 +800,8 @@ function extractDecadeFromAchievement(achievementId: string): number | null {
   console.log(`🎯 [Decade Detection] Checking achievement ID: "${achievementId}"`);
   
   // Enhanced regex pattern to handle:
-  // - Basic: playedIn1990s, debutedIn2000s, retiredIn2010s
-  // - Sport prefixes: FBPlayedIn1990s, HKDebutedIn2000s, BBRetiredIn2010s  
+  // - Basic: playedIn1990s, debutedIn2000s
+  // - Sport prefixes: FBPlayedIn1990s, HKDebutedIn2000s  
   // - Alternative formats: Debut1980s, PlayedIn2010s, Retired2020s
   // - Case insensitive matching
   const robustDecadeRegex = /^(FB|HK|BB)?(Debut(ed)?|Retired?|Played)(In)?(\d{3})0s$/i;
@@ -816,10 +816,10 @@ function extractDecadeFromAchievement(achievementId: string): number | null {
   }
   
   // Check standard patterns (current codebase format)
-  if ((achievementId.includes('playedIn') || achievementId.includes('debutedIn') || achievementId.includes('retiredIn')) && 
+  if ((achievementId.includes('playedIn') || achievementId.includes('debutedIn')) && 
       achievementId.endsWith('s')) {
     
-    // Extract decade from patterns like "debutedIn2050s", "playedIn1980s", "retiredIn2000s"
+    // Extract decade from patterns like "debutedIn2050s", "playedIn1980s"
     const decadeMatch = achievementId.match(standardDecadeRegex);
     if (decadeMatch) {
       const decade = parseInt(decadeMatch[1]);
@@ -862,17 +862,12 @@ function isChronologicallyPlausibleForDecade(
   const lastSeason = playerSeasons[playerSeasons.length - 1];
   
   // Define chronological plausibility ranges based on achievement type
-  const achievementType = achievementId.includes('debutedIn') ? 'debut' :
-                          achievementId.includes('retiredIn') ? 'retired' : 'played';
+  const achievementType = achievementId.includes('debutedIn') ? 'debut' : 'played';
   
   switch (achievementType) {
     case 'debut':
       // For "debutedIn" achievements: player's first season should be within range of target
       return firstSeason >= (targetDecade - yearRange) && firstSeason <= (targetDecade + yearRange);
-      
-    case 'retired':
-      // For "retiredIn" achievements: player's last season should be within range of target
-      return lastSeason >= (targetDecade - yearRange) && lastSeason <= (targetDecade + yearRange);
       
     case 'played':
       // For "playedIn" achievements: player's career should overlap or be near target decade

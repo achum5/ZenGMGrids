@@ -974,13 +974,6 @@ function getHumanReadableAchievementText(achievementId: string): string {
     }
   }
   
-  if (achievementId.includes('retiredIn') && achievementId.endsWith('s')) {
-    const decadeMatch = achievementId.match(/retiredIn(\d{4})s/);
-    if (decadeMatch) {
-      const decade = decadeMatch[1];
-      return `retired in the ${decade}s`;
-    }
-  }
   
   // Handle age-related achievements
   if (achievementId.includes('playedAt') && achievementId.includes('Plus')) {
@@ -2227,19 +2220,6 @@ function getAchievementNegativeMessage(achievementId: string, player?: Player): 
     }
   }
   
-  if (achievementId.includes('retiredIn') && achievementId.endsWith('s')) {
-    const decadeMatch = achievementId.match(/retiredIn(\d{4})s/);
-    if (decadeMatch && player) {
-      const decade = decadeMatch[1];
-      // Try to get the actual retirement year
-      const actualRetirementYear = getPlayerRetirementYear(player);
-      if (actualRetirementYear) {
-        return `did not retire in the ${decade}s (${actualRetirementYear})`;
-      } else {
-        return `did not retire in the ${decade}s`;
-      }
-    }
-  }
   
   const messages: Record<string, string> = {
     // Basketball achievements - detailed with stats
