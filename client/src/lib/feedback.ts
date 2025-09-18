@@ -1050,7 +1050,6 @@ function getHumanReadableAchievementText(achievementId: string): string {
     'bornOutsideUS50DC': 'was born outside the US (50 states + DC)',
     'played15PlusSeasons': 'played 15+ seasons',
     'playedInThreeDecades': 'played in three different decades',
-    'playedIn1990sAnd2000s': 'played in both the 1990s and 2000s',
     'allStar35Plus': 'made All-Star team at age 35+'
   };
   

@@ -678,18 +678,6 @@ export function getAllAchievements(
       });
     }
     
-    // Add specific multi-decade combinations if relevant decades exist
-    if (minDecade <= 1990 && maxDecade >= 2000) {
-      achievements.push({
-        id: 'playedIn1990sAnd2000s',
-        label: 'Played in both 1990s & 2000s',
-        test: (player: Player) => {
-        const decades = player.decadesPlayed;
-        return (decades?.has(1990) && decades?.has(2000)) || false;
-      },
-        minPlayers: 5
-      });
-    }
   }
   
   // Add season-specific achievements if season index is available
@@ -794,9 +782,6 @@ export function playerMeetsAchievement(player: Player, achievementId: string, se
     return (player.decadesPlayed?.size || 0) >= 3;
   }
   
-  if (achievementId === 'playedIn1990sAnd2000s') {
-    return (player.decadesPlayed?.has(1990) && player.decadesPlayed?.has(2000)) || false;
-  }
 
   // First, check if it's a statistical leader achievement that needs season index
   const statisticalLeaders = ['PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader'];
@@ -1288,7 +1273,6 @@ function calculateBasketballAchievements(player: Player, achievements: any): voi
   }
   
   // Multi-decade achievements
-  achievements.playedIn1990sAnd2000s = playedDecades.has(1990) && playedDecades.has(2000);
   achievements.playedInThreeDecades = playedDecades.size >= 3;
   
   // Note: Single-season award calculations removed from game entirely
