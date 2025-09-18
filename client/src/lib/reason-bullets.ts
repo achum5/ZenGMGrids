@@ -601,40 +601,124 @@ export function generateReasonBullets(
 ): ReasonBullet[] {
   const bullets: ReasonBullet[] = [];
   
-  // Always generate separate bullet points for both constraints
-  // No special case - let both constraints be processed individually
+  // Always generate exactly 2 bullets:
+  // 1. Column constraint (top bullet) 
+  // 2. Row constraint (bottom bullet)
   
-  // Standard rule: Generate one bullet per constraint header
-  // Process constraints in order: Teams first, then season achievements, then career/misc
-  const constraints = [rowConstraint, colConstraint];
-  const teamConstraints = constraints.filter(c => c.type === 'team');
-  const seasonAchConstraints = constraints.filter(c => c.type === 'achievement' && isSeasonAchievement(c.achievementId!));
-  const otherAchConstraints = constraints.filter(c => c.type === 'achievement' && !isSeasonAchievement(c.achievementId!));
+  // Generate bullet for column constraint
+  const colBullet = generateSimpleBullet(player, colConstraint, teams);
+  if (colBullet) bullets.push(colBullet);
   
-  // 1) Team bullets first
-  for (const constraint of teamConstraints) {
-    const bullet = buildTeamBullet(player, constraint.tid!, teams, constraint.label);
-    if (bullet) bullets.push(bullet);
+  // Generate bullet for row constraint  
+  const rowBullet = generateSimpleBullet(player, rowConstraint, teams);
+  if (rowBullet) bullets.push(rowBullet);
+  
+  return bullets;
+}
+
+// Generate a simple bullet for any constraint (team or achievement)
+function generateSimpleBullet(player: Player, constraint: GridConstraint, teams: Team[]): ReasonBullet | null {
+  if (constraint.type === 'team') {
+    return generateSimpleTeamBullet(player, constraint.tid!, teams, constraint.label);
+  } else if (constraint.type === 'achievement') {
+    return generateSimpleAchievementBullet(player, constraint.achievementId!, teams, constraint.label);
+  }
+  return null;
+}
+
+// Generate simple team bullet: "Team Name (years)"
+function generateSimpleTeamBullet(player: Player, teamTid: number, teams: Team[], constraintLabel?: string): ReasonBullet | null {
+  if (!player.stats) return null;
+  
+  const teamSeasons = player.stats
+    .filter(s => s.tid === teamTid && !s.playoffs && (s.gp || 0) > 0)
+    .map(s => s.season)
+    .sort((a, b) => a - b);
+  
+  if (teamSeasons.length === 0) return null;
+  
+  const team = teams.find(t => t.tid === teamTid);
+  const teamName = constraintLabel || (team ? `${team.region} ${team.name}` : `Team ${teamTid}`);
+  
+  const seasonRange = teamSeasons.length === 1 
+    ? teamSeasons[0].toString()
+    : `${teamSeasons[0]}–${teamSeasons[teamSeasons.length - 1]}`;
+  
+  return {
+    text: `${teamName} (${seasonRange})`,
+    type: 'team'
+  };
+}
+
+// Generate simple achievement bullet: "Achievement Name (years)"
+function generateSimpleAchievementBullet(player: Player, achievementId: string, teams: Team[], constraintLabel?: string): ReasonBullet | null {
+  if (isSeasonAchievement(achievementId)) {
+    return generateSimpleSeasonAchievementBullet(player, achievementId as SeasonAchievementId, teams, constraintLabel);
+  } else {
+    return generateSimpleCareerAchievementBullet(player, achievementId, constraintLabel);
+  }
+}
+
+// Generate simple season achievement bullet
+function generateSimpleSeasonAchievementBullet(player: Player, achievementId: SeasonAchievementId, teams: Team[], constraintLabel?: string): ReasonBullet | null {
+  const achLabel = constraintLabel || SEASON_ACHIEVEMENT_LABELS[achievementId] || achievementId;
+  const seasons = getSeasonAchievementSeasons(player, achievementId, teams);
+  
+  if (seasons.length === 0) return null;
+  
+  const seasonStr = formatBulletSeasonList(seasons, false);
+  
+  return {
+    text: `${achLabel} (${seasonStr})`,
+    type: 'award'
+  };
+}
+
+// Generate simple career achievement bullet
+function generateSimpleCareerAchievementBullet(player: Player, achievementId: string, constraintLabel?: string): ReasonBullet | null {
+  // Handle specific career achievement patterns
+  if (achievementId.includes('playedIn') && achievementId.endsWith('s')) {
+    const decadeMatch = achievementId.match(/playedIn(\d{4})s/);
+    if (decadeMatch) {
+      const decade = decadeMatch[1];
+      const label = constraintLabel || `Played in the ${decade}s`;
+      return {
+        text: `${label} (${decade}s)`,
+        type: 'decade'
+      };
+    }
   }
   
-  // 2) Season achievement bullets
-  for (const constraint of seasonAchConstraints) {
-    const bullet = buildSeasonAchievementBullet(player, constraint.achievementId! as SeasonAchievementId, teams, constraint.label);
-    if (bullet) bullets.push(bullet);
+  if (achievementId.includes('debutedIn') && achievementId.endsWith('s')) {
+    const decadeMatch = achievementId.match(/debutedIn(\d{4})s/);
+    if (decadeMatch) {
+      const decade = decadeMatch[1];
+      const label = constraintLabel || `Debuted in the ${decade}s`;
+      return {
+        text: `${label} (${decade}s)`,
+        type: 'decade'
+      };
+    }
   }
   
-  // 3) Career/misc achievement bullets
-  for (const constraint of otherAchConstraints) {
-    const bullet = buildCareerAchievementBullet(player, constraint.achievementId!, teams, sport, constraint.label);
-    if (bullet) bullets.push(bullet);
+  if (achievementId.includes('retiredIn') && achievementId.endsWith('s')) {
+    const decadeMatch = achievementId.match(/retiredIn(\d{4})s/);
+    if (decadeMatch) {
+      const decade = decadeMatch[1];
+      const label = constraintLabel || `Retired in the ${decade}s`;
+      return {
+        text: `${label} (${decade}s)`,
+        type: 'decade'
+      };
+    }
   }
   
-  // Deduplicate identical bullets (if row and column are the same type/value)
-  const uniqueBullets = bullets.filter((bullet, index, array) => 
-    array.findIndex(b => b.text === bullet.text) === index
-  );
-  
-  return uniqueBullets.slice(0, 3); // Max 3 bullets
+  // For other achievements, use the constraint label or achievement ID
+  const label = constraintLabel || achievementId;
+  return {
+    text: `${label} (Career)`,
+    type: 'award'
+  };
 }
 
 // Build a team bullet: Team Name (minYear–maxYear)
@@ -794,7 +878,7 @@ function generateLongevityBullet(player: Player, achievementId: string): ReasonB
     const franchiseCount = franchiseIds.size;
     return {
       text: `played for ${franchiseCount} franchise${franchiseCount !== 1 ? 's' : ''} (5+ required)`,
-      type: franchiseCount >= 5 ? 'positive' : 'negative'
+      type: 'longevity'
     };
   }
   
@@ -807,14 +891,14 @@ function generateLongevityBullet(player: Player, achievementId: string): ReasonB
   if (achievementId === 'played15PlusSeasons') {
     return {
       text: `played ${seasons} seasons (15+ required)`,
-      type: seasons >= 15 ? 'positive' : 'negative'
+      type: 'longevity'
     };
   }
   
   if (achievementId === 'played10PlusSeasons') {
     return {
       text: `played ${seasons} seasons (10+ required)`,
-      type: seasons >= 10 ? 'positive' : 'negative'
+      type: 'longevity'
     };
   }
   
