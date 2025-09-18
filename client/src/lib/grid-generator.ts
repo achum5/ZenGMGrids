@@ -89,7 +89,7 @@ function generateGridOldRandom(leagueData: LeagueData): {
   intersections: Record<string, number[]>;
 } {
   // Retry logic to ensure all intersections have eligible players - with maximum attempt limit
-  const MAX_ATTEMPTS = 200;
+  const MAX_ATTEMPTS = 500;
   let attempt = 0;
   let lastError: Error | null = null;
   
@@ -1086,7 +1086,7 @@ function generateGridSeeded(leagueData: LeagueData): {
         }
         
         if (!found) {
-          throw new Error(`Could not find valid team for row ${i} after trying 100 candidates`);
+          throw new Error(`Could not find valid team for row ${i} after trying 500 candidates`);
         }
         
       } else if (layout.rows[i] === 'A') {
@@ -1165,7 +1165,7 @@ function generateGridSeeded(leagueData: LeagueData): {
         }
         
         if (!found) {
-          throw new Error(`Could not find valid achievement for row ${i} after trying 100 candidates`);
+          throw new Error(`Could not find valid achievement for row ${i} after trying 500 candidates`);
         }
       }
     }
@@ -1220,7 +1220,7 @@ function generateGridSeeded(leagueData: LeagueData): {
         }
         
         if (!found) {
-          throw new Error(`Could not find valid team for col ${i} after trying 100 candidates`);
+          throw new Error(`Could not find valid team for col ${i} after trying 500 candidates`);
         }
         
       } else if (layout.cols[i] === 'A') {
@@ -1299,7 +1299,7 @@ function generateGridSeeded(leagueData: LeagueData): {
         }
         
         if (!found) {
-          throw new Error(`Could not find valid achievement for col ${i} after trying 100 candidates`);
+          throw new Error(`Could not find valid achievement for col ${i} after trying 500 candidates`);
         }
       }
     }
