@@ -3,7 +3,7 @@ import type { GridConstraint } from '@/lib/feedback';
 import { type SeasonAchievementId } from '@/lib/season-achievements';
 
 // Season achievement labels for bullet display
-const SEASON_ACHIEVEMENT_LABELS: Partial<Record<SeasonAchievementId, string>> = {
+export const SEASON_ACHIEVEMENT_LABELS: Partial<Record<SeasonAchievementId, string>> = {
   // Basketball GM achievements
   AllStar: 'All-Star',
   MVP: 'MVP',
@@ -137,7 +137,7 @@ function isSeasonAchievement(achievementId: string): achievementId is SeasonAchi
 }
 
 // Helper function to calculate seasons where player achieved Season* statistical thresholds
-function getSeasonsForSeasonStatAchievement(player: Player, achievementId: SeasonAchievementId): string[] {
+export function getSeasonsForSeasonStatAchievement(player: Player, achievementId: SeasonAchievementId): string[] {
   if (!player.stats || player.stats.length === 0) return [];
   
   const qualifyingSeasons: number[] = [];
@@ -272,7 +272,7 @@ function getSeasonsForSeasonStatAchievement(player: Player, achievementId: Seaso
 }
 
 // Helper function to extract season achievement data from player
-function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchievementId, teams: Team[], teamId?: number): string[] {
+export function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchievementId, teams: Team[], teamId?: number): string[] {
   // Handle Season* statistical achievements by calculating from stats
   if (achievementId.startsWith('Season')) {
     return getSeasonsForSeasonStatAchievement(player, achievementId);
