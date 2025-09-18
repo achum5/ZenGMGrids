@@ -9,7 +9,7 @@ import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
 import { generateFeedbackMessage, type GridConstraint } from '@/lib/feedback';
 import { cellKey } from '@/lib/grid-generator';
 import { CareerTeamLogo, checkAllTeamsHaveLogos } from '@/components/CareerTeamLogo';
-import { generateReasonBullets, type ReasonBullet, SEASON_ACHIEVEMENT_LABELS, getSeasonsForSeasonStatAchievement, getSeasonAchievementSeasons, getFranchiseCount } from '@/lib/reason-bullets';
+import { generateReasonBullets, type ReasonBullet, SEASON_ACHIEVEMENT_LABELS, getSeasonsForSeasonStatAchievement, getSeasonAchievementSeasons } from '@/lib/reason-bullets';
 import { mapAwardToAchievement, type SeasonAchievementId } from '@/lib/season-achievements';
 
 type Props = {
@@ -186,15 +186,6 @@ function generatePlayerAchievements(player: Player, teams: Team[], sport: string
     if (player.achievements.draftedTeen) {
       achievements.push({ text: 'Drafted as Teenager', type: 'draft' });
     }
-  }
-  
-  // 4. Add franchise count for all players (always show actual count)
-  const franchiseCount = getFranchiseCount(player);
-  if (franchiseCount > 0) {
-    const franchiseText = franchiseCount === 1 
-      ? `Played for ${franchiseCount} Franchise` 
-      : `Played for ${franchiseCount} Franchises`;
-    achievements.push({ text: franchiseText, type: 'team' });
   }
   
   // Remove duplicates and sort by type
