@@ -112,7 +112,12 @@ const SEASON_ACHIEVEMENT_LABELS: Partial<Record<SeasonAchievementId, string>> = 
   BBAllRookie: 'All-Rookie Team',
   BBAllLeague: 'All-League Team',
   BBPlayoffsMVP: 'Playoffs MVP',
-  BBChampion: 'Won Championship'
+  BBChampion: 'Won Championship',
+
+  // Additional missing achievements
+  Champion: 'Won Championship',
+  Season250ThreePM: '250+ 3PM (Season)',
+  HKFinalsMVP: 'Finals MVP'
 };
 
 export interface ReasonBullet {
@@ -263,6 +268,11 @@ function getSeasonsForSeasonStatAchievement(player: Player, achievementId: Seaso
         
       // Baseball GM Season achievements would go here
       // Add BB achievements as needed...
+      
+      // Additional Season achievements
+      case 'Season250ThreePM':
+        if (tp >= 250) qualifyingSeasons.push(season);
+        break;
     }
   }
   
@@ -342,7 +352,13 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
     BBAllRookie: ['All-Rookie Team'],
     BBAllLeague: ['All-League Team', 'First Team All-League', 'Second Team All-League'],
     BBPlayoffsMVP: ['Playoffs MVP', 'Finals MVP'],
-    BBChampion: ['Won Championship']
+    BBChampion: ['Won Championship'],
+
+    // Additional missing achievements
+    Champion: ['Won Championship', 'won championship'],
+    Season250ThreePM: ['250+ 3PM', '250+ three-pointers', '250+ threes'],
+    HKDefenseman: ['Best Defenseman', 'best defenseman'],
+    HKFinalsMVP: ['Finals MVP', 'finals mvp']
   };
 
   const patterns = awardTypePatterns[achievementId] || [];
@@ -717,7 +733,7 @@ function generateAchievementBullet(
   }
   
   // Longevity achievements  
-  if (['played15PlusSeasons', 'played10PlusSeasons'].includes(achievementId)) {
+  if (['played15PlusSeasons', 'played10PlusSeasons', 'played5PlusFranchises'].includes(achievementId)) {
     return generateLongevityBullet(player, achievementId);
   }
   
@@ -767,11 +783,40 @@ function generateDraftBullet(player: Player, achievementId: string): ReasonBulle
 function generateLongevityBullet(player: Player, achievementId: string): ReasonBullet | null {
   if (!player.stats) return null;
   
+  if (achievementId === 'played5PlusFranchises') {
+    // Count unique franchise IDs from stats
+    const franchiseIds = new Set<number>();
+    for (const stat of player.stats) {
+      if (stat.tid !== undefined && stat.tid !== -1 && (stat.gp || 0) > 0) {
+        franchiseIds.add(stat.tid);
+      }
+    }
+    const franchiseCount = franchiseIds.size;
+    return {
+      text: `played for ${franchiseCount} franchise${franchiseCount !== 1 ? 's' : ''} (5+ required)`,
+      type: franchiseCount >= 5 ? 'positive' : 'negative'
+    };
+  }
+  
   const seasons = new Set(
     player.stats
       .filter(s => !s.playoffs && (s.gp || 0) > 0)
       .map(s => s.season)
   ).size;
+  
+  if (achievementId === 'played15PlusSeasons') {
+    return {
+      text: `played ${seasons} seasons (15+ required)`,
+      type: seasons >= 15 ? 'positive' : 'negative'
+    };
+  }
+  
+  if (achievementId === 'played10PlusSeasons') {
+    return {
+      text: `played ${seasons} seasons (10+ required)`,
+      type: seasons >= 10 ? 'positive' : 'negative'
+    };
+  }
   
   return {
     text: `Played ${seasons} Seasons`,
