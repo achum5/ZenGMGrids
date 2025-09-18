@@ -385,14 +385,6 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                             break;
                           }
                         }
-                        if (type.includes('retiredIn') && type.endsWith('s')) {
-                          const decadeMatch = type.match(/retiredIn(\d{4})s/);
-                          if (decadeMatch) {
-                            const decade = decadeMatch[1];
-                            condensedAwards.push({ text: `Retired in the ${decade}s` });
-                            break;
-                          }
-                        }
                         
                         // Handle other achievement types with improved naming  
                         let displayText = type;

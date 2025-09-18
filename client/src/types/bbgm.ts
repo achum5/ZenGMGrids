@@ -212,13 +212,6 @@ export interface Player {
     debutedIn2010s?: boolean;
     debutedIn2020s?: boolean;
     debutedIn2030s?: boolean;
-    retiredIn1970s?: boolean;
-    retiredIn1980s?: boolean;
-    retiredIn1990s?: boolean;
-    retiredIn2000s?: boolean;
-    retiredIn2010s?: boolean;
-    retiredIn2020s?: boolean;
-    retiredIn2030s?: boolean;
     playedInThreeDecades?: boolean;
   };
   // New: Season-specific data for same-season alignment

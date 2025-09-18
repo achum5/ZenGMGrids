@@ -287,8 +287,7 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
       const teamCoverage = leagueData.teamOverlaps!.achievementTeamCounts[achievement.achievementId!] || 0;
       const isStatAchievement = achievement.achievementId!.includes('career') || achievement.achievementId!.includes('season');
       const isDecadeAchievement = achievement.achievementId!.includes('playedIn') || 
-                                  achievement.achievementId!.includes('debutedIn') || 
-                                  achievement.achievementId!.includes('retiredIn');
+                                  achievement.achievementId!.includes('debutedIn');
       
       // COMPLETELY BYPASS team coverage for stat achievements
       if (isStatAchievement) {
@@ -313,8 +312,7 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
       
       // Apply decade skewing for decade achievements
       const isDecadeAchievement = achievement.achievementId!.includes('playedIn') || 
-                                  achievement.achievementId!.includes('debutedIn') || 
-                                  achievement.achievementId!.includes('retiredIn');
+                                  achievement.achievementId!.includes('debutedIn');
       
       if (isDecadeAchievement) {
         // Extract decade year from achievement ID (e.g., "playedIn2040s" -> 2040)
@@ -399,8 +397,7 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
       let weight = 1;
       
       const isDecadeAchievement = achievement.achievementId!.includes('playedIn') || 
-                                  achievement.achievementId!.includes('debutedIn') || 
-                                  achievement.achievementId!.includes('retiredIn');
+                                  achievement.achievementId!.includes('debutedIn');
       
       if (isDecadeAchievement) {
         const decadeMatch = achievement.achievementId!.match(/(\d{4})s/);
@@ -913,7 +910,7 @@ function generateGridSeeded(leagueData: LeagueData): {
         let weight = 1;
         
         // Apply decade skewing for decade achievements
-        const isDecadeAchievement = ach.id.includes('playedIn') || ach.id.includes('debutedIn') || ach.id.includes('retiredIn');
+        const isDecadeAchievement = ach.id.includes('playedIn') || ach.id.includes('debutedIn');
         
         if (isDecadeAchievement) {
           const decadeMatch = ach.id.match(/(\d{4})s/);
@@ -1006,7 +1003,7 @@ function generateGridSeeded(leagueData: LeagueData): {
     let weight = 1;
     
     // Apply decade skewing for decade achievements
-    const isDecadeAchievement = ach.id.includes('playedIn') || ach.id.includes('debutedIn') || ach.id.includes('retiredIn');
+    const isDecadeAchievement = ach.id.includes('playedIn') || ach.id.includes('debutedIn');
     
     if (isDecadeAchievement) {
       const decadeMatch = ach.id.match(/(\d{4})s/);
@@ -1340,8 +1337,7 @@ function simpleHash(str: string): number {
 // Extract decade from achievement ID (e.g., "playedIn2040s" -> 2040)
 function extractDecadeFromAchievement(achievementId: string): number | null {
   const isDecadeAchievement = achievementId.includes('playedIn') || 
-                              achievementId.includes('debutedIn') || 
-                              achievementId.includes('retiredIn');
+                              achievementId.includes('debutedIn');
   
   if (!isDecadeAchievement) return null;
   
