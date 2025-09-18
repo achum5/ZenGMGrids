@@ -661,7 +661,13 @@ function generateSimpleAchievementBullet(player: Player, achievementId: string, 
 
 // Generate simple season achievement bullet
 function generateSimpleSeasonAchievementBullet(player: Player, achievementId: SeasonAchievementId, teams: Team[], constraintLabel?: string): ReasonBullet | null {
-  const achLabel = constraintLabel || SEASON_ACHIEVEMENT_LABELS[achievementId] || achievementId;
+  let achLabel = constraintLabel || SEASON_ACHIEVEMENT_LABELS[achievementId] || achievementId;
+  
+  // Fix 1: Remove "(Season)" suffix from achievement labels
+  if (achLabel.endsWith(' (Season)')) {
+    achLabel = achLabel.slice(0, -9); // Remove " (Season)"
+  }
+  
   const seasons = getSeasonAchievementSeasons(player, achievementId, teams);
   
   if (seasons.length === 0) return null;
@@ -674,16 +680,49 @@ function generateSimpleSeasonAchievementBullet(player: Player, achievementId: Se
   };
 }
 
+// Helper function to calculate actual years for decade achievements
+function getActualDecadeYears(player: Player, achievementType: 'played' | 'debuted' | 'retired'): string {
+  if (!player.stats || player.stats.length === 0) return '';
+  
+  const regularSeasonStats = player.stats.filter(s => !s.playoffs && (s.gp || 0) > 0);
+  if (regularSeasonStats.length === 0) return '';
+  
+  if (achievementType === 'played') {
+    // For "played", show the year span or range
+    const seasons = regularSeasonStats.map(s => s.season).sort((a, b) => a - b);
+    const firstSeason = seasons[0];
+    const lastSeason = seasons[seasons.length - 1];
+    
+    if (firstSeason === lastSeason) {
+      return firstSeason.toString();
+    } else {
+      return `${firstSeason}–${lastSeason}`;
+    }
+  } else if (achievementType === 'debuted') {
+    // For "debuted", show the first season
+    const actualYear = Math.min(...regularSeasonStats.map(s => s.season));
+    return actualYear.toString();
+  } else if (achievementType === 'retired') {
+    // For "retired", show the last season
+    const actualYear = Math.max(...regularSeasonStats.map(s => s.season));
+    return actualYear.toString();
+  }
+  
+  return '';
+}
+
 // Generate simple career achievement bullet
 function generateSimpleCareerAchievementBullet(player: Player, achievementId: string, constraintLabel?: string): ReasonBullet | null {
-  // Handle specific career achievement patterns
+  // Fix 2: Handle specific career achievement patterns with actual years
   if (achievementId.includes('playedIn') && achievementId.endsWith('s')) {
     const decadeMatch = achievementId.match(/playedIn(\d{4})s/);
     if (decadeMatch) {
       const decade = decadeMatch[1];
       const label = constraintLabel || `Played in the ${decade}s`;
+      const actualYears = getActualDecadeYears(player, 'played');
+      
       return {
-        text: `${label} (${decade}s)`,
+        text: actualYears ? `${label} (${actualYears})` : `${label} (${decade}s)`,
         type: 'decade'
       };
     }
@@ -694,8 +733,10 @@ function generateSimpleCareerAchievementBullet(player: Player, achievementId: st
     if (decadeMatch) {
       const decade = decadeMatch[1];
       const label = constraintLabel || `Debuted in the ${decade}s`;
+      const actualYears = getActualDecadeYears(player, 'debuted');
+      
       return {
-        text: `${label} (${decade}s)`,
+        text: actualYears ? `${label} (${actualYears})` : `${label} (${decade}s)`,
         type: 'decade'
       };
     }
@@ -706,8 +747,10 @@ function generateSimpleCareerAchievementBullet(player: Player, achievementId: st
     if (decadeMatch) {
       const decade = decadeMatch[1];
       const label = constraintLabel || `Retired in the ${decade}s`;
+      const actualYears = getActualDecadeYears(player, 'retired');
+      
       return {
-        text: `${label} (${decade}s)`,
+        text: actualYears ? `${label} (${actualYears})` : `${label} (${decade}s)`,
         type: 'decade'
       };
     }
