@@ -9,8 +9,7 @@ import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
 import { generateFeedbackMessage, type GridConstraint } from '@/lib/feedback';
 import { cellKey } from '@/lib/grid-generator';
 import { CareerTeamLogo, checkAllTeamsHaveLogos } from '@/components/CareerTeamLogo';
-import { generateReasonBullets, type ReasonBullet, SEASON_ACHIEVEMENT_LABELS, getSeasonsForSeasonStatAchievement, getSeasonAchievementSeasons } from '@/lib/reason-bullets';
-import { mapAwardToAchievement, type SeasonAchievementId } from '@/lib/season-achievements';
+import { generateReasonBullets } from '@/lib/reason-bullets';
 
 type Props = {
   open: boolean;
@@ -45,175 +44,11 @@ function teamNameAtSeason(teamsByTid: Map<number, Team>, tid: number, season: nu
   return region ? `${region} ${name}` : name;
 }
 
-// Comprehensive achievement generation using centralized helpers
-function generatePlayerAchievements(player: Player, teams: Team[], sport: string = 'basketball'): ReasonBullet[] {
-  const achievements: ReasonBullet[] = [];
-  
-  // 1. Process all award-based achievements using centralized mapping
-  const processedAchievements = new Set<string>();
-  
-  if (player.awards && player.awards.length > 0) {
-    // Group awards by achievement ID to get proper labels and years
-    const achievementGroups: Partial<Record<SeasonAchievementId, number[]>> = {};
-    
-    player.awards.forEach(award => {
-      const achievementId = mapAwardToAchievement(award.type, sport as any);
-      if (achievementId && SEASON_ACHIEVEMENT_LABELS[achievementId]) {
-        if (!achievementGroups[achievementId]) {
-          achievementGroups[achievementId] = [];
-        }
-        if (award.season) {
-          achievementGroups[achievementId].push(award.season);
-        }
-      }
-    });
-    
-    // Convert grouped achievements to bullets with proper formatting
-    Object.entries(achievementGroups).forEach(([achievementIdStr, seasons]) => {
-      const achievementId = achievementIdStr as SeasonAchievementId;
-      const label = SEASON_ACHIEVEMENT_LABELS[achievementId];
-      if (label && seasons.length > 0) {
-        const sortedSeasons = seasons.sort((a, b) => a - b);
-        const yearText = sortedSeasons.length > 1 ? `(${sortedSeasons.join(', ')})` : `(${sortedSeasons[0]})`;
-        const countPrefix = sortedSeasons.length > 1 ? `${sortedSeasons.length}x ` : '';
-        
-        achievements.push({
-          text: `${countPrefix}${label} ${yearText}`,
-          type: 'award'
-        });
-        processedAchievements.add(achievementId);
-      }
-    });
-  }
-  
-  // 2. Process ALL season statistical achievements using centralized helpers
-  const allSeasonAchievementIds = Object.keys(SEASON_ACHIEVEMENT_LABELS) as SeasonAchievementId[];
-  
-  allSeasonAchievementIds.forEach(achievementId => {
-    // Skip if already processed from awards
-    if (processedAchievements.has(achievementId)) return;
-    
-    // Check if this is a statistical achievement that needs to be calculated
-    if (achievementId.startsWith('Season')) {
-      const qualifyingSeasons = getSeasonsForSeasonStatAchievement(player, achievementId);
-      if (qualifyingSeasons.length > 0) {
-        const label = SEASON_ACHIEVEMENT_LABELS[achievementId];
-        if (label) {
-          const yearText = qualifyingSeasons.length > 1 ? `(${qualifyingSeasons.join(', ')})` : `(${qualifyingSeasons[0]})`;
-          
-          achievements.push({
-            text: `${label} ${yearText}`,
-            type: 'award'
-          });
-        }
-      }
-    }
-    // For non-Season achievements, use the centralized helper
-    else {
-      const qualifyingSeasons = getSeasonAchievementSeasons(player, achievementId, teams);
-      if (qualifyingSeasons.length > 0) {
-        const label = SEASON_ACHIEVEMENT_LABELS[achievementId];
-        if (label) {
-          const yearText = qualifyingSeasons.length > 1 ? `(${qualifyingSeasons.join(', ')})` : `(${qualifyingSeasons[0]})`;
-          const countPrefix = qualifyingSeasons.length > 1 ? `${qualifyingSeasons.length}x ` : '';
-          
-          achievements.push({
-            text: `${countPrefix}${label} ${yearText}`,
-            type: 'award'
-          });
-        }
-      }
-    }
-  });
-  
-  // 3. Process career achievements (no years needed)
-  if (player.achievements) {
-    // Career statistical milestones
-    if (player.achievements.career20kPoints) {
-      achievements.push({ text: '20,000+ Career Points', type: 'category' });
-    }
-    if (player.achievements.career10kRebounds) {
-      achievements.push({ text: '10,000+ Career Rebounds', type: 'category' });
-    }
-    if (player.achievements.career5kAssists) {
-      achievements.push({ text: '5,000+ Career Assists', type: 'category' });
-    }
-    if (player.achievements.career2kSteals) {
-      achievements.push({ text: '2,000+ Career Steals', type: 'category' });
-    }
-    if (player.achievements.career1500Blocks) {
-      achievements.push({ text: '1,500+ Career Blocks', type: 'category' });
-    }
-    if (player.achievements.career2kThrees) {
-      achievements.push({ text: '2,000+ Made Threes', type: 'category' });
-    }
-    
-    // Special honors
-    if (player.achievements.isHallOfFamer) {
-      achievements.push({ text: 'Hall of Fame', type: 'award' });
-    }
-    if (player.achievements.threePointContestWinner) {
-      achievements.push({ text: '3-Point Contest Champion', type: 'award' });
-    }
-    if (player.achievements.dunkContestWinner) {
-      achievements.push({ text: 'Dunk Contest Champion', type: 'award' });
-    }
-    
-    // Longevity achievements
-    if (player.achievements.playedAtAge40Plus) {
-      achievements.push({ text: 'Played at Age 40+', type: 'longevity' });
-    }
-    if (player.achievements.played15PlusSeasons) {
-      achievements.push({ text: 'Played 15+ Seasons', type: 'longevity' });
-    }
-    if (player.achievements.played10PlusSeasons) {
-      achievements.push({ text: 'Played 10+ Seasons', type: 'longevity' });
-    }
-    
-    // Draft achievements
-    if (player.achievements.isPick1Overall) {
-      achievements.push({ text: '#1 Overall Pick', type: 'draft' });
-    }
-    if (player.achievements.isFirstRoundPick) {
-      achievements.push({ text: 'First Round Pick', type: 'draft' });
-    }
-    if (player.achievements.isSecondRoundPick) {
-      achievements.push({ text: 'Second Round Pick', type: 'draft' });
-    }
-    if (player.achievements.isUndrafted) {
-      achievements.push({ text: 'Went Undrafted', type: 'draft' });
-    }
-    if (player.achievements.draftedTeen) {
-      achievements.push({ text: 'Drafted as Teenager', type: 'draft' });
-    }
-  }
-  
-  // Remove duplicates and sort by type
-  const uniqueAchievements = achievements.filter((achievement, index, self) => 
-    index === self.findIndex(a => a.text === achievement.text)
-  );
-  
-  // Sort: awards first, then categories, then by alphabetical order
-  return uniqueAchievements.sort((a, b) => {
-    if (a.type === 'award' && b.type !== 'award') return -1;
-    if (a.type !== 'award' && b.type === 'award') return 1;
-    if (a.type === 'category' && b.type !== 'category') return -1;
-    if (a.type !== 'category' && b.type === 'category') return 1;
-    return a.text.localeCompare(b.text);
-  });
-}
-
 export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers = [], puzzleSeed = "", rows = [], cols = [], currentCellKey = "", sport, isGridCompleted = false }: Props) {
   if (!player) return null;
 
   // Create team lookup map for efficient lookups - defensive check for teams array
   const teamsByTid = new Map(Array.isArray(teams) ? teams.map(team => [team.tid, team]) : []);
-
-  // Generate comprehensive achievement bullets for all players
-  const allAchievements = useMemo(() => {
-    if (!player) return [];
-    return generatePlayerAchievements(player, teams, sport || 'basketball');
-  }, [player.pid, player.awards, player.stats, player.achievements, teams, sport]);
 
   // Memoize expensive calculations
   const modalData = useMemo(() => {
@@ -458,21 +293,6 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
         </DialogHeader>
 
         <div className="mt-4 flex-1 overflow-y-auto min-h-0 space-y-4">
-          {/* Achievements Section */}
-          {allAchievements.length > 0 && (
-            <div data-testid="section-achievements">
-              <h3 className="font-semibold text-base mb-2">Achievements</h3>
-              <div className="space-y-1 text-sm text-muted-foreground">
-                {allAchievements.map((achievement, index) => (
-                  <div key={index} className="flex items-start gap-2" data-testid={`achievement-bullet-${index}`}>
-                    <span className="text-xs leading-5">•</span>
-                    <span className="leading-5">{achievement.text}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          
           {/* Awards */}
           {player.awards && player.awards.length > 0 && (
             <div>
@@ -612,23 +432,6 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                     </Badge>
                   ));
                 })()}
-              </div>
-            </div>
-          )}
-
-          <Separator className="my-4" />
-
-          {/* Achievements */}
-          {allAchievements.length > 0 && (
-            <div>
-              <h3 className="font-semibold text-base mb-2">Achievements</h3>
-              <div className="space-y-1 text-sm text-muted-foreground">
-                {allAchievements.map((bullet, index) => (
-                  <div key={index} className="flex items-start gap-2" data-testid={`achievement-bullet-${index}`}>
-                    <span className="text-xs leading-5 mt-0.5">•</span>
-                    <span className="leading-5">{bullet.text}</span>
-                  </div>
-                ))}
               </div>
             </div>
           )}
