@@ -601,6 +601,32 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     short: 'Champion',
     verbTeam: 'won a championship',
     verbGeneric: 'won a championship'
+  },
+
+  // Additional missing achievements
+  Champion: {
+    label: 'Won Championship',
+    short: 'Champion',
+    verbTeam: 'won a championship',
+    verbGeneric: 'won a championship'
+  },
+  Season250ThreePM: {
+    label: '250+ 3PM (Season)',
+    short: '250+ 3PM',
+    verbTeam: 'made 250+ three-pointers in a season',
+    verbGeneric: 'made 250+ three-pointers in a season'
+  },
+  HKDefenseman: {
+    label: 'Best Defenseman',
+    short: 'Best Defenseman',
+    verbTeam: 'won Best Defenseman',
+    verbGeneric: 'won Best Defenseman'
+  },
+  HKFinalsMVP: {
+    label: 'Finals MVP',
+    short: 'Finals MVP',
+    verbTeam: 'won a Finals MVP',
+    verbGeneric: 'won a Finals MVP'
   }
 };
 
@@ -681,7 +707,60 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     BBAllRookie: ['All-Rookie Team'],
     BBAllLeague: ['All-League Team', 'First Team All-League', 'Second Team All-League'],
     BBPlayoffsMVP: ['Playoffs MVP', 'Finals MVP'],
-    BBChampion: ['Won Championship']
+    BBChampion: ['Won Championship'],
+
+    // Additional missing achievements
+    Champion: ['Won Championship', 'won championship'],
+    Season250ThreePM: ['250+ 3PM', '250+ three-pointers', '250+ threes'],
+    HKDefenseman: ['Best Defenseman', 'best defenseman'],
+    HKFinalsMVP: ['Finals MVP', 'finals mvp'],
+
+    // All missing Season achievements from LSP errors
+    Season30PPG: ['30+ PPG', '30 points per game'],
+    Season2000Points: ['2000+ Points', '2000 points'],
+    Season300_3PM: ['300+ 3PM', '300 three-pointers'],
+    Season200_3PM: ['200+ 3PM', '200 three-pointers'],
+    Season12RPG: ['12+ RPG', '12 rebounds per game'],
+    Season10APG: ['10+ APG', '10 assists per game'],
+    Season800Rebounds: ['800+ Rebounds', '800 rebounds'],
+    Season700Assists: ['700+ Assists', '700 assists'],
+    Season2SPG: ['2+ SPG', '2 steals per game'],
+    Season2_5BPG: ['2.5+ BPG', '2.5 blocks per game'],
+    Season150Steals: ['150+ Steals', '150 steals'],
+    Season150Blocks: ['150+ Blocks', '150 blocks'],
+    Season200Stocks: ['200+ Stocks', '200 steals+blocks'],
+    Season50_40_90: ['50/40/90 Season', '50-40-90'],
+    Season60TS20PPG: ['60% TS (20+ PPG)', '60 true shooting'],
+    Season60eFG500FGA: ['60% eFG (500+ FGA)', '60 effective FG'],
+    Season90FT250FTA: ['90% FT (250+ FTA)', '90 free throw'],
+    Season40_3PT200_3PA: ['40% 3PT (200+ 3PA)', '40 three-point'],
+    Season70Games: ['70+ Games', '70 games'],
+    Season36MPG: ['36+ MPG', '36 minutes per game'],
+    Season25_10: ['25/10 Season (PPG/RPG)', '25-10 season'],
+    Season25_5_5: ['25/5/5 Season (PPG/RPG/APG)', '25-5-5 season'],
+    Season20_10_5: ['20/10/5 Season (PPG/RPG/APG)', '20-10-5 season'],
+    Season1_1_1: ['1/1/1 Season (PPG/RPG/APG)', '1-1-1 season'],
+    
+    // Hockey achievements  
+    HKSeason40Goals: ['40+ Goals', '40 goals'],
+    HKSeason60Assists: ['60+ Assists', '60 assists'],
+    HKSeason90Points: ['90+ Points', '90 points'],
+    HKSeason25Plus: ['25+ Plus/Minus', '+25 plus-minus'],
+    HKSeason250Shots: ['250+ Shots', '250 shots'],
+    HKSeason150Hits: ['150+ Hits', '150 hits'],
+    HKSeason100Blocks: ['100+ Blocks', '100 blocks'],
+    HKSeason60Takeaways: ['60+ Takeaways', '60 takeaways'],
+    HKSeason20PowerPlay: ['20+ PP Goals', '20 power play goals'],
+    HKSeason3SHGoals: ['3+ SH Goals', '3 short-handed goals'],
+    HKSeason7GWGoals: ['7+ GW Goals', '7 game-winning goals'],
+    HKSeason55FaceoffPct: ['55%+ Faceoff %', '55% faceoff'],
+    HKSeason22TOI: ['22+ TOI/GP', '22 minutes time on ice'],
+    HKSeason70PIM: ['70+ PIM', '70 penalty minutes'],
+    HKSeason920SavePct: ['.920+ Save %', '920 save percentage'],
+    HKSeason260GAA: ['2.60- GAA', '2.60 goals against'],
+    HKSeason6Shutouts: ['6+ Shutouts', '6 shutouts'],
+    HKSeason2000Saves: ['2000+ Saves', '2000 saves'],
+    HKSeason60Starts: ['60+ Starts', '60 starts']
   };
 
   const patterns = awardTypePatterns[achievementId] || [];
@@ -2037,6 +2116,7 @@ function getAchievementPositiveMessage(achievementId: string, player?: Player): 
     isHallOfFamer: "is in the Hall of Fame",
     played10PlusSeasons: getSeasonsMessage('played10PlusSeasons', player!, true),
     played15PlusSeasons: getSeasonsMessage('played15PlusSeasons', player!, true),
+    played5PlusFranchises: "played for 5+ franchises",
     
     // Football achievements - detailed with stats
     career300PassTDs: getFootballPositiveMessage('career300PassTDs', player),
@@ -2214,6 +2294,7 @@ function getAchievementNegativeMessage(achievementId: string, player?: Player): 
     isHallOfFamer: "is not in the Hall of Fame",
     played10PlusSeasons: player ? getSeasonsMessage('played10PlusSeasons', player, false) : "did not play 10+ seasons",
     played15PlusSeasons: player ? getSeasonsMessage('played15PlusSeasons', player, false) : "did not play 15+ seasons",
+    played5PlusFranchises: "did not play for 5+ franchises",
     
     // Football - Passing
     career300PassTDs: getFootballNegativeMessage('career300PassTDs', player) || "never threw 300+ career TDs",
