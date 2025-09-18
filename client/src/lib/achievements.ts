@@ -436,7 +436,7 @@ const NUMERICAL_ACHIEVEMENT_CONFIGS: Record<string, { career?: Record<string, St
   basketball: {
     career: {
       points: { 
-        thresholds: [1000, 2000, 3000, 5000, 7500, 10000, 12500, 15000, 17500, 20000, 22500, 25000, 30000, 35000, 40000, 45000, 50000],
+        thresholds: [3000, 5000, 7500, 10000, 12500, 15000, 17500, 20000, 22500, 25000, 30000, 35000, 40000, 45000, 50000],
         label: (n: number) => `${n.toLocaleString()}+ Career Points`,
         testField: 'pts'
       },
