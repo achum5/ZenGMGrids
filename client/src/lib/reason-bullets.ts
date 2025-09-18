@@ -597,19 +597,19 @@ export function generateReasonBullets(
   
   // 1) Team bullets first
   for (const constraint of teamConstraints) {
-    const bullet = buildTeamBullet(player, constraint.tid!, teams);
+    const bullet = buildTeamBullet(player, constraint.tid!, teams, constraint.label);
     if (bullet) bullets.push(bullet);
   }
   
   // 2) Season achievement bullets
   for (const constraint of seasonAchConstraints) {
-    const bullet = buildSeasonAchievementBullet(player, constraint.achievementId! as SeasonAchievementId, teams);
+    const bullet = buildSeasonAchievementBullet(player, constraint.achievementId! as SeasonAchievementId, teams, constraint.label);
     if (bullet) bullets.push(bullet);
   }
   
   // 3) Career/misc achievement bullets
   for (const constraint of otherAchConstraints) {
-    const bullet = buildCareerAchievementBullet(player, constraint.achievementId!, teams, sport);
+    const bullet = buildCareerAchievementBullet(player, constraint.achievementId!, teams, sport, constraint.label);
     if (bullet) bullets.push(bullet);
   }
   
@@ -622,7 +622,7 @@ export function generateReasonBullets(
 }
 
 // Build a team bullet: Team Name (minYear–maxYear)
-function buildTeamBullet(player: Player, teamTid: number, teams: Team[]): ReasonBullet | null {
+function buildTeamBullet(player: Player, teamTid: number, teams: Team[], constraintLabel?: string): ReasonBullet | null {
   if (!player.stats) return null;
   
   const teamSeasons = player.stats
@@ -633,7 +633,7 @@ function buildTeamBullet(player: Player, teamTid: number, teams: Team[]): Reason
   if (teamSeasons.length === 0) return null;
   
   const team = teams.find(t => t.tid === teamTid);
-  const teamName = team ? `${team.region} ${team.name}` : `Team ${teamTid}`;
+  const teamName = constraintLabel || (team ? `${team.region} ${team.name}` : `Team ${teamTid}`);
   
   const seasonRange = teamSeasons.length === 1 
     ? teamSeasons[0].toString()
@@ -646,8 +646,8 @@ function buildTeamBullet(player: Player, teamTid: number, teams: Team[]): Reason
 }
 
 // Build a season achievement bullet: Award Label (season list with playoff teams for Finals/CFMVP)
-function buildSeasonAchievementBullet(player: Player, achievementId: SeasonAchievementId, teams: Team[]): ReasonBullet | null {
-  const achLabel = SEASON_ACHIEVEMENT_LABELS[achievementId];
+function buildSeasonAchievementBullet(player: Player, achievementId: SeasonAchievementId, teams: Team[], constraintLabel?: string): ReasonBullet | null {
+  const achLabel = constraintLabel || SEASON_ACHIEVEMENT_LABELS[achievementId];
   const seasons = getSeasonAchievementSeasons(player, achievementId, teams);
   
   if (seasons.length === 0) return null;
@@ -665,9 +665,9 @@ function buildSeasonAchievementBullet(player: Player, achievementId: SeasonAchie
 }
 
 // Build a career/misc achievement bullet: Award Label (value)
-function buildCareerAchievementBullet(player: Player, achievementId: string, teams: Team[], sport: string): ReasonBullet | null {
+function buildCareerAchievementBullet(player: Player, achievementId: string, teams: Team[], sport: string, constraintLabel?: string): ReasonBullet | null {
   // Use existing achievement bullet generation logic
-  return generateAchievementBullet(player, achievementId, teams, sport);
+  return generateAchievementBullet(player, achievementId, teams, sport, constraintLabel);
 }
 
 // Legacy function for compatibility
@@ -678,12 +678,12 @@ function generateCategoryBullet(
   sport: string
 ): ReasonBullet | null {
   if (constraint.type === 'team') {
-    return buildTeamBullet(player, constraint.tid!, teams);
+    return buildTeamBullet(player, constraint.tid!, teams, constraint.label);
   } else if (constraint.type === 'achievement') {
     if (isSeasonAchievement(constraint.achievementId!)) {
-      return buildSeasonAchievementBullet(player, constraint.achievementId! as SeasonAchievementId, teams);
+      return buildSeasonAchievementBullet(player, constraint.achievementId! as SeasonAchievementId, teams, constraint.label);
     } else {
-      return buildCareerAchievementBullet(player, constraint.achievementId!, teams, sport);
+      return buildCareerAchievementBullet(player, constraint.achievementId!, teams, sport, constraint.label);
     }
   }
   
@@ -695,7 +695,8 @@ function generateAchievementBullet(
   player: Player,
   achievementId: string,
   teams: Team[],
-  sport: string
+  sport: string,
+  constraintLabel?: string
 ): ReasonBullet | null {
   // Decade achievements
   if (achievementId.includes('playedIn') && achievementId.endsWith('s')) {
@@ -722,17 +723,17 @@ function generateAchievementBullet(
   
   // Career thresholds
   if (achievementId.startsWith('career')) {
-    return generateCareerThresholdBullet(player, achievementId, sport);
+    return generateCareerThresholdBullet(player, achievementId, sport, constraintLabel);
   }
   
   // Season thresholds
   if (achievementId.startsWith('season')) {
-    return generateSeasonThresholdBullet(player, achievementId, sport);
+    return generateSeasonThresholdBullet(player, achievementId, sport, constraintLabel);
   }
   
   // Awards
   if (['wonMVP', 'hasMVP', 'wonDPOY', 'hasDPOY', 'wonROY', 'hasROY', 'wonFinalsMVP', 'wonSixMOY', 'hasAllStar', 'madeAllStar', 'wonChampionship'].includes(achievementId)) {
-    return generateAwardBullet(player, achievementId, sport);
+    return generateAwardBullet(player, achievementId, sport, constraintLabel);
   }
   
   // Hall of Fame
@@ -832,7 +833,7 @@ function generateDecadeBullet(player: Player, achievementId: string, type: 'play
   };
 }
 
-function generateCareerThresholdBullet(player: Player, achievementId: string, sport: string): ReasonBullet | null {
+function generateCareerThresholdBullet(player: Player, achievementId: string, sport: string, constraintLabel?: string): ReasonBullet | null {
   const thresholds: Record<string, { label: string; stat: string }> = {
     // Basketball
     career20kPoints: { label: '20,000+ Career Points', stat: 'pts' },
@@ -874,6 +875,9 @@ function generateCareerThresholdBullet(player: Player, achievementId: string, sp
   const careerStats = getCareerStats(player, [threshold.stat]);
   const actualValue = careerStats[threshold.stat] || 0;
   
+  // Use constraint label if provided, otherwise fall back to hardcoded label
+  const displayLabel = constraintLabel || threshold.label;
+  
   // Debug logging for hockey assists specifically
   if (threshold.stat === 'a' && player.name) {
     console.log(`🏒 CAREER ASSISTS DEBUG: ${player.name}, career total: ${actualValue}`);
@@ -884,12 +888,12 @@ function generateCareerThresholdBullet(player: Player, achievementId: string, sp
   }
   
   return {
-    text: `${threshold.label} (${formatNumber(actualValue)})`,
+    text: `${displayLabel} (${formatNumber(actualValue)})`,
     type: 'category'
   };
 }
 
-function generateSeasonThresholdBullet(player: Player, achievementId: string, sport: string): ReasonBullet | null {
+function generateSeasonThresholdBullet(player: Player, achievementId: string, sport: string, constraintLabel?: string): ReasonBullet | null {
   const thresholds: Record<string, { label: string; stat: string; isMin?: boolean }> = {
     // Basketball  
     season30ppg: { label: '30+ PPG', stat: 'pts' }, // Will be calculated per game
@@ -931,7 +935,7 @@ function generateSeasonThresholdBullet(player: Player, achievementId: string, sp
   
   // Handle per-game stats for basketball
   if (['season30ppg', 'season10apg', 'season15rpg', 'season3bpg', 'season25spg'].includes(achievementId)) {
-    return generatePerGameBullet(player, achievementId, threshold);
+    return generatePerGameBullet(player, achievementId, threshold, constraintLabel);
   }
   
   const bestSeason = getBestSeason(player, threshold.stat, threshold.isMin);
@@ -946,13 +950,16 @@ function generateSeasonThresholdBullet(player: Player, achievementId: string, sp
     valueStr = bestSeason.value.toFixed(2);
   }
   
+  // Use constraint label if provided, otherwise fall back to hardcoded label
+  const displayLabel = constraintLabel || threshold.label;
+  
   return {
-    text: `${threshold.label} (${valueStr}) in ${bestSeason.year}`,
+    text: `${displayLabel} (${valueStr}) in ${bestSeason.year}`,
     type: 'category'
   };
 }
 
-function generatePerGameBullet(player: Player, achievementId: string, threshold: { label: string; stat: string }): ReasonBullet | null {
+function generatePerGameBullet(player: Player, achievementId: string, threshold: { label: string; stat: string }, constraintLabel?: string): ReasonBullet | null {
   if (!player.stats) return null;
   
   let bestValue = 0;
@@ -975,13 +982,16 @@ function generatePerGameBullet(player: Player, achievementId: string, threshold:
   
   if (bestYear === 0) return null;
   
+  // Use constraint label if provided, otherwise fall back to hardcoded label
+  const displayLabel = constraintLabel || threshold.label;
+  
   return {
-    text: `${threshold.label} (${bestValue.toFixed(1)}) in ${bestYear}`,
+    text: `${displayLabel} (${bestValue.toFixed(1)}) in ${bestYear}`,
     type: 'category'
   };
 }
 
-function generateAwardBullet(player: Player, achievementId: string, sport: string): ReasonBullet | null {
+function generateAwardBullet(player: Player, achievementId: string, sport: string, constraintLabel?: string): ReasonBullet | null {
   const awardMap: Record<string, { label: string; searchTerms: string[] }> = {
     // Basketball
     wonMVP: { label: 'MVP', searchTerms: ['MVP', 'Most Valuable Player'] },
@@ -1012,8 +1022,11 @@ function generateAwardBullet(player: Player, achievementId: string, sport: strin
     seasonText = `${seasons.slice(0, 3).join(', ')}, +${seasons.length - 3}`;
   }
   
+  // Use constraint label if provided, otherwise fall back to hardcoded label
+  const displayLabel = constraintLabel || award.label;
+  
   return {
-    text: `${award.label} (${seasonText})`,
+    text: `${displayLabel} (${seasonText})`,
     type: 'award'
   };
 }
