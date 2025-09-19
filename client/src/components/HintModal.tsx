@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 interface HintModalProps {
   open: boolean;
   onClose: () => void;
-  onSelectPlayer: (player: Player) => void;
+  onSelectPlayer: (player: Player, isFromHintModal: boolean) => void;
   cellKey: string;
   rowConstraint: CatTeam;
   colConstraint: CatTeam;
@@ -26,6 +26,7 @@ interface HintModalProps {
   leagueData?: LeagueData;
   reshuffleCount: number;
   onReshuffle: (cellKey: string) => void;
+  onHintGenerated?: (cellKey: string, suggestedPlayerPid: number) => void;
 }
 
 export function HintModal({
@@ -43,7 +44,8 @@ export function HintModal({
   gridId,
   leagueData,
   reshuffleCount,
-  onReshuffle
+  onReshuffle,
+  onHintGenerated
 }: HintModalProps) {
   const { toast } = useToast();
   const [hintResult, setHintResult] = useState<HintGenerationResult | null>(null);
@@ -72,6 +74,12 @@ export function HintModal({
       );
       
       setHintResult(result);
+      
+      // Notify parent of the suggested player (the correct answer)
+      const correctOption = result.options.find(option => option.isCorrect);
+      if (correctOption && onHintGenerated) {
+        onHintGenerated(cellKey, correctOption.player.pid);
+      }
     } catch (error) {
       console.error('Error generating hints:', error);
       toast({
@@ -92,10 +100,10 @@ export function HintModal({
     }
   }, [open, reshuffleCount, generateHints]);
 
-  // Handle player selection - simple and direct
+  // Handle player selection - mark as coming from hint modal
   const handlePlayerSelect = (player: Player) => {
-    console.log('Player selected:', player.name);
-    onSelectPlayer(player);
+    console.log('Player selected from hint modal:', player.name);
+    onSelectPlayer(player, true);
     // Let parent component handle closing
   };
 

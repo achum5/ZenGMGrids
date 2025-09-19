@@ -306,6 +306,8 @@ export interface CellState {
   player?: Player;
   rarity?: number; // 1-100
   points?: number; // same as rarity
+  hintSuggestedPlayer?: number; // PID of player suggested in hint
+  usedHint?: boolean; // whether this cell was solved using the hint
 }
 
 export interface SearchablePlayer {

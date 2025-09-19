@@ -378,10 +378,19 @@ export function GridSection({
                                 // Use positional key format like home.tsx uses
                                 const positionalKey = `${rowIndex}-${colIndex}`;
                                 const cellState = cells[positionalKey];
-                                return cellState?.correct && cellState?.rarity && (
-                                  <div className="absolute top-1 left-1 z-10">
-                                    <RarityChip value={cellState.rarity} />
-                                  </div>
+                                return (
+                                  <>
+                                    {cellState?.correct && cellState?.rarity && (
+                                      <div className="absolute top-1 left-1 z-10">
+                                        <RarityChip value={cellState.rarity} />
+                                      </div>
+                                    )}
+                                    {cellState?.usedHint && (
+                                      <div className="absolute top-1 right-1 z-10 bg-yellow-500 text-black text-[8px] sm:text-[10px] font-bold px-1 py-0.5 rounded shadow-sm" data-testid={`hint-indicator-${rowIndex}-${colIndex}`}>
+                                        HM
+                                      </div>
+                                    )}
+                                  </>
                                 );
                               })()}
                             </div>

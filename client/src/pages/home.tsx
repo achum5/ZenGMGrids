@@ -146,7 +146,7 @@ export default function Home() {
 
   // Handle player selection - moved up to avoid temporal dead zone
   // Core selection logic with explicit cellKey
-  const handleSelectPlayerForCell = useCallback((cellKey: string, player: Player) => {
+  const handleSelectPlayerForCell = useCallback((cellKey: string, player: Player, isFromHintModal: boolean = false) => {
     // Check if player already used
     if (usedPids.has(player.pid)) {
       toast({
@@ -219,7 +219,12 @@ export default function Home() {
       setHintModeLocked(true);
     }
 
-    // Update cell state with locking
+    // Check if this matches a hint suggestion
+    const currentCell = cells[cellKey];
+    const matchesHintSuggestion = currentCell?.hintSuggestedPlayer === player.pid;
+    const usedHint = (isFromHintModal && isCorrect) || (matchesHintSuggestion && isCorrect);
+
+    // Update cell state with locking and hint tracking
     setCells(prev => ({
       ...prev,
       [cellKey]: {
@@ -230,6 +235,8 @@ export default function Home() {
         player: player,
         rarity: isCorrect ? rarity : undefined,
         points: isCorrect ? points : undefined,
+        hintSuggestedPlayer: currentCell?.hintSuggestedPlayer, // Preserve hint suggestion
+        usedHint: usedHint,
       },
     }));
     
@@ -241,17 +248,17 @@ export default function Home() {
   const handleSelectPlayer = useCallback((player: Player) => {
     if (!currentCellKey) return;
     
-    handleSelectPlayerForCell(currentCellKey, player);
+    handleSelectPlayerForCell(currentCellKey, player, false);
     setCurrentCellKey(null);
     setSearchModalOpen(false);
   }, [currentCellKey, handleSelectPlayerForCell]);
 
   // Handle hint player selection (route through existing guess logic)
-  const handleHintPlayerSelect = useCallback((player: Player) => {
+  const handleHintPlayerSelect = useCallback((player: Player, isFromHintModal: boolean) => {
     if (!hintCellKey) return;
     
     // Use explicit cellKey to avoid race conditions
-    handleSelectPlayerForCell(hintCellKey, player);
+    handleSelectPlayerForCell(hintCellKey, player, isFromHintModal);
     
     // Close hint modal after successful selection
     handleHintModalClose();
@@ -262,6 +269,17 @@ export default function Home() {
     setReshuffleCounts(prev => ({
       ...prev,
       [cellKey]: (prev[cellKey] || 0) + 1
+    }));
+  }, []);
+
+  // Handle hint generated - store suggested player in cell state
+  const handleHintGenerated = useCallback((cellKey: string, suggestedPlayerPid: number) => {
+    setCells(prev => ({
+      ...prev,
+      [cellKey]: {
+        ...prev[cellKey],
+        hintSuggestedPlayer: suggestedPlayerPid,
+      },
     }));
   }, []);
 
@@ -1164,6 +1182,7 @@ export default function Home() {
           leagueData={leagueData}
           reshuffleCount={reshuffleCounts[hintCellKey] || 0}
           onReshuffle={handleHintReshuffle}
+          onHintGenerated={handleHintGenerated}
         />
         
         <PlayerModal
