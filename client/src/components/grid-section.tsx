@@ -40,7 +40,6 @@ interface GridSectionProps {
   giveUpPressed?: boolean; // Track if Give Up has been pressed
   hintMode: boolean; // Hint mode state
   onHintModeChange: (enabled: boolean) => void; // Hint mode toggle handler
-  hintModeLocked?: boolean; // Whether hint mode is locked
 }
 
 // Calculate total score from correct guesses
@@ -68,7 +67,6 @@ export function GridSection({
   giveUpPressed = false,
   hintMode,
   onHintModeChange,
-  hintModeLocked = false,
 }: GridSectionProps) {
   const totalScore = calculateScore(cells);
   
@@ -434,7 +432,6 @@ export function GridSection({
             id="hint-mode"
             checked={hintMode}
             onCheckedChange={onHintModeChange}
-            disabled={hintModeLocked}
             data-testid="switch-hint-mode"
           />
           <Label 
