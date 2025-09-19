@@ -412,7 +412,7 @@ export function GridSection({
             >
               <Share2 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden xs:inline">Share/Import Grid</span>
-              <span className="xs:hidden">Share/Import Grid</span>
+              <span className="xs:hidden">Share Grid</span>
             </Button>
           ) : (
             (<div />) // Empty div to maintain grid structure
