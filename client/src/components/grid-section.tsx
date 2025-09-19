@@ -223,7 +223,6 @@ export function GridSection({
           )}
         </Button>
       </div>
-
       <Card>
         <CardContent className="p-3 md:p-6">
           {/* Grid Container with expanded max-width */}
@@ -400,7 +399,6 @@ export function GridSection({
           </div>
         </CardContent>
       </Card>
-
       {/* Three-column layout: Share - Hint Mode - Custom */}
       <div className="grid grid-cols-3 items-center mt-4">
         {/* Share/Import Grid button (left) */}
@@ -414,10 +412,10 @@ export function GridSection({
             >
               <Share2 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden xs:inline">Share/Import Grid</span>
-              <span className="xs:hidden">Share</span>
+              <span className="xs:hidden">Share/Import Grid</span>
             </Button>
           ) : (
-            <div /> // Empty div to maintain grid structure
+            (<div />) // Empty div to maintain grid structure
           )}
         </div>
 
@@ -453,7 +451,7 @@ export function GridSection({
               <span className="xs:hidden">Custom</span>
             </Button>
           ) : (
-            <div /> // Empty div to maintain grid structure
+            (<div />) // Empty div to maintain grid structure
           )}
         </div>
       </div>
