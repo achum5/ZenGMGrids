@@ -214,6 +214,8 @@ export default function Home() {
     const currentCell = cells[cellKey];
     const matchesHintSuggestion = currentCell?.hintSuggestedPlayer === player.pid;
     const usedHint = (isFromHintModal && isCorrect) || (matchesHintSuggestion && isCorrect);
+    
+    // Check if this matches a hint suggestion and set usedHint accordingly
 
     // Update cell state with locking and hint tracking
     setCells(prev => ({
@@ -265,14 +267,26 @@ export default function Home() {
 
   // Handle hint generated - store suggested player in cell state
   const handleHintGenerated = useCallback((cellKey: string, suggestedPlayerPid: number) => {
-    setCells(prev => ({
-      ...prev,
-      [cellKey]: {
-        ...prev[cellKey],
-        hintSuggestedPlayer: suggestedPlayerPid,
-      },
-    }));
-  }, []);
+    setCells(prev => {
+      return {
+        ...prev,
+        [cellKey]: {
+          // Ensure we have a base cell structure, even if the cell didn't exist before
+          name: prev[cellKey]?.name || '',
+          correct: prev[cellKey]?.correct,
+          locked: prev[cellKey]?.locked || false,
+          guessed: prev[cellKey]?.guessed || false,
+          player: prev[cellKey]?.player,
+          rarity: prev[cellKey]?.rarity,
+          points: prev[cellKey]?.points,
+          autoFilled: prev[cellKey]?.autoFilled,
+          usedHint: prev[cellKey]?.usedHint,
+          // Store the hint suggestion
+          hintSuggestedPlayer: suggestedPlayerPid,
+        },
+      };
+    });
+  }, [byPid]);
 
   // Helper function to build and cache player rankings for a cell
   const buildRankCacheForCell = useCallback((cellKey: string): Array<{player: Player, rarity: number}> => {
