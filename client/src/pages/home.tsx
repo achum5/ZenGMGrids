@@ -1191,33 +1191,7 @@ export default function Home() {
           cellKey={hintCellKey}
           rowConstraint={hintRowConstraint!}
           colConstraint={hintColConstraint!}
-          eligiblePlayerIds={(() => {
-            // Calculate live eligiblePlayerIds using correct logic (not cached intersections)
-            if (!hintRowConstraint || !hintColConstraint || !leagueData) return [];
-            
-            const rowIntersectionConstraint: IntersectionConstraint = {
-              type: hintRowConstraint.type,
-              id: hintRowConstraint.type === 'team' ? hintRowConstraint.tid! : hintRowConstraint.achievementId!,
-              label: hintRowConstraint.label
-            };
-            
-            const colIntersectionConstraint: IntersectionConstraint = {
-              type: hintColConstraint.type,
-              id: hintColConstraint.type === 'team' ? hintColConstraint.tid! : hintColConstraint.achievementId!,
-              label: hintColConstraint.label
-            };
-            
-            const eligiblePidsSet = calculateOptimizedIntersection(
-              rowIntersectionConstraint,
-              colIntersectionConstraint,
-              leagueData.players || [],
-              leagueData.teams || [],
-              leagueData.seasonIndex,
-              false // Return Set, not count
-            ) as Set<number>;
-            
-            return Array.from(eligiblePidsSet);
-          })()}
+          eligiblePlayerIds={intersections[hintCellKey] || []}
           allPlayers={leagueData?.players || []}
           byPid={byPid}
           teams={leagueData?.teams || []}
