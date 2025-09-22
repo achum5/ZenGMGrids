@@ -345,6 +345,19 @@ export function calculateOptimizedIntersection(
         }
       }
       
+      // Debug logging for this specific case
+      if (rowConstraint.id === 'played15PlusSeasons' && colConstraint.id === 'Season70Games') {
+        console.log(`🚨 INTERSECTION CALC DEBUG:`, {
+          careerAchievementId: rowConstraint.id,
+          seasonAchievementId: colConstraint.id,
+          careerPlayersCount: careerAchievementPlayers.size,
+          seasonPlayersCount: seasonAchievementPlayers.size,
+          seasonIndexExists: !!seasonIndex,
+          seasonIndexKeys: Object.keys(seasonIndex).length,
+          sampleSeasonAchievementPlayers: Array.from(seasonAchievementPlayers).slice(0, 5)
+        });
+      }
+      
       if (returnCount) {
         result = intersectSetsCount(careerAchievementPlayers, seasonAchievementPlayers);
       } else {
