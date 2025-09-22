@@ -829,6 +829,15 @@ export default function Home() {
       if (rowConstraint && colConstraint) {
         // Check if there are eligible players for this cell
         const eligiblePids = intersections[positionalKey] || [];
+        console.log(`🚨 INTERSECTION DEBUG for ${positionalKey}:`, {
+          positionalKey,
+          rowConstraint: rowConstraint.label,
+          colConstraint: colConstraint.label,
+          eligibleCount: eligiblePids.length,
+          rowAchievementId: rowConstraint.achievementId,
+          colAchievementId: colConstraint.achievementId
+        });
+        
         if (eligiblePids.length === 0) {
           toast({
             title: 'No eligible players for this square.',
