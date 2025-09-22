@@ -810,9 +810,29 @@ export default function Home() {
       const colConstraint = cols[colIndex];
       
       if (rowConstraint && colConstraint) {
-        // Check if there are eligible players for this cell
-        const eligiblePids = intersections[positionalKey] || [];
-        if (eligiblePids.length === 0) {
+        // Check if there are eligible players for this cell using CURRENT LOGIC (not cached intersections)
+        const rowIntersectionConstraint: IntersectionConstraint = {
+          type: rowConstraint.type,
+          id: rowConstraint.type === 'team' ? rowConstraint.tid! : rowConstraint.achievementId!,
+          label: rowConstraint.label
+        };
+        
+        const colIntersectionConstraint: IntersectionConstraint = {
+          type: colConstraint.type,
+          id: colConstraint.type === 'team' ? colConstraint.tid! : colConstraint.achievementId!,
+          label: colConstraint.label
+        };
+        
+        const eligiblePidsCount = calculateOptimizedIntersection(
+          rowIntersectionConstraint,
+          colIntersectionConstraint,
+          leagueData?.players || [],
+          leagueData?.teams || [],
+          leagueData?.seasonIndex,
+          true // Return count
+        ) as number;
+        
+        if (eligiblePidsCount === 0) {
           toast({
             title: 'No eligible players for this square.',
             variant: 'destructive',
