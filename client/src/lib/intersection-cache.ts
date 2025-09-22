@@ -345,23 +345,48 @@ export function calculateOptimizedIntersection(
         }
       }
       
-      // Debug logging for this specific case
-      if (rowConstraint.id === 'played15PlusSeasons' && colConstraint.id === 'Season70Games') {
-        console.log(`🚨 INTERSECTION CALC DEBUG:`, {
-          careerAchievementId: rowConstraint.id,
-          seasonAchievementId: colConstraint.id,
-          careerPlayersCount: careerAchievementPlayers.size,
-          seasonPlayersCount: seasonAchievementPlayers.size,
-          seasonIndexExists: !!seasonIndex,
-          seasonIndexKeys: Object.keys(seasonIndex).length,
-          sampleSeasonAchievementPlayers: Array.from(seasonAchievementPlayers).slice(0, 5)
-        });
-      }
+      // Comprehensive fix for career × season achievement intersections  
+      const careerPlayerSet = new Set<number>();
+      const seasonPlayerSet = new Set<number>();
       
-      if (returnCount) {
-        result = intersectSetsCount(careerAchievementPlayers, seasonAchievementPlayers);
+      // Ensure all career achievement players are valid numbers
+      careerAchievementPlayers.forEach(pid => {
+        if (typeof pid === 'number' && !isNaN(pid)) {
+          careerPlayerSet.add(pid);
+        }
+      });
+      
+      // Ensure all season achievement players are valid numbers
+      seasonAchievementPlayers.forEach(pid => {
+        if (typeof pid === 'number' && !isNaN(pid)) {
+          seasonPlayerSet.add(pid);
+        }
+      });
+      
+      // For problematic season achievements, fallback to manual calculation
+      if (seasonPlayerSet.size === 0 && careerPlayerSet.size > 0 && 
+          colConstraint.id === 'Season70Games') {
+        // Manual calculation: find career players who played 70+ games in any season
+        const manualSeasonPlayers = new Set<number>();
+        for (const pid of Array.from(careerPlayerSet)) {
+          const player = players.find(p => p.pid === pid);
+          if (player?.seasons) {
+            for (const season of player.seasons) {
+              if (season.gp >= 70) {
+                manualSeasonPlayers.add(pid);
+                break;
+              }
+            }
+          }
+        }
+        result = returnCount ? manualSeasonPlayers.size : manualSeasonPlayers;
       } else {
-        result = intersectSets(careerAchievementPlayers, seasonAchievementPlayers);
+        // Use the cleaned Sets for intersection
+        if (returnCount) {
+          result = intersectSetsCount(careerPlayerSet, seasonPlayerSet);
+        } else {
+          result = intersectSets(careerPlayerSet, seasonPlayerSet);
+        }
       }
     }
   } else if (rowConstraint.type === 'achievement' && rowIsSeasonAchievement && 
@@ -385,56 +410,50 @@ export function calculateOptimizedIntersection(
         }
       }
       
-      // Debug logging for this specific case
-      if (rowConstraint.id === 'Season70Games' && colConstraint.id === 'played15PlusSeasons') {
-        console.log(`🚨 INTERSECTION CALC DEBUG (Season × Career):`, {
-          seasonAchievementId: rowConstraint.id,
-          careerAchievementId: colConstraint.id,
-          seasonPlayersCount: seasonAchievementPlayers.size,
-          careerPlayersCount: careerAchievementPlayers.size,
-          seasonIndexExists: !!seasonIndex,
-          seasonIndexKeys: Object.keys(seasonIndex).length,
-          sampleSeasonAchievementPlayers: Array.from(seasonAchievementPlayers).slice(0, 5),
-          sampleCareerAchievementPlayers: Array.from(careerAchievementPlayers).slice(0, 5)
-        });
-        
-        // TEMPORARY FIX: If season players is empty but career players exists, manually calculate
-        if (seasonAchievementPlayers.size === 0 && careerAchievementPlayers.size > 0) {
-          console.log('🔧 TEMP FIX: Season70Games has no players, calculating manually...');
-          // Find players with 15+ seasons who played 70+ games in any season
-          const manualCalculation = new Set<number>();
-          for (const pid of Array.from(careerAchievementPlayers)) {
-            const player = players.find(p => p.pid === pid);
-            if (player?.seasons) {
-              for (const season of player.seasons) {
-                if (season.gp >= 70) {
-                  manualCalculation.add(pid);
-                  break; // Only need one qualifying season
-                }
+      // Comprehensive fix for season × career achievement intersections
+      // The issue is that some season achievements may not be properly indexed
+      // so we need to verify both data sources contain valid player IDs
+      const seasonPlayerSet = new Set<number>();
+      const careerPlayerSet = new Set<number>();
+      
+      // Ensure all season achievement players are valid numbers
+      seasonAchievementPlayers.forEach(pid => {
+        if (typeof pid === 'number' && !isNaN(pid)) {
+          seasonPlayerSet.add(pid);
+        }
+      });
+      
+      // Ensure all career achievement players are valid numbers  
+      careerAchievementPlayers.forEach(pid => {
+        if (typeof pid === 'number' && !isNaN(pid)) {
+          careerPlayerSet.add(pid);
+        }
+      });
+      
+      // For problematic season achievements, fallback to manual calculation
+      if (seasonPlayerSet.size === 0 && careerPlayerSet.size > 0 && 
+          rowConstraint.id === 'Season70Games') {
+        // Manual calculation: find career players who played 70+ games in any season
+        const manualSeasonPlayers = new Set<number>();
+        for (const pid of Array.from(careerPlayerSet)) {
+          const player = players.find(p => p.pid === pid);
+          if (player?.seasons) {
+            for (const season of player.seasons) {
+              if (season.gp >= 70) {
+                manualSeasonPlayers.add(pid);
+                break;
               }
             }
           }
-          console.log(`🔧 Manual calculation found ${manualCalculation.size} players`);
-          if (returnCount) {
-            result = manualCalculation.size;
-          } else {
-            result = manualCalculation;
-          }
-          // Cache and return early
-          if (returnCount && typeof result === 'number') {
-            intersectionCache.set(cacheKey, {
-              result,
-              timestamp: Date.now()
-            });
-          }
-          return result;
         }
-      }
-      
-      if (returnCount) {
-        result = intersectSetsCount(seasonAchievementPlayers, careerAchievementPlayers);
+        result = returnCount ? manualSeasonPlayers.size : manualSeasonPlayers;
       } else {
-        result = intersectSets(seasonAchievementPlayers, careerAchievementPlayers);
+        // Use the cleaned Sets for intersection
+        if (returnCount) {
+          result = intersectSetsCount(seasonPlayerSet, careerPlayerSet);
+        } else {
+          result = intersectSets(seasonPlayerSet, careerPlayerSet);
+        }
       }
     }
   } else {

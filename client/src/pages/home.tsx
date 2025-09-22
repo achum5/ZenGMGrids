@@ -215,17 +215,6 @@ export default function Home() {
     const matchesHintSuggestion = currentCell?.hintSuggestedPlayer === player.pid;
     const usedHint = (isFromHintModal && isCorrect) || (matchesHintSuggestion && isCorrect);
     
-    // Debug logging for hint tracking
-    console.log(`🔍 HINT DEBUG for ${player.name}:`, {
-      cellKey,
-      playerPid: player.pid,
-      currentCell,
-      hintSuggestedPlayer: currentCell?.hintSuggestedPlayer,
-      matchesHintSuggestion,
-      isFromHintModal,
-      isCorrect,
-      usedHint
-    });
     
     // Check if this matches a hint suggestion and set usedHint accordingly
 
@@ -279,12 +268,6 @@ export default function Home() {
 
   // Handle hint generated - store suggested player in cell state
   const handleHintGenerated = useCallback((cellKey: string, suggestedPlayerPid: number) => {
-    console.log(`💡 HINT GENERATED for cell ${cellKey}:`, {
-      cellKey,
-      suggestedPlayerPid,
-      suggestedPlayer: byPid[suggestedPlayerPid]?.name || 'Unknown'
-    });
-    
     setCells(prev => {
       return {
         ...prev,
@@ -829,15 +812,6 @@ export default function Home() {
       if (rowConstraint && colConstraint) {
         // Check if there are eligible players for this cell
         const eligiblePids = intersections[positionalKey] || [];
-        console.log(`🚨 INTERSECTION DEBUG for ${positionalKey}:`, {
-          positionalKey,
-          rowConstraint: rowConstraint.label,
-          colConstraint: colConstraint.label,
-          eligibleCount: eligiblePids.length,
-          rowAchievementId: rowConstraint.achievementId,
-          colAchievementId: colConstraint.achievementId
-        });
-        
         if (eligiblePids.length === 0) {
           toast({
             title: 'No eligible players for this square.',
