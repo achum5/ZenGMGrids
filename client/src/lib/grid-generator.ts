@@ -1764,9 +1764,29 @@ function buildOppositeAxisForSeed(
         }
       } else {
         // Standard evaluation for career achievements or mixed career/season
-        eligiblePlayers = players.filter(p => 
-          evaluateConstraintPair(p, rowConstraint, colConstraint)
-        );
+        // USE THE SAME LOGIC AS FIXED MAIN GRID (calculateOptimizedIntersection)
+        const rowIntersectionConstraint: IntersectionConstraint = {
+          type: rowConstraint.type,
+          id: rowConstraint.type === 'team' ? rowConstraint.tid! : rowConstraint.achievementId!,
+          label: rows[row].label
+        };
+        
+        const colIntersectionConstraint: IntersectionConstraint = {
+          type: colConstraint.type,
+          id: colConstraint.type === 'team' ? colConstraint.tid! : colConstraint.achievementId!,
+          label: cols[col].label
+        };
+        
+        const eligiblePidsSet = calculateOptimizedIntersection(
+          rowIntersectionConstraint,
+          colIntersectionConstraint,
+          players,
+          teams,
+          seasonIndex,
+          false // Return Set, not count
+        ) as Set<number>;
+        
+        eligiblePlayers = players.filter(p => eligiblePidsSet.has(p.pid));
       }
       
       intersections[key] = eligiblePlayers.map(p => p.pid);
