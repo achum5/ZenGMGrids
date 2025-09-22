@@ -1271,6 +1271,11 @@ function calculateCommonAchievements(player: Player, achievements: any): void {
   achievements.played10PlusSeasons = seasonCount >= 10;
   achievements.played15PlusSeasons = seasonCount >= 15;
   
+  // DEBUG: Log for the first few players with 15+ seasons
+  if (seasonCount >= 15 && Math.random() < 0.01) {
+    console.log(`🐛 [calculateCommonAchievements] Player ${player.name} has ${seasonCount} seasons, played15PlusSeasons: ${achievements.played15PlusSeasons}`);
+  }
+  
   
   // Location - check if born outside the 50 US states + DC
   achievements.bornOutsideUS50DC = isBornOutsideUS50DC(player.born);
