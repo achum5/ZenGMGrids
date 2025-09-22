@@ -332,6 +332,11 @@ export function calculateOptimizedIntersection(
     } else {
       const careerAchievementPlayers = buildPlayersByAchievement(players, seasonIndex).get(rowConstraint.id as string) || new Set();
       
+      // DEBUG: Log career achievement players
+      if (rowConstraint.id === 'played15PlusSeasons') {
+        console.log(`🐛 [Career Achievement] ${rowConstraint.id} has ${careerAchievementPlayers.size} players`);
+      }
+      
       // Get all players with the season achievement
       const seasonAchievementPlayers = new Set<number>();
       for (const seasonStr of Object.keys(seasonIndex)) {
@@ -345,8 +350,17 @@ export function calculateOptimizedIntersection(
         }
       }
       
+      // DEBUG: Log season achievement players
+      if (colConstraint.id === 'Season70Games') {
+        console.log(`🐛 [Season Achievement] ${colConstraint.id} has ${seasonAchievementPlayers.size} players`);
+      }
+      
       if (returnCount) {
         result = intersectSetsCount(careerAchievementPlayers, seasonAchievementPlayers);
+        // DEBUG: Log intersection result
+        if (rowConstraint.id === 'played15PlusSeasons' && colConstraint.id === 'Season70Games') {
+          console.log(`🐛 [Intersection] ${rowConstraint.id} × ${colConstraint.id} = ${result} players`);
+        }
       } else {
         result = intersectSets(careerAchievementPlayers, seasonAchievementPlayers);
       }
@@ -358,6 +372,11 @@ export function calculateOptimizedIntersection(
       result = returnCount ? 0 : new Set();
     } else {
       const careerAchievementPlayers = buildPlayersByAchievement(players, seasonIndex).get(colConstraint.id as string) || new Set();
+      
+      // DEBUG: Log career achievement players
+      if (colConstraint.id === 'played15PlusSeasons') {
+        console.log(`🐛 [Career Achievement] ${colConstraint.id} has ${careerAchievementPlayers.size} players`);
+      }
       
       // Get all players with the season achievement
       const seasonAchievementPlayers = new Set<number>();
@@ -372,8 +391,17 @@ export function calculateOptimizedIntersection(
         }
       }
       
+      // DEBUG: Log season achievement players
+      if (rowConstraint.id === 'Season70Games') {
+        console.log(`🐛 [Season Achievement] ${rowConstraint.id} has ${seasonAchievementPlayers.size} players`);
+      }
+      
       if (returnCount) {
         result = intersectSetsCount(seasonAchievementPlayers, careerAchievementPlayers);
+        // DEBUG: Log intersection result
+        if (rowConstraint.id === 'Season70Games' && colConstraint.id === 'played15PlusSeasons') {
+          console.log(`🐛 [Intersection] ${rowConstraint.id} × ${colConstraint.id} = ${result} players`);
+        }
       } else {
         result = intersectSets(seasonAchievementPlayers, careerAchievementPlayers);
       }
