@@ -616,12 +616,29 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
         }
       }
       
-      // Debug logging removed for performance - was causing verbose logs for every player evaluation
-      const eligiblePids = players
-        .filter((p, index) => {
-          return evaluateConstraintPair(p, rowConstraint, colConstraint);
-        })
-        .map(p => p.pid);
+      // USE THE SAME LOGIC AS CREATE A GRID (calculateOptimizedIntersection)
+      const rowIntersectionConstraint: IntersectionConstraint = {
+        type: rowConstraint.type,
+        id: rowConstraint.type === 'team' ? rowConstraint.tid! : rowConstraint.achievementId!,
+        label: row.label
+      };
+      
+      const colIntersectionConstraint: IntersectionConstraint = {
+        type: colConstraint.type,
+        id: colConstraint.type === 'team' ? colConstraint.tid! : colConstraint.achievementId!,
+        label: col.label
+      };
+      
+      const eligiblePidsSet = calculateOptimizedIntersection(
+        rowIntersectionConstraint,
+        colIntersectionConstraint,
+        players,
+        teams,
+        leagueData.seasonIndex,
+        false // Return Set, not count
+      ) as Set<number>;
+      
+      const eligiblePids = Array.from(eligiblePidsSet);
       
       if (eligiblePids.length === 0) {
         throw new Error(`No eligible players for intersection ${row.label} × ${col.label}`);
