@@ -841,6 +841,14 @@ export default function Home() {
         }
         
         
+        // DEBUG: Check intersection availability before opening hint modal
+        const availablePlayerIds = intersections[positionalKey] || [];
+        console.log(`🐛 [HINT MODAL DEBUG] Cell ${positionalKey}:`);
+        console.log(`   Row: ${rowConstraint.label} (${rowConstraint.id})`);
+        console.log(`   Col: ${colConstraint.label} (${colConstraint.id})`);
+        console.log(`   Available players: ${availablePlayerIds.length}`);
+        console.log(`   Intersection keys available:`, Object.keys(intersections));
+        
         // Open hint modal
         setHintCellKey(positionalKey);
         setHintRowConstraint(rowConstraint);
