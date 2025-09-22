@@ -1076,7 +1076,8 @@ function generateGridSeeded(leagueData: LeagueData): {
               { type: 'team', tid: team.tid, label: team.name || `Team ${team.tid}` },
               colConstraint,
               players,
-              seasonIndex
+              seasonIndex,
+              teams
             );
             
             if (intersection.length === 0) {
@@ -1154,7 +1155,8 @@ function generateGridSeeded(leagueData: LeagueData): {
               { type: 'achievement', achievementId: ach.id, label: ach.label },
               colConstraint,
               players,
-              seasonIndex
+              seasonIndex,
+              teams
             );
             
             if (intersection.length === 0) {
@@ -1210,7 +1212,8 @@ function generateGridSeeded(leagueData: LeagueData): {
               rowConstraint,
               { type: 'team', tid: team.tid, label: team.name || `Team ${team.tid}` },
               players,
-              seasonIndex
+              seasonIndex,
+              teams
             );
             
             if (intersection.length === 0) {
@@ -1288,7 +1291,8 @@ function generateGridSeeded(leagueData: LeagueData): {
               rowConstraint,
               { type: 'achievement', achievementId: ach.id, label: ach.label },
               players,
-              seasonIndex
+              seasonIndex,
+              teams
             );
             
             if (intersection.length === 0) {
@@ -1329,7 +1333,7 @@ function generateGridSeeded(leagueData: LeagueData): {
   for (let row = 0; row < 3; row++) {
     for (let col = 0; col < 3; col++) {
       const key = `${row}-${col}`;
-      const eligiblePlayers = calculateIntersectionSimple(rows[row], cols[col], players, seasonIndex);
+      const eligiblePlayers = calculateIntersectionSimple(rows[row], cols[col], players, seasonIndex, teams);
       intersections[key] = eligiblePlayers.map((p: Player) => p.pid);
       console.log(`Intersection ${rows[row].label} × ${cols[col].label}: ${eligiblePlayers.length} eligible players`);
     }
@@ -1424,7 +1428,8 @@ function calculateIntersectionSimple(
   rowConstraint: any,
   colConstraint: any,
   players: Player[],
-  seasonIndex?: SeasonIndex
+  seasonIndex?: SeasonIndex,
+  teams?: Team[]
 ): Player[] {
   // Use optimized intersection calculation
   const rowIntersectionConstraint: IntersectionConstraint = {
@@ -1444,7 +1449,7 @@ function calculateIntersectionSimple(
     rowIntersectionConstraint,
     colIntersectionConstraint,
     players,
-    [], // teams array not used in this context
+    teams || [], // Use teams parameter if available
     seasonIndex,
     false // Return Set, not count
   ) as Set<number>;
