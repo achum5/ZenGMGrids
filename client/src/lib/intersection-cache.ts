@@ -345,48 +345,10 @@ export function calculateOptimizedIntersection(
         }
       }
       
-      // Comprehensive fix for career × season achievement intersections  
-      const careerPlayerSet = new Set<number>();
-      const seasonPlayerSet = new Set<number>();
-      
-      // Ensure all career achievement players are valid numbers
-      careerAchievementPlayers.forEach(pid => {
-        if (typeof pid === 'number' && !isNaN(pid)) {
-          careerPlayerSet.add(pid);
-        }
-      });
-      
-      // Ensure all season achievement players are valid numbers
-      seasonAchievementPlayers.forEach(pid => {
-        if (typeof pid === 'number' && !isNaN(pid)) {
-          seasonPlayerSet.add(pid);
-        }
-      });
-      
-      // For problematic season achievements, fallback to manual calculation
-      if (seasonPlayerSet.size === 0 && careerPlayerSet.size > 0 && 
-          colConstraint.id === 'Season70Games') {
-        // Manual calculation: find career players who played 70+ games in any season
-        const manualSeasonPlayers = new Set<number>();
-        for (const pid of Array.from(careerPlayerSet)) {
-          const player = players.find(p => p.pid === pid);
-          if (player?.seasons) {
-            for (const season of player.seasons) {
-              if (season.gp >= 70) {
-                manualSeasonPlayers.add(pid);
-                break;
-              }
-            }
-          }
-        }
-        result = returnCount ? manualSeasonPlayers.size : manualSeasonPlayers;
+      if (returnCount) {
+        result = intersectSetsCount(careerAchievementPlayers, seasonAchievementPlayers);
       } else {
-        // Use the cleaned Sets for intersection
-        if (returnCount) {
-          result = intersectSetsCount(careerPlayerSet, seasonPlayerSet);
-        } else {
-          result = intersectSets(careerPlayerSet, seasonPlayerSet);
-        }
+        result = intersectSets(careerAchievementPlayers, seasonAchievementPlayers);
       }
     }
   } else if (rowConstraint.type === 'achievement' && rowIsSeasonAchievement && 
@@ -410,50 +372,10 @@ export function calculateOptimizedIntersection(
         }
       }
       
-      // Comprehensive fix for season × career achievement intersections
-      // The issue is that some season achievements may not be properly indexed
-      // so we need to verify both data sources contain valid player IDs
-      const seasonPlayerSet = new Set<number>();
-      const careerPlayerSet = new Set<number>();
-      
-      // Ensure all season achievement players are valid numbers
-      seasonAchievementPlayers.forEach(pid => {
-        if (typeof pid === 'number' && !isNaN(pid)) {
-          seasonPlayerSet.add(pid);
-        }
-      });
-      
-      // Ensure all career achievement players are valid numbers  
-      careerAchievementPlayers.forEach(pid => {
-        if (typeof pid === 'number' && !isNaN(pid)) {
-          careerPlayerSet.add(pid);
-        }
-      });
-      
-      // For problematic season achievements, fallback to manual calculation
-      if (seasonPlayerSet.size === 0 && careerPlayerSet.size > 0 && 
-          rowConstraint.id === 'Season70Games') {
-        // Manual calculation: find career players who played 70+ games in any season
-        const manualSeasonPlayers = new Set<number>();
-        for (const pid of Array.from(careerPlayerSet)) {
-          const player = players.find(p => p.pid === pid);
-          if (player?.seasons) {
-            for (const season of player.seasons) {
-              if (season.gp >= 70) {
-                manualSeasonPlayers.add(pid);
-                break;
-              }
-            }
-          }
-        }
-        result = returnCount ? manualSeasonPlayers.size : manualSeasonPlayers;
+      if (returnCount) {
+        result = intersectSetsCount(seasonAchievementPlayers, careerAchievementPlayers);
       } else {
-        // Use the cleaned Sets for intersection
-        if (returnCount) {
-          result = intersectSetsCount(seasonPlayerSet, careerPlayerSet);
-        } else {
-          result = intersectSets(seasonPlayerSet, careerPlayerSet);
-        }
+        result = intersectSets(seasonAchievementPlayers, careerAchievementPlayers);
       }
     }
   } else {
