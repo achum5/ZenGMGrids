@@ -59,12 +59,25 @@ export function HintModal({
       // Small delay for UX
       await new Promise(resolve => setTimeout(resolve, 100));
       
+      // Calculate live intersection instead of using cached eligiblePlayerIds
+      const liveEligiblePlayerIds: number[] = [];
+      if (leagueData?.players) {
+        const eligiblePlayers = leagueData.players.filter(player => {
+          return rowConstraint.test(player) && colConstraint.test(player);
+        });
+        liveEligiblePlayerIds.push(...eligiblePlayers.map(p => p.pid));
+      }
+      
+      console.log(`🔧 [HINT MODAL] Live calculation for ${cellKey}: ${liveEligiblePlayerIds.length} players`);
+      console.log(`   Row: ${rowConstraint.label}`);
+      console.log(`   Col: ${colConstraint.label}`);
+      
       const result = generateHintOptions(
         gridId,
         cellKey,
         rowConstraint,
         colConstraint,
-        eligiblePlayerIds,
+        liveEligiblePlayerIds, // Use live calculation instead of cached
         allPlayers,
         byPid,
         teams,
