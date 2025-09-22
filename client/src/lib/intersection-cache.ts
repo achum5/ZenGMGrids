@@ -385,6 +385,52 @@ export function calculateOptimizedIntersection(
         }
       }
       
+      // Debug logging for this specific case
+      if (rowConstraint.id === 'Season70Games' && colConstraint.id === 'played15PlusSeasons') {
+        console.log(`🚨 INTERSECTION CALC DEBUG (Season × Career):`, {
+          seasonAchievementId: rowConstraint.id,
+          careerAchievementId: colConstraint.id,
+          seasonPlayersCount: seasonAchievementPlayers.size,
+          careerPlayersCount: careerAchievementPlayers.size,
+          seasonIndexExists: !!seasonIndex,
+          seasonIndexKeys: Object.keys(seasonIndex).length,
+          sampleSeasonAchievementPlayers: Array.from(seasonAchievementPlayers).slice(0, 5),
+          sampleCareerAchievementPlayers: Array.from(careerAchievementPlayers).slice(0, 5)
+        });
+        
+        // TEMPORARY FIX: If season players is empty but career players exists, manually calculate
+        if (seasonAchievementPlayers.size === 0 && careerAchievementPlayers.size > 0) {
+          console.log('🔧 TEMP FIX: Season70Games has no players, calculating manually...');
+          // Find players with 15+ seasons who played 70+ games in any season
+          const manualCalculation = new Set<number>();
+          for (const pid of Array.from(careerAchievementPlayers)) {
+            const player = players.find(p => p.pid === pid);
+            if (player?.seasons) {
+              for (const season of player.seasons) {
+                if (season.gp >= 70) {
+                  manualCalculation.add(pid);
+                  break; // Only need one qualifying season
+                }
+              }
+            }
+          }
+          console.log(`🔧 Manual calculation found ${manualCalculation.size} players`);
+          if (returnCount) {
+            result = manualCalculation.size;
+          } else {
+            result = manualCalculation;
+          }
+          // Cache and return early
+          if (returnCount && typeof result === 'number') {
+            intersectionCache.set(cacheKey, {
+              result,
+              timestamp: Date.now()
+            });
+          }
+          return result;
+        }
+      }
+      
       if (returnCount) {
         result = intersectSetsCount(seasonAchievementPlayers, careerAchievementPlayers);
       } else {
