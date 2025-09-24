@@ -669,6 +669,106 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
           ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
         }
       ].filter(section => section.achievements.length > 0); // Only include sections with achievements
+    } else if (sport === 'hockey') {
+      achievementSections = [
+        {
+          title: "Honors & Awards",
+          achievements: [
+            'HKAllStar', 'HKMVP', 'HKDefenseman', 'HKROY', 'HKChampion', 'HKPlayoffsMVP', 'HKFinalsMVP', 'HKAllRookie', 'HKAllLeague', 'HKAllStarMVP', 'HKAssistsLeader', 'isHallOfFamer'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Career Milestones",
+          achievements: [
+            'career500Goals', 'career1000Points', 'career500Assists', 'career200Wins', 'career50Shutouts'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Single-Season — Scoring",
+          achievements: [
+            'HKSeason40Goals', 'HKSeason60Assists', 'HKSeason90Points', 'HKSeason20PowerPlay', 'HKSeason3SHGoals', 'HKSeason7GWGoals'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Single-Season — Physical",
+          achievements: [
+            'HKSeason250Shots', 'HKSeason150Hits', 'HKSeason100Blocks', 'HKSeason60Takeaways', 'HKSeason70PIM'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Single-Season — Efficiency",
+          achievements: [
+            'HKSeason25Plus', 'HKSeason55FaceoffPct', 'HKSeason22TOI'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Single-Season — Goaltending",
+          achievements: [
+            'HKSeason920SavePct', 'HKSeason260GAA', 'HKSeason6Shutouts', 'HKSeason2000Saves', 'HKSeason60Starts'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Longevity & Journey",
+          achievements: [
+            'played10PlusSeasons', 'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Debut Decade",
+          achievements: debutDecades
+        },
+        {
+          title: "Played In Decades",
+          achievements: playedDecades
+        },
+        {
+          title: "Draft", 
+          achievements: [
+            'isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        }
+      ].filter(section => section.achievements.length > 0); // Only include sections with achievements
+    } else if (sport === 'baseball') {
+      achievementSections = [
+        {
+          title: "Honors & Awards",
+          achievements: [
+            'BBAllStar', 'BBMVP', 'BBROY', 'BBChampion', 'BBAllRookie', 'BBAllLeague', 'BBPlayoffsMVP', 'isHallOfFamer'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Career Milestones — Batting",
+          achievements: [
+            'career3000Hits', 'career500HRs', 'career1500RBIs', 'career400SBs', 'career1800Runs'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Career Milestones — Pitching",
+          achievements: [
+            'career300Wins', 'career3000Ks', 'career300Saves'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Longevity & Journey",
+          achievements: [
+            'played10PlusSeasons', 'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Debut Decade",
+          achievements: debutDecades
+        },
+        {
+          title: "Played In Decades",
+          achievements: playedDecades
+        },
+        {
+          title: "Draft", 
+          achievements: [
+            'isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        }
+      ].filter(section => section.achievements.length > 0); // Only include sections with achievements
     } else {
       // Basketball achievements (existing structure)
       achievementSections = [
