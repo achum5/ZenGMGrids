@@ -601,59 +601,129 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     debutDecades.sort((a, b) => a.name.localeCompare(b.name));
     playedDecades.sort((a, b) => a.name.localeCompare(b.name));
 
-    // Build structured achievement sections in exact user order
-    const achievementSections = [
-      {
-        title: "Honors & Awards",
-        achievements: [
-          'MVP', 'ROY', 'SMOY', 'DPOY', 'MIP', 'FinalsMVP', 'AllLeagueAny', 'AllDefAny', 'AllRookieAny', 'AllStar', 'Champion', 'isHallOfFamer', 'threePointContestWinner', 'dunkContestWinner', 'royLaterMVP'
-        ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
-      },
-      {
-        title: "League Leaders (Season Titles)",
-        achievements: [
-          'PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader'
-        ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
-      },
-      {
-        title: "Career Milestones",
-        achievements: [
-          'career20kPoints', 'career5kAssists', 'career2kSteals', 'career1500Blocks', 'career2kThrees'
-        ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
-      },
-      {
-        title: "Single-Season Milestones — Volume & Combos",
-        achievements: [
-          'Season2000Points', 'Season30PPG', 'Season200_3PM', 'Season250ThreePM', 'Season300_3PM', 'Season700Assists', 'Season10APG', 'Season800Rebounds', 'Season12RPG', 'Season150Steals', 'Season2SPG', 'Season150Blocks', 'Season2_5BPG', 'Season200Stocks', 'Season25_10', 'Season25_5_5', 'Season20_10_5', 'Season1_1_1'
-        ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
-      },
-      {
-        title: "Single-Season — Efficiency & Workload",
-        achievements: [
-          'Season50_40_90', 'Season40_3PT200_3PA', 'Season90FT250FTA', 'Season60eFG500FGA', 'Season60TS20PPG', 'Season36MPG', 'Season70Games'
-        ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
-      },
-      {
-        title: "Longevity & Journey",
-        achievements: [
-          'played10PlusSeasons', 'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises'
-        ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
-      },
-      {
-        title: "Debut Decade",
-        achievements: debutDecades
-      },
-      {
-        title: "Played In Decades",
-        achievements: playedDecades
-      },
-      {
-        title: "Draft", 
-        achievements: [
-          'isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen'
-        ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
-      }
-    ].filter(section => section.achievements.length > 0); // Only include sections with achievements
+    // Build structured achievement sections based on sport
+    let achievementSections = [];
+    
+    if (sport === 'football') {
+      achievementSections = [
+        {
+          title: "Honors & Awards",
+          achievements: [
+            'FBAllStar', 'FBMVP', 'FBDPOY', 'FBOffROY', 'FBDefROY', 'FBFinalsMVP', 'FBAllLeague', 'FBAllRookie', 'FBChampion', 'isHallOfFamer'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Career Milestones",
+          achievements: [
+            'career300PassTDs', 'FBCareer50kPassYds', 'career12kRushYds', 'career100RushTDs', 'career12kRecYds', 'career100RecTDs', 'career100Sacks', 'career20Ints'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Single-Season — Passing",
+          achievements: [
+            'FBSeason4kPassYds', 'FBSeason30PassTD'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Single-Season — Rushing",
+          achievements: [
+            'FBSeason1200RushYds', 'FBSeason12RushTD'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Single-Season — Receiving",
+          achievements: [
+            'FBSeason1300RecYds', 'FBSeason10RecTD', 'FBSeason100Receptions'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Single-Season — Defense",
+          achievements: [
+            'FBSeason15Sacks', 'FBSeason140Tackles', 'FBSeason5Interceptions', 'FBSeason15TFL'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Single-Season — Combined",
+          achievements: [
+            'FBSeason1600Scrimmage', 'FBSeason2000AllPurpose'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Longevity & Journey",
+          achievements: [
+            'played10PlusSeasons', 'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Debut Decade",
+          achievements: debutDecades
+        },
+        {
+          title: "Played In Decades",
+          achievements: playedDecades
+        },
+        {
+          title: "Draft", 
+          achievements: [
+            'isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        }
+      ].filter(section => section.achievements.length > 0); // Only include sections with achievements
+    } else {
+      // Basketball achievements (existing structure)
+      achievementSections = [
+        {
+          title: "Honors & Awards",
+          achievements: [
+            'MVP', 'ROY', 'SMOY', 'DPOY', 'MIP', 'FinalsMVP', 'AllLeagueAny', 'AllDefAny', 'AllRookieAny', 'AllStar', 'Champion', 'isHallOfFamer', 'threePointContestWinner', 'dunkContestWinner', 'royLaterMVP'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "League Leaders (Season Titles)",
+          achievements: [
+            'PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Career Milestones",
+          achievements: [
+            'career20kPoints', 'career5kAssists', 'career2kSteals', 'career1500Blocks', 'career2kThrees'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Single-Season Milestones — Volume & Combos",
+          achievements: [
+            'Season2000Points', 'Season30PPG', 'Season200_3PM', 'Season250ThreePM', 'Season300_3PM', 'Season700Assists', 'Season10APG', 'Season800Rebounds', 'Season12RPG', 'Season150Steals', 'Season2SPG', 'Season150Blocks', 'Season2_5BPG', 'Season200Stocks', 'Season25_10', 'Season25_5_5', 'Season20_10_5', 'Season1_1_1'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Single-Season — Efficiency & Workload",
+          achievements: [
+            'Season50_40_90', 'Season40_3PT200_3PA', 'Season90FT250FTA', 'Season60eFG500FGA', 'Season60TS20PPG', 'Season36MPG', 'Season70Games'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Longevity & Journey",
+          achievements: [
+            'played10PlusSeasons', 'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Debut Decade",
+          achievements: debutDecades
+        },
+        {
+          title: "Played In Decades",
+          achievements: playedDecades
+        },
+        {
+          title: "Draft", 
+          achievements: [
+            'isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        }
+      ].filter(section => section.achievements.length > 0); // Only include sections with achievements
+    }
 
     return { teams, achievementSections };
   };
