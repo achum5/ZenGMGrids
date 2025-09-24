@@ -1295,7 +1295,21 @@ export default function Home() {
               
               if (row && col) {
                 // Use the test functions directly - they already contain all the custom achievement logic
-                const eligiblePlayers = leagueData.players.filter(p => row.test(p) && col.test(p));
+                console.log(`🔧 [GAME INTERSECTION] Calculating cell ${key}:`);
+                console.log(`   Row: ${row.label} (key: ${row.key})`);
+                console.log(`   Col: ${col.label} (key: ${col.key})`);
+                
+                const eligiblePlayers = leagueData.players.filter(p => {
+                  const rowTest = row.test(p);
+                  const colTest = col.test(p);
+                  const passes = rowTest && colTest;
+                  if (passes) {
+                    console.log(`   ✅ Player ${p.name} passes both tests`);
+                  }
+                  return passes;
+                });
+                
+                console.log(`   📊 Total eligible: ${eligiblePlayers.length}`);
                 newIntersections[key] = eligiblePlayers.map(p => p.pid);
               }
               }
