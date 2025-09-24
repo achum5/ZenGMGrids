@@ -552,7 +552,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
           selectedId: headerConfig.selectedId,
           selectedLabel: headerConfig.selectedLabel,
           hasCustom: !!headerConfig.customAchievement,
-          customValue: headerConfig.customAchievement?.value
+          customValue: headerConfig.customAchievement?.value,
+          customAchievement: headerConfig.customAchievement
         });
         
         const catTeam = headerConfigToCatTeam(headerConfig, leagueData.teams, seasonIndex);
