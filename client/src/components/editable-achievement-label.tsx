@@ -51,6 +51,16 @@ export function EditableAchievementLabel({
     }
   }, []);
 
+  const handleClick = useCallback((e: React.MouseEvent<HTMLInputElement>) => {
+    // Stop propagation to prevent triggering parent dropdown
+    e.stopPropagation();
+  }, []);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLInputElement>) => {
+    // Also stop mousedown to be extra safe
+    e.stopPropagation();
+  }, []);
+
   // If not editable, render as plain text
   if (!parsed.isEditable) {
     return <span className={className}>{label}</span>;
@@ -66,11 +76,13 @@ export function EditableAchievementLabel({
         onBlur={handleInputBlur}
         onFocus={handleInputFocus}
         onKeyDown={handleKeyDown}
+        onClick={handleClick}
+        onMouseDown={handleMouseDown}
         className={`
-          inline-block bg-transparent border-none outline-none
+          inline-block border-none outline-none
           text-inherit font-inherit leading-inherit
-          ${isEditing ? 'bg-muted/20 rounded px-1' : ''}
-          cursor-text min-w-0
+          ${isEditing ? 'bg-muted/30 rounded px-1' : 'bg-muted/10 hover:bg-muted/20 rounded'}
+          cursor-text min-w-0 transition-colors
         `}
         style={{
           width: `${Math.max(inputValue.length, 2)}ch`,
@@ -129,6 +141,16 @@ export function EditableAchievementLabelNoPlus({
     }
   }, []);
 
+  const handleClick = useCallback((e: React.MouseEvent<HTMLInputElement>) => {
+    // Stop propagation to prevent triggering parent dropdown
+    e.stopPropagation();
+  }, []);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLInputElement>) => {
+    // Also stop mousedown to be extra safe
+    e.stopPropagation();
+  }, []);
+
   // If not editable, render as plain text
   if (!parsed.isEditable) {
     return <span className={className}>{label}</span>;
@@ -144,11 +166,13 @@ export function EditableAchievementLabelNoPlus({
         onBlur={handleInputBlur}
         onFocus={handleInputFocus}
         onKeyDown={handleKeyDown}
+        onClick={handleClick}
+        onMouseDown={handleMouseDown}
         className={`
-          inline-block bg-transparent border-none outline-none
+          inline-block border-none outline-none
           text-inherit font-inherit leading-inherit
-          ${isEditing ? 'bg-muted/20 rounded px-1' : ''}
-          cursor-text min-w-0
+          ${isEditing ? 'bg-muted/30 rounded px-1' : 'bg-muted/10 hover:bg-muted/20 rounded'}
+          cursor-text min-w-0 transition-colors
         `}
         style={{
           width: `${Math.max(inputValue.length, 2)}ch`,
