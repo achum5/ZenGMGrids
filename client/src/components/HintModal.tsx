@@ -6,7 +6,8 @@ import { X } from 'lucide-react';
 import { PlayerFace } from '@/components/PlayerFace';
 import { TeamLogo } from '@/components/TeamLogo';
 import { cn } from '@/lib/utils';
-import type { Player, CatTeam, Team, LeagueData, SeasonIndex } from '@/types/bbgm';
+import type { Player, CatTeam, Team, LeagueData } from '@/types/bbgm';
+import type { SeasonIndex } from '@/lib/season-achievements';
 import { generateHintOptions, type HintOption, type HintGenerationResult } from '@/lib/hint-generation';
 import { playerMeetsAchievement } from '@/lib/achievements';
 import { useToast } from '@/hooks/use-toast';
@@ -77,7 +78,16 @@ export function HintModal({
           const rowTest = rowConstraint.test || createTestFunction(rowConstraint, leagueData.seasonIndex);
           const colTest = colConstraint.test || createTestFunction(colConstraint, leagueData.seasonIndex);
           
-          return rowTest(player) && colTest(player);
+          const rowPassed = rowTest(player);
+          const colPassed = colTest(player);
+          const bothPassed = rowPassed && colPassed;
+          
+          // Debug first few players
+          if (player.pid <= 3) {
+            console.log(`🔍 Debug player ${player.name} (${player.pid}): row=${rowPassed}, col=${colPassed}, both=${bothPassed}`);
+          }
+          
+          return bothPassed;
         });
         liveEligiblePlayerIds.push(...eligiblePlayers.map(p => p.pid));
       }
