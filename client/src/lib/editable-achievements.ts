@@ -5,7 +5,7 @@ import type { Player } from '@/types/bbgm';
 export interface ParsedAchievement {
   originalLabel: string;
   prefix: string;     // Text before the number
-  number: number;     // The numerical threshold
+  number: number;     // The numerical threshold (now supports decimals)
   suffix: string;     // Text after the number
   isEditable: boolean; // Whether this achievement has an editable number
 }
@@ -15,15 +15,15 @@ const ACHIEVEMENT_PATTERNS = [
   // "2,000+ Career Points" or "700+ Assists in a Season"
   /^(.*?)(\d{1,3}(?:,\d{3})*)\+(.*)$/,
   // "Age 40+" 
-  /^(.* )(\d+)\+(.*)$/,
-  // "15+ Seasons" or "30+ PPG"
-  /^(\D*?)(\d+)\+(.*)$/,
+  /^(.* )(\d+(?:\.\d+)?)\+(.*)$/,
+  // "15+ Seasons" or "30+ PPG" or "2.5+ BPG"
+  /^(\D*?)(\d+(?:\.\d+)?)\+(.*)$/,
   // "Played at Age 40+"
-  /^(.* Age )(\d+)\+(.*)$/,
-  // "1 PPG (Season)" or "30 PPG (Season)" - season stats without +
-  /^(\D*?)(\d+)\s*(PPG|RPG|APG|SPG|BPG|FG%|3P%|FT%|eFG%|TS%|PER|WS|BPM|VORP|USG%|TOV%|ORB%|DRB%|AST%|STL%|BLK%)\s*\(Season\)(.*)$/i,
-  // Generic pattern for numbers followed by units
-  /^(.*?)(\d+)\s*(Points?|Rebounds?|Assists?|Steals?|Blocks?|Games?|Minutes?|Shots?|FGA?|FGM?|3PA?|3PM?|FTA?|FTM?)(.*)$/,
+  /^(.* Age )(\d+(?:\.\d+)?)\+(.*)$/,
+  // "1 PPG (Season)" or "30 PPG (Season)" or "2.5 BPG (Season)" - season stats without +
+  /^(\D*?)(\d+(?:\.\d+)?)\s*(PPG|RPG|APG|SPG|BPG|FG%|3P%|FT%|eFG%|TS%|PER|WS|BPM|VORP|USG%|TOV%|ORB%|DRB%|AST%|STL%|BLK%)\s*\(Season\)(.*)$/i,
+  // Generic pattern for numbers followed by units (including decimals)
+  /^(.*?)(\d+(?:\.\d+)?)\s*(Points?|Rebounds?|Assists?|Steals?|Blocks?|Games?|Minutes?|Shots?|FGA?|FGM?|3PA?|3PM?|FTA?|FTM?)(.*)$/,
 ];
 
 /**
@@ -35,8 +35,8 @@ export function parseAchievementLabel(label: string): ParsedAchievement {
     const match = label.match(pattern);
     if (match) {
       const [, prefix, numberStr, suffix] = match;
-      // Remove commas and parse as integer
-      const number = parseInt(numberStr.replace(/,/g, ''));
+      // Remove commas and parse as float to support decimals
+      const number = parseFloat(numberStr.replace(/,/g, ''));
       
       if (!isNaN(number)) {
         return {
@@ -68,8 +68,15 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
     return parsed.originalLabel;
   }
   
-  // Format large numbers with commas for readability
-  const formattedNumber = newNumber.toLocaleString();
+  // Format numbers appropriately - use locale string for large integers, preserve decimals
+  let formattedNumber: string;
+  if (newNumber % 1 === 0) {
+    // Integer - use locale formatting for readability
+    formattedNumber = newNumber.toLocaleString();
+  } else {
+    // Decimal - preserve decimal places without locale formatting commas
+    formattedNumber = newNumber.toString();
+  }
   
   // Check if the original had a "+" and maintain that format
   if (parsed.originalLabel.includes('+')) {
@@ -171,6 +178,12 @@ function generateTestFunction(
     }
     if (originalLabel.includes('apg')) {
       return (player: Player) => getBestSeasonAverage(player, 'ast') >= newThreshold;
+    }
+    if (originalLabel.includes('spg')) {
+      return (player: Player) => getBestSeasonAverage(player, 'stl') >= newThreshold;
+    }
+    if (originalLabel.includes('bpg')) {
+      return (player: Player) => getBestSeasonAverage(player, 'blk') >= newThreshold;
     }
   }
   

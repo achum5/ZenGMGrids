@@ -25,8 +25,8 @@ export function EditableAchievementLabel({
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    // Allow only numeric input (integers only, no decimals)
-    if (/^\d*$/.test(value)) {
+    // Allow numeric input with optional decimal point and digits
+    if (/^\d*\.?\d*$/.test(value)) {
       setInputValue(value);
     }
   }, []);
@@ -34,7 +34,7 @@ export function EditableAchievementLabel({
   const handleInputBlur = useCallback(() => {
     setIsEditing(false);
     
-    const newNumber = parseInt(inputValue) || 0;
+    const newNumber = parseFloat(inputValue) || 0;
     if (newNumber !== parsed.number && onNumberChange) {
       const newLabel = generateUpdatedLabel(parsed, newNumber);
       onNumberChange(newNumber, newLabel);
@@ -115,8 +115,8 @@ export function EditableAchievementLabelNoPlus({
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    // Allow only numeric input (integers only, no decimals)
-    if (/^\d*$/.test(value)) {
+    // Allow numeric input with optional decimal point and digits
+    if (/^\d*\.?\d*$/.test(value)) {
       setInputValue(value);
     }
   }, []);
@@ -124,11 +124,9 @@ export function EditableAchievementLabelNoPlus({
   const handleInputBlur = useCallback(() => {
     setIsEditing(false);
     
-    const newNumber = parseInt(inputValue) || 0;
+    const newNumber = parseFloat(inputValue) || 0;
     if (newNumber !== parsed.number && onNumberChange) {
-      // Generate label without automatic "+" insertion for flexibility
-      const formattedNumber = newNumber.toLocaleString();
-      const newLabel = `${parsed.prefix}${formattedNumber}${parsed.suffix}`;
+      const newLabel = generateUpdatedLabel(parsed, newNumber);
       onNumberChange(newNumber, newLabel);
     }
   }, [inputValue, parsed, onNumberChange]);
