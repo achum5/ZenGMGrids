@@ -1294,40 +1294,8 @@ export default function Home() {
               const col = customCols[colIndex];
               
               if (row && col) {
-                // Use the same season-aware intersection logic as the modal preview
-                const rowConfig = {
-                  type: row.type,
-                  selectedId: row.type === 'team' ? row.tid : row.achievementId,
-                  selectedLabel: row.label
-                };
-                
-                const colConfig = {
-                  type: col.type, 
-                  selectedId: col.type === 'team' ? col.tid : col.achievementId,
-                  selectedLabel: col.label
-                };
-                
-                // Get eligible players using exact same logic as calculateCustomCellIntersection
-                const rowIsSeasonAchievement = row.type === 'achievement' && 
-                  SEASON_ACHIEVEMENTS.some(sa => sa.id === row.achievementId);
-                const colIsSeasonAchievement = col.type === 'achievement' && 
-                  SEASON_ACHIEVEMENTS.some(sa => sa.id === col.achievementId);
-                
-                let eligiblePlayers: Player[] = [];
-                
-                if (rowIsSeasonAchievement && col.type === 'team' && leagueData.seasonIndex) {
-                  // Season achievement × team - use season-aware logic
-                  const eligiblePids = getSeasonEligiblePlayers(leagueData.seasonIndex, col.tid!, row.achievementId as any);
-                  eligiblePlayers = leagueData.players.filter(p => eligiblePids.has(p.pid));
-                } else if (colIsSeasonAchievement && row.type === 'team' && leagueData.seasonIndex) {
-                  // Team × season achievement - use season-aware logic  
-                  const eligiblePids = getSeasonEligiblePlayers(leagueData.seasonIndex, row.tid!, col.achievementId as any);
-                  eligiblePlayers = leagueData.players.filter(p => eligiblePids.has(p.pid));
-                } else {
-                  // Use standard logic for career achievements and team×team
-                  eligiblePlayers = leagueData.players.filter(p => row.test(p) && col.test(p));
-                }
-                
+                // Use the test functions directly - they already contain all the custom achievement logic
+                const eligiblePlayers = leagueData.players.filter(p => row.test(p) && col.test(p));
                 newIntersections[key] = eligiblePlayers.map(p => p.pid);
               }
               }
