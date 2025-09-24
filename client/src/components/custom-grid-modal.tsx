@@ -153,7 +153,14 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
         
         if (originalAchievement) {
           // Create custom achievement with new threshold
-          const customAchievement = createCustomNumericalAchievement(originalAchievement, newNumber);
+          // Convert AchievementOption to Achievement-like object
+          const achievementLike = {
+            id: originalAchievement.id,
+            label: originalAchievement.label,
+            test: () => true, // Placeholder test function
+            minPlayers: 0
+          };
+          const customAchievement = createCustomNumericalAchievement(achievementLike, newNumber);
           
           // Update the selector with new label and custom achievement
           newSelectors[index] = {
@@ -888,13 +895,21 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
               data-testid={`header-${isRow ? 'row' : 'col'}-${index}`}
             >
               {selector.label ? (
-                <div className="text-center w-full h-full flex flex-col items-center justify-center">
+                <div className="text-center w-full h-full flex flex-col items-center justify-center relative">
                   {selector.type && (
                     <Badge variant="outline" className="text-[6px] sm:text-[8px] lg:text-[10px] mb-0.5 px-0.5 sm:px-1 py-0 leading-none">
                       {selector.type}
                     </Badge>
                   )}
-                  <div className="text-[6px] sm:text-[8px] lg:text-xs font-medium leading-tight break-words text-center px-0.5 overflow-hidden">
+                  <div 
+                    className="text-[6px] sm:text-[8px] lg:text-xs font-medium leading-tight break-words text-center px-0.5 overflow-hidden relative z-10"
+                    onClick={(e) => {
+                      // Stop propagation for editable achievement labels
+                      if (selector.type === 'achievement') {
+                        e.stopPropagation();
+                      }
+                    }}
+                  >
                     {selector.type === 'achievement' ? (
                       <EditableAchievementLabel
                         label={selector.label || ''}
@@ -911,6 +926,13 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                       selector.label
                     )}
                   </div>
+                  {/* Invisible overlay to capture non-input clicks for dropdown */}
+                  {selector.type === 'achievement' && (
+                    <div 
+                      className="absolute inset-0 cursor-pointer"
+                      style={{ zIndex: -1 }}
+                    />
+                  )}
                 </div>
               ) : (
                 <div className="text-center w-full h-full flex flex-col items-center justify-center space-y-1">

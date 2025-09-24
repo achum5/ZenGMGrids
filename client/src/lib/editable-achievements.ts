@@ -20,6 +20,10 @@ const ACHIEVEMENT_PATTERNS = [
   /^(\D*?)(\d+)\+(.*)$/,
   // "Played at Age 40+"
   /^(.* Age )(\d+)\+(.*)$/,
+  // "1 PPG (Season)" or "30 PPG (Season)" - season stats without +
+  /^(\D*?)(\d+)\s*(PPG|RPG|APG|SPG|BPG|FG%|3P%|FT%|eFG%|TS%|PER|WS|BPM|VORP|USG%|TOV%|ORB%|DRB%|AST%|STL%|BLK%)\s*\(Season\)(.*)$/i,
+  // Generic pattern for numbers followed by units
+  /^(.*?)(\d+)\s*(Points?|Rebounds?|Assists?|Steals?|Blocks?|Games?|Minutes?|Shots?|FGA?|FGM?|3PA?|3PM?|FTA?|FTM?)(.*)$/,
 ];
 
 /**
@@ -66,7 +70,14 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
   
   // Format large numbers with commas for readability
   const formattedNumber = newNumber.toLocaleString();
-  return `${parsed.prefix}${formattedNumber}+${parsed.suffix}`;
+  
+  // Check if the original had a "+" and maintain that format
+  if (parsed.originalLabel.includes('+')) {
+    return `${parsed.prefix}${formattedNumber}+${parsed.suffix}`;
+  } else {
+    // For patterns without "+", just replace the number directly
+    return `${parsed.prefix}${formattedNumber}${parsed.suffix}`;
+  }
 }
 
 /**
