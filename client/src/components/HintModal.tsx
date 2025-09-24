@@ -106,45 +106,94 @@ export function HintModal({
       // Small delay for UX
       await new Promise(resolve => setTimeout(resolve, 100));
       
-      // Calculate live intersection instead of using cached eligiblePlayerIds
-      const liveEligiblePlayerIds: number[] = [];
-      if (leagueData?.players) {
-        const eligiblePlayers = leagueData.players.filter(player => {
-          // Reconstruct test functions if missing
-          const rowTest = rowConstraint.test || createTestFunction(rowConstraint, leagueData.seasonIndex);
-          const colTest = colConstraint.test || createTestFunction(colConstraint, leagueData.seasonIndex);
-          
-          const rowPassed = rowTest(player);
-          const colPassed = colTest(player);
-          const bothPassed = rowPassed && colPassed;
-          
-          // Debug first few players
-          if (player.pid <= 3) {
-            console.log(`🔍 Debug player ${player.name} (${player.pid}): row=${rowPassed}, col=${colPassed}, both=${bothPassed}`);
-          }
-          
-          return bothPassed;
+      
+      // Step 1: Get the most common correct answer from top 10th percentile
+      const eligiblePlayers = eligiblePlayerIds.map(pid => byPid[pid]).filter(Boolean);
+      if (eligiblePlayers.length === 0) {
+        setHintResult({
+          options: [],
+          hasLimitedOptions: true
         });
-        liveEligiblePlayerIds.push(...eligiblePlayers.map(p => p.pid));
+        setIsGenerating(false);
+        return;
       }
       
-      console.log(`🔧 [HINT MODAL] Live calculation for ${cellKey}: ${liveEligiblePlayerIds.length} players`);
-      console.log(`   Row: ${rowConstraint.label}`);
-      console.log(`   Col: ${colConstraint.label}`);
+      // Sort by commonality (total career games played as a proxy for how "common" they are)
+      const sortedByCommonality = eligiblePlayers.sort((a, b) => {
+        const aGames = (a.stats || []).reduce((total, season) => total + (season.gp || 0), 0);
+        const bGames = (b.stats || []).reduce((total, season) => total + (season.gp || 0), 0);
+        return bGames - aGames; // Descending order
+      });
       
-      const result = generateHintOptions(
-        gridId,
-        cellKey,
-        rowConstraint,
-        colConstraint,
-        liveEligiblePlayerIds, // Use live calculation instead of cached
-        allPlayers,
-        byPid,
-        teams,
-        usedPids,
-        reshuffleCount,
-        leagueData
-      );
+      // Pick from top 10th percentile (minimum 1 player)
+      const topPercentileCount = Math.max(1, Math.floor(sortedByCommonality.length * 0.1));
+      const topPercentilePlayers = sortedByCommonality.slice(0, topPercentileCount);
+      const correctPlayer = topPercentilePlayers[Math.floor(Math.random() * topPercentilePlayers.length)];
+      
+      
+      // Step 2: Generate 5 distractors
+      const distractors: Player[] = [];
+      const allPlayersList = allPlayers.filter(p => !usedPids.has(p.pid) && p.pid !== correctPlayer.pid);
+      
+      // Try to find players with partial matches first
+      const partialMatches = allPlayersList.filter(player => {
+        const rowTest = rowConstraint.test || createTestFunction(rowConstraint, leagueData?.seasonIndex);
+        const colTest = colConstraint.test || createTestFunction(colConstraint, leagueData?.seasonIndex);
+        
+        const hasRow = rowTest(player);
+        const hasCol = colTest(player);
+        
+        // Want players with exactly one match (partial match)
+        return (hasRow && !hasCol) || (!hasRow && hasCol);
+      });
+      
+      // Add up to 3 partial matches
+      const shuffledPartials = partialMatches.sort(() => Math.random() - 0.5);
+      distractors.push(...shuffledPartials.slice(0, 3));
+      
+      // Fill remaining slots with players from similar time period
+      if (distractors.length < 5) {
+        const correctPlayerSeasons = correctPlayer.stats?.map(s => s.season) || [];
+        const minSeason = Math.min(...correctPlayerSeasons);
+        const maxSeason = Math.max(...correctPlayerSeasons);
+        
+        const contemporaries = allPlayersList
+          .filter(player => {
+            const playerSeasons = player.stats?.map(s => s.season) || [];
+            const playerMinSeason = Math.min(...playerSeasons);
+            const playerMaxSeason = Math.max(...playerSeasons);
+            
+            // Overlapping careers (±10 years buffer)
+            return (playerMaxSeason >= minSeason - 10 && playerMinSeason <= maxSeason + 10);
+          })
+          .filter(player => !distractors.some(d => d.pid === player.pid))
+          .sort(() => Math.random() - 0.5);
+        
+        const needed = 5 - distractors.length;
+        distractors.push(...contemporaries.slice(0, needed));
+      }
+      
+      // If still need more, add any random players
+      if (distractors.length < 5) {
+        const remainingPlayers = allPlayersList
+          .filter(player => !distractors.some(d => d.pid === player.pid))
+          .sort(() => Math.random() - 0.5);
+        
+        const needed = 5 - distractors.length;
+        distractors.push(...remainingPlayers.slice(0, needed));
+      }
+      
+      // Create hint options (1 correct + up to 5 distractors)
+      const allOptions = [correctPlayer, ...distractors.slice(0, 5)];
+      const shuffledOptions = allOptions.sort(() => Math.random() - 0.5);
+      
+      const result: HintGenerationResult = {
+        options: shuffledOptions.map((player) => ({
+          player: player,
+          isCorrect: player.pid === correctPlayer.pid
+        })),
+        hasLimitedOptions: eligiblePlayers.length < 10
+      };
       
       setHintResult(result);
       
