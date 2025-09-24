@@ -1583,8 +1583,8 @@ function buildOppositeAxisForSeed(
       { id: 'AllStar', label: 'All-Star' },
       { id: 'played10PlusSeasons', label: 'Played 10+ Seasons' },
       { id: 'played15PlusSeasons', label: 'Played 15+ Seasons' },
-      { id: 'career2kPoints', label: '2,000+ Career Points' },
-      { id: 'career1kRebounds', label: '1,000+ Career Rebounds' },
+      { id: 'isHallOfFamer', label: 'Hall of Fame' },
+      { id: 'isPick1Overall', label: '#1 Overall Pick' },
     ];
     
     for (const ca of fallbackCareerAchievements) {
