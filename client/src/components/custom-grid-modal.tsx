@@ -517,7 +517,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
         const headerConfig: HeaderConfig = {
           type: rowSelector.type,
           selectedId: rowSelector.type === 'team' ? parseInt(rowSelector.value) : rowSelector.value,
-          selectedLabel: rowSelector.label
+          selectedLabel: rowSelector.label,
+          customAchievement: rowSelector.customAchievement
         };
         
         const catTeam = headerConfigToCatTeam(headerConfig, leagueData.teams, seasonIndex);
@@ -534,7 +535,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
         const headerConfig: HeaderConfig = {
           type: colSelector.type,
           selectedId: colSelector.type === 'team' ? parseInt(colSelector.value) : colSelector.value,
-          selectedLabel: colSelector.label
+          selectedLabel: colSelector.label,
+          customAchievement: colSelector.customAchievement
         };
         
         const catTeam = headerConfigToCatTeam(headerConfig, leagueData.teams, seasonIndex);
