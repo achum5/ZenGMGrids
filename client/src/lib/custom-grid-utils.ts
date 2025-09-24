@@ -11,6 +11,7 @@ export interface HeaderConfig {
   type: 'team' | 'achievement' | null;
   selectedId: string | number | null;
   selectedLabel: string | null;
+  customAchievement?: any; // For dynamic numerical achievements
 }
 
 export interface CustomGridState {
@@ -201,12 +202,23 @@ export function headerConfigToCatTeam(
       test: (p: Player) => p.teamsPlayed.has(config.selectedId as number),
     };
   } else {
+    // Use custom achievement if available, otherwise use original
+    const achievementToUse = config.customAchievement || { id: config.selectedId };
+    
     return {
-      key: `achievement-${config.selectedId}`,
+      key: `achievement-${achievementToUse.id}-${config.customAchievement ? 'custom' : 'original'}`,
       label: config.selectedLabel,
-      achievementId: config.selectedId as string,
+      achievementId: achievementToUse.id as string,
       type: 'achievement',
-      test: (p: Player) => playerMeetsAchievement(p, config.selectedId as string, seasonIndex),
+      test: (p: Player) => {
+        if (config.customAchievement) {
+          // For custom achievements, use the custom achievement's test function directly
+          return config.customAchievement.test(p);
+        } else {
+          // For regular achievements, use the standard function
+          return playerMeetsAchievement(p, achievementToUse.id as string, seasonIndex);
+        }
+      },
     };
   }
 }
