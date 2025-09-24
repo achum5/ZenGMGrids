@@ -564,7 +564,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
 
   // Get teams and achievements for dropdown
   const getDropdownItems = () => {
-    if (!leagueData) return { teams: [], seasonAchievements: [], careerAchievements: [] };
+    if (!leagueData) return { teams: [], achievementSections: [] };
 
     // Get teams with logos
     const teams = leagueData.teams
@@ -577,108 +577,91 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
       }))
       ?.sort((a, b) => a.name.localeCompare(b.name)) || [];
 
-    // Get achievements and categorize them
+    // Get all available achievements
     const sport = detectSport(leagueData);
     const seasonIndex = getCachedSeasonIndex(leagueData.players, sport);
     const achievementOptions = getAchievementOptions(sport, seasonIndex, leagueData.leagueYears);
     
-    const seasonAchievements: Array<{id: string, name: string, type: 'achievement'}> = [];
-    const careerAchievements: Array<{id: string, name: string, type: 'achievement'}> = [];
+    // Create a map for quick lookup
+    const achievementMap = new Map(achievementOptions.map(a => [a.id, a.label]));
+    
+    // Get dynamic decade achievements
+    const debutDecades: Array<{id: string, name: string}> = [];
+    const playedDecades: Array<{id: string, name: string}> = [];
     
     achievementOptions.forEach(achievement => {
-      // Check if this is a season achievement based on the achievement ID
-      const isSeasonAchievement = SEASON_ACHIEVEMENTS.some(sa => sa.id === achievement.id);
-      
-      const achievementItem = {
-        id: achievement.id,
-        name: achievement.label,
-        type: 'achievement' as const
-      };
-      
-      if (isSeasonAchievement) {
-        seasonAchievements.push(achievementItem);
-      } else {
-        careerAchievements.push(achievementItem);
+      if (achievement.id.includes('debutedIn')) {
+        debutDecades.push({id: achievement.id, name: achievement.label});
+      } else if (achievement.id.includes('playedIn') && !achievement.id.includes('playedInThreeDecades')) {
+        playedDecades.push({id: achievement.id, name: achievement.label});
       }
     });
+    
+    // Sort decades
+    debutDecades.sort((a, b) => a.name.localeCompare(b.name));
+    playedDecades.sort((a, b) => a.name.localeCompare(b.name));
 
-    // Custom sort achievements according to user's exact requested order
-    const ACHIEVEMENT_ORDER = [
-      // Honors & Awards
-      'MVP', 'ROY', 'SMOY', 'DPOY', 'MIP', 'FinalsMVP', 'AllLeagueAny', 'AllDefAny', 'AllRookieAny', 'AllStar', 'Champion', 'isHallOfFamer', 'threePointContestWinner', 'dunkContestWinner', 'royLaterMVP',
-      // League Leaders
-      'PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader',
-      // Career Milestones  
-      'career20kPoints', 'career5kAssists', 'career2kSteals', 'career1500Blocks', 'career2kThrees',
-      // Single-Season Volume & Combos
-      'Season2000Points', 'Season30PPG', 'Season200_3PM', 'Season250ThreePM', 'Season300_3PM', 'Season700Assists', 'Season10APG', 'Season800Rebounds', 'Season12RPG', 'Season150Steals', 'Season2SPG', 'Season150Blocks', 'Season2_5BPG', 'Season200Stocks', 'Season25_10', 'Season25_5_5', 'Season20_10_5', 'Season1_1_1',
-      // Single-Season Efficiency & Workload  
-      'Season50_40_90', 'Season40_3PT200_3PA', 'Season90FT250FTA', 'Season60eFG500FGA', 'Season60TS20PPG', 'Season36MPG', 'Season70Games',
-      // Longevity & Journey
-      'played10PlusSeasons', 'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises',
-      // Draft & Entry
-      'isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen'
-    ];
+    // Build structured achievement sections in exact user order
+    const achievementSections = [
+      {
+        title: "Honors & Awards",
+        achievements: [
+          'MVP', 'ROY', 'SMOY', 'DPOY', 'MIP', 'FinalsMVP', 'AllLeagueAny', 'AllDefAny', 'AllRookieAny', 'AllStar', 'Champion', 'isHallOfFamer', 'threePointContestWinner', 'dunkContestWinner', 'royLaterMVP'
+        ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+      },
+      {
+        title: "League Leaders (Season Titles)",
+        achievements: [
+          'PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader'
+        ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+      },
+      {
+        title: "Career Milestones",
+        achievements: [
+          'career20kPoints', 'career5kAssists', 'career2kSteals', 'career1500Blocks', 'career2kThrees'
+        ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+      },
+      {
+        title: "Single-Season Milestones — Volume & Combos",
+        achievements: [
+          'Season2000Points', 'Season30PPG', 'Season200_3PM', 'Season250ThreePM', 'Season300_3PM', 'Season700Assists', 'Season10APG', 'Season800Rebounds', 'Season12RPG', 'Season150Steals', 'Season2SPG', 'Season150Blocks', 'Season2_5BPG', 'Season200Stocks', 'Season25_10', 'Season25_5_5', 'Season20_10_5', 'Season1_1_1'
+        ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+      },
+      {
+        title: "Single-Season — Efficiency & Workload",
+        achievements: [
+          'Season50_40_90', 'Season40_3PT200_3PA', 'Season90FT250FTA', 'Season60eFG500FGA', 'Season60TS20PPG', 'Season36MPG', 'Season70Games'
+        ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+      },
+      {
+        title: "Longevity & Journey",
+        achievements: [
+          'played10PlusSeasons', 'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises'
+        ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+      },
+      {
+        title: "Debut Decade",
+        achievements: debutDecades
+      },
+      {
+        title: "Played In Decades",
+        achievements: playedDecades
+      },
+      {
+        title: "Draft & Entry", 
+        achievements: [
+          'isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen'
+        ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+      }
+    ].filter(section => section.achievements.length > 0); // Only include sections with achievements
 
-    const sortByOrder = (achievements: typeof seasonAchievements) => {
-      return achievements.sort((a, b) => {
-        const aIndex = ACHIEVEMENT_ORDER.indexOf(a.id);
-        const bIndex = ACHIEVEMENT_ORDER.indexOf(b.id);
-        
-        // Both found in order - use that order
-        if (aIndex !== -1 && bIndex !== -1) {
-          return aIndex - bIndex;
-        }
-        
-        // Only A found - A comes first
-        if (aIndex !== -1 && bIndex === -1) {
-          return -1;
-        }
-        
-        // Only B found - B comes first  
-        if (aIndex === -1 && bIndex !== -1) {
-          return 1;
-        }
-        
-        // Neither found - handle special cases
-        // Decade achievements should be grouped together
-        if (a.id.includes('playedIn') && b.id.includes('playedIn')) {
-          return a.name.localeCompare(b.name);
-        }
-        if (a.id.includes('debutedIn') && b.id.includes('debutedIn')) {
-          return a.name.localeCompare(b.name);
-        }
-        if ((a.id.includes('playedIn') || a.id.includes('debutedIn')) && !(b.id.includes('playedIn') || b.id.includes('debutedIn'))) {
-          return -1;
-        }
-        if (!(a.id.includes('playedIn') || a.id.includes('debutedIn')) && (b.id.includes('playedIn') || b.id.includes('debutedIn'))) {
-          return 1;
-        }
-        
-        // Random achievements go last
-        if (a.id.startsWith('Random') && !b.id.startsWith('Random')) {
-          return 1;
-        }
-        if (!a.id.startsWith('Random') && b.id.startsWith('Random')) {
-          return -1;
-        }
-        
-        // Both random or both unknown - alphabetical
-        return a.name.localeCompare(b.name);
-      });
-    };
-
-    // Apply custom ordering to both arrays
-    sortByOrder(seasonAchievements);
-    sortByOrder(careerAchievements);
-
-    return { teams, seasonAchievements, careerAchievements };
+    return { teams, achievementSections };
   };
 
   // Render header selector with tabbed dropdown
   const renderHeaderSelector = (isRow: boolean, index: number) => {
     const selector = isRow ? rowSelectors[index] : colSelectors[index];
-    const { teams, seasonAchievements, careerAchievements } = getDropdownItems();
+    const { teams, achievementSections } = getDropdownItems();
     
     return (
       <div className="relative">
@@ -751,13 +734,12 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
             
             <TabsContent value="achievements" className="mt-0">
               <div className="max-h-[35vh] sm:max-h-80 overflow-y-auto p-0">
-                {/* Career Achievements */}
-                {careerAchievements.length > 0 && (
-                  <>
+                {achievementSections.map((section, sectionIndex) => (
+                  <div key={sectionIndex}>
                     <div className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide bg-muted/50">
-                      Career Achievements
+                      {section.title}
                     </div>
-                    {careerAchievements.map(achievement => (
+                    {section.achievements.map(achievement => (
                       <DropdownMenuItem
                         key={achievement.id}
                         onSelect={() => updateSelectorValue(isRow, index, 'achievement', achievement.id, achievement.name)}
@@ -767,27 +749,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                         <span className="truncate">{achievement.name}</span>
                       </DropdownMenuItem>
                     ))}
-                  </>
-                )}
-                
-                {/* Season Achievements */}
-                {seasonAchievements.length > 0 && (
-                  <>
-                    <div className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide bg-muted/50">
-                      Season Achievements
-                    </div>
-                    {seasonAchievements.map(achievement => (
-                      <DropdownMenuItem
-                        key={achievement.id}
-                        onSelect={() => updateSelectorValue(isRow, index, 'achievement', achievement.id, achievement.name)}
-                        className="px-3 py-2 text-sm cursor-pointer"
-                        data-testid={`achievement-option-${achievement.id}`}
-                      >
-                        <span className="truncate">{achievement.name}</span>
-                      </DropdownMenuItem>
-                    ))}
-                  </>
-                )}
+                  </div>
+                ))}
               </div>
             </TabsContent>
           </Tabs>
