@@ -105,7 +105,8 @@ export function getAchievementOptions(
       achievement.id !== 'Randomcareer750threes' && // Remove 750+ threes (we want 2k+)
       achievement.id !== 'Randomcareer1000threes' && // Remove 1k+ threes (we want 2k+)
       achievement.id !== 'Randomcareer1250threes' && // Remove 1.25k+ threes (we want 2k+)
-      achievement.id !== 'Randomcareer1500threes' // Remove 1.5k+ threes (we want 2k+)
+      achievement.id !== 'Randomcareer1500threes' && // Remove 1.5k+ threes (we want 2k+)
+      achievement.id !== 'Randomseason16rpg' // Remove 16+ RPG season achievement
     )
     .map(achievement => ({
       id: achievement.id,
