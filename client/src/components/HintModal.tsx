@@ -17,7 +17,43 @@ function createTestFunction(constraint: CatTeam, seasonIndex?: SeasonIndex): (pl
   if (constraint.type === 'team') {
     return (player: Player) => player.teamsPlayed.has(constraint.tid!);
   } else {
-    return (player: Player) => playerMeetsAchievement(player, constraint.achievementId!, seasonIndex);
+    const achievementId = constraint.achievementId!;
+    
+    // Handle season statistical achievements that need special logic
+    if (achievementId.startsWith('Season') && achievementId !== 'Season250ThreePM') {
+      return (player: Player) => {
+        // Check if player has any seasons that meet the criteria
+        for (const seasonStats of player.stats || []) {
+          if (seasonStats.playoffs) continue; // Only regular season
+          
+          const gp = seasonStats.gp || 0;
+          const pts = seasonStats.pts || 0;
+          const trb = seasonStats.trb || 0;
+          const ast = seasonStats.ast || 0;
+          const stl = seasonStats.stl || 0;
+          const blk = seasonStats.blk || 0;
+          const tp = seasonStats.tp || 0;
+          const min = seasonStats.min || 0;
+          
+          switch (achievementId) {
+            case 'Season30PPG':
+              if (gp >= 50 && (pts / gp) >= 30.0) return true;
+              break;
+            case 'Season70Games':
+              if (gp >= 70) return true;
+              break;
+            case 'Season1_1_1':
+              if (gp >= 50 && (stl / gp) >= 1 && (blk / gp) >= 1 && (tp / gp) >= 1) return true;
+              break;
+            // Add more season achievements as needed
+          }
+        }
+        return false;
+      };
+    }
+    
+    // For other achievements, use the standard test
+    return (player: Player) => playerMeetsAchievement(player, achievementId, seasonIndex);
   }
 }
 
