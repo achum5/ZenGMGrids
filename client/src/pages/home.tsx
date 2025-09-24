@@ -1375,7 +1375,9 @@ export default function Home() {
                     }
                   }
                   
-                  newIntersections[key] = eligiblePlayers.map(p => p.pid);
+                  const playerIds = eligiblePlayers.map(p => p.pid);
+                  newIntersections[key] = playerIds;
+                  console.log(`🔧 [STORAGE] Storing cell ${key} with ${playerIds.length} player IDs`);
                 }
               }
             } else {
@@ -1391,6 +1393,8 @@ export default function Home() {
               }
             }
             
+            console.log(`🔧 [FINAL] Setting intersections:`, newIntersections);
+            console.log(`🔧 [FINAL] Keys in intersections:`, Object.keys(newIntersections));
             setIntersections(newIntersections);
             // Close modal
             setCustomGridModalOpen(false);
