@@ -79,7 +79,27 @@ export function getAchievementOptions(
       achievement.id !== 'career10kRebounds' && // 10k+ career rebounds returns 0 players
       achievement.id !== 'Season22PPG' && // 22+ ppg in a season returns 0 players
       achievement.id !== 'RandomPoints25000pts' && // 25k+ career points returns 0 players  
-      achievement.id !== 'RandomRebounds6000trb' // 6k+ career rebounds returns 0 players
+      achievement.id !== 'RandomRebounds6000trb' && // 6k+ career rebounds returns 0 players
+      // Remove duplicate lower-tier achievements
+      achievement.id !== 'career3kPoints' && // Remove 3k+ points (we have 20k+)
+      achievement.id !== 'career5kPoints' && // Remove 5k+ points (we have 20k+) 
+      achievement.id !== 'career10kPoints' && // Remove 10k+ points (we have 20k+)
+      achievement.id !== 'career15kPoints' && // Remove 15k+ points (we have 20k+)
+      achievement.id !== 'career500Assists' && // Remove 500+ assists (we have 5k+)
+      achievement.id !== 'career1kAssists' && // Remove 1k+ assists (we have 5k+)
+      achievement.id !== 'career2kAssists' && // Remove 2k+ assists (we have 5k+)
+      achievement.id !== 'career3kAssists' && // Remove 3k+ assists (we have 5k+)
+      achievement.id !== 'career2500Rebounds' && // Remove 2.5k+ rebounds (we have 10k+)
+      achievement.id !== 'career5kRebounds' && // Remove 5k+ rebounds (we have 10k+) 
+      achievement.id !== 'career7500Rebounds' && // Remove 7.5k+ rebounds (we have 10k+)
+      achievement.id !== 'career500Blocks' && // Remove 500+ blocks (we have 1500+)
+      achievement.id !== 'career1kBlocks' && // Remove 1k+ blocks (we have 1500+)
+      achievement.id !== 'career500Steals' && // Remove 500+ steals (we have 2k+)
+      achievement.id !== 'career1kSteals' && // Remove 1k+ steals (we have 2k+)
+      achievement.id !== 'career500Threes' && // Remove 500+ threes (we have 2k+)
+      achievement.id !== 'career1kThrees' && // Remove 1k+ threes (we have 2k+)
+      achievement.id !== 'career5Seasons' && // Remove 5+ seasons (we have 10+)
+      achievement.id !== 'career8Seasons' // Remove 8+ seasons (we have 10+)
     )
     .map(achievement => ({
       id: achievement.id,
