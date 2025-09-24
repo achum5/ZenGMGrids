@@ -384,9 +384,8 @@ export function GridSection({
                                       </div>
                                     )}
                                     {cellState?.usedHint && (
-                                      <div className="absolute top-1 right-1 z-10 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-[7px] sm:text-[9px] font-medium px-1.5 py-0.5 rounded-full shadow-sm flex items-center gap-0.5" data-testid={`hint-indicator-${rowIndex}-${colIndex}`}>
-                                        <Lightbulb className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
-                                        <span>Hint</span>
+                                      <div className="absolute top-1 right-1 z-10 text-sm" data-testid={`hint-indicator-${rowIndex}-${colIndex}`}>
+                                        💡
                                       </div>
                                     )}
                                   </>
