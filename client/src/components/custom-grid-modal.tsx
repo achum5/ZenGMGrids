@@ -12,6 +12,7 @@ import { Grid3x3, Trash2, Play, RotateCcw, X, ArrowUpDown, ChevronDown, Wand2 } 
 import type { LeagueData, Team, CatTeam } from '@/types/bbgm';
 import { detectSport } from '@/lib/grid-sharing';
 import { getTeamOptions, getAchievementOptions, calculateCustomCellIntersection, headerConfigToCatTeam, type TeamOption, type AchievementOption, type HeaderConfig } from '@/lib/custom-grid-utils';
+import { getAllAchievements } from '@/lib/achievements';
 import { SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 import { getCachedSeasonIndex } from '@/lib/season-index-cache';
 import { EditableAchievementLabel } from '@/components/editable-achievement-label';
@@ -152,25 +153,24 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
         const originalAchievement = achievementOptions.find(ach => ach.id === currentSelector.value);
         
         if (originalAchievement) {
-          // Create custom achievement with new threshold
-          // Convert AchievementOption to Achievement-like object
-          const achievementLike = {
-            id: originalAchievement.id,
-            label: originalAchievement.label,
-            test: () => true, // Placeholder test function
-            minPlayers: 0
-          };
-          const customAchievement = createCustomNumericalAchievement(achievementLike, newNumber);
+          // Get the real achievement object from the achievements system
+          const achievements = getAllAchievements(sport as any, seasonIndex, leagueData.leagueYears);
+          const realAchievement = achievements.find((ach: any) => ach.id === originalAchievement.id);
           
-          // Update the selector with new label and custom achievement
-          newSelectors[index] = {
-            ...currentSelector,
-            label: newLabel,
-            customAchievement
-          };
-          
-          // Trigger recalculation
-          setCalculating(true);
+          if (realAchievement) {
+            // Create custom achievement with new threshold using the real achievement
+            const customAchievement = createCustomNumericalAchievement(realAchievement, newNumber);
+            
+            // Update the selector with new label and custom achievement
+            newSelectors[index] = {
+              ...currentSelector,
+              label: newLabel,
+              customAchievement
+            };
+            
+            // Trigger recalculation
+            setCalculating(true);
+          }
         }
       }
       
@@ -182,7 +182,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     } else {
       setColSelectors(updateSelector);
     }
-  }, [leagueData, achievementOptions]);
+  }, [leagueData, achievementOptions, sport, seasonIndex]);
 
   // Clear all selections
   const handleClearAll = useCallback(() => {
