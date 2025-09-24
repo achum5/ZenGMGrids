@@ -107,35 +107,36 @@ export function HintModal({
       await new Promise(resolve => setTimeout(resolve, 100));
       
       
-      // Step 1: Get the most common correct answer from top 10th percentile
-      let eligiblePlayers = eligiblePlayerIds.map(pid => byPid[pid]).filter(Boolean);
+      // Step 1: Get eligible players - ALWAYS calculate directly to avoid cache issues
+      let eligiblePlayers: Player[] = [];
       
-      // If cache is empty, calculate eligible players directly (fallback for broken cache cases)
-      if (eligiblePlayers.length === 0 && leagueData?.players) {
-        console.log(`🔧 Cache empty for ${cellKey}, calculating directly...`);
+      if (leagueData?.players && teams) {
+        // Use the EXACT same calculateOptimizedIntersection that works in grid generation
+        const { calculateOptimizedIntersection } = await import('@/lib/intersection-cache');
         
-        // Use the exact same playerMeetsAchievement function that works in intersections
-        eligiblePlayers = leagueData.players.filter(player => {
-          let rowPasses = false;
-          let colPasses = false;
-          
-          // Check row constraint
-          if (rowConstraint.type === 'team') {
-            rowPasses = player.teamsPlayed.has(rowConstraint.tid!);
-          } else {
-            rowPasses = playerMeetsAchievement(player, rowConstraint.achievementId!, leagueData.seasonIndex);
-          }
-          
-          // Check column constraint  
-          if (colConstraint.type === 'team') {
-            colPasses = player.teamsPlayed.has(colConstraint.tid!);
-          } else {
-            colPasses = playerMeetsAchievement(player, colConstraint.achievementId!, leagueData.seasonIndex);
-          }
-          
-          return rowPasses && colPasses;
-        });
-        console.log(`   Direct calculation found ${eligiblePlayers.length} players`);
+        const rowIntersectionConstraint = {
+          type: rowConstraint.type,
+          id: rowConstraint.type === 'team' ? rowConstraint.tid! : rowConstraint.achievementId!,
+          label: rowConstraint.label
+        };
+        
+        const colIntersectionConstraint = {
+          type: colConstraint.type, 
+          id: colConstraint.type === 'team' ? colConstraint.tid! : colConstraint.achievementId!,
+          label: colConstraint.label
+        };
+        
+        const eligiblePidsSet = calculateOptimizedIntersection(
+          rowIntersectionConstraint,
+          colIntersectionConstraint,
+          leagueData.players,
+          teams,
+          leagueData.seasonIndex,
+          false // Return Set, not count
+        ) as Set<number>;
+        
+        eligiblePlayers = leagueData.players.filter(p => eligiblePidsSet.has(p.pid));
+        console.log(`🎯 Direct intersection calculation: ${eligiblePlayers.length} players found`);
       }
       
       if (eligiblePlayers.length === 0) {
