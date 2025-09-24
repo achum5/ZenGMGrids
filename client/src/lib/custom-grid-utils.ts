@@ -114,92 +114,66 @@ export function getAchievementOptions(
       label: achievement.label
     }))
     .sort((a, b) => {
-      // Custom sort order matching user's categorized structure
-      console.log(`🔧 [SORT DEBUG] Comparing: "${a.label}" (${a.id}) vs "${b.label}" (${b.id})`);
-      const getAchievementPriority = (id: string): number => {
-        // 1. Honors & Awards
-        if (['MVP', 'ROY', 'SMOY', 'DPOY', 'MIP', 'FinalsMVP', 'AllLeagueAny', 'AllDefAny', 'AllRookieAny', 'AllStar', 'Champion', 'isHallOfFamer', 'threePointContestWinner', 'dunkContestWinner', 'royLaterMVP'].includes(id)) return 1;
-        
-        // 2. League Leaders  
-        if (['PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader'].includes(id)) return 2;
-        
-        // 3. Career Milestones
-        if (['career20kPoints', 'career5kAssists', 'career2kSteals', 'career1500Blocks', 'career2kThrees'].includes(id)) return 3;
-        
-        // 4. Single-Season Volume & Combos
-        if (['Season2000Points', 'Season30PPG', 'Season200_3PM', 'Season250ThreePM', 'Season300_3PM', 'Season700Assists', 'Season10APG', 'Season800Rebounds', 'Season12RPG', 'Season150Steals', 'Season2SPG', 'Season150Blocks', 'Season2_5BPG', 'Season200Stocks', 'Season25_10', 'Season25_5_5', 'Season20_10_5', 'Season1_1_1'].includes(id)) return 4;
-        
-        // 5. Single-Season Efficiency & Workload
-        if (['Season50_40_90', 'Season40_3PT200_3PA', 'Season90FT250FTA', 'Season60eFG500FGA', 'Season60TS20PPG', 'Season36MPG', 'Season70Games'].includes(id)) return 5;
-        
-        // 6. Longevity & Journey
-        if (['played10PlusSeasons', 'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises'].includes(id) || id.includes('playedIn') || id.includes('debutedIn')) return 6;
-        
-        // 7. Draft & Entry
-        if (['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen'].includes(id)) return 7;
-        
-        // 8. Random achievements (lowest priority)
-        if (id.startsWith('Random')) return 8;
-        
-        // Default fallback
-        return 9;
-      };
+      // Complete hardcoded sort order exactly as requested
+      const EXACT_ORDER = [
+        // Honors & Awards
+        'MVP', 'ROY', 'SMOY', 'DPOY', 'MIP', 'FinalsMVP', 'AllLeagueAny', 'AllDefAny', 'AllRookieAny', 'AllStar', 'Champion', 'isHallOfFamer', 'threePointContestWinner', 'dunkContestWinner', 'royLaterMVP',
+        // League Leaders
+        'PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader',
+        // Career Milestones  
+        'career20kPoints', 'career5kAssists', 'career2kSteals', 'career1500Blocks', 'career2kThrees',
+        // Single-Season Volume & Combos
+        'Season2000Points', 'Season30PPG', 'Season200_3PM', 'Season250ThreePM', 'Season300_3PM', 'Season700Assists', 'Season10APG', 'Season800Rebounds', 'Season12RPG', 'Season150Steals', 'Season2SPG', 'Season150Blocks', 'Season2_5BPG', 'Season200Stocks', 'Season25_10', 'Season25_5_5', 'Season20_10_5', 'Season1_1_1',
+        // Single-Season Efficiency & Workload  
+        'Season50_40_90', 'Season40_3PT200_3PA', 'Season90FT250FTA', 'Season60eFG500FGA', 'Season60TS20PPG', 'Season36MPG', 'Season70Games',
+        // Longevity & Journey
+        'played10PlusSeasons', 'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises',
+        // Draft & Entry
+        'isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen'
+      ];
       
-      const aPriority = getAchievementPriority(a.id);
-      const bPriority = getAchievementPriority(b.id);
+      const aIndex = EXACT_ORDER.indexOf(a.id);
+      const bIndex = EXACT_ORDER.indexOf(b.id);
       
-      if (aPriority !== bPriority) {
-        return aPriority - bPriority;
+      // Both found in exact order - use that order
+      if (aIndex !== -1 && bIndex !== -1) {
+        return aIndex - bIndex;
       }
       
-      // Within same category, use specific order for each section
-      if (aPriority === 1) {
-        // Honors & Awards specific order
-        const honorsOrder = ['MVP', 'ROY', 'SMOY', 'DPOY', 'MIP', 'FinalsMVP', 'AllLeagueAny', 'AllDefAny', 'AllRookieAny', 'AllStar', 'Champion', 'isHallOfFamer', 'threePointContestWinner', 'dunkContestWinner', 'royLaterMVP'];
-        return honorsOrder.indexOf(a.id) - honorsOrder.indexOf(b.id);
+      // Only A found - A comes first
+      if (aIndex !== -1 && bIndex === -1) {
+        return -1;
       }
       
-      if (aPriority === 2) {
-        // League Leaders specific order
-        const leadersOrder = ['PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader'];
-        return leadersOrder.indexOf(a.id) - leadersOrder.indexOf(b.id);
+      // Only B found - B comes first
+      if (aIndex === -1 && bIndex !== -1) {
+        return 1;
       }
       
-      if (aPriority === 3) {
-        // Career Milestones specific order  
-        const careerOrder = ['career20kPoints', 'career5kAssists', 'career2kSteals', 'career1500Blocks', 'career2kThrees'];
-        return careerOrder.indexOf(a.id) - careerOrder.indexOf(b.id);
-      }
-      
-      if (aPriority === 4) {
-        // Single-Season Volume specific order
-        const volumeOrder = ['Season2000Points', 'Season30PPG', 'Season200_3PM', 'Season250ThreePM', 'Season300_3PM', 'Season700Assists', 'Season10APG', 'Season800Rebounds', 'Season12RPG', 'Season150Steals', 'Season2SPG', 'Season150Blocks', 'Season2_5BPG', 'Season200Stocks', 'Season25_10', 'Season25_5_5', 'Season20_10_5', 'Season1_1_1'];
-        return volumeOrder.indexOf(a.id) - volumeOrder.indexOf(b.id);
-      }
-      
-      if (aPriority === 5) {
-        // Single-Season Efficiency specific order
-        const efficiencyOrder = ['Season50_40_90', 'Season40_3PT200_3PA', 'Season90FT250FTA', 'Season60eFG500FGA', 'Season60TS20PPG', 'Season36MPG', 'Season70Games'];
-        return efficiencyOrder.indexOf(a.id) - efficiencyOrder.indexOf(b.id);
-      }
-      
-      if (aPriority === 6) {
-        // Longevity & Journey specific order
-        const longevityOrder = ['played10PlusSeasons', 'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises'];
-        const aIndex = longevityOrder.indexOf(a.id);
-        const bIndex = longevityOrder.indexOf(b.id);
-        if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
-        // For decade achievements, sort alphabetically  
+      // Neither found - handle special cases
+      // Decade achievements should be sorted in longevity section
+      if (a.id.includes('playedIn') && b.id.includes('playedIn')) {
         return a.label.localeCompare(b.label);
       }
-      
-      if (aPriority === 7) {
-        // Draft & Entry specific order
-        const draftOrder = ['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen'];
-        return draftOrder.indexOf(a.id) - draftOrder.indexOf(b.id);
+      if (a.id.includes('debutedIn') && b.id.includes('debutedIn')) {
+        return a.label.localeCompare(b.label);
+      }
+      if ((a.id.includes('playedIn') || a.id.includes('debutedIn')) && !(b.id.includes('playedIn') || b.id.includes('debutedIn'))) {
+        return -1; // Decade achievements come in longevity section
+      }
+      if (!(a.id.includes('playedIn') || a.id.includes('debutedIn')) && (b.id.includes('playedIn') || b.id.includes('debutedIn'))) {
+        return 1; // Decade achievements come in longevity section
       }
       
-      // Fallback to alphabetical
+      // Random achievements go last
+      if (a.id.startsWith('Random') && !b.id.startsWith('Random')) {
+        return 1;
+      }
+      if (!a.id.startsWith('Random') && b.id.startsWith('Random')) {
+        return -1;
+      }
+      
+      // Both random or both unknown - alphabetical
       return a.label.localeCompare(b.label);
     });
 }
