@@ -2,7 +2,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { RefreshCw, Flag, Share2, Grid3x3 } from 'lucide-react';
+import { RefreshCw, Flag, Share2, Grid3x3, Lightbulb } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { cellKey } from '@/lib/grid-generator';
 import type { CatTeam, CellState, Team } from '@/types/bbgm';
@@ -384,8 +384,9 @@ export function GridSection({
                                       </div>
                                     )}
                                     {cellState?.usedHint && (
-                                      <div className="absolute top-1 right-1 z-10 bg-yellow-500 text-black text-[8px] sm:text-[10px] font-bold px-1 py-0.5 rounded shadow-sm" data-testid={`hint-indicator-${rowIndex}-${colIndex}`}>
-                                        HM
+                                      <div className="absolute top-1 right-1 z-10 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-[7px] sm:text-[9px] font-medium px-1.5 py-0.5 rounded-full shadow-sm flex items-center gap-0.5" data-testid={`hint-indicator-${rowIndex}-${colIndex}`}>
+                                        <Lightbulb className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
+                                        <span>Hint</span>
                                       </div>
                                     )}
                                   </>
@@ -439,7 +440,7 @@ export function GridSection({
             className="text-sm font-medium cursor-pointer"
             data-testid="label-hint-mode"
           >
-            Hint Mode
+            💡 Hint Mode
           </Label>
         </div>
 
