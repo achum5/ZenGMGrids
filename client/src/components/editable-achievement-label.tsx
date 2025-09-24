@@ -79,10 +79,11 @@ export function EditableAchievementLabel({
         onClick={handleClick}
         onMouseDown={handleMouseDown}
         className={`
-          inline-block border-none outline-none
-          text-inherit font-inherit leading-inherit
-          ${isEditing ? 'bg-muted/30 rounded px-1' : 'bg-muted/10 hover:bg-muted/20 rounded'}
-          cursor-text min-w-0 transition-colors
+          inline-block outline-none font-inherit leading-inherit cursor-text min-w-0 transition-colors
+          ${isEditing ? 
+            'bg-white dark:bg-gray-800 border border-black dark:border-white text-black dark:text-white rounded px-1' : 
+            'bg-white dark:bg-gray-800 border border-black dark:border-white text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 rounded px-1'
+          }
         `}
         style={{
           width: `${Math.max(inputValue.length, 2)}ch`,
@@ -169,10 +170,11 @@ export function EditableAchievementLabelNoPlus({
         onClick={handleClick}
         onMouseDown={handleMouseDown}
         className={`
-          inline-block border-none outline-none
-          text-inherit font-inherit leading-inherit
-          ${isEditing ? 'bg-muted/30 rounded px-1' : 'bg-muted/10 hover:bg-muted/20 rounded'}
-          cursor-text min-w-0 transition-colors
+          inline-block outline-none font-inherit leading-inherit cursor-text min-w-0 transition-colors
+          ${isEditing ? 
+            'bg-white dark:bg-gray-800 border border-black dark:border-white text-black dark:text-white rounded px-1' : 
+            'bg-white dark:bg-gray-800 border border-black dark:border-white text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 rounded px-1'
+          }
         `}
         style={{
           width: `${Math.max(inputValue.length, 2)}ch`,
