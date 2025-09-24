@@ -888,53 +888,111 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     
     return (
       <div className="relative">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <div 
-              className="aspect-square flex flex-col items-center justify-center bg-background border rounded transition-colors p-0.5 sm:p-1 lg:p-2 relative group text-[8px] sm:text-xs lg:text-sm min-h-[40px] sm:min-h-[60px] lg:min-h-[80px] cursor-pointer hover:bg-muted"
-              data-testid={`header-${isRow ? 'row' : 'col'}-${index}`}
-            >
-              {selector.label ? (
-                <div className="text-center w-full h-full flex flex-col items-center justify-center relative">
+        <div 
+          className="aspect-square flex flex-col items-center justify-center bg-background border rounded transition-colors p-0.5 sm:p-1 lg:p-2 relative group text-[8px] sm:text-xs lg:text-sm min-h-[40px] sm:min-h-[60px] lg:min-h-[80px]"
+          data-testid={`header-${isRow ? 'row' : 'col'}-${index}`}
+        >
+            {selector.label ? (
+              <div className="text-center w-full h-full flex flex-col items-center justify-center relative">
+                <div className="flex items-center gap-1 mb-0.5">
                   {selector.type && (
-                    <Badge variant="outline" className="text-[6px] sm:text-[8px] lg:text-[10px] mb-0.5 px-0.5 sm:px-1 py-0 leading-none">
+                    <Badge variant="outline" className="text-[6px] sm:text-[8px] lg:text-[10px] px-0.5 sm:px-1 py-0 leading-none">
                       {selector.type}
                     </Badge>
                   )}
-                  <div 
-                    className="text-[6px] sm:text-[8px] lg:text-xs font-medium leading-tight break-words text-center px-0.5 overflow-hidden relative z-10"
-                    onClick={(e) => {
-                      // Stop propagation for editable achievement labels
-                      if (selector.type === 'achievement') {
-                        e.stopPropagation();
+                  {/* Dropdown trigger button - separate from text */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button 
+                        className="w-3 h-3 sm:w-4 sm:h-4 bg-muted hover:bg-muted/80 rounded-sm flex items-center justify-center transition-colors"
+                        title="Change selection"
+                      >
+                        <X className="w-1.5 h-1.5 sm:w-2 sm:h-2" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent 
+                      side="bottom" 
+                      align="end" 
+                      sideOffset={4}
+                      className="w-[min(90vw,20rem)] sm:w-80 p-0"
+                      avoidCollisions={true}
+                      collisionPadding={16}
+                    >
+                      <Tabs defaultValue="teams" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2 m-2 mb-0">
+                          <TabsTrigger value="teams" className="text-xs">Teams</TabsTrigger>
+                          <TabsTrigger value="achievements" className="text-xs">Achievements</TabsTrigger>
+                        </TabsList>
+                        
+                        <TabsContent value="teams" className="mt-0">
+                          <div className="max-h-[35vh] sm:max-h-80 overflow-y-auto p-0">
+                            {teams.map(team => (
+                              <DropdownMenuItem
+                                key={team.id}
+                                onSelect={() => updateSelectorValue(isRow, index, 'team', team.id, team.name)}
+                                className="px-3 py-2 text-sm cursor-pointer flex items-center gap-2"
+                                data-testid={`team-option-${team.id}`}
+                              >
+                                <img
+                                  src={team.logoUrl}
+                                  alt={`${team.name} logo`}
+                                  className="w-4 h-4 object-contain flex-shrink-0"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                                <span className="truncate">{team.name}</span>
+                              </DropdownMenuItem>
+                            ))}
+                          </div>
+                        </TabsContent>
+                        
+                        <TabsContent value="achievements" className="mt-0">
+                          <div className="max-h-[35vh] sm:max-h-80 overflow-y-auto p-0">
+                            {achievementSections.map((section, sectionIndex) => (
+                              <div key={sectionIndex}>
+                                <div className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide bg-muted/50">
+                                  {section.title}
+                                </div>
+                                {section.achievements.map(achievement => (
+                                  <DropdownMenuItem
+                                    key={achievement.id}
+                                    onSelect={() => updateSelectorValue(isRow, index, 'achievement', achievement.id, achievement.name)}
+                                    className="px-3 py-2 text-sm cursor-pointer"
+                                    data-testid={`achievement-option-${achievement.id}`}
+                                  >
+                                    <span className="truncate">{achievement.name}</span>
+                                  </DropdownMenuItem>
+                                ))}
+                              </div>
+                            ))}
+                          </div>
+                        </TabsContent>
+                      </Tabs>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                
+                <div className="text-[6px] sm:text-[8px] lg:text-xs font-medium leading-tight break-words text-center px-0.5 overflow-hidden">
+                  {selector.type === 'achievement' ? (
+                    <EditableAchievementLabel
+                      label={selector.label || ''}
+                      onNumberChange={(newNumber, newLabel) => 
+                        handleAchievementNumberChange(
+                          isRow ? 'row' : 'col', 
+                          index, 
+                          newNumber, 
+                          newLabel
+                        )
                       }
-                    }}
-                  >
-                    {selector.type === 'achievement' ? (
-                      <EditableAchievementLabel
-                        label={selector.label || ''}
-                        onNumberChange={(newNumber, newLabel) => 
-                          handleAchievementNumberChange(
-                            isRow ? 'row' : 'col', 
-                            index, 
-                            newNumber, 
-                            newLabel
-                          )
-                        }
-                      />
-                    ) : (
-                      selector.label
-                    )}
-                  </div>
-                  {/* Invisible overlay to capture non-input clicks for dropdown */}
-                  {selector.type === 'achievement' && (
-                    <div 
-                      className="absolute inset-0 cursor-pointer"
-                      style={{ zIndex: -1 }}
                     />
+                  ) : (
+                    selector.label
                   )}
                 </div>
-              ) : (
+              </div>
+            ) : (
+              <>
                 <div className="text-center w-full h-full flex flex-col items-center justify-center space-y-1">
                   <div className="text-[9px] sm:text-[10px] font-medium text-muted-foreground leading-tight">
                     Click to Select
@@ -943,100 +1001,78 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                     Team or Achievement
                   </div>
                 </div>
-              )}
-            </div>
-          </DropdownMenuTrigger>
-        
-        <DropdownMenuContent 
-          side="bottom" 
-          align="end" 
-          sideOffset={4}
-          className="w-[min(90vw,20rem)] sm:w-80 p-0"
-          avoidCollisions={true}
-          collisionPadding={16}
-        >
-          <Tabs defaultValue="teams" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 m-2 mb-0">
-              <TabsTrigger value="teams" className="text-xs">Teams</TabsTrigger>
-              <TabsTrigger value="achievements" className="text-xs">Achievements</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="teams" className="mt-0">
-              <div className="max-h-[35vh] sm:max-h-80 overflow-y-auto p-0">
-                {teams.map(team => (
-                  <DropdownMenuItem
-                    key={team.id}
-                    onSelect={() => updateSelectorValue(isRow, index, 'team', team.id, team.name)}
-                    className="px-3 py-2 text-sm cursor-pointer flex items-center gap-2"
-                    data-testid={`team-option-${team.id}`}
+                {/* Dropdown trigger for empty cells */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="absolute inset-0 w-full h-full bg-transparent cursor-pointer hover:bg-muted/20 transition-colors rounded" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent 
+                    side="bottom" 
+                    align="end" 
+                    sideOffset={4}
+                    className="w-[min(90vw,20rem)] sm:w-80 p-0"
+                    avoidCollisions={true}
+                    collisionPadding={16}
                   >
-                    <img
-                      src={team.logoUrl}
-                      alt={`${team.name} logo`}
-                      className="w-4 h-4 object-contain flex-shrink-0"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                    <span className="truncate">{team.name}</span>
-                  </DropdownMenuItem>
-                ))}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="achievements" className="mt-0">
-              <div className="max-h-[35vh] sm:max-h-80 overflow-y-auto p-0">
-                {achievementSections.map((section, sectionIndex) => (
-                  <div key={sectionIndex}>
-                    <div className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide bg-muted/50">
-                      {section.title}
-                    </div>
-                    {section.achievements.map(achievement => (
-                      <DropdownMenuItem
-                        key={achievement.id}
-                        onSelect={() => updateSelectorValue(isRow, index, 'achievement', achievement.id, achievement.name)}
-                        className="px-3 py-2 text-sm cursor-pointer"
-                        data-testid={`achievement-option-${achievement.id}`}
-                      >
-                        <span className="truncate">{achievement.name}</span>
-                      </DropdownMenuItem>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      
-      {/* X button positioned outside the DropdownMenuTrigger to prevent click interference */}
-      {selector.label && (
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (isRow) {
-              const newRowSelectors = [...rowSelectors];
-              newRowSelectors[index] = { type: null, value: null, label: null };
-              setRowSelectors(newRowSelectors);
-            } else {
-              const newColSelectors = [...colSelectors];
-              newColSelectors[index] = { type: null, value: null, label: null };
-              setColSelectors(newColSelectors);
-            }
-            // Clear cell counts when clearing a header
-            setCellCounts({});
-          }}
-          className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-100 transition-colors duration-200 flex items-center justify-center text-[10px] font-bold z-10"
-          title="Clear selection"
-          data-testid={`button-clear-${isRow ? 'row' : 'col'}-${index}`}
-        >
-          ×
-        </button>
-      )}
-    </div>
-  );
-  };
+                    <Tabs defaultValue="teams" className="w-full">
+                      <TabsList className="grid w-full grid-cols-2 m-2 mb-0">
+                        <TabsTrigger value="teams" className="text-xs">Teams</TabsTrigger>
+                        <TabsTrigger value="achievements" className="text-xs">Achievements</TabsTrigger>
+                      </TabsList>
+                      
+                      <TabsContent value="teams" className="mt-0">
+                        <div className="max-h-[35vh] sm:max-h-80 overflow-y-auto p-0">
+                          {teams.map(team => (
+                            <DropdownMenuItem
+                              key={team.id}
+                              onSelect={() => updateSelectorValue(isRow, index, 'team', team.id, team.name)}
+                              className="px-3 py-2 text-sm cursor-pointer flex items-center gap-2"
+                              data-testid={`team-option-${team.id}`}
+                            >
+                              <img
+                                src={team.logoUrl}
+                                alt={`${team.name} logo`}
+                                className="w-4 h-4 object-contain flex-shrink-0"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
+                              <span className="truncate">{team.name}</span>
+                            </DropdownMenuItem>
+                          ))}
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="achievements" className="mt-0">
+                        <div className="max-h-[35vh] sm:max-h-80 overflow-y-auto p-0">
+                          {achievementSections.map((section, sectionIndex) => (
+                            <div key={sectionIndex}>
+                              <div className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide bg-muted/50">
+                                {section.title}
+                              </div>
+                              {section.achievements.map(achievement => (
+                                <DropdownMenuItem
+                                  key={achievement.id}
+                                  onSelect={() => updateSelectorValue(isRow, index, 'achievement', achievement.id, achievement.name)}
+                                  className="px-3 py-2 text-sm cursor-pointer"
+                                  data-testid={`achievement-option-${achievement.id}`}
+                                >
+                                  <span className="truncate">{achievement.name}</span>
+                                </DropdownMenuItem>
+                              ))}
+                            </div>
+                          ))}
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            )}
+          </div>
+        </div>
+      );
+    };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -1203,7 +1239,6 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
           </div>
         </div>
       </DialogContent>
-      
     </Dialog>
   );
 }
