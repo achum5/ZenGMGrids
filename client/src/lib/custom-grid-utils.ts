@@ -205,13 +205,6 @@ export function headerConfigToCatTeam(
     // Use custom achievement if available, otherwise use original
     const achievementToUse = config.customAchievement || { id: config.selectedId };
     
-    console.log(`🔧 [HEADER TO CATTEAM] Creating achievement constraint:`, {
-      selectedId: config.selectedId,
-      selectedLabel: config.selectedLabel,
-      hasCustom: !!config.customAchievement,
-      customAchievement: config.customAchievement,
-      achievementToUse
-    });
     
     return {
       key: `achievement-${achievementToUse.id}-${config.customAchievement ? 'custom' : 'original'}`,
@@ -221,10 +214,7 @@ export function headerConfigToCatTeam(
       test: (p: Player) => {
         if (config.customAchievement) {
           // For custom achievements, use the custom achievement's test function directly
-          console.log(`🔧 [CUSTOM TEST] Testing ${p.name} with custom achievement test`);
-          const result = config.customAchievement.test(p);
-          console.log(`🔧 [CUSTOM TEST] Result: ${result}`);
-          return result;
+          return config.customAchievement.test(p);
         } else {
           // For regular achievements, use the standard function
           return playerMeetsAchievement(p, achievementToUse.id as string, seasonIndex);

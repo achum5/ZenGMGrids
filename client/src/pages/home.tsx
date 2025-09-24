@@ -20,7 +20,7 @@ import baseballIcon from '@/assets/baseball.png';
 import { parseLeagueFile, parseLeagueUrl, buildSearchIndex } from '@/lib/bbgm-parser';
 import { generateTeamsGrid, cellKey } from '@/lib/grid-generator';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
-import { debugAchievementIntersection, calculateCustomCellIntersection } from '@/lib/custom-grid-utils';
+import { debugAchievementIntersection, calculateCustomCellIntersection, headerConfigToCatTeam } from '@/lib/custom-grid-utils';
 import { calculateOptimizedIntersection, type IntersectionConstraint } from '@/lib/intersection-cache';
 import { getSeasonEligiblePlayers, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 import { debugIndividualAchievements, playerMeetsAchievement } from '@/lib/achievements';
@@ -1272,7 +1272,7 @@ export default function Home() {
         <CustomGridModal
           isOpen={customGridModalOpen}
           onClose={() => setCustomGridModalOpen(false)}
-          onPlayGrid={(customRows, customCols) => {
+          onPlayGrid={(customRows, customCols, rowSelectors, colSelectors) => {
             if (!leagueData) return;
             
             // Replace current grid with custom grid
@@ -1283,35 +1283,64 @@ export default function Home() {
             setUsedPids(new Set());
             setRankCache({});
             
-            // Calculate intersections for custom grid using position-based keys
+            // Calculate intersections using the EXACT same logic as custom grid preview
             const newIntersections: Record<string, number[]> = {};
             
-            for (let rowIndex = 0; rowIndex < customRows.length; rowIndex++) {
-              for (let colIndex = 0; colIndex < customCols.length; colIndex++) {
-                const key = `${rowIndex}-${colIndex}`;
-              
-              const row = customRows[rowIndex];
-              const col = customCols[colIndex];
-              
-              if (row && col) {
-                // Use the test functions directly - they already contain all the custom achievement logic
-                console.log(`🔧 [GAME INTERSECTION] Calculating cell ${key}:`);
-                console.log(`   Row: ${row.label} (key: ${row.key})`);
-                console.log(`   Col: ${col.label} (key: ${col.key})`);
-                
-                const eligiblePlayers = leagueData.players.filter(p => {
-                  const rowTest = row.test(p);
-                  const colTest = col.test(p);
-                  const passes = rowTest && colTest;
-                  if (passes) {
-                    console.log(`   ✅ Player ${p.name} passes both tests`);
+            // Use original selector data that preserves custom achievement information
+            if (rowSelectors && colSelectors) {
+              for (let rowIndex = 0; rowIndex < 3; rowIndex++) {
+                for (let colIndex = 0; colIndex < 3; colIndex++) {
+                  const key = `${rowIndex}-${colIndex}`;
+                  
+                  const rowConfig = {
+                    type: rowSelectors[rowIndex].type,
+                    selectedId: rowSelectors[rowIndex].type === 'team' 
+                      ? parseInt(rowSelectors[rowIndex].value) 
+                      : rowSelectors[rowIndex].value,
+                    selectedLabel: rowSelectors[rowIndex].label,
+                    customAchievement: rowSelectors[rowIndex].customAchievement
+                  };
+                  
+                  const colConfig = {
+                    type: colSelectors[colIndex].type,
+                    selectedId: colSelectors[colIndex].type === 'team' 
+                      ? parseInt(colSelectors[colIndex].value) 
+                      : colSelectors[colIndex].value,
+                    selectedLabel: colSelectors[colIndex].label,
+                    customAchievement: colSelectors[colIndex].customAchievement
+                  };
+                  
+                  // Use calculateCustomCellIntersection - the EXACT same function as the preview
+                  const count = calculateCustomCellIntersection(
+                    rowConfig,
+                    colConfig, 
+                    leagueData.players,
+                    leagueData.teams,
+                    leagueData.seasonIndex
+                  );
+                  
+                  // Get the actual eligible player IDs
+                  const rowConstraint = headerConfigToCatTeam(rowConfig, leagueData.teams, leagueData.seasonIndex);
+                  const colConstraint = headerConfigToCatTeam(colConfig, leagueData.teams, leagueData.seasonIndex);
+                  
+                  if (rowConstraint && colConstraint) {
+                    const eligiblePlayers = leagueData.players.filter(p => 
+                      rowConstraint.test(p) && colConstraint.test(p)
+                    );
+                    newIntersections[key] = eligiblePlayers.map(p => p.pid);
                   }
-                  return passes;
-                });
-                
-                console.log(`   📊 Total eligible: ${eligiblePlayers.length}`);
-                newIntersections[key] = eligiblePlayers.map(p => p.pid);
+                }
               }
+            } else {
+              // Fallback to direct test functions if selectors not available
+              for (let rowIndex = 0; rowIndex < customRows.length; rowIndex++) {
+                for (let colIndex = 0; colIndex < customCols.length; colIndex++) {
+                  const key = `${rowIndex}-${colIndex}`;
+                  const eligiblePlayers = leagueData.players.filter(p => 
+                    customRows[rowIndex].test(p) && customCols[colIndex].test(p)
+                  );
+                  newIntersections[key] = eligiblePlayers.map(p => p.pid);
+                }
               }
             }
             
