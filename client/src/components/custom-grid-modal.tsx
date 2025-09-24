@@ -121,6 +121,21 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
 
   const sport = leagueData ? detectSport(leagueData) : 'basketball';
   
+  // Memoize expensive computations to prevent performance issues
+  const teamOptions = useMemo<TeamOption[]>(() => {
+    return leagueData ? getTeamOptions(leagueData.teams) : [];
+  }, [leagueData?.teams]);
+  
+  // Use cached season index for achievements (replaces expensive local rebuild)
+  const seasonIndex = useMemo(() => {
+    return leagueData ? getCachedSeasonIndex(leagueData.players, sport) : undefined;
+  }, [leagueData?.players, sport]);
+  
+  const achievementOptions = useMemo<AchievementOption[]>(() => {
+    console.log('🔧 [MEMO] Recalculating achievement options...');
+    return leagueData ? getAchievementOptions(sport, seasonIndex, leagueData.leagueYears) : [];
+  }, [sport, seasonIndex, leagueData?.leagueYears, "v2"]); // Cache bust with version v2
+
   // Handler for when achievement numbers are edited
   const handleAchievementNumberChange = useCallback((
     selectorType: 'row' | 'col',
@@ -161,21 +176,6 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
       setColSelectors(updateSelector);
     }
   }, [leagueData, achievementOptions]);
-  
-  // Memoize expensive computations to prevent performance issues
-  const teamOptions = useMemo<TeamOption[]>(() => {
-    return leagueData ? getTeamOptions(leagueData.teams) : [];
-  }, [leagueData?.teams]);
-  
-  // Use cached season index for achievements (replaces expensive local rebuild)
-  const seasonIndex = useMemo(() => {
-    return leagueData ? getCachedSeasonIndex(leagueData.players, sport) : undefined;
-  }, [leagueData?.players, sport]);
-  
-  const achievementOptions = useMemo<AchievementOption[]>(() => {
-    console.log('🔧 [MEMO] Recalculating achievement options...');
-    return leagueData ? getAchievementOptions(sport, seasonIndex, leagueData.leagueYears) : [];
-  }, [sport, seasonIndex, leagueData?.leagueYears, "v2"]); // Cache bust with version v2
 
   // Clear all selections
   const handleClearAll = useCallback(() => {
