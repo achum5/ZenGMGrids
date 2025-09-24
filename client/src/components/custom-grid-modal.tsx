@@ -79,7 +79,7 @@ function AchievementIcon({ achievement, size = 24 }: { achievement: AchievementO
     return Trophy;
   };
   
-  const IconComponent = getIcon(achievement.name);
+  const IconComponent = getIcon(achievement.label);
   return <IconComponent size={size} className="text-blue-400" />;
 }
 
@@ -103,8 +103,7 @@ function SearchPicker({ isOpen, onClose, onSelect, title, teams, achievements, s
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       items = items.filter(item => 
-        item.name.toLowerCase().includes(query) ||
-        ('abbrev' in item && item.abbrev?.toLowerCase().includes(query))
+        item.label.toLowerCase().includes(query)
       );
     }
     
@@ -148,20 +147,21 @@ function SearchPicker({ isOpen, onClose, onSelect, title, teams, achievements, s
   }, [activeFilter, searchQuery]);
   
   const handleSelect = (item: TeamOption | AchievementOption) => {
-    if ('abbrev' in item) {
-      // Team selection
+    if (typeof item.id === 'number') {
+      // Team selection - find the corresponding team data
+      const teamData = teams.find(t => t.id === item.id)?.teamData;
       onSelect({
         type: 'team',
         value: `team-${item.id}`,
-        label: item.name,
-        teamData: item.teamData
+        label: item.label,
+        teamData
       });
     } else {
       // Achievement selection
       onSelect({
         type: 'achievement',
         value: `achievement-${item.id}`,
-        label: item.name
+        label: item.label
       });
     }
     onClose();
@@ -232,7 +232,7 @@ function SearchPicker({ isOpen, onClose, onSelect, title, teams, achievements, s
             <div className="space-y-1">
               {filteredItems.map((item, index) => (
                 <button
-                  key={`${'abbrev' in item ? 'team' : 'achievement'}-${item.id}`}
+                  key={`${typeof item.id === 'number' ? 'team' : 'achievement'}-${item.id}`}
                   onClick={() => handleSelect(item)}
                   className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors ${
                     index === selectedIndex
@@ -248,11 +248,11 @@ function SearchPicker({ isOpen, onClose, onSelect, title, teams, achievements, s
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{item.name}</div>
+                    <div className="font-medium truncate">{item.label}</div>
                   </div>
                   <div className="flex-shrink-0">
                     <Badge variant="secondary" className="text-xs bg-[#1E2630] text-[#A6B0BB]">
-                      {'abbrev' in item ? 'Team' : 'Award'}
+                      {typeof item.id === 'number' ? 'Team' : 'Award'}
                     </Badge>
                   </div>
                 </button>
@@ -376,7 +376,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
   }, [leagueData]);
   
   const achievementOptions = useMemo(() => {
-    return leagueData ? getAchievementOptions(leagueData, sport) : [];
+    return leagueData ? getAchievementOptions(sport) : [];
   }, [leagueData, sport]);
   
   // Calculate progress
