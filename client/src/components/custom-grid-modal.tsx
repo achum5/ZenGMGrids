@@ -74,7 +74,7 @@ function TeamLogoIcon({ teamData }: { teamData?: Team }) {
 interface CustomGridModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onPlayGrid: (rows: CatTeam[], cols: CatTeam[]) => void;
+  onPlayGrid: (rows: CatTeam[], cols: CatTeam[], rowSelectors?: any[], colSelectors?: any[]) => void;
   leagueData: LeagueData | null;
 }
 
@@ -521,13 +521,6 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
           customAchievement: rowSelector.customAchievement
         };
         
-        console.log(`🔧 [ROW CONFIG] Row ${i}:`, {
-          type: headerConfig.type,
-          selectedId: headerConfig.selectedId,
-          selectedLabel: headerConfig.selectedLabel,
-          hasCustom: !!headerConfig.customAchievement,
-          customValue: headerConfig.customAchievement?.value
-        });
         
         const catTeam = headerConfigToCatTeam(headerConfig, leagueData.teams, seasonIndex);
         if (catTeam) {
@@ -547,14 +540,6 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
           customAchievement: colSelector.customAchievement
         };
         
-        console.log(`🔧 [COL CONFIG] Col ${i}:`, {
-          type: headerConfig.type,
-          selectedId: headerConfig.selectedId,
-          selectedLabel: headerConfig.selectedLabel,
-          hasCustom: !!headerConfig.customAchievement,
-          customValue: headerConfig.customAchievement?.value,
-          customAchievement: headerConfig.customAchievement
-        });
         
         const catTeam = headerConfigToCatTeam(headerConfig, leagueData.teams, seasonIndex);
         if (catTeam) {
@@ -565,7 +550,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     
     // Ensure we have exactly 3 rows and 3 cols
     if (customRows.length === 3 && customCols.length === 3) {
-      onPlayGrid(customRows, customCols);
+      onPlayGrid(customRows, customCols, rowSelectors, colSelectors);
     }
   }, [isGridSolvable, leagueData, rowSelectors, colSelectors, seasonIndex, onPlayGrid]);
 
