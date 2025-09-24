@@ -246,66 +246,21 @@ export function calculateOptimizedIntersection(
       result = returnCount ? eligiblePids.size : eligiblePids;
     }
   } else if (rowIsSeasonAchievement && colIsSeasonAchievement) {
-    // Season achievement × season achievement
-    if (!seasonIndex) {
-      result = returnCount ? 0 : new Set();
-    } else {
-      if (rowConstraint.id === colConstraint.id) {
-        // Same achievement - count all players who have it
-        const eligiblePids = new Set<number>();
-        for (const seasonStr of Object.keys(seasonIndex)) {
-          const season = parseInt(seasonStr);
-          const seasonData = seasonIndex[season];
-          for (const teamStr of Object.keys(seasonData)) {
-            const teamId = parseInt(teamStr);
-            const teamData = seasonData[teamId];
-            if (teamData[rowConstraint.id as SeasonAchievementId]) {
-              const achievementPids = teamData[rowConstraint.id as SeasonAchievementId];
-              achievementPids.forEach(pid => eligiblePids.add(pid));
-            }
-          }
-        }
-        result = returnCount ? eligiblePids.size : eligiblePids;
-      } else {
-        // Different achievements - use Set intersection for efficiency
-        const rowAchievementPids = new Set<number>();
-        const colAchievementPids = new Set<number>();
-        
-        // Collect players with row achievement
-        for (const seasonStr of Object.keys(seasonIndex)) {
-          const season = parseInt(seasonStr);
-          const seasonData = seasonIndex[season];
-          for (const teamStr of Object.keys(seasonData)) {
-            const teamId = parseInt(teamStr);
-            const teamData = seasonData[teamId];
-            if (teamData[rowConstraint.id as SeasonAchievementId]) {
-              const achievementPids = teamData[rowConstraint.id as SeasonAchievementId];
-              achievementPids.forEach(pid => rowAchievementPids.add(pid));
-            }
-          }
-        }
-        
-        // Collect players with col achievement
-        for (const seasonStr of Object.keys(seasonIndex)) {
-          const season = parseInt(seasonStr);
-          const seasonData = seasonIndex[season];
-          for (const teamStr of Object.keys(seasonData)) {
-            const teamId = parseInt(teamStr);
-            const teamData = seasonData[teamId];
-            if (teamData[colConstraint.id as SeasonAchievementId]) {
-              const achievementPids = teamData[colConstraint.id as SeasonAchievementId];
-              achievementPids.forEach(pid => colAchievementPids.add(pid));
-            }
-          }
-        }
-        
-        if (returnCount) {
-          result = intersectSetsCount(rowAchievementPids, colAchievementPids);
-        } else {
-          result = intersectSets(rowAchievementPids, colAchievementPids);
-        }
+    // Season achievement × season achievement - SIMPLIFIED LOGIC
+    // Fix for achievement x achievement bug: just check if each player has both achievements
+    const eligiblePids = new Set<number>();
+    
+    for (const player of players) {
+      const hasRowAchievement = playerMeetsAchievement(player, rowConstraint.id as string, seasonIndex);
+      const hasColAchievement = playerMeetsAchievement(player, colConstraint.id as string, seasonIndex);
+      
+      // Simple logic: if player has both achievements, they qualify
+      if (hasRowAchievement && hasColAchievement) {
+        eligiblePids.add(player.pid);
       }
     }
+    
+    result = returnCount ? eligiblePids.size : eligiblePids;
   } else if (rowConstraint.type === 'team' && colConstraint.type === 'achievement' && !colIsSeasonAchievement) {
     // Team × career achievement
     const teamPlayers = buildPlayersByTeam(players).get(rowConstraint.id as number) || new Set();
@@ -328,97 +283,55 @@ export function calculateOptimizedIntersection(
     }
   } else if (rowConstraint.type === 'achievement' && !rowIsSeasonAchievement && 
              colConstraint.type === 'achievement' && !colIsSeasonAchievement) {
-    // Career achievement × career achievement
-    const rowAchievementPlayers = buildPlayersByAchievement(players, seasonIndex).get(rowConstraint.id as string) || new Set();
-    const colAchievementPlayers = buildPlayersByAchievement(players, seasonIndex).get(colConstraint.id as string) || new Set();
+    // Career achievement × career achievement - SIMPLIFIED LOGIC
+    // Fix for career achievement intersection: just check if each player has both achievements
+    const eligiblePids = new Set<number>();
     
-    if (returnCount) {
-      result = intersectSetsCount(rowAchievementPlayers, colAchievementPlayers);
-    } else {
-      result = intersectSets(rowAchievementPlayers, colAchievementPlayers);
+    for (const player of players) {
+      const hasRowAchievement = playerMeetsAchievement(player, rowConstraint.id as string, seasonIndex);
+      const hasColAchievement = playerMeetsAchievement(player, colConstraint.id as string, seasonIndex);
+      
+      // Simple logic: if player has both achievements, they qualify
+      if (hasRowAchievement && hasColAchievement) {
+        eligiblePids.add(player.pid);
+      }
     }
+    
+    result = returnCount ? eligiblePids.size : eligiblePids;
   } else if (rowConstraint.type === 'achievement' && !rowIsSeasonAchievement && 
              colConstraint.type === 'achievement' && colIsSeasonAchievement) {
-    // Career achievement × season achievement
-    if (!seasonIndex) {
-      result = returnCount ? 0 : new Set();
-    } else {
-      const careerAchievementPlayers = buildPlayersByAchievement(players, seasonIndex).get(rowConstraint.id as string) || new Set();
+    // Career achievement × season achievement - SIMPLIFIED LOGIC
+    // Fix for mixed achievement intersection: just check if each player has both achievements
+    const eligiblePids = new Set<number>();
+    
+    for (const player of players) {
+      const hasRowAchievement = playerMeetsAchievement(player, rowConstraint.id as string, seasonIndex);
+      const hasColAchievement = playerMeetsAchievement(player, colConstraint.id as string, seasonIndex);
       
-      // DEBUG: Log career achievement players
-      if (rowConstraint.id === 'played15PlusSeasons') {
-        console.log(`🐛 [Career Achievement] ${rowConstraint.id} has ${careerAchievementPlayers.size} players`);
-      }
-      
-      // Get all players with the season achievement
-      const seasonAchievementPlayers = new Set<number>();
-      for (const seasonStr of Object.keys(seasonIndex)) {
-        const season = parseInt(seasonStr);
-        const seasonData = seasonIndex[season];
-        for (const teamStr of Object.keys(seasonData)) {
-          const teamId = parseInt(teamStr);
-          const teamData = seasonData[teamId];
-          const seasonAchPlayers = teamData[colConstraint.id as SeasonAchievementId] || new Set();
-          seasonAchPlayers.forEach(pid => seasonAchievementPlayers.add(pid));
-        }
-      }
-      
-      // DEBUG: Log season achievement players
-      if (colConstraint.id === 'Season70Games') {
-        console.log(`🐛 [Season Achievement] ${colConstraint.id} has ${seasonAchievementPlayers.size} players`);
-      }
-      
-      if (returnCount) {
-        result = intersectSetsCount(careerAchievementPlayers, seasonAchievementPlayers);
-        // DEBUG: Log intersection result
-        if (rowConstraint.id === 'played15PlusSeasons' && colConstraint.id === 'Season70Games') {
-          console.log(`🐛 [Intersection] ${rowConstraint.id} × ${colConstraint.id} = ${result} players`);
-        }
-      } else {
-        result = intersectSets(careerAchievementPlayers, seasonAchievementPlayers);
+      // Simple logic: if player has both achievements, they qualify
+      if (hasRowAchievement && hasColAchievement) {
+        eligiblePids.add(player.pid);
       }
     }
+    
+    result = returnCount ? eligiblePids.size : eligiblePids;
   } else if (rowConstraint.type === 'achievement' && rowIsSeasonAchievement && 
              colConstraint.type === 'achievement' && !colIsSeasonAchievement) {
-    // Season achievement × career achievement
-    if (!seasonIndex) {
-      result = returnCount ? 0 : new Set();
-    } else {
-      const careerAchievementPlayers = buildPlayersByAchievement(players, seasonIndex).get(colConstraint.id as string) || new Set();
+    // Season achievement × career achievement - SIMPLIFIED LOGIC
+    // Fix for mixed achievement intersection: just check if each player has both achievements
+    const eligiblePids = new Set<number>();
+    
+    for (const player of players) {
+      const hasRowAchievement = playerMeetsAchievement(player, rowConstraint.id as string, seasonIndex);
+      const hasColAchievement = playerMeetsAchievement(player, colConstraint.id as string, seasonIndex);
       
-      // DEBUG: Log career achievement players
-      if (colConstraint.id === 'played15PlusSeasons') {
-        console.log(`🐛 [Career Achievement] ${colConstraint.id} has ${careerAchievementPlayers.size} players`);
-      }
-      
-      // Get all players with the season achievement
-      const seasonAchievementPlayers = new Set<number>();
-      for (const seasonStr of Object.keys(seasonIndex)) {
-        const season = parseInt(seasonStr);
-        const seasonData = seasonIndex[season];
-        for (const teamStr of Object.keys(seasonData)) {
-          const teamId = parseInt(teamStr);
-          const teamData = seasonData[teamId];
-          const seasonAchPlayers = teamData[rowConstraint.id as SeasonAchievementId] || new Set();
-          seasonAchPlayers.forEach(pid => seasonAchievementPlayers.add(pid));
-        }
-      }
-      
-      // DEBUG: Log season achievement players
-      if (rowConstraint.id === 'Season70Games') {
-        console.log(`🐛 [Season Achievement] ${rowConstraint.id} has ${seasonAchievementPlayers.size} players`);
-      }
-      
-      if (returnCount) {
-        result = intersectSetsCount(seasonAchievementPlayers, careerAchievementPlayers);
-        // DEBUG: Log intersection result
-        if (rowConstraint.id === 'Season70Games' && colConstraint.id === 'played15PlusSeasons') {
-          console.log(`🐛 [Intersection] ${rowConstraint.id} × ${colConstraint.id} = ${result} players`);
-        }
-      } else {
-        result = intersectSets(seasonAchievementPlayers, careerAchievementPlayers);
+      // Simple logic: if player has both achievements, they qualify
+      if (hasRowAchievement && hasColAchievement) {
+        eligiblePids.add(player.pid);
       }
     }
+    
+    result = returnCount ? eligiblePids.size : eligiblePids;
   } else {
     // Fallback - should not happen with proper constraints
     result = returnCount ? 0 : new Set();
