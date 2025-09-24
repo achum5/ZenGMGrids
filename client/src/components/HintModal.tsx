@@ -113,11 +113,27 @@ export function HintModal({
       // If cache is empty, calculate eligible players directly (fallback for broken cache cases)
       if (eligiblePlayers.length === 0 && leagueData?.players) {
         console.log(`🔧 Cache empty for ${cellKey}, calculating directly...`);
-        const rowTest = rowConstraint.test || createTestFunction(rowConstraint, leagueData.seasonIndex);
-        const colTest = colConstraint.test || createTestFunction(colConstraint, leagueData.seasonIndex);
         
+        // Use the exact same playerMeetsAchievement function that works in intersections
         eligiblePlayers = leagueData.players.filter(player => {
-          return rowTest(player) && colTest(player);
+          let rowPasses = false;
+          let colPasses = false;
+          
+          // Check row constraint
+          if (rowConstraint.type === 'team') {
+            rowPasses = player.teamsPlayed.has(rowConstraint.tid!);
+          } else {
+            rowPasses = playerMeetsAchievement(player, rowConstraint.achievementId!, leagueData.seasonIndex);
+          }
+          
+          // Check column constraint  
+          if (colConstraint.type === 'team') {
+            colPasses = player.teamsPlayed.has(colConstraint.tid!);
+          } else {
+            colPasses = playerMeetsAchievement(player, colConstraint.achievementId!, leagueData.seasonIndex);
+          }
+          
+          return rowPasses && colPasses;
         });
         console.log(`   Direct calculation found ${eligiblePlayers.length} players`);
       }
