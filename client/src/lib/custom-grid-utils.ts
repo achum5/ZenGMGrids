@@ -71,6 +71,7 @@ export function getAchievementOptions(
   seasonIndex?: SeasonIndex,
   leagueYears?: { minSeason: number; maxSeason: number }
 ): AchievementOption[] {
+  console.log(`🔧 [ACHIEVEMENT OPTIONS] Called with sport: ${sport}, cache version: v2`);
   const achievements = getAllAchievements(sport as any, seasonIndex, leagueYears);
   return achievements
     .filter(achievement => 
@@ -114,6 +115,7 @@ export function getAchievementOptions(
     }))
     .sort((a, b) => {
       // Custom sort order matching user's categorized structure
+      console.log(`🔧 [SORT DEBUG] Comparing: "${a.label}" (${a.id}) vs "${b.label}" (${b.id})`);
       const getAchievementPriority = (id: string): number => {
         // 1. Honors & Awards
         if (['MVP', 'ROY', 'SMOY', 'DPOY', 'MIP', 'FinalsMVP', 'AllLeagueAny', 'AllDefAny', 'AllRookieAny', 'AllStar', 'Champion', 'isHallOfFamer', 'threePointContestWinner', 'dunkContestWinner', 'royLaterMVP'].includes(id)) return 1;

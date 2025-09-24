@@ -129,8 +129,9 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
   }, [leagueData?.players, sport]);
   
   const achievementOptions = useMemo<AchievementOption[]>(() => {
+    console.log('🔧 [MEMO] Recalculating achievement options...');
     return leagueData ? getAchievementOptions(sport, seasonIndex, leagueData.leagueYears) : [];
-  }, [sport, seasonIndex, leagueData?.leagueYears]);
+  }, [sport, seasonIndex, leagueData?.leagueYears, "v2"]); // Cache bust with version v2
 
   // Clear all selections
   const handleClearAll = useCallback(() => {
