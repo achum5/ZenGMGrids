@@ -86,7 +86,8 @@ export function EditableAchievementLabel({
           }
         `}
         style={{
-          width: `${Math.max(inputValue.length, 2)}ch`,
+          width: `${Math.max(inputValue.length + 1, 3)}ch`,
+          minWidth: '3ch'
         }}
         data-testid={`editable-number-${parsed.number}`}
       />
@@ -177,7 +178,8 @@ export function EditableAchievementLabelNoPlus({
           }
         `}
         style={{
-          width: `${Math.max(inputValue.length, 2)}ch`,
+          width: `${Math.max(inputValue.length + 1, 3)}ch`,
+          minWidth: '3ch'
         }}
         data-testid={`editable-number-${parsed.number}`}
       />
