@@ -602,9 +602,75 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
       }
     });
 
-    // Sort achievements alphabetically within each category
-    seasonAchievements.sort((a, b) => a.name.localeCompare(b.name));
-    careerAchievements.sort((a, b) => a.name.localeCompare(b.name));
+    // Custom sort achievements according to user's exact requested order
+    const ACHIEVEMENT_ORDER = [
+      // Honors & Awards
+      'MVP', 'ROY', 'SMOY', 'DPOY', 'MIP', 'FinalsMVP', 'AllLeagueAny', 'AllDefAny', 'AllRookieAny', 'AllStar', 'Champion', 'isHallOfFamer', 'threePointContestWinner', 'dunkContestWinner', 'royLaterMVP',
+      // League Leaders
+      'PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader',
+      // Career Milestones  
+      'career20kPoints', 'career5kAssists', 'career2kSteals', 'career1500Blocks', 'career2kThrees',
+      // Single-Season Volume & Combos
+      'Season2000Points', 'Season30PPG', 'Season200_3PM', 'Season250ThreePM', 'Season300_3PM', 'Season700Assists', 'Season10APG', 'Season800Rebounds', 'Season12RPG', 'Season150Steals', 'Season2SPG', 'Season150Blocks', 'Season2_5BPG', 'Season200Stocks', 'Season25_10', 'Season25_5_5', 'Season20_10_5', 'Season1_1_1',
+      // Single-Season Efficiency & Workload  
+      'Season50_40_90', 'Season40_3PT200_3PA', 'Season90FT250FTA', 'Season60eFG500FGA', 'Season60TS20PPG', 'Season36MPG', 'Season70Games',
+      // Longevity & Journey
+      'played10PlusSeasons', 'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises',
+      // Draft & Entry
+      'isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen'
+    ];
+
+    const sortByOrder = (achievements: typeof seasonAchievements) => {
+      return achievements.sort((a, b) => {
+        const aIndex = ACHIEVEMENT_ORDER.indexOf(a.id);
+        const bIndex = ACHIEVEMENT_ORDER.indexOf(b.id);
+        
+        // Both found in order - use that order
+        if (aIndex !== -1 && bIndex !== -1) {
+          return aIndex - bIndex;
+        }
+        
+        // Only A found - A comes first
+        if (aIndex !== -1 && bIndex === -1) {
+          return -1;
+        }
+        
+        // Only B found - B comes first  
+        if (aIndex === -1 && bIndex !== -1) {
+          return 1;
+        }
+        
+        // Neither found - handle special cases
+        // Decade achievements should be grouped together
+        if (a.id.includes('playedIn') && b.id.includes('playedIn')) {
+          return a.name.localeCompare(b.name);
+        }
+        if (a.id.includes('debutedIn') && b.id.includes('debutedIn')) {
+          return a.name.localeCompare(b.name);
+        }
+        if ((a.id.includes('playedIn') || a.id.includes('debutedIn')) && !(b.id.includes('playedIn') || b.id.includes('debutedIn'))) {
+          return -1;
+        }
+        if (!(a.id.includes('playedIn') || a.id.includes('debutedIn')) && (b.id.includes('playedIn') || b.id.includes('debutedIn'))) {
+          return 1;
+        }
+        
+        // Random achievements go last
+        if (a.id.startsWith('Random') && !b.id.startsWith('Random')) {
+          return 1;
+        }
+        if (!a.id.startsWith('Random') && b.id.startsWith('Random')) {
+          return -1;
+        }
+        
+        // Both random or both unknown - alphabetical
+        return a.name.localeCompare(b.name);
+      });
+    };
+
+    // Apply custom ordering to both arrays
+    sortByOrder(seasonAchievements);
+    sortByOrder(careerAchievements);
 
     return { teams, seasonAchievements, careerAchievements };
   };
