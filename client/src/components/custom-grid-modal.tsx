@@ -14,6 +14,8 @@ import { detectSport } from '@/lib/grid-sharing';
 import { getTeamOptions, getAchievementOptions, calculateCustomCellIntersection, headerConfigToCatTeam, type TeamOption, type AchievementOption, type HeaderConfig } from '@/lib/custom-grid-utils';
 import { SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 import { getCachedSeasonIndex } from '@/lib/season-index-cache';
+import { EditableAchievementLabel } from '@/components/editable-achievement-label';
+import { parseAchievementLabel, createCustomNumericalAchievement } from '@/lib/editable-achievements';
 
 // Team logo icon component for combobox
 function TeamLogoIcon({ teamData }: { teamData?: Team }) {
@@ -81,21 +83,22 @@ interface SelectorState {
   type: SelectorType | null;
   value: string | null;
   label: string | null;
+  customAchievement?: any; // Store custom achievement for dynamic numerical thresholds
 }
 
 export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: CustomGridModalProps) {
   
   // State for the 6 selectors (3 rows + 3 cols)
   const [rowSelectors, setRowSelectors] = useState<SelectorState[]>([
-    { type: null, value: null, label: null },
-    { type: null, value: null, label: null },
-    { type: null, value: null, label: null }
+    { type: null, value: null, label: null, customAchievement: null },
+    { type: null, value: null, label: null, customAchievement: null },
+    { type: null, value: null, label: null, customAchievement: null }
   ]);
   
   const [colSelectors, setColSelectors] = useState<SelectorState[]>([
-    { type: null, value: null, label: null },
-    { type: null, value: null, label: null },
-    { type: null, value: null, label: null }
+    { type: null, value: null, label: null, customAchievement: null },
+    { type: null, value: null, label: null, customAchievement: null },
+    { type: null, value: null, label: null, customAchievement: null }
   ]);
   
   const [hideZeroResults, setHideZeroResults] = useState(false);
@@ -118,6 +121,47 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
 
   const sport = leagueData ? detectSport(leagueData) : 'basketball';
   
+  // Handler for when achievement numbers are edited
+  const handleAchievementNumberChange = useCallback((
+    selectorType: 'row' | 'col',
+    index: number,
+    newNumber: number,
+    newLabel: string
+  ) => {
+    const updateSelector = (selectors: SelectorState[]) => {
+      const newSelectors = [...selectors];
+      const currentSelector = newSelectors[index];
+      
+      if (currentSelector.type === 'achievement' && leagueData) {
+        // Find the original achievement
+        const originalAchievement = achievementOptions.find(ach => ach.id === currentSelector.value);
+        
+        if (originalAchievement) {
+          // Create custom achievement with new threshold
+          const customAchievement = createCustomNumericalAchievement(originalAchievement, newNumber);
+          
+          // Update the selector with new label and custom achievement
+          newSelectors[index] = {
+            ...currentSelector,
+            label: newLabel,
+            customAchievement
+          };
+          
+          // Trigger recalculation
+          setCalculating(true);
+        }
+      }
+      
+      return newSelectors;
+    };
+    
+    if (selectorType === 'row') {
+      setRowSelectors(updateSelector);
+    } else {
+      setColSelectors(updateSelector);
+    }
+  }, [leagueData, achievementOptions]);
+  
   // Memoize expensive computations to prevent performance issues
   const teamOptions = useMemo<TeamOption[]>(() => {
     return leagueData ? getTeamOptions(leagueData.teams) : [];
@@ -136,14 +180,14 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
   // Clear all selections
   const handleClearAll = useCallback(() => {
     setRowSelectors([
-      { type: null, value: null, label: null },
-      { type: null, value: null, label: null },
-      { type: null, value: null, label: null }
+      { type: null, value: null, label: null, customAchievement: null },
+      { type: null, value: null, label: null, customAchievement: null },
+      { type: null, value: null, label: null, customAchievement: null }
     ]);
     setColSelectors([
-      { type: null, value: null, label: null },
-      { type: null, value: null, label: null },
-      { type: null, value: null, label: null }
+      { type: null, value: null, label: null, customAchievement: null },
+      { type: null, value: null, label: null, customAchievement: null },
+      { type: null, value: null, label: null, customAchievement: null }
     ]);
     setCellCounts({});
     setCanUndo(false);
@@ -154,11 +198,11 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
   const updateSelectorType = useCallback((isRow: boolean, index: number, type: SelectorType) => {
     if (isRow) {
       setRowSelectors(prev => prev.map((selector, i) => 
-        i === index ? { type, value: null, label: null } : selector
+        i === index ? { type, value: null, label: null, customAchievement: null } : selector
       ));
     } else {
       setColSelectors(prev => prev.map((selector, i) => 
-        i === index ? { type, value: null, label: null } : selector
+        i === index ? { type, value: null, label: null, customAchievement: null } : selector
       ));
     }
     // Clear cell counts when type changes
@@ -849,7 +893,21 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                     </Badge>
                   )}
                   <div className="text-[6px] sm:text-[8px] lg:text-xs font-medium leading-tight break-words text-center px-0.5 overflow-hidden">
-                    {selector.label}
+                    {selector.type === 'achievement' ? (
+                      <EditableAchievementLabel
+                        label={selector.label || ''}
+                        onNumberChange={(newNumber, newLabel) => 
+                          handleAchievementNumberChange(
+                            isRow ? 'row' : 'col', 
+                            index, 
+                            newNumber, 
+                            newLabel
+                          )
+                        }
+                      />
+                    ) : (
+                      selector.label
+                    )}
                   </div>
                 </div>
               ) : (
