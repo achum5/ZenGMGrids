@@ -648,7 +648,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
         achievements: playedDecades
       },
       {
-        title: "Draft & Entry", 
+        title: "Draft", 
         achievements: [
           'isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen'
         ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
