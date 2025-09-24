@@ -643,8 +643,35 @@ export default function Home() {
     
     setIsGenerating(true);
     
-    try {
-      const gridResult = generateTeamsGrid(leagueData);
+    // Keep retrying until successful - no error popup
+    let attempt = 0;
+    const MAX_AUTO_RETRIES = 50; // Prevent infinite loops, but this should rarely be reached
+    let gridResult;
+    
+    while (attempt < MAX_AUTO_RETRIES) {
+      try {
+        gridResult = generateTeamsGrid(leagueData);
+        break; // Success! Exit the retry loop
+      } catch (error) {
+        attempt++;
+        console.log(`Grid generation attempt ${attempt} failed, retrying...`);
+        
+        // Only show error if we've exhausted all retries (should be very rare)
+        if (attempt >= MAX_AUTO_RETRIES) {
+          console.error('Error generating grid after maximum retries:', error);
+          toast({
+            title: 'Unable to generate grid',
+            description: 'Please try again or try a different league file.',
+            variant: 'destructive',
+          });
+          setIsGenerating(false);
+          return;
+        }
+      }
+    }
+    
+    // Apply the successful grid result
+    if (gridResult) {
       setRows(gridResult.rows);
       setCols(gridResult.cols);
       setIntersections(gridResult.intersections);
@@ -662,19 +689,9 @@ export default function Home() {
       // Reset attempt count for new grid
       setAttemptCount(1);
       storeAttemptCount(gridId, 1);
-      
-      // Grid generation toast removed - was intrusive
-      
-    } catch (error) {
-      console.error('Error generating grid:', error);
-      toast({
-        title: 'Error generating grid',
-        description: error instanceof Error ? error.message : 'Failed to generate new grid',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsGenerating(false);
     }
+    
+    setIsGenerating(false);
   }, [leagueData, toast]);
 
   // Handle importing a shared grid
