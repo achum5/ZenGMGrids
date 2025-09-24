@@ -1,16 +1,72 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Play, RotateCcw, X, ChevronDown, Dice3, Trophy, Users, Target, TrendingUp, Calendar, Plus } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Grid3x3, Trash2, Play, RotateCcw, X, ArrowUpDown, ChevronDown, Wand2 } from 'lucide-react';
 import type { LeagueData, Team, CatTeam } from '@/types/bbgm';
 import { detectSport } from '@/lib/grid-sharing';
 import { getTeamOptions, getAchievementOptions, calculateCustomCellIntersection, headerConfigToCatTeam, type TeamOption, type AchievementOption, type HeaderConfig } from '@/lib/custom-grid-utils';
+import { SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
+import { getCachedSeasonIndex } from '@/lib/season-index-cache';
+
+// Team logo icon component for combobox
+function TeamLogoIcon({ teamData }: { teamData?: Team }) {
+  const [logoError, setLogoError] = useState(false);
+  const [currentLogo, setCurrentLogo] = useState<string | null>(null);
+  
+  useEffect(() => {
+    if (!teamData) {
+      setCurrentLogo(null);
+      return;
+    }
+    
+    // Build logo candidates similar to TeamLogo component
+    const candidates: string[] = [];
+    
+    // Try small logo first, then regular logo
+    if (teamData.imgURLSmall) {
+      candidates.push(teamData.imgURLSmall);
+    }
+    if (teamData.imgURL) {
+      candidates.push(teamData.imgURL);
+    }
+    
+    // Try BBGM default paths if no custom logos
+    if (candidates.length === 0 && teamData.abbrev) {
+      const abbrev = teamData.abbrev.toUpperCase();
+      candidates.push(`https://basketball-gm.com/img/logos-primary/${abbrev}.svg`);
+      candidates.push(`https://basketball-gm.com/img/logos-secondary/${abbrev}.svg`);
+    }
+    
+    setCurrentLogo(candidates[0] || null);
+    setLogoError(false);
+  }, [teamData]);
+  
+  if (!currentLogo || logoError) {
+    return (
+      <div className="w-6 h-6 flex items-center justify-center text-xs">
+        🏀
+      </div>
+    );
+  }
+  
+  return (
+    <div className="w-6 h-6 flex items-center justify-center overflow-hidden">
+      <img
+        src={currentLogo}
+        alt={teamData?.name || 'Team logo'}
+        className="w-full h-full object-contain"
+        onError={() => setLogoError(true)}
+      />
+    </div>
+  );
+}
 
 interface CustomGridModalProps {
   isOpen: boolean;
@@ -19,673 +75,1053 @@ interface CustomGridModalProps {
   leagueData: LeagueData | null;
 }
 
-interface HeaderSelection {
-  type: 'team' | 'achievement' | null;
+type SelectorType = 'team' | 'achievement';
+
+interface SelectorState {
+  type: SelectorType | null;
   value: string | null;
   label: string | null;
-  teamData?: Team;
-}
-
-interface SearchPickerProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSelect: (selection: HeaderSelection) => void;
-  title: string;
-  teams: TeamOption[];
-  achievements: AchievementOption[];
-  sport: string;
-}
-
-// Team logo component
-function TeamLogo({ teamData, size = 24 }: { teamData?: Team; size?: number }) {
-  const [logoError, setLogoError] = useState(false);
-  
-  if (!teamData || logoError) {
-    return (
-      <div 
-        className="flex items-center justify-center rounded-full bg-gray-700 text-gray-300 text-xs font-medium"
-        style={{ width: size, height: size }}
-      >
-        {teamData?.abbrev?.slice(0, 2) || '??'}
-      </div>
-    );
-  }
-  
-  const logoUrl = teamData.imgURLSmall || teamData.imgURL || 
-    `https://basketball-gm.com/img/logos-primary/${teamData.abbrev?.toUpperCase()}.svg`;
-  
-  return (
-    <div 
-      className="flex items-center justify-center rounded-full overflow-hidden"
-      style={{ width: size, height: size }}
-    >
-      <img
-        src={logoUrl}
-        alt={teamData.name}
-        className="w-full h-full object-contain"
-        onError={() => setLogoError(true)}
-      />
-    </div>
-  );
-}
-
-// Achievement icon component
-function AchievementIcon({ achievement, size = 24 }: { achievement: AchievementOption; size?: number }) {
-  const getIcon = (label: string) => {
-    if (label.includes('All-Star') || label.includes('MVP') || label.includes('Award')) return Trophy;
-    if (label.includes('Leader') || label.includes('Season')) return TrendingUp;
-    if (label.includes('Career') || label.includes('000+')) return Target;
-    if (label.includes('decade') || label.includes('Decade')) return Calendar;
-    return Trophy;
-  };
-  
-  const IconComponent = getIcon(achievement.label);
-  return <IconComponent size={size} className="text-blue-400" />;
-}
-
-// Search picker component
-function SearchPicker({ isOpen, onClose, onSelect, title, teams, achievements, sport }: SearchPickerProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<'all' | 'teams' | 'achievements'>('all');
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  
-  // Filter and search logic
-  const filteredItems = useMemo(() => {
-    let items: (TeamOption | AchievementOption)[] = [];
-    
-    if (activeFilter === 'all' || activeFilter === 'teams') {
-      items = [...items, ...teams];
-    }
-    if (activeFilter === 'all' || activeFilter === 'achievements') {
-      items = [...items, ...achievements];
-    }
-    
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      items = items.filter(item => 
-        item.label.toLowerCase().includes(query)
-      );
-    }
-    
-    return items;
-  }, [teams, achievements, searchQuery, activeFilter]);
-  
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return;
-      
-      switch (e.key) {
-        case 'ArrowDown':
-          e.preventDefault();
-          setSelectedIndex(prev => Math.min(prev + 1, filteredItems.length - 1));
-          break;
-        case 'ArrowUp':
-          e.preventDefault();
-          setSelectedIndex(prev => Math.max(prev - 1, 0));
-          break;
-        case 'Enter':
-          e.preventDefault();
-          if (filteredItems[selectedIndex]) {
-            handleSelect(filteredItems[selectedIndex]);
-          }
-          break;
-        case 'Escape':
-          e.preventDefault();
-          onClose();
-          break;
-      }
-    };
-    
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, filteredItems, selectedIndex, onClose]);
-  
-  // Reset selected index when filter changes
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [activeFilter, searchQuery]);
-  
-  const handleSelect = (item: TeamOption | AchievementOption) => {
-    if (typeof item.id === 'number') {
-      // Team selection - find the corresponding team data
-      const teamData = teams.find(t => t.id === item.id)?.teamData;
-      onSelect({
-        type: 'team',
-        value: `team-${item.id}`,
-        label: item.label,
-        teamData
-      });
-    } else {
-      // Achievement selection
-      onSelect({
-        type: 'achievement',
-        value: `achievement-${item.id}`,
-        label: item.label
-      });
-    }
-    onClose();
-  };
-  
-  if (!isOpen) return null;
-  
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-[#11161C] border border-[#1E2630] rounded-xl shadow-2xl w-full max-w-lg mx-4">
-        {/* Header */}
-        <div className="p-6 border-b border-[#1E2630]">
-          <h3 className="text-lg font-semibold text-[#E6EDF3] mb-2">{title}</h3>
-          
-          {/* Search input */}
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search teams, awards, or stats…"
-            className="mb-4 bg-[#0B0F14] border-[#1E2630] text-[#E6EDF3] placeholder-[#A6B0BB]"
-            autoFocus
-          />
-          
-          {/* Filter pills */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setActiveFilter('all')}
-              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                activeFilter === 'all'
-                  ? 'bg-[#4FB2FF] text-white'
-                  : 'bg-[#243244] text-[#F0F4F8] hover:bg-[#2A3A4A]'
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setActiveFilter('teams')}
-              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                activeFilter === 'teams'
-                  ? 'bg-[#4FB2FF] text-white'
-                  : 'bg-[#243244] text-[#F0F4F8] hover:bg-[#2A3A4A]'
-              }`}
-            >
-              Teams
-            </button>
-            <button
-              onClick={() => setActiveFilter('achievements')}
-              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                activeFilter === 'achievements'
-                  ? 'bg-[#4FB2FF] text-white'
-                  : 'bg-[#243244] text-[#F0F4F8] hover:bg-[#2A3A4A]'
-              }`}
-            >
-              Achievements
-            </button>
-          </div>
-        </div>
-        
-        {/* Results */}
-        <ScrollArea className="max-h-96 p-2">
-          {filteredItems.length === 0 ? (
-            <div className="p-8 text-center text-[#A6B0BB]">
-              <div className="text-4xl mb-2">🔍</div>
-              <p>No matches. Try a different term or browse categories.</p>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              {filteredItems.map((item, index) => (
-                <button
-                  key={`${typeof item.id === 'number' ? 'team' : 'achievement'}-${item.id}`}
-                  onClick={() => handleSelect(item)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors ${
-                    index === selectedIndex
-                      ? 'bg-[#243244] text-[#E6EDF3]'
-                      : 'text-[#A6B0BB] hover:bg-[#1A1F26] hover:text-[#E6EDF3]'
-                  }`}
-                >
-                  <div className="flex-shrink-0">
-                    {'abbrev' in item ? (
-                      <TeamLogo teamData={item.teamData} size={24} />
-                    ) : (
-                      <AchievementIcon achievement={item} size={24} />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{item.label}</div>
-                  </div>
-                  <div className="flex-shrink-0">
-                    <Badge variant="secondary" className="text-xs bg-[#1E2630] text-[#A6B0BB]">
-                      {typeof item.id === 'number' ? 'Team' : 'Award'}
-                    </Badge>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </ScrollArea>
-      </div>
-    </div>
-  );
-}
-
-// Header tile component
-function HeaderTile({ 
-  selection, 
-  onEdit, 
-  onClear, 
-  position, 
-  locked = false 
-}: { 
-  selection: HeaderSelection; 
-  onEdit: () => void; 
-  onClear: () => void; 
-  position: string;
-  locked?: boolean;
-}) {
-  const isEmpty = !selection.type || !selection.value;
-  
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            onClick={onEdit}
-            className={`
-              relative min-h-[120px] w-full rounded-xl border transition-all
-              ${isEmpty 
-                ? 'border-[#1E2630] bg-[#0B0F14] hover:border-[#2A3A4A] hover:bg-[#11161C]' 
-                : 'border-[#1E2630] bg-[#11161C] hover:border-[#2A3A4A]'
-              }
-              focus:outline-none focus:ring-2 focus:ring-[#4FB2FF] focus:ring-offset-2 focus:ring-offset-[#0B0F14]
-              group
-            `}
-            aria-label={isEmpty ? `${position}: None` : `${position}: ${selection.label}`}
-          >
-            {isEmpty ? (
-              <div className="flex flex-col items-center justify-center h-full p-4 text-[#A6B0BB] group-hover:text-[#E6EDF3]">
-                <Plus size={24} className="mb-2" />
-                <span className="text-sm font-medium text-center">
-                  + Add Team or Achievement
-                </span>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full p-4">
-                <div className="mb-3">
-                  {selection.type === 'team' && selection.teamData ? (
-                    <TeamLogo teamData={selection.teamData} size={32} />
-                  ) : (
-                    <Trophy size={32} className="text-blue-400" />
-                  )}
-                </div>
-                <div className="text-sm font-medium text-[#E6EDF3] text-center leading-tight">
-                  {selection.label}
-                </div>
-                {locked && (
-                  <div className="absolute top-2 left-2">
-                    <div className="w-4 h-4 rounded bg-yellow-500 flex items-center justify-center">
-                      <div className="w-2 h-2 bg-yellow-900 rounded-sm" />
-                    </div>
-                  </div>
-                )}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onClear();
-                  }}
-                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                  aria-label="Clear header"
-                >
-                  <X size={16} className="text-[#A6B0BB] hover:text-[#E6EDF3]" />
-                </button>
-              </div>
-            )}
-          </button>
-        </TooltipTrigger>
-        <TooltipContent>
-          {isEmpty ? `Click to set ${position.toLowerCase()}` : selection.label}
-          {locked && <div className="text-xs text-yellow-400 mt-1">Locked: Randomize won't change this header</div>}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
 }
 
 export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: CustomGridModalProps) {
-  // State for the 6 header selections
-  const [rowHeaders, setRowHeaders] = useState<HeaderSelection[]>([
+  
+  // State for the 6 selectors (3 rows + 3 cols)
+  const [rowSelectors, setRowSelectors] = useState<SelectorState[]>([
     { type: null, value: null, label: null },
     { type: null, value: null, label: null },
     { type: null, value: null, label: null }
   ]);
   
-  const [colHeaders, setColHeaders] = useState<HeaderSelection[]>([
+  const [colSelectors, setColSelectors] = useState<SelectorState[]>([
     { type: null, value: null, label: null },
     { type: null, value: null, label: null },
     { type: null, value: null, label: null }
   ]);
   
-  const [locks, setLocks] = useState<Record<string, boolean>>({});
-  const [pickerState, setPickerState] = useState<{
-    isOpen: boolean;
-    position: string;
-    isRow: boolean;
-    index: number;
-  }>({ isOpen: false, position: '', isRow: false, index: -1 });
+  const [hideZeroResults, setHideZeroResults] = useState(false);
   
+  // Loading state for cell count calculations
+  const [calculating, setCalculating] = useState(false);
+  
+  // Cell intersection counts
+  const [cellCounts, setCellCounts] = useState<Record<string, number>>({});
+  
+  // Option counts for popover (team/achievement -> eligible player count)
+  const [optionCounts, setOptionCounts] = useState<Record<string, number>>({});
+  
+  // Undo functionality for autofill
+  const [canUndo, setCanUndo] = useState(false);
+  const [previousState, setPreviousState] = useState<{
+    rowSelectors: SelectorState[];
+    colSelectors: SelectorState[];
+  } | null>(null);
+
   const sport = leagueData ? detectSport(leagueData) : 'basketball';
   
-  const teamOptions = useMemo(() => {
+  // Memoize expensive computations to prevent performance issues
+  const teamOptions = useMemo<TeamOption[]>(() => {
     return leagueData ? getTeamOptions(leagueData.teams) : [];
-  }, [leagueData]);
+  }, [leagueData?.teams]);
   
-  const achievementOptions = useMemo(() => {
-    return leagueData ? getAchievementOptions(sport) : [];
-  }, [leagueData, sport]);
+  // Use cached season index for achievements (replaces expensive local rebuild)
+  const seasonIndex = useMemo(() => {
+    return leagueData ? getCachedSeasonIndex(leagueData.players, sport) : undefined;
+  }, [leagueData?.players, sport]);
   
-  // Calculate progress
-  const filledRows = rowHeaders.filter(h => h.type).length;
-  const filledCols = colHeaders.filter(h => h.type).length;
-  const isGridComplete = filledRows === 3 && filledCols === 3;
-  
-  // Handle header selection
-  const handleHeaderSelect = (selection: HeaderSelection) => {
-    const { isRow, index } = pickerState;
-    
-    if (isRow) {
-      setRowHeaders(prev => {
-        const newHeaders = [...prev];
-        newHeaders[index] = selection;
-        return newHeaders;
-      });
-    } else {
-      setColHeaders(prev => {
-        const newHeaders = [...prev];
-        newHeaders[index] = selection;
-        return newHeaders;
-      });
-    }
-  };
-  
-  // Handle clear header
-  const handleClearHeader = (isRow: boolean, index: number) => {
-    if (isRow) {
-      setRowHeaders(prev => {
-        const newHeaders = [...prev];
-        newHeaders[index] = { type: null, value: null, label: null };
-        return newHeaders;
-      });
-    } else {
-      setColHeaders(prev => {
-        const newHeaders = [...prev];
-        newHeaders[index] = { type: null, value: null, label: null };
-        return newHeaders;
-      });
-    }
-    // Remove lock
-    const lockKey = `${isRow ? 'row' : 'col'}-${index}`;
-    setLocks(prev => ({ ...prev, [lockKey]: false }));
-  };
-  
-  // Handle clear all
-  const handleClearAll = () => {
-    setRowHeaders([
+  const achievementOptions = useMemo<AchievementOption[]>(() => {
+    console.log('🔧 [MEMO] Recalculating achievement options...');
+    return leagueData ? getAchievementOptions(sport, seasonIndex, leagueData.leagueYears) : [];
+  }, [sport, seasonIndex, leagueData?.leagueYears, "v2"]); // Cache bust with version v2
+
+  // Clear all selections
+  const handleClearAll = useCallback(() => {
+    setRowSelectors([
       { type: null, value: null, label: null },
       { type: null, value: null, label: null },
       { type: null, value: null, label: null }
     ]);
-    setColHeaders([
+    setColSelectors([
       { type: null, value: null, label: null },
       { type: null, value: null, label: null },
       { type: null, value: null, label: null }
     ]);
-    setLocks({});
-  };
-  
-  // Handle randomize
-  const handleRandomize = () => {
-    const allOptions = [...teamOptions, ...achievementOptions];
-    
-    // Randomize unlocked headers
-    setRowHeaders(prev => prev.map((header, index) => {
-      const lockKey = `row-${index}`;
-      if (locks[lockKey]) return header; // Skip locked headers
-      
-      const randomOption = allOptions[Math.floor(Math.random() * allOptions.length)];
-      if ('abbrev' in randomOption) {
-        return {
-          type: 'team' as const,
-          value: `team-${randomOption.id}`,
-          label: randomOption.name,
-          teamData: randomOption.teamData
-        };
-      } else {
-        return {
-          type: 'achievement' as const,
-          value: `achievement-${randomOption.id}`,
-          label: randomOption.name
-        };
-      }
-    }));
-    
-    setColHeaders(prev => prev.map((header, index) => {
-      const lockKey = `col-${index}`;
-      if (locks[lockKey]) return header; // Skip locked headers
-      
-      const randomOption = allOptions[Math.floor(Math.random() * allOptions.length)];
-      if ('abbrev' in randomOption) {
-        return {
-          type: 'team' as const,
-          value: `team-${randomOption.id}`,
-          label: randomOption.name,
-          teamData: randomOption.teamData
-        };
-      } else {
-        return {
-          type: 'achievement' as const,
-          value: `achievement-${randomOption.id}`,
-          label: randomOption.name
-        };
-      }
-    }));
-  };
-  
-  // Toggle lock
-  const toggleLock = (isRow: boolean, index: number) => {
-    const lockKey = `${isRow ? 'row' : 'col'}-${index}`;
-    setLocks(prev => ({ ...prev, [lockKey]: !prev[lockKey] }));
-  };
-  
-  // Handle play grid
-  const handlePlayGrid = () => {
-    if (!isGridComplete || !leagueData) return;
-    
-    const rows: CatTeam[] = [];
-    const cols: CatTeam[] = [];
-    
-    // Convert headers to CatTeam format
-    rowHeaders.forEach(header => {
-      if (header.type === 'team' && header.teamData) {
-        rows.push({
-          type: 'team',
-          team: header.teamData,
-          name: header.teamData.name
-        });
-      } else if (header.type === 'achievement' && header.value) {
-        const achievementId = header.value.replace('achievement-', '');
-        rows.push({
-          type: 'achievement',
-          achievement: achievementId,
-          name: header.label || achievementId
-        });
-      }
-    });
-    
-    colHeaders.forEach(header => {
-      if (header.type === 'team' && header.teamData) {
-        cols.push({
-          type: 'team',
-          team: header.teamData,
-          name: header.teamData.name
-        });
-      } else if (header.type === 'achievement' && header.value) {
-        const achievementId = header.value.replace('achievement-', '');
-        cols.push({
-          type: 'achievement',
-          achievement: achievementId,
-          name: header.label || achievementId
-        });
-      }
-    });
-    
-    if (rows.length === 3 && cols.length === 3) {
-      onPlayGrid(rows, cols);
+    setCellCounts({});
+    setCanUndo(false);
+    setPreviousState(null);
+  }, []);
+
+  // Update selector type
+  const updateSelectorType = useCallback((isRow: boolean, index: number, type: SelectorType) => {
+    if (isRow) {
+      setRowSelectors(prev => prev.map((selector, i) => 
+        i === index ? { type, value: null, label: null } : selector
+      ));
+    } else {
+      setColSelectors(prev => prev.map((selector, i) => 
+        i === index ? { type, value: null, label: null } : selector
+      ));
     }
-  };
-  
-  return (
-    <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-5xl w-[95vw] max-h-[95vh] bg-[#0B0F14] border-[#1E2630] text-[#E6EDF3] p-6">
-          {/* Header */}
-          <div className="flex items-start justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">Create Custom Grid</h2>
-              <p className="text-[#A6B0BB]">Choose 3 row headers and 3 column headers.</p>
-            </div>
-            <Badge 
-              variant="secondary" 
-              className="bg-[#243244] text-[#F0F4F8] font-medium"
-            >
-              Rows {filledRows}/3 • Columns {filledCols}/3
-            </Badge>
-          </div>
+    // Clear cell counts when type changes
+    setCellCounts({});
+  }, []);
+
+  // Update selector value
+  const updateSelectorValue = useCallback((isRow: boolean, index: number, type: SelectorType, value: string, label: string) => {
+    if (isRow) {
+      setRowSelectors(prev => prev.map((selector, i) => 
+        i === index ? { type, value, label } : selector
+      ));
+    } else {
+      setColSelectors(prev => prev.map((selector, i) => 
+        i === index ? { type, value, label } : selector
+      ));
+    }
+    // Trigger cell count calculation
+    setCalculating(true);
+    // Close the header selector and clear search
+    // Reset state
+  }, []);
+
+  // Helper function to determine if an achievement is season-specific
+  const isSeasonAchievement = useCallback((achievementId: string) => {
+    return SEASON_ACHIEVEMENTS.some(sa => sa.id === achievementId);
+  }, []);
+
+  // Autofill empty headers with intelligent choices
+  const handleAutofill = useCallback((mode: 'all' | 'teams' | 'achievements') => {
+    if (!leagueData) return;
+
+    // Save current state for undo
+    setPreviousState({
+      rowSelectors: [...rowSelectors],
+      colSelectors: [...colSelectors]
+    });
+
+    // Get currently selected IDs to avoid duplicates
+    const usedTeamIds = new Set<number>();
+    const usedAchievementIds = new Set<string>();
+    
+    [...rowSelectors, ...colSelectors].forEach(selector => {
+      if (selector.type === 'team' && selector.value) {
+        usedTeamIds.add(parseInt(selector.value));
+      } else if (selector.type === 'achievement' && selector.value) {
+        usedAchievementIds.add(selector.value);
+      }
+    });
+
+    // Get available options excluding already used ones
+    const availableTeams = teamOptions.filter(team => !usedTeamIds.has(team.id));
+    const availableAchievements = achievementOptions.filter(ach => !usedAchievementIds.has(ach.id));
+
+    // Find empty slots
+    const emptySlots: Array<{ isRow: boolean, index: number }> = [];
+    rowSelectors.forEach((selector, index) => {
+      if (!selector.type) emptySlots.push({ isRow: true, index });
+    });
+    colSelectors.forEach((selector, index) => {
+      if (!selector.type) emptySlots.push({ isRow: false, index });
+    });
+
+    if (emptySlots.length === 0) {
+      return;
+    }
+
+    // Prepare selection pools based on mode
+    let teamPool = mode === 'achievements' ? [] : [...availableTeams];
+    let achievementPool = mode === 'teams' ? [] : [...availableAchievements];
+
+    // Shuffle pools for randomness
+    teamPool.sort(() => Math.random() - 0.5);
+    achievementPool.sort(() => Math.random() - 0.5);
+
+    // Fill slots with validation
+    const newRowSelectors = [...rowSelectors];
+    const newColSelectors = [...colSelectors];
+    let filledCount = 0;
+
+    for (const slot of emptySlots) {
+      let filled = false;
+      
+      // For 'all' mode, randomly choose order for each slot to create mix
+      // For specific modes, use only the requested type
+      let optionsToTry: Array<{ type: string, pool: any[] }> = [];
+      
+      if (mode === 'all' && teamPool.length > 0 && achievementPool.length > 0) {
+        // Randomly choose order for each slot to create team/achievement mix
+        const useTeamFirst = Math.random() < 0.5;
+        optionsToTry = useTeamFirst 
+          ? [{ type: 'team', pool: teamPool }, { type: 'achievement', pool: achievementPool }]
+          : [{ type: 'achievement', pool: achievementPool }, { type: 'team', pool: teamPool }];
+      } else if (teamPool.length > 0) {
+        optionsToTry = [{ type: 'team', pool: teamPool }];
+      } else if (achievementPool.length > 0) {
+        optionsToTry = [{ type: 'achievement', pool: achievementPool }];
+      }
+
+      for (const { type, pool } of optionsToTry) {
+        if (filled || pool.length === 0) continue;
+
+        // Try options from the pool
+        for (let i = 0; i < pool.length; i++) {
+          const option = pool[i];
           
-          {/* Grid Preview */}
-          <div className="grid grid-cols-4 gap-4 mb-8">
-            {/* Top-left corner */}
-            <div className="aspect-square min-h-[120px]" />
+          // Create test configuration
+          const testSelectors = slot.isRow ? [...newRowSelectors] : [...newColSelectors];
+          testSelectors[slot.index] = {
+            type: type as SelectorType,
+            value: type === 'team' ? option.id.toString() : option.id.toString(),
+            label: option.label
+          };
+
+          // Simulate the configuration to check if it creates any 0-result cells
+          let hasZeroResults = false;
+          
+          // Check all potential intersections with current + test configuration
+          const testRowSelectors = slot.isRow ? testSelectors : newRowSelectors;
+          const testColSelectors = slot.isRow ? newColSelectors : testSelectors;
+          
+          for (let rowIndex = 0; rowIndex < 3; rowIndex++) {
+            for (let colIndex = 0; colIndex < 3; colIndex++) {
+              const rowSel = testRowSelectors[rowIndex];
+              const colSel = testColSelectors[colIndex];
+              
+              if (rowSel.type && rowSel.value && colSel.type && colSel.value) {
+                const rowConfig: HeaderConfig = {
+                  type: rowSel.type,
+                  selectedId: rowSel.type === 'team' ? parseInt(rowSel.value) : rowSel.value,
+                  selectedLabel: rowSel.label
+                };
+                
+                const colConfig: HeaderConfig = {
+                  type: colSel.type,
+                  selectedId: colSel.type === 'team' ? parseInt(colSel.value) : colSel.value,
+                  selectedLabel: colSel.label
+                };
+                
+                const count = calculateCustomCellIntersection(
+                  rowConfig,
+                  colConfig,
+                  leagueData.players,
+                  leagueData.teams,
+                  seasonIndex
+                );
+                
+                if (count === 0) {
+                  hasZeroResults = true;
+                  break;
+                }
+              }
+            }
+            if (hasZeroResults) break;
+          }
+
+          // If this option doesn't create zero-result cells, use it
+          if (!hasZeroResults) {
+            if (slot.isRow) {
+              newRowSelectors[slot.index] = {
+                type: type as SelectorType,
+                value: type === 'team' ? option.id.toString() : option.id.toString(),
+                label: option.label
+              };
+            } else {
+              newColSelectors[slot.index] = {
+                type: type as SelectorType,
+                value: type === 'team' ? option.id.toString() : option.id.toString(),
+                label: option.label
+              };
+            }
             
-            {/* Column headers */}
-            {colHeaders.map((header, index) => (
-              <HeaderTile
-                key={`col-${index}`}
-                selection={header}
-                onEdit={() => setPickerState({
-                  isOpen: true,
-                  position: `Column ${String.fromCharCode(65 + index)}`,
-                  isRow: false,
-                  index
-                })}
-                onClear={() => handleClearHeader(false, index)}
-                position={`Column ${String.fromCharCode(65 + index)}`}
-                locked={locks[`col-${index}`]}
-              />
-            ))}
+            // Remove used option from pool
+            pool.splice(i, 1);
+            filled = true;
+            filledCount++;
+            break;
+          }
+        }
+        if (filled) break;
+      }
+    }
+
+    // Apply the changes
+    setRowSelectors(newRowSelectors);
+    setColSelectors(newColSelectors);
+    setCalculating(true);
+
+    if (filledCount > 0) {
+      setCanUndo(true);
+    }
+  }, [leagueData, rowSelectors, colSelectors, teamOptions, achievementOptions, seasonIndex]);
+
+  // Undo last autofill operation
+  const handleUndo = useCallback(() => {
+    if (!previousState || !canUndo) return;
+    
+    setRowSelectors(previousState.rowSelectors);
+    setColSelectors(previousState.colSelectors);
+    setCanUndo(false);
+    setPreviousState(null);
+  }, [previousState, canUndo]);
+  
+  // Create unified options list for combobox
+  const unifiedOptions = useMemo(() => {
+    const teams = teamOptions.map(team => ({
+      type: 'team' as const,
+      id: team.id.toString(),
+      label: team.label,
+      searchText: team.label.toLowerCase(),
+      teamData: leagueData?.teams.find(t => t.tid === team.id), // Add team data for logo access
+    }));
+    
+    const achievements = achievementOptions.map(achievement => ({
+      type: 'achievement' as const,
+      id: achievement.id.toString(), 
+      label: achievement.label,
+      searchText: achievement.label.toLowerCase(),
+      isSeason: isSeasonAchievement(achievement.id), // Add season/career categorization
+    }))
+    .sort((a, b) => {
+      // Sort by career first (career achievements before season)
+      if (!a.isSeason && b.isSeason) return -1; // Career first
+      if (a.isSeason && !b.isSeason) return 1;   // Season second
+      
+      // If both are same type (season or career), sort alphabetically
+      return a.label.localeCompare(b.label);
+    });
+    
+    return { teams, achievements };
+  }, [teamOptions, achievementOptions, leagueData, isSeasonAchievement]);
+  
+  // No filtering options needed anymore since popup is removed
+  
+  // Check if all selectors are filled
+  const allSelectorsComplete = rowSelectors.every(s => s.type && s.value) && 
+                              colSelectors.every(s => s.type && s.value);
+  
+  // Calculate cell counts when selectors change
+  useEffect(() => {
+    if (!leagueData || calculating === false) return;
+    
+    const timer = setTimeout(() => {
+      const newCellCounts: Record<string, number> = {};
+      
+      for (let rowIndex = 0; rowIndex < 3; rowIndex++) {
+        for (let colIndex = 0; colIndex < 3; colIndex++) {
+          const rowSelector = rowSelectors[rowIndex];
+          const colSelector = colSelectors[colIndex];
+          
+          if (rowSelector.type && rowSelector.value && colSelector.type && colSelector.value) {
+            // Convert to HeaderConfig format
+            const rowConfig: HeaderConfig = {
+              type: rowSelector.type,
+              selectedId: rowSelector.type === 'team' ? parseInt(rowSelector.value) : rowSelector.value,
+              selectedLabel: rowSelector.label
+            };
             
-            {/* Row headers and body cells */}
-            {rowHeaders.map((header, rowIndex) => (
-              <>
-                <HeaderTile
-                  key={`row-${rowIndex}`}
-                  selection={header}
-                  onEdit={() => setPickerState({
-                    isOpen: true,
-                    position: `Row ${rowIndex + 1}`,
-                    isRow: true,
-                    index: rowIndex
-                  })}
-                  onClear={() => handleClearHeader(true, rowIndex)}
-                  position={`Row ${rowIndex + 1}`}
-                  locked={locks[`row-${rowIndex}`]}
-                />
-                {/* Body cells */}
-                {[0, 1, 2].map(colIndex => (
-                  <div 
-                    key={`cell-${rowIndex}-${colIndex}`}
-                    className="aspect-square min-h-[120px] rounded-xl border border-[#1E2630] bg-[#0B0F14] flex items-center justify-center"
+            const colConfig: HeaderConfig = {
+              type: colSelector.type,
+              selectedId: colSelector.type === 'team' ? parseInt(colSelector.value) : colSelector.value,
+              selectedLabel: colSelector.label
+            };
+            
+            // Calculate intersection
+            const count = calculateCustomCellIntersection(
+              rowConfig,
+              colConfig,
+              leagueData.players,
+              leagueData.teams,
+              seasonIndex
+            );
+            
+            newCellCounts[getCellKey(rowIndex, colIndex)] = count;
+          }
+        }
+      }
+      
+      setCellCounts(newCellCounts);
+      setCalculating(false);
+    }, 300); // Small delay to avoid too many calculations
+    
+    return () => clearTimeout(timer);
+  }, [rowSelectors, colSelectors, leagueData, calculating, seasonIndex]);
+
+  // Check if grid is solvable (all cells have at least 1 eligible player)
+  const isGridSolvable = allSelectorsComplete && 
+                        Object.values(cellCounts).every(count => count >= 1) &&
+                        Object.keys(cellCounts).length === 9;
+
+  // Handle Play Grid
+  const handlePlayGrid = useCallback(() => {
+    if (!isGridSolvable || !leagueData) return;
+
+    // Convert selectors to CatTeam format
+    const customRows: CatTeam[] = [];
+    const customCols: CatTeam[] = [];
+    
+    // Convert row selectors
+    for (let i = 0; i < 3; i++) {
+      const rowSelector = rowSelectors[i];
+      if (rowSelector.type && rowSelector.value && rowSelector.label) {
+        const headerConfig: HeaderConfig = {
+          type: rowSelector.type,
+          selectedId: rowSelector.type === 'team' ? parseInt(rowSelector.value) : rowSelector.value,
+          selectedLabel: rowSelector.label
+        };
+        
+        const catTeam = headerConfigToCatTeam(headerConfig, leagueData.teams, seasonIndex);
+        if (catTeam) {
+          customRows.push(catTeam);
+        }
+      }
+    }
+    
+    // Convert column selectors
+    for (let i = 0; i < 3; i++) {
+      const colSelector = colSelectors[i];
+      if (colSelector.type && colSelector.value && colSelector.label) {
+        const headerConfig: HeaderConfig = {
+          type: colSelector.type,
+          selectedId: colSelector.type === 'team' ? parseInt(colSelector.value) : colSelector.value,
+          selectedLabel: colSelector.label
+        };
+        
+        const catTeam = headerConfigToCatTeam(headerConfig, leagueData.teams, seasonIndex);
+        if (catTeam) {
+          customCols.push(catTeam);
+        }
+      }
+    }
+    
+    // Ensure we have exactly 3 rows and 3 cols
+    if (customRows.length === 3 && customCols.length === 3) {
+      onPlayGrid(customRows, customCols);
+    }
+  }, [isGridSolvable, leagueData, rowSelectors, colSelectors, seasonIndex, onPlayGrid]);
+
+  // Get cell key for intersection
+  const getCellKey = (rowIndex: number, colIndex: number) => `${rowIndex}-${colIndex}`;
+
+  // Get cell count display
+  const getCellDisplay = (rowIndex: number, colIndex: number) => {
+    const rowSelector = rowSelectors[rowIndex];
+    const colSelector = colSelectors[colIndex];
+    
+    if (!rowSelector.type || !rowSelector.value || !colSelector.type || !colSelector.value) {
+      return '—';
+    }
+    
+    const cellKey = getCellKey(rowIndex, colIndex);
+    const count = cellCounts[cellKey];
+    
+    if (calculating) {
+      return '...';
+    }
+    
+    return count !== undefined ? (count > 500 ? '500+' : count.toString()) : '—';
+  };
+
+
+  // Build team logo URL
+  const buildTeamLogoURL = (team: Team): string => {
+    // Constants for BBGM logo URLs
+    const BBGM_ASSET_BASE = 'https://play.basketball-gm.com';
+    
+    function isBBGMDefaultLogo(logoURL: string | null | undefined): boolean {
+      if (!logoURL) return false;
+      return logoURL.startsWith('/img/logos-') || logoURL.startsWith('img/logos-');
+    }
+
+    // 1. If explicit small logo URL is provided and it's custom (not BBGM default), use it
+    if (team.imgURLSmall && !isBBGMDefaultLogo(team.imgURLSmall)) {
+      return team.imgURLSmall;
+    }
+    
+    // 2. If explicit regular logo URL is provided and it's custom, use it  
+    if (team.imgURL && !isBBGMDefaultLogo(team.imgURL)) {
+      return team.imgURL;
+    }
+    
+    // 3. If BBGM default small logo path is provided, convert to absolute URL
+    if (team.imgURLSmall && isBBGMDefaultLogo(team.imgURLSmall)) {
+      const cleanPath = team.imgURLSmall.startsWith('/') ? team.imgURLSmall.substring(1) : team.imgURLSmall;
+      return `${BBGM_ASSET_BASE}/${cleanPath}`;
+    }
+    
+    // 4. If BBGM default logo path is provided, convert to absolute URL
+    if (team.imgURL && isBBGMDefaultLogo(team.imgURL)) {
+      const cleanPath = team.imgURL.startsWith('/') ? team.imgURL.substring(1) : team.imgURL;
+      return `${BBGM_ASSET_BASE}/${cleanPath}`;
+    }
+    
+    // 5. Build BBGM default URL from abbreviation
+    if (team.abbrev) {
+      const abbrev = team.abbrev.toUpperCase();
+      return `${BBGM_ASSET_BASE}/img/logos-primary/${abbrev}.svg`;
+    }
+    
+    // 6. Fallback empty string
+    return '';
+  };
+
+  // Get teams and achievements for dropdown
+  const getDropdownItems = () => {
+    if (!leagueData) return { teams: [], achievementSections: [] };
+
+    // Get teams with logos
+    const teams = leagueData.teams
+      ?.filter(team => !team.disabled)
+      ?.map(team => ({
+        id: team.tid.toString(),
+        name: `${team.region || team.abbrev} ${team.name}`.trim(),
+        logoUrl: buildTeamLogoURL(team),
+        type: 'team' as const
+      }))
+      ?.sort((a, b) => a.name.localeCompare(b.name)) || [];
+
+    // Get all available achievements
+    const sport = detectSport(leagueData);
+    const seasonIndex = getCachedSeasonIndex(leagueData.players, sport);
+    const achievementOptions = getAchievementOptions(sport, seasonIndex, leagueData.leagueYears);
+    
+    // Create a map for quick lookup
+    const achievementMap = new Map(achievementOptions.map(a => [a.id, a.label]));
+    
+    // Get dynamic decade achievements
+    const debutDecades: Array<{id: string, name: string}> = [];
+    const playedDecades: Array<{id: string, name: string}> = [];
+    
+    achievementOptions.forEach(achievement => {
+      if (achievement.id.includes('debutedIn')) {
+        debutDecades.push({id: achievement.id, name: achievement.label});
+      } else if (achievement.id.includes('playedIn') && !achievement.id.includes('playedInThreeDecades')) {
+        playedDecades.push({id: achievement.id, name: achievement.label});
+      }
+    });
+    
+    // Sort decades
+    debutDecades.sort((a, b) => a.name.localeCompare(b.name));
+    playedDecades.sort((a, b) => a.name.localeCompare(b.name));
+
+    // Build structured achievement sections based on sport
+    let achievementSections = [];
+    
+    if (sport === 'football') {
+      achievementSections = [
+        {
+          title: "Honors & Awards",
+          achievements: [
+            'FBAllStar', 'FBMVP', 'FBDPOY', 'FBOffROY', 'FBDefROY', 'FBFinalsMVP', 'FBAllLeague', 'FBAllRookie', 'FBChampion', 'isHallOfFamer'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Career Milestones",
+          achievements: [
+            'career300PassTDs', 'FBCareer50kPassYds', 'career12kRushYds', 'career100RushTDs', 'career12kRecYds', 'career100RecTDs', 'career100Sacks', 'career20Ints'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Single-Season — Passing",
+          achievements: [
+            'FBSeason4kPassYds', 'FBSeason30PassTD'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Single-Season — Rushing",
+          achievements: [
+            'FBSeason1200RushYds', 'FBSeason12RushTD'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Single-Season — Receiving",
+          achievements: [
+            'FBSeason1300RecYds', 'FBSeason10RecTD', 'FBSeason100Receptions'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Single-Season — Defense",
+          achievements: [
+            'FBSeason15Sacks', 'FBSeason140Tackles', 'FBSeason5Interceptions', 'FBSeason15TFL'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Single-Season — Combined",
+          achievements: [
+            'FBSeason1600Scrimmage', 'FBSeason2000AllPurpose'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Longevity & Journey",
+          achievements: [
+            'played10PlusSeasons', 'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Debut Decade",
+          achievements: debutDecades
+        },
+        {
+          title: "Played In Decades",
+          achievements: playedDecades
+        },
+        {
+          title: "Draft", 
+          achievements: [
+            'isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        }
+      ].filter(section => section.achievements.length > 0); // Only include sections with achievements
+    } else if (sport === 'hockey') {
+      achievementSections = [
+        {
+          title: "Honors & Awards",
+          achievements: [
+            'HKAllStar', 'HKMVP', 'HKDefenseman', 'HKROY', 'HKChampion', 'HKPlayoffsMVP', 'HKFinalsMVP', 'HKAllRookie', 'HKAllLeague', 'HKAllStarMVP', 'HKAssistsLeader', 'isHallOfFamer'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Career Milestones",
+          achievements: [
+            'career500Goals', 'career1000Points', 'career500Assists', 'career200Wins', 'career50Shutouts'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Single-Season — Scoring",
+          achievements: [
+            'HKSeason40Goals', 'HKSeason60Assists', 'HKSeason90Points', 'HKSeason20PowerPlay', 'HKSeason3SHGoals', 'HKSeason7GWGoals'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Single-Season — Physical",
+          achievements: [
+            'HKSeason250Shots', 'HKSeason150Hits', 'HKSeason100Blocks', 'HKSeason60Takeaways', 'HKSeason70PIM'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Single-Season — Efficiency",
+          achievements: [
+            'HKSeason25Plus', 'HKSeason55FaceoffPct', 'HKSeason22TOI'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Single-Season — Goaltending",
+          achievements: [
+            'HKSeason920SavePct', 'HKSeason260GAA', 'HKSeason6Shutouts', 'HKSeason2000Saves', 'HKSeason60Starts'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Longevity & Journey",
+          achievements: [
+            'played10PlusSeasons', 'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Debut Decade",
+          achievements: debutDecades
+        },
+        {
+          title: "Played In Decades",
+          achievements: playedDecades
+        },
+        {
+          title: "Draft", 
+          achievements: [
+            'isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        }
+      ].filter(section => section.achievements.length > 0); // Only include sections with achievements
+    } else if (sport === 'baseball') {
+      achievementSections = [
+        {
+          title: "Honors & Awards",
+          achievements: [
+            'BBAllStar', 'BBMVP', 'BBROY', 'BBChampion', 'BBAllRookie', 'BBAllLeague', 'BBPlayoffsMVP', 'isHallOfFamer'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Career Milestones — Batting",
+          achievements: [
+            'career3000Hits', 'career500HRs', 'career1500RBIs', 'career400SBs', 'career1800Runs'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Career Milestones — Pitching",
+          achievements: [
+            'career300Wins', 'career3000Ks', 'career300Saves'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Longevity & Journey",
+          achievements: [
+            'played10PlusSeasons', 'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Debut Decade",
+          achievements: debutDecades
+        },
+        {
+          title: "Played In Decades",
+          achievements: playedDecades
+        },
+        {
+          title: "Draft", 
+          achievements: [
+            'isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        }
+      ].filter(section => section.achievements.length > 0); // Only include sections with achievements
+    } else {
+      // Basketball achievements (existing structure)
+      achievementSections = [
+        {
+          title: "Honors & Awards",
+          achievements: [
+            'MVP', 'ROY', 'SMOY', 'DPOY', 'MIP', 'FinalsMVP', 'AllLeagueAny', 'AllDefAny', 'AllRookieAny', 'AllStar', 'Champion', 'isHallOfFamer', 'threePointContestWinner', 'dunkContestWinner', 'royLaterMVP'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "League Leaders (Season Titles)",
+          achievements: [
+            'PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Career Milestones",
+          achievements: [
+            'career20kPoints', 'career5kAssists', 'career2kSteals', 'career1500Blocks', 'career2kThrees'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Single-Season Milestones — Volume & Combos",
+          achievements: [
+            'Season2000Points', 'Season30PPG', 'Season200_3PM', 'Season250ThreePM', 'Season300_3PM', 'Season700Assists', 'Season10APG', 'Season800Rebounds', 'Season12RPG', 'Season150Steals', 'Season2SPG', 'Season150Blocks', 'Season2_5BPG', 'Season200Stocks', 'Season25_10', 'Season25_5_5', 'Season20_10_5', 'Season1_1_1'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Single-Season — Efficiency & Workload",
+          achievements: [
+            'Season50_40_90', 'Season40_3PT200_3PA', 'Season90FT250FTA', 'Season60eFG500FGA', 'Season60TS20PPG', 'Season36MPG', 'Season70Games'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Longevity & Journey",
+          achievements: [
+            'played10PlusSeasons', 'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        },
+        {
+          title: "Debut Decade",
+          achievements: debutDecades
+        },
+        {
+          title: "Played In Decades",
+          achievements: playedDecades
+        },
+        {
+          title: "Draft", 
+          achievements: [
+            'isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen'
+          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
+        }
+      ].filter(section => section.achievements.length > 0); // Only include sections with achievements
+    }
+
+    return { teams, achievementSections };
+  };
+
+  // Render header selector with tabbed dropdown
+  const renderHeaderSelector = (isRow: boolean, index: number) => {
+    const selector = isRow ? rowSelectors[index] : colSelectors[index];
+    const { teams, achievementSections } = getDropdownItems();
+    
+    return (
+      <div className="relative">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <div 
+              className="aspect-square flex flex-col items-center justify-center bg-background border rounded transition-colors p-0.5 sm:p-1 lg:p-2 relative group text-[8px] sm:text-xs lg:text-sm min-h-[40px] sm:min-h-[60px] lg:min-h-[80px] cursor-pointer hover:bg-muted"
+              data-testid={`header-${isRow ? 'row' : 'col'}-${index}`}
+            >
+              {selector.label ? (
+                <div className="text-center w-full h-full flex flex-col items-center justify-center">
+                  {selector.type && (
+                    <Badge variant="outline" className="text-[6px] sm:text-[8px] lg:text-[10px] mb-0.5 px-0.5 sm:px-1 py-0 leading-none">
+                      {selector.type}
+                    </Badge>
+                  )}
+                  <div className="text-[6px] sm:text-[8px] lg:text-xs font-medium leading-tight break-words text-center px-0.5 overflow-hidden">
+                    {selector.label}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center w-full h-full flex flex-col items-center justify-center space-y-1">
+                  <div className="text-[9px] sm:text-[10px] font-medium text-muted-foreground leading-tight">
+                    Click to Select
+                  </div>
+                  <div className="text-[9px] sm:text-[10px] font-medium text-muted-foreground leading-tight">
+                    Team or Achievement
+                  </div>
+                </div>
+              )}
+            </div>
+          </DropdownMenuTrigger>
+        
+        <DropdownMenuContent 
+          side="bottom" 
+          align="end" 
+          sideOffset={4}
+          className="w-[min(90vw,20rem)] sm:w-80 p-0"
+          avoidCollisions={true}
+          collisionPadding={16}
+        >
+          <Tabs defaultValue="teams" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 m-2 mb-0">
+              <TabsTrigger value="teams" className="text-xs">Teams</TabsTrigger>
+              <TabsTrigger value="achievements" className="text-xs">Achievements</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="teams" className="mt-0">
+              <div className="max-h-[35vh] sm:max-h-80 overflow-y-auto p-0">
+                {teams.map(team => (
+                  <DropdownMenuItem
+                    key={team.id}
+                    onSelect={() => updateSelectorValue(isRow, index, 'team', team.id, team.name)}
+                    className="px-3 py-2 text-sm cursor-pointer flex items-center gap-2"
+                    data-testid={`team-option-${team.id}`}
                   >
-                    <span className="text-[#A6B0BB] text-2xl">—</span>
+                    <img
+                      src={team.logoUrl}
+                      alt={`${team.name} logo`}
+                      className="w-4 h-4 object-contain flex-shrink-0"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                    <span className="truncate">{team.name}</span>
+                  </DropdownMenuItem>
+                ))}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="achievements" className="mt-0">
+              <div className="max-h-[35vh] sm:max-h-80 overflow-y-auto p-0">
+                {achievementSections.map((section, sectionIndex) => (
+                  <div key={sectionIndex}>
+                    <div className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide bg-muted/50">
+                      {section.title}
+                    </div>
+                    {section.achievements.map(achievement => (
+                      <DropdownMenuItem
+                        key={achievement.id}
+                        onSelect={() => updateSelectorValue(isRow, index, 'achievement', achievement.id, achievement.name)}
+                        className="px-3 py-2 text-sm cursor-pointer"
+                        data-testid={`achievement-option-${achievement.id}`}
+                      >
+                        <span className="truncate">{achievement.name}</span>
+                      </DropdownMenuItem>
+                    ))}
                   </div>
                 ))}
-              </>
-            ))}
-          </div>
-          
-          {/* Footer */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="border-[#1E2630] bg-[#11161C] text-[#E6EDF3] hover:bg-[#1A1F26]">
-                    Presets <ChevronDown size={16} />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="bg-[#11161C] border-[#1E2630]">
-                  <DropdownMenuItem className="text-[#E6EDF3] hover:bg-[#1A1F26]">Teams Only</DropdownMenuItem>
-                  <DropdownMenuItem className="text-[#E6EDF3] hover:bg-[#1A1F26]">Awards Only</DropdownMenuItem>
-                  <DropdownMenuItem className="text-[#E6EDF3] hover:bg-[#1A1F26]">Mixed Starters</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleRandomize}
-                className="border-[#1E2630] bg-[#11161C] text-[#E6EDF3] hover:bg-[#1A1F26]"
-              >
-                <Dice3 size={16} className="mr-2" />
-                Randomize
-              </Button>
-              
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleClearAll}
-                className="text-[#A6B0BB] hover:text-[#E6EDF3] hover:bg-[#1A1F26]"
-              >
-                <RotateCcw size={16} className="mr-2" />
-                Clear All
-              </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      
+      {/* X button positioned outside the DropdownMenuTrigger to prevent click interference */}
+      {selector.label && (
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (isRow) {
+              const newRowSelectors = [...rowSelectors];
+              newRowSelectors[index] = { type: null, value: null, label: null };
+              setRowSelectors(newRowSelectors);
+            } else {
+              const newColSelectors = [...colSelectors];
+              newColSelectors[index] = { type: null, value: null, label: null };
+              setColSelectors(newColSelectors);
+            }
+            // Clear cell counts when clearing a header
+            setCellCounts({});
+          }}
+          className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-100 transition-colors duration-200 flex items-center justify-center text-[10px] font-bold z-10"
+          title="Clear selection"
+          data-testid={`button-clear-${isRow ? 'row' : 'col'}-${index}`}
+        >
+          ×
+        </button>
+      )}
+    </div>
+  );
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="w-[96vw] max-w-[96vw] sm:w-[90vw] sm:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto overflow-x-hidden p-2 sm:p-4 lg:p-6">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Grid3x3 className="h-5 w-5" />
+            Create Custom Grid
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-2 sm:space-y-4 lg:space-y-6">
+          {/* Interactive Grid */}
+          <div className="space-y-2 sm:space-y-4">
+            <div className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground">
+              Click on the headers to select teams or achievements for each row and column.
             </div>
             
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" onClick={onClose} className="text-[#A6B0BB] hover:text-[#E6EDF3] hover:bg-[#1A1F26]">
-                Cancel
-              </Button>
-              
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div>
-                      <Button 
-                        onClick={handlePlayGrid}
-                        disabled={!isGridComplete}
-                        className="bg-[#4FB2FF] hover:bg-[#3A9DE8] text-white disabled:bg-[#243244] disabled:text-[#A6B0BB]"
-                      >
-                        <Play size={16} className="mr-2" />
-                        Play Grid
-                      </Button>
-                    </div>
-                  </TooltipTrigger>
-                  {!isGridComplete && (
-                    <TooltipContent>
-                      Set 3 row headers and 3 column headers to start
-                    </TooltipContent>
-                  )}
-                </Tooltip>
-              </TooltipProvider>
+            <div className="bg-muted/30 p-1 sm:p-2 lg:p-4 rounded-lg overflow-hidden">
+              <div className="grid grid-cols-4 gap-0.5 sm:gap-1 lg:gap-2 w-full mx-auto" style={{ maxWidth: 'calc(100vw - 3rem)' }}>
+                {/* Top-left empty cell */}
+                <div className="aspect-square"></div>
+                
+                {/* Column headers */}
+                {colSelectors.map((_, index) => (
+                  <div key={`col-header-${index}`}>
+                    {renderHeaderSelector(false, index)}
+                  </div>
+                ))}
+                
+                {/* Grid rows */}
+                {rowSelectors.map((_, rowIndex) => (
+                  [
+                    // Row header
+                    <div key={`row-header-${rowIndex}`}>
+                      {renderHeaderSelector(true, rowIndex)}
+                    </div>,
+                    
+                    // Row cells
+                    ...colSelectors.map((_, colIndex) => (
+                      <div key={`cell-${rowIndex}-${colIndex}`} className="aspect-square flex items-center justify-center bg-background border rounded text-[8px] sm:text-xs lg:text-sm font-medium min-h-[40px] sm:min-h-[60px] lg:min-h-[80px]">
+                        {getCellDisplay(rowIndex, colIndex)}
+                      </div>
+                    ))
+                  ]
+                ))}
+              </div>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+
+          {/* Status and Actions */}
+          <div className="space-y-2 sm:space-y-3">
+            {allSelectorsComplete && (
+              <div className="text-center text-xs sm:text-sm">
+                {isGridSolvable ? (
+                  <span className="text-green-600 dark:text-green-400">
+                    ✅ Grid is solvable! All cells have at least 1 eligible player.
+                  </span>
+                ) : (
+                  <span className="text-red-600 dark:text-red-400">
+                    ❌ Grid has unsolvable cells. Please adjust your selections.
+                  </span>
+                )}
+              </div>
+            )}
+            
+            {/* Action Buttons - Organized Layout */}
+            <div className="border-t pt-4 mt-4">
+              {/* Utility Actions Row */}
+              <div className="flex flex-wrap gap-2 justify-center sm:justify-start mb-3">
+                <Button
+                  onClick={handleClearAll}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2 h-9"
+                  data-testid="button-clear-all"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Clear All
+                </Button>
+                
+                {/* Autofill Split Button */}
+                <div className="flex">
+                  <Button
+                    onClick={() => handleAutofill('all')}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2 rounded-r-none border-r-0 h-9 min-w-[80px]"
+                    disabled={!leagueData}
+                    data-testid="button-autofill"
+                  >
+                    <Wand2 className="h-4 w-4" />
+                    <span className="hidden xs:inline">Autofill</span>
+                    <span className="xs:hidden">Auto</span>
+                  </Button>
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-l-none px-2 h-9 min-w-[32px]"
+                        disabled={!leagueData}
+                        data-testid="button-autofill-menu"
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem 
+                        onClick={() => handleAutofill('teams')}
+                        data-testid="item-autofill-teams"
+                      >
+                        Autofill Teams Only
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleAutofill('achievements')}
+                        data-testid="item-autofill-achievements"
+                      >
+                        Autofill Achievements Only
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                
+                {/* Undo Button */}
+                {canUndo && (
+                  <Button
+                    onClick={handleUndo}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2 h-9"
+                    data-testid="button-undo-autofill"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Undo
+                  </Button>
+                )}
+              </div>
+              
+              {/* Primary Actions Row */}
+              <div className="flex gap-3 justify-center sm:justify-end">
+                <Button
+                  onClick={onClose}
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 px-4"
+                  data-testid="button-cancel"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handlePlayGrid}
+                  disabled={!isGridSolvable}
+                  size="sm"
+                  className="flex items-center gap-2 h-9 px-4 min-w-[100px]"
+                  data-testid="button-play-grid"
+                >
+                  <Play className="h-4 w-4" />
+                  Play Grid
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
       
-      {/* Search Picker */}
-      <SearchPicker
-        isOpen={pickerState.isOpen}
-        onClose={() => setPickerState(prev => ({ ...prev, isOpen: false }))}
-        onSelect={handleHeaderSelect}
-        title={`Select header — ${pickerState.position}`}
-        teams={teamOptions}
-        achievements={achievementOptions}
-        sport={sport}
-      />
-    </>
+    </Dialog>
   );
 }
