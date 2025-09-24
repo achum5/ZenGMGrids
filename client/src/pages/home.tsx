@@ -770,33 +770,43 @@ export default function Home() {
         }
         
         if (rowConstraint && colConstraint) {
-          // Convert CatTeam constraints to IntersectionConstraint format
-          const rowIntersectionConstraint: IntersectionConstraint = {
-            type: rowConstraint.type,
-            id: rowConstraint.type === 'team' ? rowConstraint.tid! : rowConstraint.achievementId!,
-            label: rowConstraint.label
-          };
+          // Check if we have custom achievements by examining the constraint keys
+          const hasCustomAchievements = rowConstraint.key.includes('custom') || colConstraint.key.includes('custom');
           
-          const colIntersectionConstraint: IntersectionConstraint = {
-            type: colConstraint.type,
-            id: colConstraint.type === 'team' ? colConstraint.tid! : colConstraint.achievementId!,
-            label: colConstraint.label
-          };
-          
-          // Use optimized intersection calculation to get eligible players
-          const eligiblePidsSet = calculateOptimizedIntersection(
-            rowIntersectionConstraint,
-            colIntersectionConstraint,
-            leagueData.players,
-            leagueData.teams,
-            leagueData.seasonIndex,
-            false // returnCount = false to get the Set of player IDs
-          ) as Set<number>;
-          
-          const eligiblePids = Array.from(eligiblePidsSet);
-          eligiblePlayers = eligiblePids
-            .map(pid => byPid[pid])
-            .filter(player => player);
+          if (hasCustomAchievements) {
+            // Use direct calculation for custom achievements to avoid cache conflicts
+            eligiblePlayers = leagueData.players.filter(player => 
+              rowConstraint.test(player) && colConstraint.test(player)
+            );
+          } else {
+            // Convert CatTeam constraints to IntersectionConstraint format
+            const rowIntersectionConstraint: IntersectionConstraint = {
+              type: rowConstraint.type,
+              id: rowConstraint.type === 'team' ? rowConstraint.tid! : rowConstraint.achievementId!,
+              label: rowConstraint.label
+            };
+            
+            const colIntersectionConstraint: IntersectionConstraint = {
+              type: colConstraint.type,
+              id: colConstraint.type === 'team' ? colConstraint.tid! : colConstraint.achievementId!,
+              label: colConstraint.label
+            };
+            
+            // Use optimized intersection calculation to get eligible players
+            const eligiblePidsSet = calculateOptimizedIntersection(
+              rowIntersectionConstraint,
+              colIntersectionConstraint,
+              leagueData.players,
+              leagueData.teams,
+              leagueData.seasonIndex,
+              false // returnCount = false to get the Set of player IDs
+            ) as Set<number>;
+            
+            const eligiblePids = Array.from(eligiblePidsSet);
+            eligiblePlayers = eligiblePids
+              .map(pid => byPid[pid])
+              .filter(player => player);
+          }
         }
       }
       setModalEligiblePlayers(eligiblePlayers);
