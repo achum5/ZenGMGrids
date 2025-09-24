@@ -161,11 +161,20 @@ export function HintModal({
       const correctPlayer = topPercentilePlayers[Math.floor(Math.random() * topPercentilePlayers.length)];
       
       
-      // Step 2: Generate 5 distractors
+      // Step 2: Generate 5 high-quality distractors with partial matches
       const distractors: Player[] = [];
       const allPlayersList = allPlayers.filter(p => !usedPids.has(p.pid) && p.pid !== correctPlayer.pid);
       
-      // Try to find players with partial matches first
+      // Sort all players by quality (career games played) for consistent high-quality selection
+      const sortByQuality = (players: Player[]) => {
+        return players.sort((a, b) => {
+          const aGames = (a.stats || []).reduce((total, season) => total + (season.gp || 0), 0);
+          const bGames = (b.stats || []).reduce((total, season) => total + (season.gp || 0), 0);
+          return bGames - aGames; // Descending order (highest quality first)
+        });
+      };
+      
+      // Try to find high-quality players with partial matches first
       const partialMatches = allPlayersList.filter(player => {
         const rowTest = rowConstraint.test || createTestFunction(rowConstraint, leagueData?.seasonIndex);
         const colTest = colConstraint.test || createTestFunction(colConstraint, leagueData?.seasonIndex);
@@ -177,11 +186,15 @@ export function HintModal({
         return (hasRow && !hasCol) || (!hasRow && hasCol);
       });
       
-      // Add up to 3 partial matches
-      const shuffledPartials = partialMatches.sort(() => Math.random() - 0.5);
-      distractors.push(...shuffledPartials.slice(0, 3));
+      // Sort partial matches by quality and take top ones
+      const qualityPartialMatches = sortByQuality(partialMatches);
+      const topPartialCount = Math.min(3, qualityPartialMatches.length);
+      const topPartials = qualityPartialMatches.slice(0, Math.max(topPartialCount, 1));
+      // Add some randomness within the top portion
+      const shuffledTopPartials = topPartials.sort(() => Math.random() - 0.5);
+      distractors.push(...shuffledTopPartials.slice(0, 3));
       
-      // Fill remaining slots with players from similar time period
+      // Fill remaining slots with high-quality contemporaries
       if (distractors.length < 5) {
         const correctPlayerSeasons = correctPlayer.stats?.map(s => s.season) || [];
         const minSeason = Math.min(...correctPlayerSeasons);
@@ -196,21 +209,31 @@ export function HintModal({
             // Overlapping careers (±10 years buffer)
             return (playerMaxSeason >= minSeason - 10 && playerMinSeason <= maxSeason + 10);
           })
-          .filter(player => !distractors.some(d => d.pid === player.pid))
-          .sort(() => Math.random() - 0.5);
+          .filter(player => !distractors.some(d => d.pid === player.pid));
+        
+        // Sort by quality and take from top 30% for variety
+        const qualityContemporaries = sortByQuality(contemporaries);
+        const topContemporaryCount = Math.max(5, Math.floor(qualityContemporaries.length * 0.3));
+        const topContemporaries = qualityContemporaries.slice(0, topContemporaryCount);
+        const shuffledTopContemporaries = topContemporaries.sort(() => Math.random() - 0.5);
         
         const needed = 5 - distractors.length;
-        distractors.push(...contemporaries.slice(0, needed));
+        distractors.push(...shuffledTopContemporaries.slice(0, needed));
       }
       
-      // If still need more, add any random players
+      // If still need more, add high-quality players from the entire league
       if (distractors.length < 5) {
         const remainingPlayers = allPlayersList
-          .filter(player => !distractors.some(d => d.pid === player.pid))
-          .sort(() => Math.random() - 0.5);
+          .filter(player => !distractors.some(d => d.pid === player.pid));
+        
+        // Sort by quality and take from top 20% for high-quality fallback
+        const qualityRemaining = sortByQuality(remainingPlayers);
+        const topRemainingCount = Math.max(10, Math.floor(qualityRemaining.length * 0.2));
+        const topRemaining = qualityRemaining.slice(0, topRemainingCount);
+        const shuffledTopRemaining = topRemaining.sort(() => Math.random() - 0.5);
         
         const needed = 5 - distractors.length;
-        distractors.push(...remainingPlayers.slice(0, needed));
+        distractors.push(...shuffledTopRemaining.slice(0, needed));
       }
       
       // Create hint options (1 correct + up to 5 distractors)
