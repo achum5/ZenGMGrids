@@ -438,9 +438,7 @@ export function GridSection({
             htmlFor="hint-mode" 
             className="text-sm font-medium cursor-pointer"
             data-testid="label-hint-mode"
-          >
-            💡 Hint Mode
-          </Label>
+          > Hint Mode💡</Label>
         </div>
 
         {/* Create Custom Grid button (right) */}
