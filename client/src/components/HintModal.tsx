@@ -108,7 +108,20 @@ export function HintModal({
       
       
       // Step 1: Get the most common correct answer from top 10th percentile
-      const eligiblePlayers = eligiblePlayerIds.map(pid => byPid[pid]).filter(Boolean);
+      let eligiblePlayers = eligiblePlayerIds.map(pid => byPid[pid]).filter(Boolean);
+      
+      // If cache is empty, calculate eligible players directly (fallback for broken cache cases)
+      if (eligiblePlayers.length === 0 && leagueData?.players) {
+        console.log(`🔧 Cache empty for ${cellKey}, calculating directly...`);
+        const rowTest = rowConstraint.test || createTestFunction(rowConstraint, leagueData.seasonIndex);
+        const colTest = colConstraint.test || createTestFunction(colConstraint, leagueData.seasonIndex);
+        
+        eligiblePlayers = leagueData.players.filter(player => {
+          return rowTest(player) && colTest(player);
+        });
+        console.log(`   Direct calculation found ${eligiblePlayers.length} players`);
+      }
+      
       if (eligiblePlayers.length === 0) {
         setHintResult({
           options: [],
