@@ -6,9 +6,19 @@ import { X } from 'lucide-react';
 import { PlayerFace } from '@/components/PlayerFace';
 import { TeamLogo } from '@/components/TeamLogo';
 import { cn } from '@/lib/utils';
-import type { Player, CatTeam, Team, LeagueData } from '@/types/bbgm';
+import type { Player, CatTeam, Team, LeagueData, SeasonIndex } from '@/types/bbgm';
 import { generateHintOptions, type HintOption, type HintGenerationResult } from '@/lib/hint-generation';
+import { playerMeetsAchievement } from '@/lib/achievements';
 import { useToast } from '@/hooks/use-toast';
+
+// Helper function to create test functions for constraints if missing
+function createTestFunction(constraint: CatTeam, seasonIndex?: SeasonIndex): (player: Player) => boolean {
+  if (constraint.type === 'team') {
+    return (player: Player) => player.teamsPlayed.has(constraint.tid!);
+  } else {
+    return (player: Player) => playerMeetsAchievement(player, constraint.achievementId!, seasonIndex);
+  }
+}
 
 interface HintModalProps {
   open: boolean;
@@ -63,7 +73,11 @@ export function HintModal({
       const liveEligiblePlayerIds: number[] = [];
       if (leagueData?.players) {
         const eligiblePlayers = leagueData.players.filter(player => {
-          return rowConstraint.test(player) && colConstraint.test(player);
+          // Reconstruct test functions if missing
+          const rowTest = rowConstraint.test || createTestFunction(rowConstraint, leagueData.seasonIndex);
+          const colTest = colConstraint.test || createTestFunction(colConstraint, leagueData.seasonIndex);
+          
+          return rowTest(player) && colTest(player);
         });
         liveEligiblePlayerIds.push(...eligiblePlayers.map(p => p.pid));
       }
