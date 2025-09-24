@@ -238,7 +238,35 @@ export function calculateCustomCellIntersection(
     return 0;
   }
 
-  // Use optimized intersection calculation with memoization
+  // If either constraint has custom achievements, use direct calculation to avoid cache conflicts
+  const hasCustomAchievements = rowConfig.customAchievement || colConfig.customAchievement;
+  
+  if (hasCustomAchievements) {
+    // Direct calculation for custom achievements - count players that meet both constraints
+    console.log(`🔧 [CUSTOM ACHIEVEMENT] Calculating intersection with custom achievement(s)`);
+    console.log(`   Row: ${rowConstraint.label} (custom: ${!!rowConfig.customAchievement})`);
+    console.log(`   Col: ${colConstraint.label} (custom: ${!!colConfig.customAchievement})`);
+    
+    let count = 0;
+    let debugCount = 0;
+    for (const player of players) {
+      const rowTest = rowConstraint.test(player);
+      const colTest = colConstraint.test(player);
+      
+      if (rowTest && colTest) {
+        count++;
+        if (debugCount < 5) { // Log first few matches for debugging
+          console.log(`   ✅ Match: ${player.name}`);
+          debugCount++;
+        }
+      }
+    }
+    
+    console.log(`   🎯 Custom intersection result: ${count} players`);
+    return count;
+  }
+
+  // Use optimized intersection calculation with memoization for standard achievements
   const rowIntersectionConstraint: IntersectionConstraint = {
     type: rowConstraint.type,
     id: rowConstraint.type === 'team' ? rowConstraint.tid! : rowConstraint.achievementId!,
