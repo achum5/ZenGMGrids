@@ -1310,6 +1310,13 @@ export default function Home() {
                     customAchievement: colSelectors[colIndex].customAchievement
                   };
                   
+                  console.log(`🔧 [DIRECT FIX] Cell ${key} config:`, {
+                    rowConfig,
+                    colConfig,
+                    hasRowCustom: !!rowConfig.customAchievement,
+                    hasColCustom: !!colConfig.customAchievement
+                  });
+                  
                   // Use calculateCustomCellIntersection - the EXACT same function as the preview
                   const count = calculateCustomCellIntersection(
                     rowConfig,
@@ -1319,16 +1326,56 @@ export default function Home() {
                     leagueData.seasonIndex
                   );
                   
-                  // Get the actual eligible player IDs
-                  const rowConstraint = headerConfigToCatTeam(rowConfig, leagueData.teams, leagueData.seasonIndex);
-                  const colConstraint = headerConfigToCatTeam(colConfig, leagueData.teams, leagueData.seasonIndex);
+                  // DIRECT FIX: Simple player filtering for custom achievements
+                  let eligiblePlayers: any[] = [];
                   
-                  if (rowConstraint && colConstraint) {
-                    const eligiblePlayers = leagueData.players.filter(p => 
-                      rowConstraint.test(p) && colConstraint.test(p)
-                    );
-                    newIntersections[key] = eligiblePlayers.map(p => p.pid);
+                  if (rowConfig.customAchievement || colConfig.customAchievement) {
+                    // Direct filtering for custom achievements
+                    console.log(`🔧 [CUSTOM FIX] Using direct filtering for cell ${key}`);
+                    
+                    eligiblePlayers = leagueData.players.filter(player => {
+                      let rowPasses = true;
+                      let colPasses = true;
+                      
+                      // Check row constraint
+                      if (rowConfig.type === 'team') {
+                        rowPasses = player.teamsPlayed.has(rowConfig.selectedId);
+                      } else if (rowConfig.customAchievement) {
+                        rowPasses = rowConfig.customAchievement.test(player);
+                      } else {
+                        rowPasses = playerMeetsAchievement(player, rowConfig.selectedId as string, leagueData.seasonIndex);
+                      }
+                      
+                      // Check column constraint
+                      if (colConfig.type === 'team') {
+                        colPasses = player.teamsPlayed.has(colConfig.selectedId);
+                      } else if (colConfig.customAchievement) {
+                        colPasses = colConfig.customAchievement.test(player);
+                      } else {
+                        colPasses = playerMeetsAchievement(player, colConfig.selectedId as string, leagueData.seasonIndex);
+                      }
+                      
+                      const passes = rowPasses && colPasses;
+                      if (passes) {
+                        console.log(`  ✅ ${player.name} passes both tests`);
+                      }
+                      return passes;
+                    });
+                    
+                    console.log(`🔧 [CUSTOM FIX] Found ${eligiblePlayers.length} eligible players`);
+                  } else {
+                    // Use normal calculation for non-custom
+                    const rowConstraint = headerConfigToCatTeam(rowConfig, leagueData.teams, leagueData.seasonIndex);
+                    const colConstraint = headerConfigToCatTeam(colConfig, leagueData.teams, leagueData.seasonIndex);
+                    
+                    if (rowConstraint && colConstraint) {
+                      eligiblePlayers = leagueData.players.filter(p => 
+                        rowConstraint.test(p) && colConstraint.test(p)
+                      );
+                    }
                   }
+                  
+                  newIntersections[key] = eligiblePlayers.map(p => p.pid);
                 }
               }
             } else {
