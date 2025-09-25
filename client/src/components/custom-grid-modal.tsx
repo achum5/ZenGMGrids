@@ -160,8 +160,11 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
           const realAchievement = achievements.find((ach: any) => ach.id === originalAchievement.id);
           
           if (realAchievement) {
+            // Preserve current operator if not provided (when changing numbers)
+            const currentOperator = operator || currentSelector.operator || '≥';
+            
             // Create custom achievement with new threshold using the real achievement
-            const customAchievement = createCustomNumericalAchievement(realAchievement, newNumber, sport, operator);
+            const customAchievement = createCustomNumericalAchievement(realAchievement, newNumber, sport, currentOperator);
             
             // Update the selector with new label and custom achievement
             newSelectors[index] = {
