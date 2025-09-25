@@ -34,7 +34,24 @@ export function parseAchievementLabel(label: string): ParsedAchievement {
   for (const pattern of ACHIEVEMENT_PATTERNS) {
     const match = label.match(pattern);
     if (match) {
-      const [, prefix, numberStr, suffix] = match;
+      let prefix: string, numberStr: string, suffix: string;
+      
+      // Handle different capture group patterns
+      if (match.length === 5) {
+        // Pattern 24 (season stats): [full, prefix, number, unit, suffix]
+        [, prefix, numberStr, , suffix] = match;
+        // For season stats, reconstruct the suffix to include the unit and (Season)
+        const unit = match[3];
+        if (label.includes('+')) {
+          suffix = `+ ${unit} (Season)${suffix}`;
+        } else {
+          suffix = ` ${unit} (Season)${suffix}`;
+        }
+      } else {
+        // Standard patterns: [full, prefix, number, suffix]
+        [, prefix, numberStr, suffix] = match;
+      }
+      
       // Remove commas and parse as float to support decimals
       const number = parseFloat(numberStr.replace(/,/g, ''));
       
