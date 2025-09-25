@@ -442,6 +442,20 @@ export function StatBuilderChip({
                   </button>
                 )}
                 
+                {/* Percentage symbol for percentage stats */}
+                {validation.isPercentage && (
+                  <span
+                    style={{
+                      color: 'rgb(255 255 255 / 0.7)',
+                      fontWeight: '500',
+                      fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)',
+                      marginLeft: '0.1em'
+                    }}
+                  >
+                    %
+                  </span>
+                )}
+                
                 {/* Confirm button (only when editing) */}
                 {isEditing && (
                   <button
@@ -548,6 +562,20 @@ export function StatBuilderChip({
                 >
                   {displayValue}
                 </button>
+              )}
+              
+              {/* Percentage symbol for percentage stats */}
+              {validation.isPercentage && (
+                <span
+                  style={{
+                    color: 'rgb(255 255 255 / 0.7)',
+                    fontWeight: '500',
+                    fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)',
+                    marginLeft: '0.1em'
+                  }}
+                >
+                  %
+                </span>
               )}
               
               {/* Confirm button (only when editing) */}
