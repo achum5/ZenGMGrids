@@ -208,7 +208,7 @@ export function headerConfigToCatTeam(
     
     return {
       key: `achievement-${achievementToUse.id}-${config.customAchievement ? 'custom' : 'original'}`,
-      label: config.selectedLabel,
+      label: config.customAchievement?.label || config.selectedLabel, // Use custom achievement label if available
       achievementId: achievementToUse.id as string,
       type: 'achievement',
       test: (p: Player) => {
