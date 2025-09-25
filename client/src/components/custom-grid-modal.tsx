@@ -18,6 +18,16 @@ import { getCachedSeasonIndex } from '@/lib/season-index-cache';
 import { StatBuilderChip } from '@/components/stat-builder-chip';
 import { parseAchievementLabel, createCustomNumericalAchievement } from '@/lib/editable-achievements';
 
+// Extract base stat name from achievement labels for clean modal display
+function extractBaseStatName(label: string): string {
+  const parsed = parseAchievementLabel(label);
+  if (parsed.isEditable) {
+    // Remove the number and return just the suffix (e.g., "20,000+ Career Points" -> "Career Points")
+    return parsed.suffix.replace(/^\s*\+?\s*/, '').trim();
+  }
+  return label;
+}
+
 // Team logo icon component for combobox
 function TeamLogoIcon({ teamData }: { teamData?: Team }) {
   const [logoError, setLogoError] = useState(false);
@@ -1114,8 +1124,12 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                     <div className="pointer-events-auto">
                       <StatBuilderChip
                         label={
-                          // Use custom achievement label if exists, otherwise original label
-                          selector.customAchievement ? selector.customAchievement.label : (selector.label || '')
+                          // Create clean minimal label for the modal (e.g., "1000 Career Points")
+                          selector.customAchievement ? 
+                            // Show custom number + base stat (e.g., "5000 Career Points")
+                            `${parseAchievementLabel(selector.customAchievement.label).number} ${extractBaseStatName(selector.label || '')}` :
+                            // Show original parsed number + base stat (e.g., "20000 Career Points") 
+                            `${parseAchievementLabel(selector.label || '').number} ${extractBaseStatName(selector.label || '')}`
                         }
                         sport={sport}
                         onNumberChange={(newNumber, newLabel, operator) => 
