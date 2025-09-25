@@ -498,9 +498,17 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
   
   // Debug removed - triple-double detection working correctly
   
+  // OPTIMIZATION: Enhanced progress reporting for large FBGM files
+  const totalPlayers = players.length;
+  const isLargeFile = totalPlayers > 5000;
+  const progressInterval = isLargeFile ? Math.floor(totalPlayers / 20) : 500; // Show 20 updates for large files
+  
+  console.log(`🔧 [ACHIEVEMENT CALC] Starting achievement calculations for ${totalPlayers} players (${sport})`);
+  
   players.forEach((player, index) => {
-    if (index % 500 === 0) {
-      console.log(`Processing player ${index + 1}/${players.length}...`);
+    if (index % progressInterval === 0 || index === totalPlayers - 1) {
+      const percentage = Math.round(((index + 1) / totalPlayers) * 100);
+      console.log(`🔧 [ACHIEVEMENT CALC] Processing player ${index + 1}/${totalPlayers} (${percentage}%) - ${player.name}`);
     }
     try {
       player.achievements = calculatePlayerAchievements(player, players, leadershipMap, playerFeats, leagueYears);
@@ -544,7 +552,14 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
   });
   
   const endTime = performance.now();
-  console.log(`Achievement calculations completed in ${(endTime - startTime).toFixed(2)}ms`);
+  const calculationTime = endTime - startTime;
+  console.log(`🔧 [ACHIEVEMENT CALC] Achievement calculation completed in ${calculationTime.toFixed(2)}ms for ${sport} (${(calculationTime / totalPlayers).toFixed(2)}ms per player)`);
+  
+  // OPTIMIZATION: Force garbage collection hint for large files
+  if (isLargeFile && typeof window !== 'undefined' && (window as any).gc) {
+    console.log('🔧 [MEMORY] Requesting garbage collection for large file...');
+    (window as any).gc();
+  }
 
   // Log achievement statistics
   const achievementCounts = {
