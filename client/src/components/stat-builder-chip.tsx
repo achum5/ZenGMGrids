@@ -195,14 +195,6 @@ export function StatBuilderChip({
     setError(null);
   }, [label, sport]);
 
-  // Trigger onNumberChange when operator changes (even if number stays the same)
-  useEffect(() => {
-    if (onNumberChange && parsed.isEditable) {
-      const newLabel = generateUpdatedLabel(parsed, parsed.number, operator);
-      onNumberChange(parsed.number, newLabel, operator);
-    }
-  }, [operator, onNumberChange, parsed]);
-
   // If not editable, render as plain text
   if (!parsed.isEditable) {
     return <span className={className}>{label}</span>;
@@ -210,8 +202,18 @@ export function StatBuilderChip({
 
   const handleOperatorClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    setOperator(prev => prev === '≥' ? '≤' : '≥');
-  }, []);
+    setOperator(prev => {
+      const newOperator = prev === '≥' ? '≤' : '≥';
+      
+      // Immediately trigger onNumberChange when operator changes
+      if (onNumberChange) {
+        const newLabel = generateUpdatedLabel(parsed, parsed.number, newOperator);
+        onNumberChange(parsed.number, newLabel, newOperator);
+      }
+      
+      return newOperator;
+    });
+  }, [onNumberChange, parsed]);
 
   const handleNumberClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
