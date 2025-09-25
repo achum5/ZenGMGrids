@@ -522,6 +522,22 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
               customAchievement: colSelector.customAchievement
             };
             
+            // Debug custom achievements
+            console.log(`🔧 [CELL COUNT DEBUG] Cell ${rowIndex}-${colIndex}:`, {
+              rowConfig: {
+                type: rowConfig.type,
+                selectedId: rowConfig.selectedId,
+                selectedLabel: rowConfig.selectedLabel,
+                hasRowCustom: !!rowConfig.customAchievement
+              },
+              colConfig: {
+                type: colConfig.type, 
+                selectedId: colConfig.selectedId,
+                selectedLabel: colConfig.selectedLabel,
+                hasColCustom: !!colConfig.customAchievement
+              }
+            });
+            
             // Calculate intersection
             const count = calculateCustomCellIntersection(
               rowConfig,
@@ -530,6 +546,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
               leagueData.teams,
               seasonIndex
             );
+            
+            console.log(`🔧 [CELL COUNT DEBUG] Cell ${rowIndex}-${colIndex} calculated count: ${count}`);
             
             newCellCounts[getCellKey(rowIndex, colIndex)] = count;
           }
