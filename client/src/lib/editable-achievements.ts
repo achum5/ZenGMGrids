@@ -171,6 +171,17 @@ export function createCustomNumericalAchievement(
   
   const newLabel = generateUpdatedLabel(parsed, newThreshold, operator);
   
+  // DEBUG: Log custom achievement creation for career points
+  if (baseAchievement.label.toLowerCase().includes('career') && baseAchievement.label.toLowerCase().includes('points')) {
+    console.log(`🐛 [CAREER POINTS DEBUG] Creating custom achievement:`, {
+      originalLabel: baseAchievement.label,
+      newThreshold,
+      operator,
+      newLabel,
+      parsedInfo: parsed
+    });
+  }
+  
   // Generate new test function based on achievement type patterns
   const newTestFunction = generateTestFunction(baseAchievement, parsed, newThreshold, operator);
   
