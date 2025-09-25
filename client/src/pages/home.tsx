@@ -152,10 +152,10 @@ export default function Home() {
       return;
     }
     
-    // Validate eligibility - check for custom test functions first
+    // Validate eligibility using EXACT SAME LOGIC as eligible players list
     let isCorrect = false;
     
-    // Get row and column constraints to check for custom test functions
+    // Get row and column constraints
     let rowConstraint: CatTeam | undefined;
     let colConstraint: CatTeam | undefined;
     
@@ -174,43 +174,18 @@ export default function Home() {
     }
     
     if (rowConstraint && colConstraint) {
-      // Check if either constraint has a custom test function (for custom achievements with ≤/≥)
-      if ((rowConstraint.test && typeof rowConstraint.test === 'function') || 
-          (colConstraint.test && typeof colConstraint.test === 'function')) {
-        console.log(`🔧 [GRID VALIDATION] Using custom test functions for player ${player.name} (${player.pid})`);
-        
-        // Evaluate using custom test functions
-        let meetsRow = false;
-        if (rowConstraint.type === 'team') {
-          meetsRow = player.teamsPlayed.has(rowConstraint.tid!);
-        } else if (rowConstraint.type === 'achievement') {
-          // Use custom test function if available, otherwise fallback to playerMeetsAchievement
-          if (rowConstraint.test && typeof rowConstraint.test === 'function') {
-            meetsRow = rowConstraint.test(player);
-          } else {
-            meetsRow = playerMeetsAchievement(player, rowConstraint.achievementId!, leagueData?.seasonIndex);
-          }
-        }
-        
-        let meetsCol = false;
-        if (colConstraint.type === 'team') {
-          meetsCol = player.teamsPlayed.has(colConstraint.tid!);
-        } else if (colConstraint.type === 'achievement') {
-          // Use custom test function if available, otherwise fallback to playerMeetsAchievement
-          if (colConstraint.test && typeof colConstraint.test === 'function') {
-            meetsCol = colConstraint.test(player);
-          } else {
-            meetsCol = playerMeetsAchievement(player, colConstraint.achievementId!, leagueData?.seasonIndex);
-          }
-        }
-        
-        isCorrect = meetsRow && meetsCol;
-        console.log(`🔧 [GRID VALIDATION] Player ${player.name}: meetsRow=${meetsRow}, meetsCol=${meetsCol}, isCorrect=${isCorrect}`);
+      // Use EXACT SAME LOGIC as eligible players list in handleCellClick
+      const hasCustomAchievements = rowConstraint.key.includes('custom') || colConstraint.key.includes('custom');
+      
+      if (hasCustomAchievements) {
+        // Direct test function evaluation (same as eligible players list)
+        isCorrect = rowConstraint.test(player) && colConstraint.test(player);
+        console.log(`🔧 [GRID VALIDATION] Custom achievements - Player ${player.name}: ${isCorrect}`);
       } else {
-        // Use pre-calculated intersections for regular constraints
+        // Use pre-calculated intersections for regular achievements
         const eligiblePids = intersections[cellKey] || [];
         isCorrect = eligiblePids.includes(player.pid);
-        console.log(`🔧 [GRID VALIDATION] Using pre-calculated intersections: ${isCorrect}`);
+        console.log(`🔧 [GRID VALIDATION] Regular achievements - Player ${player.name}: ${isCorrect}`);
       }
     } else {
       // Fallback to pre-calculated intersections if constraints not found
@@ -222,41 +197,18 @@ export default function Home() {
     let rarity = 0;
     let points = 0;
     if (isCorrect && leagueData && rowConstraint && colConstraint) {
-      // Get eligible players - use custom test functions if available
+      // Get eligible players using EXACT SAME LOGIC as eligible players list
       let eligiblePlayers: Player[];
       
-      if ((rowConstraint.test && typeof rowConstraint.test === 'function') || 
-          (colConstraint.test && typeof colConstraint.test === 'function')) {
-        // Re-calculate eligible players using custom test functions
-        eligiblePlayers = leagueData.players.filter(p => {
-          // Check row constraint
-          let meetsRow = false;
-          if (rowConstraint!.type === 'team') {
-            meetsRow = p.teamsPlayed.has(rowConstraint!.tid!);
-          } else if (rowConstraint!.type === 'achievement') {
-            if (rowConstraint!.test) {
-              meetsRow = rowConstraint!.test(p);
-            } else {
-              meetsRow = playerMeetsAchievement(p, rowConstraint!.achievementId!, leagueData.seasonIndex);
-            }
-          }
-          
-          // Check column constraint
-          let meetsCol = false;
-          if (colConstraint!.type === 'team') {
-            meetsCol = p.teamsPlayed.has(colConstraint!.tid!);
-          } else if (colConstraint!.type === 'achievement') {
-            if (colConstraint!.test) {
-              meetsCol = colConstraint!.test(p);
-            } else {
-              meetsCol = playerMeetsAchievement(p, colConstraint!.achievementId!, leagueData.seasonIndex);
-            }
-          }
-          
-          return meetsRow && meetsCol;
-        });
+      const hasCustomAchievements = rowConstraint.key.includes('custom') || colConstraint.key.includes('custom');
+      
+      if (hasCustomAchievements) {
+        // Direct test function evaluation (same as eligible players list)
+        eligiblePlayers = leagueData.players.filter(player => 
+          rowConstraint.test(player) && colConstraint.test(player)
+        );
       } else {
-        // Use pre-calculated intersections
+        // Use pre-calculated intersections for regular achievements
         const eligiblePids = intersections[cellKey] || [];
         eligiblePlayers = leagueData.players.filter(p => eligiblePids.includes(p.pid));
       }
