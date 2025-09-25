@@ -247,7 +247,10 @@ export function StatBuilderChip({
     }
     
     const newNumber = parseFloat(inputValue);
-    if (newNumber !== parsed.number && onNumberChange) {
+    const originalOperator = parseOperator(parsed.originalLabel);
+    
+    // Trigger callback if number changed OR operator changed from original
+    if ((newNumber !== parsed.number || operator !== originalOperator) && onNumberChange) {
       const newLabel = generateUpdatedLabel(parsed, newNumber, operator);
       onNumberChange(newNumber, newLabel, operator);
     }
@@ -285,6 +288,17 @@ export function StatBuilderChip({
     e.stopPropagation();
     commitValue();
   }, [commitValue]);
+
+  // Create custom achievement when operator changes (but not when editing)
+  useEffect(() => {
+    if (!isEditing && onNumberChange) {
+      const originalOperator = parseOperator(parsed.originalLabel);
+      if (operator !== originalOperator) {
+        const newLabel = generateUpdatedLabel(parsed, parsed.number, operator);
+        onNumberChange(parsed.number, newLabel, operator);
+      }
+    }
+  }, [operator, isEditing, onNumberChange, parsed]);
 
   // If not editable, render as plain text
   if (!parsed.isEditable) {
