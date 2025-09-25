@@ -1094,12 +1094,20 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                     <div className="pointer-events-auto">
                       <StatBuilderChip
                         label={
-                          // Create clean minimal label for the modal with + symbol for parseability
-                          selector.customAchievement ? 
-                            // Use the custom achievement label directly (e.g., "5,000+ Career Points")
-                            selector.customAchievement.label :
-                            // Use the original selector label (e.g., "20,000+ Career Points") 
-                            selector.label || ''
+                          // ALWAYS show clean editable format in modal - NEVER locked text
+                          (() => {
+                            if (selector.customAchievement) {
+                              // Extract number from custom achievement and create clean format
+                              const parsed = parseAchievementLabel(selector.customAchievement.label, sport);
+                              if (parsed.isEditable && parsed.number !== undefined) {
+                                // Create clean format: "5,000+ Career Points" (NEVER "5,000 or less Career Points")
+                                const formattedNumber = parsed.number.toLocaleString();
+                                return `${formattedNumber}+ ${parsed.suffix.replace(/^\+?\s*/, '').replace(/^or less\s+/, '')}`;
+                              }
+                            }
+                            // Use original selector label as fallback
+                            return selector.label || '';
+                          })()
                         }
                         sport={sport}
                         onNumberChange={(newNumber, newLabel, operator) => 
