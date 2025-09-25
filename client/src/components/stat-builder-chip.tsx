@@ -198,18 +198,8 @@ export function StatBuilderChip({
   // All useCallback hooks must come before the early return
   const handleOperatorClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    setOperator(prev => {
-      const newOperator = prev === '≥' ? '≤' : '≥';
-      
-      // Immediately trigger onNumberChange when operator changes
-      if (onNumberChange) {
-        const newLabel = generateUpdatedLabel(parsed, parsed.number, newOperator);
-        onNumberChange(parsed.number, newLabel, newOperator);
-      }
-      
-      return newOperator;
-    });
-  }, [onNumberChange, parsed]);
+    setOperator(prev => prev === '≥' ? '≤' : '≥');
+  }, []);
 
   const handleNumberClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
