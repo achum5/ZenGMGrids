@@ -152,36 +152,118 @@ export default function Home() {
       return;
     }
     
-    // Validate eligibility
-    const eligiblePids = intersections[cellKey] || [];
-    const isCorrect = eligiblePids.includes(player.pid);
+    // Validate eligibility - check for custom test functions first
+    let isCorrect = false;
+    
+    // Get row and column constraints to check for custom test functions
+    let rowConstraint: CatTeam | undefined;
+    let colConstraint: CatTeam | undefined;
+    
+    if (cellKey.includes('|')) {
+      // Traditional format: "rowKey|colKey"
+      const [rowKey, colKey] = cellKey.split('|');
+      rowConstraint = rows.find(r => r.key === rowKey);
+      colConstraint = cols.find(c => c.key === colKey);
+    } else {
+      // Position-based format: "rowIndex-colIndex"
+      const [rowIndexStr, colIndexStr] = cellKey.split('-');
+      const rowIndex = parseInt(rowIndexStr, 10);
+      const colIndex = parseInt(colIndexStr, 10);
+      rowConstraint = rows[rowIndex];
+      colConstraint = cols[colIndex];
+    }
+    
+    if (rowConstraint && colConstraint) {
+      // Check if either constraint has a custom test function (for custom achievements with ≤/≥)
+      if ((rowConstraint.test && typeof rowConstraint.test === 'function') || 
+          (colConstraint.test && typeof colConstraint.test === 'function')) {
+        console.log(`🔧 [GRID VALIDATION] Using custom test functions for player ${player.name} (${player.pid})`);
+        
+        // Evaluate using custom test functions
+        let meetsRow = false;
+        if (rowConstraint.type === 'team') {
+          meetsRow = player.teamsPlayed.has(rowConstraint.tid!);
+        } else if (rowConstraint.type === 'achievement') {
+          // Use custom test function if available, otherwise fallback to playerMeetsAchievement
+          if (rowConstraint.test && typeof rowConstraint.test === 'function') {
+            meetsRow = rowConstraint.test(player);
+          } else {
+            meetsRow = playerMeetsAchievement(player, rowConstraint.achievementId!, leagueData?.seasonIndex);
+          }
+        }
+        
+        let meetsCol = false;
+        if (colConstraint.type === 'team') {
+          meetsCol = player.teamsPlayed.has(colConstraint.tid!);
+        } else if (colConstraint.type === 'achievement') {
+          // Use custom test function if available, otherwise fallback to playerMeetsAchievement
+          if (colConstraint.test && typeof colConstraint.test === 'function') {
+            meetsCol = colConstraint.test(player);
+          } else {
+            meetsCol = playerMeetsAchievement(player, colConstraint.achievementId!, leagueData?.seasonIndex);
+          }
+        }
+        
+        isCorrect = meetsRow && meetsCol;
+        console.log(`🔧 [GRID VALIDATION] Player ${player.name}: meetsRow=${meetsRow}, meetsCol=${meetsCol}, isCorrect=${isCorrect}`);
+      } else {
+        // Use pre-calculated intersections for regular constraints
+        const eligiblePids = intersections[cellKey] || [];
+        isCorrect = eligiblePids.includes(player.pid);
+        console.log(`🔧 [GRID VALIDATION] Using pre-calculated intersections: ${isCorrect}`);
+      }
+    } else {
+      // Fallback to pre-calculated intersections if constraints not found
+      const eligiblePids = intersections[cellKey] || [];
+      isCorrect = eligiblePids.includes(player.pid);
+    }
     
     // Compute rarity if correct
     let rarity = 0;
     let points = 0;
-    if (isCorrect && leagueData) {
-      const eligiblePlayers = leagueData.players.filter(p => eligiblePids.includes(p.pid));
+    if (isCorrect && leagueData && rowConstraint && colConstraint) {
+      // Get eligible players - use custom test functions if available
+      let eligiblePlayers: Player[];
+      
+      if ((rowConstraint.test && typeof rowConstraint.test === 'function') || 
+          (colConstraint.test && typeof colConstraint.test === 'function')) {
+        // Re-calculate eligible players using custom test functions
+        eligiblePlayers = leagueData.players.filter(p => {
+          // Check row constraint
+          let meetsRow = false;
+          if (rowConstraint!.type === 'team') {
+            meetsRow = p.teamsPlayed.has(rowConstraint!.tid!);
+          } else if (rowConstraint!.type === 'achievement') {
+            if (rowConstraint!.test) {
+              meetsRow = rowConstraint!.test(p);
+            } else {
+              meetsRow = playerMeetsAchievement(p, rowConstraint!.achievementId!, leagueData.seasonIndex);
+            }
+          }
+          
+          // Check column constraint
+          let meetsCol = false;
+          if (colConstraint!.type === 'team') {
+            meetsCol = p.teamsPlayed.has(colConstraint!.tid!);
+          } else if (colConstraint!.type === 'achievement') {
+            if (colConstraint!.test) {
+              meetsCol = colConstraint!.test(p);
+            } else {
+              meetsCol = playerMeetsAchievement(p, colConstraint!.achievementId!, leagueData.seasonIndex);
+            }
+          }
+          
+          return meetsRow && meetsCol;
+        });
+      } else {
+        // Use pre-calculated intersections
+        const eligiblePids = intersections[cellKey] || [];
+        eligiblePlayers = leagueData.players.filter(p => eligiblePids.includes(p.pid));
+      }
+      
       const eligiblePool = eligiblePlayers.map(p => playerToEligibleLite(p));
       const guessedPlayer = playerToEligibleLite(player);
       const puzzleSeed = `${rows.map(r => r.key).join('-')}_${cols.map(c => c.key).join('-')}`;
-      
-      // Get row and column constraints for cell context
-      let rowConstraint: CatTeam | undefined;
-      let colConstraint: CatTeam | undefined;
-      
-      if (cellKey.includes('|')) {
-        // Traditional format: "rowKey|colKey"
-        const [rowKey, colKey] = cellKey.split('|');
-        rowConstraint = rows.find(r => r.key === rowKey);
-        colConstraint = cols.find(c => c.key === colKey);
-      } else {
-        // Position-based format: "rowIndex-colIndex"
-        const [rowIndexStr, colIndexStr] = cellKey.split('-');
-        const rowIndex = parseInt(rowIndexStr, 10);
-        const colIndex = parseInt(colIndexStr, 10);
-        rowConstraint = rows[rowIndex];
-        colConstraint = cols[colIndex];
-      }
       const teamsMap = new Map(leagueData.teams.map(t => [t.tid, t]));
       
       rarity = computeRarityForGuess({
@@ -325,7 +407,8 @@ export default function Home() {
       console.log(`🔧 [RANK CACHE] No stored data, calculating dynamically`);
       
       // Check if either constraint has a custom test function (for custom achievements with ≤/≥)
-      if (rowConstraint.test || colConstraint.test) {
+      if ((rowConstraint.test && typeof rowConstraint.test === 'function') || 
+          (colConstraint.test && typeof colConstraint.test === 'function')) {
         console.log(`🔧 [RANK CACHE] Using custom test functions for constraints`);
         
         // Calculate manually using custom test functions
