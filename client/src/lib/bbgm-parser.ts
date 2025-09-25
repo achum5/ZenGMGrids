@@ -286,10 +286,22 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
     // Cache the sport detection for use in achievements
     setCachedSportDetection(sport);
   
-  // Find current season for filtering active teams
-  const currentSeason = raw.gameAttributes?.season || Math.max(...(raw.players?.flatMap((p: any) => 
-    p.stats?.map((s: any) => s.season) || []
-  ) || [2023]));
+  // Find current season for filtering active teams - avoid stack overflow with large files
+  let currentSeason = raw.gameAttributes?.season;
+  if (!currentSeason && raw.players) {
+    let maxSeason = 2023;
+    for (const player of raw.players) {
+      if (player.stats) {
+        for (const stat of player.stats) {
+          if (stat.season > maxSeason) {
+            maxSeason = stat.season;
+          }
+        }
+      }
+    }
+    currentSeason = maxSeason;
+  }
+  currentSeason = currentSeason || 2023;
   
   console.log(`Current season: ${currentSeason}, Active teams: ${raw.teams?.filter((t: any) => !t.disabled).length || 0}`);
   
@@ -316,22 +328,23 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
     };
   }) || [];
 
-  // Compute league bounds from all player season data (excluding playoffs)
-  let allSeasons: number[] = [];
+  // Compute league bounds from all player season data (excluding playoffs) - avoid stack overflow
+  let minSeason = currentSeason;
+  let maxSeason = currentSeason;
   
   if (raw.players) {
     for (const rawPlayer of raw.players) {
       if (rawPlayer.stats) {
         // Get regular season stats only for league bounds
-        const regularSeasonStats = rawPlayer.stats.filter((stat: any) => !stat.playoffs);
-        allSeasons.push(...regularSeasonStats.map((stat: any) => stat.season));
+        for (const stat of rawPlayer.stats) {
+          if (!stat.playoffs && stat.season) {
+            if (stat.season < minSeason) minSeason = stat.season;
+            if (stat.season > maxSeason) maxSeason = stat.season;
+          }
+        }
       }
     }
   }
-  
-  // Calculate league year bounds
-  const minSeason = allSeasons.length > 0 ? Math.min(...allSeasons) : currentSeason;
-  const maxSeason = allSeasons.length > 0 ? Math.max(...allSeasons) : currentSeason;
   const leagueYears = { minSeason, maxSeason };
   
   console.log(`📅 League bounds: ${minSeason}-${maxSeason} (${maxSeason - minSeason + 1} seasons)`);
