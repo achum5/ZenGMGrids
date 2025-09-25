@@ -324,6 +324,7 @@ export const FOOTBALL_ACHIEVEMENTS: Achievement[] = [
     label: '50,000+ Career Passing Yards',
     test: (p: Player) => {
       if (!p.stats) return false;
+      // FBGM uses 'pssYds' field for passing yards
       const totalPassingYards = p.stats
         .filter(stat => !stat.playoffs && (stat.gp || 0) > 0)
         .reduce((sum, stat) => sum + ((stat as any).pssYds || 0), 0);

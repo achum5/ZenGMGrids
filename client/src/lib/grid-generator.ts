@@ -46,41 +46,53 @@ export function generateTeamsGrid(leagueData: LeagueData): {
 } {
   const { players, teams, sport } = leagueData;
   
-  const DEBUG = import.meta.env.VITE_DEBUG === 'true';
-  if (DEBUG) {
-    console.log(`Starting grid generation for ${sport} (${players.length} players, ${teams.length} teams)`);
-  }
+  console.log(`🔧 [GRID GEN] Starting grid generation for ${sport} (${players.length} players, ${teams.length} teams)`);
   
-  // Season count gate: compute unique seasons
-  const uniqueSeasons = new Set<number>();
-  players.forEach(player => {
-    if (player.stats) {
-      player.stats.forEach(stat => uniqueSeasons.add(stat.season));
+  try {
+    const DEBUG = import.meta.env.VITE_DEBUG === 'true';
+    if (DEBUG) {
+      console.log(`Starting grid generation for ${sport} (${players.length} players, ${teams.length} teams)`);
     }
-    if (player.awards) {
-      player.awards.forEach(award => uniqueSeasons.add(award.season));
+    
+    // Season count gate: compute unique seasons
+    const uniqueSeasons = new Set<number>();
+    players.forEach(player => {
+      if (player.stats) {
+        player.stats.forEach(stat => uniqueSeasons.add(stat.season));
+      }
+      if (player.awards) {
+        player.awards.forEach(award => uniqueSeasons.add(award.season));
+      }
+    });
+
+    console.log(`🔧 [GRID GEN] Unique seasons found: ${uniqueSeasons.size}`);
+
+    // If < 20 seasons, use old random builder without season-specific achievements
+    if (uniqueSeasons.size < 20) {
+      console.log(`🔧 [GRID GEN] Using old random builder (< 20 seasons)`);
+      return generateGridOldRandom(leagueData);
     }
-  });
 
-  if (DEBUG) {
-    console.log(`Unique seasons found: ${uniqueSeasons.size}`);
-  }
+    // If >= 20 seasons and basketball, football, hockey, or baseball, use new seeded builder
+    if ((sport === 'basketball' || sport === 'football' || sport === 'hockey' || sport === 'baseball') && leagueData.seasonIndex) {
+      console.log(`🔧 [GRID GEN] Using new seeded coverage-aware builder (>= 20 seasons, ${sport})`);
+      return generateGridSeeded(leagueData);
+    }
 
-  // If < 20 seasons, use old random builder without season-specific achievements
-  if (uniqueSeasons.size < 20) {
-    if (DEBUG) console.log('Using old random builder (< 20 seasons)');
+    // Fallback to old builder for other sports or insufficient seasons
+    console.log(`🔧 [GRID GEN] Using old random builder (fallback)`);
     return generateGridOldRandom(leagueData);
+  } catch (error) {
+    console.error('🔧 [GRID GEN] Error during grid generation:', error);
+    console.error('🔧 [GRID GEN] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('🔧 [GRID GEN] League data summary:', {
+      sport,
+      playersCount: players.length,
+      teamsCount: teams.length,
+      hasSeasonIndex: !!leagueData.seasonIndex
+    });
+    throw error;
   }
-
-  // If >= 20 seasons and basketball, football, hockey, or baseball, use new seeded builder
-  if ((sport === 'basketball' || sport === 'football' || sport === 'hockey' || sport === 'baseball') && leagueData.seasonIndex) {
-    if (DEBUG) console.log(`Using new seeded coverage-aware builder (>= 20 seasons, ${sport})`);
-    return generateGridSeeded(leagueData);
-  }
-
-  // Fallback to old builder for other sports or insufficient seasons
-  if (DEBUG) console.log('Using old random builder (fallback)');
-  return generateGridOldRandom(leagueData);
 }
 
 function generateGridOldRandom(leagueData: LeagueData): {
