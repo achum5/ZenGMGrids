@@ -197,14 +197,24 @@ export function HintModal({
       // Fill remaining slots with high-quality contemporaries
       if (distractors.length < 5) {
         const correctPlayerSeasons = correctPlayer.stats?.map(s => s.season) || [];
-        const minSeason = Math.min(...correctPlayerSeasons);
-        const maxSeason = Math.max(...correctPlayerSeasons);
+        // Avoid stack overflow - find min/max manually
+        let minSeason = correctPlayerSeasons.length > 0 ? correctPlayerSeasons[0] : 0;
+        let maxSeason = correctPlayerSeasons.length > 0 ? correctPlayerSeasons[0] : 0;
+        for (const season of correctPlayerSeasons) {
+          if (season < minSeason) minSeason = season;
+          if (season > maxSeason) maxSeason = season;
+        }
         
         const contemporaries = allPlayersList
           .filter(player => {
             const playerSeasons = player.stats?.map(s => s.season) || [];
-            const playerMinSeason = Math.min(...playerSeasons);
-            const playerMaxSeason = Math.max(...playerSeasons);
+            // Avoid stack overflow - find min/max manually
+            let playerMinSeason = playerSeasons.length > 0 ? playerSeasons[0] : 0;
+            let playerMaxSeason = playerSeasons.length > 0 ? playerSeasons[0] : 0;
+            for (const season of playerSeasons) {
+              if (season < playerMinSeason) playerMinSeason = season;
+              if (season > playerMaxSeason) playerMaxSeason = season;
+            }
             
             // Overlapping careers (±10 years buffer)
             return (playerMaxSeason >= minSeason - 10 && playerMinSeason <= maxSeason + 10);

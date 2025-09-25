@@ -2175,7 +2175,11 @@ function getPlayerRetirementYear(player: Player): number | null {
   const regularSeasonStats = player.stats.filter(s => !s.playoffs && (s.gp || 0) > 0);
   if (regularSeasonStats.length === 0) return null;
   
-  const lastSeason = Math.max(...regularSeasonStats.map(s => s.season));
+  // Avoid stack overflow - find max manually
+  let lastSeason = regularSeasonStats.length > 0 ? regularSeasonStats[0].season : 0;
+  for (const stat of regularSeasonStats) {
+    if (stat.season > lastSeason) lastSeason = stat.season;
+  }
   return lastSeason;
 }
 
@@ -2189,7 +2193,11 @@ function getPlayerDebutYear(player: Player): number | null {
   const regularSeasonStats = player.stats.filter(s => !s.playoffs && (s.gp || 0) > 0);
   if (regularSeasonStats.length === 0) return null;
   
-  const firstSeason = Math.min(...regularSeasonStats.map(s => s.season));
+  // Avoid stack overflow - find min manually
+  let firstSeason = regularSeasonStats.length > 0 ? regularSeasonStats[0].season : 0;
+  for (const stat of regularSeasonStats) {
+    if (stat.season < firstSeason) firstSeason = stat.season;
+  }
   return firstSeason;
 }
 

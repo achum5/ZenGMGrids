@@ -335,8 +335,15 @@ function getPoolDifficultyFactor(poolSize: number): number {
 }
 
 function normalizeToRange(values: number[]): number[] {
-  const max = Math.max(...values);
-  const min = Math.min(...values);
+  // Avoid stack overflow - find max/min manually
+  if (values.length === 0) return values;
+  
+  let max = values[0];
+  let min = values[0];
+  for (const value of values) {
+    if (value > max) max = value;
+    if (value < min) min = value;
+  }
   const range = max - min;
   
   if (range === 0) return values.map(() => 0);

@@ -1221,7 +1221,14 @@ function calculateBasketballAchievements(player: Player, achievements: any): voi
   achievements.playedIn2030s = playedDecades.has(2030);
   
   // Debut decade achievements
-  const firstSeason = regularSeasonStats.length > 0 ? Math.min(...regularSeasonStats.map(s => s.season)) : null;
+  // Avoid stack overflow - find min manually
+  let firstSeason: number | null = null;
+  if (regularSeasonStats.length > 0) {
+    firstSeason = regularSeasonStats[0].season;
+    for (const stat of regularSeasonStats) {
+      if (stat.season < firstSeason) firstSeason = stat.season;
+    }
+  }
   if (firstSeason) {
     const debutDecade = getDecade(firstSeason);
     achievements.debutedIn1970s = debutDecade === 1970;
