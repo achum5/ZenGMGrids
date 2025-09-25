@@ -195,11 +195,6 @@ export function StatBuilderChip({
     setError(null);
   }, [label, sport]);
 
-  // If not editable, render as plain text
-  if (!parsed.isEditable) {
-    return <span className={className}>{label}</span>;
-  }
-
   const handleOperatorClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     const newOperator = operator === '≥' ? '≤' : '≥';
@@ -320,6 +315,11 @@ export function StatBuilderChip({
   // Extract and abbreviate the clean label
   const baseLabel = parsed.suffix.replace(/^\+?\s*/, '').trim() || parsed.originalLabel.replace(/^[^a-zA-Z]*\d+[^a-zA-Z]*/, '').trim();
   const cleanLabel = abbreviateLabel(baseLabel, layoutMode);
+
+  // If not editable, render as plain text (after all hooks)
+  if (!parsed.isEditable) {
+    return <span className={className}>{label}</span>;
+  }
 
   return (
     <div 
