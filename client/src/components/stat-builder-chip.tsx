@@ -202,15 +202,8 @@ export function StatBuilderChip({
 
   const handleOperatorClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    const newOperator = operator === '≥' ? '≤' : '≥';
-    setOperator(newOperator);
-    
-    // When operator changes, trigger onNumberChange with the new operator to create custom achievement
-    if (onNumberChange) {
-      const newLabel = generateUpdatedLabel(parsed, parsed.number, newOperator);
-      onNumberChange(parsed.number, newLabel, newOperator);
-    }
-  }, [operator, parsed, onNumberChange]);
+    setOperator(prev => prev === '≥' ? '≤' : '≥');
+  }, []);
 
   const handleNumberClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
