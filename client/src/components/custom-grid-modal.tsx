@@ -15,7 +15,7 @@ import { getTeamOptions, getAchievementOptions, calculateCustomCellIntersection,
 import { getAllAchievements } from '@/lib/achievements';
 import { SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 import { getCachedSeasonIndex } from '@/lib/season-index-cache';
-import { EditableAchievementLabel } from '@/components/editable-achievement-label';
+import { StatBuilderChip } from '@/components/stat-builder-chip';
 import { parseAchievementLabel, createCustomNumericalAchievement } from '@/lib/editable-achievements';
 
 // Team logo icon component for combobox
@@ -1000,7 +1000,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                 <div className="text-[6px] sm:text-[8px] lg:text-xs font-medium leading-tight break-words text-center px-0.5 overflow-hidden relative z-10">
                   {selector.type === 'achievement' ? (
                     <div className="pointer-events-auto">
-                      <EditableAchievementLabel
+                      <StatBuilderChip
                         label={selector.label || ''}
                         sport={sport}
                         onNumberChange={(newNumber, newLabel) => 
