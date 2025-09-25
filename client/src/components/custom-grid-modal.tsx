@@ -1112,15 +1112,18 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                     <div className="pointer-events-auto">
                       <StatBuilderChip
                         label={
-                          // ALWAYS show clean editable format in modal - NEVER locked text
+                          // ALWAYS show clean editable format in modal with CORRECT operator
                           (() => {
                             if (selector.customAchievement) {
                               // Extract number from custom achievement and create clean format
                               const parsed = parseAchievementLabel(selector.customAchievement.label, sport);
                               if (parsed.isEditable && parsed.number !== undefined) {
-                                // Create clean format: "5,000+ Career Points" (NEVER "5,000 or less Career Points")
+                                // Use the operator from selector state, not from parsed label
+                                const currentOperator = selector.operator || '≥';
                                 const formattedNumber = parsed.number.toLocaleString();
-                                return `${formattedNumber}+ ${parsed.suffix.replace(/^\+?\s*/, '').replace(/^or less\s+/, '')}`;
+                                const symbol = currentOperator === '≤' ? '≤' : '+';
+                                const cleanSuffix = parsed.suffix.replace(/^\+?\s*/, '').replace(/^or less\s+/, '');
+                                return `${formattedNumber}${symbol} ${cleanSuffix}`;
                               }
                             }
                             // Use original selector label as fallback
