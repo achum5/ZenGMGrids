@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { parseAchievementLabel, generateUpdatedLabel, type ParsedAchievement } from '@/lib/editable-achievements';
-import { Check, X } from 'lucide-react';
+import { Check } from 'lucide-react';
 
 interface StatBuilderChipProps {
   label: string;
@@ -9,7 +9,7 @@ interface StatBuilderChipProps {
   sport?: string;
 }
 
-type Operator = '≥' | '=' | '≤';
+type Operator = '≥' | '≤';
 
 interface StatValidation {
   min: number;
@@ -54,8 +54,7 @@ function getStatValidation(label: string): StatValidation {
 
 // Parse initial operator from label
 function parseOperator(label: string): Operator {
-  if (label.includes('≤') || label.includes('≤')) return '≤';
-  if (label.includes('=') && !label.includes('≥') && !label.includes('≤')) return '=';
+  if (label.includes('≤')) return '≤';
   return '≥'; // Default for "+" patterns and most cases
 }
 
@@ -139,14 +138,7 @@ export function StatBuilderChip({
 
   const handleOperatorClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    setOperator(prev => {
-      switch (prev) {
-        case '≥': return '=';
-        case '=': return '≤';
-        case '≤': return '≥';
-        default: return '≥';
-      }
-    });
+    setOperator(prev => prev === '≥' ? '≤' : '≥');
   }, []);
 
   const handleNumberClick = useCallback((e: React.MouseEvent) => {
@@ -173,6 +165,18 @@ export function StatBuilderChip({
     setInputValue(formattedValue);
     setError(null);
   }, []);
+
+  // Format number with thousands separators for display
+  const formatDisplayNumber = useCallback((value: number) => {
+    if (validation.allowDecimals && validation.decimalPlaces !== undefined) {
+      return value.toFixed(validation.decimalPlaces);
+    }
+    if (validation.allowDecimals) {
+      return value.toString();
+    }
+    // For integers, use locale formatting for readability
+    return value.toLocaleString();
+  }, [validation]);
 
   const commitValue = useCallback(() => {
     const validationResult = validateInput(inputValue, validation);
@@ -222,28 +226,30 @@ export function StatBuilderChip({
     commitValue();
   }, [commitValue]);
 
-  // Format display value
-  const displayValue = isEditing ? inputValue : formatNumber(parsed.number, validation);
+  // Format display value with thousands separators
+  const displayValue = isEditing ? inputValue : formatDisplayNumber(parsed.number);
   
   // Extract the clean label without operator symbols and numbers
   const cleanLabel = parsed.suffix.replace(/^\+?\s*/, '').trim() || parsed.originalLabel.replace(/^[^a-zA-Z]*\d+[^a-zA-Z]*/, '').trim();
 
   return (
-    <div className={`relative ${className || ''}`}>
+    <div className={`relative w-full ${className || ''}`} style={{ margin: '0 8px' }}>
       {/* Main chip */}
       <div 
         className={`
-          inline-flex items-center gap-2 h-11 sm:h-10 px-3 rounded-xl cursor-pointer transition-all
+          w-full flex items-center rounded-xl cursor-pointer transition-all relative
           bg-white/6 border border-white/12 text-white/85 hover:bg-white/8
+          h-11 lg:h-10 px-2.5
           ${isEditing ? 'ring-2 ring-blue-400/40' : ''}
           ${error ? 'border-red-400/60' : ''}
         `}
         title="Chosen stat threshold"
+        style={{ maxWidth: 'calc(100% - 16px)' }}
       >
-        {/* Operator button */}
+        {/* Operator button - fixed width */}
         <button
           onClick={handleOperatorClick}
-          className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded text-sm font-medium hover:bg-white/10 transition-colors"
+          className="flex-shrink-0 w-8 h-6 flex items-center justify-center rounded font-medium hover:bg-white/10 transition-colors text-base lg:text-base"
           title="Threshold operator"
           aria-label="Stat threshold operator"
           data-testid="operator-button"
@@ -251,26 +257,34 @@ export function StatBuilderChip({
           {operator}
         </button>
         
+        {/* Gap */}
+        <div className="w-2 flex-shrink-0" />
+        
         {/* Number section */}
-        <div className="relative flex items-center min-w-0">
+        <div className="relative flex items-center min-w-0 flex-shrink-0">
           {isEditing ? (
             <input
               ref={inputRef}
-              type="number"
-              inputMode="decimal"
+              type="text"
+              inputMode="numeric"
               value={inputValue}
               onChange={handleInputChange}
               onBlur={handleInputBlur}
               onKeyDown={handleKeyDown}
-              className="bg-transparent border-none outline-none text-white/85 text-sm font-medium w-full min-w-0"
-              style={{ width: `${Math.max(inputValue.length + 1, 3)}ch` }}
+              className="bg-transparent border-none outline-none text-white/85 font-semibold w-full min-w-0 text-base lg:text-base"
+              style={{ 
+                width: `${Math.max(inputValue.length + 1, 3)}ch`,
+                appearance: 'textfield',
+                MozAppearance: 'textfield',
+                WebkitAppearance: 'none'
+              }}
               aria-label="Stat threshold number"
               data-testid="number-input"
             />
           ) : (
             <button
               onClick={handleNumberClick}
-              className="text-sm font-medium hover:bg-white/5 rounded px-1 py-0.5 transition-colors"
+              className="font-semibold hover:bg-white/5 rounded px-1 py-0.5 transition-colors text-base lg:text-base"
               aria-label="Stat threshold number"
               data-testid="number-display"
             >
@@ -292,9 +306,15 @@ export function StatBuilderChip({
           )}
         </div>
         
-        {/* Label section */}
+        {/* Gap */}
+        <div className="w-2 flex-shrink-0" />
+        
+        {/* Label section - responsive sizing and truncation */}
         <span 
-          className="flex-shrink-0 text-sm font-medium text-white/70 truncate max-w-32"
+          className="flex-1 font-medium text-white/70 truncate text-sm lg:text-sm xl:text-sm min-w-0"
+          style={{ 
+            maxWidth: window.innerWidth <= 599 ? '60%' : '70%'
+          }}
           title={cleanLabel}
         >
           {cleanLabel}
@@ -303,7 +323,7 @@ export function StatBuilderChip({
       
       {/* Error message */}
       {error && (
-        <div className="absolute top-full left-0 mt-1 text-xs text-red-400 whitespace-nowrap">
+        <div className="absolute top-full left-0 mt-1 text-xs text-red-400 whitespace-nowrap z-10">
           {error}
         </div>
       )}
