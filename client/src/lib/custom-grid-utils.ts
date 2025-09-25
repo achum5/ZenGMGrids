@@ -12,6 +12,7 @@ export interface HeaderConfig {
   selectedId: string | number | null;
   selectedLabel: string | null;
   customAchievement?: any; // For dynamic numerical achievements
+  operator?: '≥' | '≤'; // For tracking operator state in achievements
 }
 
 export interface CustomGridState {

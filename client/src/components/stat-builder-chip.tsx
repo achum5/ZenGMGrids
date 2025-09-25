@@ -64,6 +64,7 @@ function abbreviateLabel(label: string, mode: LayoutMode): string {
 interface StatBuilderChipProps {
   label: string;
   onNumberChange?: (newNumber: number, newLabel: string, operator?: '≥' | '≤') => void;
+  onOperatorChange?: (operator: '≥' | '≤') => void;
   className?: string;
   sport?: string;
 }
@@ -169,6 +170,7 @@ function validateInput(input: string, validation: StatValidation): { isValid: bo
 export function StatBuilderChip({ 
   label, 
   onNumberChange, 
+  onOperatorChange,
   className,
   sport
 }: StatBuilderChipProps) {
@@ -198,8 +200,17 @@ export function StatBuilderChip({
   // All useCallback hooks must come before the early return
   const handleOperatorClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    setOperator(prev => prev === '≥' ? '≤' : '≥');
-  }, []);
+    setOperator(prev => {
+      const newOperator = prev === '≥' ? '≤' : '≥';
+      
+      // Notify about operator change
+      if (onOperatorChange) {
+        onOperatorChange(newOperator);
+      }
+      
+      return newOperator;
+    });
+  }, [onOperatorChange]);
 
   const handleNumberClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -289,16 +300,6 @@ export function StatBuilderChip({
     commitValue();
   }, [commitValue]);
 
-  // Create custom achievement when operator changes (but not when editing)
-  useEffect(() => {
-    if (!isEditing && onNumberChange) {
-      const originalOperator = parseOperator(parsed.originalLabel);
-      if (operator !== originalOperator) {
-        const newLabel = generateUpdatedLabel(parsed, parsed.number, operator);
-        onNumberChange(parsed.number, newLabel, operator);
-      }
-    }
-  }, [operator, isEditing, onNumberChange, parsed]);
 
   // If not editable, render as plain text
   if (!parsed.isEditable) {
