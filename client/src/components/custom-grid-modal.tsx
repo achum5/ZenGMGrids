@@ -1124,10 +1124,10 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                     <div className="pointer-events-auto">
                       <StatBuilderChip
                         label={
-                          // Create clean minimal label for the modal with + symbol for parseability
+                          // NEVER show "or less/or more" text in custom grid modal headers
                           selector.customAchievement ? 
-                            // Use the custom achievement label directly (e.g., "5,000+ Career Points")
-                            selector.customAchievement.label :
+                            // Create clean label: custom number + base stat name (e.g., "5,000+ Career Points")
+                            `${parseAchievementLabel(selector.customAchievement.label).number}+ ${extractBaseStatName(selector.label || '')}` :
                             // Use the original selector label (e.g., "20,000+ Career Points") 
                             selector.label || ''
                         }
