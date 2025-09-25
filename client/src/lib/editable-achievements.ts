@@ -11,19 +11,21 @@ export interface ParsedAchievement {
 }
 
 // Regex patterns for different numerical achievement formats
+// Order matters! Decimal-aware patterns must come BEFORE comma-separated patterns
 const ACHIEVEMENT_PATTERNS = [
-  // "2,000+ Career Points" or "700+ Assists in a Season"
-  /^(.*?)(\d{1,3}(?:,\d{3})*)\+(.*)$/,
+  // "1 PPG (Season)" or "30 PPG (Season)" or "2.5 BPG (Season)" - season stats without +
+  /^([^.\d]*?)(\d+(?:\.\d+)?)\s*(PPG|RPG|APG|SPG|BPG|FG%|3P%|FT%|eFG%|TS%|PER|WS|BPM|VORP|USG%|TOV%|ORB%|DRB%|AST%|STL%|BLK%)\s*\(Season\)(.*)$/i,
   // "Age 40+" 
   /^(.* )(\d+(?:\.\d+)?)\+(.*)$/,
   // "15+ Seasons" or "30+ PPG" or "2.5+ BPG"
   /^([^.\d]*?)(\d+(?:\.\d+)?)\+(.*)$/,
   // "Played at Age 40+"
   /^(.* Age )(\d+(?:\.\d+)?)\+(.*)$/,
-  // "1 PPG (Season)" or "30 PPG (Season)" or "2.5 BPG (Season)" - season stats without +
-  /^([^.\d]*?)(\d+(?:\.\d+)?)\s*(PPG|RPG|APG|SPG|BPG|FG%|3P%|FT%|eFG%|TS%|PER|WS|BPM|VORP|USG%|TOV%|ORB%|DRB%|AST%|STL%|BLK%)\s*\(Season\)(.*)$/i,
   // Generic pattern for numbers followed by units (including decimals)
   /^([^.\d]*?)(\d+(?:\.\d+)?)\s*(Points?|Rebounds?|Assists?|Steals?|Blocks?|Games?|Minutes?|Shots?|FGA?|FGM?|3PA?|3PM?|FTA?|FTM?)(.*)$/,
+  // "2,000+ Career Points" or "700+ Assists in a Season" - MUST come after decimal patterns
+  // Modified to NOT match if there's a decimal point before the number
+  /^((?:(?!\d+\.\d+).)*?)(\d{1,3}(?:,\d{3})*)\+(.*)$/,
 ];
 
 /**
