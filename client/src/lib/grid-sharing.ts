@@ -21,6 +21,11 @@ export function exportGrid(
     if (row.type === 'team' && row.tid !== undefined) {
       return row.tid;
     } else if (row.type === 'achievement' && row.achievementId) {
+      // For custom achievements, extract the base achievement ID
+      if (row.achievementId.includes('_custom_')) {
+        const baseId = row.achievementId.split('_custom_')[0];
+        return baseId;
+      }
       return row.achievementId;
     }
     throw new Error(`Invalid row constraint: ${row.key}`);
@@ -30,6 +35,11 @@ export function exportGrid(
     if (col.type === 'team' && col.tid !== undefined) {
       return col.tid;
     } else if (col.type === 'achievement' && col.achievementId) {
+      // For custom achievements, extract the base achievement ID
+      if (col.achievementId.includes('_custom_')) {
+        const baseId = col.achievementId.split('_custom_')[0];
+        return baseId;
+      }
       return col.achievementId;
     }
     throw new Error(`Invalid col constraint: ${col.key}`);
