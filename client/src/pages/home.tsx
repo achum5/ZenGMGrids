@@ -1044,26 +1044,13 @@ export default function Home() {
       }
     });
     
-    // Fill each empty cell using EXACT SAME logic as player modal
+    // Fill each empty cell using EXACT SAME ranking logic as buildRankCacheForCell
     for (const positionalKey of emptyCells) {
-      // Get row and column constraints (same as player modal)
-      let rowConstraint: CatTeam | undefined;
-      let colConstraint: CatTeam | undefined;
+      // Get the ranked players using buildRankCacheForCell (SAME AS PLAYER MODAL)
+      const rankedPlayers = buildRankCacheForCell(positionalKey);
       
-      if (positionalKey.includes('|')) {
-        const [rowKey, colKey] = positionalKey.split('|');
-        rowConstraint = rows.find(r => r.key === rowKey);
-        colConstraint = cols.find(c => c.key === colKey);
-      } else {
-        const [rowIndexStr, colIndexStr] = positionalKey.split('-');
-        const rowIndex = parseInt(rowIndexStr, 10);
-        const colIndex = parseInt(colIndexStr, 10);
-        rowConstraint = rows[rowIndex];
-        colConstraint = cols[colIndex];
-      }
-      
-      if (!rowConstraint || !colConstraint) {
-        // Skip if constraints not found
+      if (rankedPlayers.length === 0) {
+        // No eligible players
         newCells[positionalKey] = {
           name: '—',
           correct: false,
@@ -1071,60 +1058,22 @@ export default function Home() {
           autoFilled: true,
           guessed: false,
         };
+        console.log(`🔍 Give Up: ${positionalKey} -> "—" (no eligible players)`);
         continue;
       }
       
-      // Get eligible players using EXACT SAME logic as player modal
-      let eligiblePlayers: Player[] = [];
-      
-      // Check if we have custom achievements by examining the constraint keys
-      const hasCustomAchievements = rowConstraint.key.includes('custom') || colConstraint.key.includes('custom');
-      
-      if (hasCustomAchievements) {
-        // Use direct calculation for custom achievements (SAME AS PLAYER MODAL)
-        eligiblePlayers = leagueData.players.filter(player => 
-          rowConstraint!.test(player) && colConstraint!.test(player)
-        );
-      } else {
-        // Use optimized intersection calculation for regular achievements (SAME AS PLAYER MODAL)
-        const rowIntersectionConstraint: IntersectionConstraint = {
-          type: rowConstraint.type,
-          id: rowConstraint.type === 'team' ? rowConstraint.tid! : rowConstraint.achievementId!,
-          label: rowConstraint.label
-        };
-        
-        const colIntersectionConstraint: IntersectionConstraint = {
-          type: colConstraint.type,
-          id: colConstraint.type === 'team' ? colConstraint.tid! : colConstraint.achievementId!,
-          label: colConstraint.label
-        };
-        
-        const eligiblePidsSet = calculateOptimizedIntersection(
-          rowIntersectionConstraint,
-          colIntersectionConstraint,
-          leagueData.players,
-          leagueData.teams,
-          leagueData.seasonIndex,
-          false
-        ) as Set<number>;
-        
-        const eligiblePids = Array.from(eligiblePidsSet);
-        eligiblePlayers = eligiblePids
-          .map(pid => byPid[pid])
-          .filter(player => player);
-      }
-      
-      // Find first available player not already used
-      let selectedPlayer: Player | null = null;
-      for (const player of eligiblePlayers) {
-        if (!usedInGiveUp.has(player.pid)) {
-          selectedPlayer = player;
+      // Find first available player not already used (ranked players are sorted by commonness)
+      // Most common players (lowest rarity) are first in the array
+      let selectedRanked: {player: Player, rarity: number} | null = null;
+      for (const rankedPlayer of rankedPlayers) {
+        if (!usedInGiveUp.has(rankedPlayer.player.pid)) {
+          selectedRanked = rankedPlayer;
           break;
         }
       }
       
-      if (!selectedPlayer) {
-        // No available players
+      if (!selectedRanked) {
+        // No available players (all already used)
         newCells[positionalKey] = {
           name: '—',
           correct: false,
@@ -1132,22 +1081,24 @@ export default function Home() {
           autoFilled: true,
           guessed: false,
         };
-        console.log(`🔍 Give Up: ${positionalKey} -> "—" (no available players)`);
+        console.log(`🔍 Give Up: ${positionalKey} -> "—" (all players already used)`);
       } else {
-        // Use the selected player
+        // Use the most common (rank #1) available player
         newCells[positionalKey] = {
-          name: selectedPlayer.name,
+          name: selectedRanked.player.name,
           correct: true,
           locked: true,
           autoFilled: true,
           guessed: false,
-          player: selectedPlayer,
+          player: selectedRanked.player,
+          rarity: selectedRanked.rarity,
           points: 0, // No points for Give Up
         };
         
         // Mark as used for next cells
-        usedInGiveUp.add(selectedPlayer.pid);
-        console.log(`🔍 Give Up: ${positionalKey} -> ${selectedPlayer.name} (first eligible player)`);
+        usedInGiveUp.add(selectedRanked.player.pid);
+        const rankPosition = rankedPlayers.findIndex(r => r.player.pid === selectedRanked.player.pid) + 1;
+        console.log(`🔍 Give Up: ${positionalKey} -> ${selectedRanked.player.name} (rank #${rankPosition}, rarity ${selectedRanked.rarity})`);
       }
     }
     
