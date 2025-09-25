@@ -194,15 +194,28 @@ export function StatBuilderChip({
   // Determine layout mode based on container width in em
   const layoutMode = getLayoutMode(containerWidthEm);
   
+  // Format number with thousands separators for display
+  const formatDisplayNumber = useCallback((value: number) => {
+    if (validation.allowDecimals && validation.decimalPlaces !== undefined) {
+      return value.toFixed(validation.decimalPlaces);
+    }
+    if (validation.allowDecimals) {
+      return value.toString();
+    }
+    // For integers, use locale formatting for readability
+    return value.toLocaleString();
+  }, [validation]);
+
   // Update parsed achievement when label changes
   useEffect(() => {
     const newParsed = parseAchievementLabel(label, sport);
     setParsed(newParsed);
-    setInputValue(newParsed.number.toString());
+    // Format the input value for display instead of just using toString()
+    setInputValue(formatDisplayNumber(newParsed.number));
     setOperator(parseOperator(label));
     setValidation(getStatValidation(label));
     setError(null);
-  }, [label, sport]);
+  }, [label, sport, formatDisplayNumber]);
 
   // All useCallback hooks must come before the early return
   const handleOperatorClick = useCallback((e: React.MouseEvent) => {
@@ -265,18 +278,6 @@ export function StatBuilderChip({
     return () => clearTimeout(timeoutId);
   }, [inputValue, isEditing, validation, parsed, operator, onNumberChange]);
 
-  // Format number with thousands separators for display
-  const formatDisplayNumber = useCallback((value: number) => {
-    if (validation.allowDecimals && validation.decimalPlaces !== undefined) {
-      return value.toFixed(validation.decimalPlaces);
-    }
-    if (validation.allowDecimals) {
-      return value.toString();
-    }
-    // For integers, use locale formatting for readability
-    return value.toLocaleString();
-  }, [validation]);
-
   const commitValue = useCallback(() => {
     const validationResult = validateInput(inputValue, validation);
     
@@ -294,9 +295,11 @@ export function StatBuilderChip({
       onNumberChange(newNumber, newLabel, operator);
     }
     
+    // Update input value to show formatted number immediately after commit
+    setInputValue(formatDisplayNumber(newNumber));
     setIsEditing(false);
     setError(null);
-  }, [inputValue, validation, parsed, onNumberChange, operator]);
+  }, [inputValue, validation, parsed, onNumberChange, operator, formatDisplayNumber]);
 
   const cancelEdit = useCallback(() => {
     setInputValue(parsed.number.toString());
