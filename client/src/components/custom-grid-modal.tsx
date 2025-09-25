@@ -220,12 +220,12 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                 operator
               );
             
-              // Update selector with custom achievement
+              // Update selector with custom achievement (keep original label)
               newSelectors[index] = {
                 ...currentSelector,
                 operator,
-                customAchievement,
-                label: customAchievement.label  // Update label to show new operator
+                customAchievement
+                // Keep original label unchanged - toggle button shows the operator
               };
             }
           } else {
