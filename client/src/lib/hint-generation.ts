@@ -577,6 +577,11 @@ function evaluateConstraint(player: Player, constraint: CatTeam, seasonIndex?: a
   if (constraint.type === 'team') {
     return player.teamsPlayed.has(constraint.tid!);
   } else if (constraint.type === 'achievement') {
+    // Use custom test function if available (for custom numerical achievements with ≤/≥ operators)
+    if (constraint.test) {
+      return constraint.test(player);
+    }
+    // Fallback to hardcoded achievement check for regular achievements
     return playerMeetsAchievement(player, constraint.achievementId!, seasonIndex);
   }
   return false;

@@ -196,21 +196,9 @@ function generateTestFunction(
   // Career achievements - check career totals
   if (originalLabel.includes('career')) {
     if (originalLabel.includes('points')) {
-      console.log(`🔧 [CAREER POINTS] Creating test function with operator: ${operator}, threshold: ${newThreshold}`);
       return operator === '≤' 
-        ? (player: Player) => {
-            const careerPoints = getCareerTotal(player, 'pts');
-            const result = careerPoints <= newThreshold;
-            if (careerPoints < 1000) { // Only log low career point players to avoid spam
-              console.log(`🔧 [≤ TEST] Player ${player.pid} has ${careerPoints} career points, threshold ${newThreshold}, result: ${result}`);
-            }
-            return result;
-          }
-        : (player: Player) => {
-            const careerPoints = getCareerTotal(player, 'pts');
-            const result = careerPoints >= newThreshold;
-            return result;
-          };
+        ? (player: Player) => getCareerTotal(player, 'pts') <= newThreshold
+        : (player: Player) => getCareerTotal(player, 'pts') >= newThreshold;
     }
     if (originalLabel.includes('rebounds')) {
       return operator === '≤'
