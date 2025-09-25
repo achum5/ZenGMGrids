@@ -2,6 +2,34 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { parseAchievementLabel, generateUpdatedLabel, type ParsedAchievement } from '@/lib/editable-achievements';
 import { Check } from 'lucide-react';
 
+// Hook to detect chip width for two-line fallback
+function useChipWidth(chipRef: React.RefObject<HTMLDivElement>) {
+  const [chipWidth, setChipWidth] = useState<number>(0);
+  
+  useEffect(() => {
+    const updateWidth = () => {
+      if (chipRef.current) {
+        setChipWidth(chipRef.current.offsetWidth);
+      }
+    };
+    
+    // Initial measurement
+    updateWidth();
+    
+    // Listen for resize
+    const resizeObserver = new ResizeObserver(updateWidth);
+    if (chipRef.current) {
+      resizeObserver.observe(chipRef.current);
+    }
+    
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [chipRef]);
+  
+  return chipWidth;
+}
+
 interface StatBuilderChipProps {
   label: string;
   onNumberChange?: (newNumber: number, newLabel: string) => void;
@@ -120,6 +148,11 @@ export function StatBuilderChip({
   const [validation, setValidation] = useState<StatValidation>(() => getStatValidation(label));
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const chipRef = useRef<HTMLDivElement>(null);
+  const chipWidth = useChipWidth(chipRef);
+  
+  // Use two-line layout when chip width is below 220px
+  const useTwoLineLayout = chipWidth > 0 && chipWidth < 220;
   
   // Update parsed achievement when label changes
   useEffect(() => {
@@ -236,89 +269,168 @@ export function StatBuilderChip({
     <div className={`relative w-full ${className || ''}`} style={{ margin: '0 8px' }}>
       {/* Main chip */}
       <div 
+        ref={chipRef}
         className={`
-          w-full flex items-center rounded-xl cursor-pointer transition-all relative
+          w-full rounded-xl cursor-pointer transition-all relative
           bg-white/6 border border-white/12 text-white/85 hover:bg-white/8
-          h-11 lg:h-10 px-2.5
+          ${useTwoLineLayout ? 'h-16 sm:h-14 flex-col justify-center py-2' : 'h-11 sm:h-10 flex items-center'} px-2.5
           ${isEditing ? 'ring-2 ring-blue-400/40' : ''}
           ${error ? 'border-red-400/60' : ''}
         `}
         title="Chosen stat threshold"
         style={{ maxWidth: 'calc(100% - 16px)' }}
       >
-        {/* Operator button - fixed width */}
-        <button
-          onClick={handleOperatorClick}
-          className="flex-shrink-0 w-8 h-6 flex items-center justify-center rounded font-medium hover:bg-white/10 transition-colors text-base lg:text-base"
-          title="Threshold operator"
-          aria-label="Stat threshold operator"
-          data-testid="operator-button"
-        >
-          {operator}
-        </button>
-        
-        {/* Gap */}
-        <div className="w-2 flex-shrink-0" />
-        
-        {/* Number section */}
-        <div className="relative flex items-center min-w-0 flex-shrink-0">
-          {isEditing ? (
-            <input
-              ref={inputRef}
-              type="text"
-              inputMode="numeric"
-              value={inputValue}
-              onChange={handleInputChange}
-              onBlur={handleInputBlur}
-              onKeyDown={handleKeyDown}
-              className="bg-transparent border-none outline-none text-white/85 font-semibold w-full min-w-0 text-base lg:text-base"
+        {useTwoLineLayout ? (
+          // Two-line layout for very small screens
+          <>
+            {/* Line 1: operator + number */}
+            <div className="flex items-center justify-center gap-2 mb-1">
+              {/* Operator button - fixed width */}
+              <button
+                onClick={handleOperatorClick}
+                className="flex-shrink-0 w-8 h-6 flex items-center justify-center rounded font-medium hover:bg-white/10 transition-colors text-base"
+                title="Threshold operator"
+                aria-label="Stat threshold operator"
+                data-testid="operator-button"
+              >
+                {operator}
+              </button>
+              
+              {/* Number section */}
+              <div className="relative flex items-center min-w-0 flex-shrink-0">
+                {isEditing ? (
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    inputMode="numeric"
+                    value={inputValue}
+                    onChange={handleInputChange}
+                    onBlur={handleInputBlur}
+                    onKeyDown={handleKeyDown}
+                    className="bg-transparent border-none outline-none text-white/85 font-semibold w-full min-w-0 text-base"
+                    style={{ 
+                      width: `${Math.max(inputValue.length + 1, 3)}ch`,
+                      appearance: 'textfield',
+                      MozAppearance: 'textfield',
+                      WebkitAppearance: 'none'
+                    }}
+                    aria-label="Stat threshold number"
+                    data-testid="number-input"
+                  />
+                ) : (
+                  <button
+                    onClick={handleNumberClick}
+                    className="font-semibold hover:bg-white/5 rounded px-1 py-0.5 transition-colors text-base"
+                    aria-label="Stat threshold number"
+                    data-testid="number-display"
+                  >
+                    {displayValue}
+                  </button>
+                )}
+                
+                {/* Confirm button (only when editing) */}
+                {isEditing && (
+                  <button
+                    onClick={handleConfirmClick}
+                    className="ml-2 w-5 h-5 flex items-center justify-center text-green-400 hover:text-green-300 transition-colors"
+                    title="Confirm"
+                    aria-label="Confirm changes"
+                    data-testid="confirm-button"
+                  >
+                    <Check size={12} />
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            {/* Line 2: label */}
+            <div className="text-center">
+              <span 
+                className="font-medium text-white/70 truncate text-xs block"
+                title={cleanLabel}
+              >
+                {cleanLabel}
+              </span>
+            </div>
+          </>
+        ) : (
+          // Single-line layout for normal screens
+          <>
+            {/* Operator button - fixed width */}
+            <button
+              onClick={handleOperatorClick}
+              className="flex-shrink-0 w-8 h-6 flex items-center justify-center rounded font-medium hover:bg-white/10 transition-colors text-base"
+              title="Threshold operator"
+              aria-label="Stat threshold operator"
+              data-testid="operator-button"
+            >
+              {operator}
+            </button>
+            
+            {/* Gap */}
+            <div className="w-2 flex-shrink-0" />
+            
+            {/* Number section */}
+            <div className="relative flex items-center min-w-0 flex-shrink-0">
+              {isEditing ? (
+                <input
+                  ref={inputRef}
+                  type="text"
+                  inputMode="numeric"
+                  value={inputValue}
+                  onChange={handleInputChange}
+                  onBlur={handleInputBlur}
+                  onKeyDown={handleKeyDown}
+                  className="bg-transparent border-none outline-none text-white/85 font-semibold w-full min-w-0 text-base"
+                  style={{ 
+                    width: `${Math.max(inputValue.length + 1, 3)}ch`,
+                    appearance: 'textfield',
+                    MozAppearance: 'textfield',
+                    WebkitAppearance: 'none'
+                  }}
+                  aria-label="Stat threshold number"
+                  data-testid="number-input"
+                />
+              ) : (
+                <button
+                  onClick={handleNumberClick}
+                  className="font-semibold hover:bg-white/5 rounded px-1 py-0.5 transition-colors text-base"
+                  aria-label="Stat threshold number"
+                  data-testid="number-display"
+                >
+                  {displayValue}
+                </button>
+              )}
+              
+              {/* Confirm button (only when editing) */}
+              {isEditing && (
+                <button
+                  onClick={handleConfirmClick}
+                  className="ml-2 w-5 h-5 flex items-center justify-center text-green-400 hover:text-green-300 transition-colors"
+                  title="Confirm"
+                  aria-label="Confirm changes"
+                  data-testid="confirm-button"
+                >
+                  <Check size={12} />
+                </button>
+              )}
+            </div>
+            
+            {/* Gap */}
+            <div className="w-2 flex-shrink-0" />
+            
+            {/* Label section - responsive sizing and truncation */}
+            <span 
+              className="flex-1 font-medium text-white/70 truncate text-sm sm:text-sm lg:text-sm min-w-0"
               style={{ 
-                width: `${Math.max(inputValue.length + 1, 3)}ch`,
-                appearance: 'textfield',
-                MozAppearance: 'textfield',
-                WebkitAppearance: 'none'
+                maxWidth: '70%'
               }}
-              aria-label="Stat threshold number"
-              data-testid="number-input"
-            />
-          ) : (
-            <button
-              onClick={handleNumberClick}
-              className="font-semibold hover:bg-white/5 rounded px-1 py-0.5 transition-colors text-base lg:text-base"
-              aria-label="Stat threshold number"
-              data-testid="number-display"
+              title={cleanLabel}
             >
-              {displayValue}
-            </button>
-          )}
-          
-          {/* Confirm button (only when editing) */}
-          {isEditing && (
-            <button
-              onClick={handleConfirmClick}
-              className="ml-2 w-5 h-5 flex items-center justify-center text-green-400 hover:text-green-300 transition-colors"
-              title="Confirm"
-              aria-label="Confirm changes"
-              data-testid="confirm-button"
-            >
-              <Check size={12} />
-            </button>
-          )}
-        </div>
-        
-        {/* Gap */}
-        <div className="w-2 flex-shrink-0" />
-        
-        {/* Label section - responsive sizing and truncation */}
-        <span 
-          className="flex-1 font-medium text-white/70 truncate text-sm lg:text-sm xl:text-sm min-w-0"
-          style={{ 
-            maxWidth: window.innerWidth <= 599 ? '60%' : '70%'
-          }}
-          title={cleanLabel}
-        >
-          {cleanLabel}
-        </span>
+              {cleanLabel}
+            </span>
+          </>
+        )}
       </div>
       
       {/* Error message */}
