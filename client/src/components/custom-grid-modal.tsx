@@ -210,15 +210,33 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
       const newSelectors = [...selectors];
       const currentSelector = newSelectors[index];
       
-      if (currentSelector.type === 'achievement') {
-        // JUST update the operator - don't create new custom achievement
-        // StatBuilderChip will handle the visual display of the new operator
-        newSelectors[index] = {
-          ...currentSelector,
-          operator
-          // Keep customAchievement unchanged if it exists
-          // Keep original label unchanged - only the visual operator changes
-        };
+      if (currentSelector.type === 'achievement' && leagueData) {
+        // If we already have a custom achievement, we need to recreate it with the new operator
+        if (currentSelector.customAchievement) {
+          const originalAchievement = achievementOptions.find(ach => ach.id === currentSelector.value);
+          if (originalAchievement) {
+            const achievements = getAllAchievements(sport as any, seasonIndex, leagueData.leagueYears);
+            const realAchievement = achievements.find((ach: any) => ach.id === originalAchievement.id);
+            
+            if (realAchievement) {
+              // Extract the number from the current custom achievement
+              const parsed = parseAchievementLabel(currentSelector.customAchievement.label, sport);
+              const customAchievement = createCustomNumericalAchievement(realAchievement, parsed.number, sport, operator);
+              
+              newSelectors[index] = {
+                ...currentSelector,
+                customAchievement,
+                operator
+              };
+            }
+          }
+        } else {
+          // Just update the operator for visual display
+          newSelectors[index] = {
+            ...currentSelector,
+            operator
+          };
+        }
       }
       
       return newSelectors;
@@ -232,7 +250,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     
     // Trigger cell count recalculation
     setCalculating(true);
-  }, []);
+  }, [leagueData, achievementOptions, sport, seasonIndex]);
 
   // Clear all selections
   const handleClearAll = useCallback(() => {
