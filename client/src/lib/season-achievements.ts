@@ -1071,136 +1071,153 @@ export function buildSeasonIndex(
     // Debug logging removed for performance
   }
   
-  // Calculate Football GM season achievements (FBSeason4kPassYds)
+  // Calculate Football GM season achievements (FBSeason4kPassYds) - OPTIMIZED FOR LARGE FILES
   if (sport === 'football') {
     let footballEntriesAdded = 0;
+    console.log('🏈 [OPTIMIZATION] Building football season achievements with memory-efficient processing...');
     
-    // Get all seasons from player stats
-    const allSeasons = new Set<number>();
+    // OPTIMIZATION 1: Pre-build season-to-player-stats map to avoid O(n²) filtering
+    const seasonStatsMap = new Map<number, Array<{player: Player, stat: any}>>();
+    
+    // Single pass through all players to build the map
     for (const player of players) {
-      if (player.stats) {
-        for (const stat of player.stats) {
-          if (stat.season && !stat.playoffs) {
-            allSeasons.add(stat.season);
+      if (!player.stats) continue;
+      
+      for (const stat of player.stats) {
+        if (stat.season && !stat.playoffs && (stat.gp || 0) > 0 && stat.tid !== -1) {
+          if (!seasonStatsMap.has(stat.season)) {
+            seasonStatsMap.set(stat.season, []);
           }
+          seasonStatsMap.get(stat.season)!.push({ player, stat });
         }
       }
     }
     
-    // Calculate achievements for each season
-    for (const season of Array.from(allSeasons)) {
-      // Process each player's stats for this season
-      for (const player of players) {
-        if (!player.stats) continue;
+    const allSeasons = Array.from(seasonStatsMap.keys()).sort((a, b) => a - b);
+    console.log(`🏈 [OPTIMIZATION] Processing ${allSeasons.length} seasons with ${seasonStatsMap.size} pre-built stat maps`);
+    
+    // OPTIMIZATION 2: Process seasons directly from the pre-built map
+    for (const season of allSeasons) {
+      const seasonPlayerStats = seasonStatsMap.get(season) || [];
+      
+      // Process all stats for this season in one optimized pass
+      for (const { player, stat } of seasonPlayerStats) {
         
-        // Get all regular season stats for this season, excluding TOT rows
-        const seasonStats = player.stats.filter(stat => 
-          stat.season === season && !stat.playoffs && (stat.gp || 0) > 0 && stat.tid !== -1
-        );
+        const tid = stat.tid;
         
-        for (const stat of seasonStats) {
-          const tid = stat.tid;
-          
-          // Extract all relevant stats from the season stat
-          const pssYds = (stat as any).pssYds || 0;
-          const rusYds = (stat as any).rusYds || 0;
-          const rec = (stat as any).rec || 0;
-          const defSk = (stat as any).defSk || 0;
-          const defTckSolo = (stat as any).defTckSolo || 0;
-          const defTckAst = (stat as any).defTckAst || 0;
-          const defInt = (stat as any).defInt || 0;
-          const pssTD = (stat as any).pssTD || 0;
-          const recYds = (stat as any).recYds || 0;
-          const recTD = (stat as any).recTD || 0;
-          const rusTD = (stat as any).rusTD || 0;
-          const prYds = (stat as any).prYds || 0;
-          const krYds = (stat as any).krYds || 0;
-          const defTckLoss = (stat as any).defTckLoss || 0;
-          
-          // Computed values
-          const totalTackles = defTckSolo + defTckAst;
-          const scrimmageYards = rusYds + recYds;
-          const allPurposeYards = rusYds + recYds + prYds + krYds;
-          
-          // Helper function to add achievement
-          const addAchievement = (achievementId: SeasonAchievementId) => {
-            if (!seasonIndex[season]) seasonIndex[season] = {};
-            if (!seasonIndex[season][tid]) seasonIndex[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
-            if (!seasonIndex[season][tid][achievementId]) seasonIndex[season][tid][achievementId] = new Set();
-            
-            seasonIndex[season][tid][achievementId].add(player.pid);
-            footballEntriesAdded++;
-          };
-          
-          // Check for 4,000+ passing yards achievement
-          if (pssYds >= 4000) {
-            addAchievement('FBSeason4kPassYds');
-          }
-          
-          // Check for 1,200+ rushing yards achievement
-          if (rusYds >= 1200) {
-            addAchievement('FBSeason1200RushYds');
-          }
-          
-          // Check for 100+ receptions achievement
-          if (rec >= 100) {
-            addAchievement('FBSeason100Receptions');
-          }
-          
-          // Check for 15+ sacks achievement
-          if (defSk >= 15) {
-            addAchievement('FBSeason15Sacks');
-          }
-          
-          // Check for 140+ tackles achievement
-          if (totalTackles >= 140) {
-            addAchievement('FBSeason140Tackles');
-          }
-          
-          // Check for 5+ interceptions achievement
-          if (defInt >= 5) {
-            addAchievement('FBSeason5Interceptions');
-          }
-          
-          // Check for 30+ passing TD achievement
-          if (pssTD >= 30) {
-            addAchievement('FBSeason30PassTD');
-          }
-          
-          // Check for 1,300+ receiving yards achievement
-          if (recYds >= 1300) {
-            addAchievement('FBSeason1300RecYds');
-          }
-          
-          // Check for 10+ receiving TD achievement
-          if (recTD >= 10) {
-            addAchievement('FBSeason10RecTD');
-          }
-          
-          // Check for 12+ rushing TD achievement
-          if (rusTD >= 12) {
-            addAchievement('FBSeason12RushTD');
-          }
-          
-          // Check for 1,600+ yards from scrimmage achievement
-          if (scrimmageYards >= 1600) {
-            addAchievement('FBSeason1600Scrimmage');
-          }
-          
-          // Check for 2,000+ all-purpose yards achievement
-          if (allPurposeYards >= 2000) {
-            addAchievement('FBSeason2000AllPurpose');
-          }
-          
-          // Check for 15+ tackles for loss achievement
-          if (defTckLoss >= 15) {
-            addAchievement('FBSeason15TFL');
-          }
+        // OPTIMIZATION 3: Extract stats with efficient access and early termination
+        const statData = stat as any;
+        const pssYds = statData.pssYds || 0;
+        const rusYds = statData.rusYds || 0;
+        const rec = statData.rec || 0;
+        const defSk = statData.defSk || 0;
+        const defTckSolo = statData.defTckSolo || 0;
+        const defTckAst = statData.defTckAst || 0;
+        const defInt = statData.defInt || 0;
+        const pssTD = statData.pssTD || 0;
+        const recYds = statData.recYds || 0;
+        const recTD = statData.recTD || 0;
+        const rusTD = statData.rusTD || 0;
+        const prYds = statData.prYds || 0;
+        const krYds = statData.krYds || 0;
+        const defTckLoss = statData.defTckLoss || 0;
+        
+        // Pre-compute values once
+        const totalTackles = defTckSolo + defTckAst;
+        const scrimmageYards = rusYds + recYds;
+        const allPurposeYards = rusYds + recYds + prYds + krYds;
+        
+        // OPTIMIZATION 4: Early exit if player has no meaningful stats for any achievement
+        if (pssYds < 4000 && rusYds < 1200 && rec < 100 && defSk < 15 && 
+            totalTackles < 140 && defInt < 5 && pssTD < 30 && recYds < 1300 && 
+            recTD < 10 && rusTD < 12 && scrimmageYards < 1600 && allPurposeYards < 2000 && defTckLoss < 15) {
+          continue; // Skip this player - no achievements possible
+        }
+        
+        // OPTIMIZATION 5: Optimized helper function with lazy structure creation
+        const ensureSeasonStructure = () => {
+          if (!seasonIndex[season]) seasonIndex[season] = {};
+          if (!seasonIndex[season][tid]) seasonIndex[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
+        };
+        
+        const addAchievement = (achievementId: SeasonAchievementId) => {
+          ensureSeasonStructure();
+          if (!seasonIndex[season][tid][achievementId]) seasonIndex[season][tid][achievementId] = new Set();
+          seasonIndex[season][tid][achievementId].add(player.pid);
+          footballEntriesAdded++;
+        };
+        
+        // Check for 4,000+ passing yards achievement
+        if (pssYds >= 4000) {
+          addAchievement('FBSeason4kPassYds');
+        }
+        
+        // Check for 1,200+ rushing yards achievement
+        if (rusYds >= 1200) {
+          addAchievement('FBSeason1200RushYds');
+        }
+        
+        // Check for 100+ receptions achievement
+        if (rec >= 100) {
+          addAchievement('FBSeason100Receptions');
+        }
+        
+        // Check for 15+ sacks achievement
+        if (defSk >= 15) {
+          addAchievement('FBSeason15Sacks');
+        }
+        
+        // Check for 140+ tackles achievement
+        if (totalTackles >= 140) {
+          addAchievement('FBSeason140Tackles');
+        }
+        
+        // Check for 5+ interceptions achievement
+        if (defInt >= 5) {
+          addAchievement('FBSeason5Interceptions');
+        }
+        
+        // Check for 30+ passing TD achievement
+        if (pssTD >= 30) {
+          addAchievement('FBSeason30PassTD');
+        }
+        
+        // Check for 1,300+ receiving yards achievement
+        if (recYds >= 1300) {
+          addAchievement('FBSeason1300RecYds');
+        }
+        
+        // Check for 10+ receiving TD achievement
+        if (recTD >= 10) {
+          addAchievement('FBSeason10RecTD');
+        }
+        
+        // Check for 12+ rushing TD achievement
+        if (rusTD >= 12) {
+          addAchievement('FBSeason12RushTD');
+        }
+        
+        // Check for 1,600+ yards from scrimmage achievement
+        if (scrimmageYards >= 1600) {
+          addAchievement('FBSeason1600Scrimmage');
+        }
+        
+        // Check for 2,000+ all-purpose yards achievement
+        if (allPurposeYards >= 2000) {
+          addAchievement('FBSeason2000AllPurpose');
+        }
+        
+        // Check for 15+ tackles for loss achievement
+        if (defTckLoss >= 15) {
+          addAchievement('FBSeason15TFL');
         }
       }
     }
     
-    // Debug logging removed for performance
+    console.log(`🏈 [OPTIMIZATION] Football achievements completed: ${footballEntriesAdded} entries added`);
+    
+    // OPTIMIZATION 6: Clean up the season stats map to free memory
+    seasonStatsMap.clear();
   }
   
   // Calculate Hockey GM season achievements (HKSeason achievements)
