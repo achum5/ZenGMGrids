@@ -349,61 +349,30 @@ export default function Home() {
     
     if (!rowConstraint || !colConstraint) return [];
     
-    // First, check if we have pre-calculated intersection data (for custom grids)
-    let eligiblePids: number[] = [];
+    // Get eligible players using EXACT SAME LOGIC as eligible players list in handleCellClick
+    let eligiblePlayers: Player[];
     
     if (intersections && intersections[cellKey]) {
-      eligiblePids = intersections[cellKey];
-      console.log(`🔧 [RANK CACHE] Using stored intersection data: ${eligiblePids.length} players`);
+      // Use pre-calculated intersection data for custom grids
+      const eligiblePids = intersections[cellKey];
+      eligiblePlayers = eligiblePids
+        .map(pid => byPid[pid])
+        .filter(player => player);
+      console.log(`🔧 [RANK CACHE] Using stored intersection data: ${eligiblePlayers.length} players`);
     } else {
-      console.log(`🔧 [RANK CACHE] No stored data, calculating dynamically`);
+      console.log(`🔧 [RANK CACHE] No stored data, calculating using eligible players logic`);
       
-      // Check if either constraint has a custom test function (for custom achievements with ≤/≥)
-      if ((rowConstraint.test && typeof rowConstraint.test === 'function') || 
-          (colConstraint.test && typeof colConstraint.test === 'function')) {
-        console.log(`🔧 [RANK CACHE] Using custom test functions for constraints`);
-        
-        // Calculate manually using custom test functions
-        const eligiblePidsSet = new Set<number>();
-        
-        for (const player of leagueData.players) {
-          // Check row constraint
-          let meetsRow = false;
-          if (rowConstraint.type === 'team') {
-            meetsRow = player.teamsPlayed.has(rowConstraint.tid!);
-          } else if (rowConstraint.type === 'achievement') {
-            // Use custom test function if available, otherwise fallback to playerMeetsAchievement
-            if (rowConstraint.test) {
-              meetsRow = rowConstraint.test(player);
-            } else {
-              meetsRow = playerMeetsAchievement(player, rowConstraint.achievementId!, leagueData.seasonIndex);
-            }
-          }
-          
-          // Check column constraint
-          let meetsCol = false;
-          if (colConstraint.type === 'team') {
-            meetsCol = player.teamsPlayed.has(colConstraint.tid!);
-          } else if (colConstraint.type === 'achievement') {
-            // Use custom test function if available, otherwise fallback to playerMeetsAchievement
-            if (colConstraint.test) {
-              meetsCol = colConstraint.test(player);
-            } else {
-              meetsCol = playerMeetsAchievement(player, colConstraint.achievementId!, leagueData.seasonIndex);
-            }
-          }
-          
-          // Add to eligible set if meets both constraints
-          if (meetsRow && meetsCol) {
-            eligiblePidsSet.add(player.pid);
-          }
-        }
-        
-        eligiblePids = Array.from(eligiblePidsSet);
-        console.log(`🔧 [RANK CACHE] Custom test calculation found: ${eligiblePids.length} players`);
+      // Use EXACT SAME LOGIC as eligible players list in handleCellClick
+      const hasCustomAchievements = rowConstraint.key.includes('custom') || colConstraint.key.includes('custom');
+      
+      if (hasCustomAchievements) {
+        // Direct test function evaluation (same as eligible players list)
+        eligiblePlayers = leagueData.players.filter(player => 
+          rowConstraint.test(player) && colConstraint.test(player)
+        );
+        console.log(`🔧 [RANK CACHE] Custom achievements calculation found: ${eligiblePlayers.length} players`);
       } else {
-        // Use optimized intersection calculation for regular constraints
-        // Convert CatTeam constraints to IntersectionConstraint format
+        // Use optimized intersection calculation for regular achievements
         const rowIntersectionConstraint: IntersectionConstraint = {
           type: rowConstraint.type,
           id: rowConstraint.type === 'team' ? rowConstraint.tid! : rowConstraint.achievementId!,
@@ -416,7 +385,6 @@ export default function Home() {
           label: colConstraint.label
         };
         
-        // Use the same optimized intersection calculation as custom grid creation
         const eligiblePidsSet = calculateOptimizedIntersection(
           rowIntersectionConstraint,
           colIntersectionConstraint,
@@ -426,13 +394,13 @@ export default function Home() {
           false // returnCount = false to get the Set of player IDs
         ) as Set<number>;
         
-        eligiblePids = Array.from(eligiblePidsSet);
-        console.log(`🔧 [RANK CACHE] Standard calculation found: ${eligiblePids.length} players`);
+        const eligiblePids = Array.from(eligiblePidsSet);
+        eligiblePlayers = eligiblePids
+          .map(pid => byPid[pid])
+          .filter(player => player);
+        console.log(`🔧 [RANK CACHE] Standard calculation found: ${eligiblePlayers.length} players`);
       }
     }
-    const eligiblePlayers = eligiblePids
-      .map(pid => byPid[pid])
-      .filter(player => player);
     
     if (eligiblePlayers.length === 0) return [];
     
