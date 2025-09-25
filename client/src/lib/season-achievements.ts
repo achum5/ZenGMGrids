@@ -29,7 +29,6 @@ export type SeasonAchievementId =
   // Basketball GM season statistical achievements (24 new achievements)
   | 'Season30PPG'
   | 'Season2000Points'
-  | 'Season300_3PM'
   | 'Season200_3PM'
   | 'Season12RPG'
   | 'Season10APG'
@@ -945,11 +944,6 @@ export function buildSeasonIndex(
             addAchievement('Season2000Points');
           }
           
-          // 300+ 3PM (Season): tp >= 300
-          if (tp >= 300) {
-            addAchievement('Season300_3PM');
-          }
-          
           // 200+ 3PM (Season): tp >= 200
           if (tp >= 200) {
             addAchievement('Season200_3PM');
@@ -1584,12 +1578,6 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
     label: '2,000+ Points (Season)',
     isSeasonSpecific: true,
     minPlayers: 3
-  },
-  {
-    id: 'Season300_3PM',
-    label: '300+ 3PM (Season)',
-    isSeasonSpecific: true,
-    minPlayers: 1
   },
   {
     id: 'Season200_3PM',
