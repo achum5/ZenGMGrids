@@ -897,6 +897,31 @@ export function calculatePlayerAchievements(player: Player, allPlayers: Player[]
   const achievements: any = {};
   const sport = getCachedSportDetection() || 'basketball';
   
+  // OPTIMIZATION: Early termination for players with no meaningful stats (especially for FBGM)
+  if (!player.stats || player.stats.length === 0) {
+    return {};
+  }
+  
+  // Quick check: Skip players with minimal career stats for large files
+  const regularSeasonStats = player.stats.filter(s => !s.playoffs);
+  if (regularSeasonStats.length === 0) {
+    return {};
+  }
+  
+  // For football, early exit if player has virtually no stats across all categories
+  if (sport === 'football') {
+    const hasMinimalFootballStats = regularSeasonStats.some(stat => {
+      const s = stat as any;
+      return (s.pssYds || 0) > 100 || (s.rusYds || 0) > 50 || (s.recYds || 0) > 50 ||
+             (s.defSk || 0) > 0 || (s.defTck || 0) > 10 || (s.defInt || 0) > 0 ||
+             (s.rec || 0) > 5 || (s.gp || 0) > 5; // Include basic participation
+    });
+    
+    if (!hasMinimalFootballStats) {
+      return {}; // Skip players with no meaningful football stats
+    }
+  }
+  
   // Initialize all achievements as false - MUST pass leagueYears to include decade achievements
   const allAchievementIds = getAllAchievements(sport, undefined, leagueYears).map(a => a.id);
   allAchievementIds.forEach(id => {
