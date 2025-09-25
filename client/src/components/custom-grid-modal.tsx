@@ -156,8 +156,6 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     newLabel: string,
     operator?: '≥' | '≤'
   ) => {
-    console.log(`🔧 [NUMBER CHANGE DEBUG] ${selectorType}-${index}: User typed ${newNumber}, creating custom achievement...`);
-    
     const updateSelector = (selectors: SelectorState[]) => {
       const newSelectors = [...selectors];
       const currentSelector = newSelectors[index];
@@ -178,8 +176,6 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
             // Create custom achievement with new threshold using the real achievement
             const customAchievement = createCustomNumericalAchievement(realAchievement, newNumber, sport, currentOperator);
             
-            console.log(`🔧 [NUMBER CHANGE DEBUG] Created custom achievement: ${customAchievement.label}`);
-            
             // Update the selector with custom achievement (preserve original label)
             newSelectors[index] = {
               ...currentSelector,
@@ -187,8 +183,6 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
               operator: currentOperator  // Store operator in selector state
               // Keep original label unchanged - header stays customizable
             };
-            
-            console.log(`🔧 [NUMBER CHANGE DEBUG] Updated selector with custom achievement`);
             
             // Trigger recalculation
             setCalculating(true);
@@ -1130,12 +1124,12 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                     <div className="pointer-events-auto">
                       <StatBuilderChip
                         label={
-                          // Create clean minimal label for the modal (e.g., "1000 Career Points")
+                          // Create clean minimal label for the modal with + symbol for parseability
                           selector.customAchievement ? 
-                            // Show custom number + base stat (e.g., "5000 Career Points")
-                            `${parseAchievementLabel(selector.customAchievement.label).number} ${extractBaseStatName(selector.label || '')}` :
-                            // Show original parsed number + base stat (e.g., "20000 Career Points") 
-                            `${parseAchievementLabel(selector.label || '').number} ${extractBaseStatName(selector.label || '')}`
+                            // Use the custom achievement label directly (e.g., "5,000+ Career Points")
+                            selector.customAchievement.label :
+                            // Use the original selector label (e.g., "20,000+ Career Points") 
+                            selector.label || ''
                         }
                         sport={sport}
                         onNumberChange={(newNumber, newLabel, operator) => 
