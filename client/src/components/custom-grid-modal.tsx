@@ -169,6 +169,14 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
               customAchievement
             };
             
+            // Debug logging
+            console.log('🔧 [LABEL UPDATE] Achievement changed:', {
+              original: currentSelector.label,
+              updated: newLabel,
+              operator,
+              customAchievementLabel: customAchievement?.label
+            });
+            
             // Trigger recalculation
             setCalculating(true);
           }
@@ -537,6 +545,11 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
           customAchievement: rowSelector.customAchievement
         };
         
+        console.log('🔧 [PLAY GRID] Row HeaderConfig:', {
+          selectedLabel: headerConfig.selectedLabel,
+          customAchievementLabel: headerConfig.customAchievement?.label,
+          hasCustom: !!headerConfig.customAchievement
+        });
         
         const catTeam = headerConfigToCatTeam(headerConfig, leagueData.teams, seasonIndex);
         if (catTeam) {
@@ -556,6 +569,11 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
           customAchievement: colSelector.customAchievement
         };
         
+        console.log('🔧 [PLAY GRID] Col HeaderConfig:', {
+          selectedLabel: headerConfig.selectedLabel,
+          customAchievementLabel: headerConfig.customAchievement?.label,
+          hasCustom: !!headerConfig.customAchievement
+        });
         
         const catTeam = headerConfigToCatTeam(headerConfig, leagueData.teams, seasonIndex);
         if (catTeam) {
