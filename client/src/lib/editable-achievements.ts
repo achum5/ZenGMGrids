@@ -107,6 +107,11 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
   
   // Handle less than operator
   if (operator === '≤') {
+    // Handle age achievements specially
+    if (parsed.originalLabel.includes('Age')) {
+      return `Played at Age ${formattedNumber} or Younger`;
+    }
+    
     // Handle percentage achievements differently
     if (parsed.suffix.includes('%+')) {
       // For percentage achievements, use "≤ X%" format
@@ -326,9 +331,23 @@ function generateTestFunction(
   // Age achievements  
   if (originalLabel.includes('age')) {
     return (player: Player) => {
-      // Use player.achievements for age-based achievements instead of stats
-      // This matches the pattern used in existing achievements
-      return player.achievements?.playedAtAge40Plus || false;
+      if (!player.born?.year || !player.stats) return false;
+      
+      // Check if player played at the specified age or met the condition
+      for (const stat of player.stats) {
+        if (!stat.playoffs && stat.season && (stat.gp || 0) > 0) {
+          const ageInSeason = stat.season - player.born.year;
+          
+          if (operator === '≤') {
+            // For "≤", check if played at this age or younger
+            if (ageInSeason <= newThreshold) return true;
+          } else {
+            // For "≥", check if played at this age or older  
+            if (ageInSeason >= newThreshold) return true;
+          }
+        }
+      }
+      return false;
     };
   }
   
