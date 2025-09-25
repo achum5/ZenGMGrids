@@ -60,8 +60,8 @@ export function buildSearchIndex<T>(
         fullTextIndex.get(token)!.push(index);
       });
       
-      // Add prefixes for better matching
-      for (let i = 2; i <= Math.min(folded.length, 6); i++) {
+      // Add prefixes for better matching - reduced range for performance
+      for (let i = 2; i <= Math.min(folded.length, 4); i++) {
         const prefix = folded.substring(0, i);
         if (!fullTextIndex.has(prefix)) {
           fullTextIndex.set(prefix, []);
