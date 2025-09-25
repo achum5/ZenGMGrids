@@ -1126,13 +1126,33 @@ export default function Home() {
         continue;
       }
       
-      // DEBUG: Show first 5 players to verify order matches modal
-      console.log(`🔧 [GIVE UP SIMULATE] ${positionalKey} - First 5 players (modal order):`, 
-        eligiblePlayers.slice(0, 5).map((p, i) => `${i+1}. ${p.name}`));
+      // Apply EXACT SAME rarity sorting as PlayerModal (lines 539-595)
+      const eligiblePool = eligiblePlayers.map(p => playerToEligibleLite(p));
+      const puzzleSeed = `${rows.map(r => r.key).join('-')}_${cols.map(c => c.key).join('-')}`;
       
-      // Find first available player (should match #1 in modal)
+      const playersWithRarity = eligiblePlayers.map(p => {
+        const guessedPlayer = playerToEligibleLite(p);
+        const rarity = computeRarityForGuess({
+          guessed: guessedPlayer,
+          eligiblePool: eligiblePool,
+          puzzleSeed: puzzleSeed,
+          fullPlayers: eligiblePlayers,
+          teams: new Map(leagueData.teams.map(t => [t.tid, t])),
+          seasonIndex: leagueData.seasonIndex
+        });
+        return { player: p, rarity };
+      });
+      
+      // Sort by rarity (ascending = most common first, SAME AS PLAYERMODAL)  
+      playersWithRarity.sort((a, b) => a.rarity - b.rarity);
+      
+      // DEBUG: Show first 5 players AFTER rarity sorting (should match modal)
+      console.log(`🔧 [GIVE UP RARITY SORTED] ${positionalKey} - First 5 players (modal rarity order):`, 
+        playersWithRarity.slice(0, 5).map((p, i) => `${i+1}. ${p.player.name} (rarity: ${p.rarity})`));
+      
+      // Find first available player from rarity-sorted list (should match PlayerModal #1)
       let selectedPlayer: Player | null = null;
-      for (const player of eligiblePlayers) {
+      for (const { player } of playersWithRarity) {
         if (!usedInGiveUp.has(player.pid)) {
           selectedPlayer = player;
           break;
