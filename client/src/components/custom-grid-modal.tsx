@@ -206,49 +206,19 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     index: number,
     operator: '≥' | '≤'
   ) => {
-    if (!leagueData) return;
-    
     const updateSelector = (selectors: SelectorState[]) => {
       const newSelectors = [...selectors];
       const currentSelector = newSelectors[index];
       
-      if (currentSelector.type === 'achievement' && currentSelector.value) {
-        // Find the original achievement
-        const originalAchievement = achievementOptions.find(ach => ach.id === currentSelector.value);
-        if (originalAchievement) {
-          // Parse the achievement to get the threshold
-          const parsed = parseAchievementLabel(originalAchievement.label, sport);
-          
-          if (parsed.isEditable && parsed.number !== undefined) {
-            // Get the actual Achievement object
-            const achievements = getAllAchievements(sport as any, seasonIndex, leagueData.leagueYears);
-            const realAchievement = achievements.find((ach: any) => ach.id === originalAchievement.id);
-            
-            if (realAchievement) {
-              // Create custom achievement immediately with the toggled operator
-              const customAchievement = createCustomNumericalAchievement(
-                realAchievement, 
-                parsed.number,
-                sport,
-                operator
-              );
-            
-              // Update selector with custom achievement (keep original label)
-              newSelectors[index] = {
-                ...currentSelector,
-                operator,
-                customAchievement
-                // Keep original label unchanged - toggle button shows the operator
-              };
-            }
-          } else {
-            // Non-editable achievement, just store operator
-            newSelectors[index] = {
-              ...currentSelector,
-              operator
-            };
-          }
-        }
+      if (currentSelector.type === 'achievement') {
+        // JUST update the operator - don't create new custom achievement
+        // StatBuilderChip will handle the visual display of the new operator
+        newSelectors[index] = {
+          ...currentSelector,
+          operator
+          // Keep customAchievement unchanged if it exists
+          // Keep original label unchanged - only the visual operator changes
+        };
       }
       
       return newSelectors;
@@ -262,7 +232,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     
     // Trigger cell count recalculation
     setCalculating(true);
-  }, [leagueData, achievementOptions, sport]);
+  }, []);
 
   // Clear all selections
   const handleClearAll = useCallback(() => {
