@@ -85,6 +85,7 @@ interface SelectorState {
   value: string | null;
   label: string | null;
   customAchievement?: any; // Store custom achievement for dynamic numerical thresholds
+  operator?: '≥' | '≤'; // Store operator state for achievements
 }
 
 export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: CustomGridModalProps) {
@@ -185,6 +186,34 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
       setColSelectors(updateSelector);
     }
   }, [leagueData, achievementOptions, sport, seasonIndex]);
+
+  // Handler for when achievement operators are changed (≥ ↔ ≤)
+  const handleAchievementOperatorChange = useCallback((
+    selectorType: 'row' | 'col',
+    index: number,
+    operator: '≥' | '≤'
+  ) => {
+    const updateSelector = (selectors: SelectorState[]) => {
+      const newSelectors = [...selectors];
+      const currentSelector = newSelectors[index];
+      
+      if (currentSelector.type === 'achievement') {
+        // Just store the operator for later use in handlePlayGrid
+        newSelectors[index] = {
+          ...currentSelector,
+          operator
+        };
+      }
+      
+      return newSelectors;
+    };
+    
+    if (selectorType === 'row') {
+      setRowSelectors(updateSelector);
+    } else {
+      setColSelectors(updateSelector);
+    }
+  }, []);
 
   // Clear all selections
   const handleClearAll = useCallback(() => {
@@ -531,13 +560,34 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     for (let i = 0; i < 3; i++) {
       const rowSelector = rowSelectors[i];
       if (rowSelector.type && rowSelector.value && rowSelector.label) {
+        let customAchievement = rowSelector.customAchievement;
+        
+        // Check if this is an achievement with a toggled operator that needs a custom achievement
+        if (rowSelector.type === 'achievement' && rowSelector.operator && !customAchievement) {
+          // Find the original achievement
+          const originalAchievement = achievementOptions.find(ach => ach.id === rowSelector.value);
+          if (originalAchievement) {
+            // Get the real achievement object
+            const achievements = getAllAchievements(sport as any, seasonIndex, leagueData.leagueYears);
+            const realAchievement = achievements.find((ach: any) => ach.id === originalAchievement.id);
+            
+            if (realAchievement) {
+              // Parse the current number from the label
+              const parsed = parseAchievementLabel(rowSelector.label, sport);
+              if (parsed.isEditable) {
+                // Create custom achievement with the toggled operator
+                customAchievement = createCustomNumericalAchievement(realAchievement, parsed.number, sport, rowSelector.operator);
+              }
+            }
+          }
+        }
+        
         const headerConfig: HeaderConfig = {
           type: rowSelector.type,
           selectedId: rowSelector.type === 'team' ? parseInt(rowSelector.value) : rowSelector.value,
           selectedLabel: rowSelector.label,
-          customAchievement: rowSelector.customAchievement
+          customAchievement
         };
-        
         
         const catTeam = headerConfigToCatTeam(headerConfig, leagueData.teams, seasonIndex);
         if (catTeam) {
@@ -550,13 +600,34 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     for (let i = 0; i < 3; i++) {
       const colSelector = colSelectors[i];
       if (colSelector.type && colSelector.value && colSelector.label) {
+        let customAchievement = colSelector.customAchievement;
+        
+        // Check if this is an achievement with a toggled operator that needs a custom achievement
+        if (colSelector.type === 'achievement' && colSelector.operator && !customAchievement) {
+          // Find the original achievement
+          const originalAchievement = achievementOptions.find(ach => ach.id === colSelector.value);
+          if (originalAchievement) {
+            // Get the real achievement object
+            const achievements = getAllAchievements(sport as any, seasonIndex, leagueData.leagueYears);
+            const realAchievement = achievements.find((ach: any) => ach.id === originalAchievement.id);
+            
+            if (realAchievement) {
+              // Parse the current number from the label
+              const parsed = parseAchievementLabel(colSelector.label, sport);
+              if (parsed.isEditable) {
+                // Create custom achievement with the toggled operator
+                customAchievement = createCustomNumericalAchievement(realAchievement, parsed.number, sport, colSelector.operator);
+              }
+            }
+          }
+        }
+        
         const headerConfig: HeaderConfig = {
           type: colSelector.type,
           selectedId: colSelector.type === 'team' ? parseInt(colSelector.value) : colSelector.value,
           selectedLabel: colSelector.label,
-          customAchievement: colSelector.customAchievement
+          customAchievement
         };
-        
         
         const catTeam = headerConfigToCatTeam(headerConfig, leagueData.teams, seasonIndex);
         if (catTeam) {
@@ -1011,6 +1082,13 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                             index, 
                             newNumber, 
                             newLabel,
+                            operator
+                          )
+                        }
+                        onOperatorChange={(operator) =>
+                          handleAchievementOperatorChange(
+                            isRow ? 'row' : 'col',
+                            index,
                             operator
                           )
                         }
