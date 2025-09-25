@@ -100,12 +100,24 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
   
   // If operator is provided, use it to determine the format
   if (operator) {
+    // Extract the clean achievement description (without operator symbols)
+    let achievementDesc = parsed.suffix.replace(/^\+?\s*/, '').trim();
+    
+    // If suffix is empty or doesn't contain meaningful text, use a better extraction
+    if (!achievementDesc || achievementDesc.length < 3) {
+      // Try to extract from the original label, removing number and operator parts
+      achievementDesc = parsed.originalLabel
+        .replace(/^[^a-zA-Z]*\d+[\d,]*\+?\s*/, '') // Remove leading number+operator
+        .replace(/^\d+[\d,]*\s*or\s*less\s*/, '') // Remove "X or less" pattern
+        .trim();
+    }
+    
     if (operator === '≤') {
       // For "less than or equal", use "or less" format
-      return `${formattedNumber} or less ${parsed.suffix.replace(/^\+?\s*/, '').trim()}`;
+      return `${formattedNumber} or less ${achievementDesc}`;
     } else {
-      // For "greater than or equal", use "+" format
-      return `${formattedNumber}+ ${parsed.suffix.replace(/^\+?\s*/, '').trim()}`;
+      // For "greater than or equal", use "+" format  
+      return `${formattedNumber}+ ${achievementDesc}`;
     }
   }
   
