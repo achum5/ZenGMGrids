@@ -443,14 +443,22 @@ function calculateBBGMSeasonLeaders(
     // Points Leader - exclude players with 0 total points (early seasons might not track points properly)
     const playersWithPoints = playerSeasonStats.filter(p => p.pts > 0);
     if (playersWithPoints.length > 0) {
-      const maxPPG = Math.max(...playersWithPoints.map(p => p.pts / p.gp));
+      // Avoid stack overflow - find max manually
+      let maxPPG = 0;
+      for (const player of playersWithPoints) {
+        const ppg = player.pts / player.gp;
+        if (ppg > maxPPG) maxPPG = ppg;
+      }
       const pointsLeaderCandidates = playersWithPoints.filter(p => 
         Math.abs((p.pts / p.gp) - maxPPG) < 1e-9
       );
       
       // Break ties by higher total points
       if (pointsLeaderCandidates.length > 1) {
-        const maxPts = Math.max(...pointsLeaderCandidates.map(p => p.pts));
+        let maxPts = 0;
+        for (const player of pointsLeaderCandidates) {
+          if (player.pts > maxPts) maxPts = player.pts;
+        }
         leaders.PointsLeader = pointsLeaderCandidates
           .filter(p => p.pts === maxPts)
           .map(p => p.pid);
@@ -462,14 +470,22 @@ function calculateBBGMSeasonLeaders(
     // Rebounds Leader - exclude players with 0 total rebounds (early seasons didn't track rebounds)
     const playersWithRebounds = playerSeasonStats.filter(p => p.trb > 0);
     if (playersWithRebounds.length > 0) {
-      const maxRPG = Math.max(...playersWithRebounds.map(p => p.trb / p.gp));
+      // Avoid stack overflow - find max manually
+      let maxRPG = 0;
+      for (const player of playersWithRebounds) {
+        const rpg = player.trb / player.gp;
+        if (rpg > maxRPG) maxRPG = rpg;
+      }
       const reboundsLeaderCandidates = playersWithRebounds.filter(p => 
         Math.abs((p.trb / p.gp) - maxRPG) < 1e-9
       );
       
       // Break ties by higher total rebounds
       if (reboundsLeaderCandidates.length > 1) {
-        const maxTrb = Math.max(...reboundsLeaderCandidates.map(p => p.trb));
+        let maxTrb = 0;
+        for (const player of reboundsLeaderCandidates) {
+          if (player.trb > maxTrb) maxTrb = player.trb;
+        }
         leaders.ReboundsLeader = reboundsLeaderCandidates
           .filter(p => p.trb === maxTrb)
           .map(p => p.pid);
@@ -481,14 +497,22 @@ function calculateBBGMSeasonLeaders(
     // Assists Leader - exclude players with 0 total assists (early seasons didn't track assists)
     const playersWithAssists = playerSeasonStats.filter(p => p.ast > 0);
     if (playersWithAssists.length > 0) {
-      const maxAPG = Math.max(...playersWithAssists.map(p => p.ast / p.gp));
+      // Avoid stack overflow - find max manually
+      let maxAPG = 0;
+      for (const player of playersWithAssists) {
+        const apg = player.ast / player.gp;
+        if (apg > maxAPG) maxAPG = apg;
+      }
       const assistsLeaderCandidates = playersWithAssists.filter(p => 
         Math.abs((p.ast / p.gp) - maxAPG) < 1e-9
       );
       
       // Break ties by higher total assists
       if (assistsLeaderCandidates.length > 1) {
-        const maxAst = Math.max(...assistsLeaderCandidates.map(p => p.ast));
+        let maxAst = 0;
+        for (const player of assistsLeaderCandidates) {
+          if (player.ast > maxAst) maxAst = player.ast;
+        }
         leaders.AssistsLeader = assistsLeaderCandidates
           .filter(p => p.ast === maxAst)
           .map(p => p.pid);
@@ -500,14 +524,22 @@ function calculateBBGMSeasonLeaders(
     // Steals Leader - exclude players with 0 total steals (early seasons didn't track steals)
     const playersWithSteals = playerSeasonStats.filter(p => p.stl > 0);
     if (playersWithSteals.length > 0) {
-      const maxSPG = Math.max(...playersWithSteals.map(p => p.stl / p.gp));
+      // Avoid stack overflow - find max manually
+      let maxSPG = 0;
+      for (const player of playersWithSteals) {
+        const spg = player.stl / player.gp;
+        if (spg > maxSPG) maxSPG = spg;
+      }
       const stealsLeaderCandidates = playersWithSteals.filter(p => 
         Math.abs((p.stl / p.gp) - maxSPG) < 1e-9
       );
       
       // Break ties by higher total steals
       if (stealsLeaderCandidates.length > 1) {
-        const maxStl = Math.max(...stealsLeaderCandidates.map(p => p.stl));
+        let maxStl = 0;
+        for (const player of stealsLeaderCandidates) {
+          if (player.stl > maxStl) maxStl = player.stl;
+        }
         leaders.StealsLeader = stealsLeaderCandidates
           .filter(p => p.stl === maxStl)
           .map(p => p.pid);
@@ -519,14 +551,22 @@ function calculateBBGMSeasonLeaders(
     // Blocks Leader - exclude players with 0 total blocks (early seasons didn't track blocks)
     const playersWithBlocks = playerSeasonStats.filter(p => p.blk > 0);
     if (playersWithBlocks.length > 0) {
-      const maxBPG = Math.max(...playersWithBlocks.map(p => p.blk / p.gp));
+      // Avoid stack overflow - find max manually
+      let maxBPG = 0;
+      for (const player of playersWithBlocks) {
+        const bpg = player.blk / player.gp;
+        if (bpg > maxBPG) maxBPG = bpg;
+      }
       const blocksLeaderCandidates = playersWithBlocks.filter(p => 
         Math.abs((p.blk / p.gp) - maxBPG) < 1e-9
       );
       
       // Break ties by higher total blocks
       if (blocksLeaderCandidates.length > 1) {
-        const maxBlk = Math.max(...blocksLeaderCandidates.map(p => p.blk));
+        let maxBlk = 0;
+        for (const player of blocksLeaderCandidates) {
+          if (player.blk > maxBlk) maxBlk = player.blk;
+        }
         leaders.BlocksLeader = blocksLeaderCandidates
           .filter(p => p.blk === maxBlk)
           .map(p => p.pid);

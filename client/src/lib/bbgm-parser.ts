@@ -393,12 +393,30 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
       // Only include players who actually played games
       if (teamsPlayed.size > 0) {
         // Compute decade metadata for this player
-        const allPlayerSeasons = [
-          ...regularSeasonStats.map((stat: any) => stat.season),
-          ...playoffStats.map((stat: any) => stat.season)
-        ];
-        const firstSeason = allPlayerSeasons.length > 0 ? Math.min(...allPlayerSeasons) : 0;
-        const lastSeason = allPlayerSeasons.length > 0 ? Math.max(...allPlayerSeasons) : 0;
+        // Avoid stack overflow with large datasets - compute min/max manually
+        let firstSeason = 0;
+        let lastSeason = 0;
+        
+        if (regularSeasonStats.length > 0 || playoffStats.length > 0) {
+          firstSeason = Number.MAX_SAFE_INTEGER;
+          lastSeason = Number.MIN_SAFE_INTEGER;
+          
+          // Process regular season stats
+          for (const stat of regularSeasonStats) {
+            if (stat.season < firstSeason) firstSeason = stat.season;
+            if (stat.season > lastSeason) lastSeason = stat.season;
+          }
+          
+          // Process playoff stats
+          for (const stat of playoffStats) {
+            if (stat.season < firstSeason) firstSeason = stat.season;
+            if (stat.season > lastSeason) lastSeason = stat.season;
+          }
+          
+          // Reset to 0 if no valid seasons found
+          if (firstSeason === Number.MAX_SAFE_INTEGER) firstSeason = 0;
+          if (lastSeason === Number.MIN_SAFE_INTEGER) lastSeason = 0;
+        }
         
         // Calculate decades (e.g., 1990s = 1990, 2000s = 2000)
         const debutDecade = firstSeason > 0 ? Math.floor(firstSeason / 10) * 10 : 0;
@@ -406,12 +424,22 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
         
         // Calculate all decades played (set of decade start years)
         const decadesPlayed = new Set<number>();
-        allPlayerSeasons.forEach(season => {
-          if (season > 0) {
-            const decade = Math.floor(season / 10) * 10;
+        
+        // Process regular season stats for decades
+        for (const stat of regularSeasonStats) {
+          if (stat.season > 0) {
+            const decade = Math.floor(stat.season / 10) * 10;
             decadesPlayed.add(decade);
           }
-        });
+        }
+        
+        // Process playoff stats for decades  
+        for (const stat of playoffStats) {
+          if (stat.season > 0) {
+            const decade = Math.floor(stat.season / 10) * 10;
+            decadesPlayed.add(decade);
+          }
+        }
         
         const player: Player = {
           pid: rawPlayer.pid,
@@ -744,11 +772,17 @@ export function buildSearchIndex(players: Player[], teams: Team[]) {
     byName[player.name.toLowerCase()] = player.pid;
   });
 
-  // Calculate current season once for all players
-  const allSeasons = players
-    .filter(p => p.stats)
-    .flatMap(p => p.stats!.filter(s => !s.playoffs).map(s => s.season));
-  const currentSeason = allSeasons.length > 0 ? Math.max(...allSeasons) : new Date().getFullYear();
+  // Calculate current season once for all players - avoid stack overflow
+  let currentSeason = new Date().getFullYear();
+  for (const player of players) {
+    if (player.stats) {
+      for (const stat of player.stats) {
+        if (!stat.playoffs && stat.season > currentSeason) {
+          currentSeason = stat.season;
+        }
+      }
+    }
+  }
 
   // Build searchable player list with diacritic-insensitive folding
   const searchablePlayers = players.map(player => {

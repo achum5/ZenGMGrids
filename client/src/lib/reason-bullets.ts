@@ -699,8 +699,11 @@ function getActualDecadeYears(player: Player, achievementType: 'played' | 'debut
       return `${firstSeason}–${lastSeason}`;
     }
   } else if (achievementType === 'debuted') {
-    // For "debuted", show the first season
-    const actualYear = Math.min(...regularSeasonStats.map(s => s.season));
+    // For "debuted", show the first season - avoid stack overflow
+    let actualYear = regularSeasonStats.length > 0 ? regularSeasonStats[0].season : 0;
+    for (const stat of regularSeasonStats) {
+      if (stat.season < actualYear) actualYear = stat.season;
+    }
     return actualYear.toString();
   }
   
@@ -994,12 +997,18 @@ function generateDecadeBullet(player: Player, achievementId: string, type: 'play
       labelText = `Played ${firstSeason}–${lastSeason}`;
     }
   } else if (type === 'debuted') {
-    // For "debuted", show the first season
-    actualYear = Math.min(...regularSeasonStats.map(s => s.season));
+    // For "debuted", show the first season - avoid stack overflow
+    actualYear = regularSeasonStats.length > 0 ? regularSeasonStats[0].season : 0;
+    for (const stat of regularSeasonStats) {
+      if (stat.season < actualYear) actualYear = stat.season;
+    }
     labelText = `Debuted in ${actualYear}`;
   } else if (type === 'retired') {
-    // For "retired", show the last season
-    actualYear = Math.max(...regularSeasonStats.map(s => s.season));
+    // For "retired", show the last season - avoid stack overflow
+    actualYear = regularSeasonStats.length > 0 ? regularSeasonStats[0].season : 0;
+    for (const stat of regularSeasonStats) {
+      if (stat.season > actualYear) actualYear = stat.season;
+    }
     labelText = `Retired in ${actualYear}`;
   } else {
     return null;

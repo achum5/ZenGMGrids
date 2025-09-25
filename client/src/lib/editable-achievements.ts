@@ -215,22 +215,34 @@ function getCareerTotal(player: Player, statField: string): number {
 
 function getBestSeasonTotal(player: Player, statField: string): number {
   if (!player.stats) return 0;
-  return Math.max(
-    ...player.stats
-      .filter(s => !s.playoffs && (s.gp || 0) >= 20) // Minimum 20 games
-      .map(stat => (stat as any)[statField] || 0)
-  );
+  
+  // Avoid stack overflow with large datasets - use manual iteration
+  let maxValue = 0;
+  for (const stat of player.stats) {
+    if (!stat.playoffs && (stat.gp || 0) >= 20) {
+      const value = (stat as any)[statField] || 0;
+      if (value > maxValue) {
+        maxValue = value;
+      }
+    }
+  }
+  return maxValue;
 }
 
 function getBestSeasonAverage(player: Player, statField: string): number {
   if (!player.stats) return 0;
-  return Math.max(
-    ...player.stats
-      .filter(s => !s.playoffs && (s.gp || 0) >= 20) // Minimum 20 games
-      .map(stat => {
-        const total = (stat as any)[statField] || 0;
-        const games = stat.gp || 1;
-        return games > 0 ? total / games : 0;
-      })
-  );
+  
+  // Avoid stack overflow with large datasets - use manual iteration
+  let maxAverage = 0;
+  for (const stat of player.stats) {
+    if (!stat.playoffs && (stat.gp || 0) >= 20) {
+      const total = (stat as any)[statField] || 0;
+      const games = stat.gp || 1;
+      const average = games > 0 ? total / games : 0;
+      if (average > maxAverage) {
+        maxAverage = average;
+      }
+    }
+  }
+  return maxAverage;
 }
