@@ -142,7 +142,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     selectorType: 'row' | 'col',
     index: number,
     newNumber: number,
-    newLabel: string
+    newLabel: string,
+    operator?: '≥' | '≤'
   ) => {
     const updateSelector = (selectors: SelectorState[]) => {
       const newSelectors = [...selectors];
@@ -159,7 +160,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
           
           if (realAchievement) {
             // Create custom achievement with new threshold using the real achievement
-            const customAchievement = createCustomNumericalAchievement(realAchievement, newNumber, sport);
+            const customAchievement = createCustomNumericalAchievement(realAchievement, newNumber, sport, operator);
             
             // Update the selector with new label and custom achievement
             newSelectors[index] = {
@@ -1003,12 +1004,13 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                       <StatBuilderChip
                         label={selector.label || ''}
                         sport={sport}
-                        onNumberChange={(newNumber, newLabel) => 
+                        onNumberChange={(newNumber, newLabel, operator) => 
                           handleAchievementNumberChange(
                             isRow ? 'row' : 'col', 
                             index, 
                             newNumber, 
-                            newLabel
+                            newLabel,
+                            operator
                           )
                         }
                       />

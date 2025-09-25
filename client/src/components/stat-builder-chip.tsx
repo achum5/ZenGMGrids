@@ -63,7 +63,7 @@ function abbreviateLabel(label: string, mode: LayoutMode): string {
 
 interface StatBuilderChipProps {
   label: string;
-  onNumberChange?: (newNumber: number, newLabel: string) => void;
+  onNumberChange?: (newNumber: number, newLabel: string, operator?: '≥' | '≤') => void;
   className?: string;
   sport?: string;
 }
@@ -252,8 +252,8 @@ export function StatBuilderChip({
     
     const newNumber = parseFloat(inputValue);
     if (newNumber !== parsed.number && onNumberChange) {
-      const newLabel = generateUpdatedLabel(parsed, newNumber);
-      onNumberChange(newNumber, newLabel);
+      const newLabel = generateUpdatedLabel(parsed, newNumber, operator);
+      onNumberChange(newNumber, newLabel, operator);
     }
     
     setIsEditing(false);
