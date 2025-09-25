@@ -107,36 +107,47 @@ export function HintModal({
       await new Promise(resolve => setTimeout(resolve, 100));
       
       
-      // Step 1: Get eligible players - ALWAYS calculate directly to avoid cache issues
+      // Step 1: Get eligible players - handle custom achievements properly
       let eligiblePlayers: Player[] = [];
       
       if (leagueData?.players && teams) {
-        // Use the EXACT same calculateOptimizedIntersection that works in grid generation
-        const { calculateOptimizedIntersection } = await import('@/lib/intersection-cache');
+        // Check if we have custom achievements by examining the constraint keys
+        const hasCustomAchievements = rowConstraint.key?.includes('custom') || colConstraint.key?.includes('custom');
         
-        const rowIntersectionConstraint = {
-          type: rowConstraint.type,
-          id: rowConstraint.type === 'team' ? rowConstraint.tid! : rowConstraint.achievementId!,
-          label: rowConstraint.label
-        };
-        
-        const colIntersectionConstraint = {
-          type: colConstraint.type, 
-          id: colConstraint.type === 'team' ? colConstraint.tid! : colConstraint.achievementId!,
-          label: colConstraint.label
-        };
-        
-        const eligiblePidsSet = calculateOptimizedIntersection(
-          rowIntersectionConstraint,
-          colIntersectionConstraint,
-          leagueData.players,
-          teams,
-          leagueData.seasonIndex,
-          false // Return Set, not count
-        ) as Set<number>;
-        
-        eligiblePlayers = leagueData.players.filter(p => eligiblePidsSet.has(p.pid));
-        console.log(`🎯 Direct intersection calculation: ${eligiblePlayers.length} players found`);
+        if (hasCustomAchievements) {
+          // Use direct calculation for custom achievements to avoid cache conflicts
+          eligiblePlayers = leagueData.players.filter(player => 
+            rowConstraint.test(player) && colConstraint.test(player)
+          );
+          console.log(`🎯 Custom achievement direct filtering: ${eligiblePlayers.length} players found`);
+        } else {
+          // Use optimized intersection calculation for regular achievements
+          const { calculateOptimizedIntersection } = await import('@/lib/intersection-cache');
+          
+          const rowIntersectionConstraint = {
+            type: rowConstraint.type,
+            id: rowConstraint.type === 'team' ? rowConstraint.tid! : rowConstraint.achievementId!,
+            label: rowConstraint.label
+          };
+          
+          const colIntersectionConstraint = {
+            type: colConstraint.type, 
+            id: colConstraint.type === 'team' ? colConstraint.tid! : colConstraint.achievementId!,
+            label: colConstraint.label
+          };
+          
+          const eligiblePidsSet = calculateOptimizedIntersection(
+            rowIntersectionConstraint,
+            colIntersectionConstraint,
+            leagueData.players,
+            teams,
+            leagueData.seasonIndex,
+            false // Return Set, not count
+          ) as Set<number>;
+          
+          eligiblePlayers = leagueData.players.filter(p => eligiblePidsSet.has(p.pid));
+          console.log(`🎯 Regular intersection calculation: ${eligiblePlayers.length} players found`);
+        }
       }
       
       if (eligiblePlayers.length === 0) {
