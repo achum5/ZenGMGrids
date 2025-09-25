@@ -84,7 +84,15 @@ function getStatValidation(label: string): StatValidation {
   const lowerLabel = label.toLowerCase();
   
   // Percentage stats (FG%, 3P%, FT%, TS%, eFG%, etc.)
-  if (lowerLabel.includes('%') || lowerLabel.includes('percentage')) {
+  // Check for various percentage patterns including custom labels
+  if (lowerLabel.includes('%') || 
+      lowerLabel.includes('percentage') ||
+      lowerLabel.includes('3pt') ||
+      lowerLabel.includes('ft (season)') ||
+      lowerLabel.includes('efg') ||
+      lowerLabel.includes('ts on') ||
+      lowerLabel.includes('50/40/90') ||
+      lowerLabel.includes('club')) {
     return {
       min: 0.0,
       max: 100.0,
