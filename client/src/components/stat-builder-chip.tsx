@@ -188,6 +188,7 @@ export function StatBuilderChip({
   const [validation, setValidation] = useState<StatValidation>(() => getStatValidation(label));
   const [error, setError] = useState<string | null>(null);
   const [userHasToggledOperator, setUserHasToggledOperator] = useState(false);
+  const [userHasChangedNumber, setUserHasChangedNumber] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const containerWidthEm = useContainerWidth(containerRef);
@@ -211,7 +212,11 @@ export function StatBuilderChip({
   useEffect(() => {
     const newParsed = parseAchievementLabel(label, sport);
     setParsed(newParsed);
-    setInputValue(newParsed.number.toString());
+    
+    // Only update inputValue if user hasn't manually changed the number
+    if (!userHasChangedNumber) {
+      setInputValue(newParsed.number.toString());
+    }
     
     // Only update operator from label if user hasn't manually toggled it
     if (!userHasToggledOperator) {
@@ -220,7 +225,7 @@ export function StatBuilderChip({
     
     setValidation(getStatValidation(label));
     setError(null);
-  }, [label, sport, userHasToggledOperator]);
+  }, [label, sport, userHasToggledOperator, userHasChangedNumber]);
 
   // All useCallback hooks must come before the early return
   const handleOperatorClick = useCallback((e: React.MouseEvent) => {
@@ -254,6 +259,9 @@ export function StatBuilderChip({
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
+    
+    // Mark that user has manually changed the number
+    setUserHasChangedNumber(true);
     
     // Strip non-numeric characters except decimal point
     const cleanValue = value.replace(/[^0-9.]/g, '');
