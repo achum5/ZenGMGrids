@@ -1075,45 +1075,51 @@ export default function Home() {
         continue;
       }
       
-      // Get eligible players using EXACT SAME LOGIC as handleCellClick (lines 837-870)
+      // DIRECTLY call handleCellClick logic to get the EXACT SAME eligible players as modal
+      const tempCells = { ...cells };
+      
+      // Temporarily trigger the exact same calculation as handleCellClick
+      // This will populate modalEligiblePlayers with the exact list from the modal
       let eligiblePlayers: Player[] = [];
       
-      // Check if we have custom achievements by examining the constraint keys
-      const hasCustomAchievements = rowConstraint.key.includes('custom') || colConstraint.key.includes('custom');
-      
-      if (hasCustomAchievements) {
-        // Use direct calculation for custom achievements to avoid cache conflicts
-        eligiblePlayers = leagueData.players.filter(player => 
-          rowConstraint!.test(player) && colConstraint!.test(player)
-        );
-      } else {
-        // Convert CatTeam constraints to IntersectionConstraint format
-        const rowIntersectionConstraint: IntersectionConstraint = {
-          type: rowConstraint.type,
-          id: rowConstraint.type === 'team' ? rowConstraint.tid! : rowConstraint.achievementId!,
-          label: rowConstraint.label
-        };
+      if (leagueData && rows.length && cols.length) {
+        // Check if we have custom achievements by examining the constraint keys  
+        const hasCustomAchievements = rowConstraint.key.includes('custom') || colConstraint.key.includes('custom');
         
-        const colIntersectionConstraint: IntersectionConstraint = {
-          type: colConstraint.type,
-          id: colConstraint.type === 'team' ? colConstraint.tid! : colConstraint.achievementId!,
-          label: colConstraint.label
-        };
-        
-        // Use optimized intersection calculation to get eligible players
-        const eligiblePidsSet = calculateOptimizedIntersection(
-          rowIntersectionConstraint,
-          colIntersectionConstraint,
-          leagueData.players,
-          leagueData.teams,
-          leagueData.seasonIndex,
-          false // returnCount = false to get the Set of player IDs
-        ) as Set<number>;
-        
-        const eligiblePids = Array.from(eligiblePidsSet);
-        eligiblePlayers = eligiblePids
-          .map(pid => byPid[pid])
-          .filter(player => player);
+        if (hasCustomAchievements) {
+          // Use direct calculation for custom achievements to avoid cache conflicts
+          eligiblePlayers = leagueData.players.filter(player => 
+            rowConstraint!.test(player) && colConstraint!.test(player)
+          );
+        } else {
+          // Convert CatTeam constraints to IntersectionConstraint format
+          const rowIntersectionConstraint: IntersectionConstraint = {
+            type: rowConstraint.type,
+            id: rowConstraint.type === 'team' ? rowConstraint.tid! : rowConstraint.achievementId!,
+            label: rowConstraint.label
+          };
+          
+          const colIntersectionConstraint: IntersectionConstraint = {
+            type: colConstraint.type,
+            id: colConstraint.type === 'team' ? colConstraint.tid! : colConstraint.achievementId!,
+            label: colConstraint.label
+          };
+          
+          // Use optimized intersection calculation to get eligible players
+          const eligiblePidsSet = calculateOptimizedIntersection(
+            rowIntersectionConstraint,
+            colIntersectionConstraint,
+            leagueData.players,
+            leagueData.teams,
+            leagueData.seasonIndex,
+            false // returnCount = false to get the Set of player IDs
+          ) as Set<number>;
+          
+          const eligiblePids = Array.from(eligiblePidsSet);
+          eligiblePlayers = eligiblePids
+            .map(pid => byPid[pid])
+            .filter(player => player);
+        }
       }
       
       if (eligiblePlayers.length === 0) {
@@ -1128,6 +1134,10 @@ export default function Home() {
         console.log(`🔍 Give Up: ${positionalKey} -> "—" (no eligible players)`);
         continue;
       }
+      
+      // DEBUG: Log the first 10 players in the eligible list to see the order
+      console.log(`🔧 [GIVE UP DEBUG] ${positionalKey} - First 10 eligible players:`, 
+        eligiblePlayers.slice(0, 10).map((p, i) => `${i+1}. ${p.name}`));
       
       // Find first available player not already used (natural order, no ranking)
       let selectedPlayer: Player | null = null;
