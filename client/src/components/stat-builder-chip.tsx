@@ -319,10 +319,12 @@ export function StatBuilderChip({
       ref={containerRef}
       className={`relative w-full ${className || ''}`}
       style={{ 
-        fontSize: '0.875rem', // Reduced base font size
-        // Constrain to prevent overflow - more aggressive
-        maxWidth: 'calc(75% - 0.25rem)',
-        margin: '0 0.25rem'
+        fontSize: '1rem',
+        // Center the chip and scale with container
+        maxWidth: '90%',
+        margin: '0 auto', // Center horizontally
+        display: 'flex',
+        justifyContent: 'center'
       }}
     >
       {/* Main chip with container-based sizing */}
@@ -335,21 +337,22 @@ export function StatBuilderChip({
         `}
         title="Chosen stat threshold"
         style={{ 
-          // Smaller, more constrained sizing
-          fontSize: '0.75rem',
-          minBlockSize: '2rem',
-          // Layout based on mode with tighter padding
+          // Responsive sizing based on container
+          fontSize: 'clamp(0.75rem, 2.5vw, 1rem)',
+          minBlockSize: 'clamp(2rem, 8vw, 3rem)',
+          width: 'fit-content',
+          // Layout based on mode with responsive padding
           ...(layoutMode === 'C' ? {
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
-            padding: '0.25em 0.5em',
-            gap: '0.125em'
+            padding: 'clamp(0.25em, 1vw, 0.5em) clamp(0.5em, 2vw, 1em)',
+            gap: 'clamp(0.125em, 0.5vw, 0.25em)'
           } : {
             display: 'flex',
             alignItems: 'center',
-            padding: '0.25em 0.5em',
-            gap: '0.25em'
+            padding: 'clamp(0.25em, 1vw, 0.5em) clamp(0.5em, 2vw, 1em)',
+            gap: 'clamp(0.25em, 1vw, 0.5em)'
           })
         }}
       >
@@ -366,13 +369,13 @@ export function StatBuilderChip({
                 aria-label="Stat threshold operator"
                 data-testid="operator-button"
                 style={{
-                  width: '2ch', // Smaller operator
-                  height: '1.2em',
+                  width: 'clamp(2ch, 3vw, 3ch)',
+                  height: 'clamp(1.2em, 3vw, 1.5em)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontWeight: '500',
-                  fontSize: '0.75rem',
+                  fontSize: 'clamp(0.75rem, 2vw, 1rem)',
                   flexShrink: 0
                 }}
               >
@@ -396,9 +399,9 @@ export function StatBuilderChip({
                       outline: 'none',
                       color: 'rgb(255 255 255 / 0.85)',
                       fontWeight: '600',
-                      fontSize: '0.875rem', // Fixed smaller size
+                      fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)',
                       width: `${Math.max(inputValue.length + 1, 3)}ch`,
-                      maxWidth: '4ch', // Prevent excessive width
+                      maxWidth: 'clamp(4ch, 10vw, 6ch)',
                       appearance: 'textfield',
                       MozAppearance: 'textfield',
                       WebkitAppearance: 'none'
@@ -414,8 +417,8 @@ export function StatBuilderChip({
                     data-testid="number-display"
                     style={{
                       fontWeight: '600',
-                      fontSize: '0.875rem', // Fixed smaller size
-                      padding: '0.125em 0.25em'
+                      fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)',
+                      padding: 'clamp(0.125em, 0.5vw, 0.25em) clamp(0.25em, 1vw, 0.5em)'
                     }}
                   >
                     {displayValue}
@@ -451,7 +454,7 @@ export function StatBuilderChip({
                 style={{
                   fontWeight: '500',
                   color: 'rgb(255 255 255 / 0.7)',
-                  fontSize: '0.625rem', // Much smaller for 2-line mode
+                  fontSize: 'clamp(0.625rem, 1.5vw, 0.875rem)',
                   display: 'block',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -474,13 +477,13 @@ export function StatBuilderChip({
               aria-label="Stat threshold operator"
               data-testid="operator-button"
               style={{
-                width: '2ch', // Smaller operator
-                height: '1.2em',
+                width: 'clamp(2ch, 3vw, 3ch)',
+                height: 'clamp(1.2em, 3vw, 1.5em)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontWeight: '500',
-                fontSize: '0.75rem',
+                fontSize: 'clamp(0.75rem, 2vw, 1rem)',
                 flexShrink: 0
               }}
             >
@@ -504,9 +507,9 @@ export function StatBuilderChip({
                     outline: 'none',
                     color: 'rgb(255 255 255 / 0.85)',
                     fontWeight: '600',
-                    fontSize: '0.875rem', // Fixed smaller size
+                    fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)',
                     width: `${Math.max(inputValue.length + 1, 3)}ch`,
-                    maxWidth: '4ch', // Prevent excessive width
+                    maxWidth: 'clamp(4ch, 10vw, 6ch)',
                     appearance: 'textfield',
                     MozAppearance: 'textfield',
                     WebkitAppearance: 'none'
@@ -522,8 +525,8 @@ export function StatBuilderChip({
                   data-testid="number-display"
                   style={{
                     fontWeight: '600',
-                    fontSize: '0.875rem', // Fixed smaller size
-                    padding: '0.125em 0.25em'
+                    fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)',
+                    padding: 'clamp(0.125em, 0.5vw, 0.25em) clamp(0.25em, 1vw, 0.5em)'
                   }}
                 >
                   {displayValue}
@@ -557,13 +560,13 @@ export function StatBuilderChip({
               style={{
                 fontWeight: '500',
                 color: 'rgb(255 255 255 / 0.7)',
-                fontSize: '0.625rem', // Much smaller label
+                fontSize: 'clamp(0.625rem, 1.5vw, 0.875rem)',
                 flex: 1,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
                 minWidth: 0,
-                maxWidth: '50%' // More aggressive constraint
+                maxWidth: '60%'
               }}
               title={baseLabel}
             >
