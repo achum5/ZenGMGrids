@@ -205,6 +205,14 @@ export function StatBuilderChip({
     setOperator(prev => prev === '≥' ? '≤' : '≥');
   }, []);
 
+  // Trigger onNumberChange when operator changes (even if number stays the same)
+  useEffect(() => {
+    if (onNumberChange) {
+      const newLabel = generateUpdatedLabel(parsed, parsed.number, operator);
+      onNumberChange(parsed.number, newLabel, operator);
+    }
+  }, [operator, onNumberChange, parsed]);
+
   const handleNumberClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setIsEditing(true);
