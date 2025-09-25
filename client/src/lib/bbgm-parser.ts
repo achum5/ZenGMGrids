@@ -101,32 +101,45 @@ function detectSport(raw: any): Sport {
 }
 
 export async function parseLeagueFile(file: File): Promise<LeagueData & { sport: Sport }> {
+  console.log(`🔧 [FILE UPLOAD] Starting upload for file: ${file.name} (${file.size} bytes, type: ${file.type})`);
+  
   try {
     let content: string;
     
     if (file.name.endsWith('.gz')) {
+      console.log(`🔧 [FILE UPLOAD] Processing .gz file`);
       // Handle .gz files
       const arrayBuffer = await file.arrayBuffer();
       const compressed = new Uint8Array(arrayBuffer);
       try {
         const decompressed = pako.inflate(compressed, { to: 'string' });
         content = decompressed;
+        console.log(`🔧 [FILE UPLOAD] Successfully decompressed .gz file (${content.length} chars)`);
       } catch (inflateError) {
         console.error('Pako inflation error:', inflateError);
         // Try without string conversion
         const decompressedBytes = pako.inflate(compressed);
         content = new TextDecoder('utf-8').decode(decompressedBytes);
+        console.log(`🔧 [FILE UPLOAD] Decompressed with fallback method (${content.length} chars)`);
       }
     } else {
+      console.log(`🔧 [FILE UPLOAD] Processing .json file`);
       // Handle .json files
       content = await file.text();
+      console.log(`🔧 [FILE UPLOAD] Read JSON file (${content.length} chars)`);
     }
     
+    console.log(`🔧 [FILE UPLOAD] Parsing JSON...`);
     const rawData = JSON.parse(content);
-    return normalizeLeague(rawData);
+    console.log(`🔧 [FILE UPLOAD] JSON parsed successfully, calling normalizeLeague...`);
+    
+    const result = normalizeLeague(rawData);
+    console.log(`🔧 [FILE UPLOAD] File processed successfully as ${result.sport}`);
+    return result;
   } catch (error) {
-    console.error('Error parsing league file:', error);
-    throw new Error('Failed to parse league file. Please ensure it\'s a valid BBGM league file.');
+    console.error('🔧 [FILE UPLOAD] Error parsing league file:', error);
+    console.error('🔧 [FILE UPLOAD] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    throw new Error(`Failed to parse league file: ${error instanceof Error ? error.message : 'Unknown error'}. Please ensure it's a valid BBGM league file.`);
   }
 }
 
