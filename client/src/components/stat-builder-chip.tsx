@@ -2,14 +2,18 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { parseAchievementLabel, generateUpdatedLabel, type ParsedAchievement } from '@/lib/editable-achievements';
 import { Check } from 'lucide-react';
 
-// Hook to detect chip width for two-line fallback
-function useChipWidth(chipRef: React.RefObject<HTMLDivElement>) {
-  const [chipWidth, setChipWidth] = useState<number>(0);
+// Hook to detect container width for layout mode switching
+function useContainerWidth(containerRef: React.RefObject<HTMLDivElement>) {
+  const [containerWidth, setContainerWidth] = useState<number>(0);
   
   useEffect(() => {
     const updateWidth = () => {
-      if (chipRef.current) {
-        setChipWidth(chipRef.current.offsetWidth);
+      if (containerRef.current) {
+        const style = window.getComputedStyle(containerRef.current);
+        const fontSize = parseFloat(style.fontSize);
+        const widthInPx = containerRef.current.offsetWidth;
+        const widthInEm = widthInPx / fontSize;
+        setContainerWidth(widthInEm);
       }
     };
     
@@ -18,16 +22,43 @@ function useChipWidth(chipRef: React.RefObject<HTMLDivElement>) {
     
     // Listen for resize
     const resizeObserver = new ResizeObserver(updateWidth);
-    if (chipRef.current) {
-      resizeObserver.observe(chipRef.current);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
     }
     
     return () => {
       resizeObserver.disconnect();
     };
-  }, [chipRef]);
+  }, [containerRef]);
   
-  return chipWidth;
+  return containerWidth;
+}
+
+// Layout mode based on container width in em
+type LayoutMode = 'A' | 'B' | 'C';
+
+function getLayoutMode(containerWidthEm: number): LayoutMode {
+  if (containerWidthEm >= 32) return 'A'; // Single line, full
+  if (containerWidthEm >= 28) return 'B'; // Single line, compact
+  return 'C'; // Two lines
+}
+
+// Abbreviate labels for very tight spaces
+function abbreviateLabel(label: string, mode: LayoutMode): string {
+  if (mode !== 'C') return label;
+  
+  // Only abbreviate for mode C (very tight spaces)
+  const abbreviations: Record<string, string> = {
+    'Points (Season)': 'PTS (Season)',
+    'Points (Career)': 'PTS (Career)',
+    'Made Threes': '3PM',
+    'Rebounds (Season)': 'REB (Season)',
+    'Assists (Season)': 'AST (Season)',
+    'Steals (Season)': 'STL (Season)',
+    'Blocks (Season)': 'BLK (Season)',
+  };
+  
+  return abbreviations[label] || label;
 }
 
 interface StatBuilderChipProps {
@@ -148,11 +179,11 @@ export function StatBuilderChip({
   const [validation, setValidation] = useState<StatValidation>(() => getStatValidation(label));
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const chipRef = useRef<HTMLDivElement>(null);
-  const chipWidth = useChipWidth(chipRef);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const containerWidthEm = useContainerWidth(containerRef);
   
-  // Use two-line layout when chip width is below 220px
-  const useTwoLineLayout = chipWidth > 0 && chipWidth < 220;
+  // Determine layout mode based on container width in em
+  const layoutMode = getLayoutMode(containerWidthEm);
   
   // Update parsed achievement when label changes
   useEffect(() => {
@@ -259,45 +290,97 @@ export function StatBuilderChip({
     commitValue();
   }, [commitValue]);
 
-  // Format display value with thousands separators
-  const displayValue = isEditing ? inputValue : formatDisplayNumber(parsed.number);
+  // Format display value with thousands separators and compact forms
+  const formatDisplayValue = (value: number, mode: LayoutMode): string => {
+    if (isEditing) return inputValue;
+    
+    const formatted = formatDisplayNumber(value);
+    
+    // For mode B, use compact form for numbers >= 7 characters
+    if (mode === 'B' && formatted.length >= 7) {
+      if (value >= 1000000) {
+        return `${(value / 1000000).toFixed(1)}M`;
+      } else if (value >= 1000) {
+        return `${(value / 1000).toFixed(1)}k`;
+      }
+    }
+    
+    return formatted;
+  };
   
-  // Extract the clean label without operator symbols and numbers
-  const cleanLabel = parsed.suffix.replace(/^\+?\s*/, '').trim() || parsed.originalLabel.replace(/^[^a-zA-Z]*\d+[^a-zA-Z]*/, '').trim();
+  const displayValue = formatDisplayValue(parsed.number, layoutMode);
+  
+  // Extract and abbreviate the clean label
+  const baseLabel = parsed.suffix.replace(/^\+?\s*/, '').trim() || parsed.originalLabel.replace(/^[^a-zA-Z]*\d+[^a-zA-Z]*/, '').trim();
+  const cleanLabel = abbreviateLabel(baseLabel, layoutMode);
 
   return (
-    <div className={`relative w-full ${className || ''}`} style={{ margin: '0 8px' }}>
-      {/* Main chip */}
+    <div 
+      ref={containerRef}
+      className={`relative w-full ${className || ''}`}
+      style={{ 
+        fontSize: '1rem',
+        // Reserve no-fly zone for delete button (last 20% width, top 20% height)
+        maxWidth: 'calc(80% - 0.5rem)',
+        margin: '0 0.5rem'
+      }}
+    >
+      {/* Main chip with container-based sizing */}
       <div 
-        ref={chipRef}
         className={`
           w-full rounded-xl cursor-pointer transition-all relative
           bg-white/6 border border-white/12 text-white/85 hover:bg-white/8
-          ${useTwoLineLayout ? 'h-16 sm:h-14 flex-col justify-center py-2' : 'h-11 sm:h-10 flex items-center'} px-2.5
-          ${isEditing ? 'ring-2 ring-blue-400/40' : ''}
+          ${isEditing ? 'focus-within:ring-2 focus-within:ring-blue-400/40' : ''}
           ${error ? 'border-red-400/60' : ''}
         `}
         title="Chosen stat threshold"
-        style={{ maxWidth: 'calc(100% - 16px)' }}
+        style={{ 
+          // Fluid typography and sizing
+          fontSize: 'clamp(0.875rem, 1rem + 0.25vw, 1.125rem)',
+          minBlockSize: '2.5rem',
+          // Layout based on mode
+          ...(layoutMode === 'C' ? {
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            padding: '0.375em 0.75em',
+            gap: '0.25em'
+          } : {
+            display: 'flex',
+            alignItems: 'center',
+            padding: '0.5em 0.75em',
+            gap: layoutMode === 'B' ? '0.5em' : '0.75em'
+          })
+        }}
       >
-        {useTwoLineLayout ? (
-          // Two-line layout for very small screens
+        {layoutMode === 'C' ? (
+          // Mode C: Two-line layout
           <>
             {/* Line 1: operator + number */}
-            <div className="flex items-center justify-center gap-2 mb-1">
-              {/* Operator button - fixed width */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5em' }}>
+              {/* Operator button - fixed width in ch */}
               <button
                 onClick={handleOperatorClick}
-                className="flex-shrink-0 w-8 h-6 flex items-center justify-center rounded font-medium hover:bg-white/10 transition-colors text-base"
+                className="hover:bg-white/10 transition-colors rounded"
                 title="Threshold operator"
                 aria-label="Stat threshold operator"
                 data-testid="operator-button"
+                style={{
+                  width: '3ch',
+                  height: '1.5em',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: '500',
+                  fontSize: '1rem',
+                  flexShrink: 0
+                }}
               >
                 {operator}
               </button>
               
               {/* Number section */}
-              <div className="relative flex items-center min-w-0 flex-shrink-0">
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
                 {isEditing ? (
                   <input
                     ref={inputRef}
@@ -307,8 +390,13 @@ export function StatBuilderChip({
                     onChange={handleInputChange}
                     onBlur={handleInputBlur}
                     onKeyDown={handleKeyDown}
-                    className="bg-transparent border-none outline-none text-white/85 font-semibold w-full min-w-0 text-base"
                     style={{ 
+                      background: 'transparent',
+                      border: 'none',
+                      outline: 'none',
+                      color: 'rgb(255 255 255 / 0.85)',
+                      fontWeight: '600',
+                      fontSize: 'clamp(1rem, 1.125rem + 0.25vw, 1.25rem)',
                       width: `${Math.max(inputValue.length + 1, 3)}ch`,
                       appearance: 'textfield',
                       MozAppearance: 'textfield',
@@ -320,9 +408,14 @@ export function StatBuilderChip({
                 ) : (
                   <button
                     onClick={handleNumberClick}
-                    className="font-semibold hover:bg-white/5 rounded px-1 py-0.5 transition-colors text-base"
+                    className="hover:bg-white/5 rounded transition-colors"
                     aria-label="Stat threshold number"
                     data-testid="number-display"
+                    style={{
+                      fontWeight: '600',
+                      fontSize: 'clamp(1rem, 1.125rem + 0.25vw, 1.25rem)',
+                      padding: '0.125em 0.25em'
+                    }}
                   >
                     {displayValue}
                   </button>
@@ -332,46 +425,69 @@ export function StatBuilderChip({
                 {isEditing && (
                   <button
                     onClick={handleConfirmClick}
-                    className="ml-2 w-5 h-5 flex items-center justify-center text-green-400 hover:text-green-300 transition-colors"
+                    className="text-green-400 hover:text-green-300 transition-colors"
                     title="Confirm"
                     aria-label="Confirm changes"
                     data-testid="confirm-button"
+                    style={{
+                      marginLeft: '0.5em',
+                      width: '1.25em',
+                      height: '1.25em',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
                   >
-                    <Check size={12} />
+                    <Check size="0.75rem" />
                   </button>
                 )}
               </div>
             </div>
             
             {/* Line 2: label */}
-            <div className="text-center">
+            <div style={{ textAlign: 'center' }}>
               <span 
-                className="font-medium text-white/70 truncate text-xs block"
-                title={cleanLabel}
+                style={{
+                  fontWeight: '500',
+                  color: 'rgb(255 255 255 / 0.7)',
+                  fontSize: '0.875rem',
+                  display: 'block',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}
+                title={baseLabel}
               >
                 {cleanLabel}
               </span>
             </div>
           </>
         ) : (
-          // Single-line layout for normal screens
+          // Mode A & B: Single-line layout
           <>
-            {/* Operator button - fixed width */}
+            {/* Operator button - fixed width in ch */}
             <button
               onClick={handleOperatorClick}
-              className="flex-shrink-0 w-8 h-6 flex items-center justify-center rounded font-medium hover:bg-white/10 transition-colors text-base"
+              className="hover:bg-white/10 transition-colors rounded"
               title="Threshold operator"
               aria-label="Stat threshold operator"
               data-testid="operator-button"
+              style={{
+                width: '3ch',
+                height: '1.5em',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: '500',
+                fontSize: '1rem',
+                flexShrink: 0
+              }}
             >
               {operator}
             </button>
             
-            {/* Gap */}
-            <div className="w-2 flex-shrink-0" />
-            
             {/* Number section */}
-            <div className="relative flex items-center min-w-0 flex-shrink-0">
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
               {isEditing ? (
                 <input
                   ref={inputRef}
@@ -381,8 +497,13 @@ export function StatBuilderChip({
                   onChange={handleInputChange}
                   onBlur={handleInputBlur}
                   onKeyDown={handleKeyDown}
-                  className="bg-transparent border-none outline-none text-white/85 font-semibold w-full min-w-0 text-base"
                   style={{ 
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    color: 'rgb(255 255 255 / 0.85)',
+                    fontWeight: '600',
+                    fontSize: 'clamp(1rem, 1.125rem + 0.25vw, 1.25rem)',
                     width: `${Math.max(inputValue.length + 1, 3)}ch`,
                     appearance: 'textfield',
                     MozAppearance: 'textfield',
@@ -394,9 +515,14 @@ export function StatBuilderChip({
               ) : (
                 <button
                   onClick={handleNumberClick}
-                  className="font-semibold hover:bg-white/5 rounded px-1 py-0.5 transition-colors text-base"
+                  className="hover:bg-white/5 rounded transition-colors"
                   aria-label="Stat threshold number"
                   data-testid="number-display"
+                  style={{
+                    fontWeight: '600',
+                    fontSize: 'clamp(1rem, 1.125rem + 0.25vw, 1.25rem)',
+                    padding: '0.125em 0.25em'
+                  }}
                 >
                   {displayValue}
                 </button>
@@ -406,26 +532,38 @@ export function StatBuilderChip({
               {isEditing && (
                 <button
                   onClick={handleConfirmClick}
-                  className="ml-2 w-5 h-5 flex items-center justify-center text-green-400 hover:text-green-300 transition-colors"
+                  className="text-green-400 hover:text-green-300 transition-colors"
                   title="Confirm"
                   aria-label="Confirm changes"
                   data-testid="confirm-button"
+                  style={{
+                    marginLeft: '0.5em',
+                    width: '1.25em',
+                    height: '1.25em',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
                 >
-                  <Check size={12} />
+                  <Check size="0.75rem" />
                 </button>
               )}
             </div>
             
-            {/* Gap */}
-            <div className="w-2 flex-shrink-0" />
-            
-            {/* Label section - responsive sizing and truncation */}
+            {/* Label section - flexible with mode-based constraints */}
             <span 
-              className="flex-1 font-medium text-white/70 truncate text-sm sm:text-sm lg:text-sm min-w-0"
-              style={{ 
-                maxWidth: '70%'
+              style={{
+                fontWeight: '500',
+                color: 'rgb(255 255 255 / 0.7)',
+                fontSize: layoutMode === 'B' ? '0.9375rem' : '1rem',
+                flex: 1,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                minWidth: 0,
+                maxWidth: layoutMode === 'A' ? '70%' : '60%'
               }}
-              title={cleanLabel}
+              title={baseLabel}
             >
               {cleanLabel}
             </span>
@@ -435,7 +573,18 @@ export function StatBuilderChip({
       
       {/* Error message */}
       {error && (
-        <div className="absolute top-full left-0 mt-1 text-xs text-red-400 whitespace-nowrap z-10">
+        <div 
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            marginTop: '0.25rem',
+            fontSize: '0.75rem',
+            color: 'rgb(248 113 113)',
+            whiteSpace: 'nowrap',
+            zIndex: 10
+          }}
+        >
           {error}
         </div>
       )}
