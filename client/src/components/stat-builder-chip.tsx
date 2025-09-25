@@ -244,6 +244,27 @@ export function StatBuilderChip({
     setError(null);
   }, []);
 
+  // Auto-apply changes while typing (debounced)
+  useEffect(() => {
+    if (!isEditing || !inputValue) return;
+
+    const timeoutId = setTimeout(() => {
+      const validationResult = validateInput(inputValue, validation);
+      if (validationResult.isValid) {
+        const newNumber = parseFloat(inputValue);
+        const originalOperator = parseOperator(parsed.originalLabel);
+        
+        // Apply immediately if valid and different
+        if ((newNumber !== parsed.number || operator !== originalOperator) && onNumberChange) {
+          const newLabel = generateUpdatedLabel(parsed, newNumber, operator);
+          onNumberChange(newNumber, newLabel, operator);
+        }
+      }
+    }, 800); // 800ms debounce - applies after user stops typing
+
+    return () => clearTimeout(timeoutId);
+  }, [inputValue, isEditing, validation, parsed, operator, onNumberChange]);
+
   // Format number with thousands separators for display
   const formatDisplayNumber = useCallback((value: number) => {
     if (validation.allowDecimals && validation.decimalPlaces !== undefined) {
@@ -284,12 +305,10 @@ export function StatBuilderChip({
   }, [parsed.number]);
 
   const handleInputBlur = useCallback(() => {
-    // Small delay to allow click on confirm button
-    setTimeout(() => {
-      if (isEditing) {
-        commitValue();
-      }
-    }, 100);
+    // Apply immediately when clicking away (no delay needed)
+    if (isEditing) {
+      commitValue();
+    }
   }, [isEditing, commitValue]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
