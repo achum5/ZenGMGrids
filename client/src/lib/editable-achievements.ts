@@ -102,7 +102,9 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
   if (operator === '≤') {
     // Generate "X or less" format for career/season totals
     if (parsed.originalLabel.includes('Career') || parsed.originalLabel.includes('Season')) {
-      return `${formattedNumber} or less ${parsed.suffix}`;
+      // Clean the suffix by removing "+" for "or less" format
+      const cleanSuffix = parsed.suffix.replace(/^\+\s*/, '');
+      return `${formattedNumber} or less ${cleanSuffix}`;
     }
     // For other patterns, use "≤ X" format
     return `≤ ${formattedNumber}${parsed.suffix}`;
