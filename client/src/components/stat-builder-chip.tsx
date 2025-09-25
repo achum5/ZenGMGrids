@@ -187,6 +187,7 @@ export function StatBuilderChip({
   const [isEditing, setIsEditing] = useState(false);
   const [validation, setValidation] = useState<StatValidation>(() => getStatValidation(label));
   const [error, setError] = useState<string | null>(null);
+  const [userHasToggledOperator, setUserHasToggledOperator] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const containerWidthEm = useContainerWidth(containerRef);
@@ -211,14 +212,23 @@ export function StatBuilderChip({
     const newParsed = parseAchievementLabel(label, sport);
     setParsed(newParsed);
     setInputValue(newParsed.number.toString());
-    setOperator(parseOperator(label));
+    
+    // Only update operator from label if user hasn't manually toggled it
+    if (!userHasToggledOperator) {
+      setOperator(parseOperator(label));
+    }
+    
     setValidation(getStatValidation(label));
     setError(null);
-  }, [label, sport]);
+  }, [label, sport, userHasToggledOperator]);
 
   // All useCallback hooks must come before the early return
   const handleOperatorClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
+    
+    // Mark that user has manually toggled the operator
+    setUserHasToggledOperator(true);
+    
     setOperator(prev => {
       const newOperator = prev === '≥' ? '≤' : '≥';
       
