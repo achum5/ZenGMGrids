@@ -5,23 +5,25 @@ interface EditableAchievementLabelProps {
   label: string;
   onNumberChange?: (newNumber: number, newLabel: string) => void;
   className?: string;
+  sport?: string;
 }
 
 export function EditableAchievementLabel({ 
   label, 
   onNumberChange, 
-  className 
+  className,
+  sport
 }: EditableAchievementLabelProps) {
-  const [parsed, setParsed] = useState<ParsedAchievement>(() => parseAchievementLabel(label));
+  const [parsed, setParsed] = useState<ParsedAchievement>(() => parseAchievementLabel(label, sport));
   const [inputValue, setInputValue] = useState<string>(() => parsed.number.toString());
   const [isEditing, setIsEditing] = useState(false);
 
   // Update parsed achievement when label changes
   useEffect(() => {
-    const newParsed = parseAchievementLabel(label);
+    const newParsed = parseAchievementLabel(label, sport);
     setParsed(newParsed);
     setInputValue(newParsed.number.toString());
-  }, [label]);
+  }, [label, sport]);
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -100,18 +102,19 @@ export function EditableAchievementLabel({
 export function EditableAchievementLabelNoPlus({ 
   label, 
   onNumberChange, 
-  className 
+  className,
+  sport
 }: EditableAchievementLabelProps) {
-  const [parsed, setParsed] = useState<ParsedAchievement>(() => parseAchievementLabel(label));
+  const [parsed, setParsed] = useState<ParsedAchievement>(() => parseAchievementLabel(label, sport));
   const [inputValue, setInputValue] = useState<string>(() => parsed.number.toString());
   const [isEditing, setIsEditing] = useState(false);
 
   // Update parsed achievement when label changes
   useEffect(() => {
-    const newParsed = parseAchievementLabel(label);
+    const newParsed = parseAchievementLabel(label, sport);
     setParsed(newParsed);
     setInputValue(newParsed.number.toString());
-  }, [label]);
+  }, [label, sport]);
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;

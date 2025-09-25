@@ -52,3 +52,10 @@ Preferred communication style: Simple, everyday language.
 - **Database**: Drizzle ORM with PostgreSQL support (configured but not actively used in current implementation)
 - **Deployment**: Optimized for Vercel static hosting
 - **Vercel Configuration**: Custom build script and vercel.json for SPA routing
+
+### Sport-Specific Features
+
+- **Editable Statistical Achievements**: Currently only available for Basketball GM
+  - Allows users to customize numerical thresholds (e.g., "30+ PPG" can be changed to "25+ PPG")
+  - Temporarily disabled for Football, Hockey, and Baseball until those sport parsers are fully implemented
+  - Uses regex pattern matching to identify editable numerical values in achievement labels

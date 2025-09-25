@@ -159,7 +159,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
           
           if (realAchievement) {
             // Create custom achievement with new threshold using the real achievement
-            const customAchievement = createCustomNumericalAchievement(realAchievement, newNumber);
+            const customAchievement = createCustomNumericalAchievement(realAchievement, newNumber, sport);
             
             // Update the selector with new label and custom achievement
             newSelectors[index] = {
@@ -1002,6 +1002,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                     <div className="pointer-events-auto">
                       <EditableAchievementLabel
                         label={selector.label || ''}
+                        sport={sport}
                         onNumberChange={(newNumber, newLabel) => 
                           handleAchievementNumberChange(
                             isRow ? 'row' : 'col', 

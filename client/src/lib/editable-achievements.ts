@@ -30,8 +30,9 @@ const ACHIEVEMENT_PATTERNS = [
 
 /**
  * Parse an achievement label to identify if it contains an editable numerical threshold
+ * Only basketball achievements are editable for now
  */
-export function parseAchievementLabel(label: string): ParsedAchievement {
+export function parseAchievementLabel(label: string, sport?: string): ParsedAchievement {
   // Try each pattern to find numerical thresholds
   for (const pattern of ACHIEVEMENT_PATTERNS) {
     const match = label.match(pattern);
@@ -63,7 +64,7 @@ export function parseAchievementLabel(label: string): ParsedAchievement {
           prefix: prefix || '',
           number,
           suffix: suffix || '',
-          isEditable: true
+          isEditable: sport === 'basketball' // Only basketball achievements are editable
         };
       }
     }
@@ -111,9 +112,10 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
  */
 export function createCustomNumericalAchievement(
   baseAchievement: Achievement, 
-  newThreshold: number
+  newThreshold: number,
+  sport?: string
 ): Achievement {
-  const parsed = parseAchievementLabel(baseAchievement.label);
+  const parsed = parseAchievementLabel(baseAchievement.label, sport);
   
   if (!parsed.isEditable) {
     return baseAchievement; // Return original if not editable
