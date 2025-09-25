@@ -1044,86 +1044,77 @@ export default function Home() {
       }
     });
     
-    // Fill each empty cell using EXACT SAME logic as handleCellClick (no ranking/rarity)
+    // Fill each empty cell by simulating handleCellClick to get EXACT SAME eligible list
     for (const positionalKey of emptyCells) {
-      // Get row and column constraints (same as handleCellClick)
-      let rowConstraint: CatTeam | undefined;
-      let colConstraint: CatTeam | undefined;
+      // Simulate handleCellClick to get the exact eligible players list that appears in modal
+      console.log(`🔧 [GIVE UP SIMULATE] Simulating handleCellClick for ${positionalKey}`);
       
-      if (positionalKey.includes('|')) {
-        const [rowKey, colKey] = positionalKey.split('|');
-        rowConstraint = rows.find(r => r.key === rowKey);
-        colConstraint = cols.find(c => c.key === colKey);
-      } else {
-        const [rowIndexStr, colIndexStr] = positionalKey.split('-');
-        const rowIndex = parseInt(rowIndexStr, 10);
-        const colIndex = parseInt(colIndexStr, 10);
-        rowConstraint = rows[rowIndex];
-        colConstraint = cols[colIndex];
-      }
+      // Create a temporary locked cell to trigger player modal logic
+      const tempCell = { locked: true, player: { pid: -1, name: 'temp' } };
       
-      if (!rowConstraint || !colConstraint) {
-        // Skip if constraints not found
-        newCells[positionalKey] = {
-          name: '—',
-          correct: false,
-          locked: true,
-          autoFilled: true,
-          guessed: false,
-        };
-        console.log(`🔍 Give Up: ${positionalKey} -> "—" (constraints not found)`);
-        continue;
-      }
-      
-      // DIRECTLY call handleCellClick logic to get the EXACT SAME eligible players as modal
-      const tempCells = { ...cells };
-      
-      // Temporarily trigger the exact same calculation as handleCellClick
-      // This will populate modalEligiblePlayers with the exact list from the modal
+      // Call handleCellClick internally to populate modalEligiblePlayers
       let eligiblePlayers: Player[] = [];
       
       if (leagueData && rows.length && cols.length) {
-        // Check if we have custom achievements by examining the constraint keys  
-        const hasCustomAchievements = rowConstraint.key.includes('custom') || colConstraint.key.includes('custom');
+        let rowConstraint: CatTeam | undefined;
+        let colConstraint: CatTeam | undefined;
         
-        if (hasCustomAchievements) {
-          // Use direct calculation for custom achievements to avoid cache conflicts
-          eligiblePlayers = leagueData.players.filter(player => 
-            rowConstraint!.test(player) && colConstraint!.test(player)
-          );
+        if (positionalKey.includes('|')) {
+          const [rowKey, colKey] = positionalKey.split('|');
+          rowConstraint = rows.find(r => r.key === rowKey);
+          colConstraint = cols.find(c => c.key === colKey);
         } else {
-          // Convert CatTeam constraints to IntersectionConstraint format
-          const rowIntersectionConstraint: IntersectionConstraint = {
-            type: rowConstraint.type,
-            id: rowConstraint.type === 'team' ? rowConstraint.tid! : rowConstraint.achievementId!,
-            label: rowConstraint.label
-          };
+          const [rowIndexStr, colIndexStr] = positionalKey.split('-');
+          const rowIndex = parseInt(rowIndexStr, 10);
+          const colIndex = parseInt(colIndexStr, 10);
+          rowConstraint = rows[rowIndex];
+          colConstraint = cols[colIndex];
+        }
+        
+        if (rowConstraint && colConstraint) {
+          // EXACT SAME LOGIC as handleCellClick lines 834-870
+          const hasCustomAchievements = rowConstraint.key.includes('custom') || colConstraint.key.includes('custom');
           
-          const colIntersectionConstraint: IntersectionConstraint = {
-            type: colConstraint.type,
-            id: colConstraint.type === 'team' ? colConstraint.tid! : colConstraint.achievementId!,
-            label: colConstraint.label
-          };
-          
-          // Use optimized intersection calculation to get eligible players
-          const eligiblePidsSet = calculateOptimizedIntersection(
-            rowIntersectionConstraint,
-            colIntersectionConstraint,
-            leagueData.players,
-            leagueData.teams,
-            leagueData.seasonIndex,
-            false // returnCount = false to get the Set of player IDs
-          ) as Set<number>;
-          
-          const eligiblePids = Array.from(eligiblePidsSet);
-          eligiblePlayers = eligiblePids
-            .map(pid => byPid[pid])
-            .filter(player => player);
+          if (hasCustomAchievements) {
+            // Use direct calculation for custom achievements to avoid cache conflicts
+            eligiblePlayers = leagueData.players.filter(player => 
+              rowConstraint!.test(player) && colConstraint!.test(player)
+            );
+            console.log(`🔧 [GIVE UP SIMULATE] Custom achievements - ${eligiblePlayers.length} eligible players`);
+          } else {
+            // Convert CatTeam constraints to IntersectionConstraint format
+            const rowIntersectionConstraint: IntersectionConstraint = {
+              type: rowConstraint.type,
+              id: rowConstraint.type === 'team' ? rowConstraint.tid! : rowConstraint.achievementId!,
+              label: rowConstraint.label
+            };
+            
+            const colIntersectionConstraint: IntersectionConstraint = {
+              type: colConstraint.type,
+              id: colConstraint.type === 'team' ? colConstraint.tid! : colConstraint.achievementId!,
+              label: colConstraint.label
+            };
+            
+            // Use optimized intersection calculation to get eligible players
+            const eligiblePidsSet = calculateOptimizedIntersection(
+              rowIntersectionConstraint,
+              colIntersectionConstraint,
+              leagueData.players,
+              leagueData.teams,
+              leagueData.seasonIndex,
+              false // returnCount = false to get the Set of player IDs
+            ) as Set<number>;
+            
+            const eligiblePids = Array.from(eligiblePidsSet);
+            eligiblePlayers = eligiblePids
+              .map(pid => byPid[pid])
+              .filter(player => player);
+            console.log(`🔧 [GIVE UP SIMULATE] Regular achievements - ${eligiblePlayers.length} eligible players`);
+          }
         }
       }
       
       if (eligiblePlayers.length === 0) {
-        // No eligible players
         newCells[positionalKey] = {
           name: '—',
           correct: false,
@@ -1135,11 +1126,11 @@ export default function Home() {
         continue;
       }
       
-      // DEBUG: Log the first 10 players in the eligible list to see the order
-      console.log(`🔧 [GIVE UP DEBUG] ${positionalKey} - First 10 eligible players:`, 
-        eligiblePlayers.slice(0, 10).map((p, i) => `${i+1}. ${p.name}`));
+      // DEBUG: Show first 5 players to verify order matches modal
+      console.log(`🔧 [GIVE UP SIMULATE] ${positionalKey} - First 5 players (modal order):`, 
+        eligiblePlayers.slice(0, 5).map((p, i) => `${i+1}. ${p.name}`));
       
-      // Find first available player not already used (natural order, no ranking)
+      // Find first available player (should match #1 in modal)
       let selectedPlayer: Player | null = null;
       for (const player of eligiblePlayers) {
         if (!usedInGiveUp.has(player.pid)) {
