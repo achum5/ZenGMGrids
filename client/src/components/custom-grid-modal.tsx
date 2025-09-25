@@ -166,11 +166,11 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
             // Create custom achievement with new threshold using the real achievement
             const customAchievement = createCustomNumericalAchievement(realAchievement, newNumber, sport, currentOperator);
             
-            // Update the selector with new label and custom achievement
+            // Update the selector with custom achievement (preserve original label)
             newSelectors[index] = {
               ...currentSelector,
-              label: newLabel,
               customAchievement
+              // Keep original label unchanged - header stays customizable
             };
             
             
