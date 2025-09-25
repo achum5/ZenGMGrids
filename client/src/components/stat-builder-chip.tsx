@@ -195,17 +195,15 @@ export function StatBuilderChip({
     setError(null);
   }, [label, sport]);
 
+  // If not editable, render as plain text
+  if (!parsed.isEditable) {
+    return <span className={className}>{label}</span>;
+  }
+
   const handleOperatorClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    const newOperator = operator === '≥' ? '≤' : '≥';
-    setOperator(newOperator);
-    
-    // Immediately update the label with the new operator
-    if (onNumberChange) {
-      const newLabel = generateUpdatedLabel(parsed, parsed.number, newOperator);
-      onNumberChange(parsed.number, newLabel);
-    }
-  }, [operator, parsed, onNumberChange]);
+    setOperator(prev => prev === '≥' ? '≤' : '≥');
+  }, []);
 
   const handleNumberClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -254,13 +252,13 @@ export function StatBuilderChip({
     
     const newNumber = parseFloat(inputValue);
     if (newNumber !== parsed.number && onNumberChange) {
-      const newLabel = generateUpdatedLabel(parsed, newNumber, operator);
+      const newLabel = generateUpdatedLabel(parsed, newNumber);
       onNumberChange(newNumber, newLabel);
     }
     
     setIsEditing(false);
     setError(null);
-  }, [inputValue, validation, parsed, onNumberChange, operator]);
+  }, [inputValue, validation, parsed, onNumberChange]);
 
   const cancelEdit = useCallback(() => {
     setInputValue(parsed.number.toString());
@@ -315,11 +313,6 @@ export function StatBuilderChip({
   // Extract and abbreviate the clean label
   const baseLabel = parsed.suffix.replace(/^\+?\s*/, '').trim() || parsed.originalLabel.replace(/^[^a-zA-Z]*\d+[^a-zA-Z]*/, '').trim();
   const cleanLabel = abbreviateLabel(baseLabel, layoutMode);
-
-  // If not editable, render as plain text (after all hooks)
-  if (!parsed.isEditable) {
-    return <span className={className}>{label}</span>;
-  }
 
   return (
     <div 

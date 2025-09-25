@@ -81,9 +81,9 @@ export function parseAchievementLabel(label: string, sport?: string): ParsedAchi
 }
 
 /**
- * Generate a new achievement label with a different numerical threshold and operator
+ * Generate a new achievement label with a different numerical threshold
  */
-export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: number, operator?: '≥' | '≤'): string {
+export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: number): string {
   if (!parsed.isEditable) {
     return parsed.originalLabel;
   }
@@ -98,30 +98,6 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
     formattedNumber = newNumber.toString();
   }
   
-  // If operator is provided, use it to determine the format
-  if (operator) {
-    // Extract the clean achievement description (without operator symbols)
-    let achievementDesc = parsed.suffix.replace(/^\+?\s*/, '').trim();
-    
-    // If suffix is empty or doesn't contain meaningful text, use a better extraction
-    if (!achievementDesc || achievementDesc.length < 3) {
-      // Try to extract from the original label, removing number and operator parts
-      achievementDesc = parsed.originalLabel
-        .replace(/^[^a-zA-Z]*\d+[\d,]*\+?\s*/, '') // Remove leading number+operator
-        .replace(/^\d+[\d,]*\s*or\s*less\s*/, '') // Remove "X or less" pattern
-        .trim();
-    }
-    
-    if (operator === '≤') {
-      // For "less than or equal", use "or less" format
-      return `${formattedNumber} or less ${achievementDesc}`;
-    } else {
-      // For "greater than or equal", use "+" format  
-      return `${formattedNumber}+ ${achievementDesc}`;
-    }
-  }
-  
-  // Fallback to original logic if no operator provided
   // Check if the original had a "+" and maintain that format
   if (parsed.originalLabel.includes('+')) {
     return `${parsed.prefix}${formattedNumber}+${parsed.suffix}`;
