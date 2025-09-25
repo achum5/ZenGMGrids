@@ -210,12 +210,11 @@ export function StatBuilderChip({
   useEffect(() => {
     const newParsed = parseAchievementLabel(label, sport);
     setParsed(newParsed);
-    // Format the input value for display instead of just using toString()
-    setInputValue(formatDisplayNumber(newParsed.number));
+    setInputValue(newParsed.number.toString());
     setOperator(parseOperator(label));
     setValidation(getStatValidation(label));
     setError(null);
-  }, [label, sport, formatDisplayNumber]);
+  }, [label, sport]);
 
   // All useCallback hooks must come before the early return
   const handleOperatorClick = useCallback((e: React.MouseEvent) => {
