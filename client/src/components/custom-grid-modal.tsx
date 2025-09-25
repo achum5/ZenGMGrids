@@ -233,6 +233,21 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     // Reset state
   }, []);
 
+  // Clear individual selector
+  const clearSelector = useCallback((isRow: boolean, index: number) => {
+    if (isRow) {
+      setRowSelectors(prev => prev.map((selector, i) => 
+        i === index ? { type: null, value: null, label: null, customAchievement: null } : selector
+      ));
+    } else {
+      setColSelectors(prev => prev.map((selector, i) => 
+        i === index ? { type: null, value: null, label: null, customAchievement: null } : selector
+      ));
+    }
+    // Trigger cell count calculation
+    setCalculating(true);
+  }, []);
+
   // Helper function to determine if an achievement is season-specific
   const isSeasonAchievement = useCallback((achievementId: string) => {
     return SEASON_ACHIEVEMENTS.some(sa => sa.id === achievementId);
@@ -898,78 +913,14 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
         >
             {selector.label ? (
               <div className="text-center w-full h-full flex flex-col items-center justify-center relative">
-                {/* Red X button in top right corner */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button 
-                      className="absolute -top-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors z-20 shadow-sm"
-                      title="Change selection"
-                    >
-                      <X className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent 
-                    side="bottom" 
-                    align="end" 
-                    sideOffset={4}
-                    className="w-[min(90vw,20rem)] sm:w-80 p-0"
-                    avoidCollisions={true}
-                    collisionPadding={16}
-                  >
-                    <Tabs defaultValue="teams" className="w-full">
-                      <TabsList className="grid w-full grid-cols-2 m-2 mb-0">
-                        <TabsTrigger value="teams" className="text-xs">Teams</TabsTrigger>
-                        <TabsTrigger value="achievements" className="text-xs">Achievements</TabsTrigger>
-                      </TabsList>
-                      
-                      <TabsContent value="teams" className="mt-0">
-                        <div className="max-h-[35vh] sm:max-h-80 overflow-y-auto p-0">
-                          {teams.map(team => (
-                            <DropdownMenuItem
-                              key={team.id}
-                              onSelect={() => updateSelectorValue(isRow, index, 'team', team.id, team.name)}
-                              className="px-3 py-2 text-sm cursor-pointer flex items-center gap-2"
-                              data-testid={`team-option-${team.id}`}
-                            >
-                              <img
-                                src={team.logoUrl}
-                                alt={`${team.name} logo`}
-                                className="w-4 h-4 object-contain flex-shrink-0"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none';
-                                }}
-                              />
-                              <span className="truncate">{team.name}</span>
-                            </DropdownMenuItem>
-                          ))}
-                        </div>
-                      </TabsContent>
-                      
-                      <TabsContent value="achievements" className="mt-0">
-                        <div className="max-h-[35vh] sm:max-h-80 overflow-y-auto p-0">
-                          {achievementSections.map((section, sectionIndex) => (
-                            <div key={sectionIndex}>
-                              <div className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide bg-muted/50">
-                                {section.title}
-                              </div>
-                              {section.achievements.map(achievement => (
-                                <DropdownMenuItem
-                                  key={achievement.id}
-                                  onSelect={() => updateSelectorValue(isRow, index, 'achievement', achievement.id, achievement.name)}
-                                  className="px-3 py-2 text-sm cursor-pointer"
-                                  data-testid={`achievement-option-${achievement.id}`}
-                                >
-                                  <span className="truncate">{achievement.name}</span>
-                                </DropdownMenuItem>
-                              ))}
-                            </div>
-                          ))}
-                        </div>
-                      </TabsContent>
-                    </Tabs>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                
+                {/* Red X button in top right corner - clears selection */}
+                <button 
+                  onClick={() => clearSelector(isRow, index)}
+                  className="absolute -top-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors z-20 shadow-sm"
+                  title="Clear selection"
+                >
+                  <X className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                </button>
                 {/* Make entire box clickable */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
