@@ -319,10 +319,10 @@ export function StatBuilderChip({
       ref={containerRef}
       className={`relative w-full ${className || ''}`}
       style={{ 
-        fontSize: '1rem',
-        // Reserve no-fly zone for delete button (last 20% width, top 20% height)
-        maxWidth: 'calc(80% - 0.5rem)',
-        margin: '0 0.5rem'
+        fontSize: '0.875rem', // Reduced base font size
+        // Constrain to prevent overflow - more aggressive
+        maxWidth: 'calc(75% - 0.25rem)',
+        margin: '0 0.25rem'
       }}
     >
       {/* Main chip with container-based sizing */}
@@ -335,21 +335,21 @@ export function StatBuilderChip({
         `}
         title="Chosen stat threshold"
         style={{ 
-          // Fluid typography and sizing
-          fontSize: 'clamp(0.875rem, 1rem + 0.25vw, 1.125rem)',
-          minBlockSize: '2.5rem',
-          // Layout based on mode
+          // Smaller, more constrained sizing
+          fontSize: '0.75rem',
+          minBlockSize: '2rem',
+          // Layout based on mode with tighter padding
           ...(layoutMode === 'C' ? {
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
-            padding: '0.375em 0.75em',
-            gap: '0.25em'
+            padding: '0.25em 0.5em',
+            gap: '0.125em'
           } : {
             display: 'flex',
             alignItems: 'center',
-            padding: '0.5em 0.75em',
-            gap: layoutMode === 'B' ? '0.5em' : '0.75em'
+            padding: '0.25em 0.5em',
+            gap: '0.25em'
           })
         }}
       >
@@ -366,13 +366,13 @@ export function StatBuilderChip({
                 aria-label="Stat threshold operator"
                 data-testid="operator-button"
                 style={{
-                  width: '3ch',
-                  height: '1.5em',
+                  width: '2ch', // Smaller operator
+                  height: '1.2em',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontWeight: '500',
-                  fontSize: '1rem',
+                  fontSize: '0.75rem',
                   flexShrink: 0
                 }}
               >
@@ -396,8 +396,9 @@ export function StatBuilderChip({
                       outline: 'none',
                       color: 'rgb(255 255 255 / 0.85)',
                       fontWeight: '600',
-                      fontSize: 'clamp(1rem, 1.125rem + 0.25vw, 1.25rem)',
+                      fontSize: '0.875rem', // Fixed smaller size
                       width: `${Math.max(inputValue.length + 1, 3)}ch`,
+                      maxWidth: '4ch', // Prevent excessive width
                       appearance: 'textfield',
                       MozAppearance: 'textfield',
                       WebkitAppearance: 'none'
@@ -413,7 +414,7 @@ export function StatBuilderChip({
                     data-testid="number-display"
                     style={{
                       fontWeight: '600',
-                      fontSize: 'clamp(1rem, 1.125rem + 0.25vw, 1.25rem)',
+                      fontSize: '0.875rem', // Fixed smaller size
                       padding: '0.125em 0.25em'
                     }}
                   >
@@ -450,7 +451,7 @@ export function StatBuilderChip({
                 style={{
                   fontWeight: '500',
                   color: 'rgb(255 255 255 / 0.7)',
-                  fontSize: '0.875rem',
+                  fontSize: '0.625rem', // Much smaller for 2-line mode
                   display: 'block',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -473,13 +474,13 @@ export function StatBuilderChip({
               aria-label="Stat threshold operator"
               data-testid="operator-button"
               style={{
-                width: '3ch',
-                height: '1.5em',
+                width: '2ch', // Smaller operator
+                height: '1.2em',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontWeight: '500',
-                fontSize: '1rem',
+                fontSize: '0.75rem',
                 flexShrink: 0
               }}
             >
@@ -503,8 +504,9 @@ export function StatBuilderChip({
                     outline: 'none',
                     color: 'rgb(255 255 255 / 0.85)',
                     fontWeight: '600',
-                    fontSize: 'clamp(1rem, 1.125rem + 0.25vw, 1.25rem)',
+                    fontSize: '0.875rem', // Fixed smaller size
                     width: `${Math.max(inputValue.length + 1, 3)}ch`,
+                    maxWidth: '4ch', // Prevent excessive width
                     appearance: 'textfield',
                     MozAppearance: 'textfield',
                     WebkitAppearance: 'none'
@@ -520,7 +522,7 @@ export function StatBuilderChip({
                   data-testid="number-display"
                   style={{
                     fontWeight: '600',
-                    fontSize: 'clamp(1rem, 1.125rem + 0.25vw, 1.25rem)',
+                    fontSize: '0.875rem', // Fixed smaller size
                     padding: '0.125em 0.25em'
                   }}
                 >
@@ -555,13 +557,13 @@ export function StatBuilderChip({
               style={{
                 fontWeight: '500',
                 color: 'rgb(255 255 255 / 0.7)',
-                fontSize: layoutMode === 'B' ? '0.9375rem' : '1rem',
+                fontSize: '0.625rem', // Much smaller label
                 flex: 1,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
                 minWidth: 0,
-                maxWidth: layoutMode === 'A' ? '70%' : '60%'
+                maxWidth: '50%' // More aggressive constraint
               }}
               title={baseLabel}
             >
