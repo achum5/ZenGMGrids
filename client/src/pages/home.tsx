@@ -851,27 +851,40 @@ export default function Home() {
       const colConstraint = cols[colIndex];
       
       if (rowConstraint && colConstraint) {
-        // Check if there are eligible players for this cell using CURRENT LOGIC (not cached intersections)
-        const rowIntersectionConstraint: IntersectionConstraint = {
-          type: rowConstraint.type,
-          id: rowConstraint.type === 'team' ? rowConstraint.tid! : rowConstraint.achievementId!,
-          label: rowConstraint.label
-        };
+        // Check if there are eligible players for this cell
+        // Use same logic as player modal to handle custom achievements properly
+        const hasCustomAchievements = rowConstraint.key.includes('custom') || colConstraint.key.includes('custom');
+        let eligiblePidsCount = 0;
         
-        const colIntersectionConstraint: IntersectionConstraint = {
-          type: colConstraint.type,
-          id: colConstraint.type === 'team' ? colConstraint.tid! : colConstraint.achievementId!,
-          label: colConstraint.label
-        };
-        
-        const eligiblePidsCount = calculateOptimizedIntersection(
-          rowIntersectionConstraint,
-          colIntersectionConstraint,
-          leagueData?.players || [],
-          leagueData?.teams || [],
-          leagueData?.seasonIndex,
-          true // Return count
-        ) as number;
+        if (hasCustomAchievements) {
+          // Use direct calculation for custom achievements to avoid cache conflicts
+          const eligiblePlayers = leagueData?.players?.filter(player => 
+            rowConstraint.test(player) && colConstraint.test(player)
+          ) || [];
+          eligiblePidsCount = eligiblePlayers.length;
+        } else {
+          // Use optimized intersection calculation for regular achievements
+          const rowIntersectionConstraint: IntersectionConstraint = {
+            type: rowConstraint.type,
+            id: rowConstraint.type === 'team' ? rowConstraint.tid! : rowConstraint.achievementId!,
+            label: rowConstraint.label
+          };
+          
+          const colIntersectionConstraint: IntersectionConstraint = {
+            type: colConstraint.type,
+            id: colConstraint.type === 'team' ? colConstraint.tid! : colConstraint.achievementId!,
+            label: colConstraint.label
+          };
+          
+          eligiblePidsCount = calculateOptimizedIntersection(
+            rowIntersectionConstraint,
+            colIntersectionConstraint,
+            leagueData?.players || [],
+            leagueData?.teams || [],
+            leagueData?.seasonIndex,
+            true // Return count
+          ) as number;
+        }
         
         if (eligiblePidsCount === 0) {
           toast({
