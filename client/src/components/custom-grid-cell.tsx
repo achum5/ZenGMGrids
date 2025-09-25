@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import React from 'react';
 
 interface CustomGridCellProps {
   playerCount: number;
@@ -7,7 +8,7 @@ interface CustomGridCellProps {
   className?: string;
 }
 
-export function CustomGridCell({ 
+export const CustomGridCell = React.memo(function CustomGridCell({ 
   playerCount, 
   row, 
   col, 
@@ -36,4 +37,6 @@ export function CustomGridCell({
       </div>
     </div>
   );
-}
+});
+
+CustomGridCell.displayName = 'CustomGridCell';

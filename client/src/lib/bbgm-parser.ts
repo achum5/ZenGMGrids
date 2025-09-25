@@ -101,7 +101,7 @@ function detectSport(raw: any): Sport {
 }
 
 export async function parseLeagueFile(file: File): Promise<LeagueData & { sport: Sport }> {
-  console.log(`🔧 [FILE UPLOAD] Starting upload for file: ${file.name} (${file.size} bytes, type: ${file.type})`);
+  console.log(`🔧 [FILE UPLOAD] Starting upload for file: ${file.name} (${(file.size / 1024 / 1024).toFixed(1)}MB, type: ${file.type})`);
   
   try {
     let content: string;

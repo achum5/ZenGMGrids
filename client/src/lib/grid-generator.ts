@@ -11,7 +11,7 @@ const seasonLengthAchievements = new Set(['played10PlusSeasons', 'played15PlusSe
 // Simple session-based memory to avoid immediate repetition
 const recentlyUsedTeams = new Set<number>();
 const recentlyUsedAchievements = new Set<string>();
-const maxRecentItems = 8; // Remember last 8 items to avoid immediate reuse
+const maxRecentItems = 4; // Remember last 4 items to avoid immediate reuse - reduced for performance
 
 function addToRecentlyUsed(teams: CatTeam[], achievements: CatTeam[]) {
   teams.forEach(team => {
@@ -100,8 +100,8 @@ function generateGridOldRandom(leagueData: LeagueData): {
   cols: CatTeam[];
   intersections: Record<string, number[]>;
 } {
-  // Retry logic to ensure all intersections have eligible players - with maximum attempt limit
-  const MAX_ATTEMPTS = 500;
+  // Retry logic to ensure all intersections have eligible players - reduced for performance
+  const MAX_ATTEMPTS = 50;
   let attempt = 0;
   let lastError: Error | null = null;
   

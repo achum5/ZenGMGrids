@@ -48,8 +48,8 @@ export function PlayerSearchModal({
     ],
     (player: SearchablePlayer) => player.pid,
     {
-      delay: 250, // 250ms debounce
-      maxResults: 100,
+      delay: 150, // Reduced debounce for faster response
+      maxResults: 50, // Reduced results for better performance
       enableCache: true
     }
   );
