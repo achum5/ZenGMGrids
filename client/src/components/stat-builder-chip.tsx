@@ -208,13 +208,13 @@ export function StatBuilderChip({
     return value.toLocaleString();
   }, [validation]);
 
-  // Update parsed achievement when label changes
+  // Update parsed achievement when label changes - but NEVER update user input
   useEffect(() => {
     const newParsed = parseAchievementLabel(label, sport);
     setParsed(newParsed);
     
-    // Only update inputValue if user hasn't manually changed the number
-    if (!userHasChangedNumber) {
+    // ONLY update inputValue on initial load, never after user interaction
+    if (!userHasChangedNumber && !userHasToggledOperator) {
       setInputValue(newParsed.number.toString());
     }
     
@@ -237,9 +237,11 @@ export function StatBuilderChip({
     setOperator(prev => {
       const newOperator = prev === '≥' ? '≤' : '≥';
       
-      // Notify about operator change
+      // Notify about operator change using setTimeout to avoid setState during render
       if (onOperatorChange) {
-        onOperatorChange(newOperator);
+        setTimeout(() => {
+          onOperatorChange(newOperator);
+        }, 0);
       }
       
       return newOperator;
@@ -287,7 +289,10 @@ export function StatBuilderChip({
         // Apply immediately if valid and different
         if ((newNumber !== parsed.number || operator !== originalOperator) && onNumberChange) {
           const newLabel = generateUpdatedLabel(parsed, newNumber, operator);
-          onNumberChange(newNumber, newLabel, operator);
+          // Use setTimeout to avoid setState during render
+          setTimeout(() => {
+            onNumberChange(newNumber, newLabel, operator);
+          }, 0);
         }
       }
     }, 800); // 800ms debounce - applies after user stops typing
@@ -309,7 +314,10 @@ export function StatBuilderChip({
     // Trigger callback if number changed OR operator changed from original
     if ((newNumber !== parsed.number || operator !== originalOperator) && onNumberChange) {
       const newLabel = generateUpdatedLabel(parsed, newNumber, operator);
-      onNumberChange(newNumber, newLabel, operator);
+      // Use setTimeout to avoid setState during render
+      setTimeout(() => {
+        onNumberChange(newNumber, newLabel, operator);
+      }, 0);
     }
     
     // Update input value to show formatted number immediately after commit
@@ -356,14 +364,16 @@ export function StatBuilderChip({
   const formatDisplayValue = (value: number, mode: LayoutMode): string => {
     if (isEditing) return inputValue;
     
-    const formatted = formatDisplayNumber(value);
+    // If user has changed the number, use their input instead of parsed value
+    const actualValue = userHasChangedNumber ? parseFloat(inputValue) || value : value;
+    const formatted = formatDisplayNumber(actualValue);
     
     // For mode B, use compact form for numbers >= 7 characters
     if (mode === 'B' && formatted.length >= 7) {
-      if (value >= 1000000) {
-        return `${(value / 1000000).toFixed(1)}M`;
-      } else if (value >= 1000) {
-        return `${(value / 1000).toFixed(1)}k`;
+      if (actualValue >= 1000000) {
+        return `${(actualValue / 1000000).toFixed(1)}M`;
+      } else if (actualValue >= 1000) {
+        return `${(actualValue / 1000).toFixed(1)}k`;
       }
     }
     
