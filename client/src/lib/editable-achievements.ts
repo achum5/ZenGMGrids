@@ -100,16 +100,6 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
   
   // Handle less than operator
   if (operator === '≤') {
-    // Debug logging
-    console.log('🔧 [GENERATE LABEL] Processing ≤ operator:', {
-      originalLabel: parsed.originalLabel,
-      suffix: parsed.suffix,
-      hasCareer: parsed.originalLabel.includes('Career'),
-      hasSeason: parsed.originalLabel.includes('Season'),
-      hasPlus: parsed.originalLabel.includes('+'),
-      suffixHasThrees: parsed.suffix.includes('Threes')
-    });
-
     // Generate "X or less" format for career/season totals
     // This includes explicit "Career"/"Season" labels and career stat patterns (like "Made Threes", "Points", etc.)
     if (parsed.originalLabel.includes('Career') || 
@@ -124,14 +114,10 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
         parsed.suffix.includes('Made Threes')) {
       // Clean the suffix by removing "+" for "or less" format
       const cleanSuffix = parsed.suffix.replace(/^\+\s*/, '');
-      const result = `${formattedNumber} or less ${cleanSuffix}`;
-      console.log('🔧 [GENERATE LABEL] Using "or less" format:', result);
-      return result;
+      return `${formattedNumber} or less ${cleanSuffix}`;
     }
     // For other patterns, use "≤ X" format
-    const result = `≤ ${formattedNumber}${parsed.suffix}`;
-    console.log('🔧 [GENERATE LABEL] Using "≤ X" format:', result);
-    return result;
+    return `≤ ${formattedNumber}${parsed.suffix}`;
   }
   
   // Handle greater than or equal (default behavior)
