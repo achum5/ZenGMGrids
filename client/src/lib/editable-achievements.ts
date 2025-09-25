@@ -13,6 +13,10 @@ export interface ParsedAchievement {
 // Regex patterns for different numerical achievement formats
 // Order matters! Decimal-aware patterns must come BEFORE comma-separated patterns
 const ACHIEVEMENT_PATTERNS = [
+  // Percentage achievements (e.g., "60%+ TS on 20+ PPG (Season)", "90%+ FT (Season)", "40%+ 3PT (Season)")
+  /^([^.\d]*?)(\d+(?:\.\d+)?)\%\+\s*(TS on \d+\+ PPG|eFG|FT|3PT)\s*\(Season\)(.*)$/i,
+  // 50/40/90 Club special pattern 
+  /^([^.\d]*?)(\d+)\/(\d+)\/(\d+)\s*(Club)\s*\(Season\)(.*)$/i,
   // "1 PPG (Season)" or "30 PPG (Season)" or "2.5 BPG (Season)" - season stats without +
   /^([^.\d]*?)(\d+(?:\.\d+)?)\s*(PPG|RPG|APG|SPG|BPG|FG%|3P%|FT%|eFG%|TS%|PER|WS|BPM|VORP|USG%|TOV%|ORB%|DRB%|AST%|STL%|BLK%)\s*\(Season\)(.*)$/i,
   // "Age 40+" 
@@ -40,7 +44,7 @@ export function parseAchievementLabel(label: string, sport?: string): ParsedAchi
       let prefix: string, numberStr: string, suffix: string;
       
       // Handle different capture group patterns
-      if (match.length === 5) {
+      if (match.length === 5 && match[3] && !match[4]) {
         // Pattern 24 (season stats): [full, prefix, number, unit, suffix]
         [, prefix, numberStr, , suffix] = match;
         // For season stats, reconstruct the suffix to include the unit and (Season)
@@ -50,6 +54,18 @@ export function parseAchievementLabel(label: string, sport?: string): ParsedAchi
         } else {
           suffix = ` ${unit} (Season)${suffix}`;
         }
+      } else if (match.length === 5 && match[3] && match[4]) {
+        // Percentage patterns: [full, prefix, number, unit, suffix]
+        [, prefix, numberStr, , suffix] = match;
+        const unit = match[3];
+        suffix = `%+ ${unit} (Season)${suffix}`;
+      } else if (match.length === 7) {
+        // 50/40/90 Club pattern: [full, prefix, num1, num2, num3, unit, suffix]
+        [, prefix, numberStr, , , , suffix] = match;
+        const num2 = match[3];
+        const num3 = match[4];
+        const unit = match[5];
+        suffix = `/${num2}/${num3} ${unit} (Season)${suffix}`;
       } else {
         // Standard patterns: [full, prefix, number, suffix]
         [, prefix, numberStr, suffix] = match;
@@ -100,6 +116,12 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
   
   // Handle less than operator
   if (operator === '≤') {
+    // Handle percentage achievements differently
+    if (parsed.suffix.includes('%+')) {
+      // For percentage achievements, use "≤ X%" format
+      return `≤ ${formattedNumber}%${parsed.suffix.replace('%+', '+')}`;
+    }
+    
     // Generate "X or less" format for career/season totals
     // This includes explicit "Career"/"Season" labels and career stat patterns (like "Made Threes", "Points", etc.)
     if (parsed.originalLabel.includes('Career') || 
@@ -121,6 +143,17 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
   }
   
   // Handle greater than or equal (default behavior)
+  // Handle percentage achievements
+  if (parsed.suffix.includes('%+')) {
+    return `${parsed.prefix}${formattedNumber}%+${parsed.suffix.replace('%+', '')}`;
+  }
+  
+  // Handle 50/40/90 Club special case
+  if (parsed.suffix.includes('Club (Season)')) {
+    // For 50/40/90 club, update just the first number but keep the others
+    return `${parsed.prefix}${formattedNumber}${parsed.suffix}`;
+  }
+  
   // Check if the original had a "+" and maintain that format
   if (parsed.originalLabel.includes('+')) {
     return `${parsed.prefix}${formattedNumber}+${parsed.suffix}`;
@@ -267,6 +300,40 @@ function generateTestFunction(
         ? (player: Player) => getBestSeasonAverage(player, 'blk') <= newThreshold
         : (player: Player) => getBestSeasonAverage(player, 'blk') >= newThreshold;
     }
+    
+    // Percentage achievements - convert user's percentage input (e.g., 40) to decimal (0.40)
+    const thresholdDecimal = newThreshold / 100;
+    
+    if (originalLabel.includes('50/40/90') || originalLabel.includes('club')) {
+      // Special case for 50/40/90 club - only edit FG% (first number)
+      return operator === '≤'
+        ? (player: Player) => getBestSeasonPercentage(player, 'fg') <= thresholdDecimal
+        : (player: Player) => getBestSeasonPercentage(player, 'fg') >= thresholdDecimal;
+    }
+    if (originalLabel.includes('ts') && originalLabel.includes('ppg')) {
+      // 60%+ TS on 20+ PPG - check true shooting percentage
+      return operator === '≤'
+        ? (player: Player) => getBestSeasonPercentage(player, 'ts') <= thresholdDecimal
+        : (player: Player) => getBestSeasonPercentage(player, 'ts') >= thresholdDecimal;
+    }
+    if (originalLabel.includes('efg')) {
+      // Effective field goal percentage
+      return operator === '≤'
+        ? (player: Player) => getBestSeasonPercentage(player, 'efg') <= thresholdDecimal
+        : (player: Player) => getBestSeasonPercentage(player, 'efg') >= thresholdDecimal;
+    }
+    if (originalLabel.includes('ft') && originalLabel.includes('%')) {
+      // Free throw percentage
+      return operator === '≤'
+        ? (player: Player) => getBestSeasonPercentage(player, 'ft') <= thresholdDecimal
+        : (player: Player) => getBestSeasonPercentage(player, 'ft') >= thresholdDecimal;
+    }
+    if (originalLabel.includes('3pt') || (originalLabel.includes('3p') && originalLabel.includes('%'))) {
+      // 3-point percentage
+      return operator === '≤'
+        ? (player: Player) => getBestSeasonPercentage(player, 'tp') <= thresholdDecimal
+        : (player: Player) => getBestSeasonPercentage(player, 'tp') >= thresholdDecimal;
+    }
   }
   
   // Longevity achievements
@@ -329,4 +396,51 @@ function getBestSeasonAverage(player: Player, statField: string): number {
     }
   }
   return maxAverage;
+}
+
+function getBestSeasonPercentage(player: Player, percentageType: string): number {
+  if (!player.stats) return 0;
+  
+  // Avoid stack overflow with large datasets - use manual iteration
+  let maxPercentage = 0;
+  for (const stat of player.stats) {
+    if (!stat.playoffs && (stat.gp || 0) >= 20) {
+      let percentage = 0;
+      
+      switch (percentageType) {
+        case 'fg':
+          // Field goal percentage
+          percentage = (stat.fga || 0) > 0 ? ((stat.fg || 0) / (stat.fga || 1)) : 0;
+          break;
+        case 'ft':
+          // Free throw percentage  
+          percentage = (stat.fta || 0) > 0 ? ((stat.ft || 0) / (stat.fta || 1)) : 0;
+          break;
+        case 'tp':
+          // 3-point percentage
+          percentage = (stat.tpa || 0) > 0 ? ((stat.tpm || 0) / (stat.tpa || 1)) : 0;
+          break;
+        case 'efg':
+          // Effective field goal percentage: (FGM + 0.5 * 3PM) / FGA
+          if ((stat.fga || 0) > 0) {
+            percentage = ((stat.fg || 0) + 0.5 * (stat.tpm || 0)) / (stat.fga || 1);
+          }
+          break;
+        case 'ts':
+          // True shooting percentage: PTS / (2 * (FGA + 0.44 * FTA))
+          const tsDenominator = 2 * ((stat.fga || 0) + 0.44 * (stat.fta || 0));
+          if (tsDenominator > 0) {
+            percentage = (stat.pts || 0) / tsDenominator;
+          }
+          break;
+        default:
+          percentage = 0;
+      }
+      
+      if (percentage > maxPercentage) {
+        maxPercentage = percentage;
+      }
+    }
+  }
+  return maxPercentage;
 }
