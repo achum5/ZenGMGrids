@@ -320,17 +320,19 @@ export function StatBuilderChip({
       }, 0);
     }
     
-    // Update input value to show formatted number immediately after commit
-    setInputValue(formatDisplayNumber(newNumber));
+    // NEVER change what the user typed - keep their exact input
     setIsEditing(false);
     setError(null);
-  }, [inputValue, validation, parsed, onNumberChange, operator, formatDisplayNumber]);
+  }, [inputValue, validation, parsed, onNumberChange, operator]);
 
   const cancelEdit = useCallback(() => {
-    setInputValue(parsed.number.toString());
+    // Only reset to original if user hasn't made any changes
+    if (!userHasChangedNumber) {
+      setInputValue(parsed.number.toString());
+    }
     setIsEditing(false);
     setError(null);
-  }, [parsed.number]);
+  }, [parsed.number, userHasChangedNumber]);
 
   const handleInputBlur = useCallback(() => {
     // Apply immediately when clicking away (no delay needed)
@@ -360,27 +362,31 @@ export function StatBuilderChip({
     return <span className={className}>{label}</span>;
   }
 
-  // Format display value with thousands separators and compact forms
-  const formatDisplayValue = (value: number, mode: LayoutMode): string => {
+  // Display value - show exactly what user typed if they changed it
+  const getDisplayValue = (): string => {
     if (isEditing) return inputValue;
     
-    // If user has changed the number, use their input instead of parsed value
-    const actualValue = userHasChangedNumber ? parseFloat(inputValue) || value : value;
-    const formatted = formatDisplayNumber(actualValue);
+    // If user has changed the number, show their EXACT input without any formatting
+    if (userHasChangedNumber) {
+      return inputValue;
+    }
+    
+    // Only apply formatting if user hasn't touched the number
+    const formatted = formatDisplayNumber(parsed.number);
     
     // For mode B, use compact form for numbers >= 7 characters
-    if (mode === 'B' && formatted.length >= 7) {
-      if (actualValue >= 1000000) {
-        return `${(actualValue / 1000000).toFixed(1)}M`;
-      } else if (actualValue >= 1000) {
-        return `${(actualValue / 1000).toFixed(1)}k`;
+    if (layoutMode === 'B' && formatted.length >= 7) {
+      if (parsed.number >= 1000000) {
+        return `${(parsed.number / 1000000).toFixed(1)}M`;
+      } else if (parsed.number >= 1000) {
+        return `${(parsed.number / 1000).toFixed(1)}k`;
       }
     }
     
     return formatted;
   };
   
-  const displayValue = formatDisplayValue(parsed.number, layoutMode);
+  const displayValue = getDisplayValue();
   
   // Extract and abbreviate the clean label
   const baseLabel = parsed.suffix.replace(/^\+?\s*/, '').trim() || parsed.originalLabel.replace(/^[^a-zA-Z]*\d+[^a-zA-Z]*/, '').trim();
