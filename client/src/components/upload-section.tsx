@@ -114,11 +114,11 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing }: Uploa
                 <div className="flex flex-col items-center space-y-4">
                   <FileUp className="h-12 w-12 text-muted-foreground" />
                   <h3 className="text-lg font-semibold text-foreground">Upload a ZenGM League</h3>
-                  <p className="text-muted-foreground max-w-md">Any ZenGM sport — upload .json / .json.gz.</p>
+                  <p className="text-muted-foreground max-w-md">Any ZenGM sport — upload .json / .json.gz / .bbgm / .fbgm / .hgm / .bgm / .zgmh / .zgmb</p>
                   <input
                     type="file"
                     id="file-input"
-                    accept=".json,.gz"
+                    accept=".json,.gz,.bbgm,.fbgm,.hgm,.bgm,.zgmh,.zgmb"
                     className="hidden"
                     onChange={handleFileSelect}
                     disabled={isProcessing}
@@ -148,7 +148,7 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing }: Uploa
                 <div className="flex flex-col items-center space-y-4">
                   <Link className="h-12 w-12 text-muted-foreground" />
                   <h3 className="text-lg font-semibold text-foreground">Load a ZenGM League from URL</h3>
-                  <p className="text-muted-foreground max-w-md">Any ZenGM sport link — .json / .json.gz.</p>
+                  <p className="text-muted-foreground max-w-md">Any ZenGM sport link — .json / .json.gz / .bbgm / .fbgm / .hgm / .bgm / .zgmh / .zgmb</p>
                   <div className="w-full max-w-md space-y-2">
                     <div className="flex gap-2">
                       <Input
