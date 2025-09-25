@@ -85,14 +85,13 @@ function getStatValidation(label: string): StatValidation {
   
   // Percentage stats (FG%, 3P%, FT%, TS%, eFG%, etc.)
   // Check for various percentage patterns including custom labels
+  // Note: 50/40/90 Club is excluded as it's a specific historic achievement
   if (lowerLabel.includes('%') || 
       lowerLabel.includes('percentage') ||
       lowerLabel.includes('3pt') ||
       lowerLabel.includes('ft (season)') ||
       lowerLabel.includes('efg') ||
-      lowerLabel.includes('ts on') ||
-      lowerLabel.includes('50/40/90') ||
-      lowerLabel.includes('club')) {
+      lowerLabel.includes('ts on')) {
     return {
       min: 0.0,
       max: 100.0,
