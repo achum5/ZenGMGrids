@@ -321,7 +321,7 @@ export function StatBuilderChip({
       style={{ 
         fontSize: '1rem',
         // Center the chip and scale with container
-        maxWidth: '90%',
+        maxWidth: '85%', // Slightly smaller to ensure no overflow
         margin: '0 auto', // Center horizontally
         display: 'flex',
         justifyContent: 'center'
@@ -341,6 +341,7 @@ export function StatBuilderChip({
           fontSize: 'clamp(0.75rem, 2.5vw, 1rem)',
           minBlockSize: 'clamp(2rem, 8vw, 3rem)',
           width: 'fit-content',
+          maxWidth: '100%', // Prevent any expansion beyond container
           // Layout based on mode with responsive padding
           ...(layoutMode === 'C' ? {
             display: 'flex',
@@ -400,8 +401,8 @@ export function StatBuilderChip({
                       color: 'rgb(255 255 255 / 0.85)',
                       fontWeight: '600',
                       fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)',
-                      width: `${Math.max(inputValue.length + 1, 3)}ch`,
-                      maxWidth: 'clamp(4ch, 10vw, 6ch)',
+                      width: `${Math.min(Math.max(inputValue.length + 1, 3), 5)}ch`, // Cap at 5ch
+                      maxWidth: 'clamp(3.5ch, 8vw, 5ch)', // Smaller max to prevent overflow
                       appearance: 'textfield',
                       MozAppearance: 'textfield',
                       WebkitAppearance: 'none'
@@ -508,8 +509,8 @@ export function StatBuilderChip({
                     color: 'rgb(255 255 255 / 0.85)',
                     fontWeight: '600',
                     fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)',
-                    width: `${Math.max(inputValue.length + 1, 3)}ch`,
-                    maxWidth: 'clamp(4ch, 10vw, 6ch)',
+                    width: `${Math.min(Math.max(inputValue.length + 1, 3), 5)}ch`, // Cap at 5ch
+                    maxWidth: 'clamp(3.5ch, 8vw, 5ch)', // Smaller max to prevent overflow
                     appearance: 'textfield',
                     MozAppearance: 'textfield',
                     WebkitAppearance: 'none'
