@@ -69,7 +69,7 @@ export function CustomGridHeaderSelector({
   return (
     <div 
       className={cn(
-        "bg-secondary dark:bg-slate-700 p-3 rounded-lg border border-border dark:border-slate-600",
+        "bg-secondary dark:bg-slate-700 p-3 rounded-lg border border-border dark:border-slate-600 relative",
         className
       )}
       data-testid={`header-selector-${position}`}
@@ -146,22 +146,26 @@ export function CustomGridHeaderSelector({
         </div>
       )}
 
+      {/* Close Button - Fixed positioning in top right corner */}
+      {(localType || config.selectedLabel) && (
+        <Button
+          onClick={handleClear}
+          variant="ghost"
+          size="sm"
+          className="absolute -top-2 -right-2 h-6 w-6 p-0 bg-red-500 hover:bg-red-600 text-white rounded-full z-10 shadow-md"
+          data-testid={`button-clear-selection-${position}`}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      )}
+
       {/* Selected Item Display */}
       {config.selectedLabel && (
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center">
             <span className="text-xs font-medium text-muted-foreground">
               {config.type === 'team' ? 'Team' : 'Achievement'}
             </span>
-            <Button
-              onClick={handleClear}
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 hover:bg-destructive/20"
-              data-testid={`button-clear-selection-${position}`}
-            >
-              <X className="h-3 w-3" />
-            </Button>
           </div>
           
           <div className="bg-primary/10 dark:bg-primary/20 rounded p-2 border border-primary/20">
