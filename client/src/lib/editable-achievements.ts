@@ -15,8 +15,6 @@ export interface ParsedAchievement {
 const ACHIEVEMENT_PATTERNS = [
   // Percentage achievements (e.g., "60%+ TS on 20+ PPG (Season)", "90%+ FT (Season)", "40%+ 3PT (Season)")
   /^([^.\d]*?)(\d+(?:\.\d+)?)\%\+\s*(TS on \d+\+ PPG|eFG|FT|3PT)\s*\(Season\)(.*)$/i,
-  // 50/40/90 Club special pattern 
-  /^([^.\d]*?)(\d+)\/(\d+)\/(\d+)\s*(Club)\s*\(Season\)(.*)$/i,
   // "1 PPG (Season)" or "30 PPG (Season)" or "2.5 BPG (Season)" - season stats without +
   /^([^.\d]*?)(\d+(?:\.\d+)?)\s*(PPG|RPG|APG|SPG|BPG|FG%|3P%|FT%|eFG%|TS%|PER|WS|BPM|VORP|USG%|TOV%|ORB%|DRB%|AST%|STL%|BLK%)\s*\(Season\)(.*)$/i,
   // "Age 40+" 
@@ -59,13 +57,6 @@ export function parseAchievementLabel(label: string, sport?: string): ParsedAchi
         [, prefix, numberStr, , suffix] = match;
         const unit = match[3];
         suffix = `%+ ${unit} (Season)${suffix}`;
-      } else if (match.length === 7) {
-        // 50/40/90 Club pattern: [full, prefix, num1, num2, num3, unit, suffix]
-        [, prefix, numberStr, , , , suffix] = match;
-        const num2 = match[3];
-        const num3 = match[4];
-        const unit = match[5];
-        suffix = `/${num2}/${num3} ${unit} (Season)${suffix}`;
       } else {
         // Standard patterns: [full, prefix, number, suffix]
         [, prefix, numberStr, suffix] = match;
@@ -148,11 +139,6 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
     return `${parsed.prefix}${formattedNumber}%+${parsed.suffix.replace('%+', '')}`;
   }
   
-  // Handle 50/40/90 Club special case
-  if (parsed.suffix.includes('Club (Season)')) {
-    // For 50/40/90 club, update just the first number but keep the others
-    return `${parsed.prefix}${formattedNumber}${parsed.suffix}`;
-  }
   
   // Check if the original had a "+" and maintain that format
   if (parsed.originalLabel.includes('+')) {
@@ -304,12 +290,6 @@ function generateTestFunction(
     // Percentage achievements - convert user's percentage input (e.g., 40) to decimal (0.40)
     const thresholdDecimal = newThreshold / 100;
     
-    if (originalLabel.includes('50/40/90') || originalLabel.includes('club')) {
-      // Special case for 50/40/90 club - only edit FG% (first number)
-      return operator === '≤'
-        ? (player: Player) => getBestSeasonPercentage(player, 'fg') <= thresholdDecimal
-        : (player: Player) => getBestSeasonPercentage(player, 'fg') >= thresholdDecimal;
-    }
     if (originalLabel.includes('ts') && originalLabel.includes('ppg')) {
       // 60%+ TS on 20+ PPG - check true shooting percentage
       return operator === '≤'
