@@ -1021,7 +1021,7 @@ export default function Home() {
   const handleGiveUp = useCallback(() => {
     if (!leagueData) return;
     
-    // Find all empty cells using position-based keys
+    // Find all empty cells
     const emptyCells: string[] = [];
     for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
       for (let colIndex = 0; colIndex < cols.length; colIndex++) {
@@ -1033,125 +1033,128 @@ export default function Home() {
     }
     
     if (emptyCells.length === 0) return;
-    
+
     const newCells = { ...cells };
-    const newRankCache = { ...rankCache };
-    
-    // Build rankings for all empty cells
-    const cellRankings: Record<string, Array<{player: Player, rarity: number}>> = {};
-    for (const cellKey of emptyCells) {
-      let ranking = newRankCache[cellKey];
-      if (!ranking) {
-        ranking = buildRankCacheForCell(cellKey);
-        newRankCache[cellKey] = ranking;
-      }
-      cellRankings[cellKey] = ranking;
-    }
-    
-    // Detect collisions: find players who are rank #1 for multiple cells
-    const playerToCells: Record<number, string[]> = {};
-    for (const cellKey of emptyCells) {
-      const ranking = cellRankings[cellKey];
-      if (ranking.length > 0) {
-        const topPlayer = ranking[0].player;
-        if (!playerToCells[topPlayer.pid]) {
-          playerToCells[topPlayer.pid] = [];
-        }
-        playerToCells[topPlayer.pid].push(cellKey);
-      }
-    }
-    
-    // Check for players already used in the entire grid (including existing cells)
-    const gridUsedPids = new Set<number>();
+    const usedInGiveUp = new Set<number>();
+
+    // Track players already used in existing cells
     Object.values(cells).forEach(cell => {
       if (cell.player?.pid) {
-        gridUsedPids.add(cell.player.pid);
+        usedInGiveUp.add(cell.player.pid);
       }
     });
     
-    // Determine which rank to use for each cell (collision resolution)
-    const cellToRank: Record<string, number> = {};
-    
-    for (const [pidStr, cellsForPlayer] of Object.entries(playerToCells)) {
-      if (cellsForPlayer.length === 1) {
-        // No collision, use rank #1
-        cellToRank[cellsForPlayer[0]] = 0;
-      } else {
-        // Collision detected - use rank #1, #2, #3, etc. for different cells
-        cellsForPlayer.forEach((cellKey, index) => {
-          cellToRank[cellKey] = index; // 0 = rank #1, 1 = rank #2, etc.
-        });
-      }
-    }
-    
-    // Fill cells with the determined ranks
-    for (const cellKey of emptyCells) {
-      const ranking = cellRankings[cellKey];
+    // Fill each empty cell using EXACT SAME logic as player modal
+    for (const positionalKey of emptyCells) {
+      // Get row and column constraints (same as player modal)
+      let rowConstraint: CatTeam | undefined;
+      let colConstraint: CatTeam | undefined;
       
-      if (ranking.length === 0) {
-        // No eligible players
-        newCells[cellKey] = {
+      if (positionalKey.includes('|')) {
+        const [rowKey, colKey] = positionalKey.split('|');
+        rowConstraint = rows.find(r => r.key === rowKey);
+        colConstraint = cols.find(c => c.key === colKey);
+      } else {
+        const [rowIndexStr, colIndexStr] = positionalKey.split('-');
+        const rowIndex = parseInt(rowIndexStr, 10);
+        const colIndex = parseInt(colIndexStr, 10);
+        rowConstraint = rows[rowIndex];
+        colConstraint = cols[colIndex];
+      }
+      
+      if (!rowConstraint || !colConstraint) {
+        // Skip if constraints not found
+        newCells[positionalKey] = {
           name: '—',
           correct: false,
           locked: true,
           autoFilled: true,
           guessed: false,
         };
-        console.log(`🔍 Give Up: ${cellKey} -> "—" (no eligible players)`);
         continue;
       }
       
-      // Get the rank to use for this cell (with collision detection)
-      let rankToUse = cellToRank[cellKey] || 0;
+      // Get eligible players using EXACT SAME logic as player modal
+      let eligiblePlayers: Player[] = [];
       
-      // Find the first available player not already used in the entire grid
-      let selectedRanked = null;
-      let actualRank = rankToUse;
+      // Check if we have custom achievements by examining the constraint keys
+      const hasCustomAchievements = rowConstraint.key.includes('custom') || colConstraint.key.includes('custom');
       
-      while (actualRank < ranking.length) {
-        const candidate = ranking[actualRank];
-        if (!gridUsedPids.has(candidate.player.pid)) {
-          selectedRanked = candidate;
-          break;
-        }
-        actualRank++;
+      if (hasCustomAchievements) {
+        // Use direct calculation for custom achievements (SAME AS PLAYER MODAL)
+        eligiblePlayers = leagueData.players.filter(player => 
+          rowConstraint!.test(player) && colConstraint!.test(player)
+        );
+      } else {
+        // Use optimized intersection calculation for regular achievements (SAME AS PLAYER MODAL)
+        const rowIntersectionConstraint: IntersectionConstraint = {
+          type: rowConstraint.type,
+          id: rowConstraint.type === 'team' ? rowConstraint.tid! : rowConstraint.achievementId!,
+          label: rowConstraint.label
+        };
+        
+        const colIntersectionConstraint: IntersectionConstraint = {
+          type: colConstraint.type,
+          id: colConstraint.type === 'team' ? colConstraint.tid! : colConstraint.achievementId!,
+          label: colConstraint.label
+        };
+        
+        const eligiblePidsSet = calculateOptimizedIntersection(
+          rowIntersectionConstraint,
+          colIntersectionConstraint,
+          leagueData.players,
+          leagueData.teams,
+          leagueData.seasonIndex,
+          false
+        ) as Set<number>;
+        
+        const eligiblePids = Array.from(eligiblePidsSet);
+        eligiblePlayers = eligiblePids
+          .map(pid => byPid[pid])
+          .filter(player => player);
       }
       
-      if (!selectedRanked) {
-        // No available players (all already used in grid)
-        newCells[cellKey] = {
+      // Find first available player not already used
+      let selectedPlayer: Player | null = null;
+      for (const player of eligiblePlayers) {
+        if (!usedInGiveUp.has(player.pid)) {
+          selectedPlayer = player;
+          break;
+        }
+      }
+      
+      if (!selectedPlayer) {
+        // No available players
+        newCells[positionalKey] = {
           name: '—',
           correct: false,
           locked: true,
           autoFilled: true,
           guessed: false,
-          points: 0, // No points for Give Up
         };
-        console.log(`🔍 Give Up: ${cellKey} -> "—" (all players already used in grid)`);
+        console.log(`🔍 Give Up: ${positionalKey} -> "—" (no available players)`);
       } else {
         // Use the selected player
-        newCells[cellKey] = {
-          name: selectedRanked.player.name,
+        newCells[positionalKey] = {
+          name: selectedPlayer.name,
           correct: true,
           locked: true,
           autoFilled: true,
           guessed: false,
-          player: selectedRanked.player,
-          rarity: selectedRanked.rarity,
+          player: selectedPlayer,
           points: 0, // No points for Give Up
         };
         
-        // Add to used set for subsequent cells
-        gridUsedPids.add(selectedRanked.player.pid);
-        console.log(`🔍 Give Up: ${cellKey} -> ${selectedRanked.player.name} (rank #${actualRank + 1}, rarity ${selectedRanked.rarity})`);
+        // Mark as used for next cells
+        usedInGiveUp.add(selectedPlayer.pid);
+        console.log(`🔍 Give Up: ${positionalKey} -> ${selectedPlayer.name} (first eligible player)`);
       }
     }
     
     // Update state
     setCells(newCells);
-    setRankCache(newRankCache);
-    setGiveUpPressed(true); // Mark Give Up as pressed
-  }, [leagueData, rows, cols, cells, rankCache, buildRankCacheForCell]);
+    setGiveUpPressed(true);
+  }, [leagueData, rows, cols, cells, byPid]);
 
   const handleRetryGrid = useCallback(() => {
     if (!currentGridId) return;
