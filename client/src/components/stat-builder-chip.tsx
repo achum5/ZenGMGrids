@@ -202,8 +202,15 @@ export function StatBuilderChip({
 
   const handleOperatorClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    setOperator(prev => prev === '≥' ? '≤' : '≥');
-  }, []);
+    const newOperator = operator === '≥' ? '≤' : '≥';
+    setOperator(newOperator);
+    
+    // Immediately update the label with the new operator
+    if (onNumberChange) {
+      const newLabel = generateUpdatedLabel(parsed, parsed.number, newOperator);
+      onNumberChange(parsed.number, newLabel);
+    }
+  }, [operator, parsed, onNumberChange]);
 
   const handleNumberClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -252,13 +259,13 @@ export function StatBuilderChip({
     
     const newNumber = parseFloat(inputValue);
     if (newNumber !== parsed.number && onNumberChange) {
-      const newLabel = generateUpdatedLabel(parsed, newNumber);
+      const newLabel = generateUpdatedLabel(parsed, newNumber, operator);
       onNumberChange(newNumber, newLabel);
     }
     
     setIsEditing(false);
     setError(null);
-  }, [inputValue, validation, parsed, onNumberChange]);
+  }, [inputValue, validation, parsed, onNumberChange, operator]);
 
   const cancelEdit = useCallback(() => {
     setInputValue(parsed.number.toString());
