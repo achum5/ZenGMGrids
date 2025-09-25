@@ -193,16 +193,49 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     index: number,
     operator: '≥' | '≤'
   ) => {
+    if (!leagueData) return;
+    
     const updateSelector = (selectors: SelectorState[]) => {
       const newSelectors = [...selectors];
       const currentSelector = newSelectors[index];
       
-      if (currentSelector.type === 'achievement') {
-        // Just store the operator for later use in handlePlayGrid
-        newSelectors[index] = {
-          ...currentSelector,
-          operator
-        };
+      if (currentSelector.type === 'achievement' && currentSelector.value) {
+        // Find the original achievement
+        const originalAchievement = achievementOptions.find(ach => ach.id === currentSelector.value);
+        if (originalAchievement) {
+          // Parse the achievement to get the threshold
+          const parsed = parseAchievementLabel(originalAchievement.label, sport);
+          
+          if (parsed.isEditable && parsed.number !== undefined) {
+            // Get the actual Achievement object
+            const achievements = getAllAchievements(sport as any, seasonIndex, leagueData.leagueYears);
+            const realAchievement = achievements.find((ach: any) => ach.id === originalAchievement.id);
+            
+            if (realAchievement) {
+              // Create custom achievement immediately with the toggled operator
+              const customAchievement = createCustomNumericalAchievement(
+                realAchievement, 
+                parsed.number,
+                sport,
+                operator
+              );
+            
+              // Update selector with custom achievement
+              newSelectors[index] = {
+                ...currentSelector,
+                operator,
+                customAchievement,
+                label: customAchievement.label  // Update label to show new operator
+              };
+            }
+          } else {
+            // Non-editable achievement, just store operator
+            newSelectors[index] = {
+              ...currentSelector,
+              operator
+            };
+          }
+        }
       }
       
       return newSelectors;
@@ -213,7 +246,10 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     } else {
       setColSelectors(updateSelector);
     }
-  }, []);
+    
+    // Trigger cell count recalculation
+    setCalculating(true);
+  }, [leagueData, achievementOptions, sport]);
 
   // Clear all selections
   const handleClearAll = useCallback(() => {
