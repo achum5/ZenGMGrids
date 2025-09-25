@@ -195,11 +195,7 @@ export function StatBuilderChip({
     setError(null);
   }, [label, sport]);
 
-  // If not editable, render as plain text
-  if (!parsed.isEditable) {
-    return <span className={className}>{label}</span>;
-  }
-
+  // All useCallback hooks must come before the early return
   const handleOperatorClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setOperator(prev => {
@@ -268,7 +264,7 @@ export function StatBuilderChip({
     
     setIsEditing(false);
     setError(null);
-  }, [inputValue, validation, parsed, onNumberChange]);
+  }, [inputValue, validation, parsed, onNumberChange, operator]);
 
   const cancelEdit = useCallback(() => {
     setInputValue(parsed.number.toString());
@@ -299,6 +295,11 @@ export function StatBuilderChip({
     e.stopPropagation();
     commitValue();
   }, [commitValue]);
+
+  // If not editable, render as plain text
+  if (!parsed.isEditable) {
+    return <span className={className}>{label}</span>;
+  }
 
   // Format display value with thousands separators and compact forms
   const formatDisplayValue = (value: number, mode: LayoutMode): string => {
