@@ -491,6 +491,323 @@ const NUMERICAL_ACHIEVEMENT_CONFIGS: Record<string, { career?: Record<string, St
         testField: 'tpm'
       }
     }
+  },
+  football: {
+    career: {
+      passYds: {
+        thresholds: [10000, 20000, 30000, 40000, 50000, 60000, 70000, 80000],
+        label: (n: number) => `${n.toLocaleString()}+ Career Passing Yards`,
+        testField: 'pssYds'
+      },
+      passTDs: {
+        thresholds: [50, 100, 150, 200, 250, 300, 350, 400, 450, 500],
+        label: (n: number) => `${n.toLocaleString()}+ Career Passing TDs`,
+        testField: 'pssTD'
+      },
+      rushYds: {
+        thresholds: [2000, 4000, 6000, 8000, 10000, 12000, 15000, 18000, 20000],
+        label: (n: number) => `${n.toLocaleString()}+ Career Rushing Yards`,
+        testField: 'rusYds'
+      },
+      rushTDs: {
+        thresholds: [20, 40, 60, 80, 100, 120, 150, 180, 200],
+        label: (n: number) => `${n.toLocaleString()}+ Career Rushing TDs`,
+        testField: 'rusTD'
+      },
+      recYds: {
+        thresholds: [2000, 4000, 6000, 8000, 10000, 12000, 15000, 18000, 20000],
+        label: (n: number) => `${n.toLocaleString()}+ Career Receiving Yards`,
+        testField: 'recYds'
+      },
+      recTDs: {
+        thresholds: [20, 40, 60, 80, 100, 120, 150, 180, 200],
+        label: (n: number) => `${n.toLocaleString()}+ Career Receiving TDs`,
+        testField: 'recTD'
+      },
+      sacks: {
+        thresholds: [20, 40, 60, 80, 100, 120, 150, 180, 200],
+        label: (n: number) => `${n.toLocaleString()}+ Career Sacks`,
+        testField: 'sks' // Using 'sks' from FBGM stats
+      },
+      interceptions: {
+        thresholds: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
+        label: (n: number) => `${n.toLocaleString()}+ Career Interceptions`,
+        testField: 'defInt'
+      }
+    },
+    season: {
+      passYds: {
+        thresholds: [2000, 3000, 4000, 5000, 6000],
+        label: (n: number) => `${n.toLocaleString()}+ Passing Yards in a Season`,
+        testType: 'total' as const,
+        testField: 'pssYds'
+      },
+      passTDs: {
+        thresholds: [15, 20, 25, 30, 35, 40, 45, 50],
+        label: (n: number) => `${n.toLocaleString()}+ Passing TDs in a Season`,
+        testType: 'total' as const,
+        testField: 'pssTD'
+      },
+      rushYds: {
+        thresholds: [800, 1000, 1200, 1500, 1800, 2000],
+        label: (n: number) => `${n.toLocaleString()}+ Rushing Yards in a Season`,
+        testType: 'total' as const,
+        testField: 'rusYds'
+      },
+      rushTDs: {
+        thresholds: [8, 10, 12, 15, 18, 20],
+        label: (n: number) => `${n.toLocaleString()}+ Rushing TDs in a Season`,
+        testType: 'total' as const,
+        testField: 'rusTD'
+      },
+      recYds: {
+        thresholds: [800, 1000, 1200, 1300, 1500, 1800, 2000],
+        label: (n: number) => `${n.toLocaleString()}+ Receiving Yards in a Season`,
+        testType: 'total' as const,
+        testField: 'recYds'
+      },
+      rec: {
+        thresholds: [60, 70, 80, 90, 100, 110, 120],
+        label: (n: number) => `${n.toLocaleString()}+ Receptions in a Season`,
+        testType: 'total' as const,
+        testField: 'rec'
+      },
+      recTDs: {
+        thresholds: [5, 8, 10, 12, 15, 18, 20],
+        label: (n: number) => `${n.toLocaleString()}+ Receiving TDs in a Season`,
+        testType: 'total' as const,
+        testField: 'recTD'
+      },
+      sacks: {
+        thresholds: [5, 8, 10, 12, 15, 18, 20],
+        label: (n: number) => `${n.toLocaleString()}+ Sacks in a Season`,
+        testType: 'total' as const,
+        testField: 'sks'
+      },
+      tackles: {
+        thresholds: [70, 80, 90, 100, 120, 140, 150, 160],
+        label: (n: number) => `${n.toLocaleString()}+ Tackles in a Season`,
+        testType: 'total' as const,
+        testField: 'defTck' // Combined solo and ast
+      },
+      interceptions: {
+        thresholds: [3, 4, 5, 6, 7, 8, 9, 10],
+        label: (n: number) => `${n.toLocaleString()}+ Interceptions in a Season`,
+        testType: 'total' as const,
+        testField: 'defInt'
+      },
+      scrimmageYds: {
+        thresholds: [1000, 1200, 1400, 1600, 1800, 2000, 2200],
+        label: (n: number) => `${n.toLocaleString()}+ Scrimmage Yards in a Season`,
+        testType: 'total' as const,
+        testField: 'scrimmageYds' // Custom computed field
+      },
+      allPurposeYds: {
+        thresholds: [1200, 1500, 1800, 2000, 2200, 2500],
+        label: (n: number) => `${n.toLocaleString()}+ All-Purpose Yards in a Season`,
+        testType: 'total' as const,
+        testField: 'allPurposeYds' // Custom computed field
+      },
+      tfl: {
+        thresholds: [5, 8, 10, 12, 15, 18, 20],
+        label: (n: number) => `${n.toLocaleString()}+ Tackles for Loss in a Season`,
+        testType: 'total' as const,
+        testField: 'defTckLoss'
+      }
+    }
+  },
+  hockey: {
+    career: {
+      goals: {
+        thresholds: [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000],
+        label: (n: number) => `${n.toLocaleString()}+ Career Goals`,
+        testField: 'goals' // Custom computed field in calculateHockeyAchievements
+      },
+      assists: {
+        thresholds: [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1200, 1500],
+        label: (n: number) => `${n.toLocaleString()}+ Career Assists`,
+        testField: 'assists' // Custom computed field
+      },
+      points: {
+        thresholds: [200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2500],
+        label: (n: number) => `${n.toLocaleString()}+ Career Points`,
+        testField: 'points' // Custom computed field
+      },
+      wins: { // Goalie
+        thresholds: [50, 100, 150, 200, 250, 300, 350, 400, 450, 500],
+        label: (n: number) => `${n.toLocaleString()}+ Career Wins (G)`,
+        testField: 'wins' // Custom computed field
+      },
+      shutouts: { // Goalie
+        thresholds: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+        label: (n: number) => `${n.toLocaleString()}+ Career Shutouts (G)`,
+        testField: 'shutouts' // Custom computed field
+      }
+    },
+    season: {
+      goals: {
+        thresholds: [20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90],
+        label: (n: number) => `${n.toLocaleString()}+ Goals in a Season`,
+        testType: 'total' as const,
+        testField: 'goals'
+      },
+      assists: {
+        thresholds: [30, 40, 50, 60, 70, 80, 90, 100, 110, 120],
+        label: (n: number) => `${n.toLocaleString()}+ Assists in a Season`,
+        testType: 'total' as const,
+        testField: 'assists'
+      },
+      points: {
+        thresholds: [50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150],
+        label: (n: number) => `${n.toLocaleString()}+ Points in a Season`,
+        testType: 'total' as const,
+        testField: 'points'
+      },
+      plusMinus: {
+        thresholds: [10, 15, 20, 25, 30, 35, 40, 45, 50],
+        label: (n: number) => `+${n.toLocaleString()} Plus/Minus in a Season`,
+        testType: 'total' as const,
+        testField: 'pm'
+      },
+      shots: {
+        thresholds: [150, 200, 250, 300, 350, 400],
+        label: (n: number) => `${n.toLocaleString()}+ Shots in a Season`,
+        testType: 'total' as const,
+        testField: 's'
+      },
+      hits: {
+        thresholds: [80, 100, 120, 150, 180, 200, 250, 300],
+        label: (n: number) => `${n.toLocaleString()}+ Hits in a Season`,
+        testType: 'total' as const,
+        testField: 'hit'
+      },
+      blocks: {
+        thresholds: [50, 70, 80, 100, 120, 150, 180, 200],
+        label: (n: number) => `${n.toLocaleString()}+ Blocks in a Season`,
+        testType: 'total' as const,
+        testField: 'blk'
+      },
+      takeaways: {
+        thresholds: [30, 40, 50, 60, 70, 80, 90, 100],
+        label: (n: number) => `${n.toLocaleString()}+ Takeaways in a Season`,
+        testType: 'total' as const,
+        testField: 'tk'
+      },
+      powerPlayPoints: {
+        thresholds: [10, 15, 20, 25, 30, 35, 40],
+        label: (n: number) => `${n.toLocaleString()}+ Power-Play Points in a Season`,
+        testType: 'total' as const,
+        testField: 'powerPlayPoints' // Custom computed field
+      },
+      shortHandedGoals: {
+        thresholds: [1, 2, 3, 4, 5, 6, 7, 8],
+        label: (n: number) => `${n.toLocaleString()}+ Short-Handed Goals in a Season`,
+        testType: 'total' as const,
+        testField: 'shG'
+      },
+      gameWinningGoals: {
+        thresholds: [3, 4, 5, 6, 7, 8, 9, 10],
+        label: (n: number) => `${n.toLocaleString()}+ Game-Winning Goals in a Season`,
+        testType: 'total' as const,
+        testField: 'gwG'
+      },
+      faceoffWinPct: {
+        thresholds: [0.50, 0.52, 0.55, 0.58, 0.60],
+        label: (n: number) => `${(n * 100).toFixed(0)}%+ Faceoff Win Rate in a Season`,
+        testType: 'average' as const,
+        testField: 'faceoffPct' // Custom computed field
+      },
+      toiPerGame: {
+        thresholds: [18, 20, 22, 24, 26, 28, 30],
+        label: (n: number) => `${n.toFixed(1)}+ TOI per Game in a Season`,
+        testType: 'average' as const,
+        testField: 'toiPerGame' // Custom computed field
+      },
+      pim: {
+        thresholds: [40, 50, 60, 70, 80, 90, 100, 120, 150],
+        label: (n: number) => `${n.toLocaleString()}+ PIM in a Season`,
+        testType: 'total' as const,
+        testField: 'pim'
+      },
+      savePct: { // Goalie
+        thresholds: [0.900, 0.910, 0.920, 0.925, 0.930, 0.935, 0.940],
+        label: (n: number) => `${(n * 1000).toFixed(0)}+ Save Percentage in a Season`,
+        testType: 'average' as const,
+        testField: 'savePct' // Custom computed field
+      },
+      gaa: { // Goalie
+        thresholds: [3.00, 2.80, 2.60, 2.40, 2.20, 2.00, 1.80],
+        label: (n: number) => `${n.toFixed(2)} or less GAA in a Season`,
+        testType: 'average' as const,
+        testField: 'gaaRate' // Custom computed field
+      },
+      shutouts: { // Goalie
+        thresholds: [3, 4, 5, 6, 7, 8, 9, 10, 12, 15],
+        label: (n: number) => `${n.toLocaleString()}+ Shutouts in a Season`,
+        testType: 'total' as const,
+        testField: 'so'
+      },
+      saves: { // Goalie
+        thresholds: [1000, 1200, 1500, 1800, 2000, 2200, 2500, 2800, 3000],
+        label: (n: number) => `${n.toLocaleString()}+ Saves in a Season`,
+        testType: 'total' as const,
+        testField: 'sv'
+      },
+      starts: { // Goalie
+        thresholds: [30, 40, 50, 60, 70, 80],
+        label: (n: number) => `${n.toLocaleString()}+ Starts in a Season`,
+        testType: 'total' as const,
+        testField: 'gs'
+      }
+    }
+  },
+  baseball: {
+    career: {
+      hits: {
+        thresholds: [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000],
+        label: (n: number) => `${n.toLocaleString()}+ Career Hits`,
+        testField: 'h'
+      },
+      homeRuns: {
+        thresholds: [100, 200, 300, 400, 500, 600, 700, 800],
+        label: (n: number) => `${n.toLocaleString()}+ Career Home Runs`,
+        testField: 'hr'
+      },
+      rbis: {
+        thresholds: [300, 500, 800, 1000, 1200, 1500, 1800, 2000, 2200],
+        label: (n: number) => `${n.toLocaleString()}+ Career RBIs`,
+        testField: 'rbi'
+      },
+      stolenBases: {
+        thresholds: [50, 100, 150, 200, 300, 400, 500, 600, 700],
+        label: (n: number) => `${n.toLocaleString()}+ Career Stolen Bases`,
+        testField: 'sb'
+      },
+      runs: {
+        thresholds: [300, 500, 800, 1000, 1200, 1500, 1800, 2000, 2200],
+        label: (n: number) => `${n.toLocaleString()}+ Career Runs`,
+        testField: 'r'
+      },
+      wins: { // Pitching
+        thresholds: [50, 100, 150, 200, 250, 300, 350, 400],
+        label: (n: number) => `${n.toLocaleString()}+ Career Wins (P)`,
+        testField: 'w'
+      },
+      strikeouts: { // Pitching
+        thresholds: [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000],
+        label: (n: number) => `${n.toLocaleString()}+ Career Strikeouts`,
+        testField: 'soPit'
+      },
+      saves: { // Pitching
+        thresholds: [50, 100, 150, 200, 250, 300, 350, 400, 450, 500],
+        label: (n: number) => `${n.toLocaleString()}+ Career Saves`,
+        testField: 'sv'
+      }
+    },
+    season: {
+      // Baseball GM doesn't have many season stats that are easily numerical and editable
+      // Focusing on career for now.
+    }
   }
 };
 
@@ -858,6 +1175,17 @@ export function playerMeetsAchievement(
   const allAchievements = [...COMMON_ACHIEVEMENTS, ...BASKETBALL_ACHIEVEMENTS, ...FOOTBALL_ACHIEVEMENTS, ...HOCKEY_ACHIEVEMENTS, ...BASEBALL_ACHIEVEMENTS];
   const achievement = allAchievements.find(a => a.id === achievementId);
   
+  // CRITICAL FIX: If it's a custom numerical achievement, directly use its test function
+  if (achievementId.includes('_custom_')) {
+    // We need to find the *actual* custom achievement object that was created
+    // This means we need to get all achievements again, including the dynamically generated ones
+    const allPossibleAchievements = getAllAchievements(getCachedSportDetection(), seasonIndex, undefined); // Pass undefined for leagueYears to avoid re-generating random achievements
+    const customAchievement = allPossibleAchievements.find(a => a.id === achievementId);
+    if (customAchievement) {
+      return customAchievement.test(player);
+    }
+  }
+
   if (achievement) {
     const value = achievement.test(player);
     const threshold = parseFloat(achievement.label.match(/(\d+[,\d.]*)/)?.[0].replace(/,/g, '') || '0');
@@ -1097,6 +1425,10 @@ function calculateHockeyAchievements(player: Player, achievements: any): void {
     goals: number; assists: number; points: number;
     wins: number; shutouts: number; saves: number; shotsAgainst: number;
     gp: number; isGoalie: boolean;
+    // Add all raw stat fields needed for season-specific computed achievements
+    pm: number; s: number; hit: number; blk: number; tk: number; shG: number; gwG: number;
+    fow: number; number; min: number; pim: number; ga: number; gs: number;
+    ppG: number; ppA: number;
   }>();
   
   // First pass: aggregate stats by season (merge multi-team stints)
@@ -1109,7 +1441,10 @@ function calculateHockeyAchievements(player: Player, achievements: any): void {
     const existing = seasonStats.get(seasonYear) || {
       goals: 0, assists: 0, points: 0,
       wins: 0, shutouts: 0, saves: 0, shotsAgainst: 0,
-      gp: 0, isGoalie: false
+      gp: 0, isGoalie: false,
+      pm: 0, s: 0, hit: 0, blk: 0, tk: 0, shG: 0, gwG: 0,
+      fow: 0, fol: 0, min: 0, pim: 0, ga: 0, gs: 0,
+      ppG: 0, ppA: 0,
     };
     
     // Use ACTUAL ZGMH field names: evG+ppG+shG for goals, evA+ppA+shA for assists
@@ -1127,6 +1462,23 @@ function calculateHockeyAchievements(player: Player, achievements: any): void {
     existing.assists += assists;
     existing.points += points;
     existing.gp += season.gp || 0;
+
+    // Aggregate all raw stat fields needed for season-specific computed achievements
+    existing.pm += season.pm || 0;
+    existing.s += season.s || 0;
+    existing.hit += season.hit || 0;
+    existing.blk += season.blk || 0;
+    existing.tk += season.tk || 0;
+    existing.shG += season.shG || 0;
+    existing.gwG += season.gwG || 0;
+    existing.fow += season.fow || 0;
+    existing.fol += season.fol || 0;
+    existing.min += season.min || 0;
+    existing.pim += season.pim || 0;
+    existing.ga += season.ga || 0;
+    existing.gs += season.gs || 0;
+    existing.ppG += season.ppG || 0;
+    existing.ppA += season.ppA || 0;
     
     // Goalie stats - filter to goalies only
     const isGoalie = player.pos === 'G' || season.svPct != null || season.so != null || season.w != null;
@@ -1145,21 +1497,52 @@ function calculateHockeyAchievements(player: Player, achievements: any): void {
     seasonStats.set(seasonYear, existing);
   });
   
-  // Second pass: calculate career totals
-  
-  seasonStats.forEach((seasonData) => {
+  // Second pass: calculate career totals and store season-specific computed stats
+  player.achievements.seasonStatsComputed = player.achievements.seasonStatsComputed || {};
+
+  seasonStats.forEach((seasonData, seasonYear) => {
     // Career totals
     careerGoals += seasonData.goals;
     careerAssists += seasonData.assists;
     careerPoints += seasonData.points;
     
-    
     // Goalie stats (only for goalies)
     if (seasonData.isGoalie) {
       careerWins += seasonData.wins;
       careerShutouts += seasonData.shutouts;
-      
     }
+
+    // Store computed season stats on player.achievements for easy access
+    // Ensure player.achievements.seasonStatsComputed is initialized
+    const faceoffTotal = seasonData.fow + seasonData.fol;
+    const faceoffPct = faceoffTotal > 0 ? seasonData.fow / faceoffTotal : 0;
+    const toiPerGame = (seasonData.gp || 0) > 0 ? (seasonData.min || 0) / (seasonData.gp || 1) : 0;
+    const powerPlayPoints = seasonData.ppG + seasonData.ppA;
+    const savesTotal = seasonData.saves + seasonData.ga;
+    const savePct = savesTotal > 0 ? seasonData.saves / savesTotal : 0;
+    const gaaRate = (seasonData.min || 0) > 0 ? (seasonData.ga || 0) / ((seasonData.min || 0) / 60) : 0;
+
+    player.achievements.seasonStatsComputed[seasonYear] = {
+      goals: seasonData.goals,
+      assists: seasonData.assists,
+      points: seasonData.points,
+      pm: seasonData.pm,
+      s: seasonData.s,
+      hit: seasonData.hit,
+      blk: seasonData.blk,
+      tk: seasonData.tk,
+      powerPlayPoints: powerPlayPoints,
+      shG: seasonData.shG,
+      gwG: seasonData.gwG,
+      faceoffPct: faceoffPct,
+      toiPerGame: toiPerGame,
+      pim: seasonData.pim,
+      savePct: savePct,
+      gaaRate: gaaRate,
+      so: seasonData.so,
+      sv: seasonData.sv,
+      gs: seasonData.gs,
+    };
   });
   
   // Set career achievements - using EXACT user-specified NHL thresholds

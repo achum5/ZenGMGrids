@@ -230,8 +230,34 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
               };
             }
           }
+        } else if (currentSelector.type === 'achievement' && leagueData) {
+          // If no custom achievement yet, but it's an achievement, create one with the new operator
+          const originalAchievement = achievementOptions.find(ach => ach.id === currentSelector.value);
+          if (originalAchievement) {
+            const achievements = getAllAchievements(sport as any, seasonIndex, leagueData.leagueYears);
+            const realAchievement = achievements.find((ach: any) => ach.id === originalAchievement.id);
+            
+            if (realAchievement) {
+              // Parse the number from the original label
+              const parsed = parseAchievementLabel(originalAchievement.label, sport);
+              if (parsed.isEditable) {
+                const customAchievement = createCustomNumericalAchievement(realAchievement, parsed.number, sport, operator);
+                newSelectors[index] = {
+                  ...currentSelector,
+                  customAchievement,
+                  operator
+                };
+              } else {
+                // If not editable, just update the operator for visual display
+                newSelectors[index] = {
+                  ...currentSelector,
+                  operator
+                };
+              }
+            }
+          }
         } else {
-          // Just update the operator for visual display
+          // Just update the operator for visual display (for non-achievement types, though this path should be rare)
           newSelectors[index] = {
             ...currentSelector,
             operator
@@ -549,14 +575,16 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
               type: rowSelector.type,
               selectedId: rowSelector.type === 'team' ? parseInt(rowSelector.value) : rowSelector.value,
               selectedLabel: rowSelector.label,
-              customAchievement: rowSelector.customAchievement
+              customAchievement: rowSelector.customAchievement,
+              operator: rowSelector.operator
             };
             
             const colConfig: HeaderConfig = {
               type: colSelector.type,
               selectedId: colSelector.type === 'team' ? parseInt(colSelector.value) : colSelector.value,
               selectedLabel: colSelector.label,
-              customAchievement: colSelector.customAchievement
+              customAchievement: colSelector.customAchievement,
+              operator: colSelector.operator
             };
             
             // Calculate intersection
@@ -862,7 +890,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
         {
           title: "Career Milestones",
           achievements: [
-            'career500Goals', 'career1000Points', 'career500Assists', 'career200Wins', 'career50Shutouts'
+            'career500Goals', 'career1000Points', 'career500Assists', 'career200Wins', 'career50Shutouts', 'played10PlusSeasons', 'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises'
           ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
         },
         {
@@ -887,12 +915,6 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
           title: "Single-Season — Goaltending",
           achievements: [
             'HKSeason920SavePct', 'HKSeason260GAA', 'HKSeason6Shutouts', 'HKSeason2000Saves', 'HKSeason60Starts'
-          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
-        },
-        {
-          title: "Longevity & Journey",
-          achievements: [
-            'played10PlusSeasons', 'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises'
           ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
         },
         {
@@ -921,19 +943,13 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
         {
           title: "Career Milestones — Batting",
           achievements: [
-            'career3000Hits', 'career500HRs', 'career1500RBIs', 'career400SBs', 'career1800Runs'
+            'career3000Hits', 'career500HRs', 'career1500RBIs', 'career400SBs', 'career1800Runs', 'played10PlusSeasons', 'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises'
           ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
         },
         {
           title: "Career Milestones — Pitching",
           achievements: [
             'career300Wins', 'career3000Ks', 'career300Saves'
-          ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
-        },
-        {
-          title: "Longevity & Journey",
-          achievements: [
-            'played10PlusSeasons', 'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises'
           ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
         },
         {

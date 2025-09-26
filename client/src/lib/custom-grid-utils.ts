@@ -271,8 +271,8 @@ function generateCustomCacheKey(
 ): string {
   const rowKey = rowConfig.customAchievement?.id || rowConfig.selectedId;
   const colKey = colConfig.customAchievement?.id || colConfig.selectedId;
-  const rowOp = rowConfig.customAchievement?.operator || '';
-  const colOp = colConfig.customAchievement?.operator || '';
+  const rowOp = rowConfig.customAchievement?.operator || rowConfig.operator || '';
+  const colOp = colConfig.customAchievement?.operator || colConfig.operator || '';
   return `${rowKey}-${rowOp}|${colKey}-${colOp}|${returnPlayers ? 'players' : 'count'}`;
 }
 
