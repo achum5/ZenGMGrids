@@ -3,6 +3,7 @@ import type { Player } from '@/types/bbgm';
 
 // Pattern to match numerical thresholds in achievement labels
 export interface ParsedAchievement {
+  id: string;         // Unique ID for the achievement (from baseAchievement.id)
   originalLabel: string;
   prefix: string;     // Text before the number
   number: number;     // The numerical threshold (now supports decimals)
@@ -34,7 +35,7 @@ const ACHIEVEMENT_PATTERNS = [
  * Parse an achievement label to identify if it contains an editable numerical threshold
  * Only basketball achievements are editable for now
  */
-export function parseAchievementLabel(label: string, sport?: string): ParsedAchievement {
+export function parseAchievementLabel(label: string, sport?: string, achievementId?: string): ParsedAchievement {
   // Try each pattern to find numerical thresholds
   for (const pattern of ACHIEVEMENT_PATTERNS) {
     const match = label.match(pattern);
@@ -67,6 +68,7 @@ export function parseAchievementLabel(label: string, sport?: string): ParsedAchi
       
       if (!isNaN(number)) {
         return {
+          id: achievementId || label, // Use provided ID or fallback to label
           originalLabel: label,
           prefix: prefix || '',
           number,
@@ -79,6 +81,7 @@ export function parseAchievementLabel(label: string, sport?: string): ParsedAchi
   
   // If no numerical pattern found, return as non-editable
   return {
+    id: achievementId || label, // Use provided ID or fallback to label
     originalLabel: label,
     prefix: label,
     number: 0,
@@ -163,7 +166,7 @@ export function createCustomNumericalAchievement(
   sport: string,
   operator: '≥' | '≤'
 ): Achievement {
-  const parsed = parseAchievementLabel(baseAchievement.label, sport);
+  const parsed = parseAchievementLabel(baseAchievement.label, sport, baseAchievement.id);
   
   if (!parsed.isEditable) {
     return baseAchievement; // Return original if not editable
