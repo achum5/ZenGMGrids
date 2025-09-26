@@ -20,7 +20,7 @@ import baseballIcon from '@/assets/baseball.png';
 import { parseLeagueFile, parseLeagueUrl, buildSearchIndex } from '@/lib/bbgm-parser';
 import { generateTeamsGrid, cellKey } from '@/lib/grid-generator';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
-import { debugAchievementIntersection, calculateCustomCellIntersection, headerConfigToCatTeam } from '@/lib/custom-grid-utils';
+import { debugAchievementIntersection, calculateCustomCellIntersection, headerConfigToCatTeam, getCustomCellEligiblePlayersAsync } from '@/lib/custom-grid-utils';
 import { calculateOptimizedIntersection, type IntersectionConstraint } from '@/lib/intersection-cache';
 import { getSeasonEligiblePlayers, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 import { debugIndividualAchievements, playerMeetsAchievement } from '@/lib/achievements';
@@ -95,6 +95,7 @@ export default function Home() {
   // UI state
   const [isProcessing, setIsProcessing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isLoadingCustomIntersection, setIsLoadingCustomIntersection] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [currentCellKey, setCurrentCellKey] = useState<string | null>(null);
   const [playerModalOpen, setPlayerModalOpen] = useState(false);
@@ -803,7 +804,7 @@ export default function Home() {
     }
   }, [leagueData, toast]);
 
-  const handleCellClick = useCallback((positionalKey: string) => {
+  const handleCellClick = useCallback(async (positionalKey: string) => {
     const cellState = cells[positionalKey];
     
     // If cell is locked and has a player, open player modal
@@ -835,10 +836,44 @@ export default function Home() {
           const hasCustomAchievements = rowConstraint.key.includes('custom') || colConstraint.key.includes('custom');
           
           if (hasCustomAchievements) {
-            // Use direct calculation for custom achievements to avoid cache conflicts
-            eligiblePlayers = leagueData.players.filter(player => 
-              rowConstraint.test(player) && colConstraint.test(player)
-            );
+            console.log(`🔧 [ASYNC] Using async calculation for custom intersection`);
+            setIsLoadingCustomIntersection(true);
+            
+            try {
+              // Convert CatTeam constraints to HeaderConfig format for async function
+              const rowConfig = {
+                type: rowConstraint.type,
+                selectedId: (rowConstraint.type === 'team' ? rowConstraint.tid : rowConstraint.achievementId) || null,
+                selectedLabel: rowConstraint.label,
+                customAchievement: rowConstraint.key.includes('custom') ? rowConstraint : undefined
+              };
+              
+              const colConfig = {
+                type: colConstraint.type,
+                selectedId: (colConstraint.type === 'team' ? colConstraint.tid : colConstraint.achievementId) || null,
+                selectedLabel: colConstraint.label,
+                customAchievement: colConstraint.key.includes('custom') ? colConstraint : undefined
+              };
+              
+              // Use async calculation to prevent UI blocking
+              eligiblePlayers = await getCustomCellEligiblePlayersAsync(
+                rowConfig,
+                colConfig,
+                leagueData.players,
+                leagueData.teams,
+                leagueData.seasonIndex
+              );
+              console.log(`🔧 [ASYNC] Completed async calculation: ${eligiblePlayers.length} players`);
+              
+            } catch (error) {
+              console.error('Error in async intersection calculation:', error);
+              // Fallback to synchronous calculation as last resort
+              eligiblePlayers = leagueData.players.filter(player => 
+                rowConstraint!.test(player) && colConstraint!.test(player)
+              );
+            } finally {
+              setIsLoadingCustomIntersection(false);
+            }
           } else {
             // Convert CatTeam constraints to IntersectionConstraint format
             const rowIntersectionConstraint: IntersectionConstraint = {
@@ -904,11 +939,46 @@ export default function Home() {
         let eligiblePidsCount = 0;
         
         if (hasCustomAchievements) {
-          // Use direct calculation for custom achievements to avoid cache conflicts
-          const eligiblePlayers = leagueData?.players?.filter(player => 
-            rowConstraint.test(player) && colConstraint.test(player)
-          ) || [];
-          eligiblePidsCount = eligiblePlayers.length;
+          console.log(`🔧 [ASYNC HINT] Using async calculation for hint modal custom intersection`);
+          setIsLoadingCustomIntersection(true);
+          
+          try {
+            // Convert CatTeam constraints to HeaderConfig format for async function
+            const rowConfig = {
+              type: rowConstraint.type,
+              selectedId: (rowConstraint.type === 'team' ? rowConstraint.tid : rowConstraint.achievementId) || null,
+              selectedLabel: rowConstraint.label,
+              customAchievement: rowConstraint.key.includes('custom') ? rowConstraint : undefined
+            };
+            
+            const colConfig = {
+              type: colConstraint.type,
+              selectedId: (colConstraint.type === 'team' ? colConstraint.tid : colConstraint.achievementId) || null,
+              selectedLabel: colConstraint.label,
+              customAchievement: colConstraint.key.includes('custom') ? colConstraint : undefined
+            };
+            
+            // Use async calculation to prevent UI blocking
+            const eligiblePlayers = await getCustomCellEligiblePlayersAsync(
+              rowConfig,
+              colConfig,
+              leagueData?.players || [],
+              leagueData?.teams || [],
+              leagueData?.seasonIndex
+            );
+            eligiblePidsCount = eligiblePlayers.length;
+            console.log(`🔧 [ASYNC HINT] Completed async calculation: ${eligiblePidsCount} players`);
+            
+          } catch (error) {
+            console.error('Error in async hint intersection calculation:', error);
+            // Fallback to synchronous calculation as last resort
+            const eligiblePlayers = leagueData?.players?.filter(player => 
+              rowConstraint.test(player) && colConstraint.test(player)
+            ) || [];
+            eligiblePidsCount = eligiblePlayers.length;
+          } finally {
+            setIsLoadingCustomIntersection(false);
+          }
         } else {
           // Use optimized intersection calculation for regular achievements
           const rowIntersectionConstraint: IntersectionConstraint = {
