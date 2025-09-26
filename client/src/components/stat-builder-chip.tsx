@@ -121,14 +121,8 @@ function getStatValidation(label: string): StatValidation {
 
 // Parse initial operator from label
 function parseOperator(label: string): Operator {
-  // If the label explicitly contains '≤', it's a less-than-or-equal operator
   if (label.includes('≤')) return '≤';
-  // If the label contains '+', it's a greater-than-or-equal operator
-  if (label.includes('+')) return '≥';
-  // For percentage labels, if no explicit operator, default to '≥'
-  if (label.includes('%')) return '≥';
-  // Default to '≥' for all other cases (e.g., simple numbers without explicit operators)
-  return '≥';
+  return '≥'; // Default for "+" patterns and most cases
 }
 
 // Format number according to validation rules
@@ -193,10 +187,11 @@ export function StatBuilderChip({
   const [isEditing, setIsEditing] = useState(false);
   const [validation, setValidation] = useState<StatValidation>(() => getStatValidation(label));
   const [error, setError] = useState<string | null>(null);
+  const [userHasToggledOperator, setUserHasToggledOperator] = useState(false);
+  const [userHasChangedNumber, setUserHasChangedNumber] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const containerWidthEm = useContainerWidth(containerRef);
-  const prevLabelRef = useRef(label); // Track previous label prop
   
   // Determine layout mode based on container width in em
   const layoutMode = getLayoutMode(containerWidthEm);
@@ -213,24 +208,31 @@ export function StatBuilderChip({
     return value.toLocaleString();
   }, [validation]);
 
-  // Update parsed achievement when label changes
+  // Update parsed achievement when label changes - but NEVER update user input
   useEffect(() => {
     const newParsed = parseAchievementLabel(label, sport);
     setParsed(newParsed);
-    setValidation(getStatValidation(label));
-    setError(null);
-
-    // Only update inputValue and operator from props if the achievement ID changes
-    // This prevents overwriting user input when only the operator changes for the same achievement.
-    if (newParsed.id !== parsed.id) {
+    
+    // ONLY update inputValue on initial load, never after user interaction
+    if (!userHasChangedNumber && !userHasToggledOperator) {
       setInputValue(newParsed.number.toString());
+    }
+    
+    // Only update operator from label if user hasn't manually toggled it
+    if (!userHasToggledOperator) {
       setOperator(parseOperator(label));
     }
-  }, [label, sport, parsed.id]);
+    
+    setValidation(getStatValidation(label));
+    setError(null);
+  }, [label, sport, userHasToggledOperator, userHasChangedNumber]);
 
   // All useCallback hooks must come before the early return
   const handleOperatorClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
+    
+    // Mark that user has manually toggled the operator
+    setUserHasToggledOperator(true);
     
     setOperator(prev => {
       const newOperator = prev === '≥' ? '≤' : '≥';
@@ -260,6 +262,9 @@ export function StatBuilderChip({
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     
+    // Mark that user has manually changed the number
+    setUserHasChangedNumber(true);
+    
     // Strip non-numeric characters except decimal point
     const cleanValue = value.replace(/[^0-9.]/g, '');
     
@@ -279,9 +284,10 @@ export function StatBuilderChip({
       const validationResult = validateInput(inputValue, validation);
       if (validationResult.isValid) {
         const newNumber = parseFloat(inputValue);
+        const originalOperator = parseOperator(parsed.originalLabel);
         
-        // Trigger callback if number changed OR operator changed from original
-        if ((newNumber !== parsed.number || operator !== parseOperator(parsed.originalLabel)) && onNumberChange) {
+        // Apply immediately if valid and different
+        if ((newNumber !== parsed.number || operator !== originalOperator) && onNumberChange) {
           const newLabel = generateUpdatedLabel(parsed, newNumber, operator);
           // Use setTimeout to avoid setState during render
           setTimeout(() => {
@@ -303,9 +309,10 @@ export function StatBuilderChip({
     }
     
     const newNumber = parseFloat(inputValue);
+    const originalOperator = parseOperator(parsed.originalLabel);
     
-    // Trigger callback if number changed OR operator changed
-    if ((newNumber !== parsed.number || operator !== parseOperator(label)) && onNumberChange) {
+    // Trigger callback if number changed OR operator changed from original
+    if ((newNumber !== parsed.number || operator !== originalOperator) && onNumberChange) {
       const newLabel = generateUpdatedLabel(parsed, newNumber, operator);
       // Use setTimeout to avoid setState during render
       setTimeout(() => {
@@ -313,16 +320,19 @@ export function StatBuilderChip({
       }, 0);
     }
     
+    // NEVER change what the user typed - keep their exact input
     setIsEditing(false);
     setError(null);
-  }, [inputValue, validation, parsed, onNumberChange, operator, label]);
+  }, [inputValue, validation, parsed, onNumberChange, operator]);
 
   const cancelEdit = useCallback(() => {
-    setInputValue(parsed.number.toString());
-    setOperator(parseOperator(label)); // Reset operator to prop-driven value
+    // Only reset to original if user hasn't made any changes
+    if (!userHasChangedNumber) {
+      setInputValue(parsed.number.toString());
+    }
     setIsEditing(false);
     setError(null);
-  }, [parsed.number, label]);
+  }, [parsed.number, userHasChangedNumber]);
 
   const handleInputBlur = useCallback(() => {
     // Apply immediately when clicking away (no delay needed)
@@ -356,18 +366,13 @@ export function StatBuilderChip({
   const getDisplayValue = (): string => {
     if (isEditing) return inputValue;
     
-    let formatted = formatDisplayNumber(parsed.number);
-
-    // Add "or less" or "≤" based on the current operator state
-    if (operator === '≤') {
-      // For percentage achievements, just show the number with a leading ≤
-      if (validation.isPercentage) {
-        formatted = `≤${formatted}`;
-      } else {
-        // For other achievements, add "or less" to the suffix
-        formatted = `${formatted} or less`;
-      }
+    // If user has changed the number, show their EXACT input without any formatting
+    if (userHasChangedNumber) {
+      return inputValue;
     }
+    
+    // Only apply formatting if user hasn't touched the number
+    const formatted = formatDisplayNumber(parsed.number);
     
     // For mode B, use compact form for numbers >= 7 characters
     if (layoutMode === 'B' && formatted.length >= 7) {
