@@ -1408,6 +1408,44 @@ function calculateBaseballAchievements(player: Player, achievements: any): void 
   achievements.career3000Ks = careerKs >= 3000;
   achievements.career300Saves = careerSaves >= 300;
   
+  // Helper function to get decade from season
+  const getDecade = (season: number) => Math.floor(season / 10) * 10;
+  
+  // Regular season stats for decade calculations
+  const regularSeasonStats = stats.filter(s => !s.playoffs && (s.gp || 0) > 0);
+  const playedDecades = new Set(regularSeasonStats.map(s => getDecade(s.season)));
+  
+  // Decade achievements
+  achievements.playedIn1970s = playedDecades.has(1970);
+  achievements.playedIn1980s = playedDecades.has(1980);
+  achievements.playedIn1990s = playedDecades.has(1990);
+  achievements.playedIn2000s = playedDecades.has(2000);
+  achievements.playedIn2010s = playedDecades.has(2010);
+  achievements.playedIn2020s = playedDecades.has(2020);
+  achievements.playedIn2030s = playedDecades.has(2030);
+  
+  // Debut decade achievements
+  // Find first season manually
+  let firstSeason: number | null = null;
+  if (regularSeasonStats.length > 0) {
+    firstSeason = regularSeasonStats[0].season;
+    for (const stat of regularSeasonStats) {
+      if (stat.season < firstSeason) firstSeason = stat.season;
+    }
+  }
+  if (firstSeason) {
+    const debutDecade = getDecade(firstSeason);
+    achievements.debutedIn1970s = debutDecade === 1970;
+    achievements.debutedIn1980s = debutDecade === 1980;
+    achievements.debutedIn1990s = debutDecade === 1990;
+    achievements.debutedIn2000s = debutDecade === 2000;
+    achievements.debutedIn2010s = debutDecade === 2010;
+    achievements.debutedIn2020s = debutDecade === 2020;
+    achievements.debutedIn2030s = debutDecade === 2030;
+  }
+  
+  // Multi-decade achievements
+  achievements.playedInThreeDecades = playedDecades.size >= 3;
   
   // Note: Single-season award calculations removed from game entirely
 }
@@ -1557,7 +1595,44 @@ function calculateHockeyAchievements(player: Player, achievements: any): void {
     console.log(`Hockey: ${player.firstName} ${player.lastName} - Career: ${careerGoals}G, ${careerAssists}A, ${careerPoints}P (${seasonStats.size} seasons)`);
   }
   
+  // Helper function to get decade from season
+  const getDecade = (season: number) => Math.floor(season / 10) * 10;
   
+  // Regular season stats for decade calculations
+  const regularSeasonStats = stats.filter(s => !s.playoffs && (s.gp || 0) > 0);
+  const playedDecades = new Set(regularSeasonStats.map(s => getDecade(s.season)));
+  
+  // Decade achievements
+  achievements.playedIn1970s = playedDecades.has(1970);
+  achievements.playedIn1980s = playedDecades.has(1980);
+  achievements.playedIn1990s = playedDecades.has(1990);
+  achievements.playedIn2000s = playedDecades.has(2000);
+  achievements.playedIn2010s = playedDecades.has(2010);
+  achievements.playedIn2020s = playedDecades.has(2020);
+  achievements.playedIn2030s = playedDecades.has(2030);
+  
+  // Debut decade achievements
+  // Find first season manually
+  let firstSeason: number | null = null;
+  if (regularSeasonStats.length > 0) {
+    firstSeason = regularSeasonStats[0].season;
+    for (const stat of regularSeasonStats) {
+      if (stat.season < firstSeason) firstSeason = stat.season;
+    }
+  }
+  if (firstSeason) {
+    const debutDecade = getDecade(firstSeason);
+    achievements.debutedIn1970s = debutDecade === 1970;
+    achievements.debutedIn1980s = debutDecade === 1980;
+    achievements.debutedIn1990s = debutDecade === 1990;
+    achievements.debutedIn2000s = debutDecade === 2000;
+    achievements.debutedIn2010s = debutDecade === 2010;
+    achievements.debutedIn2020s = debutDecade === 2020;
+    achievements.debutedIn2030s = debutDecade === 2030;
+  }
+  
+  // Multi-decade achievements
+  achievements.playedInThreeDecades = playedDecades.size >= 3;
   
   // Note: Single-season award calculations removed from game entirely
 }
