@@ -225,6 +225,57 @@ export function headerConfigToCatTeam(
   }
 }
 
+// Async chunked processing for custom achievement intersections to prevent UI blocking
+async function processCustomIntersectionAsync(
+  rowConstraint: any,
+  colConstraint: any,
+  players: Player[],
+  chunkSize: number = 500,
+  returnPlayers: boolean = false
+): Promise<number | Player[]> {
+  const eligiblePlayers: Player[] = [];
+  let count = 0;
+  
+  // Process players in chunks to avoid blocking the UI thread
+  for (let i = 0; i < players.length; i += chunkSize) {
+    const chunk = players.slice(i, i + chunkSize);
+    
+    // Process chunk synchronously
+    for (const player of chunk) {
+      if (rowConstraint.test(player) && colConstraint.test(player)) {
+        if (returnPlayers) {
+          eligiblePlayers.push(player);
+        } else {
+          count++;
+        }
+      }
+    }
+    
+    // Yield control back to the UI thread after each chunk
+    if (i + chunkSize < players.length) {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+  }
+  
+  return returnPlayers ? eligiblePlayers : count;
+}
+
+// Cache for custom achievement intersections
+const customIntersectionCache = new Map<string, { result: number | Player[]; timestamp: number; }>();
+const CUSTOM_CACHE_TTL = 30000; // 30 seconds
+
+function generateCustomCacheKey(
+  rowConfig: HeaderConfig,
+  colConfig: HeaderConfig,
+  returnPlayers: boolean = false
+): string {
+  const rowKey = rowConfig.customAchievement?.id || rowConfig.selectedId;
+  const colKey = colConfig.customAchievement?.id || colConfig.selectedId;
+  const rowOp = rowConfig.customAchievement?.operator || '';
+  const colOp = colConfig.customAchievement?.operator || '';
+  return `${rowKey}-${rowOp}|${colKey}-${colOp}|${returnPlayers ? 'players' : 'count'}`;
+}
+
 // Calculate intersection for a single cell using optimized Set-based operations with memoization
 export function calculateCustomCellIntersection(
   rowConfig: HeaderConfig,
@@ -244,6 +295,14 @@ export function calculateCustomCellIntersection(
   const hasCustomAchievements = rowConfig.customAchievement || colConfig.customAchievement;
   
   if (hasCustomAchievements) {
+    // Check cache first for custom achievements
+    const cacheKey = generateCustomCacheKey(rowConfig, colConfig, false);
+    const cached = customIntersectionCache.get(cacheKey);
+    
+    if (cached && (Date.now() - cached.timestamp) < CUSTOM_CACHE_TTL) {
+      return cached.result as number;
+    }
+    
     // Direct calculation for custom achievements - count players that meet both constraints
     let count = 0;
     for (const player of players) {
@@ -251,6 +310,9 @@ export function calculateCustomCellIntersection(
         count++;
       }
     }
+    
+    // Cache the result
+    customIntersectionCache.set(cacheKey, { result: count, timestamp: Date.now() });
     return count;
   }
 
@@ -275,6 +337,84 @@ export function calculateCustomCellIntersection(
     seasonIndex,
     true // Return count only
   ) as number;
+}
+
+// Async version for getting eligible players (for player modal and hints)
+export async function getCustomCellEligiblePlayersAsync(
+  rowConfig: HeaderConfig,
+  colConfig: HeaderConfig,
+  players: Player[],
+  teams: Team[],
+  seasonIndex?: SeasonIndex
+): Promise<Player[]> {
+  const rowConstraint = headerConfigToCatTeam(rowConfig, teams, seasonIndex);
+  const colConstraint = headerConfigToCatTeam(colConfig, teams, seasonIndex);
+  
+  if (!rowConstraint || !colConstraint) {
+    return [];
+  }
+
+  const hasCustomAchievements = rowConfig.customAchievement || colConfig.customAchievement;
+  
+  if (hasCustomAchievements) {
+    // Check cache first
+    const cacheKey = generateCustomCacheKey(rowConfig, colConfig, true);
+    const cached = customIntersectionCache.get(cacheKey);
+    
+    if (cached && (Date.now() - cached.timestamp) < CUSTOM_CACHE_TTL) {
+      return cached.result as Player[];
+    }
+    
+    // Use async processing for large datasets to prevent UI blocking
+    if (players.length > 1000) {
+      console.log(`🔧 [ASYNC] Processing ${players.length} players for custom intersection async`);
+      const eligiblePlayers = await processCustomIntersectionAsync(
+        rowConstraint,
+        colConstraint,
+        players,
+        500, // Process 500 players per chunk
+        true
+      ) as Player[];
+      
+      // Cache the result
+      customIntersectionCache.set(cacheKey, { result: eligiblePlayers, timestamp: Date.now() });
+      return eligiblePlayers;
+    } else {
+      // For smaller datasets, use synchronous processing
+      const eligiblePlayers = players.filter(player => 
+        rowConstraint.test(player) && colConstraint.test(player)
+      );
+      
+      // Cache the result
+      customIntersectionCache.set(cacheKey, { result: eligiblePlayers, timestamp: Date.now() });
+      return eligiblePlayers;
+    }
+  }
+
+  // Use optimized intersection for standard achievements
+  const rowIntersectionConstraint: IntersectionConstraint = {
+    type: rowConstraint.type,
+    id: rowConstraint.type === 'team' ? rowConstraint.tid! : rowConstraint.achievementId!,
+    label: rowConstraint.label
+  };
+  
+  const colIntersectionConstraint: IntersectionConstraint = {
+    type: colConstraint.type,
+    id: colConstraint.type === 'team' ? colConstraint.tid! : colConstraint.achievementId!,
+    label: colConstraint.label
+  };
+  
+  const eligiblePids = calculateOptimizedIntersection(
+    rowIntersectionConstraint,
+    colIntersectionConstraint,
+    players,
+    teams,
+    seasonIndex,
+    false // Return Set<number>
+  ) as Set<number>;
+  
+  // Convert Set<number> to Player[]
+  return players.filter(player => eligiblePids.has(player.pid));
 }
 
 // Update cell results for entire grid
