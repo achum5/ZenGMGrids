@@ -231,65 +231,65 @@ function generateTestFunction(
   if (originalLabel.includes('season') && !originalLabel.includes('seasons')) {
     if (originalLabel.includes('points') && !originalLabel.includes('ppg')) {
       return operator === '≤'
-        ? (player: Player) => getBestSeasonTotal(player, 'pts') <= newThreshold
-        : (player: Player) => getBestSeasonTotal(player, 'pts') >= newThreshold;
+        ? (player: Player) => getBestSeasonTotal(player, 'pts', 10) <= newThreshold
+        : (player: Player) => getBestSeasonTotal(player, 'pts', 10) >= newThreshold;
     }
     if (originalLabel.includes('assists') && !originalLabel.includes('apg')) {
       return operator === '≤'
-        ? (player: Player) => getBestSeasonTotal(player, 'ast') <= newThreshold
-        : (player: Player) => getBestSeasonTotal(player, 'ast') >= newThreshold;
+        ? (player: Player) => getBestSeasonTotal(player, 'ast', 10) <= newThreshold
+        : (player: Player) => getBestSeasonTotal(player, 'ast', 10) >= newThreshold;
     }
     if (originalLabel.includes('rebounds') && !originalLabel.includes('rpg')) {
       return operator === '≤'
-        ? (player: Player) => getBestSeasonTotal(player, 'trb') <= newThreshold
-        : (player: Player) => getBestSeasonTotal(player, 'trb') >= newThreshold;
+        ? (player: Player) => getBestSeasonTotal(player, 'trb', 10) <= newThreshold
+        : (player: Player) => getBestSeasonTotal(player, 'trb', 10) >= newThreshold;
     }
     if (originalLabel.includes('steals')) {
       return operator === '≤'
-        ? (player: Player) => getBestSeasonTotal(player, 'stl') <= newThreshold
-        : (player: Player) => getBestSeasonTotal(player, 'stl') >= newThreshold;
+        ? (player: Player) => getBestSeasonTotal(player, 'stl', 10) <= newThreshold
+        : (player: Player) => getBestSeasonTotal(player, 'stl', 10) >= newThreshold;
     }
     if (originalLabel.includes('blocks')) {
       return operator === '≤'
-        ? (player: Player) => getBestSeasonTotal(player, 'blk') <= newThreshold
-        : (player: Player) => getBestSeasonTotal(player, 'blk') >= newThreshold;
+        ? (player: Player) => getBestSeasonTotal(player, 'blk', 10) <= newThreshold
+        : (player: Player) => getBestSeasonTotal(player, 'blk', 10) >= newThreshold;
     }
     if (originalLabel.includes('3pm') || originalLabel.includes('threes')) {
       return operator === '≤'
-        ? (player: Player) => getBestSeasonTotal(player, 'tpm') <= newThreshold
-        : (player: Player) => getBestSeasonTotal(player, 'tpm') >= newThreshold;
+        ? (player: Player) => getBestSeasonTotal(player, 'tpm', 10) <= newThreshold
+        : (player: Player) => getBestSeasonTotal(player, 'tpm', 10) >= newThreshold;
     }
     if (originalLabel.includes('games')) {
       return operator === '≤'
-        ? (player: Player) => getBestSeasonTotal(player, 'gp') <= newThreshold
-        : (player: Player) => getBestSeasonTotal(player, 'gp') >= newThreshold;
+        ? (player: Player) => getBestSeasonTotal(player, 'gp', 1) <= newThreshold
+        : (player: Player) => getBestSeasonTotal(player, 'gp', 1) >= newThreshold;
     }
     
     // Per-game averages
     if (originalLabel.includes('ppg')) {
       return operator === '≤'
-        ? (player: Player) => getBestSeasonAverage(player, 'pts') <= newThreshold
-        : (player: Player) => getBestSeasonAverage(player, 'pts') >= newThreshold;
+        ? (player: Player) => getBestSeasonAverage(player, 'pts', 10) <= newThreshold
+        : (player: Player) => getBestSeasonAverage(player, 'pts', 10) >= newThreshold;
     }
     if (originalLabel.includes('rpg')) {
       return operator === '≤'
-        ? (player: Player) => getBestSeasonAverage(player, 'trb') <= newThreshold
-        : (player: Player) => getBestSeasonAverage(player, 'trb') >= newThreshold;
+        ? (player: Player) => getBestSeasonAverage(player, 'trb', 10) <= newThreshold
+        : (player: Player) => getBestSeasonAverage(player, 'trb', 10) >= newThreshold;
     }
     if (originalLabel.includes('apg')) {
       return operator === '≤'
-        ? (player: Player) => getBestSeasonAverage(player, 'ast') <= newThreshold
-        : (player: Player) => getBestSeasonAverage(player, 'ast') >= newThreshold;
+        ? (player: Player) => getBestSeasonAverage(player, 'ast', 10) <= newThreshold
+        : (player: Player) => getBestSeasonAverage(player, 'ast', 10) >= newThreshold;
     }
     if (originalLabel.includes('spg')) {
       return operator === '≤'
-        ? (player: Player) => getBestSeasonAverage(player, 'stl') <= newThreshold
-        : (player: Player) => getBestSeasonAverage(player, 'stl') >= newThreshold;
+        ? (player: Player) => getBestSeasonAverage(player, 'stl', 10) <= newThreshold
+        : (player: Player) => getBestSeasonAverage(player, 'stl', 10) >= newThreshold;
     }
     if (originalLabel.includes('bpg')) {
       return operator === '≤'
-        ? (player: Player) => getBestSeasonAverage(player, 'blk') <= newThreshold
-        : (player: Player) => getBestSeasonAverage(player, 'blk') >= newThreshold;
+        ? (player: Player) => getBestSeasonAverage(player, 'blk', 10) <= newThreshold
+        : (player: Player) => getBestSeasonAverage(player, 'blk', 10) >= newThreshold;
     }
     
     // Percentage achievements - convert user's percentage input (e.g., 40) to decimal (0.40)
@@ -298,26 +298,26 @@ function generateTestFunction(
     if (originalLabel.includes('ts') && originalLabel.includes('ppg')) {
       // 60%+ TS on 20+ PPG - check true shooting percentage
       return operator === '≤'
-        ? (player: Player) => getBestSeasonPercentage(player, 'ts') <= thresholdDecimal
-        : (player: Player) => getBestSeasonPercentage(player, 'ts') >= thresholdDecimal;
+        ? (player: Player) => getBestSeasonPercentage(player, 'ts', 10) <= thresholdDecimal
+        : (player: Player) => getBestSeasonPercentage(player, 'ts', 10) >= thresholdDecimal;
     }
     if (originalLabel.includes('efg')) {
       // Effective field goal percentage
       return operator === '≤'
-        ? (player: Player) => getBestSeasonPercentage(player, 'efg') <= thresholdDecimal
-        : (player: Player) => getBestSeasonPercentage(player, 'efg') >= thresholdDecimal;
+        ? (player: Player) => getBestSeasonPercentage(player, 'efg', 10) <= thresholdDecimal
+        : (player: Player) => getBestSeasonPercentage(player, 'efg', 10) >= thresholdDecimal;
     }
     if (originalLabel.includes('ft') && originalLabel.includes('%')) {
       // Free throw percentage
       return operator === '≤'
-        ? (player: Player) => getBestSeasonPercentage(player, 'ft') <= thresholdDecimal
-        : (player: Player) => getBestSeasonPercentage(player, 'ft') >= thresholdDecimal;
+        ? (player: Player) => getBestSeasonPercentage(player, 'ft', 10) <= thresholdDecimal
+        : (player: Player) => getBestSeasonPercentage(player, 'ft', 10) >= thresholdDecimal;
     }
     if (originalLabel.includes('3pt') || (originalLabel.includes('3p') && originalLabel.includes('%'))) {
       // 3-point percentage
       return operator === '≤'
-        ? (player: Player) => getBestSeasonPercentage(player, 'tp') <= thresholdDecimal
-        : (player: Player) => getBestSeasonPercentage(player, 'tp') >= thresholdDecimal;
+        ? (player: Player) => getBestSeasonPercentage(player, 'tp', 10) <= thresholdDecimal
+        : (player: Player) => getBestSeasonPercentage(player, 'tp', 10) >= thresholdDecimal;
     }
   }
   
@@ -363,13 +363,13 @@ function getCareerTotal(player: Player, statField: string): number {
     .reduce((total, stat) => total + ((stat as any)[statField] || 0), 0);
 }
 
-function getBestSeasonTotal(player: Player, statField: string): number {
+function getBestSeasonTotal(player: Player, statField: string, minGames: number = 10): number {
   if (!player.stats) return 0;
   
   // Avoid stack overflow with large datasets - use manual iteration
   let maxValue = 0;
   for (const stat of player.stats) {
-    if (!stat.playoffs && (stat.gp || 0) >= 20) {
+    if (!stat.playoffs && (stat.gp || 0) >= minGames) {
       const value = (stat as any)[statField] || 0;
       if (value > maxValue) {
         maxValue = value;
@@ -379,13 +379,13 @@ function getBestSeasonTotal(player: Player, statField: string): number {
   return maxValue;
 }
 
-function getBestSeasonAverage(player: Player, statField: string): number {
+function getBestSeasonAverage(player: Player, statField: string, minGames: number = 10): number {
   if (!player.stats) return 0;
   
   // Avoid stack overflow with large datasets - use manual iteration
   let maxAverage = 0;
   for (const stat of player.stats) {
-    if (!stat.playoffs && (stat.gp || 0) >= 20) {
+    if (!stat.playoffs && (stat.gp || 0) >= minGames) {
       const total = (stat as any)[statField] || 0;
       const games = stat.gp || 1;
       const average = games > 0 ? total / games : 0;
@@ -397,13 +397,13 @@ function getBestSeasonAverage(player: Player, statField: string): number {
   return maxAverage;
 }
 
-function getBestSeasonPercentage(player: Player, percentageType: string): number {
+function getBestSeasonPercentage(player: Player, percentageType: string, minGames: number = 10): number {
   if (!player.stats) return 0;
   
   // Avoid stack overflow with large datasets - use manual iteration
   let maxPercentage = 0;
   for (const stat of player.stats) {
-    if (!stat.playoffs && (stat.gp || 0) >= 20) {
+    if (!stat.playoffs && (stat.gp || 0) >= minGames) {
       let percentage = 0;
       
       switch (percentageType) {
