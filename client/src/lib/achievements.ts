@@ -500,7 +500,8 @@ const NUMERICAL_ACHIEVEMENT_CONFIGS: Record<string, { career?: Record<string, St
 function buildRandomNumericalAchievements(
   sport: 'basketball' | 'football' | 'hockey' | 'baseball',
   seed?: string,
-  count: number = 8
+  count: number = 8,
+  operator: '>=' | '<=' = '>='
 ): Achievement[] {
   const achievements: Achievement[] = [];
   const config = NUMERICAL_ACHIEVEMENT_CONFIGS[sport];
@@ -555,9 +556,11 @@ function buildRandomNumericalAchievements(
         if (!player.stats || player.stats.length === 0) return false;
         
         if (type === 'career') {
-          return getCareerStatTotal(player, statConfig.testField) >= threshold;
+          const value = getCareerStatTotal(player, statConfig.testField);
+          return operator === '>=' ? value >= threshold : value <= threshold;
         } else {
-          return getBestSeasonStat(player, statConfig.testField, statConfig.testType || 'total') >= threshold;
+          const value = getBestSeasonStat(player, statConfig.testField, statConfig.testType || 'total');
+          return operator === '>=' ? value >= threshold : value <= threshold;
         }
       }
     };
@@ -739,7 +742,12 @@ export const SEASON_ALIGNED_ACHIEVEMENTS = new Set([
 ]);
 
 // Check if a player meets a specific achievement criteria
-export function playerMeetsAchievement(player: Player, achievementId: string, seasonIndex?: SeasonIndex): boolean {
+export function playerMeetsAchievement(
+  player: Player, 
+  achievementId: string, 
+  seasonIndex?: SeasonIndex,
+  operator: '>=' | '<=' = '>='
+): boolean {
   // Debug logging removed for performance - was causing thousands of logs in hot paths
 
   // Check if it's a dynamic decade achievement first
@@ -849,7 +857,14 @@ export function playerMeetsAchievement(player: Player, achievementId: string, se
   // For regular career achievements, use the static achievement arrays
   const allAchievements = [...COMMON_ACHIEVEMENTS, ...BASKETBALL_ACHIEVEMENTS, ...FOOTBALL_ACHIEVEMENTS, ...HOCKEY_ACHIEVEMENTS, ...BASEBALL_ACHIEVEMENTS];
   const achievement = allAchievements.find(a => a.id === achievementId);
-  return achievement ? achievement.test(player) : false;
+  
+  if (achievement) {
+    const value = achievement.test(player);
+    const threshold = parseFloat(achievement.label.match(/(\d+[,\d.]*)/)?.[0].replace(/,/g, '') || '0');
+    return operator === '>=' ? value >= threshold : value <= threshold;
+  }
+  
+  return false;
 }
 
 // Cache for season lengths
@@ -996,7 +1011,7 @@ function calculateFootballAchievements(player: Player, achievements: any): void 
     careerRecTDs += season.recTD || 0;
     
     // Defensive stats - FBGM uses 'sk' field, fallback to 'defSk'
-    const seasonSacks = season.sk ?? season.defSk ?? 0;
+    const seasonSacks = season.sks ?? season.defSk ?? 0;
     careerSacks += seasonSacks;
     careerInts += season.defInt || 0;
   });

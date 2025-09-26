@@ -218,7 +218,7 @@ export function headerConfigToCatTeam(
           return config.customAchievement.test(p);
         } else {
           // For regular achievements, use the standard function
-          return playerMeetsAchievement(p, achievementToUse.id as string, seasonIndex);
+          return playerMeetsAchievement(p, achievementToUse.id as string, seasonIndex, config.operator === '≤' ? '<=' : '>=');
         }
       },
     };
