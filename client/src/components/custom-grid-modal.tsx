@@ -180,8 +180,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
             newSelectors[index] = {
               ...currentSelector,
               customAchievement,
-              operator: currentOperator  // Store operator in selector state
-              // Keep original label unchanged - header stays customizable
+              operator: currentOperator,  // Store operator in selector state
+              label: customAchievement.label // Update the label to reflect the custom achievement
             };
             
             // Trigger recalculation
@@ -226,7 +226,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
               newSelectors[index] = {
                 ...currentSelector,
                 customAchievement,
-                operator
+                operator,
+                label: customAchievement.label // Update the label to reflect the custom achievement
               };
             }
           }
@@ -312,20 +313,37 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
 
   // Update selector value
   const updateSelectorValue = useCallback((isRow: boolean, index: number, type: SelectorType, value: string, label: string) => {
+    const updateFn = (prev: SelectorState[]) => prev.map((selector, i) => {
+      if (i === index) {
+        if (type === 'achievement' && leagueData) {
+          const originalAchievement = achievementOptions.find(ach => ach.id === value);
+          if (originalAchievement) {
+            const parsed = parseAchievementLabel(originalAchievement.label, sport);
+            if (parsed.isEditable) {
+              const realAchievement = getAllAchievements(sport as any, seasonIndex, leagueData.leagueYears)
+                .find((ach: any) => ach.id === originalAchievement.id);
+              if (realAchievement) {
+                const customAchievement = createCustomNumericalAchievement(realAchievement, parsed.number, sport, '≥');
+                return { type, value, label: customAchievement.label, customAchievement, operator: '≥' };
+              }
+            }
+          }
+        }
+        return { type, value, label };
+      }
+      return selector;
+    });
+
     if (isRow) {
-      setRowSelectors(prev => prev.map((selector, i) => 
-        i === index ? { type, value, label } : selector
-      ));
+      setRowSelectors(updateFn);
     } else {
-      setColSelectors(prev => prev.map((selector, i) => 
-        i === index ? { type, value, label } : selector
-      ));
+      setColSelectors(updateFn);
     }
     // Trigger cell count calculation
     setCalculating(true);
     // Close the header selector and clear search
     // Reset state
-  }, []);
+  }, [leagueData, achievementOptions, sport, seasonIndex]);
 
   // Clear individual selector
   const clearSelector = useCallback((isRow: boolean, index: number) => {
@@ -1138,7 +1156,14 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
                                 const currentOperator = selector.operator || '≥';
                                 const formattedNumber = parsed.number.toLocaleString();
                                 const symbol = currentOperator === '≤' ? '≤' : '+';
-                                const cleanSuffix = parsed.suffix.replace(/^\+?\s*/, '').replace(/^or less\s+/, '');
+                                let cleanSuffix = parsed.suffix.replace(/^\+?\s*/, '').replace(/^or less\s+/, '');
+                                
+                                // Special handling for percentage suffixes to ensure correct display
+                                if (parsed.suffix.includes('%')) {
+                                  cleanSuffix = cleanSuffix.replace(/%\+/, ''); // Remove %+ if present
+                                  return `${formattedNumber}${symbol}${cleanSuffix}%`;
+                                }
+                                
                                 return `${formattedNumber}${symbol} ${cleanSuffix}`;
                               }
                             }
