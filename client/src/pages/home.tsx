@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { Link } from 'wouter';
 import { UploadSection } from '@/components/upload-section';
 import { GridSection } from '@/components/grid-section';
 import { PlayerSearchModal } from '@/components/player-search-modal';
@@ -1297,6 +1298,9 @@ export default function Home() {
                 <h1 className="text-2xl font-bold text-foreground">ZenGM Grids</h1>
               </div>
               <div className="flex items-center space-x-3">
+                <Link href="/ai-chat">
+                  <Button variant="ghost" size="sm">AI Chat</Button>
+                </Link>
                 <ThemeToggle />
                 <RulesModal />
               </div>
