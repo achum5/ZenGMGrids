@@ -347,10 +347,20 @@ export async function getCustomCellEligiblePlayersAsync(
   teams: Team[],
   seasonIndex?: SeasonIndex
 ): Promise<Player[]> {
+  console.log(`🔧 [DEBUG ASYNC] Starting async calculation:`);
+  console.log(`   Row config:`, rowConfig);
+  console.log(`   Col config:`, colConfig);
+  console.log(`   Players count:`, players.length);
+  
   const rowConstraint = headerConfigToCatTeam(rowConfig, teams, seasonIndex);
   const colConstraint = headerConfigToCatTeam(colConfig, teams, seasonIndex);
   
+  console.log(`🔧 [DEBUG ASYNC] Created constraints:`);
+  console.log(`   Row constraint:`, rowConstraint ? `type: ${rowConstraint.type}, label: ${rowConstraint.label}` : 'null');
+  console.log(`   Col constraint:`, colConstraint ? `type: ${colConstraint.type}, label: ${colConstraint.label}` : 'null');
+  
   if (!rowConstraint || !colConstraint) {
+    console.log(`🔧 [DEBUG ASYNC] Missing constraints, returning empty array`);
     return [];
   }
 
@@ -365,6 +375,15 @@ export async function getCustomCellEligiblePlayersAsync(
       return cached.result as Player[];
     }
     
+    // Test constraints with a few sample players for debugging
+    console.log(`🔧 [DEBUG ASYNC] Testing constraints with sample players:`);
+    for (let i = 0; i < Math.min(3, players.length); i++) {
+      const player = players[i];
+      const rowTest = rowConstraint.test(player);
+      const colTest = colConstraint.test(player);
+      console.log(`   Player ${i} (${player.name}): row=${rowTest}, col=${colTest}, both=${rowTest && colTest}`);
+    }
+    
     // Use async processing for large datasets to prevent UI blocking
     if (players.length > 1000) {
       console.log(`🔧 [ASYNC] Processing ${players.length} players for custom intersection async`);
@@ -376,14 +395,19 @@ export async function getCustomCellEligiblePlayersAsync(
         true
       ) as Player[];
       
+      console.log(`🔧 [DEBUG ASYNC] Async processing complete: ${eligiblePlayers.length} eligible players`);
+      
       // Cache the result
       customIntersectionCache.set(cacheKey, { result: eligiblePlayers, timestamp: Date.now() });
       return eligiblePlayers;
     } else {
       // For smaller datasets, use synchronous processing
+      console.log(`🔧 [DEBUG ASYNC] Using synchronous processing for ${players.length} players`);
       const eligiblePlayers = players.filter(player => 
         rowConstraint.test(player) && colConstraint.test(player)
       );
+      
+      console.log(`🔧 [DEBUG ASYNC] Sync processing complete: ${eligiblePlayers.length} eligible players`);
       
       // Cache the result
       customIntersectionCache.set(cacheKey, { result: eligiblePlayers, timestamp: Date.now() });
