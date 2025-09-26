@@ -7,13 +7,11 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Analytics } from "@vercel/analytics/react";
 import Home from "@/pages/home";
 import NotFound from "@/pages/not-found";
-import AiChatPage from "@/pages/ai-chat";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/ai-chat" component={AiChatPage} />
       <Route component={NotFound} />
     </Switch>
   );
