@@ -86,6 +86,8 @@ interface CustomGridModalProps {
   onClose: () => void;
   onPlayGrid: (rows: CatTeam[], cols: CatTeam[], rowSelectors?: any[], colSelectors?: any[]) => void;
   leagueData: LeagueData | null;
+  rows: CatTeam[];
+  cols: CatTeam[];
 }
 
 type SelectorType = 'team' | 'achievement';
@@ -98,7 +100,7 @@ interface SelectorState {
   operator?: '≥' | '≤'; // Store operator state for achievements
 }
 
-export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: CustomGridModalProps) {
+export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows, cols }: CustomGridModalProps) {
   
   // State for the 6 selectors (3 rows + 3 cols)
   const [rowSelectors, setRowSelectors] = useState<SelectorState[]>([
@@ -112,6 +114,76 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     { type: null, value: null, label: null, customAchievement: null },
     { type: null, value: null, label: null, customAchievement: null }
   ]);
+  
+  const sport = leagueData ? detectSport(leagueData) : 'basketball';
+  
+  // Memoize expensive computations to prevent performance issues
+  const teamOptions = useMemo<TeamOption[]>(() => {
+    return leagueData ? getTeamOptions(leagueData.teams) : [];
+  }, [leagueData?.teams]);
+  
+  // Use cached season index for achievements (replaces expensive local rebuild)
+  const seasonIndex = useMemo(() => {
+    return leagueData ? getCachedSeasonIndex(leagueData.players, sport) : undefined;
+  }, [leagueData?.players, sport]);
+
+  useEffect(() => {
+    if (isOpen) {
+      const catTeamToSelectorState = (catTeam: CatTeam): SelectorState => {
+        if (catTeam.type === 'team') {
+          return {
+            type: 'team',
+            value: catTeam.tid !== undefined ? catTeam.tid.toString() : null,
+            label: catTeam.label,
+          };
+        } else if (catTeam.type === 'achievement' && catTeam.achievementId) {
+          let operator: '≥' | '≤' = '≥';
+          let customAchievement = null;
+
+          if (catTeam.achievementId.includes('_custom_')) {
+            const parts = catTeam.achievementId.split('_custom_');
+            const baseId = parts[0];
+            const customPart = parts[1];
+            const customParts = customPart.split('_');
+            const value = parseFloat(customParts[0]);
+            const operatorStr = customParts[1] as 'gte' | 'lte';
+            operator = operatorStr === 'lte' ? '≤' : '≥';
+
+            if (leagueData) {
+              const achievements = getAllAchievements(sport as any, seasonIndex, leagueData.leagueYears);
+              const realAchievement = achievements.find((ach: any) => ach.id === baseId);
+              if (realAchievement) {
+                customAchievement = createCustomNumericalAchievement(realAchievement, value, sport, operator);
+              }
+            }
+            
+            return {
+              type: 'achievement',
+              value: baseId,
+              label: catTeam.label,
+              operator,
+              customAchievement,
+            };
+          }
+
+          return {
+            type: 'achievement',
+            value: catTeam.achievementId,
+            label: catTeam.label,
+          };
+        }
+        return { type: null, value: null, label: null };
+      };
+
+      if (rows.length === 3 && cols.length === 3) {
+        setRowSelectors(rows.map(catTeamToSelectorState));
+        setColSelectors(cols.map(catTeamToSelectorState));
+      } else {
+        // Reset if the grid is not fully formed
+        handleClearAll();
+      }
+    }
+  }, [isOpen, rows, cols, leagueData, sport, seasonIndex]);
   
   const [hideZeroResults, setHideZeroResults] = useState(false);
   
@@ -130,18 +202,6 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData }: Cus
     rowSelectors: SelectorState[];
     colSelectors: SelectorState[];
   } | null>(null);
-
-  const sport = leagueData ? detectSport(leagueData) : 'basketball';
-  
-  // Memoize expensive computations to prevent performance issues
-  const teamOptions = useMemo<TeamOption[]>(() => {
-    return leagueData ? getTeamOptions(leagueData.teams) : [];
-  }, [leagueData?.teams]);
-  
-  // Use cached season index for achievements (replaces expensive local rebuild)
-  const seasonIndex = useMemo(() => {
-    return leagueData ? getCachedSeasonIndex(leagueData.players, sport) : undefined;
-  }, [leagueData?.players, sport]);
   
   const achievementOptions = useMemo<AchievementOption[]>(() => {
     console.log('🔧 [MEMO] Recalculating achievement options...');
