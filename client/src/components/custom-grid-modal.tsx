@@ -97,22 +97,22 @@ interface SelectorState {
   value: string | null;
   label: string | null;
   customAchievement?: any; // Store custom achievement for dynamic numerical thresholds
-  operator?: '≥' | '≤'; // Store operator state for achievements
+  operator: '≥' | '≤'; // Store operator state for achievements
 }
 
 export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows, cols }: CustomGridModalProps) {
   
   // State for the 6 selectors (3 rows + 3 cols)
   const [rowSelectors, setRowSelectors] = useState<SelectorState[]>([
-    { type: null, value: null, label: null, customAchievement: null },
-    { type: null, value: null, label: null, customAchievement: null },
-    { type: null, value: null, label: null, customAchievement: null }
+    { type: null, value: null, label: null, customAchievement: null, operator: '≥' },
+    { type: null, value: null, label: null, customAchievement: null, operator: '≥' },
+    { type: null, value: null, label: null, customAchievement: null, operator: '≥' }
   ]);
   
   const [colSelectors, setColSelectors] = useState<SelectorState[]>([
-    { type: null, value: null, label: null, customAchievement: null },
-    { type: null, value: null, label: null, customAchievement: null },
-    { type: null, value: null, label: null, customAchievement: null }
+    { type: null, value: null, label: null, customAchievement: null, operator: '≥' },
+    { type: null, value: null, label: null, customAchievement: null, operator: '≥' },
+    { type: null, value: null, label: null, customAchievement: null, operator: '≥' }
   ]);
   
   const sport = leagueData ? detectSport(leagueData) : 'basketball';
@@ -341,14 +341,14 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
   // Clear all selections
   const handleClearAll = useCallback(() => {
     setRowSelectors([
-      { type: null, value: null, label: null, customAchievement: null },
-      { type: null, value: null, label: null, customAchievement: null },
-      { type: null, value: null, label: null, customAchievement: null }
+      { type: null, value: null, label: null, customAchievement: null, operator: '≥' },
+      { type: null, value: null, label: null, customAchievement: null, operator: '≥' },
+      { type: null, value: null, label: null, customAchievement: null, operator: '≥' }
     ]);
     setColSelectors([
-      { type: null, value: null, label: null, customAchievement: null },
-      { type: null, value: null, label: null, customAchievement: null },
-      { type: null, value: null, label: null, customAchievement: null }
+      { type: null, value: null, label: null, customAchievement: null, operator: '≥' },
+      { type: null, value: null, label: null, customAchievement: null, operator: '≥' },
+      { type: null, value: null, label: null, customAchievement: null, operator: '≥' }
     ]);
     setCellCounts({});
     setCanUndo(false);
@@ -357,48 +357,34 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
 
   // Update selector type
   const updateSelectorType = useCallback((isRow: boolean, index: number, type: SelectorType) => {
+    const newState = { type, value: null, label: null, customAchievement: null, operator: '≥' as const };
     if (isRow) {
-      setRowSelectors(prev => prev.map((selector, i) => 
-        i === index ? { type, value: null, label: null, customAchievement: null } : selector
-      ));
+      setRowSelectors(prev => prev.map((selector, i) => i === index ? newState : selector));
     } else {
-      setColSelectors(prev => prev.map((selector, i) => 
-        i === index ? { type, value: null, label: null, customAchievement: null } : selector
-      ));
+      setColSelectors(prev => prev.map((selector, i) => i === index ? newState : selector));
     }
-    // Clear cell counts when type changes
     setCellCounts({});
   }, []);
 
   // Update selector value
   const updateSelectorValue = useCallback((isRow: boolean, index: number, type: SelectorType, value: string, label: string) => {
+    const newState = { type, value, label, operator: '≥' as const };
     if (isRow) {
-      setRowSelectors(prev => prev.map((selector, i) => 
-        i === index ? { type, value, label } : selector
-      ));
+      setRowSelectors(prev => prev.map((selector, i) => i === index ? newState : selector));
     } else {
-      setColSelectors(prev => prev.map((selector, i) => 
-        i === index ? { type, value, label } : selector
-      ));
+      setColSelectors(prev => prev.map((selector, i) => i === index ? newState : selector));
     }
-    // Trigger cell count calculation
     setCalculating(true);
-    // Close the header selector and clear search
-    // Reset state
   }, []);
 
   // Clear individual selector
   const clearSelector = useCallback((isRow: boolean, index: number) => {
+    const newState = { type: null, value: null, label: null, customAchievement: null, operator: '≥' as const };
     if (isRow) {
-      setRowSelectors(prev => prev.map((selector, i) => 
-        i === index ? { type: null, value: null, label: null, customAchievement: null } : selector
-      ));
+      setRowSelectors(prev => prev.map((selector, i) => i === index ? newState : selector));
     } else {
-      setColSelectors(prev => prev.map((selector, i) => 
-        i === index ? { type: null, value: null, label: null, customAchievement: null } : selector
-      ));
+      setColSelectors(prev => prev.map((selector, i) => i === index ? newState : selector));
     }
-    // Trigger cell count calculation
     setCalculating(true);
   }, []);
 
@@ -1223,6 +1209,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
                             operator
                           )
                         }
+                        operator={selector.operator || '≥'}
                       />
                     </div>
                   ) : (
