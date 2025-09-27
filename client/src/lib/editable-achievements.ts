@@ -94,62 +94,41 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
   if (!parsed.isEditable) {
     return parsed.originalLabel;
   }
-  
-  // Format numbers appropriately - use locale string for large integers, preserve decimals
-  let formattedNumber: string;
-  if (newNumber % 1 === 0) {
-    // Integer - use locale formatting for readability
-    formattedNumber = newNumber.toLocaleString();
-  } else {
-    // Decimal - preserve decimal places without locale formatting commas
-    formattedNumber = newNumber.toString();
-  }
-  
-  // Handle less than operator
+
+  // Format the number part of the label
+  const formattedNumber = newNumber.toLocaleString(undefined, {
+    maximumFractionDigits: 1,
+  });
+
+  const cleanSuffix = parsed.suffix.replace(/^\+\s*/, '').trim();
+  const cleanPrefix = parsed.prefix.trim();
+
+  // Handle 'less than or equal to' cases
   if (operator === '≤') {
-    // Handle age achievements specially
-    if (parsed.originalLabel.includes('Age')) {
-      return `Played at Age ${formattedNumber} or less`;
+    if (parsed.originalLabel.toLowerCase().includes('age')) {
+      return `Played at Age ${formattedNumber} or younger`;
     }
-    
-    // Handle percentage achievements differently
-    if (parsed.suffix.includes('%+')) {
-      // For percentage achievements, use "X% or less" format
-      return `${formattedNumber}% or less${parsed.suffix.replace('%+', '')}`;
+    if (cleanSuffix.includes('%')) {
+      const stat = cleanSuffix.replace('%', '').trim();
+      return `${formattedNumber}% or less ${stat}`;
+    } else {
+      // For counting stats, rephrase to "[prefix] [stat] or fewer [number]"
+      return `${cleanPrefix} ${cleanSuffix} or fewer ${formattedNumber}`;
     }
-    
-    // Generate "X or fewer" format for career/season totals
-    if (parsed.originalLabel.includes('Career') || 
-        parsed.originalLabel.includes('Season') ||
-        parsed.originalLabel.includes('+') ||
-        parsed.suffix.includes('Points') ||
-        parsed.suffix.includes('Rebounds') ||
-        parsed.suffix.includes('Assists') ||
-        parsed.suffix.includes('Steals') ||
-        parsed.suffix.includes('Blocks') ||
-        parsed.suffix.includes('Threes') ||
-        parsed.suffix.includes('Made Threes')) {
-      const cleanSuffix = parsed.suffix.replace(/^\+\s*/, '');
-      return `${formattedNumber} or fewer${cleanSuffix}`;
-    }
-    // For other patterns, use "X or fewer" format
-    return `${formattedNumber} or fewer ${parsed.suffix.trim()}`;
+  }
+
+  // Handle 'greater than or equal to' cases (default)
+  if (cleanSuffix.includes('%')) {
+    const stat = cleanSuffix.replace('%', '').trim();
+    return `${formattedNumber}%+ ${stat}`;
   }
   
-  // Handle greater than or equal (default behavior)
-  // Handle percentage achievements
-  if (parsed.suffix.includes('%+')) {
-    return `${parsed.prefix}${formattedNumber}%+${parsed.suffix.replace('%+', '')}`;
+  // For labels that don't originally have a "+", like "30 PPG (Season)"
+  if (!parsed.originalLabel.includes('+')) {
+      return `${cleanPrefix} ${formattedNumber} ${cleanSuffix}`;
   }
-  
-  
-  // Check if the original had a "+" and maintain that format
-  if (parsed.originalLabel.includes('+')) {
-    return `${parsed.prefix}${formattedNumber}+${parsed.suffix}`;
-  } else {
-    // For patterns without "+", just replace the number directly
-    return `${parsed.prefix}${formattedNumber}${parsed.suffix}`;
-  }
+
+  return `${cleanPrefix} ${formattedNumber}+ ${cleanSuffix}`;
 }
 
 /**

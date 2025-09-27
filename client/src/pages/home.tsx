@@ -1456,131 +1456,38 @@ export default function Home() {
         <CustomGridModal
           isOpen={customGridModalOpen}
           onClose={() => setCustomGridModalOpen(false)}
-          onPlayGrid={(customRows, customCols, rowSelectors, colSelectors) => {
+          onPlayGrid={(customRows, customCols) => {
             if (!leagueData) return;
-            
+
             // Replace current grid with custom grid
             setRows(customRows);
             setCols(customCols);
-            // Reset game state for new custom grid
+            
+            // Reset game state for the new custom grid
             setCells({});
             setUsedPids(new Set());
             setRankCache({});
+            setGiveUpPressed(false); // Reset the "finished" state
             
-            // Calculate intersections using the EXACT same logic as custom grid preview
+            // Calculate intersections directly from the test functions provided by the modal
             const newIntersections: Record<string, number[]> = {};
-            
-            // Use original selector data that preserves custom achievement information
-            if (rowSelectors && colSelectors) {
-              for (let rowIndex = 0; rowIndex < 3; rowIndex++) {
-                for (let colIndex = 0; colIndex < 3; colIndex++) {
-                  const key = `${rowIndex}-${colIndex}`;
-                  
-                  const rowConfig = {
-                    type: rowSelectors[rowIndex].type,
-                    selectedId: rowSelectors[rowIndex].type === 'team' 
-                      ? parseInt(rowSelectors[rowIndex].value) 
-                      : rowSelectors[rowIndex].value,
-                    selectedLabel: rowSelectors[rowIndex].label,
-                    customAchievement: rowSelectors[rowIndex].customAchievement
-                  };
-                  
-                  const colConfig = {
-                    type: colSelectors[colIndex].type,
-                    selectedId: colSelectors[colIndex].type === 'team' 
-                      ? parseInt(colSelectors[colIndex].value) 
-                      : colSelectors[colIndex].value,
-                    selectedLabel: colSelectors[colIndex].label,
-                    customAchievement: colSelectors[colIndex].customAchievement
-                  };
-                  
-                  console.log(`🔧 [DIRECT FIX] Cell ${key} config:`, {
-                    rowConfig,
-                    colConfig,
-                    hasRowCustom: !!rowConfig.customAchievement,
-                    hasColCustom: !!colConfig.customAchievement
-                  });
-                  
-                  // Use calculateCustomCellIntersection - the EXACT same function as the preview
-                  const count = calculateCustomCellIntersection(
-                    rowConfig,
-                    colConfig, 
-                    leagueData.players,
-                    leagueData.teams,
-                    leagueData.seasonIndex
-                  );
-                  
-                  // DIRECT FIX: Simple player filtering for custom achievements
-                  let eligiblePlayers: any[] = [];
-                  
-                  if (rowConfig.customAchievement || colConfig.customAchievement) {
-                    // Direct filtering for custom achievements
-                    console.log(`🔧 [CUSTOM FIX] Using direct filtering for cell ${key}`);
-                    
-                    eligiblePlayers = leagueData.players.filter(player => {
-                      let rowPasses = true;
-                      let colPasses = true;
-                      
-                      // Check row constraint
-                      if (rowConfig.type === 'team') {
-                        rowPasses = player.teamsPlayed.has(rowConfig.selectedId);
-                      } else if (rowConfig.customAchievement) {
-                        rowPasses = rowConfig.customAchievement.test(player);
-                      } else {
-                        rowPasses = playerMeetsAchievement(player, rowConfig.selectedId as string, leagueData.seasonIndex);
-                      }
-                      
-                      // Check column constraint
-                      if (colConfig.type === 'team') {
-                        colPasses = player.teamsPlayed.has(colConfig.selectedId);
-                      } else if (colConfig.customAchievement) {
-                        colPasses = colConfig.customAchievement.test(player);
-                      } else {
-                        colPasses = playerMeetsAchievement(player, colConfig.selectedId as string, leagueData.seasonIndex);
-                      }
-                      
-                      const passes = rowPasses && colPasses;
-                      if (passes) {
-                        console.log(`  ✅ ${player.name} passes both tests`);
-                      }
-                      return passes;
-                    });
-                    
-                    console.log(`🔧 [CUSTOM FIX] Found ${eligiblePlayers.length} eligible players`);
-                  } else {
-                    // Use normal calculation for non-custom
-                    const rowConstraint = headerConfigToCatTeam(rowConfig, leagueData.teams, leagueData.seasonIndex);
-                    const colConstraint = headerConfigToCatTeam(colConfig, leagueData.teams, leagueData.seasonIndex);
-                    
-                    if (rowConstraint && colConstraint) {
-                      eligiblePlayers = leagueData.players.filter(p => 
-                        rowConstraint.test(p) && colConstraint.test(p)
-                      );
-                    }
-                  }
-                  
-                  const playerIds = eligiblePlayers.map(p => p.pid);
-                  newIntersections[key] = playerIds;
-                  console.log(`🔧 [STORAGE] Storing cell ${key} with ${playerIds.length} player IDs`);
-                }
-              }
-            } else {
-              // Fallback to direct test functions if selectors not available
-              for (let rowIndex = 0; rowIndex < customRows.length; rowIndex++) {
-                for (let colIndex = 0; colIndex < customCols.length; colIndex++) {
-                  const key = `${rowIndex}-${colIndex}`;
-                  const eligiblePlayers = leagueData.players.filter(p => 
-                    customRows[rowIndex].test(p) && customCols[colIndex].test(p)
-                  );
-                  newIntersections[key] = eligiblePlayers.map(p => p.pid);
-                }
+            for (let rowIndex = 0; rowIndex < customRows.length; rowIndex++) {
+              for (let colIndex = 0; colIndex < customCols.length; colIndex++) {
+                const key = `${rowIndex}-${colIndex}`;
+                const rowConstraint = customRows[rowIndex];
+                const colConstraint = customCols[colIndex];
+                
+                const eligiblePlayers = leagueData.players.filter(p => 
+                  rowConstraint.test(p) && colConstraint.test(p)
+                );
+                
+                newIntersections[key] = eligiblePlayers.map(p => p.pid);
               }
             }
             
-            console.log(`🔧 [FINAL] Setting intersections:`, newIntersections);
-            console.log(`🔧 [FINAL] Keys in intersections:`, Object.keys(newIntersections));
             setIntersections(newIntersections);
-            // Close modal
+            
+            // Close the modal
             setCustomGridModalOpen(false);
           }}
           leagueData={leagueData}
