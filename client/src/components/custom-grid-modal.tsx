@@ -197,6 +197,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
       if (rows.length === 3 && cols.length === 3) {
         setRowSelectors(rows.map(catTeamToSelectorState));
         setColSelectors(cols.map(catTeamToSelectorState));
+        setCalculating(true); // Trigger calculation on initial load
       } else {
         // Reset if the grid is not fully formed
         handleClearAll();
