@@ -249,7 +249,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
             // Update the selector with custom achievement (preserve original label)
             newSelectors[index] = {
               ...currentSelector,
-              customAchievement, // Ensure the full customAchievement object (including test function) is preserved
+              customAchievement,
               operator: currentOperator,  // Store operator in selector state
               customNumber: newNumber
               // Keep original label unchanged - header stays customizable
@@ -288,7 +288,6 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
           const realAchievement = achievements.find((ach: any) => ach.id === originalAchievement.id);
 
           if (realAchievement) {
-            console.log('[DEBUG] handleAchievementOperatorChange: currentSelector:', JSON.stringify(currentSelector, null, 2), 'new operator:', operator);
             // Determine the number to use. Prioritize customNumber if it exists.
             let numberToUse: number;
             if (currentSelector.customNumber !== undefined && currentSelector.customNumber !== null) {
