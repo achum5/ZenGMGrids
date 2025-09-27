@@ -109,20 +109,19 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
   if (operator === '≤') {
     // Handle age achievements specially
     if (parsed.originalLabel.includes('Age')) {
-      return `Played at Age ≤ ${formattedNumber}`;
+      return `Played at Age ${formattedNumber} or less`;
     }
     
     // Handle percentage achievements differently
     if (parsed.suffix.includes('%+')) {
-      // For percentage achievements, use "≤ X%" format
-      return `≤ ${formattedNumber}%${parsed.suffix.replace('%+', '+')}`;
+      // For percentage achievements, use "X% or less" format
+      return `${formattedNumber}% or less${parsed.suffix.replace('%+', '')}`;
     }
     
-    // Generate "X or less" format for career/season totals
-    // This includes explicit "Career"/"Season" labels and career stat patterns (like "Made Threes", "Points", etc.)
+    // Generate "X or fewer" format for career/season totals
     if (parsed.originalLabel.includes('Career') || 
         parsed.originalLabel.includes('Season') ||
-        parsed.originalLabel.includes('+') || // Most career achievements have "+" in original label
+        parsed.originalLabel.includes('+') ||
         parsed.suffix.includes('Points') ||
         parsed.suffix.includes('Rebounds') ||
         parsed.suffix.includes('Assists') ||
@@ -130,12 +129,11 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
         parsed.suffix.includes('Blocks') ||
         parsed.suffix.includes('Threes') ||
         parsed.suffix.includes('Made Threes')) {
-      // Clean the suffix by removing "+" for "or less" format
       const cleanSuffix = parsed.suffix.replace(/^\+\s*/, '');
-      return `${formattedNumber} ≤ ${cleanSuffix}`;
+      return `${formattedNumber} or fewer${cleanSuffix}`;
     }
-    // For other patterns, use "≤ X" format
-    return `≤ ${formattedNumber}${parsed.suffix}`;
+    // For other patterns, use "X or fewer" format
+    return `${formattedNumber} or fewer ${parsed.suffix.trim()}`;
   }
   
   // Handle greater than or equal (default behavior)
@@ -174,9 +172,11 @@ export function createCustomNumericalAchievement(
   // Generate new test function based on achievement type patterns
   const newTestFunction = generateTestFunction(baseAchievement, parsed, newThreshold, sport, operator);
   
+  const operatorStr = operator === '≤' ? 'lte' : 'gte';
+  
   return {
     ...baseAchievement,
-    id: `${baseAchievement.id}_custom_${newThreshold}_${operator || 'gte'}`,
+    id: `${baseAchievement.id}_custom_${newThreshold}_${operatorStr}`,
     label: newLabel,
     test: newTestFunction
   };
