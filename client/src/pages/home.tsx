@@ -1298,7 +1298,9 @@ export default function Home() {
               </div>
               <div className="flex items-center space-x-3">
                 <ThemeToggle />
-                <RulesModal />
+                <div className="-ml-[1px]">
+                  <RulesModal />
+                </div>
               </div>
             </div>
           </div>
@@ -1341,7 +1343,9 @@ export default function Home() {
             </div>
             <div className="flex items-center space-x-1">
               <ThemeToggle />
-              <RulesModal sport={leagueData?.sport} />
+              <div className="-ml-[1px]">
+                <RulesModal sport={leagueData?.sport} />
+              </div>
               {hasGuesses ? (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>

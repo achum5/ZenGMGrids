@@ -406,7 +406,7 @@ function generateTestFunction(
         return (player: Player) => checkSeasonTotal(player, 'blk', newThreshold, operator, 10, sport);
       }
       if (originalLabel.includes('3pm') || originalLabel.includes('threes')) {
-        return (player: Player) => checkSeasonTotal(player, 'tpm', newThreshold, operator, 10, sport);
+        return (player: Player) => checkSeasonTotal(player, ['tpm', 'tp'], newThreshold, operator, 10, sport);
       }
       if (originalLabel.includes('games')) {
         return (player: Player) => checkSeasonTotal(player, 'gp', newThreshold, operator, 1, sport);
@@ -521,36 +521,27 @@ function checkCareerTotal(player: Player, statField: string | string[], newThres
   }
 }
 
-function checkSeasonTotal(player: Player, statField: string, newThreshold: number, operator: '≥' | '≤', minGames: number = 1, sport?: string): boolean {
+function checkSeasonTotal(player: Player, statField: string | string[], newThreshold: number, operator: '≥' | '≤', minGames: number = 1, sport?: string): boolean {
   if (!player.stats) return false;
 
-  if (sport === 'hockey' && player.achievements?.seasonStatsComputed) {
-    for (const seasonYearStr in player.achievements.seasonStatsComputed) {
-      const seasonYear = parseInt(seasonYearStr);
-      const computedStats = player.achievements.seasonStatsComputed[seasonYear];
-      
-      // Find the raw stat for this season to get gp
-      const rawStat = player.stats.find(s => s.season === seasonYear && !s.playoffs);
-      const gp = rawStat?.gp || 0;
-
-      if (gp >= minGames) {
-        const value = (computedStats as any)[statField] || 0;
-        if (operator === '≤' && value <= newThreshold) {
-          return true;
-        } else if (operator === '≥' && value >= newThreshold) {
-          return true;
+  for (const stat of player.stats) {
+    if (!stat.playoffs && (stat.gp || 0) >= minGames) {
+      let value = 0;
+      if (Array.isArray(statField)) {
+        for (const field of statField) {
+          if ((stat as any)[field] !== undefined) {
+            value = (stat as any)[field];
+            break; // Use the first valid field found
+          }
         }
+      } else {
+        value = (stat as any)[statField] || 0;
       }
-    }
-  } else {
-    for (const stat of player.stats) {
-      if (!stat.playoffs && (stat.gp || 0) >= minGames) {
-        const value = (stat as any)[statField] || 0;
-        if (operator === '≤' && value <= newThreshold) {
-          return true;
-        } else if (operator === '≥' && value >= newThreshold) {
-          return true;
-        }
+
+      if (operator === '≤' && value <= newThreshold) {
+        return true;
+      } else if (operator === '≥' && value >= newThreshold) {
+        return true;
       }
     }
   }

@@ -142,7 +142,7 @@ function isSeasonAchievement(achievementId: string): achievementId is SeasonAchi
 }
 
 // Helper function to calculate seasons where player achieved Season* statistical thresholds
-function getSeasonsForSeasonStatAchievement(player: Player, achievementId: SeasonAchievementId): string[] {
+function getSeasonsForSeasonStatAchievement(player: Player, achievementId: SeasonAchievementId, customThreshold?: number, customOperator?: '≥' | '≤'): string[] {
   if (!player.stats || player.stats.length === 0) return [];
   
   const qualifyingSeasons: number[] = [];
@@ -159,60 +159,68 @@ function getSeasonsForSeasonStatAchievement(player: Player, achievementId: Seaso
     const ast = stat.ast || 0;
     const stl = stat.stl || 0;
     const blk = stat.blk || 0;
-    const tp = stat.tp || 0; // 3PM
+    const tp = stat.tpm || stat.tp || 0; // Use tpm as preferred, tp as fallback
     const tpa = stat.tpa || 0; // 3PA
     const fga = stat.fga || 0;
     const fta = stat.fta || 0;
     const ft = stat.ft || 0;
     const fg = stat.fg || 0;
     
+    // Helper for dynamic comparison
+    const check = (value: number, threshold: number, operator: '≥' | '≤') => {
+      if (operator === '≤') return value <= threshold;
+      return value >= threshold;
+    };
+
     // Basketball GM Season achievements
     switch (achievementId) {
       case 'Season30PPG':
-        if (gp >= 50 && (pts / gp) >= 30) qualifyingSeasons.push(season);
+        if (gp >= 50 && check(pts / gp, customThreshold !== undefined ? customThreshold : 30, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season2000Points':
-        if (pts >= 2000) qualifyingSeasons.push(season);
+        if (check(pts, customThreshold !== undefined ? customThreshold : 2000, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season300_3PM':
-        if (tp >= 300) qualifyingSeasons.push(season);
+        if (check(tp, customThreshold !== undefined ? customThreshold : 300, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season200_3PM':
-        if (tp >= 200) qualifyingSeasons.push(season);
+        if (check(tp, customThreshold !== undefined ? customThreshold : 200, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season12RPG':
-        if (gp >= 50 && (trb / gp) >= 12) qualifyingSeasons.push(season);
+        if (gp >= 50 && check(trb / gp, customThreshold !== undefined ? customThreshold : 12, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season10APG':
-        if (gp >= 50 && (ast / gp) >= 10) qualifyingSeasons.push(season);
+        if (gp >= 50 && check(ast / gp, customThreshold !== undefined ? customThreshold : 10, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season800Rebounds':
-        if (trb >= 800) qualifyingSeasons.push(season);
+        if (check(trb, customThreshold !== undefined ? customThreshold : 800, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season700Assists':
-        if (ast >= 700) qualifyingSeasons.push(season);
+        if (check(ast, customThreshold !== undefined ? customThreshold : 700, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season2SPG':
-        if (gp >= 50 && (stl / gp) >= 2.0) qualifyingSeasons.push(season);
+        if (gp >= 50 && check(stl / gp, customThreshold !== undefined ? customThreshold : 2.0, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season2_5BPG':
-        if (gp >= 50 && (blk / gp) >= 2.5) qualifyingSeasons.push(season);
+        if (gp >= 50 && check(blk / gp, customThreshold !== undefined ? customThreshold : 2.5, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season150Steals':
-        if (stl >= 150) qualifyingSeasons.push(season);
+        if (check(stl, customThreshold !== undefined ? customThreshold : 150, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season150Blocks':
-        if (blk >= 150) qualifyingSeasons.push(season);
+        if (check(blk, customThreshold !== undefined ? customThreshold : 150, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season200Stocks':
-        if ((stl + blk) >= 200) qualifyingSeasons.push(season);
+        if (check((stl + blk), customThreshold !== undefined ? customThreshold : 200, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season50_40_90':
         if (fga >= 400 && tpa >= 100 && fta >= 100) {
           const fgPct = fg / fga;
           const tpPct = tp / tpa;
           const ftPct = ft / fta;
-          if (fgPct >= 0.50 && tpPct >= 0.40 && ftPct >= 0.90) {
+          if (check(fgPct, customThreshold !== undefined ? customThreshold / 100 : 0.50, customOperator || '≥') &&
+              check(tpPct, customThreshold !== undefined ? customThreshold / 100 : 0.40, customOperator || '≥') &&
+              check(ftPct, customThreshold !== undefined ? customThreshold / 100 : 0.90, customOperator || '≥')) {
             qualifyingSeasons.push(season);
           }
         }
@@ -220,46 +228,46 @@ function getSeasonsForSeasonStatAchievement(player: Player, achievementId: Seaso
       case 'Season60TS20PPG':
         if (gp >= 50 && (pts / gp) >= 20 && fga >= 400) {
           const ts = pts / (2 * (fga + 0.44 * fta));
-          if (ts >= 0.60) qualifyingSeasons.push(season);
+          if (check(ts, customThreshold !== undefined ? customThreshold / 100 : 0.60, customOperator || '≥')) qualifyingSeasons.push(season);
         }
         break;
       case 'Season60eFG500FGA':
         if (fga >= 500) {
           const eFG = (fg + 0.5 * tp) / fga;
-          if (eFG >= 0.60) qualifyingSeasons.push(season);
+          if (check(eFG, customThreshold !== undefined ? customThreshold / 100 : 0.60, customOperator || '≥')) qualifyingSeasons.push(season);
         }
         break;
       case 'Season90FT250FTA':
-        if (fta >= 250 && (ft / fta) >= 0.90) qualifyingSeasons.push(season);
+        if (fta >= 250 && check(ft / fta, customThreshold !== undefined ? customThreshold / 100 : 0.90, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season40_3PT200_3PA':
-        if (tpa >= 200 && (tp / tpa) >= 0.40) qualifyingSeasons.push(season);
+        if (tpa >= 200 && check(tp / tpa, customThreshold !== undefined ? customThreshold / 100 : 0.40, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season70Games':
-        if (gp >= 70) qualifyingSeasons.push(season);
+        if (check(gp, customThreshold !== undefined ? customThreshold : 70, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season36MPG':
-        if (gp >= 50 && (min / gp) >= 36.0) qualifyingSeasons.push(season);
+        if (gp >= 50 && check(min / gp, customThreshold !== undefined ? customThreshold : 36.0, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season25_10':
-        if (gp >= 50 && (pts / gp) >= 25 && (trb / gp) >= 10) qualifyingSeasons.push(season);
+        if (gp >= 50 && check(pts / gp, customThreshold !== undefined ? customThreshold : 25, customOperator || '≥') && check(trb / gp, customThreshold !== undefined ? customThreshold : 10, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season25_5_5':
-        if (gp >= 50 && (pts / gp) >= 25 && (trb / gp) >= 5 && (ast / gp) >= 5) qualifyingSeasons.push(season);
+        if (gp >= 50 && check(pts / gp, customThreshold !== undefined ? customThreshold : 25, customOperator || '≥') && check(trb / gp, customThreshold !== undefined ? customThreshold : 5, customOperator || '≥') && check(ast / gp, customThreshold !== undefined ? customThreshold : 5, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season20_10_5':
-        if (gp >= 50 && (pts / gp) >= 20 && (trb / gp) >= 10 && (ast / gp) >= 5) qualifyingSeasons.push(season);
+        if (gp >= 50 && check(pts / gp, customThreshold !== undefined ? customThreshold : 20, customOperator || '≥') && check(trb / gp, customThreshold !== undefined ? customThreshold : 10, customOperator || '≥') && check(ast / gp, customThreshold !== undefined ? customThreshold : 5, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season1_1_1':
-        if (gp >= 50 && (stl / gp) >= 1 && (blk / gp) >= 1 && (tp / gp) >= 1) qualifyingSeasons.push(season);
+        if (gp >= 50 && check(stl / gp, customThreshold !== undefined ? customThreshold : 1, customOperator || '≥') && check(blk / gp, customThreshold !== undefined ? customThreshold : 1, customOperator || '≥') && check(tp / gp, customThreshold !== undefined ? customThreshold : 1, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
         
       // Football GM Season achievements would go here
       case 'FBSeason4kPassYds':
-        if ((stat as any).passYds >= 4000) qualifyingSeasons.push(season);
+        if (check((stat as any).pssYds, customThreshold !== undefined ? customThreshold : 4000, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'FBSeason1200RushYds':
-        if ((stat as any).rushYds >= 1200) qualifyingSeasons.push(season);
+        if (check((stat as any).rushYds, customThreshold !== undefined ? customThreshold : 1200, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       // Add more FB achievements as needed...
         
@@ -271,7 +279,7 @@ function getSeasonsForSeasonStatAchievement(player: Player, achievementId: Seaso
       
       // Additional Season achievements
       case 'Season250ThreePM':
-        if (tp >= 250) qualifyingSeasons.push(season);
+        if (check(tp, customThreshold !== undefined ? customThreshold : 250, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
     }
   }
@@ -283,9 +291,22 @@ function getSeasonsForSeasonStatAchievement(player: Player, achievementId: Seaso
 
 // Helper function to extract season achievement data from player
 function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchievementId, teams: Team[], teamId?: number): string[] {
+  let baseAchievementId: SeasonAchievementId = achievementId;
+  let customThreshold: number | undefined;
+  let customOperator: '≥' | '≤' | undefined;
+
+  // Check if it's a custom numerical achievement
+  if (achievementId.includes('_custom_')) {
+    const parts = achievementId.split('_custom_');
+    baseAchievementId = parts[0] as SeasonAchievementId;
+    const customParts = parts[1].split('_');
+    customThreshold = parseFloat(customParts[0]);
+    customOperator = customParts[1] === 'lte' ? '≤' : '≥';
+  }
+
   // Handle Season* statistical achievements by calculating from stats
-  if (achievementId.startsWith('Season')) {
-    return getSeasonsForSeasonStatAchievement(player, achievementId);
+  if (baseAchievementId.startsWith('Season')) {
+    return getSeasonsForSeasonStatAchievement(player, baseAchievementId, customThreshold, customOperator);
   }
 
   if (!player.awards) return [];
@@ -663,10 +684,8 @@ function generateSimpleAchievementBullet(player: Player, achievementId: string, 
 function generateSimpleSeasonAchievementBullet(player: Player, achievementId: SeasonAchievementId, teams: Team[], constraintLabel?: string): ReasonBullet | null {
   let achLabel = constraintLabel || SEASON_ACHIEVEMENT_LABELS[achievementId] || achievementId;
   
-  // Remove " (Season)" suffix if present, as the years in parentheses already imply it's season-specific
-  if (achLabel.endsWith(' (Season)')) {
-    achLabel = achLabel.slice(0, -9);
-  }
+  // Consistently remove " (Season)" suffix using regex, as the years in parentheses already imply it's season-specific
+  achLabel = achLabel.replace(/\s*\(Season\)/gi, '').trim();
   
   const seasons = getSeasonAchievementSeasons(player, achievementId, teams);
   
