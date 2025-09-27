@@ -64,9 +64,10 @@ function abbreviateLabel(label: string, mode: LayoutMode): string {
 interface StatBuilderChipProps {
   label: string;
   onNumberChange?: (newNumber: number, newLabel: string, operator?: '≥' | '≤') => void;
-  onOperatorChange?: (operator: '≥' | '≤') => void;
+  onOperatorChange: (operator: '≥' | '≤') => void;
   className?: string;
   sport?: string;
+  operator: Operator;
 }
 
 type Operator = '≥' | '≤';
@@ -121,7 +122,7 @@ function getStatValidation(label: string): StatValidation {
 
 // Parse initial operator from label
 function parseOperator(label: string): Operator {
-  if (label.includes('≤')) return '≤';
+  if (label.includes('≤') || label.toLowerCase().includes('or fewer')) return '≤';
   return '≥'; // Default for "+" patterns and most cases
 }
 
@@ -179,18 +180,25 @@ export function StatBuilderChip({
   onNumberChange, 
   onOperatorChange,
   className,
-  sport
+  sport,
+  operator,
 }: StatBuilderChipProps) {
   const [parsed, setParsed] = useState<ParsedAchievement>(() => parseAchievementLabel(label, sport));
-  const [operator, setOperator] = useState<Operator>(() => parseOperator(label));
   const [inputValue, setInputValue] = useState<string>(() => parsed.number.toString());
   const [validation, setValidation] = useState<StatValidation>(() => getStatValidation(label));
   const [error, setError] = useState<string | null>(null);
-  const [userHasToggledOperator, setUserHasToggledOperator] = useState(false);
   const [userHasChangedNumber, setUserHasChangedNumber] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const widthSizerRef = useRef<HTMLSpanElement>(null);
   const containerWidthEm = useContainerWidth(containerRef);
+
+  useEffect(() => {
+    if (widthSizerRef.current && inputRef.current) {
+      const newWidth = widthSizerRef.current.offsetWidth + 2; // Add 2px buffer
+      inputRef.current.style.width = `${newWidth}px`;
+    }
+  }, [inputValue]);
   
   // Determine layout mode based on container width in em
   const layoutMode = getLayoutMode(containerWidthEm);
@@ -212,40 +220,21 @@ export function StatBuilderChip({
     const newParsed = parseAchievementLabel(label, sport);
     setParsed(newParsed);
     
-    // ONLY update inputValue on initial load, never after user interaction
-    if (!userHasChangedNumber && !userHasToggledOperator) {
+    // ONLY update inputValue on initial load or when the base achievement changes, never after user interaction
+    if (!userHasChangedNumber) {
       setInputValue(newParsed.number.toString());
-    }
-    
-    // Only update operator from label if user hasn't manually toggled it
-    if (!userHasToggledOperator) {
-      setOperator(parseOperator(label));
     }
     
     setValidation(getStatValidation(label));
     setError(null);
-  }, [label, sport, userHasToggledOperator, userHasChangedNumber]);
+  }, [label, sport, userHasChangedNumber]);
 
   // All useCallback hooks must come before the early return
   const handleOperatorClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    
-    // Mark that user has manually toggled the operator
-    setUserHasToggledOperator(true);
-    
-    setOperator(prev => {
-      const newOperator = prev === '≥' ? '≤' : '≥';
-      
-      // Notify about operator change using setTimeout to avoid setState during render
-      if (onOperatorChange) {
-        setTimeout(() => {
-          onOperatorChange(newOperator);
-        }, 0);
-      }
-      
-      return newOperator;
-    });
-  }, [onOperatorChange]);
+    const newOperator = operator === '≥' ? '≤' : '≥';
+    onOperatorChange(newOperator);
+  }, [operator, onOperatorChange]);
 
   const handleNumberClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -429,6 +418,7 @@ export function StatBuilderChip({
               
               {/* Number section */}
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                <span ref={widthSizerRef} style={{ position: 'absolute', visibility: 'hidden', whiteSpace: 'pre', fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)', fontWeight: '600', padding: 'clamp(0.125em, 0.5vw, 0.25em) clamp(0.25em, 1vw, 0.5em)' }}>{inputValue || '0'}</span>
                 <input
                   ref={inputRef}
                   type="text"
@@ -446,8 +436,6 @@ export function StatBuilderChip({
                     color: 'rgb(255 255 255 / 0.85)',
                     fontWeight: '600',
                     fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)',
-                    width: 'auto',
-                    maxWidth: 'clamp(3.5ch, 8vw, 5ch)',
                     appearance: 'textfield',
                     MozAppearance: 'textfield',
                     WebkitAppearance: 'none',
@@ -517,6 +505,7 @@ export function StatBuilderChip({
             
             {/* Number section */}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+              <span ref={widthSizerRef} style={{ position: 'absolute', visibility: 'hidden', whiteSpace: 'pre', fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)', fontWeight: '600', padding: 'clamp(0.125em, 0.5vw, 0.25em) clamp(0.25em, 1vw, 0.5em)' }}>{inputValue || '0'}</span>
               <input
                 ref={inputRef}
                 type="text"
@@ -534,8 +523,6 @@ export function StatBuilderChip({
                   color: 'rgb(255 255 255 / 0.85)',
                   fontWeight: '600',
                   fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)',
-                  width: 'auto',
-                  maxWidth: 'clamp(3.5ch, 8vw, 5ch)',
                   appearance: 'textfield',
                   MozAppearance: 'textfield',
                   WebkitAppearance: 'none',
