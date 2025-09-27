@@ -384,7 +384,7 @@ function generateTestFunction(
         return (player: Player) => checkCareerTotal(player, 'blk', newThreshold, operator, sport);
       }
       if (originalLabel.includes('3pm') || originalLabel.includes('threes')) {
-        return (player: Player) => checkCareerTotal(player, 'tpm', newThreshold, operator, sport);
+        return (player: Player) => checkCareerTotal(player, ['tpm', 'tp'], newThreshold, operator, sport);
       }
     }
 

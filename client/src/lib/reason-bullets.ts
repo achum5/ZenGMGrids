@@ -756,7 +756,10 @@ function generateSimpleCareerAchievementBullet(player: Player, achievementId: st
     if (!player.stats) return null;
     const total = player.stats
       .filter(s => !s.playoffs)
-      .reduce((acc, season) => acc + ((season as any)[statKey] || 0), 0);
+      .reduce((acc, season) => {
+        const statValue = statKey === 'tpm' ? ((season as any).tpm || (season as any).tp || 0) : ((season as any)[statKey] || 0);
+        return acc + statValue;
+      }, 0);
     
     // Find the original achievement using the BASE ID to get its canonical label
     const allAchievements = getAllAchievements(sport as any);
