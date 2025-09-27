@@ -663,11 +663,6 @@ function generateSimpleAchievementBullet(player: Player, achievementId: string, 
 function generateSimpleSeasonAchievementBullet(player: Player, achievementId: SeasonAchievementId, teams: Team[], constraintLabel?: string): ReasonBullet | null {
   let achLabel = constraintLabel || SEASON_ACHIEVEMENT_LABELS[achievementId] || achievementId;
   
-  // Fix 1: Remove "(Season)" suffix from achievement labels
-  if (achLabel.endsWith(' (Season)')) {
-    achLabel = achLabel.slice(0, -9); // Remove " (Season)"
-  }
-  
   const seasons = getSeasonAchievementSeasons(player, achievementId, teams);
   
   if (seasons.length === 0) return null;

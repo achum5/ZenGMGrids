@@ -299,6 +299,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
             }
 
             // Create a new custom achievement with the determined number and new operator
+            console.log('DEBUG: customNumber:', currentSelector.customNumber, 'numberToUse:', numberToUse);
             const customAchievement = createCustomNumericalAchievement(realAchievement, numberToUse, sport, operator);
             
             newSelectors[index] = {
