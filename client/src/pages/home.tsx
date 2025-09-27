@@ -1297,7 +1297,9 @@ export default function Home() {
                 <h1 className="text-2xl font-bold text-foreground">ZenGM Grids</h1>
               </div>
               <div className="flex items-center space-x-3">
-                <ThemeToggle />
+                <div className="-ml-[1px]">
+                  <ThemeToggle />
+                </div>
                 <RulesModal />
               </div>
             </div>
@@ -1340,7 +1342,9 @@ export default function Home() {
               </h1>
             </div>
             <div className="flex items-center space-x-1">
-              <ThemeToggle />
+              <div className="-ml-[1px]">
+                <ThemeToggle />
+              </div>
               <RulesModal sport={leagueData?.sport} />
               {hasGuesses ? (
                 <AlertDialog>
