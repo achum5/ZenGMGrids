@@ -31,25 +31,6 @@ const ACHIEVEMENT_PATTERNS = [
 ];
 
 /**
- * Format an achievement label with new values
- */
-export function formatAchievementLabel(parsed: ParsedAchievement, operator: '≥' | '≤' = '≥'): string {
-  // If it's a percentage achievement, handle the percentage symbol
-  if (parsed.suffix.includes('%') || parsed.originalLabel.toLowerCase().includes('%')) {
-    return `${parsed.prefix}${parsed.number}%${parsed.suffix}`;
-  }
-  
-  // For numeric achievements with operators
-  if (parsed.suffix.includes('+')) {
-    const operatorSymbol = operator === '≥' ? '+' : '≤';
-    return `${parsed.prefix}${parsed.number}${operatorSymbol}${parsed.suffix.replace(/\+/, '')}`;
-  }
-  
-  // Default formatting
-  return `${parsed.prefix}${parsed.number}${parsed.suffix}`;
-}
-
-/**
  * Parse an achievement label to identify if it contains an editable numerical threshold
  * Only basketball achievements are editable for now
  */
@@ -278,31 +259,31 @@ function generateTestFunction(
     // Career achievements for football
     if (originalLabel.includes('career')) {
       if (originalLabel.includes('pass yds')) {
-        return (player: Player) => checkCareerTotal(player, 'pssYds', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'pssYds', newThreshold, operator, sport);
       }
       if (originalLabel.includes('rush yds')) {
-        return (player: Player) => checkCareerTotal(player, 'rusYds', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'rusYds', newThreshold, operator, sport);
       }
       if (originalLabel.includes('rec yds')) {
-        return (player: Player) => checkCareerTotal(player, 'recYds', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'recYds', newThreshold, operator, sport);
       }
       if (originalLabel.includes('sacks')) {
-        return (player: Player) => checkCareerTotal(player, 'sks', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, ['sks', 'defSk'], newThreshold, operator, sport);
       }
       if (originalLabel.includes('interceptions')) {
-        return (player: Player) => checkCareerTotal(player, 'defInt', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'defInt', newThreshold, operator, sport);
       }
       if (originalLabel.includes('rush tds')) {
-        return (player: Player) => checkCareerTotal(player, 'rusTD', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'rusTD', newThreshold, operator, sport);
       }
       if (originalLabel.includes('rec tds')) {
-        return (player: Player) => checkCareerTotal(player, 'recTD', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'recTD', newThreshold, operator, sport);
       }
       if (originalLabel.includes('tackles')) {
-        return (player: Player) => checkCareerTotal(player, 'defTck', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'defTck', newThreshold, operator, sport);
       }
       if (originalLabel.includes('fumbles')) {
-        return (player: Player) => checkCareerTotal(player, 'ff', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'ff', newThreshold, operator, sport);
       }
     }
 
@@ -318,7 +299,7 @@ function generateTestFunction(
         return (player: Player) => checkSeasonTotal(player, 'recYds', newThreshold, operator, 1, sport);
       }
       if (originalLabel.includes('sacks')) {
-        return (player: Player) => checkSeasonTotal(player, 'sks', newThreshold, operator, 1, sport);
+        return (player: Player) => checkSeasonTotal(player, ['sks', 'defSk'], newThreshold, operator, 1, sport);
       }
       if (originalLabel.includes('tackles')) {
         return (player: Player) => checkSeasonTotal(player, 'defTck', newThreshold, operator, 1, sport);
@@ -343,28 +324,28 @@ function generateTestFunction(
     // Career achievements for baseball
     if (originalLabel.includes('career')) {
       if (originalLabel.includes('hits')) {
-        return (player: Player) => checkCareerTotal(player, 'h', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'h', newThreshold, operator, sport);
       }
       if (originalLabel.includes('home runs')) {
-        return (player: Player) => checkCareerTotal(player, 'hr', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'hr', newThreshold, operator, sport);
       }
       if (originalLabel.includes('rbis')) {
-        return (player: Player) => checkCareerTotal(player, 'rbi', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'rbi', newThreshold, operator, sport);
       }
       if (originalLabel.includes('stolen bases')) {
-        return (player: Player) => checkCareerTotal(player, 'sb', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'sb', newThreshold, operator, sport);
       }
       if (originalLabel.includes('runs')) {
-        return (player: Player) => checkCareerTotal(player, 'r', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'r', newThreshold, operator, sport);
       }
       if (originalLabel.includes('wins (p)')) {
-        return (player: Player) => checkCareerTotal(player, 'w', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'w', newThreshold, operator, sport);
       }
       if (originalLabel.includes('strikeouts')) {
-        return (player: Player) => checkCareerTotal(player, 'soPit', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'soPit', newThreshold, operator, sport);
       }
       if (originalLabel.includes('saves')) {
-        return (player: Player) => checkCareerTotal(player, 'sv', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'sv', newThreshold, operator, sport);
       }
     }
   } else {
@@ -373,22 +354,22 @@ function generateTestFunction(
     // Career achievements - check career totals
     if (originalLabel.includes('career')) {
       if (originalLabel.includes('points')) {
-        return (player: Player) => checkCareerTotal(player, 'pts', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'pts', newThreshold, operator, sport);
       }
       if (originalLabel.includes('rebounds')) {
-        return (player: Player) => checkCareerTotal(player, 'trb', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'trb', newThreshold, operator, sport);
       }
       if (originalLabel.includes('assists')) {
-        return (player: Player) => checkCareerTotal(player, 'ast', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'ast', newThreshold, operator, sport);
       }
       if (originalLabel.includes('steals')) {
-        return (player: Player) => checkCareerTotal(player, 'stl', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'stl', newThreshold, operator, sport);
       }
       if (originalLabel.includes('blocks')) {
-        return (player: Player) => checkCareerTotal(player, 'blk', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'blk', newThreshold, operator, sport);
       }
       if (originalLabel.includes('3pm') || originalLabel.includes('threes')) {
-        return (player: Player) => checkCareerTotal(player, 'tpm', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'tpm', newThreshold, operator, sport);
       }
     }
 
@@ -519,10 +500,10 @@ function checkCareerTotal(player: Player, statField: string | string[], newThres
 function checkSeasonTotal(player: Player, statField: string, newThreshold: number, operator: '≥' | '≤', minGames: number = 1, sport?: string): boolean {
   if (!player.stats) return false;
 
-  if (sport === 'hockey' && (player.achievements as any)?.seasonStatsComputed) {
-    for (const seasonYearStr in (player.achievements as any).seasonStatsComputed) {
+  if (sport === 'hockey' && player.achievements?.seasonStatsComputed) {
+    for (const seasonYearStr in player.achievements.seasonStatsComputed) {
       const seasonYear = parseInt(seasonYearStr);
-      const computedStats = (player.achievements as any).seasonStatsComputed[seasonYear];
+      const computedStats = player.achievements.seasonStatsComputed[seasonYear];
       
       // Find the raw stat for this season to get gp
       const rawStat = player.stats.find(s => s.season === seasonYear && !s.playoffs);
@@ -555,10 +536,10 @@ function checkSeasonTotal(player: Player, statField: string, newThreshold: numbe
 function checkSeasonAverage(player: Player, statField: string, newThreshold: number, operator: '≥' | '≤', minGames: number = 1, sport?: string): boolean {
   if (!player.stats) return false;
 
-  if (sport === 'hockey' && (player.achievements as any)?.seasonStatsComputed) {
-    for (const seasonYearStr in (player.achievements as any).seasonStatsComputed) {
+  if (sport === 'hockey' && player.achievements?.seasonStatsComputed) {
+    for (const seasonYearStr in player.achievements.seasonStatsComputed) {
       const seasonYear = parseInt(seasonYearStr);
-      const computedStats = (player.achievements as any).seasonStatsComputed[seasonYear];
+      const computedStats = player.achievements.seasonStatsComputed[seasonYear];
 
       // Find the raw stat for this season to get gp
       const rawStat = player.stats.find(s => s.season === seasonYear && !s.playoffs);
@@ -593,10 +574,10 @@ function checkSeasonAverage(player: Player, statField: string, newThreshold: num
 function checkSeasonPercentage(player: Player, percentageType: string, newThreshold: number, operator: '≥' | '≤', minGames: number = 1, sport?: string): boolean {
   if (!player.stats) return false;
 
-  if (sport === 'hockey' && (player.achievements as any)?.seasonStatsComputed) {
-    for (const seasonYearStr in (player.achievements as any).seasonStatsComputed) {
+  if (sport === 'hockey' && player.achievements?.seasonStatsComputed) {
+    for (const seasonYearStr in player.achievements.seasonStatsComputed) {
       const seasonYear = parseInt(seasonYearStr);
-      const computedStats = (player.achievements as any).seasonStatsComputed[seasonYear];
+      const computedStats = player.achievements.seasonStatsComputed[seasonYear];
 
       // Find the raw stat for this season to get gp
       const rawStat = player.stats.find(s => s.season === seasonYear && !s.playoffs);

@@ -1,25 +1,23 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { parseAchievementLabel, generateUpdatedLabel, type ParsedAchievement } from '@/lib/editable-achievements';
+import { Check } from 'lucide-react';
 
-// Hook to measure container width
-function useContainerWidth(containerRef: React.RefObject<HTMLDivElement>): number {
-  const [containerWidth, setContainerWidth] = useState(0);
+// Hook to detect container width for layout mode switching
+function useContainerWidth(containerRef: React.RefObject<HTMLDivElement>) {
+  const [containerWidth, setContainerWidth] = useState<number>(0);
   
   useEffect(() => {
     const updateWidth = () => {
-      if (!containerRef.current) return;
-      
-      // Get the computed font size
-      const computedStyle = window.getComputedStyle(containerRef.current);
-      const fontSize = parseFloat(computedStyle.fontSize);
-      
-      // Calculate width in em units
-      const widthInPx = containerRef.current.offsetWidth;
-      const widthInEm = widthInPx / fontSize;
-      
-      setContainerWidth(widthInEm);
+      if (containerRef.current) {
+        const style = window.getComputedStyle(containerRef.current);
+        const fontSize = parseFloat(style.fontSize);
+        const widthInPx = containerRef.current.offsetWidth;
+        const widthInEm = widthInPx / fontSize;
+        setContainerWidth(widthInEm);
+      }
     };
     
+    // Initial measurement
     updateWidth();
     
     // Listen for resize
@@ -70,7 +68,6 @@ interface StatBuilderChipProps {
   className?: string;
   sport?: string;
   operator: Operator;
-  isEditable: boolean;
 }
 
 type Operator = '≥' | '≤';
@@ -118,30 +115,73 @@ function getStatValidation(label: string): StatValidation {
   // Counting stats (points, rebounds, steals, blocks, 3PM, etc.)
   return {
     min: 0,
-    max: 99999,
+    max: 100000,
     allowDecimals: false
   };
 }
 
-// Format display number with commas for thousands
-function formatDisplayNumber(num: number): string {
-  if (num % 1 !== 0) {
-    // For decimals, don't use thousands separators to keep it clean
-    return num.toString();
-  }
-  
-  // For whole numbers, add commas for readability
-  return num.toLocaleString();
+// Parse initial operator from label
+function parseOperator(label: string): Operator {
+  if (label.includes('≤') || label.toLowerCase().includes('or fewer')) return '≤';
+  return '≥'; // Default for "+" patterns and most cases
 }
 
-export function StatBuilderChip({
-  label,
-  onNumberChange,
+// Format number according to validation rules
+function formatNumber(value: number, validation: StatValidation): string {
+  if (validation.allowDecimals && validation.decimalPlaces !== undefined) {
+    return value.toFixed(validation.decimalPlaces);
+  }
+  if (validation.allowDecimals) {
+    return value.toString();
+  }
+  // For integers, use locale formatting for readability
+  return value.toLocaleString();
+}
+
+// Validate input value
+function validateInput(input: string, validation: StatValidation): { isValid: boolean; errorMessage?: string } {
+  const numValue = parseFloat(input);
+  
+  if (isNaN(numValue)) {
+    return { isValid: false, errorMessage: 'Enter a valid number.' };
+  }
+  
+  if (numValue < validation.min || numValue > validation.max) {
+    if (validation.isPercentage) {
+      return { isValid: false, errorMessage: 'Enter 0.0–100.0 (one decimal).' };
+    } else if (validation.allowDecimals) {
+      return { isValid: false, errorMessage: 'Enter 0.0–99.9 (one decimal).' };
+    } else {
+      return { isValid: false, errorMessage: 'Enter 0–100,000.' };
+    }
+  }
+  
+  // Check decimal places
+  if (!validation.allowDecimals && input.includes('.')) {
+    return { isValid: false, errorMessage: 'Enter 0–100,000.' };
+  }
+  
+  if (validation.decimalPlaces !== undefined) {
+    const decimalPart = input.split('.')[1];
+    if (decimalPart && decimalPart.length > validation.decimalPlaces) {
+      if (validation.isPercentage) {
+        return { isValid: false, errorMessage: 'Enter 0.0–100.0 (one decimal).' };
+      } else {
+        return { isValid: false, errorMessage: 'Enter 0.0–99.9 (one decimal).' };
+      }
+    }
+  }
+  
+  return { isValid: true };
+}
+
+export function StatBuilderChip({ 
+  label, 
+  onNumberChange, 
   onOperatorChange,
   className,
   sport,
   operator,
-  isEditable,
 }: StatBuilderChipProps) {
   const [parsed, setParsed] = useState<ParsedAchievement>(() => parseAchievementLabel(label, sport));
   const [inputValue, setInputValue] = useState<string>(() => parsed.number.toString());
@@ -154,74 +194,100 @@ export function StatBuilderChip({
   const containerWidthEm = useContainerWidth(containerRef);
 
   useEffect(() => {
+    if (widthSizerRef.current && inputRef.current) {
+      const newWidth = widthSizerRef.current.offsetWidth + 2; // Add 2px buffer
+      inputRef.current.style.width = `${newWidth}px`;
+    }
+  }, [inputValue]);
+  
+  // Determine layout mode based on container width in em
+  const layoutMode = getLayoutMode(containerWidthEm);
+  
+  // Format number with thousands separators for display
+  const formatDisplayNumber = useCallback((value: number) => {
+    if (validation.allowDecimals && validation.decimalPlaces !== undefined) {
+      return value.toFixed(validation.decimalPlaces);
+    }
+    if (validation.allowDecimals) {
+      return value.toString();
+    }
+    // For integers, use locale formatting for readability
+    return value.toLocaleString();
+  }, [validation]);
+
+  // Update parsed achievement when label changes - but NEVER update user input
+  useEffect(() => {
     const newParsed = parseAchievementLabel(label, sport);
     setParsed(newParsed);
     
+    // ONLY update inputValue on initial load or when the base achievement changes, never after user interaction
     if (!userHasChangedNumber) {
       setInputValue(newParsed.number.toString());
     }
     
     setValidation(getStatValidation(label));
+    setError(null);
   }, [label, sport, userHasChangedNumber]);
 
-  const layoutMode = getLayoutMode(containerWidthEm);
-
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setInputValue(value);
-    setUserHasChangedNumber(true);
-    setError(null);
-  }, []);
-
-  const handleNumberClick = useCallback(() => {
-    if (inputRef.current) {
-      inputRef.current.select();
-    }
-  }, []);
-
-  const handleOperatorClick = useCallback(() => {
+  // All useCallback hooks must come before the early return
+  const handleOperatorClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
     const newOperator = operator === '≥' ? '≤' : '≥';
     onOperatorChange(newOperator);
   }, [operator, onOperatorChange]);
 
-  const commitValue = useCallback(() => {
-    const numValue = validation.allowDecimals ? parseFloat(inputValue) : parseInt(inputValue, 10);
-    
-    if (isNaN(numValue)) {
-      setError('Please enter a valid number');
-      return;
-    }
-
-    if (numValue < validation.min || numValue > validation.max) {
-      const range = validation.allowDecimals 
-        ? `${validation.min} - ${validation.max}`
-        : `${Math.floor(validation.min)} - ${Math.floor(validation.max)}`;
-      setError(`Value must be between ${range}`);
-      return;
-    }
-
-    if (validation.allowDecimals && validation.decimalPlaces) {
-      const decimalPlaces = (inputValue.split('.')[1] || '').length;
-      if (decimalPlaces > validation.decimalPlaces) {
-        setError(`Maximum ${validation.decimalPlaces} decimal place${validation.decimalPlaces > 1 ? 's' : ''} allowed`);
-        return;
-      }
-    }
-
+  const handleNumberClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
     setError(null);
-    
-    const newLabel = formatAchievementLabel({
-      originalLabel: baseLabel,
-      prefix: parsed.prefix,
-      number: numValue,
-      suffix: parsed.suffix,
-      isEditable: true
-    }, operator);
+    // Focus input on next tick to ensure it's rendered
+    setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }, 0);
+  }, []);
 
-    if (onNumberChange) {
-      onNumberChange(numValue, newLabel, operator);
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    
+    // Mark that user has manually changed the number
+    setUserHasChangedNumber(true);
+    
+    // Strip non-numeric characters except decimal point
+    const cleanValue = value.replace(/[^0-9.]/g, '');
+    
+    // Prevent multiple decimal points
+    const parts = cleanValue.split('.');
+    const formattedValue = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : cleanValue;
+    
+    setInputValue(formattedValue);
+    setError(null);
+  }, []);
+
+
+
+  const commitValue = useCallback(() => {
+    const validationResult = validateInput(inputValue, validation);
+    
+    if (!validationResult.isValid) {
+      setError(validationResult.errorMessage || 'Invalid input');
+      return;
     }
-  }, [inputValue, validation, parsed, operator, onNumberChange]);
+    
+    const newNumber = parseFloat(inputValue);
+    const originalOperator = parseOperator(parsed.originalLabel);
+    
+    // Trigger callback if number changed OR operator changed from original
+    if ((newNumber !== parsed.number || operator !== originalOperator) && onNumberChange) {
+      const newLabel = generateUpdatedLabel(parsed, newNumber, operator);
+      // Use setTimeout to avoid setState during render
+      setTimeout(() => {
+        onNumberChange(newNumber, newLabel, operator);
+      }, 0);
+    }
+    
+    // NEVER change what the user typed - keep their exact input
+    setError(null);
+  }, [inputValue, validation, parsed, onNumberChange, operator]);
 
   const cancelEdit = useCallback(() => {
     // Only reset to original if user hasn't made any changes
@@ -246,10 +312,14 @@ export function StatBuilderChip({
     }
   }, [commitValue, cancelEdit]);
 
+
+
+
   // If not editable, render as plain text
-      if (!isEditable) {
-          return <span className={className}>{label}</span>;
-      }
+  if (!parsed.isEditable) {
+    return <span className={className}>{label}</span>;
+  }
+
   // Display value - show exactly what user typed if they changed it
   const getDisplayValue = (): string => {
     // If user has changed the number, show their EXACT input without any formatting
@@ -275,44 +345,143 @@ export function StatBuilderChip({
   const displayValue = getDisplayValue();
   
   // Extract and abbreviate the clean label
-  const cleanLabel = abbreviateLabel(label, layoutMode);
-
-  const fullFormattedLabel = useMemo(() => {
-    const currentNumber = parseFloat(inputValue);
-    if (!isNaN(currentNumber)) {
-      return generateUpdatedLabel(parsed, currentNumber, operator);
-    }
-    return label;
-  }, [parsed, inputValue, operator, label]);
+  const baseLabel = parsed.suffix.replace(/^\+?\s*/, '').trim() || parsed.originalLabel.replace(/^[^a-zA-Z]*\d+[^a-zA-Z]*/, '').trim();
+  const cleanLabel = abbreviateLabel(baseLabel, layoutMode);
 
   return (
     <div 
       ref={containerRef}
-      className={`relative ${className}`}
-      style={{
+      className={`relative w-full ${className || ''}`}
+      style={{ 
+        fontSize: '1rem',
+        // Center the chip and scale with container
+        maxWidth: '85%', // Slightly smaller to ensure no overflow
+        margin: '0 auto', // Center horizontally
         display: 'flex',
-        alignItems: 'center',
-        background: 'rgb(255 255 255 / 0.1)',
-        borderRadius: 'clamp(0.25rem, 1vw, 0.5rem)',
-        ...(layoutMode === 'C' ? {
-          flexDirection: 'column',
-          justifyContent: 'center',
-          padding: 'clamp(0.25em, 1vw, 0.5em) clamp(0.5em, 2vw, 1em)',
-          gap: 'clamp(0.125em, 0.5vw, 0.25em)'
-        } : {
-          display: 'flex',
-          alignItems: 'center',
-          padding: 'clamp(0.25em, 1vw, 0.5em) clamp(0.5em, 2vw, 1em)',
-          gap: 'clamp(0.25em, 1vw, 0.5em)'
-        })
+        justifyContent: 'center'
       }}
-      title={fullFormattedLabel}
     >
-      {layoutMode === 'C' ? (
-        // Mode C: Two-line layout
-        <>
-          {/* Line 1: operator + number */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5em' }}>
+      {/* Main chip with container-based sizing */}
+      <div 
+        className={`
+          w-full rounded-xl cursor-pointer transition-all relative
+          bg-white/6 border border-white/12 text-white/85 hover:bg-white/8
+          ${error ? 'border-red-400/60' : ''}
+        `}
+        title="Chosen stat threshold"
+        style={{ 
+          // Responsive sizing based on container
+          fontSize: 'clamp(0.75rem, 2.5vw, 1rem)',
+          minBlockSize: 'clamp(2rem, 8vw, 3rem)',
+          width: 'fit-content',
+          maxWidth: '100%', // Prevent any expansion beyond container
+          // Layout based on mode with responsive padding
+          ...(layoutMode === 'C' ? {
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            padding: 'clamp(0.25em, 1vw, 0.5em) clamp(0.5em, 2vw, 1em)',
+            gap: 'clamp(0.125em, 0.5vw, 0.25em)'
+          } : {
+            display: 'flex',
+            alignItems: 'center',
+            padding: 'clamp(0.25em, 1vw, 0.5em) clamp(0.5em, 2vw, 1em)',
+            gap: 'clamp(0.25em, 1vw, 0.5em)'
+          })
+        }}
+      >
+        {layoutMode === 'C' ? (
+          // Mode C: Two-line layout
+          <>
+            {/* Line 1: operator + number */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5em' }}>
+              {/* Operator button - fixed width in ch */}
+              <button
+                onClick={handleOperatorClick}
+                className="hover:bg-white/10 transition-colors rounded"
+                title="Threshold operator"
+                aria-label="Stat threshold operator"
+                data-testid="operator-button"
+                style={{
+                  width: 'clamp(2ch, 3vw, 3ch)',
+                  height: 'clamp(1.2em, 3vw, 1.5em)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: '500',
+                  fontSize: 'clamp(0.75rem, 2vw, 1rem)',
+                  flexShrink: 0
+                }}
+              >
+                {operator}
+              </button>
+              
+              {/* Number section */}
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                <span ref={widthSizerRef} style={{ position: 'absolute', visibility: 'hidden', whiteSpace: 'pre', fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)', fontWeight: '600', padding: 'clamp(0.125em, 0.5vw, 0.25em) clamp(0.25em, 1vw, 0.5em)' }}>{inputValue || '0'}</span>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={inputValue}
+                  onChange={handleInputChange}
+                  onBlur={handleInputBlur}
+                  onKeyDown={handleKeyDown}
+                  onClick={handleNumberClick}
+                  style={{ 
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    color: 'rgb(255 255 255 / 0.85)',
+                    fontWeight: '600',
+                    fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)',
+                    appearance: 'textfield',
+                    MozAppearance: 'textfield',
+                    WebkitAppearance: 'none',
+                    padding: 'clamp(0.125em, 0.5vw, 0.25em) clamp(0.25em, 1vw, 0.5em)'
+                  }}
+                  aria-label="Stat threshold number"
+                  data-testid="number-input"
+                />
+                
+                {/* Percentage symbol for percentage stats */}
+                {validation.isPercentage && (
+                  <span
+                    style={{
+                      color: 'rgb(255 255 255 / 0.7)',
+                      fontWeight: '500',
+                      fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)',
+                      marginLeft: '0.1em'
+                    }}
+                  >
+                    %
+                  </span>
+                )}
+              </div>
+            </div>
+            
+            {/* Line 2: label */}
+            <div style={{ textAlign: 'center' }}>
+              <span 
+                style={{
+                  fontWeight: '500',
+                  color: 'rgb(255 255 255 / 0.7)',
+                  fontSize: 'clamp(0.625rem, 1.5vw, 0.875rem)',
+                  display: 'block',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}
+                title={baseLabel}
+              >
+                {cleanLabel}
+              </span>
+            </div>
+          </>
+        ) : (
+          // Mode A & B: Single-line layout
+          <>
             {/* Operator button - fixed width in ch */}
             <button
               onClick={handleOperatorClick}
@@ -367,9 +536,9 @@ export function StatBuilderChip({
               {validation.isPercentage && (
                 <span
                   style={{
-                    fontWeight: '600',
+                    color: 'rgb(255 255 255 / 0.7)',
+                    fontWeight: '500',
                     fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)',
-                    color: 'rgb(255 255 255 / 0.85)',
                     marginLeft: '0.1em'
                   }}
                 >
@@ -377,111 +546,27 @@ export function StatBuilderChip({
                 </span>
               )}
             </div>
-          </div>
-          
-          {/* Line 2: label */}
-          <div 
-            style={{
-              fontWeight: '500',
-              color: 'rgb(255 255 255 / 0.7)',
-              fontSize: 'clamp(0.625rem, 1.5vw, 0.875rem)',
-              textAlign: 'center',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }}
-            title={baseLabel}
-          >
-            {cleanLabel}
-          </div>
-        </>
-      ) : (
-        // Mode A/B: Single-line layout
-        <>
-          {/* Operator button - fixed width in ch */}
-          <button
-            onClick={handleOperatorClick}
-            className="hover:bg-white/10 transition-colors rounded"
-            title="Threshold operator"
-            aria-label="Stat threshold operator"
-            data-testid="operator-button"
-            style={{
-              width: 'clamp(2ch, 3vw, 3ch)',
-              height: 'clamp(1.2em, 3vw, 1.5em)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: '500',
-              fontSize: 'clamp(0.75rem, 2vw, 1rem)',
-              flexShrink: 0
-            }}
-          >
-            {operator}
-          </button>
-          
-          {/* Number section - flexible width */}
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-            <span ref={widthSizerRef} style={{ position: 'absolute', visibility: 'hidden', whiteSpace: 'pre', fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)', fontWeight: '600', padding: 'clamp(0.125em, 0.5vw, 0.25em) clamp(0.25em, 1vw, 0.5em)' }}>{inputValue || '0'}</span>
-            <input
-              ref={inputRef}
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={inputValue}
-              onChange={handleInputChange}
-              onBlur={handleInputBlur}
-              onKeyDown={handleKeyDown}
-              onClick={handleNumberClick}
-              style={{ 
-                background: 'transparent',
-                border: 'none',
-                outline: 'none',
-                color: 'rgb(255 255 255 / 0.85)',
-                fontWeight: '600',
-                fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)',
-                appearance: 'textfield',
-                MozAppearance: 'textfield',
-                WebkitAppearance: 'none',
-                padding: 'clamp(0.125em, 0.5vw, 0.25em) clamp(0.25em, 1vw, 0.5em)'
-              }}
-              aria-label="Stat threshold number"
-              data-testid="number-input"
-            />
             
-            {/* Percentage symbol for percentage stats */}
-            {validation.isPercentage && (
-              <span
-                style={{
-                  fontWeight: '600',
-                  fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)',
-                  color: 'rgb(255 255 255 / 0.85)',
-                  marginLeft: '0.1em'
-                }}
-              >
-                %
-              </span>
-            )}
-          </div>
-          
-          {/* Label section - flexible with mode-based constraints */}
-          <span 
-            style={{
-              fontWeight: '500',
-              color: 'rgb(255 255 255 / 0.7)',
-              fontSize: 'clamp(0.625rem, 1.5vw, 0.875rem)',
-              flex: 1,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              minWidth: 0,
-              maxWidth: '60%'
-            }}
-            title={baseLabel}
-          >
-            {cleanLabel}
-          </span>
-        </>
-      )}
+            {/* Label section - flexible with mode-based constraints */}
+            <span 
+              style={{
+                fontWeight: '500',
+                color: 'rgb(255 255 255 / 0.7)',
+                fontSize: 'clamp(0.625rem, 1.5vw, 0.875rem)',
+                flex: 1,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                minWidth: 0,
+                maxWidth: '60%'
+              }}
+              title={baseLabel}
+            >
+              {cleanLabel}
+            </span>
+          </>
+        )}
+      </div>
       
       {/* Error message */}
       {error && (
