@@ -72,7 +72,9 @@ export function EditableAchievementLabel({
     <span className={className}>
       {parsed.prefix}
       <input
-        type="text"
+        type="number"
+        pattern="[0-9]*"
+        inputMode="decimal"
         value={inputValue}
         onChange={handleInputChange}
         onBlur={handleInputBlur}
@@ -163,7 +165,9 @@ export function EditableAchievementLabelNoPlus({
     <span className={className}>
       {parsed.prefix}
       <input
-        type="text"
+        type="number"
+        pattern="[0-9]*"
+        inputMode="decimal"
         value={inputValue}
         onChange={handleInputChange}
         onBlur={handleInputBlur}
