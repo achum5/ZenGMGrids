@@ -112,8 +112,8 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
       const stat = cleanSuffix.replace('%', '').trim();
       return `${formattedNumber}% or less ${stat}`;
     } else {
-      // For counting stats, rephrase to "[prefix] [stat] or fewer [number]"
-      return `${cleanPrefix} ${cleanSuffix} or fewer ${formattedNumber}`;
+      // For counting stats, rephrase to "[number] [prefix] [stat] or fewer"
+      return `${formattedNumber} ${cleanPrefix} ${cleanSuffix} or fewer`;
     }
   }
 
