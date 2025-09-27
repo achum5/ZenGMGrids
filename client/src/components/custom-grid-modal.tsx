@@ -96,6 +96,7 @@ interface SelectorState {
   type: SelectorType | null;
   value: string | null;
   label: string | null;
+  baseLabel?: string | null; // Store the original, unformatted label
   customAchievement?: any; // Store custom achievement for dynamic numerical thresholds
   operator: '≥' | '≤'; // Store operator state for achievements
 }
@@ -161,6 +162,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
               type: 'achievement',
               value: baseId,
               label: catTeam.label,
+              baseLabel: catTeam.label,
               operator,
               customAchievement,
             };
@@ -170,6 +172,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
             type: 'achievement',
             value: catTeam.achievementId,
             label: catTeam.label,
+            baseLabel: catTeam.label,
           };
         }
         return { type: null, value: null, label: null };
@@ -1173,25 +1176,15 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
                   {selector.type === 'achievement' ? (
                     <div className="pointer-events-auto">
                       <StatBuilderChip
-                        label={
-                          // ALWAYS show clean editable format in modal with CORRECT operator
-                          (() => {
-                            if (selector.customAchievement) {
-                              // Extract number from custom achievement and create clean format
-                              const parsed = parseAchievementLabel(selector.customAchievement.label, sport);
-                              if (parsed.isEditable && parsed.number !== undefined) {
-                                // Use the operator from selector state, not from parsed label
-                                const currentOperator = selector.operator || '≥';
-                                const formattedNumber = parsed.number.toLocaleString();
-                                const symbol = currentOperator === '≤' ? '≤' : '+';
-                                const cleanSuffix = parsed.suffix.replace(/^\+?\s*/, '').replace(/^or less\s+/, '');
-                                return `${formattedNumber}${symbol} ${cleanSuffix}`;
-                              }
-                            }
-                            // Use original selector label as fallback
-                            return selector.label || '';
-                          })()
-                        }
+                        baseLabel={selector.baseLabel || selector.label || ''}
+                        displayLabel={(() => {
+                          const parsed = parseAchievementLabel(selector.baseLabel || selector.label || '', sport);
+                          const currentNumber = parseFloat(inputValue);
+                          if (!isNaN(currentNumber)) {
+                            return generateUpdatedLabel(parsed, currentNumber, selector.operator);
+                          }
+                          return selector.label || '';
+                        })()}
                         sport={sport}
                         onNumberChange={(newNumber, newLabel, operator) => 
                           handleAchievementNumberChange(
@@ -1210,6 +1203,11 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
                           )
                         }
                         operator={selector.operator || '≥'}
+                        isEditable={(() => {
+                          if (selector.customAchievement) return true;
+                          const originalAchievement = achievementOptions.find(ach => ach.id === selector.value);
+                          return originalAchievement ? parseAchievementLabel(originalAchievement.label, sport).isEditable : false;
+                        })()}
                       />
                     </div>
                   ) : (

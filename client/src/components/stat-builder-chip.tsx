@@ -62,12 +62,14 @@ function abbreviateLabel(label: string, mode: LayoutMode): string {
 }
 
 interface StatBuilderChipProps {
-  label: string;
+  baseLabel: string; // The original, unformatted label (e.g., "Career Points")
+  displayLabel: string; // The label to actually display in the chip (e.g., "20,000+ Career Points")
   onNumberChange?: (newNumber: number, newLabel: string, operator?: '≥' | '≤') => void;
   onOperatorChange: (operator: '≥' | '≤') => void;
   className?: string;
   sport?: string;
   operator: Operator;
+  isEditable: boolean;
 }
 
 type Operator = '≥' | '≤';
@@ -175,17 +177,19 @@ function validateInput(input: string, validation: StatValidation): { isValid: bo
   return { isValid: true };
 }
 
-export function StatBuilderChip({ 
-  label, 
-  onNumberChange, 
+export function StatBuilderChip({
+  baseLabel,
+  displayLabel,
+  onNumberChange,
   onOperatorChange,
   className,
   sport,
   operator,
+  isEditable,
 }: StatBuilderChipProps) {
-  const [parsed, setParsed] = useState<ParsedAchievement>(() => parseAchievementLabel(label, sport));
+  const [parsed, setParsed] = useState<ParsedAchievement>(() => parseAchievementLabel(baseLabel, sport));
   const [inputValue, setInputValue] = useState<string>(() => parsed.number.toString());
-  const [validation, setValidation] = useState<StatValidation>(() => getStatValidation(label));
+  const [validation, setValidation] = useState<StatValidation>(() => getStatValidation(baseLabel));
   const [error, setError] = useState<string | null>(null);
   const [userHasChangedNumber, setUserHasChangedNumber] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -215,9 +219,9 @@ export function StatBuilderChip({
     return value.toLocaleString();
   }, [validation]);
 
-  // Update parsed achievement when label changes - but NEVER update user input
+  // Update parsed achievement when baseLabel changes - but NEVER update user input
   useEffect(() => {
-    const newParsed = parseAchievementLabel(label, sport);
+    const newParsed = parseAchievementLabel(baseLabel, sport);
     setParsed(newParsed);
     
     // ONLY update inputValue on initial load or when the base achievement changes, never after user interaction
@@ -225,10 +229,9 @@ export function StatBuilderChip({
       setInputValue(newParsed.number.toString());
     }
     
-    setValidation(getStatValidation(label));
+    setValidation(getStatValidation(baseLabel));
     setError(null);
-  }, [label, sport, userHasChangedNumber]);
-
+  }, [baseLabel, sport, userHasChangedNumber]);
   // All useCallback hooks must come before the early return
   const handleOperatorClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -316,8 +319,8 @@ export function StatBuilderChip({
 
 
   // If not editable, render as plain text
-  if (!parsed.isEditable) {
-    return <span className={className}>{label}</span>;
+  if (!isEditable) {
+    return <span className={className}>{displayLabel}</span>;
   }
 
   // Display value - show exactly what user typed if they changed it
@@ -345,8 +348,7 @@ export function StatBuilderChip({
   const displayValue = getDisplayValue();
   
   // Extract and abbreviate the clean label
-  const baseLabel = parsed.suffix.replace(/^\+?\s*/, '').trim() || parsed.originalLabel.replace(/^[^a-zA-Z]*\d+[^a-zA-Z]*/, '').trim();
-  const cleanLabel = abbreviateLabel(baseLabel, layoutMode);
+  const cleanLabel = abbreviateLabel(displayLabel, layoutMode);
 
   return (
     <div 
