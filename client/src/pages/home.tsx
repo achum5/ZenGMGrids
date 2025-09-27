@@ -1374,7 +1374,6 @@ export default function Home() {
         </div>
       </header>
       <main className="max-w-4xl mx-auto px-6 py-8">
-        hello
         <GridSection
           rows={rows}
           cols={cols}
