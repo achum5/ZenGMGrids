@@ -1,6 +1,7 @@
 import type { Player, Team, CatTeam, LeagueData } from '@/types/bbgm';
 import type { SeasonIndex, SeasonAchievementId } from '@/lib/season-achievements';
 import { getAllAchievements, playerMeetsAchievement } from '@/lib/achievements';
+import { createCustomNumericalAchievement } from '@/lib/editable-achievements';
 import { getSeasonEligiblePlayers, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 import { calculateOptimizedIntersection, type IntersectionConstraint } from '@/lib/intersection-cache';
 
@@ -214,12 +215,45 @@ export function headerConfigToCatTeam(
       type: 'achievement',
       test: (p: Player) => {
         if (config.customAchievement) {
-          // For custom achievements, use the custom achievement's test function directly
-          return config.customAchievement.test(p);
-        } else {
-          // For regular achievements, use the standard function
-          return playerMeetsAchievement(p, achievementToUse.id as string, seasonIndex, config.operator === '≤' ? '<=' : '>=');
+          // THE FIX: Re-generate the test function on the fly to bypass state serialization issues.
+          // 1. Parse the custom achievement ID to get the base ID, threshold, and operator.
+          const parts = config.customAchievement.id.split('_custom_');
+          if (parts.length < 2) {
+            // Fallback for safety, though this should not be reached in normal operation.
+            return playerMeetsAchievement(p, config.selectedId as string, seasonIndex);
+          }
+          const baseId = parts[0];
+          const customPart = parts[1].split('_');
+          const threshold = parseFloat(customPart[0]);
+          const op = customPart[1] === 'lte' ? '<=' : '>=';
+
+          // 2. Find the original achievement definition using the base ID.
+          const allAchievements = getAllAchievements(undefined, seasonIndex); // Sport is not strictly needed here as we have the base ID
+          const originalAchievement = allAchievements.find(ach => ach.id === baseId);
+
+          if (originalAchievement) {
+            // 3. Create a new test function with the correct parameters and execute it.
+            const testFn = getAllAchievements(undefined, seasonIndex)
+              .find(ach => ach.id === baseId)
+              ?.test;
+            if (testFn) {
+              // Re-create the test function logic here directly
+              const customTest = (player: Player) => {
+                const value = player.stats?.filter(s => !s.playoffs).reduce((acc, season) => acc + (season.tpm || season.tp || 0), 0) || 0;
+                if (op === '<=') {
+                  return value <= threshold;
+                }
+                return value >= threshold;
+              };
+              // This is a simplified re-creation. A more robust way is to call the generator again.
+              // For now, let's stick to the direct test.
+              const freshAchievement = createCustomNumericalAchievement(originalAchievement, threshold, 'basketball', op);
+              return freshAchievement.test(p);
+            }
+          }
         }
+        // Fallback for regular achievements
+        return playerMeetsAchievement(p, achievementToUse.id as string, seasonIndex, config.operator === '≤' ? '<=' : '>=');
       },
     };
   }

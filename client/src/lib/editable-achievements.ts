@@ -161,6 +161,7 @@ export function createCustomNumericalAchievement(
     return baseAchievement; // Return original if not editable
   }
   
+  console.log('[DEBUG] createCustomNumericalAchievement: newThreshold:', newThreshold, 'operator:', operator);
   const newLabel = generateUpdatedLabel(parsed, newThreshold, operator);
   
   // Generate new test function based on achievement type patterns
@@ -514,6 +515,8 @@ function checkCareerTotal(player: Player, statField: string | string[], newThres
     }
   }
   
+  console.log(`[DEBUG] checkCareerTotal: total=${total}, operator='${operator}', newThreshold=${newThreshold}, result=${operator === '≤' ? total <= newThreshold : total >= newThreshold}`);
+
   if (operator === '≤') {
     return total <= newThreshold;
   } else {
