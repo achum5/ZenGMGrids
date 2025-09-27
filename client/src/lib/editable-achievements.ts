@@ -31,6 +31,25 @@ const ACHIEVEMENT_PATTERNS = [
 ];
 
 /**
+ * Format an achievement label with new values
+ */
+export function formatAchievementLabel(parsed: ParsedAchievement, operator: '≥' | '≤' = '≥'): string {
+  // If it's a percentage achievement, handle the percentage symbol
+  if (parsed.suffix.includes('%') || parsed.originalLabel.toLowerCase().includes('%')) {
+    return `${parsed.prefix}${parsed.number}%${parsed.suffix}`;
+  }
+  
+  // For numeric achievements with operators
+  if (parsed.suffix.includes('+')) {
+    const operatorSymbol = operator === '≥' ? '+' : '≤';
+    return `${parsed.prefix}${parsed.number}${operatorSymbol}${parsed.suffix.replace(/\+/, '')}`;
+  }
+  
+  // Default formatting
+  return `${parsed.prefix}${parsed.number}${parsed.suffix}`;
+}
+
+/**
  * Parse an achievement label to identify if it contains an editable numerical threshold
  * Only basketball achievements are editable for now
  */
@@ -259,31 +278,31 @@ function generateTestFunction(
     // Career achievements for football
     if (originalLabel.includes('career')) {
       if (originalLabel.includes('pass yds')) {
-        return (player: Player) => checkCareerTotal(player, 'pssYds', newThreshold, operator, sport);
+        return (player: Player) => checkCareerTotal(player, 'pssYds', newThreshold, 'pass yds');
       }
       if (originalLabel.includes('rush yds')) {
-        return (player: Player) => checkCareerTotal(player, 'rusYds', newThreshold, operator, sport);
+        return (player: Player) => checkCareerTotal(player, 'rusYds', newThreshold, 'rush yds');
       }
       if (originalLabel.includes('rec yds')) {
-        return (player: Player) => checkCareerTotal(player, 'recYds', newThreshold, operator, sport);
+        return (player: Player) => checkCareerTotal(player, 'recYds', newThreshold, 'rec yds');
       }
       if (originalLabel.includes('sacks')) {
-        return (player: Player) => checkCareerTotal(player, ['sks', 'defSk'], newThreshold, operator, sport);
+        return (player: Player) => checkCareerTotal(player, 'sks', newThreshold, 'sacks');
       }
       if (originalLabel.includes('interceptions')) {
-        return (player: Player) => checkCareerTotal(player, 'defInt', newThreshold, operator, sport);
+        return (player: Player) => checkCareerTotal(player, 'defInt', newThreshold, 'interceptions');
       }
       if (originalLabel.includes('rush tds')) {
-        return (player: Player) => checkCareerTotal(player, 'rusTD', newThreshold, operator, sport);
+        return (player: Player) => checkCareerTotal(player, 'rusTD', newThreshold, 'rush tds');
       }
       if (originalLabel.includes('rec tds')) {
-        return (player: Player) => checkCareerTotal(player, 'recTD', newThreshold, operator, sport);
+        return (player: Player) => checkCareerTotal(player, 'recTD', newThreshold, 'rec tds');
       }
       if (originalLabel.includes('tackles')) {
-        return (player: Player) => checkCareerTotal(player, 'defTck', newThreshold, operator, sport);
+        return (player: Player) => checkCareerTotal(player, 'defTck', newThreshold, 'tackles');
       }
       if (originalLabel.includes('fumbles')) {
-        return (player: Player) => checkCareerTotal(player, 'ff', newThreshold, operator, sport);
+        return (player: Player) => checkCareerTotal(player, 'ff', newThreshold, 'fumbles');
       }
     }
 
@@ -299,7 +318,7 @@ function generateTestFunction(
         return (player: Player) => checkSeasonTotal(player, 'recYds', newThreshold, operator, 1, sport);
       }
       if (originalLabel.includes('sacks')) {
-        return (player: Player) => checkSeasonTotal(player, ['sks', 'defSk'], newThreshold, operator, 1, sport);
+        return (player: Player) => checkSeasonTotal(player, 'sks', newThreshold, operator, 1, sport);
       }
       if (originalLabel.includes('tackles')) {
         return (player: Player) => checkSeasonTotal(player, 'defTck', newThreshold, operator, 1, sport);
@@ -324,28 +343,28 @@ function generateTestFunction(
     // Career achievements for baseball
     if (originalLabel.includes('career')) {
       if (originalLabel.includes('hits')) {
-        return (player: Player) => checkCareerTotal(player, 'h', newThreshold, operator, sport);
+        return (player: Player) => checkCareerTotal(player, 'h', newThreshold, 'hits');
       }
       if (originalLabel.includes('home runs')) {
-        return (player: Player) => checkCareerTotal(player, 'hr', newThreshold, operator, sport);
+        return (player: Player) => checkCareerTotal(player, 'hr', newThreshold, 'home runs');
       }
       if (originalLabel.includes('rbis')) {
-        return (player: Player) => checkCareerTotal(player, 'rbi', newThreshold, operator, sport);
+        return (player: Player) => checkCareerTotal(player, 'rbi', newThreshold, 'rbis');
       }
       if (originalLabel.includes('stolen bases')) {
-        return (player: Player) => checkCareerTotal(player, 'sb', newThreshold, operator, sport);
+        return (player: Player) => checkCareerTotal(player, 'sb', newThreshold, 'stolen bases');
       }
       if (originalLabel.includes('runs')) {
-        return (player: Player) => checkCareerTotal(player, 'r', newThreshold, operator, sport);
+        return (player: Player) => checkCareerTotal(player, 'r', newThreshold, 'runs');
       }
       if (originalLabel.includes('wins (p)')) {
-        return (player: Player) => checkCareerTotal(player, 'w', newThreshold, operator, sport);
+        return (player: Player) => checkCareerTotal(player, 'w', newThreshold, 'wins');
       }
       if (originalLabel.includes('strikeouts')) {
-        return (player: Player) => checkCareerTotal(player, 'soPit', newThreshold, operator, sport);
+        return (player: Player) => checkCareerTotal(player, 'soPit', newThreshold, 'strikeouts');
       }
       if (originalLabel.includes('saves')) {
-        return (player: Player) => checkCareerTotal(player, 'sv', newThreshold, operator, sport);
+        return (player: Player) => checkCareerTotal(player, 'sv', newThreshold, 'saves');
       }
     }
   } else {
@@ -354,22 +373,22 @@ function generateTestFunction(
     // Career achievements - check career totals
     if (originalLabel.includes('career')) {
       if (originalLabel.includes('points')) {
-        return (player: Player) => checkCareerTotal(player, 'pts', newThreshold, operator, sport);
+        return (player: Player) => checkCareerTotal(player, 'pts', newThreshold, 'points');
       }
       if (originalLabel.includes('rebounds')) {
-        return (player: Player) => checkCareerTotal(player, 'trb', newThreshold, operator, sport);
+        return (player: Player) => checkCareerTotal(player, 'trb', newThreshold, 'rebounds');
       }
       if (originalLabel.includes('assists')) {
-        return (player: Player) => checkCareerTotal(player, 'ast', newThreshold, operator, sport);
+        return (player: Player) => checkCareerTotal(player, 'ast', newThreshold, 'assists');
       }
       if (originalLabel.includes('steals')) {
-        return (player: Player) => checkCareerTotal(player, 'stl', newThreshold, operator, sport);
+        return (player: Player) => checkCareerTotal(player, 'stl', newThreshold, 'steals');
       }
       if (originalLabel.includes('blocks')) {
-        return (player: Player) => checkCareerTotal(player, 'blk', newThreshold, operator, sport);
+        return (player: Player) => checkCareerTotal(player, 'blk', newThreshold, 'blocks');
       }
       if (originalLabel.includes('3pm') || originalLabel.includes('threes')) {
-        return (player: Player) => checkCareerTotal(player, 'tpm', newThreshold, operator, sport);
+        return (player: Player) => checkCareerTotal(player, 'tpm', newThreshold, 'threes');
       }
     }
 

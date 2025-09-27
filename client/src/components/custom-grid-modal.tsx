@@ -16,7 +16,7 @@ import { getAllAchievements } from '@/lib/achievements';
 import { SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 import { getCachedSeasonIndex } from '@/lib/season-index-cache';
 import { StatBuilderChip } from '@/components/stat-builder-chip';
-import { parseAchievementLabel, createCustomNumericalAchievement } from '@/lib/editable-achievements';
+import { parseAchievementLabel, createCustomNumericalAchievement, generateUpdatedLabel } from '@/lib/editable-achievements';
 
 // Extract base stat name from achievement labels for clean modal display
 function extractBaseStatName(label: string): string {
@@ -1177,14 +1177,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
                     <div className="pointer-events-auto">
                       <StatBuilderChip
                         baseLabel={selector.baseLabel || selector.label || ''}
-                        displayLabel={(() => {
-                          const parsed = parseAchievementLabel(selector.baseLabel || selector.label || '', sport);
-                          const currentNumber = parseFloat(inputValue);
-                          if (!isNaN(currentNumber)) {
-                            return generateUpdatedLabel(parsed, currentNumber, selector.operator);
-                          }
-                          return selector.label || '';
-                        })()}
+                        label={selector.baseLabel || selector.label || ''}
                         sport={sport}
                         onNumberChange={(newNumber, newLabel, operator) => 
                           handleAchievementNumberChange(
