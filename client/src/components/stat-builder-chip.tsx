@@ -184,7 +184,6 @@ export function StatBuilderChip({
   const [parsed, setParsed] = useState<ParsedAchievement>(() => parseAchievementLabel(label, sport));
   const [operator, setOperator] = useState<Operator>(() => parseOperator(label));
   const [inputValue, setInputValue] = useState<string>(() => parsed.number.toString());
-  const [isEditing, setIsEditing] = useState(false);
   const [validation, setValidation] = useState<StatValidation>(() => getStatValidation(label));
   const [error, setError] = useState<string | null>(null);
   const [userHasToggledOperator, setUserHasToggledOperator] = useState(false);
@@ -250,7 +249,6 @@ export function StatBuilderChip({
 
   const handleNumberClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsEditing(true);
     setError(null);
     // Focus input on next tick to ensure it's rendered
     setTimeout(() => {
@@ -276,29 +274,7 @@ export function StatBuilderChip({
     setError(null);
   }, []);
 
-  // Auto-apply changes while typing (debounced)
-  useEffect(() => {
-    if (!isEditing || !inputValue) return;
 
-    const timeoutId = setTimeout(() => {
-      const validationResult = validateInput(inputValue, validation);
-      if (validationResult.isValid) {
-        const newNumber = parseFloat(inputValue);
-        const originalOperator = parseOperator(parsed.originalLabel);
-        
-        // Apply immediately if valid and different
-        if ((newNumber !== parsed.number || operator !== originalOperator) && onNumberChange) {
-          const newLabel = generateUpdatedLabel(parsed, newNumber, operator);
-          // Use setTimeout to avoid setState during render
-          setTimeout(() => {
-            onNumberChange(newNumber, newLabel, operator);
-          }, 0);
-        }
-      }
-    }, 800); // 800ms debounce - applies after user stops typing
-
-    return () => clearTimeout(timeoutId);
-  }, [inputValue, isEditing, validation, parsed, operator, onNumberChange]);
 
   const commitValue = useCallback(() => {
     const validationResult = validateInput(inputValue, validation);
@@ -321,7 +297,6 @@ export function StatBuilderChip({
     }
     
     // NEVER change what the user typed - keep their exact input
-    setIsEditing(false);
     setError(null);
   }, [inputValue, validation, parsed, onNumberChange, operator]);
 
@@ -330,16 +305,13 @@ export function StatBuilderChip({
     if (!userHasChangedNumber) {
       setInputValue(parsed.number.toString());
     }
-    setIsEditing(false);
     setError(null);
   }, [parsed.number, userHasChangedNumber]);
 
   const handleInputBlur = useCallback(() => {
-    // Apply immediately when clicking away (no delay needed)
-    if (isEditing) {
-      commitValue();
-    }
-  }, [isEditing, commitValue]);
+    // Cancel the edit when clicking away
+    cancelEdit();
+  }, [cancelEdit]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -351,10 +323,7 @@ export function StatBuilderChip({
     }
   }, [commitValue, cancelEdit]);
 
-  const handleConfirmClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    commitValue();
-  }, [commitValue]);
+
 
 
   // If not editable, render as plain text
@@ -364,8 +333,6 @@ export function StatBuilderChip({
 
   // Display value - show exactly what user typed if they changed it
   const getDisplayValue = (): string => {
-    if (isEditing) return inputValue;
-    
     // If user has changed the number, show their EXACT input without any formatting
     if (userHasChangedNumber) {
       return inputValue;
@@ -410,7 +377,6 @@ export function StatBuilderChip({
         className={`
           w-full rounded-xl cursor-pointer transition-all relative
           bg-white/6 border border-white/12 text-white/85 hover:bg-white/8
-          ${isEditing ? 'focus-within:ring-2 focus-within:ring-blue-400/40' : ''}
           ${error ? 'border-red-400/60' : ''}
         `}
         title="Chosen stat threshold"
@@ -463,46 +429,33 @@ export function StatBuilderChip({
               
               {/* Number section */}
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                {isEditing ? (
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    inputMode="numeric"
-                    value={inputValue}
-                    onChange={handleInputChange}
-                    onBlur={handleInputBlur}
-                    onKeyDown={handleKeyDown}
-                    style={{ 
-                      background: 'transparent',
-                      border: 'none',
-                      outline: 'none',
-                      color: 'rgb(255 255 255 / 0.85)',
-                      fontWeight: '600',
-                      fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)',
-                      width: `${Math.min(Math.max(inputValue.length + 1, 3), 5)}ch`, // Cap at 5ch
-                      maxWidth: 'clamp(3.5ch, 8vw, 5ch)', // Smaller max to prevent overflow
-                      appearance: 'textfield',
-                      MozAppearance: 'textfield',
-                      WebkitAppearance: 'none'
-                    }}
-                    aria-label="Stat threshold number"
-                    data-testid="number-input"
-                  />
-                ) : (
-                  <button
-                    onClick={handleNumberClick}
-                    className="hover:bg-white/5 rounded transition-colors"
-                    aria-label="Stat threshold number"
-                    data-testid="number-display"
-                    style={{
-                      fontWeight: '600',
-                      fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)',
-                      padding: 'clamp(0.125em, 0.5vw, 0.25em) clamp(0.25em, 1vw, 0.5em)'
-                    }}
-                  >
-                    {displayValue}
-                  </button>
-                )}
+                <input
+                  ref={inputRef}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={inputValue}
+                  onChange={handleInputChange}
+                  onBlur={handleInputBlur}
+                  onKeyDown={handleKeyDown}
+                  onClick={handleNumberClick}
+                  style={{ 
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    color: 'rgb(255 255 255 / 0.85)',
+                    fontWeight: '600',
+                    fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)',
+                    width: 'auto',
+                    maxWidth: 'clamp(3.5ch, 8vw, 5ch)',
+                    appearance: 'textfield',
+                    MozAppearance: 'textfield',
+                    WebkitAppearance: 'none',
+                    padding: 'clamp(0.125em, 0.5vw, 0.25em) clamp(0.25em, 1vw, 0.5em)'
+                  }}
+                  aria-label="Stat threshold number"
+                  data-testid="number-input"
+                />
                 
                 {/* Percentage symbol for percentage stats */}
                 {validation.isPercentage && (
@@ -516,27 +469,6 @@ export function StatBuilderChip({
                   >
                     %
                   </span>
-                )}
-                
-                {/* Confirm button (only when editing) */}
-                {isEditing && (
-                  <button
-                    onClick={handleConfirmClick}
-                    className="text-green-400 hover:text-green-300 transition-colors"
-                    title="Confirm"
-                    aria-label="Confirm changes"
-                    data-testid="confirm-button"
-                    style={{
-                      marginLeft: '0.5em',
-                      width: '1.25em',
-                      height: '1.25em',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    <Check size="0.75rem" />
-                  </button>
                 )}
               </div>
             </div>
@@ -585,46 +517,33 @@ export function StatBuilderChip({
             
             {/* Number section */}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-              {isEditing ? (
-                <input
-                  ref={inputRef}
-                  type="text"
-                  inputMode="numeric"
-                  value={inputValue}
-                  onChange={handleInputChange}
-                  onBlur={handleInputBlur}
-                  onKeyDown={handleKeyDown}
-                  style={{ 
-                    background: 'transparent',
-                    border: 'none',
-                    outline: 'none',
-                    color: 'rgb(255 255 255 / 0.85)',
-                    fontWeight: '600',
-                    fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)',
-                    width: `${Math.min(Math.max(inputValue.length + 1, 3), 5)}ch`, // Cap at 5ch
-                    maxWidth: 'clamp(3.5ch, 8vw, 5ch)', // Smaller max to prevent overflow
-                    appearance: 'textfield',
-                    MozAppearance: 'textfield',
-                    WebkitAppearance: 'none'
-                  }}
-                  aria-label="Stat threshold number"
-                  data-testid="number-input"
-                />
-              ) : (
-                <button
-                  onClick={handleNumberClick}
-                  className="hover:bg-white/5 rounded transition-colors"
-                  aria-label="Stat threshold number"
-                  data-testid="number-display"
-                  style={{
-                    fontWeight: '600',
-                    fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)',
-                    padding: 'clamp(0.125em, 0.5vw, 0.25em) clamp(0.25em, 1vw, 0.5em)'
-                  }}
-                >
-                  {displayValue}
-                </button>
-              )}
+              <input
+                ref={inputRef}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={inputValue}
+                onChange={handleInputChange}
+                onBlur={handleInputBlur}
+                onKeyDown={handleKeyDown}
+                onClick={handleNumberClick}
+                style={{ 
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  color: 'rgb(255 255 255 / 0.85)',
+                  fontWeight: '600',
+                  fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)',
+                  width: 'auto',
+                  maxWidth: 'clamp(3.5ch, 8vw, 5ch)',
+                  appearance: 'textfield',
+                  MozAppearance: 'textfield',
+                  WebkitAppearance: 'none',
+                  padding: 'clamp(0.125em, 0.5vw, 0.25em) clamp(0.25em, 1vw, 0.5em)'
+                }}
+                aria-label="Stat threshold number"
+                data-testid="number-input"
+              />
               
               {/* Percentage symbol for percentage stats */}
               {validation.isPercentage && (
@@ -638,27 +557,6 @@ export function StatBuilderChip({
                 >
                   %
                 </span>
-              )}
-              
-              {/* Confirm button (only when editing) */}
-              {isEditing && (
-                <button
-                  onClick={handleConfirmClick}
-                  className="text-green-400 hover:text-green-300 transition-colors"
-                  title="Confirm"
-                  aria-label="Confirm changes"
-                  data-testid="confirm-button"
-                  style={{
-                    marginLeft: '0.5em',
-                    width: '1.25em',
-                    height: '1.25em',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <Check size="0.75rem" />
-                </button>
               )}
             </div>
             

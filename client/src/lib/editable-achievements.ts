@@ -109,7 +109,7 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
   if (operator === '≤') {
     // Handle age achievements specially
     if (parsed.originalLabel.includes('Age')) {
-      return `Played at Age ${formattedNumber} or Younger`;
+      return `Played at Age ≤ ${formattedNumber}`;
     }
     
     // Handle percentage achievements differently
@@ -132,7 +132,7 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
         parsed.suffix.includes('Made Threes')) {
       // Clean the suffix by removing "+" for "or less" format
       const cleanSuffix = parsed.suffix.replace(/^\+\s*/, '');
-      return `${formattedNumber} or less ${cleanSuffix}`;
+      return `${formattedNumber} ≤ ${cleanSuffix}`;
     }
     // For other patterns, use "≤ X" format
     return `≤ ${formattedNumber}${parsed.suffix}`;
