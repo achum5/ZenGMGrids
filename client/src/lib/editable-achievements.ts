@@ -497,12 +497,21 @@ function checkCareerTotal(player: Player, statField: string | string[], newThres
   let total = 0;
   for (const stat of player.stats) {
     if (stat.playoffs) continue; // Only regular season
-    
-    let seasonTotal = 0;
-    for (const field of fields) {
-      seasonTotal += (stat as any)[field] || 0;
+
+    // If we have multiple fields, it's a fallback list. Find the first one that exists.
+    if (Array.isArray(statField)) {
+      let valueFound = false;
+      for (const field of statField) {
+        if ((stat as any)[field] !== undefined) {
+          total += (stat as any)[field];
+          valueFound = true;
+          break; // Stop after finding the first valid field
+        }
+      }
+    } else {
+      // Single stat field
+      total += (stat as any)[statField] || 0;
     }
-    total += seasonTotal;
   }
   
   if (operator === '≤') {
