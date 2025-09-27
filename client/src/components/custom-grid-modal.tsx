@@ -1176,7 +1176,6 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
                   {selector.type === 'achievement' ? (
                     <div className="pointer-events-auto">
                       <StatBuilderChip
-                        baseLabel={selector.baseLabel || selector.label || ''}
                         label={selector.baseLabel || selector.label || ''}
                         sport={sport}
                         onNumberChange={(newNumber, newLabel, operator) => 

@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { parseAchievementLabel, formatAchievementLabel, type ParsedAchievement } from '@/lib/editable-achievements';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { parseAchievementLabel, generateUpdatedLabel, type ParsedAchievement } from '@/lib/editable-achievements';
 
 // Hook to measure container width
 function useContainerWidth(containerRef: React.RefObject<HTMLDivElement>): number {
@@ -64,8 +64,7 @@ function abbreviateLabel(label: string, mode: LayoutMode): string {
 }
 
 interface StatBuilderChipProps {
-  baseLabel: string; // The original, unformatted label (e.g., "Career Points")
-  displayLabel: string; // The label to actually display in the chip (e.g., "20,000+ Career Points")
+  label: string;
   onNumberChange?: (newNumber: number, newLabel: string, operator?: '≥' | '≤') => void;
   onOperatorChange: (operator: '≥' | '≤') => void;
   className?: string;
@@ -136,8 +135,7 @@ function formatDisplayNumber(num: number): string {
 }
 
 export function StatBuilderChip({
-  baseLabel,
-  displayLabel,
+  label,
   onNumberChange,
   onOperatorChange,
   className,
@@ -145,9 +143,9 @@ export function StatBuilderChip({
   operator,
   isEditable,
 }: StatBuilderChipProps) {
-  const [parsed, setParsed] = useState<ParsedAchievement>(() => parseAchievementLabel(baseLabel, sport));
+  const [parsed, setParsed] = useState<ParsedAchievement>(() => parseAchievementLabel(label, sport));
   const [inputValue, setInputValue] = useState<string>(() => parsed.number.toString());
-  const [validation, setValidation] = useState<StatValidation>(() => getStatValidation(baseLabel));
+  const [validation, setValidation] = useState<StatValidation>(() => getStatValidation(label));
   const [error, setError] = useState<string | null>(null);
   const [userHasChangedNumber, setUserHasChangedNumber] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -156,15 +154,15 @@ export function StatBuilderChip({
   const containerWidthEm = useContainerWidth(containerRef);
 
   useEffect(() => {
-    const newParsed = parseAchievementLabel(baseLabel, sport);
+    const newParsed = parseAchievementLabel(label, sport);
     setParsed(newParsed);
     
     if (!userHasChangedNumber) {
       setInputValue(newParsed.number.toString());
     }
     
-    setValidation(getStatValidation(baseLabel));
-  }, [baseLabel, sport, userHasChangedNumber]);
+    setValidation(getStatValidation(label));
+  }, [label, sport, userHasChangedNumber]);
 
   const layoutMode = getLayoutMode(containerWidthEm);
 
@@ -223,7 +221,7 @@ export function StatBuilderChip({
     if (onNumberChange) {
       onNumberChange(numValue, newLabel, operator);
     }
-  }, [inputValue, validation, parsed, baseLabel, operator, onNumberChange]);
+  }, [inputValue, validation, parsed, operator, onNumberChange]);
 
   const cancelEdit = useCallback(() => {
     // Only reset to original if user hasn't made any changes
@@ -249,10 +247,9 @@ export function StatBuilderChip({
   }, [commitValue, cancelEdit]);
 
   // If not editable, render as plain text
-  if (!isEditable) {
-    return <span className={className}>{displayLabel}</span>;
-  }
-
+      if (!isEditable) {
+          return <span className={className}>{label}</span>;
+      }
   // Display value - show exactly what user typed if they changed it
   const getDisplayValue = (): string => {
     // If user has changed the number, show their EXACT input without any formatting
@@ -278,7 +275,15 @@ export function StatBuilderChip({
   const displayValue = getDisplayValue();
   
   // Extract and abbreviate the clean label
-  const cleanLabel = abbreviateLabel(displayLabel, layoutMode);
+  const cleanLabel = abbreviateLabel(label, layoutMode);
+
+  const fullFormattedLabel = useMemo(() => {
+    const currentNumber = parseFloat(inputValue);
+    if (!isNaN(currentNumber)) {
+      return generateUpdatedLabel(parsed, currentNumber, operator);
+    }
+    return label;
+  }, [parsed, inputValue, operator, label]);
 
   return (
     <div 
@@ -301,7 +306,7 @@ export function StatBuilderChip({
           gap: 'clamp(0.25em, 1vw, 0.5em)'
         })
       }}
-      title={baseLabel}
+      title={fullFormattedLabel}
     >
       {layoutMode === 'C' ? (
         // Mode C: Two-line layout
