@@ -16,7 +16,7 @@ import { getAllAchievements } from '@/lib/achievements';
 import { SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 import { getCachedSeasonIndex } from '@/lib/season-index-cache';
 import { StatBuilderChip } from '@/components/stat-builder-chip';
-import { parseAchievementLabel, createCustomNumericalAchievement } from '@/lib/editable-achievements';
+import { parseAchievementLabel, createCustomNumericalAchievement, generateUpdatedLabel } from '@/lib/editable-achievements';
 
 // Extract base stat name from achievement labels for clean modal display
 function extractBaseStatName(label: string): string {
@@ -96,6 +96,7 @@ interface SelectorState {
   type: SelectorType | null;
   value: string | null;
   label: string | null;
+  logoUrl?: string | null; // Add logoUrl to state
   customAchievement?: any; // Store custom achievement for dynamic numerical thresholds
   operator: '≥' | '≤'; // Store operator state for achievements
   customNumber?: number; // Store custom number to prevent reset
@@ -132,10 +133,18 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
     if (isOpen) {
       const catTeamToSelectorState = (catTeam: CatTeam): SelectorState => {
         if (catTeam.type === 'team') {
+          let logoUrl: string | null = null;
+          if (leagueData) {
+            const team = leagueData.teams.find(t => t.tid === catTeam.tid);
+            if (team) {
+              logoUrl = team.imgURLSmall || team.imgURL || null;
+            }
+          }
           return {
             type: 'team',
             value: catTeam.tid !== undefined ? catTeam.tid.toString() : null,
             label: catTeam.label,
+            logoUrl,
             operator: '≥',
             customAchievement: null,
             customNumber: undefined,
@@ -355,14 +364,21 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
 
   // Update selector value
   const updateSelectorValue = useCallback((isRow: boolean, index: number, type: SelectorType, value: string, label: string) => {
-    const newState: SelectorState = { type, value, label, operator: '≥' as const, customAchievement: null, customNumber: undefined };
+    let logoUrl: string | null = null;
+    if (type === 'team' && leagueData) {
+      const team = leagueData.teams.find(t => t.tid === parseInt(value));
+      if (team) {
+        logoUrl = team.imgURLSmall || team.imgURL || null;
+      }
+    }
+    const newState: SelectorState = { type, value, label, logoUrl, operator: '≥' as const, customAchievement: null, customNumber: undefined };
     if (isRow) {
       setRowSelectors(prev => prev.map((selector, i) => i === index ? newState : selector));
     } else {
       setColSelectors(prev => prev.map((selector, i) => i === index ? newState : selector));
     }
     setCalculating(true);
-  }, []);
+  }, [leagueData]);
 
   // Clear individual selector
   const clearSelector = useCallback((isRow: boolean, index: number) => {
@@ -1148,60 +1164,57 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
                 </DropdownMenu>
                 
                 {/* Content display - positioned above clickable area with higher z-index */}
-                <div className="flex items-center gap-1 mb-0.5 relative z-10 pointer-events-none">
-                  {selector.type && (
-                    <Badge variant="outline" className="text-[6px] sm:text-[8px] lg:text-[10px] px-0.5 sm:px-1 py-0 leading-none">
-                      {selector.type}
-                    </Badge>
-                  )}
-                </div>
+                {/* Removed type badge as per user request */}
                 
                 <div className="text-[6px] sm:text-[8px] lg:text-xs font-medium leading-tight break-words text-center px-0.5 overflow-hidden relative z-10">
-                  {selector.type === 'achievement' ? (
-                    <div className="pointer-events-auto">
-                      <StatBuilderChip
-                        label={
-                          // ALWAYS show clean editable format in modal with CORRECT operator
-                          (() => {
-                            if (selector.customAchievement) {
-                              // Extract number from custom achievement and create clean format
-                              const parsed = parseAchievementLabel(selector.customAchievement.label, sport);
-                              if (parsed.isEditable && parsed.number !== undefined) {
-                                // Use the operator from selector state, not from parsed label
-                                const currentOperator = selector.operator || '≥';
-                                const formattedNumber = parsed.number.toLocaleString();
-                                const symbol = currentOperator === '≤' ? '≤' : '+';
-                                const cleanSuffix = parsed.suffix.replace(/^\+?\s*/, '').replace(/^or less\s+/, '');
-                                return `${formattedNumber}${symbol} ${cleanSuffix}`;
-                              }
-                            }
-                            // Use original selector label as fallback
-                            return selector.label || '';
-                          })()
+                  {(() => {
+                    if (selector.type === 'team' && selector.logoUrl) {
+                      return <img src={selector.logoUrl} alt={selector.label || 'Team logo'} className="h-8 w-8 sm:h-10 sm:w-10 object-contain mx-auto" />;
+                    }
+
+                    if (selector.type === 'achievement' && selector.value) {
+                      const originalAchievement = achievementOptions.find(ach => ach.id === selector.value);
+                      if (originalAchievement) {
+                        const parsedOriginal = parseAchievementLabel(originalAchievement.label, sport);
+                        if (parsedOriginal.isEditable) {
+                          // This is an editable achievement, so we must render the chip.
+                          // We need to construct a label that the chip can parse, even if the operator is '≤'.
+                          // The chip will use the `operator` prop for its actual logic, so this label is just for display parsing.
+                          const numberToDisplay = selector.customNumber !== undefined ? selector.customNumber : parsedOriginal.number;
+                          const parsableLabel = generateUpdatedLabel(parsedOriginal, numberToDisplay, '≥'); // Always use '≥' for a parsable format
+
+                          return (
+                            <div className="pointer-events-auto">
+                              <StatBuilderChip
+                                label={parsableLabel}
+                                sport={sport}
+                                onNumberChange={(newNumber, newLabel, operator) => 
+                                  handleAchievementNumberChange(
+                                    isRow ? 'row' : 'col', 
+                                    index, 
+                                    newNumber, 
+                                    newLabel,
+                                    operator
+                                  )
+                                }
+                                onOperatorChange={(operator) =>
+                                  handleAchievementOperatorChange(
+                                    isRow ? 'row' : 'col',
+                                    index,
+                                    operator
+                                  )
+                                }
+                                operator={selector.operator || '≥'}
+                              />
+                            </div>
+                          );
                         }
-                        sport={sport}
-                        onNumberChange={(newNumber, newLabel, operator) => 
-                          handleAchievementNumberChange(
-                            isRow ? 'row' : 'col', 
-                            index, 
-                            newNumber, 
-                            newLabel,
-                            operator
-                          )
-                        }
-                        onOperatorChange={(operator) =>
-                          handleAchievementOperatorChange(
-                            isRow ? 'row' : 'col',
-                            index,
-                            operator
-                          )
-                        }
-                        operator={selector.operator || '≥'}
-                      />
-                    </div>
-                  ) : (
-                    selector.label
-                  )}
+                      }
+                    }
+
+                    // Fallback for non-editable achievements or other types
+                    return selector.label;
+                  })()}
                 </div>
               </div>
             ) : (

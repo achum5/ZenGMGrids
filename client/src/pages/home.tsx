@@ -1298,7 +1298,9 @@ export default function Home() {
               </div>
               <div className="flex items-center space-x-3">
                 <ThemeToggle />
-                <RulesModal />
+                <div className="-ml-[1px]">
+                  <RulesModal />
+                </div>
               </div>
             </div>
           </div>
@@ -1341,7 +1343,9 @@ export default function Home() {
             </div>
             <div className="flex items-center space-x-1">
               <ThemeToggle />
-              <RulesModal sport={leagueData?.sport} />
+              <div className="-ml-[1px]">
+                <RulesModal sport={leagueData?.sport} />
+              </div>
               {hasGuesses ? (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -1456,8 +1460,19 @@ export default function Home() {
         <CustomGridModal
           isOpen={customGridModalOpen}
           onClose={() => setCustomGridModalOpen(false)}
-          onPlayGrid={(customRows, customCols) => {
+          onPlayGrid={(customRows, customCols, customRowSelectors, customColSelectors) => {
             if (!leagueData) return;
+
+            // Generate a unique ID for the new custom grid
+            const newGridId = `${customRows.map(r => r.key).join('-')}_${customCols.map(c => c.key).join('-')}`;
+
+            // If the new grid is different from the current one, reset the attempt count
+            if (newGridId !== currentGridId) {
+              setAttemptCount(1);
+              storeAttemptCount(newGridId, 1);
+            }
+            
+            setCurrentGridId(newGridId);
 
             // Replace current grid with custom grid
             setRows(customRows);
