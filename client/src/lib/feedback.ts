@@ -737,7 +737,6 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     Season30PPG: ['30+ PPG', '30 points per game'],
     Season2000Points: ['2000+ Points', '2000 points'],
     Season200_3PM: ['200+ 3PM', '200 three-pointers'],
-    Season200_3PM: ['200+ 3PM', '200 three-pointers'],
     Season12RPG: ['12+ RPG', '12 rebounds per game'],
     Season10APG: ['10+ APG', '10 assists per game'],
     Season800Rebounds: ['800+ Rebounds', '800 rebounds'],
@@ -1036,7 +1035,6 @@ function getHumanReadableAchievementText(achievementId: string): string {
     const seasonMappings: Record<string, string> = {
       'Season30PPG': 'averaged 30+ PPG in a season',
       'Season2000Points': 'scored 2,000+ points in a season',
-      'Season200_3PM': 'made 200+ threes in a season',
       'Season200_3PM': 'made 200+ threes in a season',
       'Season12RPG': 'averaged 12+ RPG in a season',
       'Season10APG': 'averaged 10+ APG in a season',
@@ -1496,7 +1494,6 @@ function getStatInfoForAchievement(baseId: string): StatInfo | null {
         // Basketball Season (Totals)
         Season2000Points: { key: 'pts', name: 'points in a season', type: 'season' },
         Season200_3PM: { key: 'fg3', name: 'threes in a season', type: 'season' },
-        Season200_3PM: { key: 'fg3', name: 'threes in a season', type: 'season' },
         Season800Rebounds: { key: 'trb', name: 'rebounds in a season', type: 'season' },
         Season700Assists: { key: 'ast', name: 'assists in a season', type: 'season' },
         Season150Steals: { key: 'stl', name: 'steals in a season', type: 'season' },
@@ -1858,6 +1855,12 @@ function getHockeyNegativeMessage(achievementId: string, player?: Player): strin
     case 'played5PlusFranchises':
       const franchiseCount = getPlayerFranchiseCount(player);
       return `only played for ${franchiseCount} franchises`;
+    default:
+      return 'did not meet this achievement';
+  }
+}
+
+function getBaseballCareerStats(player: Player) {
   const stats = player.stats || [];
   let h = 0, hr = 0, rbi = 0, sb = 0, r = 0, w = 0, sv = 0, so = 0;
   
@@ -1955,7 +1958,7 @@ function getBaseballPositiveMessage(achievementId: string, player?: Player): str
     return fallbacks[achievementId] || getHumanReadableAchievementText(achievementId);
   }
 
-  const careerStats = getBaseballCareerStats(player);
+  const careerStats = getBasketballCareerStats(player);
   const seasonBests = getBaseballSeasonBests(player);
 
   switch (achievementId) {
@@ -2019,7 +2022,7 @@ function getBaseballNegativeMessage(achievementId: string, player?: Player): str
   const customMessage = getNegativeMessageForCustomAchievement(player, achievementId);
   if (customMessage) return customMessage;
   
-  const careerStats = getBaseballCareerStats(player);
+  const careerStats = getBasketballCareerStats(player);
   const seasonBests = getBaseballSeasonBests(player);
 
   switch (achievementId) {
@@ -2287,5 +2290,4 @@ function getPositiveMessage(constraint: GridConstraint, player: Player, teams: T
     default:
       return `did achieve ${getHumanReadableAchievementText(achievementId)}`;
   }
-}
 }
