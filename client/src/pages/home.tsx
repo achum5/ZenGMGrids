@@ -76,6 +76,68 @@ export default function Home() {
   const [leagueData, setLeagueData] = useState<LeagueData | null>(null);
   const [rows, setRows] = useState<CatTeam[]>([]);
   const [cols, setCols] = useState<CatTeam[]>([]);
+  const [pendingGridChanges, setPendingGridChanges] = useState<Record<string, { newNumber: number; newLabel: string }>>({});
+
+  const handleRecalculateGrid = () => {
+    if (Object.keys(pendingGridChanges).length === 0) return;
+
+    const updatedRows = rows.map(row => {
+      if (pendingGridChanges[row.id]) {
+        const { newNumber, newLabel } = pendingGridChanges[row.id];
+        const newAchievement = createCustomNumericalAchievement(row.achievement!, newNumber, getCachedSportDetection() || 'basketball', '≥');
+        return { ...row, label: newLabel, achievement: newAchievement, achievementId: newAchievement.id };
+      }
+      return row;
+    });
+
+    const updatedCols = cols.map(col => {
+      if (pendingGridChanges[col.id]) {
+        const { newNumber, newLabel } = pendingGridChanges[col.id];
+        const newAchievement = createCustomNumericalAchievement(col.achievement!, newNumber, getCachedSportDetection() || 'basketball', '≥');
+        return { ...col, label: newLabel, achievement: newAchievement, achievementId: newAchievement.id };
+      }
+      return col;
+    });
+
+    setRows(updatedRows);
+    setCols(updatedCols);
+    recalculateIntersections(updatedRows, updatedCols);
+    setPendingGridChanges({});
+  };
+  
+  const recalculateIntersections = (currentRows: CatTeam[], currentCols: CatTeam[]) => {
+    if (!leagueData || currentRows.length === 0 || currentCols.length === 0) return;
+    
+    const newIntersections: Record<string, number[]> = {};
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        const rowCatTeam = currentRows[i];
+        const colCatTeam = currentCols[j];
+        const key = `${i}-${j}`;
+        
+        const rowConstraint: IntersectionConstraint = {
+          type: rowCatTeam.type,
+          id: rowCatTeam.type === 'team' ? rowCatTeam.teamId! : rowCatTeam.achievementId!,
+        };
+        const colConstraint: IntersectionConstraint = {
+          type: colCatTeam.type,
+          id: colCatTeam.type === 'team' ? colCatTeam.teamId! : colCatTeam.achievementId!,
+        };
+
+        const eligiblePids = calculateOptimizedIntersection(
+          rowConstraint,
+          colConstraint,
+          leagueData.players,
+          leagueData.teams,
+          seasonIndex,
+          false
+        ) as Set<number>;
+        
+        newIntersections[key] = Array.from(eligiblePids);
+      }
+    }
+    setIntersections(newIntersections);
+  };
   const [cells, setCells] = useState<Record<string, CellState>>({});
   const [usedPids, setUsedPids] = useState<Set<number>>(new Set());
   const [intersections, setIntersections] = useState<Record<string, number[]>>({});
@@ -1377,27 +1439,43 @@ export default function Home() {
           </div>
         </div>
       </header>
-      <main className="max-w-4xl mx-auto px-6 py-8">
-        <GridSection
-          rows={rows}
-          cols={cols}
-          cells={cells}
-          onCellClick={handleCellClick}
-          onGenerateNewGrid={handleGenerateNewGrid}
-          onGiveUp={handleGiveUp}
-          onRetryGrid={handleRetryGrid}
-          onShareGrid={() => setGridSharingModalOpen(true)}
-          onCreateCustomGrid={() => setCustomGridModalOpen(true)}
-          isGenerating={isGenerating}
-          giveUpPressed={giveUpPressed}
-          teams={leagueData?.teams || []}
-          sport={leagueData?.sport}
-          attemptCount={attemptCount}
-          getOrdinalLabel={getOrdinalLabel}
-          hintMode={hintMode}
-          onHintModeChange={handleHintModeChange}
-        />
-        
+              <main className="max-w-4xl mx-auto px-6 py-8">
+                {Object.keys(pendingGridChanges).length > 0 && (
+                  <div className="bg-yellow-100 dark:bg-yellow-900 border-l-4 border-yellow-500 text-yellow-700 dark:text-yellow-200 p-4 mb-4 rounded-md" role="alert">
+                    <div className="flex items-center">
+                      <div className="py-1"><svg className="fill-current h-6 w-6 text-yellow-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zM9 5v6h2V5H9zm0 8v2h2v-2H9z"/></svg></div>
+                      <div className="flex-grow">
+                        <p className="font-bold">Your custom achievements have changed.</p>
+                        <p className="text-sm">Click the button to update the grid with your new values.</p>
+                      </div>
+                      <Button onClick={handleRecalculateGrid} className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold ml-4">
+                        Recalculate Grid
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                <GridSection
+                  rows={rows}
+                  cols={cols}
+                  cells={cells}
+                  onCellClick={handleCellClick}
+                  onGenerateNewGrid={handleGenerateNewGrid}
+                  onGiveUp={handleGiveUp}
+                  onRetryGrid={handleRetryGrid}
+                  onShareGrid={() => setGridSharingModalOpen(true)}
+                  onCreateCustomGrid={() => setCustomGridModalOpen(true)}
+                  isGenerating={isGenerating}
+                  giveUpPressed={giveUpPressed}
+                  teams={leagueData?.teams || []}
+                  sport={leagueData?.sport}
+                  attemptCount={attemptCount}
+                  getOrdinalLabel={getOrdinalLabel}
+                  hintMode={hintMode}
+                  onHintModeChange={handleHintModeChange}
+                  onNumberChange={(id, newNumber, newLabel) => {
+                    setPendingGridChanges(prev => ({ ...prev, [id]: { newNumber, newLabel } }));
+                  }}
+                />        
         <PlayerSearchModal
           isOpen={searchModalOpen}
           onClose={() => setSearchModalOpen(false)}

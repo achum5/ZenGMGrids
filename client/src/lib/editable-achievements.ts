@@ -14,7 +14,7 @@ export interface ParsedAchievement {
 // Order matters! Decimal-aware patterns must come BEFORE comma-separated patterns
 const ACHIEVEMENT_PATTERNS = [
   // Percentage achievements (e.g., "60%+ TS on 20+ PPG (Season)", "90%+ FT (Season)", "40%+ 3PT (Season)")
-  /^([^.\d]*?)(\d+(?:\.\d+)?)\%\+\s*(TS on \d+\+ PPG|eFG|FT|3PT)\s*\(Season\)(.*)$/i,
+  /^([^.\d]*?)(\d+(?:\.\d+)?)\%\+\s*(TS on \d+\+\s*PPG|eFG|FT|3PT)\s*\(Season\)(.*)$/i,
   // "1 PPG (Season)" or "30 PPG (Season)" or "2.5 BPG (Season)" - season stats without +
   /^([^.\d]*?)(\d+(?:\.\d+)?)\s*(PPG|RPG|APG|SPG|BPG|FG%|3P%|FT%|eFG%|TS%|PER|WS|BPM|VORP|USG%|TOV%|ORB%|DRB%|AST%|STL%|BLK%)\s*\(Season\)(.*)$/i,
   // "Age 40+" 

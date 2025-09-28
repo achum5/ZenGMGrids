@@ -41,6 +41,7 @@ interface GridSectionProps {
   giveUpPressed?: boolean; // Track if Give Up has been pressed
   hintMode: boolean; // Hint mode state
   onHintModeChange: (enabled: boolean) => void; // Hint mode toggle handler
+  onNumberChange?: (id: string, newNumber: number, newLabel: string) => void;
 }
 
 // Calculate total score from correct guesses
@@ -68,6 +69,7 @@ export function GridSection({
   giveUpPressed = false,
   hintMode,
   onHintModeChange,
+  onNumberChange,
 }: GridSectionProps) {
   const totalScore = calculateScore(cells);
   
@@ -266,8 +268,14 @@ export function GridSection({
                     {teamForHeader ? (
                       <TeamLogo team={teamForHeader} />
                     ) : (
-                      <ResponsiveText
-                        text={col.label}
+                      <EditableAchievementLabel
+                        label={col.label}
+                        onNumberChange={(newNumber, newLabel) => {
+                          if (onNumberChange) {
+                            onNumberChange(col.id, newNumber, newLabel);
+                          }
+                        }}
+                        sport={sport}
                         className="text-[10px] xs:text-xs md:text-sm font-bold text-secondary-foreground dark:text-white"
                       />
                     )}
@@ -300,8 +308,14 @@ export function GridSection({
                         {teamForHeader ? (
                           <TeamLogo team={teamForHeader} />
                         ) : (
-                          <ResponsiveText
-                            text={fullName}
+                          <EditableAchievementLabel
+                            label={row.label}
+                            onNumberChange={(newNumber, newLabel) => {
+                              if (onNumberChange) {
+                                onNumberChange(row.id, newNumber, newLabel);
+                              }
+                            }}
+                            sport={sport}
                             className="text-[10px] xs:text-xs md:text-sm font-bold text-secondary-foreground dark:text-white"
                           />
                         )}
