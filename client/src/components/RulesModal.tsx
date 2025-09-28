@@ -220,7 +220,7 @@ export function RulesModal({ sport }: RulesModalProps) {
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm" data-testid="button-rules">
-          <HelpCircle className="h-[1.2rem] w-[1.2rem]" />
+          <HelpCircle className="h-[1.2rem] w-[1.2rem] -ml-px" />
           <span className="sr-only">Rules</span>
         </Button>
       </DialogTrigger>

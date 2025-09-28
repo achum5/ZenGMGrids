@@ -137,7 +137,35 @@ function getTeamAbbrev(teams: Team[], tid: number): string {
 
 // Helper function to check if an achievement ID is a season achievement
 function isSeasonAchievement(achievementId: string): achievementId is SeasonAchievementId {
-  return Object.keys(SEASON_ACHIEVEMENT_LABELS).includes(achievementId as SeasonAchievementId);
+  let baseAchievementId = achievementId;
+  if (achievementId.includes('_custom_')) {
+    baseAchievementId = achievementId.split('_custom_')[0];
+  }
+  return Object.keys(SEASON_ACHIEVEMENT_LABELS).includes(baseAchievementId as SeasonAchievementId);
+}
+
+// Helper function to map a statistical achievement ID to its stat field
+function getStatFieldForAchievement(achievementId: SeasonAchievementId): string | string[] | null {
+  const map: Partial<Record<SeasonAchievementId, string | string[]>> = {
+    Season30PPG: 'pts',
+    Season2000Points: 'pts',
+    Season300_3PM: ['tpm', 'tp'],
+    Season250ThreePM: ['tpm', 'tp'],
+    Season200_3PM: ['tpm', 'tp'],
+    Season12RPG: 'trb',
+    Season10APG: 'ast',
+    Season800Rebounds: 'trb',
+    Season700Assists: 'ast',
+    Season2SPG: 'stl',
+    Season2_5BPG: 'blk',
+    Season150Steals: 'stl',
+    Season150Blocks: 'blk',
+    Season200Stocks: ['stl', 'blk'], // Combined
+    Season70Games: 'gp',
+    Season36MPG: 'min',
+    // Note: Combo and percentage achievements are not simple fields and are excluded here
+  };
+  return map[achievementId] || null;
 }
 
 // Helper function to calculate seasons where player achieved Season* statistical thresholds
@@ -145,6 +173,17 @@ function getSeasonsForSeasonStatAchievement(player: Player, achievementId: Seaso
   if (!player.stats || player.stats.length === 0) return [];
   
   const qualifyingSeasons: number[] = [];
+
+  // Align with grid filtering logic: for '≤' checks, disqualify if career total is zero for this stat.
+  if (customOperator === '≤') {
+    const statField = getStatFieldForAchievement(achievementId);
+    if (statField) {
+      const careerTotal = getPlayerCareerTotal(player, statField);
+      if (careerTotal === 0) {
+        return []; // Disqualify players who never recorded the stat
+      }
+    }
+  }
   
   // Only check regular season stats (not playoffs)
   const regularSeasonStats = player.stats.filter(s => !s.playoffs);
@@ -304,111 +343,57 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
     return getSeasonsForSeasonStatAchievement(player, baseAchievementId, customThreshold, customOperator);
   }
 
-  if (!player.awards) return [];
+  // Handle award-based achievements with a season-by-season check
+  if (!player.stats || !player.awards) return [];
 
-  // Map achievement ID to award type patterns
-  const awardTypePatterns: Partial<Record<SeasonAchievementId, string[]>> = {
-    // Basketball GM achievements
-    AllStar: ['All-Star', 'all-star', 'allstar'],
-    MVP: ['MVP', 'Most Valuable Player', 'most valuable player'],
-    DPOY: ['DPOY', 'Defensive Player of the Year', 'defensive player of the year'],
-    ROY: ['ROY', 'Rookie of the Year', 'rookie of the year'],
-    SMOY: ['SMOY', 'Sixth Man of the Year', 'sixth man of the year', '6MOY', '6th man'],
-    MIP: ['MIP', 'Most Improved Player', 'most improved player'],
-    FinalsMVP: ['Finals MVP', 'finals mvp', 'championship mvp'],
-    SFMVP: ['Conference Finals MVP', 'conference finals mvp', 'CFMVP', 'cfmvp'],
-    AllLeagueAny: ['All-League', 'all-league', 'First Team All-League', 'Second Team All-League', 'Third Team All-League'],
-    AllDefAny: ['All-Defensive', 'all-defensive', 'First Team All-Defensive', 'Second Team All-Defensive'],
-    AllRookieAny: ['All-Rookie', 'all-rookie', 'All-Rookie Team'],
-    PointsLeader: ['League Points Leader', 'league points leader', 'points leader', 'scoring leader'],
-    ReboundsLeader: ['League Rebounds Leader', 'league rebounds leader', 'rebounds leader', 'rebounding leader'],
-    AssistsLeader: ['League Assists Leader', 'league assists leader', 'assists leader'],
-    StealsLeader: ['League Steals Leader', 'league steals leader', 'steals leader'],
-    BlocksLeader: ['League Blocks Leader', 'league blocks leader', 'blocks leader'],
-    
-    // Football GM achievements
-    FBAllStar: ['All-Star'],
-    FBMVP: ['Most Valuable Player'],
-    FBDPOY: ['Defensive Player of the Year'],
-    FBOffROY: ['Offensive Rookie of the Year'],
-    FBDefROY: ['Defensive Rookie of the Year'],
-    FBAllRookie: ['All-Rookie Team'],
-    FBAllLeague: ['First Team All-League', 'Second Team All-League', 'All-League Team'],
-    FBSeason4kPassYds: ['4,000+ Passing Yards', '4000+ passing yards', 'passing yards'],
-    FBSeason1200RushYds: ['1,200+ Rushing Yards', '1200+ rushing yards', 'rushing yards'],
-    FBSeason100Receptions: ['100+ Receptions', '100+ receptions', 'receptions'],
-    FBSeason15Sacks: ['15+ Sacks', '15+ sacks', 'sacks'],
-    FBSeason140Tackles: ['140+ Tackles', '140+ tackles', 'tackles'],
-    FBSeason5Interceptions: ['5+ Interceptions', '5+ interceptions', 'interceptions'],
-    FBSeason30PassTD: ['30+ Passing TD', '30+ passing td', 'passing touchdowns'],
-    FBSeason1300RecYds: ['1,300+ Receiving Yards', '1300+ receiving yards', 'receiving yards'],
-    FBSeason10RecTD: ['10+ Receiving TD', '10+ receiving td', 'receiving touchdowns'],
-    FBSeason12RushTD: ['12+ Rushing TD', '12+ rushing td', 'rushing touchdowns'],
-    FBSeason1600Scrimmage: ['1,600+ Yards from Scrimmage', '1600+ scrimmage yards', 'scrimmage yards'],
-    FBSeason2000AllPurpose: ['2,000+ All-Purpose Yards', '2000+ all-purpose yards', 'all-purpose yards'],
-    FBSeason15TFL: ['15+ Tackles for Loss', '15+ tackles for loss', 'tackles for loss'],
-    FBFinalsMVP: ['Finals MVP'],
-    FBChampion: ['Won Championship'],
-    
-    // Hockey GM achievements
-    HKAllStar: ['All-Star', 'all-star'],
-    HKAllStarMVP: ['All-Star MVP', 'all-star mvp'],
-    HKMVP: ['Most Valuable Player', 'most valuable player'],
-    HKROY: ['Rookie of the Year', 'rookie of the year'],
-    HKAllRookie: ['All-Rookie Team', 'all-rookie team'],
-    HKAllLeague: ['All-League Team', 'all-league team', 'First Team All-League', 'Second Team All-League'],
-    HKAssistsLeader: ['League Assists Leader', 'league assists leader'],
-    HKPlayoffsMVP: ['Playoffs MVP', 'playoffs mvp'],
-    HKChampion: ['Won Championship', 'won championship'],
-    
-    // Baseball GM achievements
-    BBAllStar: ['All-Star'],
-    BBMVP: ['Most Valuable Player'],
-    BBROY: ['Rookie of the Year'],
-    BBAllRookie: ['All-Rookie Team'],
-    BBAllLeague: ['All-League Team', 'First Team All-League', 'Second Team All-League'],
-    BBPlayoffsMVP: ['Playoffs MVP', 'Finals MVP'],
-    BBChampion: ['Won Championship'],
+  const qualifyingSeasons: number[] = [];
+  const regularSeasonStats = player.stats.filter(s => !s.playoffs);
 
-    // Additional missing achievements
-    Champion: ['Won Championship', 'won championship'],
-    HKDefenseman: ['Best Defenseman', 'best defenseman'],
-    HKFinalsMVP: ['Finals MVP', 'finals mvp']
-  };
+  for (const seasonStats of regularSeasonStats) {
+    const season = seasonStats.season;
+    const awardsThisSeason = player.awards.filter(a => a.season === season);
 
-  const patterns = awardTypePatterns[achievementId] || [];
-  const matchingAwards = player.awards.filter(award => {
-    const awardType = (award.type || '').toLowerCase();
-    const awardName = ((award as any).name || '').toLowerCase();
-    return patterns.some(pattern => 
-      awardType.includes(pattern.toLowerCase()) || 
-      awardName.includes(pattern.toLowerCase())
-    );
-  });
+    if (awardsThisSeason.length > 0) {
+      // Create a temporary player object representing just this season's achievements
+      const playerInSeason: Player = {
+        ...player,
+        awards: awardsThisSeason,
+        stats: [seasonStats],
+      };
 
-  // Extract seasons and format
-  const seasonsWithTeam: string[] = [];
-  
-  for (const award of matchingAwards) {
-    if (award.season) {
-      // For Finals MVP, Conference Finals MVP, Championship, and Playoffs MVP, try to include team abbreviation
-      if (achievementId === 'FinalsMVP' || achievementId === 'SFMVP' || achievementId === 'FBFinalsMVP' || 
-          achievementId === 'HKPlayoffsMVP' || achievementId === 'BBPlayoffsMVP' || 
-          achievementId === 'FBChampion' || achievementId === 'HKChampion' || achievementId === 'BBChampion') {
-        const playoffTeam = getBulletPlayoffTeam(player, award.season, teams);
-        if (playoffTeam) {
-          seasonsWithTeam.push(`${award.season} ${playoffTeam}`);
-        } else {
-          // If we can't resolve playoff team, just show the year without team
-          seasonsWithTeam.push(`${award.season}`);
-        }
-      } else {
-        seasonsWithTeam.push(`${award.season}`);
+      // Use a simplified check based on the logic inside playerMeetsAchievement
+      const meetsInSeason = tempPlayerMeetsAchievement(playerInSeason, achievementId);
+      if (meetsInSeason) {
+        qualifyingSeasons.push(season);
       }
     }
   }
 
-  return seasonsWithTeam.sort();
+  // Remove duplicates and sort
+  const uniqueSeasons = Array.from(new Set(qualifyingSeasons)).sort();
+  return uniqueSeasons.map(s => s.toString());
+}
+
+// A temporary, simplified version of playerMeetsAchievement for season-by-season checks.
+// This avoids circular dependencies and focuses only on award-based season achievements.
+function tempPlayerMeetsAchievement(player: Player, achievementId: string): boolean {
+  return player.awards?.some(award => {
+    const normalizedType = award.type.toLowerCase().trim();
+    switch (achievementId) {
+      case 'AllStar': return normalizedType.includes('all-star');
+      case 'MVP': return normalizedType.includes('most valuable player');
+      case 'DPOY': return normalizedType.includes('defensive player');
+      case 'ROY': return normalizedType.includes('rookie of the year');
+      case 'SMOY': return normalizedType.includes('sixth man');
+      case 'MIP': return normalizedType.includes('most improved');
+      case 'FinalsMVP': return normalizedType.includes('finals mvp');
+      case 'AllLeagueAny': return normalizedType.includes('all-league');
+      case 'AllDefAny': return normalizedType.includes('all-defensive');
+      case 'AllRookieAny': return normalizedType.includes('all-rookie');
+      // Add other award-based season achievements here if needed
+      default: return false;
+    }
+  }) || false;
 }
 
 // Helper function to get playoff team abbreviation for bullets
@@ -721,6 +706,37 @@ function getActualDecadeYears(player: Player, achievementType: 'played' | 'debut
   }
   
   return '';
+}
+
+// Helper function to get a player's career total for a specific stat
+function getPlayerCareerTotal(player: Player, statField: string | string[]): number {
+  if (!player.stats) return 0;
+
+  let total = 0;
+  for (const stat of player.stats) {
+    if (stat.playoffs) continue; // Only regular season
+
+    if (Array.isArray(statField)) {
+      // For combined stats like 'stocks', sum the components
+      if (statField.includes('stl') && statField.includes('blk')) {
+        total += (stat.stl || 0) + (stat.blk || 0);
+      } else {
+        // For fallback fields like ['tpm', 'tp']
+        let valueFound = false;
+        for (const field of statField) {
+          if ((stat as any)[field] !== undefined) {
+            total += (stat as any)[field];
+            valueFound = true;
+            break; 
+          }
+        }
+      }
+    } else {
+      // Single stat field
+      total += (stat as any)[statField] || 0;
+    }
+  }
+  return total;
 }
 
 import { getAllAchievements } from '@/lib/achievements';
