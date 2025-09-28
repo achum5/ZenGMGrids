@@ -14,7 +14,7 @@ export interface ParsedAchievement {
 // Order matters! Decimal-aware patterns must come BEFORE comma-separated patterns
 const ACHIEVEMENT_PATTERNS = [
   // Percentage achievements (e.g., "60%+ TS on 20+ PPG (Season)", "90%+ FT (Season)", "40%+ 3PT (Season)")
-  /^([^.\d]*?)(\d+(?:\.\d+)?)\%\+\s*(TS on \d+\+\s*PPG|eFG|FT|3PT)\s*\(Season\)(.*)$/i,
+  /^([^.\d]*?)(\d+(?:\.\d+)?)\%\+\s*(TS on \d+\+ PPG|eFG|FT|3PT)\s*\(Season\)(.*)$/i,
   // "1 PPG (Season)" or "30 PPG (Season)" or "2.5 BPG (Season)" - season stats without +
   /^([^.\d]*?)(\d+(?:\.\d+)?)\s*(PPG|RPG|APG|SPG|BPG|FG%|3P%|FT%|eFG%|TS%|PER|WS|BPM|VORP|USG%|TOV%|ORB%|DRB%|AST%|STL%|BLK%)\s*\(Season\)(.*)$/i,
   // "Age 40+" 
@@ -488,17 +488,14 @@ function generateTestFunction(
   return baseAchievement.test;
 }
 
-// Helper functions for stat calculations
-function checkCareerTotal(player: Player, statField: string | string[], newThreshold: number, operator: '≥' | '≤'): boolean {
-  if (!player.stats) return false;
-  
-  const fields = Array.isArray(statField) ? statField : [statField];
-  
+// Helper function to get a player's career total for a specific stat
+function getPlayerCareerTotal(player: Player, statField: string | string[]): number {
+  if (!player.stats) return 0;
+
   let total = 0;
   for (const stat of player.stats) {
     if (stat.playoffs) continue; // Only regular season
 
-    // If we have multiple fields, it's a fallback list. Find the first one that exists.
     if (Array.isArray(statField)) {
       let valueFound = false;
       for (const field of statField) {
@@ -513,8 +510,15 @@ function checkCareerTotal(player: Player, statField: string | string[], newThres
       total += (stat as any)[statField] || 0;
     }
   }
-  
+  return total;
+}
+
+// Helper functions for stat calculations
+function checkCareerTotal(player: Player, statField: string | string[], newThreshold: number, operator: '≥' | '≤'): boolean {
+  const total = getPlayerCareerTotal(player, statField);
+
   if (operator === '≤') {
+    if (total === 0) return false; // Disqualify if career total is zero for this stat
     return total <= newThreshold;
   } else {
     return total >= newThreshold;
@@ -523,6 +527,13 @@ function checkCareerTotal(player: Player, statField: string | string[], newThres
 
 function checkSeasonTotal(player: Player, statField: string | string[], newThreshold: number, operator: '≥' | '≤', minGames: number = 1, sport?: string): boolean {
   if (!player.stats) return false;
+
+  if (operator === '≤') {
+    const careerTotal = getPlayerCareerTotal(player, statField);
+    if (careerTotal === 0) {
+      return false;
+    }
+  }
 
   for (const stat of player.stats) {
     if (!stat.playoffs && (stat.gp || 0) >= minGames) {
@@ -550,6 +561,13 @@ function checkSeasonTotal(player: Player, statField: string | string[], newThres
 
 function checkSeasonAverage(player: Player, statField: string, newThreshold: number, operator: '≥' | '≤', minGames: number = 1, sport?: string): boolean {
   if (!player.stats) return false;
+
+  if (operator === '≤') {
+    const careerTotal = getPlayerCareerTotal(player, statField);
+    if (careerTotal === 0) {
+      return false;
+    }
+  }
 
   if (sport === 'hockey' && player.achievements?.seasonStatsComputed) {
     for (const seasonYearStr in player.achievements.seasonStatsComputed) {
@@ -588,6 +606,13 @@ function checkSeasonAverage(player: Player, statField: string, newThreshold: num
 
 function checkSeasonPercentage(player: Player, percentageType: string, newThreshold: number, operator: '≥' | '≤', minGames: number = 1, sport?: string): boolean {
   if (!player.stats) return false;
+
+  if (operator === '≤') {
+    const careerTotal = getPlayerCareerTotal(player, percentageType);
+    if (careerTotal === 0) {
+      return false;
+    }
+  }
 
   if (sport === 'hockey' && player.achievements?.seasonStatsComputed) {
     for (const seasonYearStr in player.achievements.seasonStatsComputed) {

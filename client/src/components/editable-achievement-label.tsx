@@ -8,6 +8,16 @@ interface EditableAchievementLabelProps {
   sport?: string;
 }
 
+export function EditableAchievementLabel({ 
+  label, 
+  onNumberChange, 
+  className,
+  sport
+}: EditableAchievementLabelProps) {
+  const [parsed, setParsed] = useState<ParsedAchievement>(() => parseAchievementLabel(label, sport));
+  const [inputValue, setInputValue] = useState<string>(() => parsed.number.toString());
+  const [isEditing, setIsEditing] = useState(false);
+
   // Update parsed achievement when label changes
   useEffect(() => {
     const newParsed = parseAchievementLabel(label, sport);
@@ -15,12 +25,6 @@ interface EditableAchievementLabelProps {
     setInputValue(newParsed.number.toString());
   }, [label, sport]);
 
-  // CRITICAL FIX for mobile: Trigger blur logic when editing state ends
-  useEffect(() => {
-    if (!isEditing) {
-      handleInputBlur();
-    }
-  }, [isEditing]);
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     // Allow numeric input with optional decimal point and digits
@@ -65,14 +69,8 @@ interface EditableAchievementLabelProps {
   }
 
   return (
-    <form
-      className={`${className} inline-flex items-center gap-1`}
-      onSubmit={(e) => {
-        e.preventDefault();
-        handleInputBlur();
-      }}
-    >
-      <span>{parsed.prefix}</span>
+    <span className={className}>
+      {parsed.prefix}
       <input
         type="number"
         pattern="[0-9]*"
@@ -97,18 +95,8 @@ interface EditableAchievementLabelProps {
         }}
         data-testid={`editable-number-${parsed.number}`}
       />
-      {isEditing && (
-        <button
-          type="submit"
-          className="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-black dark:text-white text-xs font-semibold py-1 px-2 rounded"
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={(e) => e.stopPropagation()}
-        >
-          Set
-        </button>
-      )}
-      <span>+{parsed.suffix}</span>
-    </form>
+      +{parsed.suffix}
+    </span>
   );
 }
 
@@ -121,19 +109,14 @@ export function EditableAchievementLabelNoPlus({
 }: EditableAchievementLabelProps) {
   const [parsed, setParsed] = useState<ParsedAchievement>(() => parseAchievementLabel(label, sport));
   const [inputValue, setInputValue] = useState<string>(() => parsed.number.toString());
+  const [isEditing, setIsEditing] = useState(false);
+
   // Update parsed achievement when label changes
   useEffect(() => {
     const newParsed = parseAchievementLabel(label, sport);
     setParsed(newParsed);
     setInputValue(newParsed.number.toString());
   }, [label, sport]);
-
-  // CRITICAL FIX for mobile: Trigger blur logic when editing state ends
-  useEffect(() => {
-    if (!isEditing) {
-      handleInputBlur();
-    }
-  }, [isEditing]);
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -179,14 +162,8 @@ export function EditableAchievementLabelNoPlus({
   }
 
   return (
-    <form
-      className={`${className} inline-flex items-center gap-1`}
-      onSubmit={(e) => {
-        e.preventDefault();
-        handleInputBlur();
-      }}
-    >
-      <span>{parsed.prefix}</span>
+    <span className={className}>
+      {parsed.prefix}
       <input
         type="number"
         pattern="[0-9]*"
@@ -211,17 +188,7 @@ export function EditableAchievementLabelNoPlus({
         }}
         data-testid={`editable-number-${parsed.number}`}
       />
-      {isEditing && (
-        <button
-          type="submit"
-          className="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-black dark:text-white text-xs font-semibold py-1 px-2 rounded"
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={(e) => e.stopPropagation()}
-        >
-          Set
-        </button>
-      )}
-      <span>{parsed.suffix}</span>
-    </form>
+      {parsed.suffix}
+    </span>
   );
 }
