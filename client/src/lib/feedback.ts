@@ -4,6 +4,13 @@ import { playerMeetsAchievement } from '@/lib/achievements';
 import { SEASON_ACHIEVEMENTS, type SeasonAchievementId } from './season-achievements';
 import { parseAchievementLabel, generateUpdatedLabel } from './editable-achievements';
 
+export interface GridConstraint {
+  type: 'team' | 'achievement';
+  tid?: number;
+  achievementId?: string;
+  label: string;
+}
+
 interface ParsedCustomAchievement {
   baseId: string;
   threshold: number;
@@ -143,12 +150,6 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     short: '2K Points',
     verbTeam: 'scored 2,000+ points in a season',
     verbGeneric: 'scored 2,000+ points in a season'
-  },
-  Season300_3PM: {
-    label: '300+ 3PM (Season)',
-    short: '300+ 3PM',
-    verbTeam: 'made 300+ three-pointers in a season',
-    verbGeneric: 'made 300+ three-pointers in a season'
   },
   Season200_3PM: {
     label: '200+ 3PM (Season)',
@@ -735,7 +736,7 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     // All missing Season achievements from LSP errors
     Season30PPG: ['30+ PPG', '30 points per game'],
     Season2000Points: ['2000+ Points', '2000 points'],
-    Season300_3PM: ['300+ 3PM', '300 three-pointers'],
+    Season200_3PM: ['200+ 3PM', '200 three-pointers'],
     Season200_3PM: ['200+ 3PM', '200 three-pointers'],
     Season12RPG: ['12+ RPG', '12 rebounds per game'],
     Season10APG: ['10+ APG', '10 assists per game'],
@@ -1035,7 +1036,7 @@ function getHumanReadableAchievementText(achievementId: string): string {
     const seasonMappings: Record<string, string> = {
       'Season30PPG': 'averaged 30+ PPG in a season',
       'Season2000Points': 'scored 2,000+ points in a season',
-      'Season300_3PM': 'made 300+ threes in a season',
+      'Season200_3PM': 'made 200+ threes in a season',
       'Season200_3PM': 'made 200+ threes in a season',
       'Season12RPG': 'averaged 12+ RPG in a season',
       'Season10APG': 'averaged 10+ APG in a season',
@@ -1494,7 +1495,7 @@ function getStatInfoForAchievement(baseId: string): StatInfo | null {
         Season36MPG: { key: 'mpg', name: 'MPG in a season', type: 'season_avg' },
         // Basketball Season (Totals)
         Season2000Points: { key: 'pts', name: 'points in a season', type: 'season' },
-        Season300_3PM: { key: 'fg3', name: 'threes in a season', type: 'season' },
+        Season200_3PM: { key: 'fg3', name: 'threes in a season', type: 'season' },
         Season200_3PM: { key: 'fg3', name: 'threes in a season', type: 'season' },
         Season800Rebounds: { key: 'trb', name: 'rebounds in a season', type: 'season' },
         Season700Assists: { key: 'ast', name: 'assists in a season', type: 'season' },
@@ -1531,20 +1532,44 @@ function getNegativeMessageForCustomAchievement(player: Player, achievementId: s
   }
   // Add similar blocks for football, hockey, baseball
 
-  const cleanLabel = getHumanReadableAchievementText(achievementId);
-  
   if (actualValue !== undefined) {
     const valueString = actualValue % 1 !== 0 ? actualValue.toFixed(1) : actualValue.toLocaleString();
-    if (year && year > 0) {
-      return `did not have ${cleanLabel} (best was ${valueString} in ${year})`;
+    const thresholdString = parsedCustom.threshold.toLocaleString();
+    const statName = statInfo.name;
+
+    let message: string;
+    if (parsedCustom.operator === '≤') {
+      // Rule was "less than", player failed, so they had MORE.
+      message = `had more than ${thresholdString} ${statName} (${valueString})`;
+    } else {
+      // Rule was "more than", player failed, so they had FEWER.
+      message = `had fewer than ${thresholdString} ${statName} (${valueString})`;
     }
-    return `did not have ${cleanLabel} (had ${valueString})`;
+    
+    if (year && year > 0) {
+        // For season bests, the stat name already includes "in a season"
+        return `never ${message.replace(statName, statInfo.name)} (best was ${valueString} in ${year})`;
+    }
+
+    return message;
   }
 
   // Fallback if we can't calculate the stat
+  const cleanLabel = getHumanReadableAchievementText(achievementId);
   return `did not meet the criteria for ${cleanLabel}`;
 }
 
+
+function getPlayerFranchiseCount(player: Player): number {
+  if (!player.stats) return 0;
+  const franchiseIds = new Set<number>();
+  for (const stat of player.stats) {
+    if (stat.tid !== undefined && stat.tid !== -1 && !stat.playoffs && (stat.gp || 0) > 0) {
+      franchiseIds.add(stat.tid);
+    }
+  }
+  return franchiseIds.size;
+}
 
 function getBasketballNegativeMessage(achievementId: string, player?: Player): string {
   if (!player) {
@@ -1597,8 +1622,9 @@ function getBasketballNegativeMessage(achievementId: string, player?: Player): s
         return `never averaged 2.5+ SPG in a season (never recorded a steal)`;
       }
       return `never averaged 2.5+ SPG in a season (best ${seasonBests.spg.max.toFixed(1)} in ${seasonBests.spg.year})`;
-    case 'season504090':
-      return `never had a 50/40/90 season`;
+    case 'played5PlusFranchises':
+      const franchiseCount = getPlayerFranchiseCount(player);
+      return `only played for ${franchiseCount} franchises`;
     case 'hasMVP':
       return `never won MVP`;
     case 'hasDPOY':
@@ -1829,13 +1855,9 @@ function getHockeyNegativeMessage(achievementId: string, player?: Player): strin
       return `was never selected to an All-Star Game`;
     case 'wonChampionship':
       return `never won a championship`;
-    default:
-      return `did not achieve ${achievementId}`;
-  }
-}
-
-// Baseball-specific helper functions  
-function getBaseballCareerStats(player: Player) {
+    case 'played5PlusFranchises':
+      const franchiseCount = getPlayerFranchiseCount(player);
+      return `only played for ${franchiseCount} franchises`;
   const stats = player.stats || [];
   let h = 0, hr = 0, rbi = 0, sb = 0, r = 0, w = 0, sv = 0, so = 0;
   
@@ -2043,14 +2065,16 @@ function getBaseballNegativeMessage(achievementId: string, player?: Player): str
       return `was never selected to an All-Star Game`;
     case 'wonChampionship':
       return `never won a championship`;
+    case 'played5PlusFranchises':
+      const franchiseCount = getPlayerFranchiseCount(player);
+      return `only played for ${franchiseCount} franchises`;
     default:
-      return `did not achieve ${achievementId}`;
+      return 'did not meet this achievement';
   }
 }
 
 function getFootballNegativeMessage(achievementId: string, player?: Player): string {
   if (!player) {
-    // Use the static messages defined in the main function
     return "";
   }
 
@@ -2090,21 +2114,14 @@ function getFootballNegativeMessage(achievementId: string, player?: Player): str
     case 'season8Ints':
       return `never had 8+ interceptions in a season (best ${seasonBests.ints.max} in ${seasonBests.ints.year})`;
     default:
-      return `did not achieve ${achievementId}`;
+      return 'did not meet this achievement';
   }
 }
 
-export interface GridConstraint {
-  type: 'team' | 'achievement';
-  tid?: number;
-  achievementId?: string;
-  label: string;
-}
-
-export interface FeedbackResult {
-  message: string;
-  isValid: boolean;
-}
+// export interface FeedbackResult {
+//   message: string;
+//   isValid: boolean;
+// }
 
 /**
  * Check if a player played for a specific team (has at least 1 regular season game)
@@ -2270,4 +2287,5 @@ function getPositiveMessage(constraint: GridConstraint, player: Player, teams: T
     default:
       return `did achieve ${getHumanReadableAchievementText(achievementId)}`;
   }
+}
 }
