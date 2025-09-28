@@ -20,7 +20,7 @@ function createTestFunction(constraint: CatTeam, seasonIndex?: SeasonIndex): (pl
     const achievementId = constraint.achievementId!;
     
     // Handle season statistical achievements that need special logic
-    if (achievementId.startsWith('Season') && achievementId !== 'Season250ThreePM') {
+    if (achievementId.startsWith('Season')) {
       return (player: Player) => {
         // Check if player has any seasons that meet the criteria
         for (const seasonStats of player.stats || []) {

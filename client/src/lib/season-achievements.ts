@@ -25,7 +25,6 @@ export type SeasonAchievementId =
   | 'BlocksLeader'
   // New Basketball achievements (season-aligned)
   | 'Champion'
-  | 'Season250ThreePM'
   // Basketball GM season statistical achievements (24 new achievements)
   | 'Season30PPG'
   | 'Season2000Points'
@@ -1411,16 +1410,6 @@ export function buildSeasonIndex(
       const season = seasonStat.season;
       const tid = seasonStat.tid;
       
-      // 250+ Made Threes Season achievement
-      const threesMade = seasonStat.tpm || seasonStat.tp || 0;
-      if (threesMade >= 250) {
-        if (!seasonIndex[season]) seasonIndex[season] = {};
-        if (!seasonIndex[season][tid]) seasonIndex[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
-        if (!seasonIndex[season][tid]['Season250ThreePM']) seasonIndex[season][tid]['Season250ThreePM'] = new Set();
-        
-        seasonIndex[season][tid]['Season250ThreePM'].add(player.pid);
-        totalIndexed++;
-      }
     }
   }
   
@@ -1472,12 +1461,6 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
   {
     id: 'Champion',
     label: 'Champion',
-    isSeasonSpecific: true,
-    minPlayers: 3
-  },
-  {
-    id: 'Season250ThreePM',
-    label: '250+ Made Threes Season',
     isSeasonSpecific: true,
     minPlayers: 3
   },

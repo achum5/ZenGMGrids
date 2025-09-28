@@ -298,9 +298,9 @@ export function StatBuilderChip({
   }, [parsed.number, userHasChangedNumber]);
 
   const handleInputBlur = useCallback(() => {
-    // Cancel the edit when clicking away
-    cancelEdit();
-  }, [cancelEdit]);
+    // Commit the value when clicking away
+    commitValue();
+  }, [commitValue]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {

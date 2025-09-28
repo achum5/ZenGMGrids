@@ -116,7 +116,6 @@ const SEASON_ACHIEVEMENT_LABELS: Partial<Record<SeasonAchievementId, string>> = 
 
   // Additional missing achievements
   Champion: 'Won Championship',
-  Season250ThreePM: '250+ 3PM (Season)',
   HKFinalsMVP: 'Finals MVP'
 };
 
@@ -277,10 +276,6 @@ function getSeasonsForSeasonStatAchievement(player: Player, achievementId: Seaso
       // Baseball GM Season achievements would go here
       // Add BB achievements as needed...
       
-      // Additional Season achievements
-      case 'Season250ThreePM':
-        if (check(tp, customThreshold !== undefined ? customThreshold : 250, customOperator || '≥')) qualifyingSeasons.push(season);
-        break;
     }
   }
   
@@ -377,7 +372,6 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
 
     // Additional missing achievements
     Champion: ['Won Championship', 'won championship'],
-    Season250ThreePM: ['250+ 3PM', '250+ three-pointers', '250+ threes'],
     HKDefenseman: ['Best Defenseman', 'best defenseman'],
     HKFinalsMVP: ['Finals MVP', 'finals mvp']
   };

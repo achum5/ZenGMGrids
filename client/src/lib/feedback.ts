@@ -610,12 +610,6 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     verbTeam: 'won a championship',
     verbGeneric: 'won a championship'
   },
-  Season250ThreePM: {
-    label: '250+ 3PM (Season)',
-    short: '250+ 3PM',
-    verbTeam: 'made 250+ three-pointers in a season',
-    verbGeneric: 'made 250+ three-pointers in a season'
-  },
   HKDefenseman: {
     label: 'Best Defenseman',
     short: 'Best Defenseman',
@@ -711,7 +705,6 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
 
     // Additional missing achievements
     Champion: ['Won Championship', 'won championship'],
-    Season250ThreePM: ['250+ 3PM', '250+ three-pointers', '250+ threes'],
     HKDefenseman: ['Best Defenseman', 'best defenseman'],
     HKFinalsMVP: ['Finals MVP', 'finals mvp'],
 
