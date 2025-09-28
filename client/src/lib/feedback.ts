@@ -1,7 +1,31 @@
 import type { Player, Team } from '@/types/bbgm';
-import { SEASON_ALIGNED_ACHIEVEMENTS } from '@/lib/achievements';
+import { SEASON_ALIGNED_ACHIEVEMENTS, getAllAchievements, getCachedSportDetection } from '@/lib/achievements';
 import { playerMeetsAchievement } from '@/lib/achievements';
 import { SEASON_ACHIEVEMENTS, type SeasonAchievementId } from './season-achievements';
+import { parseAchievementLabel, generateUpdatedLabel } from './editable-achievements';
+
+interface ParsedCustomAchievement {
+  baseId: string;
+  threshold: number;
+  operator: '≥' | '≤';
+}
+
+function parseCustomAchievementId(id: string | undefined): ParsedCustomAchievement | null {
+  if (!id || !id.includes('_custom_')) {
+    return null;
+  }
+  const parts = id.split('_custom_');
+  const baseId = parts[0];
+  const customParts = parts[1].split('_');
+  const threshold = parseFloat(customParts[0]);
+  const operator = customParts[1] === 'lte' ? '≤' : '≥';
+
+  if (baseId && !isNaN(threshold)) {
+    return { baseId, threshold, operator };
+  }
+  return null;
+}
+
 
 // Season achievement metadata for modal copy
 const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
@@ -950,6 +974,34 @@ function formatNumber(num: number): string {
  * Handles dynamic decade achievements, Season* achievements, and other patterns
  */
 function getHumanReadableAchievementText(achievementId: string): string {
+  const parsedCustom = parseCustomAchievementId(achievementId);
+  if (parsedCustom) {
+    // Use a default sport since we don't have the context here, but it's mostly for parsing structure.
+    const sport = getCachedSportDetection() || 'basketball';
+    const allAchievements = getAllAchievements(sport, undefined, undefined);
+    const originalAchievement = allAchievements.find(ach => ach.id === parsedCustom.baseId);
+
+    if (originalAchievement) {
+      const parsedLabel = parseAchievementLabel(originalAchievement.label, sport);
+      if (parsedLabel.isEditable) {
+        // Generate the clean label like "fewer than 100 steals"
+        return generateUpdatedLabel(parsedLabel, parsedCustom.threshold, parsedCustom.operator)
+          .replace(/\s*\([^)]*\)/, '') // Remove parenthetical content like (Season)
+          .trim();
+      }
+    }
+    // Fallback if original achievement can't be found
+    const fallbackStatName = parsedCustom.baseId
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^Season\s*/, '')
+      .replace(/^FB\s*/, '')
+      .replace(/^HK\s*/, '')
+      .replace(/^BB\s*/, '')
+      .toLowerCase()
+      .trim();
+    return `${parsedCustom.operator === '≤' ? 'fewer than' : ''} ${parsedCustom.threshold.toLocaleString()} ${fallbackStatName}`;
+  }
+  
   // Handle dynamic decade achievements
   if (achievementId.includes('playedIn') && achievementId.endsWith('s')) {
     const decadeMatch = achievementId.match(/playedIn(\d{4})s/);
@@ -1415,10 +1467,92 @@ function getBasketballPositiveMessage(achievementId: string, player?: Player): s
   }
 }
 
+interface StatInfo {
+  key: keyof ReturnType<typeof getBasketballCareerStats> | keyof ReturnType<typeof getBasketballSeasonBests> |
+       keyof ReturnType<typeof getFootballCareerStats> | keyof ReturnType<typeof getFootballSeasonBests> |
+       keyof ReturnType<typeof getHockeyCareerStats> | keyof ReturnType<typeof getHockeySeasonBests> |
+       keyof ReturnType<typeof getBaseballCareerStats> | keyof ReturnType<typeof getBaseballSeasonBests>;
+  name: string;
+  type: 'career' | 'season' | 'season_avg';
+}
+
+function getStatInfoForAchievement(baseId: string): StatInfo | null {
+    const statMap: Record<string, StatInfo> = {
+        // Basketball Career
+        career20kPoints: { key: 'pts', name: 'career points', type: 'career' },
+        career10kRebounds: { key: 'trb', name: 'career rebounds', type: 'career' },
+        career5kAssists: { key: 'ast', name: 'career assists', type: 'career' },
+        career2kSteals: { key: 'stl', name: 'career steals', type: 'career' },
+        career1500Blocks: { key: 'blk', name: 'career blocks', type: 'career' },
+        career2kThrees: { key: 'fg3', name: 'career threes', type: 'career' },
+        // Basketball Season (Averages)
+        Season30PPG: { key: 'ppg', name: 'PPG in a season', type: 'season_avg' },
+        Season12RPG: { key: 'rpg', name: 'RPG in a season', type: 'season_avg' },
+        Season10APG: { key: 'apg', name: 'APG in a season', type: 'season_avg' },
+        Season2SPG: { key: 'spg', name: 'SPG in a season', type: 'season_avg' },
+        Season2_5BPG: { key: 'bpg', name: 'BPG in a season', type: 'season_avg' },
+        Season36MPG: { key: 'mpg', name: 'MPG in a season', type: 'season_avg' },
+        // Basketball Season (Totals)
+        Season2000Points: { key: 'pts', name: 'points in a season', type: 'season' },
+        Season300_3PM: { key: 'fg3', name: 'threes in a season', type: 'season' },
+        Season200_3PM: { key: 'fg3', name: 'threes in a season', type: 'season' },
+        Season800Rebounds: { key: 'trb', name: 'rebounds in a season', type: 'season' },
+        Season700Assists: { key: 'ast', name: 'assists in a season', type: 'season' },
+        Season150Steals: { key: 'stl', name: 'steals in a season', type: 'season' },
+        Season150Blocks: { key: 'blk', name: 'blocks in a season', type: 'season' },
+        Season70Games: { key: 'gp', name: 'games in a season', type: 'season' },
+    };
+    return statMap[baseId] || null;
+}
+
+function getNegativeMessageForCustomAchievement(player: Player, achievementId: string): string | null {
+  const parsedCustom = parseCustomAchievementId(achievementId);
+  if (!parsedCustom) return null;
+
+  const statInfo = getStatInfoForAchievement(parsedCustom.baseId);
+  if (!statInfo) return null;
+
+  const sport = getCachedSportDetection() || 'basketball';
+  let actualValue: number | undefined;
+  let year: number | undefined;
+
+  if (sport === 'basketball') {
+    const careerStats = getBasketballCareerStats(player);
+    const seasonBests = getBasketballSeasonBests(player);
+    if (statInfo.type === 'career') {
+      actualValue = careerStats[statInfo.key as keyof typeof careerStats];
+    } else if (statInfo.type === 'season_avg') {
+      const best = seasonBests[statInfo.key as keyof typeof seasonBests];
+      actualValue = best.max;
+      year = best.year;
+    } else { // season total
+      // This requires a new helper, for now we'll just show the label
+    }
+  }
+  // Add similar blocks for football, hockey, baseball
+
+  const cleanLabel = getHumanReadableAchievementText(achievementId);
+  
+  if (actualValue !== undefined) {
+    const valueString = actualValue % 1 !== 0 ? actualValue.toFixed(1) : actualValue.toLocaleString();
+    if (year && year > 0) {
+      return `did not have ${cleanLabel} (best was ${valueString} in ${year})`;
+    }
+    return `did not have ${cleanLabel} (had ${valueString})`;
+  }
+
+  // Fallback if we can't calculate the stat
+  return `did not meet the criteria for ${cleanLabel}`;
+}
+
+
 function getBasketballNegativeMessage(achievementId: string, player?: Player): string {
   if (!player) {
     return "";
   }
+
+  const customMessage = getNegativeMessageForCustomAchievement(player, achievementId);
+  if (customMessage) return customMessage;
 
   const careerStats = getBasketballCareerStats(player);
   const seasonBests = getBasketballSeasonBests(player);
@@ -1633,6 +1767,9 @@ function getHockeyNegativeMessage(achievementId: string, player?: Player): strin
   if (!player) {
     return "";
   }
+  
+  const customMessage = getNegativeMessageForCustomAchievement(player, achievementId);
+  if (customMessage) return customMessage;
 
   const careerStats = getHockeyCareerStats(player);
   const seasonBests = getHockeySeasonBests(player);
@@ -1857,6 +1994,9 @@ function getBaseballNegativeMessage(achievementId: string, player?: Player): str
     return "";
   }
 
+  const customMessage = getNegativeMessageForCustomAchievement(player, achievementId);
+  if (customMessage) return customMessage;
+  
   const careerStats = getBaseballCareerStats(player);
   const seasonBests = getBaseballSeasonBests(player);
 
@@ -1913,6 +2053,9 @@ function getFootballNegativeMessage(achievementId: string, player?: Player): str
     // Use the static messages defined in the main function
     return "";
   }
+
+  const customMessage = getNegativeMessageForCustomAchievement(player, achievementId);
+  if (customMessage) return customMessage;
 
   const careerStats = getFootballCareerStats(player);
   const seasonBests = getFootballSeasonBests(player);
@@ -1998,966 +2141,133 @@ function getTeamNameAtSeason(teams: Team[], tid: number, season?: number): strin
     }
   }
   
-  return `${team.region} ${team.name}`;
+  // fallback to current name, handle missing region gracefully
+  const region = team.region || team.abbrev || '';
+  const name = team.name || 'Unknown Team';
+  return region ? `${region} ${name}` : name;
 }
 
 /**
- * Get team name with "the" prefix for natural grammar
+ * Generate feedback message for an incorrect guess
  */
-function getTeamNameWithThe(teams: Team[], tid: number, season?: number): string {
-  const teamName = getTeamNameAtSeason(teams, tid, season);
-  return `the ${teamName}`;
-}
-
-/**
- * Format a season range for display (e.g., "2020-2023" or "2020")
- */
-function formatSeasonRange(seasons: number[]): string {
-  if (seasons.length === 0) return '';
-  if (seasons.length === 1) return seasons[0].toString();
-  
-  const first = seasons[0];
-  const last = seasons[seasons.length - 1];
-  return `${first}–${last}`;
-}
-
-/**
- * Get positive message for team constraint
- */
-function getTeamPositiveMessage(player: Player, teams: Team[], tid: number, suppressYears: boolean = false): string {
-  const seasons = getPlayerTeamSeasons(player, tid);
-  const teamNameWithThe = getTeamNameWithThe(teams, tid, seasons[0]);
-  
-  // If suppressYears is true (feedback context), don't show year parentheses since Career Summary shows them
-  if (!suppressYears && seasons.length <= 3) {
-    const seasonRange = formatSeasonRange(seasons);
-    return `did play for ${teamNameWithThe} (${seasonRange})`;
-  }
-  
-  return `did play for ${teamNameWithThe}`;
-}
-
-/**
-  * Get negative message for team constraint
-  */
-function getTeamNegativeMessage(teams: Team[], tid: number): string {
-  const teamNameWithThe = getTeamNameWithThe(teams, tid);
-  return `never played for ${teamNameWithThe}`;
-}
-
-/**
-  * Get positive message for achievement constraint with detailed stats for football
-  */
-function getAchievementPositiveMessage(achievementId: string, player?: Player): string {
-  const messages: Record<string, string> = {
-    // Basketball achievements - detailed with stats
-    career20kPoints: getBasketballPositiveMessage('career20kPoints', player),
-    career10kRebounds: getBasketballPositiveMessage('career10kRebounds', player),
-    career5kAssists: getBasketballPositiveMessage('career5kAssists', player),
-    career2kSteals: getBasketballPositiveMessage('career2kSteals', player),
-    career1500Blocks: getBasketballPositiveMessage('career1500Blocks', player),
-    career2kThrees: getBasketballPositiveMessage('career2kThrees', player),
-    oneTeamOnly: "spent his entire career with one franchise",
-    
-    // Basketball season achievements - detailed with stats
-    season30ppg: getBasketballPositiveMessage('season30ppg', player),
-    season10apg: getBasketballPositiveMessage('season10apg', player),
-    season15rpg: getBasketballPositiveMessage('season15rpg', player),
-    season3bpg: getBasketballPositiveMessage('season3bpg', player),
-    season25spg: getBasketballPositiveMessage('season25spg', player),
-    season504090: "had a 50/40/90 season",
-    
-    // Leadership
-    ledScoringAny: "led the league in scoring",
-    ledRebAny: "led the league in rebounds",
-    ledAstAny: "led the league in assists",
-    ledStlAny: "led the league in steals",
-    ledBlkAny: "led the league in blocks",
-    
-    // Major awards
-    hasMVP: "won MVP",
-    hasDPOY: "won Defensive Player of the Year",
-    hasROY: "won Rookie of the Year",
-    hasSixthMan: "won Sixth Man of the Year",
-    hasMIP: "won Most Improved Player",
-    hasFMVP: "won Finals MVP",
-    
-    // Team honors
-    hasAllLeague: "made an All-League Team",
-    hasAllDef: "made an All-Defensive Team",
-    hasAllStar: "made an All-Star team",
-    hasChampion: "won a championship",
-    
-    // Draft
-    isPick1Overall: "was the #1 overall pick",
-    isFirstRoundPick: "was a first-round pick",
-    isSecondRoundPick: "was a second-round pick",
-    isUndrafted: "went undrafted",
-    draftedTeen: "was drafted as a teenager (19 or younger)",
-    bornOutsideUS50DC: getBornOutsidePositiveMessage(player),
-    
-    // Special
-    allStar35Plus: "made an All-Star team at age 35+",
-    isHallOfFamer: "is in the Hall of Fame",
-    played10PlusSeasons: getSeasonsMessage('played10PlusSeasons', player!, true),
-    played15PlusSeasons: getSeasonsMessage('played15PlusSeasons', player!, true),
-    played5PlusFranchises: "played for 5+ franchises",
-    
-    // Football achievements - detailed with stats
-    career300PassTDs: getFootballPositiveMessage('career300PassTDs', player),
-    season35PassTDs: getFootballPositiveMessage('season35PassTDs', player),
-    career12kRushYds: getFootballPositiveMessage('career12kRushYds', player),
-    career100RushTDs: getFootballPositiveMessage('career100RushTDs', player),
-    season1800RushYds: getFootballPositiveMessage('season1800RushYds', player),
-    season20RushTDs: getFootballPositiveMessage('season20RushTDs', player),
-    career12kRecYds: getFootballPositiveMessage('career12kRecYds', player),
-    career100RecTDs: getFootballPositiveMessage('career100RecTDs', player),
-    season1400RecYds: getFootballPositiveMessage('season1400RecYds', player),
-    season15RecTDs: getFootballPositiveMessage('season15RecTDs', player),
-    career100Sacks: getFootballPositiveMessage('career100Sacks', player),
-    career20Ints: getFootballPositiveMessage('career20Ints', player),
-    season15Sacks: getFootballPositiveMessage('season15Sacks', player),
-    season8Ints: getFootballPositiveMessage('season8Ints', player),
-    wonMVP: getFootballPositiveMessage('wonMVP', player),
-    wonOPOY: getFootballPositiveMessage('wonOPOY', player),
-    wonDPOY: getFootballPositiveMessage('wonDPOY', player),
-    wonROY: getFootballPositiveMessage('wonROY', player),
-    
-    // Hockey achievements - detailed with stats
-    career500Goals: getHockeyPositiveMessage('career500Goals', player),
-    career1000Points: getHockeyPositiveMessage('career1000Points', player),
-    career500Assists: getHockeyPositiveMessage('career500Assists', player),
-    career200Wins: getHockeyPositiveMessage('career200Wins', player),
-    career50Shutouts: getHockeyPositiveMessage('career50Shutouts', player),
-    season50Goals: getHockeyPositiveMessage('season50Goals', player),
-    season100Points: getHockeyPositiveMessage('season100Points', player),
-    season60Assists: getHockeyPositiveMessage('season60Assists', player),
-    season35Wins: getHockeyPositiveMessage('season35Wins', player),
-    season10Shutouts: getHockeyPositiveMessage('season10Shutouts', player),
-    season925SavePct: getHockeyPositiveMessage('season925SavePct', player),
-    
-    // Baseball achievements - detailed with stats
-    career3000Hits: getBaseballPositiveMessage('career3000Hits', player),
-    career500HRs: getBaseballPositiveMessage('career500HRs', player),
-    career1500RBIs: getBaseballPositiveMessage('career1500RBIs', player),
-    career400SBs: getBaseballPositiveMessage('career400SBs', player),
-    career1800Runs: getBaseballPositiveMessage('career1800Runs', player),
-    career300Wins: getBaseballPositiveMessage('career300Wins', player),
-    career3000Ks: getBaseballPositiveMessage('career3000Ks', player),
-    career300Saves: getBaseballPositiveMessage('career300Saves', player),
-    season50HRs: getBaseballPositiveMessage('season50HRs', player),
-    season130RBIs: getBaseballPositiveMessage('season130RBIs', player),
-    season200Hits: getBaseballPositiveMessage('season200Hits', player),
-    season50SBs: getBaseballPositiveMessage('season50SBs', player),
-    season20Wins: getBaseballPositiveMessage('season20Wins', player),
-    season40Saves: getBaseballPositiveMessage('season40Saves', player),
-    season300Ks: getBaseballPositiveMessage('season300Ks', player),
-    season200ERA: getBaseballPositiveMessage('season200ERA', player)
-  };
-  
-  return messages[achievementId] || getHumanReadableAchievementText(achievementId);
-}
-
-/**
-  * Helper function to get player's actual retirement year
-  */
-function getPlayerRetirementYear(player: Player): number | null {
-  if (!player.stats || player.stats.length === 0) return null;
-  
-  // Get the last season this player played
-  const regularSeasonStats = player.stats.filter(s => !s.playoffs && (s.gp || 0) > 0);
-  if (regularSeasonStats.length === 0) return null;
-  
-  // Avoid stack overflow - find max manually
-  let lastSeason = regularSeasonStats.length > 0 ? regularSeasonStats[0].season : 0;
-  for (const stat of regularSeasonStats) {
-    if (stat.season > lastSeason) lastSeason = stat.season;
-  }
-  return lastSeason;
-}
-
-/**
-  * Helper function to get player's actual debut year
-  */
-function getPlayerDebutYear(player: Player): number | null {
-  if (!player.stats || player.stats.length === 0) return null;
-  
-  // Get the first season this player played
-  const regularSeasonStats = player.stats.filter(s => !s.playoffs && (s.gp || 0) > 0);
-  if (regularSeasonStats.length === 0) return null;
-  
-  // Avoid stack overflow - find min manually
-  let firstSeason = regularSeasonStats.length > 0 ? regularSeasonStats[0].season : 0;
-  for (const stat of regularSeasonStats) {
-    if (stat.season < firstSeason) firstSeason = stat.season;
-  }
-  return firstSeason;
-}
-
-/**
-  * Get negative message for achievement constraint
-  */
-function getAchievementNegativeMessage(achievementId: string, player?: Player): string {
-  // Handle decade achievements dynamically
-  if (achievementId.includes('playedIn') && achievementId.endsWith('s')) {
-    const decadeMatch = achievementId.match(/playedIn(\d{4})s/);
-    if (decadeMatch) {
-      const decade = decadeMatch[1];
-      return `did not play in the ${decade}s`;
-    }
-  }
-  
-  if (achievementId.includes('debutedIn') && achievementId.endsWith('s')) {
-    const decadeMatch = achievementId.match(/debutedIn(\d{4})s/);
-    if (decadeMatch && player) {
-      const decade = decadeMatch[1];
-      // Try to get the actual debut year
-      const actualDebutYear = getPlayerDebutYear(player);
-      if (actualDebutYear) {
-        return `did not debut in the ${decade}s (${actualDebutYear})`;
-      } else {
-        return `did not debut in the ${decade}s`;
-      }
-    }
-  }
-  
-  
-  const messages: Record<string, string> = {
-    // Basketball achievements - detailed with stats
-    career20kPoints: getBasketballNegativeMessage('career20kPoints', player) || "did not reach 20,000 career points",
-    career10kRebounds: getBasketballNegativeMessage('career10kRebounds', player) || "did not reach 10,000 career rebounds",
-    career5kAssists: getBasketballNegativeMessage('career5kAssists', player) || "did not reach 5,000 career assists",
-    career2kSteals: getBasketballNegativeMessage('career2kSteals', player) || "did not reach 2,000 career steals",
-    career1500Blocks: getBasketballNegativeMessage('career1500Blocks', player) || "did not reach 1,500 career blocks",
-    career2kThrees: getBasketballNegativeMessage('career2kThrees', player) || "did not reach 2,000 made threes",
-    oneTeamOnly: "did not spend his entire career with one franchise",
-    
-    // Basketball season achievements - detailed with stats
-    season30ppg: getBasketballNegativeMessage('season30ppg', player) || "never averaged 30+ PPG in a season",
-    season10apg: getBasketballNegativeMessage('season10apg', player) || "never averaged 10+ APG in a season",
-    season15rpg: getBasketballNegativeMessage('season15rpg', player) || "never averaged 15+ RPG in a season",
-    season3bpg: getBasketballNegativeMessage('season3bpg', player) || "never averaged 3+ BPG in a season",
-    season25spg: getBasketballNegativeMessage('season25spg', player) || "never averaged 2.5+ SPG in a season",
-    season504090: "never recorded a 50/40/90 season",
-    
-    // Leadership
-    ledScoringAny: "never led the league in scoring",
-    ledRebAny: "never led the league in rebounds",
-    ledAstAny: "never led the league in assists",
-    ledStlAny: "never led the league in steals",
-    ledBlkAny: "never led the league in blocks",
-    
-    // Major awards
-    hasMVP: "never won MVP",
-    hasDPOY: "never won Defensive Player of the Year",
-    hasROY: "never won Rookie of the Year",
-    hasSixthMan: "never won Sixth Man of the Year",
-    hasMIP: "never won Most Improved Player",
-    hasFMVP: "never won Finals MVP",
-    
-    // Team honors
-    hasAllLeague: "never made an All-League Team",
-    hasAllDef: "never made an All-Defensive Team",
-    hasAllStar: "never made an All-Star team",
-    hasChampion: "never won a championship",
-    
-    // Draft (will be handled specially)
-    isPick1Overall: "",
-    isFirstRoundPick: "",
-    isSecondRoundPick: "",
-    isUndrafted: "",
-    draftedTeen: "",
-    bornOutsideUS50DC: "",
-    
-    // Special
-    allStar35Plus: "never made an All-Star team at age 35+",
-    isHallOfFamer: "is not in the Hall of Fame",
-    played10PlusSeasons: player ? getSeasonsMessage('played10PlusSeasons', player, false) : "did not play 10+ seasons",
-    played15PlusSeasons: player ? getSeasonsMessage('played15PlusSeasons', player, false) : "did not play 15+ seasons",
-    played5PlusFranchises: "did not play for 5+ franchises",
-    
-    // Football - Passing
-    career300PassTDs: getFootballNegativeMessage('career300PassTDs', player) || "never threw 300+ career TDs",
-    season35PassTDs: getFootballNegativeMessage('season35PassTDs', player) || "never had 35+ pass TDs in a season",
-    
-    // Football - Rushing
-    career12kRushYds: getFootballNegativeMessage('career12kRushYds', player) || "did not reach 11,000+ rushing yards",
-    career100RushTDs: getFootballNegativeMessage('career100RushTDs', player) || "did not score 100+ rushing TDs",
-    season1800RushYds: getFootballNegativeMessage('season1800RushYds', player) || "never had 1,600+ rushing yards in a season",
-    season20RushTDs: getFootballNegativeMessage('season20RushTDs', player) || "never had 20+ rushing TDs in a season",
-    
-    // Football - Receiving
-    career12kRecYds: getFootballNegativeMessage('career12kRecYds', player) || "did not reach 12,000+ receiving yards",
-    career100RecTDs: getFootballNegativeMessage('career100RecTDs', player) || "did not score 85+ receiving TDs",
-    season1400RecYds: getFootballNegativeMessage('season1400RecYds', player) || "never had 1,400+ receiving yards in a season",
-    season15RecTDs: getFootballNegativeMessage('season15RecTDs', player) || "never had 15+ receiving TDs in a season",
-    
-    // Football - Defense
-    career100Sacks: getFootballNegativeMessage('career100Sacks', player) || "did not record 100+ career sacks",
-    career20Ints: getFootballNegativeMessage('career20Ints', player) || "did not record 20+ career interceptions",
-    season15Sacks: getFootballNegativeMessage('season15Sacks', player) || "never had 15+ sacks in a season",
-    season8Ints: getFootballNegativeMessage('season8Ints', player) || "never had 8+ interceptions in a season",
-    
-    // Football - Awards  
-    wonMVP: "never won MVP",
-    wonOPOY: "never won Offensive Player of the Year",
-    wonDPOY: "never won Defensive Player of the Year",
-    wonROY: "never won Rookie of the Year",
-    
-    // Hockey achievements - detailed with stats
-    career500Goals: getHockeyNegativeMessage('career500Goals', player) || "did not reach 500 career goals",
-    career1000Points: getHockeyNegativeMessage('career1000Points', player) || "did not reach 1,000 career points",
-    career500Assists: getHockeyNegativeMessage('career500Assists', player) || "did not reach 500 career assists",
-    career200Wins: getHockeyNegativeMessage('career200Wins', player) || "did not reach 200 career wins",
-    career50Shutouts: getHockeyNegativeMessage('career50Shutouts', player) || "did not reach 50 career shutouts",
-    season50Goals: getHockeyNegativeMessage('season50Goals', player) || "never scored 50+ goals in a season",
-    season100Points: getHockeyNegativeMessage('season100Points', player) || "never recorded 100+ points in a season",
-    season60Assists: getHockeyNegativeMessage('season60Assists', player) || "never recorded 60+ assists in a season",
-    season35Wins: getHockeyNegativeMessage('season35Wins', player) || "never recorded 35+ wins in a season",
-    season10Shutouts: getHockeyNegativeMessage('season10Shutouts', player) || "never recorded 10+ shutouts in a season",
-    season925SavePct: getHockeyNegativeMessage('season925SavePct', player) || "never had .925+ save % in a season",
-    
-    // Baseball achievements - detailed with stats
-    career3000Hits: getBaseballNegativeMessage('career3000Hits', player) || "did not reach 3,000 career hits",
-    career500HRs: getBaseballNegativeMessage('career500HRs', player) || "did not reach 500 career home runs",
-    career1500RBIs: getBaseballNegativeMessage('career1500RBIs', player) || "did not reach 1,500 career RBIs",
-    career400SBs: getBaseballNegativeMessage('career400SBs', player) || "did not reach 400 career stolen bases",
-    career1800Runs: getBaseballNegativeMessage('career1800Runs', player) || "did not reach 1,800 career runs",
-    career300Wins: getBaseballNegativeMessage('career300Wins', player) || "did not reach 300 career wins",
-    career3000Ks: getBaseballNegativeMessage('career3000Ks', player) || "did not reach 3,000 career strikeouts",
-    career300Saves: getBaseballNegativeMessage('career300Saves', player) || "did not reach 300 career saves",
-    season50HRs: getBaseballNegativeMessage('season50HRs', player) || "never hit 50+ home runs in a season",
-    season130RBIs: getBaseballNegativeMessage('season130RBIs', player) || "never had 130+ RBIs in a season",
-    season200Hits: getBaseballNegativeMessage('season200Hits', player) || "never had 200+ hits in a season",
-    season50SBs: getBaseballNegativeMessage('season50SBs', player) || "never stole 50+ bases in a season",
-    season20Wins: getBaseballNegativeMessage('season20Wins', player) || "never recorded 20+ wins in a season",
-    season40Saves: getBaseballNegativeMessage('season40Saves', player) || "never recorded 40+ saves in a season",
-    season300Ks: getBaseballNegativeMessage('season300Ks', player) || "never recorded 300+ strikeouts in a season",
-    season200ERA: getBaseballNegativeMessage('season200ERA', player) || "never had 2.00 ERA in a season"
-  };
-  
-  // Handle draft achievements specially
-  if (['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen', 'bornOutsideUS50DC'].includes(achievementId) && player) {
-    return getDraftNegativeMessage(player, achievementId);
-  }
-  
-  // Fallback for unknown achievement IDs - try to create a human-readable message
-  const fallbackMessage = messages[achievementId];
-  if (fallbackMessage) {
-    return fallbackMessage;
-  }
-  
-  // Handle age-related achievements
-  if (achievementId.includes('playedAt') && achievementId.includes('Plus')) {
-    const ageMatch = achievementId.match(/playedAt(\d+)Plus/);
-    if (ageMatch) {
-      const age = ageMatch[1];
-      return `never played at age ${age}+`;
-    }
-  }
-  
-  // Handle career milestone achievements
-  if (achievementId.startsWith('career') && player) {
-    // Extract milestone from ID, e.g., "career10kPoints" -> "10,000 points"
-    const milestoneMatch = achievementId.match(/career(\d+)k?(.+)/);
-    if (milestoneMatch) {
-      const [, number, stat] = milestoneMatch;
-      const formattedNumber = achievementId.includes('k') ? `${number},000` : number;
-      const formattedStat = stat.toLowerCase();
-      return `did not reach ${formattedNumber} career ${formattedStat}`;
-    }
-  }
-  
-  // Handle season milestone achievements
-  if (achievementId.startsWith('season') && player) {
-    const seasonMatch = achievementId.match(/season(\d+)(.+)/);
-    if (seasonMatch) {
-      const [, number, stat] = seasonMatch;
-      const formattedStat = stat.toLowerCase();
-      return `never achieved ${number}+ ${formattedStat} in a season`;
-    }
-  }
-  
-  // Final fallback - convert camelCase to readable text
-  const readableId = achievementId
-    .replace(/([A-Z])/g, ' $1') // Add space before capital letters
-    .replace(/^\w/, c => c.toLowerCase()) // Lowercase first letter
-    .replace(/\s+/g, ' ') // Clean up multiple spaces
-    .trim();
-    
-  return `did not ${readableId}`;
-}
-
-
-/**
-  * Generate feedback message for a wrong guess
-  */
 export function generateFeedbackMessage(
   player: Player,
   rowConstraint: GridConstraint,
   colConstraint: GridConstraint,
   teams: Team[]
 ): string {
-  const playerName = player.name;
+  const sport = getCachedSportDetection() || 'basketball';
   
-  // Special handling for season achievement combinations
-  const rowIsSeasonAch = rowConstraint.type === 'achievement' && isSeasonAchievement(rowConstraint.achievementId!);
-  const colIsSeasonAch = colConstraint.type === 'achievement' && isSeasonAchievement(colConstraint.achievementId!);
-  
-  // Case 1: Team × Season Achievement
-  if (rowConstraint.type === 'team' && colIsSeasonAch) {
-    return generateTeamSeasonAchievementMessage(player, teams, rowConstraint.tid!, colConstraint.achievementId! as SeasonAchievementId);
-  }
-  
-  if (colConstraint.type === 'team' && rowIsSeasonAch) {
-    return generateTeamSeasonAchievementMessage(player, teams, colConstraint.tid!, rowConstraint.achievementId! as SeasonAchievementId);
-  }
-  
-  // Case 2: Season Achievement × Season Achievement
-  if (rowIsSeasonAch && colIsSeasonAch) {
-    return generateSeasonSeasonAchievementMessage(player, rowConstraint.achievementId! as SeasonAchievementId, colConstraint.achievementId! as SeasonAchievementId);
-  }
-  
-  // Fall back to original logic for other constraint combinations
-  // Get detailed evaluation for both constraints using actual achievement results
-  const rowDetails = getConstraintDetails(player, rowConstraint);
-  const colDetails = getConstraintDetails(player, colConstraint);
-  
-  // Fix team messages with proper team names
-  if (rowConstraint.type === 'team') {
-    if (rowDetails.passed) {
-      rowDetails.passText = getTeamPositiveMessage(player, teams, rowConstraint.tid!, true);
+  // Determine if player meets row and column constraints
+  const meetsRow = rowConstraint.type === 'team'
+    ? playerPlayedForTeam(player, rowConstraint.tid!)
+    : playerMeetsAchievement(player, rowConstraint.achievementId!);
+    
+  const meetsCol = colConstraint.type === 'team'
+    ? playerPlayedForTeam(player, colConstraint.tid!)
+    : playerMeetsAchievement(player, colConstraint.achievementId!);
+
+  // Case 1: Fails both constraints
+  if (!meetsRow && !meetsCol) {
+    // Prioritize achievement feedback over team feedback
+    let failedConstraint: GridConstraint;
+    let positiveConstraint: GridConstraint | null = null;
+    
+    if (rowConstraint.type === 'achievement' && colConstraint.type === 'achievement') {
+      // If both are achievements, pick one (e.g., row)
+      failedConstraint = rowConstraint;
+    } else if (rowConstraint.type === 'achievement') {
+      failedConstraint = rowConstraint;
+    } else if (colConstraint.type === 'achievement') {
+      failedConstraint = colConstraint;
     } else {
-      rowDetails.failText = getTeamNegativeMessage(teams, rowConstraint.tid!);
+      // If both are teams, pick one (e.g., row)
+      failedConstraint = rowConstraint;
     }
+    
+    const negativeMessage = getNegativeMessage(failedConstraint, player, teams, sport);
+    const otherConstraintMessage = getPositiveMessage(
+      failedConstraint === rowConstraint ? colConstraint : rowConstraint,
+      player,
+      teams,
+      sport
+    );
+    
+    return `${player.name} ${negativeMessage}, and never ${otherConstraintMessage}.`;
   }
   
-  if (colConstraint.type === 'team') {
-    if (colDetails.passed) {
-      colDetails.passText = getTeamPositiveMessage(player, teams, colConstraint.tid!, true);
-    } else {
-      colDetails.failText = getTeamNegativeMessage(teams, colConstraint.tid!);
+  // Case 2: Fails one constraint
+  if (!meetsRow || !meetsCol) {
+    const failedConstraint = !meetsRow ? rowConstraint : colConstraint;
+    const metConstraint = !meetsRow ? colConstraint : rowConstraint;
+    
+    const negativeMessage = getNegativeMessage(failedConstraint, player, teams, sport);
+    const positiveMessage = getPositiveMessage(metConstraint, player, teams, sport);
+    
+    // Handle season-aligned achievements for more specific feedback
+    if (
+      failedConstraint.type === 'team' &&
+      metConstraint.type === 'achievement' &&
+      isSeasonAchievement(metConstraint.achievementId! as SeasonAchievementId)
+    ) {
+      const achievementData = getPlayerSeasonAchievementData(player, metConstraint.achievementId! as SeasonAchievementId);
+      if (achievementData.count > 0) {
+        const seasonList = formatSeasonList(achievementData.seasonsWithTeam, 
+          metConstraint.achievementId === 'FinalsMVP' || metConstraint.achievementId === 'SFMVP'
+        );
+        return `${player.name} ${positiveMessage} in ${seasonList}, but never played for the ${failedConstraint.label}.`;
+      }
     }
+    
+    return `${player.name} ${positiveMessage}, but ${negativeMessage}.`;
   }
   
-  // Fix season achievement messages
-  if (rowConstraint.type === 'achievement' && isSeasonAchievement(rowConstraint.achievementId!) && !rowDetails.passed) {
-    const achData = SEASON_ACHIEVEMENT_LABELS[rowConstraint.achievementId! as SeasonAchievementId];
-    rowDetails.failText = `never ${achData.verbGeneric}`;
-  }
-  
-  if (colConstraint.type === 'achievement' && isSeasonAchievement(colConstraint.achievementId!) && !colDetails.passed) {
-    const achData = SEASON_ACHIEVEMENT_LABELS[colConstraint.achievementId! as SeasonAchievementId];
-    colDetails.failText = `never ${achData.verbGeneric}`;
-  }
-  
-  // Apply strict 4-case logic based on actual pass/fail booleans
-  
-  // Case 1: Both fail (!row.ok && !col.ok)
-  if (!rowDetails.passed && !colDetails.passed) {
-    if (rowConstraint.type === 'team' && colConstraint.type === 'team') {
-      // Team + Team (both fail) - use "neither...nor"
-      const rowTeamName = getTeamNameWithThe(teams, rowConstraint.tid!);
-      const colTeamName = getTeamNameWithThe(teams, colConstraint.tid!);
-      return `${playerName} played for neither ${rowTeamName} nor ${colTeamName}.`;
-    } else {
-      // Any other combination - use "and"
-      return `${playerName} ${rowDetails.failText}, and ${colDetails.failText}.`;
-    }
-  }
-  
-  // Case 2: Only row fails (!row.ok && col.ok)
-  if (!rowDetails.passed && colDetails.passed) {
-    return `${playerName} ${colDetails.passText}, but ${rowDetails.failText}.`;
-  }
-  
-  // Case 3: Only column fails (row.ok && !col.ok)
-  if (rowDetails.passed && !colDetails.passed) {
-    return `${playerName} ${rowDetails.passText}, but ${colDetails.failText}.`;
-  }
-  
-  // Case 4: Both pass (shouldn't happen for wrong guesses, but handle gracefully)
-  // This might indicate a same-season alignment issue
-  return `${playerName} ${rowDetails.passText} and ${colDetails.passText}, but there may be a season alignment issue.`;
+  // Should not be reached if player is incorrect, but as a fallback:
+  return `An unknown error occurred for ${player.name}.`;
 }
 
-/**
-  * Check if a player satisfies a team × achievement constraint with same-season alignment
-  */
-function evaluateTeamAchievementWithAlignment(player: Player, teamTid: number, achievementId: string): boolean {
-  // DEBUG: Track Celtics × All-League Team evaluations
-  const isCelticsAllLeague = achievementId === 'AllLeagueAny' && [0, 1].includes(teamTid);
-  const isJaylenBrown = player.name && (player.name.includes('Jaylen') || player.name.includes('Brown'));
-  
-  if (isCelticsAllLeague && isJaylenBrown) {
-    console.log(`\n⚡ [DEBUG evaluateTeamAchievementWithAlignment] Jaylen Brown evaluation:`);
-    console.log(`   - teamTid: ${teamTid}`);
-    console.log(`   - achievementId: ${achievementId}`);
-    console.log(`   - SEASON_ALIGNED_ACHIEVEMENTS.has('${achievementId}'): ${SEASON_ALIGNED_ACHIEVEMENTS.has(achievementId)}`);
+// Helper to get the appropriate negative message based on sport
+function getNegativeMessage(constraint: GridConstraint, player: Player, teams: Team[], sport: string): string {
+  if (constraint.type === 'team') {
+    return `never played for the ${constraint.label}`;
   }
   
-  // Check if this achievement requires same-season alignment
-  if (!SEASON_ALIGNED_ACHIEVEMENTS.has(achievementId)) {
-    // Career-based achievements: just check if player ever played for team AND has the achievement
-    const playedForTeam = playerPlayedForTeam(player, teamTid);
-    const meetsAchievement = playerMeetsAchievement(player, achievementId, undefined);
-    
-    if (isCelticsAllLeague && isJaylenBrown) {
-      console.log(`   📋 [DEBUG] Career-based check:`);
-      console.log(`      - playerPlayedForTeam(${player.name}, ${teamTid}): ${playedForTeam}`);
-      console.log(`      - playerMeetsAchievement(${player.name}, '${achievementId}'): ${meetsAchievement}`);
-      console.log(`      - Final result: ${playedForTeam && meetsAchievement}`);
-    }
-    
-    return playedForTeam && meetsAchievement;
-  }
-
-  // For new statistical leader achievements, we need to use the season index approach
-  // These achievements are not stored in player.achievementSeasons but in the global season index
-  const statisticalLeaders = ['PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader'];
-  if (statisticalLeaders.includes(achievementId)) {
-    // This will be handled by the grid generator's season index logic
-    // For now, return false here since the grid generator handles this case differently
-    return false;
-  }
-
-  // Season-aligned achievements: need intersection of team seasons and achievement seasons
-  if (!player.teamSeasonsPaired || !player.achievementSeasons) {
-    return false;
-  }
-
-  // Get seasons when player achieved this specific achievement
-  let achievementSeasons: Set<number>;
+  const achievementId = constraint.achievementId!;
   
-  // Map achievement IDs to their season data (handle existing vs new naming)
-  switch (achievementId) {
-    case 'season30ppg': achievementSeasons = player.achievementSeasons.season30ppg; break;
-    case 'season10apg': achievementSeasons = player.achievementSeasons.season10apg; break;
-    case 'season15rpg': achievementSeasons = player.achievementSeasons.season15rpg; break;
-    case 'season3bpg': achievementSeasons = player.achievementSeasons.season3bpg; break;
-    case 'season25spg': achievementSeasons = player.achievementSeasons.season25spg; break;
-    case 'season504090': achievementSeasons = player.achievementSeasons.season504090; break;
-    case 'ledScoringAny': achievementSeasons = player.achievementSeasons.ledScoringAny; break;
-    case 'ledRebAny': achievementSeasons = player.achievementSeasons.ledRebAny; break;
-    case 'ledAstAny': achievementSeasons = player.achievementSeasons.ledAstAny; break;
-    case 'ledStlAny': achievementSeasons = player.achievementSeasons.ledStlAny; break;
-    case 'ledBlkAny': achievementSeasons = player.achievementSeasons.ledBlkAny; break;
-    case 'hasMVP': achievementSeasons = player.achievementSeasons.mvpWinner; break;
-    case 'hasDPOY': achievementSeasons = player.achievementSeasons.dpoyWinner; break;
-    case 'hasROY': achievementSeasons = player.achievementSeasons.royWinner; break;
-    case 'hasSixthMan': achievementSeasons = player.achievementSeasons.smoyWinner; break;
-    case 'hasMIP': achievementSeasons = player.achievementSeasons.mipWinner; break;
-    case 'hasFMVP': achievementSeasons = player.achievementSeasons.fmvpWinner; break;
-    case 'hasAllLeague': achievementSeasons = player.achievementSeasons.allLeagueTeam; break;
-    case 'hasAllDef': achievementSeasons = player.achievementSeasons.allDefensiveTeam; break;
-    case 'hasAllStar': achievementSeasons = player.achievementSeasons.allStarSelection; break;
-    case 'hasChampion': achievementSeasons = player.achievementSeasons.champion; break;
-    case 'allStar35Plus': achievementSeasons = player.achievementSeasons.allStar35Plus; break;
-    // Football achievements that should use career-based check
-    case 'wonMVP':
-    case 'wonOPOY': 
-    case 'wonDPOY':
-    case 'wonROY':
-    case 'season35PassTDs':
-    case 'season1400RecYds':
-    case 'season15RecTDs':
-    case 'season15Sacks':
-    case 'season8Ints':
-    case 'season1800RushYds':
-    case 'season20RushTDs':
+  switch (sport) {
+    case 'basketball':
+      return getBasketballNegativeMessage(achievementId, player);
+    case 'football':
+      return getFootballNegativeMessage(achievementId, player);
+    case 'hockey':
+      return getHockeyNegativeMessage(achievementId, player);
+    case 'baseball':
+      return getBaseballNegativeMessage(achievementId, player);
     default:
-      // Fallback to career-based check for unrecognized achievements
-      return playerPlayedForTeam(player, teamTid) && playerMeetsAchievement(player, achievementId, undefined);
+      return `did not achieve ${getHumanReadableAchievementText(achievementId)}`;
   }
-
-  // Check if there's any season where player both played for the team AND achieved the accomplishment
-  for (const season of Array.from(achievementSeasons)) {
-    const teamSeasonKey = `${season}|${teamTid}`;
-    if (player.teamSeasonsPaired.has(teamSeasonKey)) {
-      return true;
-    }
-  }
-
-  return false;
 }
 
-/**
-  * Evaluate if a player meets a specific constraint (with enhanced same-season alignment)
-  */
-function evaluateConstraint(player: Player, constraint: GridConstraint): boolean {
+// Helper to get the appropriate positive message based on sport
+function getPositiveMessage(constraint: GridConstraint, player: Player, teams: Team[], sport: string): string {
   if (constraint.type === 'team') {
-    return playerPlayedForTeam(player, constraint.tid!);
-  } else if (constraint.type === 'achievement') {
-    return playerMeetsAchievement(player, constraint.achievementId!, undefined);
-  }
-  return false;
-}
-
-
-// Create detailed constraint evaluation that knows WHY something passed or failed
-function getConstraintDetails(player: Player, constraint: GridConstraint) {
-  if (constraint.type === 'team') {
-    const passed = playerPlayedForTeam(player, constraint.tid!);
-    return {
-      passed,
-      passText: passed ? `did play for team ${constraint.tid}` : '', // Will be filled properly later
-      failText: passed ? '' : `never played for team ${constraint.tid}` // Will be filled properly later
-    };
-  } else if (constraint.type === 'achievement') {
-    const passed = playerMeetsAchievement(player, constraint.achievementId!);
-    return {
-      passed,
-      passText: passed ? getAchievementPositiveMessage(constraint.achievementId!, player) : '',
-      failText: passed ? '' : getAchievementNegativeMessage(constraint.achievementId!, player)
-    };
-  }
-  return { passed: false, passText: '', failText: 'Unknown constraint' };
-}
-
-/**
-  * Evaluate if a player meets both constraints with proper Team × Achievement alignment
-  */
-export function evaluateConstraintPair(player: Player, rowConstraint: GridConstraint, colConstraint: GridConstraint): boolean {
-  // DEBUG: Track Celtics × All-League Team evaluations specifically
-  const isCelticsAllLeague = (
-    (rowConstraint.type === 'team' && rowConstraint.tid !== undefined && [0, 1].includes(rowConstraint.tid) && 
-     colConstraint.type === 'achievement' && colConstraint.achievementId === 'AllLeagueAny') ||
-    (colConstraint.type === 'team' && colConstraint.tid !== undefined && [0, 1].includes(colConstraint.tid) && 
-     rowConstraint.type === 'achievement' && rowConstraint.achievementId === 'AllLeagueAny')
-  );
-  
-  const isJaylenBrown = player.name && (player.name.includes('Jaylen') || player.name.includes('Brown'));
-  
-  if (isCelticsAllLeague && isJaylenBrown) {
-    console.log(`\n🔥 [DEBUG evaluateConstraintPair] Jaylen Brown Celtics × All-League evaluation:`);
-    console.log(`   - Player: ${player.name} (pid: ${player.pid})`);
-    console.log(`   - Row: ${rowConstraint.type} (tid: ${rowConstraint.tid}, achievement: ${rowConstraint.achievementId})`);
-    console.log(`   - Col: ${colConstraint.type} (tid: ${colConstraint.tid}, achievement: ${colConstraint.achievementId})`);
+    const seasons = getPlayerTeamSeasons(player, constraint.tid!);
+    const yearRange = formatYearsWithRanges(seasons);
+    return `played for the ${constraint.label} (${yearRange})`;
   }
   
-  // If both constraints are teams, check both separately
-  if (rowConstraint.type === 'team' && colConstraint.type === 'team') {
-    return evaluateConstraint(player, rowConstraint) && evaluateConstraint(player, colConstraint);
+  const achievementId = constraint.achievementId!;
+  
+  switch (sport) {
+    case 'basketball':
+      return getBasketballPositiveMessage(achievementId, player);
+    case 'football':
+      return getFootballPositiveMessage(achievementId, player);
+    case 'hockey':
+      return getHockeyPositiveMessage(achievementId, player);
+    case 'baseball':
+      return getBaseballPositiveMessage(achievementId, player);
+    default:
+      return `did achieve ${getHumanReadableAchievementText(achievementId)}`;
   }
-  
-  // If both are achievements, check both separately  
-  if (rowConstraint.type === 'achievement' && colConstraint.type === 'achievement') {
-    return evaluateConstraint(player, rowConstraint) && evaluateConstraint(player, colConstraint);
-  }
-  
-  // Team × Achievement case: use same-season alignment
-  if (rowConstraint.type === 'team' && colConstraint.type === 'achievement') {
-    const result = evaluateTeamAchievementWithAlignment(player, rowConstraint.tid!, colConstraint.achievementId!);
-    if (isCelticsAllLeague && isJaylenBrown) {
-      console.log(`   🎯 [DEBUG] Team × Achievement result: ${result}`);
-    }
-    return result;
-  }
-  
-  if (rowConstraint.type === 'achievement' && colConstraint.type === 'team') {
-    const result = evaluateTeamAchievementWithAlignment(player, colConstraint.tid!, rowConstraint.achievementId!);
-    if (isCelticsAllLeague && isJaylenBrown) {
-      console.log(`   🎯 [DEBUG] Achievement × Team result: ${result}`);
-    }
-    return result;
-  }
-  
-  return false;
-}
-
-/**
-  * Format birthplace for players born outside the 50 U.S. states or D.C.
-  */
-function formatBirthPlaceForOutside(born: any): string {
-  if (!born || !born.loc) {
-    return '';
-  }
-
-  const fullLocation = born.loc.trim();
-  
-  // If born outside USA entirely
-  if (born.country && born.country !== "USA") {
-    // Use available parts: city, region/state (if present), country
-    const parts = [];
-    if (born.city) parts.push(born.city);
-    if (born.region || born.state) parts.push(born.region || born.state);
-    if (born.country) parts.push(born.country);
-    return parts.join(', ') || fullLocation;
-  }
-  
-  // If born in USA but not in the 50 states or DC (territories)
-  if (born.country === "USA") {
-    // Extract location without ", USA" suffix for territories
-    if (fullLocation.endsWith(', USA')) {
-      return fullLocation.slice(0, -5).trim(); // Remove ", USA"
-    }
-    return fullLocation;
-  }
-  
-  // Fallback to the full location string
-  return fullLocation;
-}
-
-/**
-  * Get positive message for bornOutsideUS50DC with birthplace in parentheses
-  */
-function getBornOutsidePositiveMessage(player?: Player): string {
-  if (!player || !player.born) {
-    return "was born outside the 50 U.S. states or D.C.";
-  }
-  
-  const birthplaceFormatted = formatBirthPlaceForOutside(player.born);
-  
-  if (birthplaceFormatted) {
-    return `was born outside the 50 U.S. states or D.C. (born in ${birthplaceFormatted})`;
-  }
-  
-  // Fallback if no birthplace info
-  return "was born outside the 50 U.S. states or D.C.";
-}
-
-/**
-  * Count the number of seasons a player played (excludes playoffs)
-  */
-function countPlayerSeasons(player: Player): number {
-  if (!player.stats) return 0;
-  
-  // Count distinct regular season years with games played (matches achievement logic)
-  const seasonsPlayed = new Set<number>();
-  player.stats.forEach((s: any) => {
-    if (!s.playoffs && (s.gp || 0) > 0) {
-      seasonsPlayed.add(s.season);
-    }
-  });
-  return seasonsPlayed.size;
-}
-
-/**
-  * Format season count with proper singular/plural
-  */
-function formatSeasonCount(count: number): string {
-  return count === 1 ? "1 season" : `${count} seasons`;
-}
-
-/**
-  * Get messages for seasons-played achievements
-  */
-function getSeasonsMessage(achievementId: string, player: Player, isPositive: boolean): string {
-  const seasonCount = countPlayerSeasons(player);
-  const formattedCount = formatSeasonCount(seasonCount);
-  
-  if (achievementId === 'played10PlusSeasons') {
-    if (isPositive) {
-      return `played ${formattedCount}`;
-    } else {
-      return `did not play 10+ seasons (played ${seasonCount})`;
-    }
-  }
-  
-  if (achievementId === 'played15PlusSeasons') {
-    if (isPositive) {
-      return `played ${formattedCount}`;
-    } else {
-      return `did not play 15+ seasons (played ${seasonCount})`;
-    }
-  }
-  
-  return isPositive ? `played ${formattedCount}` : `did not meet season requirement`;
-}
-
-/**
-  * Get draft-specific negative message based on player's actual draft status
-  */
-function getOrdinalNumber(num: number): string {
-  const lastDigit = num % 10;
-  const lastTwoDigits = num % 100;
-  
-  if (lastTwoDigits >= 11 && lastTwoDigits <= 13) {
-    return `${num}th`;
-  }
-  
-  switch (lastDigit) {
-    case 1: return `${num}st`;
-    case 2: return `${num}nd`;
-    case 3: return `${num}rd`;
-    default: return `${num}th`;
-  }
-}
-
-function getDraftNegativeMessage(player: Player, achievementId: string): string {
-  // Handle new non-draft-specific achievements
-  if (achievementId === 'draftedTeen') {
-    if (!player.born?.year || !player.draft?.year) {
-      return "draft age information unavailable";
-    }
-    const ageAtDraft = player.draft.year - player.born.year;
-    return `was ${ageAtDraft} years old when drafted (not a teenager)`;
-  }
-  
-  if (achievementId === 'bornOutsideUS50DC') {
-    if (!player.born?.loc) {
-      return "birthplace information unavailable";
-    }
-    
-    const birthplace = player.born.loc.trim();
-    // For wrong guesses on "Born outside 50 states + DC", show their actual birth location
-    return `was born in the US (${birthplace})`;
-  }
-  
-  if (!player.draft) {
-    // Player went undrafted
-    switch (achievementId) {
-      case 'isPick1Overall':
-      case 'isFirstRoundPick':
-      case 'isSecondRoundPick':
-        return "went undrafted";
-      case 'isUndrafted':
-        return "was drafted"; // This shouldn't happen but just in case
-      default:
-        return "went undrafted";
-    }
-  }
-  
-  const { round, pick } = player.draft;
-  
-  // Handle missing draft data gracefully
-  if (!round || !pick) {
-    return "was drafted (pick/round information unavailable)";
-  }
-  
-  const roundOrdinal = round === 1 ? "1st" : round === 2 ? "2nd" : round === 3 ? "3rd" : `${round}th`;
-  
-  // All draft messages use consistent format: "was drafted with the [X] pick in the [Y] round"
-  const draftMessage = `was drafted with the ${getOrdinalNumber(pick)} pick in the ${roundOrdinal} round`;
-  
-  // Return the same consistent format for all draft-related feedback
-  return draftMessage;
-}
-
-/**
- * Generate feedback message for Team × Season Achievement incorrect guesses
- */
-function generateTeamSeasonAchievementMessage(
-  player: Player,
-  teams: Team[],
-  teamTid: number,
-  achievementId: SeasonAchievementId
-): string {
-  const teamName = teams.find(t => t.tid === teamTid);
-  const teamStr = teamName ? `${teamName.region} ${teamName.name}` : `Team ${teamTid}`;
-  const achData = SEASON_ACHIEVEMENT_LABELS[achievementId];
-  const playerData = getPlayerSeasonAchievementData(player, achievementId, teamTid);
-  
-  const countStr = playerData.count === 0 ? '0x' : 
-    `${playerData.count}x — ${formatSeasonList(playerData.seasonsWithTeam, achievementId === 'FinalsMVP' || achievementId === 'SFMVP')}`;
-  
-  // Check if player actually played for this team
-  const playedForTeam = playerPlayedForTeam(player, teamTid);
-  
-  if (!playedForTeam) {
-    // Player never played for the team at all
-    if (isRookieAchievement(achievementId)) {
-      const negativeVerb = achData.verbGeneric.replace('made the', 'didn\'t make the').replace('won', 'didn\'t win');
-      return `${player.name} never played for the ${teamStr} and ${negativeVerb}.`;
-    }
-    return `${player.name} never played for the ${teamStr}. (${achData.short}: ${countStr})`;
-  }
-  
-  // Player did play for team but didn't achieve the award with them
-  if (isRookieAchievement(achievementId)) {
-    return `${player.name} did play for the ${teamStr}, but ${achData.verbGeneric.replace('made', 'didn\'t make').replace('won', 'didn\'t win')}.`;
-  }
-  return `${player.name} did play for the ${teamStr}, but never ${achData.verbTeam} with the ${teamStr}. (${achData.short}: ${countStr})`;
-}
-
-/**
- * Generate feedback message for Season Achievement × Season Achievement incorrect guesses
- */
-function generateSeasonSeasonAchievementMessage(
-  player: Player,
-  achievementA: SeasonAchievementId,
-  achievementB: SeasonAchievementId
-): string {
-  const achDataA = SEASON_ACHIEVEMENT_LABELS[achievementA];
-  const achDataB = SEASON_ACHIEVEMENT_LABELS[achievementB];
-  const playerDataA = getPlayerSeasonAchievementData(player, achievementA);
-  const playerDataB = getPlayerSeasonAchievementData(player, achievementB);
-  
-  // Case: Player has both awards but never in the same season
-  if (playerDataA.count > 0 && playerDataB.count > 0) {
-    const seasonsA = formatSeasonList(playerDataA.seasonsWithTeam, achievementA === 'FinalsMVP' || achievementA === 'SFMVP');
-    const seasonsB = formatSeasonList(playerDataB.seasonsWithTeam, achievementB === 'FinalsMVP' || achievementB === 'SFMVP');
-    
-    return `${player.name} did earn ${achDataA.label} and ${achDataB.label}, but never in the same season. (${achDataA.short}: ${playerDataA.count}x — ${seasonsA}; ${achDataB.short}: ${playerDataB.count}x — ${seasonsB})`;
-  }
-  
-  // Case: Player is missing one side entirely
-  if (playerDataA.count > 0 && playerDataB.count === 0) {
-    const seasonsA = formatSeasonList(playerDataA.seasonsWithTeam, achievementA === 'FinalsMVP' || achievementA === 'SFMVP');
-    const verbB = isRookieAchievement(achievementB) 
-      ? achDataB.verbGeneric.replace('made the', 'didn\'t make the').replace('won', 'didn\'t win')
-      : achDataB.verbGeneric.replace('made', 'did not make').replace('won', 'did not win');
-    
-    if (isRookieAchievement(achievementA) && isRookieAchievement(achievementB)) {
-      return `${player.name} did earn ${achDataA.label}, but ${verbB}.`;
-    } else if (isRookieAchievement(achievementB)) {
-      return `${player.name} did earn ${achDataA.label}, but ${verbB}. (${achDataA.short}: ${playerDataA.count}x — ${seasonsA})`;
-    } else if (isRookieAchievement(achievementA)) {
-      return `${player.name} did earn ${achDataA.label}, but never ${achDataB.verbGeneric}. (${achDataB.short}: 0x)`;
-    }
-    return `${player.name} did earn ${achDataA.label}, but never ${achDataB.verbGeneric}. (${achDataA.short}: ${playerDataA.count}x — ${seasonsA}; ${achDataB.short}: 0x)`;
-  }
-  
-  if (playerDataB.count > 0 && playerDataA.count === 0) {
-    const seasonsB = formatSeasonList(playerDataB.seasonsWithTeam, achievementB === 'FinalsMVP' || achievementB === 'SFMVP');
-    const verbA = isRookieAchievement(achievementA) 
-      ? achDataA.verbGeneric.replace('made the', 'didn\'t make the').replace('won', 'didn\'t win')
-      : achDataA.verbGeneric.replace('made', 'did not make').replace('won', 'did not win');
-    
-    if (isRookieAchievement(achievementA) && isRookieAchievement(achievementB)) {
-      return `${player.name} did earn ${achDataB.label}, but ${verbA}.`;
-    } else if (isRookieAchievement(achievementA)) {
-      return `${player.name} did earn ${achDataB.label}, but ${verbA}. (${achDataB.short}: ${playerDataB.count}x — ${seasonsB})`;
-    } else if (isRookieAchievement(achievementB)) {
-      return `${player.name} did earn ${achDataB.label}, but never ${achDataA.verbGeneric}. (${achDataA.short}: 0x)`;
-    }
-    return `${player.name} did earn ${achDataB.label}, but never ${achDataA.verbGeneric}. (${achDataB.short}: ${playerDataB.count}x — ${seasonsB}; ${achDataA.short}: 0x)`;
-  }
-  
-  // Case: Player has neither achievement
-  // For rookie achievements, we need proper grammar with "he"
-  let verbA, verbB;
-  if (isRookieAchievement(achievementA)) {
-    verbA = achDataA.verbGeneric.replace('made the', 'didn\'t make the').replace('won', 'didn\'t win');
-  } else {
-    verbA = `never ${achDataA.verbGeneric}`;
-  }
-  
-  if (isRookieAchievement(achievementB)) {
-    verbB = achDataB.verbGeneric.replace('made the', 'didn\'t make the').replace('won', 'didn\'t win');
-  } else {
-    verbB = `never ${achDataB.verbGeneric}`;
-  }
-  
-  if (isRookieAchievement(achievementA) && isRookieAchievement(achievementB)) {
-    return `${player.name} ${verbA} and ${verbB}.`;
-  } else if (isRookieAchievement(achievementA)) {
-    return `${player.name} ${verbA} and ${verbB}. (${achDataB.short}: 0x)`;
-  } else if (isRookieAchievement(achievementB)) {
-    return `${player.name} ${verbA} and ${verbB}. (${achDataA.short}: 0x)`;
-  }
-  return `${player.name} ${verbA} and ${verbB}. (${achDataA.short}: 0x; ${achDataB.short}: 0x)`;
-}
-
-/**
- * Check if an achievement is a rookie achievement (should not show count in parentheses)
- */
-function isRookieAchievement(achievementId: SeasonAchievementId): boolean {
-  const rookieAchievements = [
-    'ROY', 'AllRookieAny', 
-    'FBOffROY', 'FBDefROY', 'FBAllRookie',
-    'HKROY', 'HKAllRookie',
-    'BBROY', 'BBAllRookie'
-  ];
-  return rookieAchievements.includes(achievementId);
 }
