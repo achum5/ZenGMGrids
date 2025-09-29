@@ -6,7 +6,7 @@ import { AlertCircle } from "lucide-react";
 import { useMemo } from 'react';
 import type { Player, Team, CatTeam } from '@/types/bbgm';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
-import { generateFeedbackMessage, type GridConstraint } from '@/lib/feedback';
+import { type GridConstraint } from '@/lib/feedback';
 import { cellKey } from '@/lib/grid-generator';
 import { CareerTeamLogo, checkAllTeamsHaveLogos } from '@/components/CareerTeamLogo';
 import { generateReasonBullets } from '@/lib/reason-bullets';
@@ -24,6 +24,16 @@ type Props = {
   sport?: string;
   isGridCompleted?: boolean;
 };
+
+// Generate feedback message for an incorrect guess
+function generateFeedbackMessage(
+  player: Player,
+  rowConstraint: GridConstraint,
+  colConstraint: GridConstraint,
+  teams: Team[]
+): string {
+  return `${player.name} does not match the selected criteria.`;
+}
 
 // Helper function to get team name at a specific season
 function teamNameAtSeason(teamsByTid: Map<number, Team>, tid: number, season: number): string {
@@ -403,6 +413,10 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                         break;
                     }
                   });
+
+                  if (player.achievements?.royLaterMVP) {
+                    condensedAwards.push({ text: "ROY, then MVP" });
+                  }
 
                   // Sort to put Hall of Fame first
                   const sortedAwards = condensedAwards.sort((a, b) => {

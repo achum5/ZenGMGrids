@@ -118,6 +118,15 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
   ]);
   
   const sport = leagueData ? detectSport(leagueData) : 'basketball';
+
+  const createEmptySelectorState = (): SelectorState => ({
+    type: null,
+    value: null,
+    label: null,
+    customAchievement: null,
+    operator: '≥',
+    customNumber: undefined,
+  });
   
   // Memoize expensive computations to prevent performance issues
   const teamOptions = useMemo<TeamOption[]>(() => {
@@ -353,7 +362,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
 
   // Update selector type
   const updateSelectorType = useCallback((isRow: boolean, index: number, type: SelectorType) => {
-    const newState: SelectorState = { type, value: null, label: null, customAchievement: null, operator: '≥' as const, customNumber: undefined };
+    const newState = { type, value: null, label: null, customAchievement: null, operator: '≥' as const, customNumber: undefined } as SelectorState;
     if (isRow) {
       setRowSelectors(prev => prev.map((selector, i) => i === index ? newState : selector));
     } else {
@@ -371,7 +380,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
         logoUrl = team.imgURLSmall || team.imgURL || null;
       }
     }
-    const newState: SelectorState = { type, value, label, logoUrl, operator: '≥' as const, customAchievement: null, customNumber: undefined };
+    const newState = { type, value, label, logoUrl, customAchievement: null, operator: '≥' as const, customNumber: undefined } as SelectorState;
     if (isRow) {
       setRowSelectors(prev => prev.map((selector, i) => i === index ? newState : selector));
     } else {
@@ -382,7 +391,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
 
   // Clear individual selector
   const clearSelector = useCallback((isRow: boolean, index: number) => {
-    const newState: SelectorState = { type: null, value: null, label: null, customAchievement: null, operator: '≥' as const, customNumber: undefined };
+    const newState = { type: null, value: null, label: null, customAchievement: null, operator: '≥' as const, customNumber: undefined } as SelectorState;
     if (isRow) {
       setRowSelectors(prev => prev.map((selector, i) => i === index ? newState : selector));
     } else {
@@ -479,7 +488,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
           testSelectors[slot.index] = {
             type: type as SelectorType,
             value: type === 'team' ? option.id.toString() : option.id.toString(),
-            label: option.label
+            label: option.label,
+            operator: '≥'
           };
 
           // Simulate the configuration to check if it creates any 0-result cells
@@ -910,7 +920,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
         {
           title: "Longevity & Journey",
           achievements: [
-            'played10PlusSeasons', 'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises'
+            'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises'
           ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
         },
         {
@@ -939,7 +949,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
         {
           title: "Career Milestones",
           achievements: [
-            'career500Goals', 'career1000Points', 'career500Assists', 'career200Wins', 'career50Shutouts', 'played10PlusSeasons', 'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises'
+            'career500Goals', 'career1000Points', 'career500Assists', 'career200Wins', 'career50Shutouts', 'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises'
           ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
         },
         {
@@ -992,7 +1002,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
         {
           title: "Career Milestones — Batting",
           achievements: [
-            'career3000Hits', 'career500HRs', 'career1500RBIs', 'career400SBs', 'career1800Runs', 'played10PlusSeasons', 'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises'
+            'career3000Hits', 'career500HRs', 'career1500RBIs', 'career400SBs', 'career1800Runs', 'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises'
           ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
         },
         {
@@ -1052,7 +1062,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
         {
           title: "Longevity & Journey",
           achievements: [
-            'played10PlusSeasons', 'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises'
+            'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises'
           ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
         },
         {

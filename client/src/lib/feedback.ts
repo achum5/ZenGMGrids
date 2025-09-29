@@ -17,7 +17,7 @@ interface ParsedCustomAchievement {
   operator: '≥' | '≤';
 }
 
-function parseCustomAchievementId(id: string | undefined): ParsedCustomAchievement | null {
+export function parseCustomAchievementId(id: string | undefined): ParsedCustomAchievement | null {
   if (!id || !id.includes('_custom_')) {
     return null;
   }
@@ -217,12 +217,7 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     verbTeam: 'joined the 50/40/90 club in a season',
     verbGeneric: 'joined the 50/40/90 club in a season'
   },
-  Season60TS20PPG: {
-    label: '60%+ TS on 20+ PPG (Season)',
-    short: '60% TS/20 PPG',
-    verbTeam: 'shot 60%+ TS while averaging 20+ PPG in a season',
-    verbGeneric: 'shot 60%+ TS while averaging 20+ PPG in a season'
-  },
+
   Season60eFG500FGA: {
     label: '60%+ eFG (Season)',
     short: '60% eFG/500 FGA',
@@ -747,7 +742,7 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     Season150Blocks: ['150+ Blocks', '150 blocks'],
     Season200Stocks: ['200+ Stocks', '200 steals+blocks'],
     Season50_40_90: ['50/40/90 Season', '50-40-90'],
-    Season60TS20PPG: ['60% TS (20+ PPG)', '60 true shooting'],
+
     Season60eFG500FGA: ['60% eFG (500+ FGA)', '60 effective FG'],
     Season90FT250FTA: ['90% FT (250+ FTA)', '90 free throw'],
     Season40_3PT200_3PA: ['40% 3PT (200+ 3PA)', '40 three-point'],
@@ -1007,6 +1002,11 @@ function getHumanReadableAchievementText(achievementId: string): string {
     const decadeMatch = achievementId.match(/playedIn(\d{4})s/);
     if (decadeMatch) {
       const decade = decadeMatch[1];
+      const parsedCustom = parseCustomAchievementId(achievementId);
+      if (parsedCustom) {
+        return generateUpdatedLabel({ originalLabel: `Played in ${decade}+ Decades`, prefix: 'Played in ', number: parseInt(decade), suffix: '+ Decades', isEditable: true }, parsedCustom.threshold, parsedCustom.operator)
+          .trim();
+      }
       return `played in the ${decade}s`;
     }
   }
@@ -1015,11 +1015,25 @@ function getHumanReadableAchievementText(achievementId: string): string {
     const decadeMatch = achievementId.match(/debutedIn(\d{4})s/);
     if (decadeMatch) {
       const decade = decadeMatch[1];
+      const parsedCustom = parseCustomAchievementId(achievementId);
+      if (parsedCustom) {
+        return generateUpdatedLabel({ originalLabel: `Debuted in ${decade}s`, prefix: 'Debuted in ', number: parseInt(decade), suffix: 's', isEditable: true }, parsedCustom.threshold, parsedCustom.operator)
+          .trim();
+      }
       return `debuted in the ${decade}s`;
     }
   }
   
   
+  // Handle special multi-decade achievements
+  if (achievementId === 'playedInThreeDecades') {
+    const parsedCustom = parseCustomAchievementId(achievementId);
+    if (parsedCustom) {
+      return generateUpdatedLabel({ originalLabel: 'Played in 3+ Decades', prefix: 'Played in ', number: 3, suffix: '+ Decades', isEditable: true }, parsedCustom.threshold, parsedCustom.operator)
+        .trim();
+    }
+    return `played in 3 different decades`;
+  }
   // Handle age-related achievements
   if (achievementId.includes('playedAt') && achievementId.includes('Plus')) {
     const ageMatch = achievementId.match(/playedAt(\d+)Plus/);
@@ -1046,7 +1060,7 @@ function getHumanReadableAchievementText(achievementId: string): string {
       'Season150Blocks': 'recorded 150+ blocks in a season',
       'Season200Stocks': 'recorded 200+ stocks in a season',
       'Season50_40_90': 'achieved 50/40/90 shooting in a season',
-      'Season60TS20PPG': 'shot 60%+ TS on 20+ PPG in a season',
+
       'Season60eFG500FGA': 'shot 60%+ eFG on 500+ FGA in a season',
       'Season90FT250FTA': 'shot 90%+ FT on 250+ FTA in a season',
       'Season40_3PT200_3PA': 'shot 40%+ 3PT on 200+ 3PA in a season',
@@ -1467,10 +1481,10 @@ function getBasketballPositiveMessage(achievementId: string, player?: Player): s
 }
 
 interface StatInfo {
-  key: keyof ReturnType<typeof getBasketballCareerStats> | keyof ReturnType<typeof getBasketballSeasonBests> |
-       keyof ReturnType<typeof getFootballCareerStats> | keyof ReturnType<typeof getFootballSeasonBests> |
-       keyof ReturnType<typeof getHockeyCareerStats> | keyof ReturnType<typeof getHockeySeasonBests> |
-       keyof ReturnType<typeof getBaseballCareerStats> | keyof ReturnType<typeof getBaseballSeasonBests>;
+  key: 'pts' | 'trb' | 'ast' | 'stl' | 'blk' | 'fg3' | 'ppg' | 'rpg' | 'apg' | 'spg' | 'bpg' | 'mpg' | 'gp' | // Basketball
+       'passTDs' | 'rushYds' | 'rushTDs' | 'recYds' | 'recTDs' | 'sacks' | 'ints' | 'pssYds' | 'pssTD' | 'defTck' | 'ff' | // Football
+       'g' | 'a' | 'pts' | 'w' | 'so' | 'svPct' | 'pm' | 's' | 'hit' | 'blk' | 'tk' | 'powerPlayPoints' | 'shG' | 'gwG' | 'faceoffPct' | 'toiPerGame' | 'pim' | 'savePct' | 'gaaRate' | 'gs' | // Hockey
+       'h' | 'hr' | 'rbi' | 'sb' | 'r' | 'w' | 'sv' | 'so' | 'era'; // Baseball
   name: string;
   type: 'career' | 'season' | 'season_avg';
 }
@@ -1499,62 +1513,170 @@ function getStatInfoForAchievement(baseId: string): StatInfo | null {
         Season150Steals: { key: 'stl', name: 'steals in a season', type: 'season' },
         Season150Blocks: { key: 'blk', name: 'blocks in a season', type: 'season' },
         Season70Games: { key: 'gp', name: 'games in a season', type: 'season' },
+        // Baseball Career
+        career3000Hits: { key: 'h', name: 'career hits', type: 'career' },
+        career500HRs: { key: 'hr', name: 'career home runs', type: 'career' },
+        career1500RBIs: { key: 'rbi', name: 'career RBIs', type: 'career' },
+        career400SBs: { key: 'sb', name: 'career stolen bases', type: 'career' },
+        career1800Runs: { key: 'r', name: 'career runs', type: 'career' },
+        career300Wins: { key: 'w', name: 'career wins', type: 'career' },
+        career3000Ks: { key: 'so', name: 'career strikeouts', type: 'career' },
+        career300Saves: { key: 'sv', name: 'career saves', type: 'career' },
+        // Baseball Season (Totals)
+        BBSeason50HRs: { key: 'hr', name: 'home runs in a season', type: 'season' },
+        BBSeason130RBIs: { key: 'rbi', name: 'RBIs in a season', type: 'season' },
+        BBSeason200Hits: { key: 'h', name: 'hits in a season', type: 'season' },
+        BBSeason50SBs: { key: 'sb', name: 'stolen bases in a season', type: 'season' },
+        BBSeason20Wins: { key: 'w', name: 'wins in a season', type: 'season' },
+        BBSeason40Saves: { key: 'sv', name: 'saves in a season', type: 'season' },
+        BBSeason300Ks: { key: 'so', name: 'strikeouts in a season', type: 'season' },
+        // Baseball Season (Averages/Percentages)
+        BBSeason200ERA: { key: 'era', name: 'ERA in a season', type: 'season_avg' }, // ERA is an average, lower is better
     };
     return statMap[baseId] || null;
 }
 
 function getNegativeMessageForCustomAchievement(player: Player, achievementId: string): string | null {
-  const parsedCustom = parseCustomAchievementId(achievementId);
-  if (!parsedCustom) return null;
+  const customAchievementDetails = parseCustomAchievementId(achievementId);
+  if (!customAchievementDetails) return null;
 
-  const statInfo = getStatInfoForAchievement(parsedCustom.baseId);
-  if (!statInfo) return null;
+  if (customAchievementDetails) {
+    const parsed = customAchievementDetails as ParsedCustomAchievement;
 
-  const sport = getCachedSportDetection() || 'basketball';
-  let actualValue: number | undefined;
-  let year: number | undefined;
+    if (parsed.baseId === 'playedInThreeDecades' || parsed.baseId.includes('playedIn') && parsed.baseId.endsWith('s') || parsed.baseId.includes('debutedIn') && parsed.baseId.endsWith('s')) {
+      const actualDecades = player.decadesPlayed?.size || 0;
+      const threshold = parsed.threshold;
+      const operator = parsed.operator;
+      const achievementType = parsed.baseId.includes('debutedIn') ? 'debuted in' : 'played in';
 
-  if (sport === 'basketball') {
-    const careerStats = getBasketballCareerStats(player);
-    const seasonBests = getBasketballSeasonBests(player);
-    if (statInfo.type === 'career') {
-      actualValue = careerStats[statInfo.key as keyof typeof careerStats];
-    } else if (statInfo.type === 'season_avg') {
-      const best = seasonBests[statInfo.key as keyof typeof seasonBests];
-      actualValue = best.max;
-      year = best.year;
-    } else { // season total
-      // This requires a new helper, for now we'll just show the label
+      let message: string;
+      if (operator === '≤') {
+        message = `played in ${actualDecades} decade${actualDecades === 1 ? '' : 's'} (more than ${threshold} required)`;
+      } else {
+        message = `played in ${actualDecades} decade${actualDecades === 1 ? '' : 's'} (fewer than ${threshold} required)`;
+      }
+      return message;
+    } else if (parsed.baseId === 'played5PlusFranchises') {
+      const actualFranchises = getPlayerFranchiseCount(player);
+      const threshold = parsed.threshold;
+      const operator = parsed.operator;
+
+      let message: string;
+      if (operator === '≤') {
+        message = `played for ${actualFranchises} franchise${actualFranchises === 1 ? '' : 's'} (more than ${threshold} required)`;
+      } else {
+        message = `played for ${actualFranchises} franchise${actualFranchises === 1 ? '' : 's'} (fewer than ${threshold} required)`;
+      }
+      return message;
     }
+
+    const statInfo = getStatInfoForAchievement(parsed.baseId);
+    if (!statInfo) return null;
+
+    const sport = getCachedSportDetection() || 'basketball';
+    let actualValue: number | undefined;
+    let year: number | undefined;
+
+    if (sport === 'basketball') {
+      const careerStats = getBaseballCareerStats(player);
+      const seasonBests = getBasketballSeasonBests(player);
+      if (statInfo.type === 'career') {
+        actualValue = careerStats[statInfo.key as keyof typeof careerStats];
+      } else if (statInfo.type === 'season_avg') {
+        const best = seasonBests[statInfo.key as keyof typeof seasonBests];
+        actualValue = best.max;
+        year = best.year;
+      } else if (statInfo.type === 'season') {
+        // For season totals, we need to find the max total for that stat
+        const maxSeasonTotal = player.stats?.reduce((max, s) => {
+          if (s.playoffs) return max;
+          const statValue = (s as any)[statInfo.key] || 0;
+          return Math.max(max, statValue);
+        }, 0);
+        actualValue = maxSeasonTotal;
+      }
+    } else if (sport === 'football') {
+      const careerStats = getFootballCareerStats(player);
+      const seasonBests = getFootballSeasonBests(player);
+      if (statInfo.type === 'career') {
+        actualValue = careerStats[statInfo.key as keyof typeof careerStats];
+      } else if (statInfo.type === 'season_avg') {
+        // Football doesn't have season averages in this context, so handle as season total
+        const best = seasonBests[statInfo.key as keyof typeof seasonBests];
+        actualValue = best.max;
+        year = best.year;
+      } else if (statInfo.type === 'season') {
+        const best = seasonBests[statInfo.key as keyof typeof seasonBests];
+        actualValue = best.max;
+        year = best.year;
+      }
+    } else if (sport === 'hockey') {
+      const careerStats = getHockeyCareerStats(player);
+      const seasonBests = getHockeySeasonBests(player);
+      if (statInfo.type === 'career') {
+        actualValue = careerStats[statInfo.key as keyof typeof careerStats];
+      } else if (statInfo.type === 'season_avg') {
+        const best = seasonBests[statInfo.key as keyof typeof seasonBests];
+        actualValue = best.max;
+        year = best.year;
+      } else if (statInfo.type === 'season') {
+        const maxSeasonTotal = player.stats?.reduce((max, s) => {
+          if (s.playoffs) return max;
+          const statValue = (s as any)[statInfo.key] || 0;
+          return Math.max(max, statValue);
+        }, 0);
+        actualValue = maxSeasonTotal;
+      }
+    } else if (sport === 'baseball') {
+      const careerStats = getBaseballCareerStats(player);
+      const seasonBests = getBaseballSeasonBests(player);
+      if (statInfo.type === 'career') {
+        actualValue = careerStats[statInfo.key as keyof typeof careerStats];
+      } else if (statInfo.type === 'season_avg') {
+        // For ERA, lower is better, so we need to get the min
+        if (statInfo.key === 'era') {
+          actualValue = seasonBests.era.min;
+          year = seasonBests.era.year;
+        } else {
+          const best = seasonBests[statInfo.key as keyof typeof seasonBests];
+          actualValue = 'max' in best ? best.max : best.min;
+          year = best.year;
+        }
+      } else if (statInfo.type === 'season') {
+        const best = seasonBests[statInfo.key as keyof typeof seasonBests];
+        actualValue = 'max' in best ? best.max : best.min;
+        year = best.year;
+      }
+    }
+
+    if (actualValue !== undefined) {
+      const valueString = actualValue % 1 !== 0 ? actualValue.toFixed(1) : actualValue.toLocaleString();
+      const thresholdString = parsed.threshold.toLocaleString();
+      const statName = statInfo.name;
+
+      let message: string;
+      if (parsed.operator === '≤') {
+        // Rule was "less than", player failed, so they had MORE.
+        message = `had more than ${thresholdString} ${statName} (${valueString})`;
+      } else {
+        // Rule was "more than", player failed, so they had FEWER.
+        message = `had fewer than ${thresholdString} ${statName} (${valueString})`;
+      }
+      
+      if (year && year > 0) {
+          // For season bests, the stat name already includes "in a season"
+          return `never ${message.replace(statName, statInfo.name)} (best was ${valueString} in ${year})`;
+      }
+
+      return message;
+    }
+
+    // Fallback if we can't calculate the stat
+    const cleanLabel = getHumanReadableAchievementText(achievementId);
+    return `did not meet the criteria for ${cleanLabel}`;
   }
-  // Add similar blocks for football, hockey, baseball
 
-  if (actualValue !== undefined) {
-    const valueString = actualValue % 1 !== 0 ? actualValue.toFixed(1) : actualValue.toLocaleString();
-    const thresholdString = parsedCustom.threshold.toLocaleString();
-    const statName = statInfo.name;
-
-    let message: string;
-    if (parsedCustom.operator === '≤') {
-      // Rule was "less than", player failed, so they had MORE.
-      message = `had more than ${thresholdString} ${statName} (${valueString})`;
-    } else {
-      // Rule was "more than", player failed, so they had FEWER.
-      message = `had fewer than ${thresholdString} ${statName} (${valueString})`;
-    }
-    
-    if (year && year > 0) {
-        // For season bests, the stat name already includes "in a season"
-        return `never ${message.replace(statName, statInfo.name)} (best was ${valueString} in ${year})`;
-    }
-
-    return message;
-  }
-
-  // Fallback if we can't calculate the stat
-  const cleanLabel = getHumanReadableAchievementText(achievementId);
-  return `did not meet the criteria for ${cleanLabel}`;
-}
+  return null; // Default return for all code paths}
 
 
 function getPlayerFranchiseCount(player: Player): number {
@@ -1958,7 +2080,7 @@ function getBaseballPositiveMessage(achievementId: string, player?: Player): str
     return fallbacks[achievementId] || getHumanReadableAchievementText(achievementId);
   }
 
-  const careerStats = getBasketballCareerStats(player);
+  const careerStats = getBaseballCareerStats(player);
   const seasonBests = getBaseballSeasonBests(player);
 
   switch (achievementId) {
@@ -2022,7 +2144,7 @@ function getBaseballNegativeMessage(achievementId: string, player?: Player): str
   const customMessage = getNegativeMessageForCustomAchievement(player, achievementId);
   if (customMessage) return customMessage;
   
-  const careerStats = getBasketballCareerStats(player);
+  const careerStats = getBaseballCareerStats(player);
   const seasonBests = getBaseballSeasonBests(player);
 
   switch (achievementId) {
@@ -2170,7 +2292,7 @@ function getTeamNameAtSeason(teams: Team[], tid: number, season?: number): strin
 /**
  * Generate feedback message for an incorrect guess
  */
-export function generateFeedbackMessage(
+function generateFeedbackMessage(
   player: Player,
   rowConstraint: GridConstraint,
   colConstraint: GridConstraint,
@@ -2253,6 +2375,23 @@ function getNegativeMessage(constraint: GridConstraint, player: Player, teams: T
   }
   
   const achievementId = constraint.achievementId!;
+
+  // Handle dynamic decade achievements for negative messages
+  if (achievementId.includes('playedIn') && achievementId.endsWith('s')) {
+    const decadeMatch = achievementId.match(/playedIn(\d{4})s/);
+    if (decadeMatch) {
+      const decade = decadeMatch[1];
+      return `never played in the ${decade}s`;
+    }
+  }
+  
+  if (achievementId.includes('debutedIn') && achievementId.endsWith('s')) {
+    const decadeMatch = achievementId.match(/debutedIn(\d{4})s/);
+    if (decadeMatch) {
+      const decade = decadeMatch[1];
+      return `never debuted in the ${decade}s`;
+    }
+  }
   
   switch (sport) {
     case 'basketball':
@@ -2291,3 +2430,6 @@ function getPositiveMessage(constraint: GridConstraint, player: Player, teams: T
       return `did achieve ${getHumanReadableAchievementText(achievementId)}`;
   }
 }
+
+}
+

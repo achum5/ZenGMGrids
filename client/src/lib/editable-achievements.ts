@@ -1,4 +1,5 @@
 import type { Achievement } from './achievements';
+import { getPlayerCareerAttemptsTotal } from './achievements';
 import type { Player } from '@/types/bbgm';
 
 // Pattern to match numerical thresholds in achievement labels
@@ -17,8 +18,10 @@ const ACHIEVEMENT_PATTERNS = [
   /^([^.\d]*?)(\d+(?:\.\d+)?)\%\+\s*(TS on \d+\+ PPG|eFG|FT|3PT)\s*\(Season\)(.*)$/i,
   // "1 PPG (Season)" or "30 PPG (Season)" or "2.5 BPG (Season)" - season stats without +
   /^([^.\d]*?)(\d+(?:\.\d+)?)\s*(PPG|RPG|APG|SPG|BPG|FG%|3P%|FT%|eFG%|TS%|PER|WS|BPM|VORP|USG%|TOV%|ORB%|DRB%|AST%|STL%|BLK%)\s*\(Season\)(.*)$/i,
+  // "Played in X+ Decades"
+  /^([^.\d]*?)(\d+(?:\.\d+)?)\+\s*Decades(.*)$/i,
   // "Age 40+" 
-  /^(.* )(\d+(?:\.\d+)?)\+(.*)$/,
+  /^(.* )(\d+(?:\.\d+)?)\+(.*)$/i,
   // "15+ Seasons" or "30+ PPG" or "2.5+ BPG"
   /^([^.\d]*?)(\d+(?:\.\d+)?)\+(.*)$/,
   // "Played at Age 40+"
@@ -194,19 +197,19 @@ function generateTestFunction(
     // Career achievements for hockey
     if (originalLabel.includes('career')) {
       if (originalLabel.includes('goals')) {
-        return (player: Player) => checkCareerTotal(player, 'goals', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'goals', newThreshold, operator, sport);
       }
       if (originalLabel.includes('assists')) {
-        return (player: Player) => checkCareerTotal(player, 'assists', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'assists', newThreshold, operator, sport);
       }
       if (originalLabel.includes('points')) {
-        return (player: Player) => checkCareerTotal(player, 'points', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'points', newThreshold, operator, sport);
       }
       if (originalLabel.includes('wins (g)')) {
-        return (player: Player) => checkCareerTotal(player, 'wins', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'wins', newThreshold, operator, sport);
       }
       if (originalLabel.includes('shutouts (g)')) {
-        return (player: Player) => checkCareerTotal(player, 'shutouts', newThreshold, operator);
+        return (player: Player) => checkCareerTotal(player, 'shutouts', newThreshold, operator, sport);
       }
     }
 
@@ -246,7 +249,7 @@ function generateTestFunction(
         return (player: Player) => checkSeasonTotal(player, 'gwG', newThreshold, operator, 1, sport);
       }
       if (originalLabel.includes('faceoff win rate')) {
-        return (player: Player) => checkSeasonPercentage(player, 'faceoffPct', newThreshold, operator, 1, sport);
+        return (player: Player) => checkSeasonPercentage(player, 'faceoffPct', newThreshold, operator, 1, 1, sport);
       }
       if (originalLabel.includes('toi per game')) {
         return (player: Player) => checkSeasonAverage(player, 'toiPerGame', newThreshold, operator, 1, sport);
@@ -255,7 +258,7 @@ function generateTestFunction(
         return (player: Player) => checkSeasonTotal(player, 'pim', newThreshold, operator, 1, sport);
       }
       if (originalLabel.includes('save percentage')) {
-        return (player: Player) => checkSeasonPercentage(player, 'savePct', newThreshold, operator, 1, sport);
+        return (player: Player) => checkSeasonPercentage(player, 'savePct', newThreshold, operator, 1, 1, sport);
       }
       if (originalLabel.includes('gaa')) {
         return (player: Player) => checkSeasonAverage(player, 'gaaRate', newThreshold, operator, 1, sport);
@@ -432,26 +435,31 @@ function generateTestFunction(
       // Percentage achievements - convert user's percentage input (e.g., 40) to decimal (0.40)
       const thresholdDecimal = newThreshold / 100;
 
-      if (originalLabel.includes('ts') && originalLabel.includes('ppg')) {
-        // 60%+ TS on 20+ PPG - check true shooting percentage
-        return (player: Player) => checkSeasonPercentage(player, 'ts', thresholdDecimal, operator, 10, sport);
-      }
+
       if (originalLabel.includes('efg')) {
         // Effective field goal percentage
-        return (player: Player) => checkSeasonPercentage(player, 'efg', thresholdDecimal, operator, 10, sport);
+        return (player: Player) => checkSeasonPercentage(player, 'efg', thresholdDecimal, operator, 10, 1, sport);
       }
       if (originalLabel.includes('ft') && originalLabel.includes('%')) {
         // Free throw percentage
-        return (player: Player) => checkSeasonPercentage(player, 'ft', thresholdDecimal, operator, 10, sport);
+        return (player: Player) => checkSeasonPercentage(player, 'ft', thresholdDecimal, operator, 10, 1, sport);
       }
       if (originalLabel.includes('3pt') || (originalLabel.includes('3p') && originalLabel.includes('%'))) {
         // 3-point percentage
-        return (player: Player) => checkSeasonPercentage(player, 'tp', thresholdDecimal, operator, 10, sport);
+        return (player: Player) => checkSeasonPercentage(player, 'tp', thresholdDecimal, operator, 10, 50, sport);
       }
     }
   }
   
   // Longevity achievements
+  if (originalLabel.includes('decades') && originalLabel.includes('played')) {
+    return (player: Player) => {
+      const decadesPlayedCount = player.decadesPlayed?.size || 0;
+      return operator === '≤'
+        ? decadesPlayedCount <= newThreshold
+        : decadesPlayedCount >= newThreshold;
+    };
+  }
   if (originalLabel.includes('seasons') && originalLabel.includes('played')) {
     return (player: Player) => {
       const seasonsPlayedCount = player.stats?.filter(s => !s.playoffs).length || 0;
@@ -514,11 +522,15 @@ function getPlayerCareerTotal(player: Player, statField: string | string[]): num
 }
 
 // Helper functions for stat calculations
-function checkCareerTotal(player: Player, statField: string | string[], newThreshold: number, operator: '≥' | '≤'): boolean {
+function checkCareerTotal(player: Player, statField: string | string[], newThreshold: number, operator: '≥' | '≤', sport?: string): boolean {
   const total = getPlayerCareerTotal(player, statField);
 
+  // Disqualify if career total is zero for this stat, regardless of operator
+  if (total === 0) {
+    return false;
+  }
+
   if (operator === '≤') {
-    if (total === 0) return false; // Disqualify if career total is zero for this stat
     return total <= newThreshold;
   } else {
     return total >= newThreshold;
@@ -528,11 +540,10 @@ function checkCareerTotal(player: Player, statField: string | string[], newThres
 function checkSeasonTotal(player: Player, statField: string | string[], newThreshold: number, operator: '≥' | '≤', minGames: number = 1, sport?: string): boolean {
   if (!player.stats) return false;
 
-  if (operator === '≤') {
-    const careerTotal = getPlayerCareerTotal(player, statField);
-    if (careerTotal === 0) {
-      return false;
-    }
+  // Disqualify if career total is zero for this stat, regardless of operator
+  const careerTotal = getPlayerCareerTotal(player, statField);
+  if (careerTotal === 0) {
+    return false;
   }
 
   for (const stat of player.stats) {
@@ -562,11 +573,10 @@ function checkSeasonTotal(player: Player, statField: string | string[], newThres
 function checkSeasonAverage(player: Player, statField: string, newThreshold: number, operator: '≥' | '≤', minGames: number = 1, sport?: string): boolean {
   if (!player.stats) return false;
 
-  if (operator === '≤') {
-    const careerTotal = getPlayerCareerTotal(player, statField);
-    if (careerTotal === 0) {
-      return false;
-    }
+  // Disqualify if career total is zero for this stat, regardless of operator
+  const careerTotal = getPlayerCareerTotal(player, statField);
+  if (careerTotal === 0) {
+    return false;
   }
 
   if (sport === 'hockey' && player.achievements?.seasonStatsComputed) {
@@ -604,14 +614,13 @@ function checkSeasonAverage(player: Player, statField: string, newThreshold: num
   return false;
 }
 
-function checkSeasonPercentage(player: Player, percentageType: string, newThreshold: number, operator: '≥' | '≤', minGames: number = 1, sport?: string): boolean {
+function checkSeasonPercentage(player: Player, percentageType: string, newThreshold: number, operator: '≥' | '≤', minGames: number = 1, minAttempts: number = 1, sport?: string): boolean {
   if (!player.stats) return false;
 
-  if (operator === '≤') {
-    const careerTotal = getPlayerCareerTotal(player, percentageType);
-    if (careerTotal === 0) {
-      return false;
-    }
+  // Ensure player has at least one attempt for this percentage stat in their career
+  const careerAttempts = getPlayerCareerAttemptsTotal(player, percentageType);
+  if (careerAttempts === 0) {
+    return false;
   }
 
   if (sport === 'hockey' && player.achievements?.seasonStatsComputed) {
@@ -628,6 +637,21 @@ function checkSeasonPercentage(player: Player, percentageType: string, newThresh
         // For hockey, percentageType directly maps to the computed stat field
         percentage = (computedStats as any)[percentageType] || 0;
         
+        // Ensure there was at least one attempt for this season for percentages
+        let seasonAttempts = 0;
+        switch (percentageType) {
+          case 'savePct':
+            seasonAttempts = (rawStat as any)?.sa || 0;
+            break;
+          case 'faceoffPct':
+            seasonAttempts = ((rawStat as any)?.fow || 0) + ((rawStat as any)?.fol || 0);
+            break;
+          default:
+            seasonAttempts = 1; // Assume 1 for other computed percentages if no direct attempt stat
+        }
+
+        if (seasonAttempts === 0) continue; // Skip season if no attempts
+
         if (operator === '≤' && percentage <= newThreshold) {
           return true;
         } else if (operator === '≥' && percentage >= newThreshold) {
@@ -639,28 +663,29 @@ function checkSeasonPercentage(player: Player, percentageType: string, newThresh
     for (const stat of player.stats) {
       if (!stat.playoffs && (stat.gp || 0) >= minGames) {
         let percentage = 0;
+        let attempts = 0;
         
         switch (percentageType) {
           case 'fg':
-            // Field goal percentage
-            percentage = (stat.fga || 0) > 0 ? ((stat.fg || 0) / (stat.fga || 1)) : 0;
+            attempts = stat.fga || 0;
+            percentage = attempts > 0 ? ((stat.fg || 0) / attempts) : 0;
             break;
           case 'ft':
-            // Free throw percentage  
-            percentage = (stat.fta || 0) > 0 ? ((stat.ft || 0) / (stat.fta || 1)) : 0;
+            attempts = stat.fta || 0;
+            percentage = attempts > 0 ? ((stat.ft || 0) / attempts) : 0;
             break;
           case 'tp':
-            // 3-point percentage
-            percentage = (stat.tpa || 0) > 0 ? ((stat.tpm || 0) / (stat.tpa || 1)) : 0;
+            attempts = stat.tpa || 0;
+            percentage = attempts > 0 ? ((stat.tpm || 0) / attempts) : 0;
             break;
           case 'efg':
-            // Effective field goal percentage: (FGM + 0.5 * 3PM) / FGA
-            if ((stat.fga || 0) > 0) {
-              percentage = ((stat.fg || 0) + 0.5 * (stat.tpm || 0)) / (stat.fga || 1);
+            attempts = stat.fga || 0;
+            if (attempts > 0) {
+              percentage = ((stat.fg || 0) + 0.5 * (stat.tpm || 0)) / attempts;
             }
             break;
           case 'ts':
-            // True shooting percentage: PTS / (2 * (FGA + 0.44 * FTA))
+            attempts = (stat.fga || 0) + (stat.fta || 0); // Approximate attempts for TS
             const tsDenominator = 2 * ((stat.fga || 0) + 0.44 * (stat.fta || 0));
             if (tsDenominator > 0) {
               percentage = (stat.pts || 0) / tsDenominator;
@@ -670,6 +695,9 @@ function checkSeasonPercentage(player: Player, percentageType: string, newThresh
             percentage = 0;
         }
         
+        if (attempts === 0 && percentageType !== 'ts') continue; // Skip season if no attempts (TS is special)
+        if (attempts < minAttempts) continue; // Skip if not enough attempts for percentage achievement
+
         if (operator === '≤' && percentage <= newThreshold) {
           return true;
         } else if (operator === '≥' && percentage >= newThreshold) {

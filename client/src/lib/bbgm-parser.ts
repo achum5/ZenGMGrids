@@ -871,7 +871,7 @@ function analyzeTeamOverlaps(players: Player[], teams: Team[]): TeamOverlapData 
   // List of all possible achievement IDs to track
   const achievementIds = [
     'isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen',
-    'isHallOfFamer', 'played15PlusSeasons', 'played10PlusSeasons', 'bornOutsideUS50DC',
+    'isHallOfFamer', 'played15PlusSeasons', 'bornOutsideUS50DC',
     'career300PassTDs', 'season35PassTDs', 'career12kRushYds', 'career100RushTDs', 
     'season1800RushYds', 'season20RushTDs', 'career12kRecYds', 'career100RecTDs',
     'season1400RecYds', 'season15RecTDs', 'career100Sacks', 'career20Ints',

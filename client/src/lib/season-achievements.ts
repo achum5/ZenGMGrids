@@ -39,7 +39,6 @@ export type SeasonAchievementId =
   | 'Season150Blocks'
   | 'Season200Stocks'
   | 'Season50_40_90'
-  | 'Season60TS20PPG'
   | 'Season60eFG500FGA'
   | 'Season90FT250FTA'
   | 'Season40_3PT200_3PA'
@@ -1004,11 +1003,6 @@ export function buildSeasonIndex(
             addAchievement('Season50_40_90');
           }
           
-          // 60%+ TS on 20+ PPG (Season): TS >= .600, ppg >= 20, gp >= 50
-          if (tsPct >= 0.600 && ppg >= 20 && gp >= 50) {
-            addAchievement('Season60TS20PPG');
-          }
-          
           // 60%+ eFG on >= 500 FGA (Season): eFG >= .600, fga >= 500
           if (eFgPct >= 0.600 && fga >= 500) {
             addAchievement('Season60eFG500FGA');
@@ -1625,12 +1619,6 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
   {
     id: 'Season50_40_90',
     label: '50/40/90 Club (Season)',
-    isSeasonSpecific: true,
-    minPlayers: 1
-  },
-  {
-    id: 'Season60TS20PPG',
-    label: '60%+ TS on 20+ PPG (Season)',
     isSeasonSpecific: true,
     minPlayers: 1
   },

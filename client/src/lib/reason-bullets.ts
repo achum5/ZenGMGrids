@@ -25,7 +25,7 @@ const SEASON_ACHIEVEMENT_LABELS: Partial<Record<SeasonAchievementId, string>> = 
   // Basketball GM Season Statistical Achievements (24 new achievements)
   Season30PPG: '30+ PPG (Season)',
   Season2000Points: '2,000+ Points (Season)',
-  Season300_3PM: '300+ 3PM (Season)',
+
   Season200_3PM: '200+ 3PM (Season)',
   Season12RPG: '12+ RPG (Season)',
   Season10APG: '10+ APG (Season)',
@@ -37,7 +37,7 @@ const SEASON_ACHIEVEMENT_LABELS: Partial<Record<SeasonAchievementId, string>> = 
   Season150Blocks: '150+ Blocks (Season)',
   Season200Stocks: '200+ Stocks (Season)',
   Season50_40_90: '50/40/90 Club (Season)',
-  Season60TS20PPG: '60%+ TS on 20+ PPG (Season)',
+
   Season60eFG500FGA: '60%+ eFG (Season)',
   Season90FT250FTA: '90%+ FT (Season)',
   Season40_3PT200_3PA: '40%+ 3PT (Season)',
@@ -149,8 +149,8 @@ function getStatFieldForAchievement(achievementId: SeasonAchievementId): string 
   const map: Partial<Record<SeasonAchievementId, string | string[]>> = {
     Season30PPG: 'pts',
     Season2000Points: 'pts',
-    Season300_3PM: ['tpm', 'tp'],
-    Season250ThreePM: ['tpm', 'tp'],
+
+
     Season200_3PM: ['tpm', 'tp'],
     Season12RPG: 'trb',
     Season10APG: 'ast',
@@ -218,9 +218,7 @@ function getSeasonsForSeasonStatAchievement(player: Player, achievementId: Seaso
       case 'Season2000Points':
         if (check(pts, customThreshold !== undefined ? customThreshold : 2000, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
-      case 'Season300_3PM':
-        if (check(tp, customThreshold !== undefined ? customThreshold : 300, customOperator || '≥')) qualifyingSeasons.push(season);
-        break;
+
       case 'Season200_3PM':
         if (check(tp, customThreshold !== undefined ? customThreshold : 200, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
@@ -263,12 +261,7 @@ function getSeasonsForSeasonStatAchievement(player: Player, achievementId: Seaso
           }
         }
         break;
-      case 'Season60TS20PPG':
-        if (gp >= 50 && (pts / gp) >= 20 && fga >= 400) {
-          const ts = pts / (2 * (fga + 0.44 * fta));
-          if (check(ts, customThreshold !== undefined ? customThreshold / 100 : 0.60, customOperator || '≥')) qualifyingSeasons.push(season);
-        }
-        break;
+
       case 'Season60eFG500FGA':
         if (fga >= 500) {
           const eFG = (fg + 0.5 * tp) / fga;
@@ -985,7 +978,7 @@ function generateAchievementBullet(
   }
   
   // Longevity achievements  
-  if (['played15PlusSeasons', 'played10PlusSeasons', 'played5PlusFranchises'].includes(achievementId)) {
+  if (['played15PlusSeasons', 'played5PlusFranchises'].includes(achievementId)) {
     return generateLongevityBullet(player, achievementId);
   }
   
@@ -1082,13 +1075,6 @@ function generateLongevityBullet(player: Player, achievementId: string): ReasonB
   if (achievementId === 'played15PlusSeasons') {
     return {
       text: `played ${seasons} seasons (15+ required)`,
-      type: 'longevity'
-    };
-  }
-  
-  if (achievementId === 'played10PlusSeasons') {
-    return {
-      text: `played ${seasons} seasons (10+ required)`,
       type: 'longevity'
     };
   }

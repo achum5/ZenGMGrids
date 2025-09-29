@@ -6,7 +6,7 @@ import { calculateOptimizedIntersection, type IntersectionConstraint } from '@/l
 
 // Define conflicting achievement sets at module level
 const draftAchievements = new Set(['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen']);
-const seasonLengthAchievements = new Set(['played10PlusSeasons', 'played15PlusSeasons']);
+const seasonLengthAchievements = new Set(['played15PlusSeasons']);
 
 // Simple session-based memory to avoid immediate repetition
 const recentlyUsedTeams = new Set<number>();
@@ -1593,7 +1593,6 @@ function buildOppositeAxisForSeed(
     // If no season achievements available, fall back to common career achievements
     const fallbackCareerAchievements = [
       { id: 'AllStar', label: 'All-Star' },
-      { id: 'played10PlusSeasons', label: 'Played 10+ Seasons' },
       { id: 'played15PlusSeasons', label: 'Played 15+ Seasons' },
       { id: 'isHallOfFamer', label: 'Hall of Fame' },
       { id: 'isPick1Overall', label: '#1 Overall Pick' },
@@ -1615,13 +1614,7 @@ function buildOppositeAxisForSeed(
     throw new Error('No unused achievements available for grid generation');
   };
   
-  const safeCareerAchievement: CatTeam = {
-    key: 'achievement-played10PlusSeasons',
-    label: 'Played 10+ Seasons',
-    achievementId: 'played10PlusSeasons',
-    type: 'achievement',
-    test: (p: Player) => playerMeetsAchievement(p, 'played10PlusSeasons', seasonIndex),
-  };
+
   
   // Now fill all achievement slots
   console.log(`Filling achievement slots. Seed already placed: ${seedAchievement.name} at ${seedSlot.axis} ${seedSlot.index}`);

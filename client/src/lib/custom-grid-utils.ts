@@ -129,7 +129,7 @@ export function getAchievementOptions(
         // Single-Season Efficiency & Workload  
         'Season50_40_90', 'Season40_3PT200_3PA', 'Season90FT250FTA', 'Season60eFG500FGA', 'Season60TS20PPG', 'Season36MPG', 'Season70Games',
         // Longevity & Journey
-        'played10PlusSeasons', 'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises',
+        'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises',
         // Draft & Entry
         'isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen'
       ];
