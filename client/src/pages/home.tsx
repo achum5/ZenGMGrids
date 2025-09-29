@@ -21,9 +21,9 @@ import { parseLeagueFile, parseLeagueUrl, buildSearchIndex } from '@/lib/bbgm-pa
 import { generateTeamsGrid, cellKey } from '@/lib/grid-generator';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
 import { debugAchievementIntersection, calculateCustomCellIntersection, headerConfigToCatTeam, getCustomCellEligiblePlayersAsync } from '@/lib/custom-grid-utils';
-import { calculateOptimizedIntersection, type IntersectionConstraint } from '@/lib/intersection-cache';
+import { calculateOptimizedIntersection, type IntersectionConstraint, clearIntersectionCachesForPlayers } from '@/lib/intersection-cache';
 import { getSeasonEligiblePlayers, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
-import { debugIndividualAchievements, playerMeetsAchievement } from '@/lib/achievements';
+import { debugIndividualAchievements, playerMeetsAchievement, setCachedLeagueYears } from '@/lib/achievements';
 import { clearHintCache } from '@/lib/hint-generation';
 import { useToast } from '@/hooks/use-toast';
 import type { LeagueData, CatTeam, CellState, Player, SearchablePlayer } from '@/types/bbgm';
@@ -268,9 +268,23 @@ export default function Home() {
         usedHint: usedHint,
       },
     }));
-    
+
     // Add to used players (regardless of correctness to prevent reuse)
     setUsedPids(prev => new Set([...Array.from(prev), player.pid]));
+
+    // Show toast for incorrect guesses
+    if (!isCorrect) {
+      // Provide a more descriptive reason for the incorrect guess
+      const reason = rowConstraint && colConstraint 
+        ? `Player must meet criteria for both "${rowConstraint.label}" and "${colConstraint.label}".`
+        : 'Player does not meet the required criteria for this cell.';
+      
+      toast({
+        title: 'Incorrect Guess',
+        description: `${player.name} is not a valid answer. ${reason}`,
+        variant: 'destructive',
+      });
+    }
   }, [intersections, usedPids, leagueData, rows, cols, toast]);
 
   // Handle search modal player selection
@@ -603,7 +617,13 @@ export default function Home() {
   }, [createTestData]);
 
   const processLeagueData = useCallback(async (data: LeagueData) => {
+    // Clear caches for the new player dataset
+    clearIntersectionCachesForPlayers(data.players);
+    
     setLeagueData(data);
+    if (data.leagueYears) {
+      setCachedLeagueYears(data.leagueYears);
+    }
     
     // Force close any open dropdowns/modals on mobile after file upload
     if (typeof window !== 'undefined' && window.innerWidth < 768) {

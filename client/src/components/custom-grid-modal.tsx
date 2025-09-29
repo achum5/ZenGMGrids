@@ -540,13 +540,15 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
               newRowSelectors[slot.index] = {
                 type: type as SelectorType,
                 value: type === 'team' ? option.id.toString() : option.id.toString(),
-                label: option.label
+                label: option.label,
+                operator: '≥'
               };
             } else {
               newColSelectors[slot.index] = {
                 type: type as SelectorType,
                 value: type === 'team' ? option.id.toString() : option.id.toString(),
-                label: option.label
+                label: option.label,
+                operator: '≥'
               };
             }
             

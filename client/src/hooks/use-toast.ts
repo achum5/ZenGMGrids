@@ -140,32 +140,13 @@ function dispatch(action: Action) {
 type Toast = Omit<ToasterToast, "id">
 
 function toast({ ...props }: Toast) {
-  const id = genId()
-
-  const update = (props: ToasterToast) =>
-    dispatch({
-      type: "UPDATE_TOAST",
-      toast: { ...props, id },
-    })
-  const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
-
-  dispatch({
-    type: "ADD_TOAST",
-    toast: {
-      ...props,
-      id,
-      open: true,
-      onOpenChange: (open) => {
-        if (!open) dismiss()
-      },
-    },
-  })
-
+  // User requested to disable all toast pop-up messages.
+  // This function now does nothing.
   return {
-    id: id,
-    dismiss,
-    update,
-  }
+    id: genId(), // Still return an ID to prevent errors in calling code
+    dismiss: () => {},
+    update: () => {},
+  };
 }
 
 function useToast() {

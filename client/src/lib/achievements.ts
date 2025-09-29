@@ -1304,7 +1304,7 @@ export function playerMeetsAchievement(
 
     // We need to find the *actual* custom achievement object that was created
     // This means we need to get all achievements again, including the dynamically generated ones
-    const allPossibleAchievements = getAllAchievements(getCachedSportDetection(), seasonIndex, undefined); // Pass undefined for leagueYears to avoid re-generating random achievements
+    const allPossibleAchievements = getAllAchievements(getCachedSportDetection(), seasonIndex, getCachedLeagueYears());
     const customAchievement = allPossibleAchievements.find(a => a.id === achievementId);
     if (customAchievement) {
       return customAchievement.test(player);
@@ -1330,15 +1330,26 @@ const seasonLengthCache: Record<number, number> = {};
 
 // Sport detection cache
 let cachedSport: 'basketball' | 'football' | 'hockey' | 'baseball' | undefined;
+let cachedLeagueYears: { minSeason: number; maxSeason: number } | undefined;
 
 // Set cached sport detection
 export function setCachedSportDetection(sport: 'basketball' | 'football' | 'hockey' | 'baseball'): void {
   cachedSport = sport;
 }
 
+// Set cached league years
+export function setCachedLeagueYears(leagueYears: { minSeason: number; maxSeason: number }): void {
+  cachedLeagueYears = leagueYears;
+}
+
 // Get cached sport detection  
 export function getCachedSportDetection(): 'basketball' | 'football' | 'hockey' | 'baseball' | undefined {
   return cachedSport;
+}
+
+// Get cached league years
+export function getCachedLeagueYears(): { minSeason: number; maxSeason: number } | undefined {
+  return cachedLeagueYears;
 }
 
 // Debug function to test individual achievements and grid filtering
