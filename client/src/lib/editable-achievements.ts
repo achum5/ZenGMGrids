@@ -175,8 +175,7 @@ export function createCustomNumericalAchievement(
     ...baseAchievement,
     id: `${baseAchievement.id}_custom_${newThreshold}_${operatorStr}`,
     label: newLabel,
-    test: newTestFunction,
-    operator
+    test: newTestFunction
   };
 }
 
@@ -436,18 +435,16 @@ function generateTestFunction(
       // Percentage achievements - convert user's percentage input (e.g., 40) to decimal (0.40)
       const thresholdDecimal = newThreshold / 100;
 
-      // Use a robust lower-cased check to handle variations like "3PT" vs "3pt" in labels
-      const lower = originalLabel;
 
-      if (lower.includes('efg')) {
+      if (originalLabel.includes('efg')) {
         // Effective field goal percentage
         return (player: Player) => checkSeasonPercentage(player, 'efg', thresholdDecimal, operator, 10, 1, sport);
       }
-      if (lower.includes('ft') && lower.includes('%')) {
+      if (originalLabel.includes('ft') && originalLabel.includes('%')) {
         // Free throw percentage
         return (player: Player) => checkSeasonPercentage(player, 'ft', thresholdDecimal, operator, 10, 1, sport);
       }
-      if (lower.includes('3pt') || (lower.includes('3p') && lower.includes('%'))) {
+      if (originalLabel.includes('3pt') || (originalLabel.includes('3p') && originalLabel.includes('%'))) {
         // 3-point percentage
         return (player: Player) => checkSeasonPercentage(player, 'tp', thresholdDecimal, operator, 10, 50, sport);
       }
@@ -641,27 +638,20 @@ function checkSeasonPercentage(player: Player, percentageType: string, newThresh
         percentage = (computedStats as any)[percentageType] || 0;
         
         // Ensure there was at least one attempt for this season for percentages
-        // Determine per-season attempts for percentage calculation
         let seasonAttempts = 0;
         switch (percentageType) {
-          case 'fg':
-            seasonAttempts = (stat as any).fga || 0;
+          case 'savePct':
+            seasonAttempts = (rawStat as any)?.sa || 0;
             break;
-          case 'efg':
-            seasonAttempts = (stat as any).fga || 0;
+          case 'faceoffPct':
+            seasonAttempts = ((rawStat as any)?.fow || 0) + ((rawStat as any)?.fol || 0);
             break;
-          case 'ts':
-            seasonAttempts = (stat as any).fga || 0; // approximate
-            break;
-          case 'tp':
-            seasonAttempts = (stat as any).tpa || 0;
-            break;
-          case 'ft':
-            seasonAttempts = (stat as any).fta || 0;
-            break;
+          default:
+            seasonAttempts = 1; // Assume 1 for other computed percentages if no direct attempt stat
         }
 
-        // Recompute percentage for this season (percentage variable)
+        if (seasonAttempts === 0) continue; // Skip season if no attempts
+
         if (operator === '≤' && percentage <= newThreshold) {
           return true;
         } else if (operator === '≥' && percentage >= newThreshold) {
@@ -687,8 +677,6 @@ function checkSeasonPercentage(player: Player, percentageType: string, newThresh
           case 'tp':
             attempts = stat.tpa || 0;
             percentage = attempts > 0 ? ((stat.tpm || 0) / attempts) : 0;
-            // Normalize percentage to 0-1 scale if dataset stores 3PT% as 0-100
-            if (percentage > 1) percentage = percentage / 100;
             break;
           case 'efg':
             attempts = stat.fga || 0;
