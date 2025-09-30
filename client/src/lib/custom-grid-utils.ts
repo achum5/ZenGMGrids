@@ -235,6 +235,22 @@ export function headerConfigToCatTeam(
                 if (!p.stats) continue;
                 const seasonStats = p.stats.find(s => s.season === seasonNum && !s.playoffs);
                 if (!seasonStats) continue;
+
+                // FT% calculation like 3P%: use ftm/fta, handle 0 attempts
+                if (achievementToUse.id === 'SeasonFTPercent') {
+                  const ftm = seasonStats.ftm ?? 0;
+                  const fta = seasonStats.fta ?? 0;
+                  if (fta === 0) continue;
+                  const ftPct = (ftm / fta) * 100;
+                  if (config.operator === '≤' && ftPct <= (config.customAchievement?.threshold ?? 0)) {
+                    return true;
+                  }
+                  if (config.operator === '≥' && ftPct >= (config.customAchievement?.threshold ?? 0)) {
+                    return true;
+                  }
+                  continue;
+                }
+
                 const threePM = seasonStats.fg3m ?? 0;
                 const threePA = seasonStats.fg3a ?? 0;
                 if (threePA === 0) continue;
