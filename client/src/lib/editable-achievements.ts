@@ -692,6 +692,8 @@ function checkSeasonPercentage(player: Player, percentageType: string, newThresh
           case 'tp':
             attempts = stat.tpa || 0;
             percentage = attempts > 0 ? ((stat.tpm || 0) / attempts) : 0;
+            // Normalize percentage to 0-1 scale if dataset stores 3PT% as 0-100
+            if (percentage > 1) percentage = percentage / 100;
             break;
           case 'efg':
             attempts = stat.fga || 0;
