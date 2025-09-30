@@ -37,7 +37,7 @@ export function EditableAchievementLabel({
     setIsEditing(false);
     
     const newNumber = parseFloat(inputValue) || 0;
-    if (onNumberChange) {
+    if (newNumber !== parsed.number && onNumberChange) {
       const newLabel = generateUpdatedLabel(parsed, newNumber).trim();
       onNumberChange(newNumber, newLabel);
     }
