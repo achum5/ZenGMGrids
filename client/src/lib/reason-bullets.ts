@@ -525,6 +525,19 @@ function getCareerStats(player: Player, statTypes: string[]) {
             console.log(`🏒 ASSISTS DEBUG: Season ${season.season}, evA:${evA} + ppA:${ppA} + shA:${shA} = ${seasonAssists}, total so far: ${total + fallbackAssists}`);
           }
           total += fallbackAssists;
+        } else if (statType === 'ast') {
+          total += (season as any).ast || 0;
+        } else if (statType === 'trb') {
+          // Handle different rebound field names in BBGM files
+          let seasonRebounds = 0;
+          if ((season as any).trb !== undefined) {
+            seasonRebounds = (season as any).trb;
+          } else if ((season as any).orb !== undefined || (season as any).drb !== undefined) {
+            seasonRebounds = ((season as any).orb || 0) + ((season as any).drb || 0);
+          } else if ((season as any).reb !== undefined) {
+            seasonRebounds = (season as any).reb;
+          }
+          total += seasonRebounds;
         } else {
           total += (season as any)[statType] || 0;
         }

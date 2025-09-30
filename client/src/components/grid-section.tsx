@@ -428,7 +428,7 @@ export function GridSection({
         </div>
 
         {/* Hint mode toggle (center) */}
-        <div className="flex items-center justify-center gap-2" data-testid="hint-mode-toggle">
+        <div className="flex items-center justify-center gap-2 -ml-px" data-testid="hint-mode-toggle">
           <Switch
             id="hint-mode"
             checked={hintMode}
