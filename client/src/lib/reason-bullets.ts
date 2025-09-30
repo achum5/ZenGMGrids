@@ -599,12 +599,12 @@ export function generateReasonBullets(
   // 2. Row constraint (bottom bullet)
   
   // Generate bullet for column constraint
-  const colBullet = generateSimpleBullet(player, colConstraint, teams);
-  if (colBullet) bullets.push(colBullet);
+  const colBullet = generateSimpleBullet(player, colConstraint, teams, sport);
+  bullets.push(colBullet || { text: `N/A: ${colConstraint.label || colConstraint.achievementId || colConstraint.tid}`, type: 'category' });
   
   // Generate bullet for row constraint  
-  const rowBullet = generateSimpleBullet(player, rowConstraint, teams);
-  if (rowBullet) bullets.push(rowBullet);
+  const rowBullet = generateSimpleBullet(player, rowConstraint, teams, sport);
+  bullets.push(rowBullet || { text: `N/A: ${rowConstraint.label || rowConstraint.achievementId || rowConstraint.tid}`, type: 'category' });
   
   return bullets;
 }
@@ -655,13 +655,29 @@ function generateSimpleAchievementBullet(player: Player, achievementId: string, 
 // Generate simple season achievement bullet
 function generateSimpleSeasonAchievementBullet(player: Player, achievementId: SeasonAchievementId, teams: Team[], constraintLabel?: string): ReasonBullet | null {
   let achLabel = constraintLabel || SEASON_ACHIEVEMENT_LABELS[achievementId] || achievementId;
+
+  if (achievementId.includes('_custom_')) {
+    const parts = achievementId.split('_custom_');
+    const baseAchievementId = parts[0] as SeasonAchievementId;
+    const customParts = parts[1].split('_');
+    const customThreshold = parseFloat(customParts[0]);
+    const customOperator = customParts[1] === 'lte' ? '≤' : '≥';
+    
+    // To use generateUpdatedLabel, we need the original achievement's label
+    // We can get this from SEASON_ACHIEVEMENT_LABELS or by finding the original achievement object
+    const originalLabel = SEASON_ACHIEVEMENT_LABELS[baseAchievementId] || baseAchievementId;
+    const parsedOriginal = parseAchievementLabel(originalLabel);
+    achLabel = generateUpdatedLabel(parsedOriginal, customThreshold, customOperator);
+  }
   
   // Consistently remove " (Season)" suffix using regex, as the years in parentheses already imply it's season-specific
   achLabel = achLabel.replace(/\s*\(Season\)/gi, '').trim();
   
   const seasons = getSeasonAchievementSeasons(player, achievementId, teams);
   
-  if (seasons.length === 0) return null;
+  if (seasons.length === 0) {
+    return { text: `Did not meet ${achLabel}`, type: 'award' };
+  }
   
   const seasonStr = formatBulletSeasonList(seasons, false);
   
@@ -739,11 +755,6 @@ import { parseAchievementLabel } from '@/lib/editable-achievements';
 
 // Generate simple career achievement bullet
 function generateSimpleCareerAchievementBullet(player: Player, achievementId: string, teams: Team[], constraintLabel?: string, sport?: string): ReasonBullet | null {
-  let baseAchievementId = achievementId;
-  if (achievementId.includes('_custom_')) {
-    baseAchievementId = achievementId.split('_custom_')[0];
-  }
-
   // Map career achievements to their corresponding stat key
   const careerStatMap: Record<string, string> = {
     career20kPoints: 'pts',
@@ -776,11 +787,50 @@ function generateSimpleCareerAchievementBullet(player: Player, achievementId: st
     career50Shutouts: 'so',
   };
 
+  let baseAchievementId = achievementId;
+  let customThreshold: number | undefined;
+  let customOperator: '≥' | '≤' | undefined;
+
+  if (achievementId.includes('_custom_')) {
+    const parts = achievementId.split('_custom_');
+    baseAchievementId = parts[0];
+    const customParts = parts[1].split('_');
+    customThreshold = parseFloat(customParts[0]);
+    customOperator = customParts[1] === 'lte' ? '≤' : '≥';
+
+    const allAchievements = getAllAchievements(sport as any);
+    const originalAchievement = allAchievements.find(ach => ach.id === baseAchievementId);
+    if (originalAchievement) {
+      const parsedLabel = parseAchievementLabel(originalAchievement.label, sport);
+      const customLabel = generateUpdatedLabel(parsedLabel, customThreshold, customOperator);
+      
+      const statKey = careerStatMap[baseAchievementId];
+      if (statKey) {
+        if (!player.stats) {
+          return { text: `Did not meet ${customLabel}`, type: 'award' };
+        }
+        const total = player.stats
+          .filter(s => !s.playoffs)
+          .reduce((acc, season) => {
+            const statValue = statKey === 'tpm' ? ((season as any).tpm || (season as any).tp || 0) : ((season as any)[statKey] || 0);
+            return acc + statValue;
+          }, 0);
+
+        return {
+          text: `${customLabel} (${formatNumber(total)})`,
+          type: 'award'
+        };
+      }
+    }
+  }
+
   const statKey = careerStatMap[baseAchievementId];
 
   // Case 1: Career Statistical Milestones
   if (statKey) {
-    if (!player.stats) return null;
+    if (!player.stats) {
+      return { text: `Did not meet ${constraintLabel || baseAchievementId}`, type: 'award' };
+    }
     const total = player.stats
       .filter(s => !s.playoffs)
       .reduce((acc, season) => {
@@ -815,7 +865,9 @@ function generateSimpleCareerAchievementBullet(player: Player, achievementId: st
 
   // Case 2: Dynamic Longevity Achievements
   if (achievementId === 'played5PlusFranchises') {
-    if (!player.stats) return null;
+    if (!player.stats) {
+      return { text: `Did not meet ${constraintLabel || 'Played for 5+ Franchises'}`, type: 'longevity' };
+    }
     const franchiseCount = new Set(player.stats.filter(s => s.tid !== -1).map(s => s.tid)).size;
     return {
       text: `Played for ${franchiseCount} Franchises`,
@@ -823,7 +875,9 @@ function generateSimpleCareerAchievementBullet(player: Player, achievementId: st
     };
   }
   if (achievementId === 'played10PlusSeasons' || achievementId === 'played15PlusSeasons') {
-    if (!player.stats) return null;
+    if (!player.stats) {
+      return { text: `Did not meet ${constraintLabel || 'Played 15+ Seasons'}`, type: 'longevity' };
+    }
     const seasonCount = new Set(player.stats.filter(s => !s.playoffs).map(s => s.season)).size;
     return {
       text: `Played ${seasonCount} Seasons`,
