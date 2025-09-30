@@ -58,17 +58,16 @@ function generateFeedbackMessage(
         if (rowNegative.verb === colNegative.verb) {
           // If verbs are the same, use "neither X nor Y"
           return `${player.name} ${rowNegative.verb} neither ${rowNegative.object} nor ${colNegative.object}.`;
-        } else {
-          // If verbs are different, use "nor did they..." or "nor was/is [player name]..."
-          let norClause = '';
-          if (colNegative.verb === 'was' || colNegative.verb === 'is') {
-            norClause = `nor ${colNegative.verb} ${player.name} ${colNegative.object}`;
-          } else {
-            norClause = `nor did they ${colNegative.verb} ${colNegative.object}`;
-          }
-          return `${rowPhraseNotMet.replace('.', '')}, ${norClause}.`;
-        }
-      }
+                  } else {
+                    // If verbs are different, use "nor did [player name]..." or "nor was/is [player name]..."
+                    let norClause = '';
+                    if (colNegative.verb === 'was' || colNegative.verb === 'is') {
+                      norClause = `nor ${colNegative.verb} ${player.name} ${colNegative.object}`;
+                    } else {
+                      norClause = `nor did ${player.name} ${colNegative.verb} ${colNegative.object}`;
+                    }
+                    return `${rowPhraseNotMet.replace('.', '')}, ${norClause}.`;
+                  }      }
 }
 
 // Helper to check if a player meets a constraint
@@ -573,23 +572,23 @@ function extractNegativeObjectAndVerb(phrase: string, playerName: string): { obj
   const cleanedPhrase = phrase.replace(`${playerName} `, ''); // Remove player name
   
   if (cleanedPhrase.startsWith('never played for ')) {
-    return { object: cleanedPhrase.replace('never played for ', ''), verb: 'played for' };
+    return { object: cleanedPhrase.replace('never played for ', ''), verb: 'play for' };
   } else if (cleanedPhrase.startsWith('was never an ')) {
     return { object: cleanedPhrase.replace('was never ', ''), verb: 'was' };
   } else if (cleanedPhrase.startsWith('was never ')) { // Generic "was never" for other awards
     return { object: cleanedPhrase.replace('was never ', ''), verb: 'was' };
   } else if (cleanedPhrase.startsWith('did not achieve ')) {
-    return { object: cleanedPhrase.replace('did not achieve ', ''), verb: 'achieved' };
+    return { object: cleanedPhrase.replace('did not achieve ', ''), verb: 'achieve' };
   } else if (cleanedPhrase.startsWith('did not play in the ')) {
-    return { object: cleanedPhrase.replace('did not play in the ', ''), verb: 'played in' };
+    return { object: cleanedPhrase.replace('did not play in the ', ''), verb: 'play in' };
   } else if (cleanedPhrase.startsWith('did not debut in the ')) {
-    return { object: cleanedPhrase.replace('did not debut in the ', ''), verb: 'debuted in' };
+    return { object: cleanedPhrase.replace('did not debut in the ', ''), verb: 'debut in' };
   } else if (cleanedPhrase.startsWith('is not a Hall of Famer')) {
     return { object: 'a Hall of Famer', verb: 'is' };
   } else if (cleanedPhrase.startsWith('did not play ')) { // for played15PlusSeasons
-    return { object: cleanedPhrase.replace('did not play ', ''), verb: 'played' };
+    return { object: cleanedPhrase.replace('did not play ', ''), verb: 'play' };
   } else if (cleanedPhrase.startsWith('did not play for ')) { // for played5PlusFranchises
-    return { object: cleanedPhrase.replace('did not play for ', ''), verb: 'played for' };
+    return { object: cleanedPhrase.replace('did not play for ', ''), verb: 'play for' };
   } else if (cleanedPhrase.startsWith('was not Undrafted')) {
     return { object: 'Undrafted', verb: 'was' };
   } else if (cleanedPhrase.startsWith('was not drafted as a teenager')) {
@@ -597,19 +596,19 @@ function extractNegativeObjectAndVerb(phrase: string, playerName: string): { obj
   } else if (cleanedPhrase.startsWith('was born in the US')) {
     return { object: 'born outside the US', verb: 'was' }; // Special case for negation
   } else if (cleanedPhrase.startsWith('never won the ')) {
-    return { object: cleanedPhrase.replace('never won the ', ''), verb: 'won' };
+    return { object: cleanedPhrase.replace('never won the ', ''), verb: 'win' };
   } else if (cleanedPhrase.startsWith('did not average ')) {
-    return { object: cleanedPhrase.replace('did not average ', ''), verb: 'averaged' };
+    return { object: cleanedPhrase.replace('did not average ', ''), verb: 'average' };
   } else if (cleanedPhrase.startsWith('did not have ')) {
-    return { object: cleanedPhrase.replace('did not have ', ''), verb: 'had' };
+    return { object: cleanedPhrase.replace('did not have ', ''), verb: 'have' };
   } else if (cleanedPhrase.startsWith('was never League ')) {
     return { object: cleanedPhrase.replace('was never ', ''), verb: 'was' };
   } else if (cleanedPhrase.startsWith('never won a ')) {
-    return { object: cleanedPhrase.replace('never won a ', ''), verb: 'won' };
+    return { object: cleanedPhrase.replace('never won a ', ''), verb: 'win' };
   } else if (cleanedPhrase.startsWith('was never named to an ')) {
-    return { object: cleanedPhrase.replace('was never named to an ', ''), verb: 'was named to' };
+    return { object: cleanedPhrase.replace('was never named to an ', ''), verb: 'be named to' };
   } else if (cleanedPhrase.startsWith('did not play at Age ')) {
-    return { object: cleanedPhrase.replace('did not play at ', ''), verb: 'played at' };
+    return { object: cleanedPhrase.replace('did not play at ', ''), verb: 'play at' };
   }
   // Fallback for unhandled or generic cases
   return { object: cleanedPhrase, verb: 'did not meet' };
@@ -924,7 +923,7 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                         condensedAwards.push({ text: "ROY" });
                         break;
                       case "All-Star MVP":
-                        condcondensedAwards.push({ text: count > 1 ? `${count}x All-Star MVP` : "All-Star MVP" });
+                        condensedAwards.push({ text: count > 1 ? `${count}x All-Star MVP` : "All-Star MVP" });
                         break;
                       case "All-Star":
                         condensedAwards.push({ text: count > 1 ? `${count}x All-Star` : "All-Star" });

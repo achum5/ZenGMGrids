@@ -1068,7 +1068,7 @@ function getPlayerFranchiseCount(player: Player): number {
   return franchiseIds.size;
 }
 
-export function getPlayerCareerAttemptsTotal(player: Player, percentageType: string): number {
+export function getPlayerCareerAttemptsTotal(player: Player, percentageType: string, sport: string): number {
   if (!player.stats) return 0;
 
   let totalAttempts = 0;
@@ -1148,7 +1148,15 @@ export function getPlayerCareerAttemptsTotal(player: Player, percentageType: str
         totalAttempts += (stat as any).sa || 0; // Shots against
         break;
       case 'so': // Shutouts
+        totalAttempts += (stat.gp || 0);
+        break;
       case 'sv': // Saves
+        if (sport === 'hockey') {
+          totalAttempts += (stat.gp || 0);
+        } else if (sport === 'baseball') {
+          totalAttempts += (stat as any).bf || 0; // Batters faced for pitchers
+        }
+        break;
       case 'gs': // Goalie starts
         totalAttempts += (stat.gp || 0);
         break;
@@ -1161,7 +1169,6 @@ export function getPlayerCareerAttemptsTotal(player: Player, percentageType: str
         totalAttempts += (stat as any).ab || 0; // At-bats for hitters
         break;
       case 'w':
-      case 'sv':
       case 'soPit':
       case 'era':
         totalAttempts += (stat as any).bf || 0; // Batters faced for pitchers
