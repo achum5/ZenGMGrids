@@ -663,8 +663,8 @@ function checkSeasonPercentage(player: Player, percentageType: string, newThresh
 
         // If no attempts recorded for this season, skip
         if (seasonAttempts === 0) continue;
-        // Ensure minimum attempts threshold is met
-        if (seasonAttempts < minAttempts) continue;
+        // Relax minimum attempts threshold for 3PT% season to allow smaller samples
+        if (percentageType !== 'tp' && seasonAttempts < minAttempts) continue;
 
         // Recompute percentage for this season (percentage variable)
         if (operator === '≤' && percentage <= newThreshold) {
