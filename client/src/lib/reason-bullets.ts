@@ -605,11 +605,15 @@ export function generateReasonBullets(
   
   // Generate bullet for column constraint
   const colBullet = generateSimpleBullet(player, colConstraint, teams, sport);
-  bullets.push(colBullet || { text: `N/A: ${colConstraint.label || colConstraint.achievementId || colConstraint.tid}`, type: 'category' });
+  if (colBullet) {
+    bullets.push(colBullet);
+  }
   
   // Generate bullet for row constraint  
   const rowBullet = generateSimpleBullet(player, rowConstraint, teams, sport);
-  bullets.push(rowBullet || { text: `N/A: ${rowConstraint.label || rowConstraint.achievementId || rowConstraint.tid}`, type: 'category' });
+  if (rowBullet) {
+    bullets.push(rowBullet);
+  }
   
   return bullets;
 }
@@ -682,7 +686,7 @@ function generateSimpleSeasonAchievementBullet(player: Player, achievementId: Se
   const seasons = getSeasonAchievementSeasons(player, achievementId, teams);
   
   if (seasons.length === 0) {
-    return { text: `Did not meet ${achLabel}`, type: 'award' };
+    return null;
   }
   
   const seasonStr = formatBulletSeasonList(seasons, false);
@@ -797,10 +801,9 @@ function generateSimpleCareerAchievementBullet(player: Player, achievementId: st
 
   // Case 1: Career Statistical Milestones
   if (statKey) {
-    if (!player.stats) {
-      return { text: `Did not meet ${constraintLabel || achievementId}`, type: 'award' };
-    }
-    const total = player.stats
+            if (!player.stats) {
+              return null;
+            }    const total = player.stats
       .filter(s => !s.playoffs)
       .reduce((acc, season) => {
         const statValue = statKey === 'tpm' ? ((season as any).tpm || (season as any).tp || 0) : ((season as any)[statKey] || 0);
@@ -812,12 +815,7 @@ function generateSimpleCareerAchievementBullet(player: Player, achievementId: st
     const originalAchievement = allAchievements.find(ach => ach.id === achievementId);
     
     if (!originalAchievement) {
-      // Fallback if something goes wrong
-      const fallbackStatName = achievementId.replace('career', '').replace(/([A-Z])/g, ' $1').trim();
-      return {
-        text: `${formatNumber(total)} ${fallbackStatName}`,
-        type: 'award'
-      };
+      return null;
     }
 
     const originalLabel = originalAchievement.label;
@@ -836,7 +834,7 @@ function generateSimpleCareerAchievementBullet(player: Player, achievementId: st
   // Case 2: Dynamic Longevity Achievements
   if (achievementId === 'played5PlusFranchises') {
     if (!player.stats) {
-      return { text: `Did not meet ${constraintLabel || 'Played for 5+ Franchises'}`, type: 'longevity' };
+      return null;
     }
     const franchiseCount = new Set(player.stats.filter(s => s.tid !== -1).map(s => s.tid)).size;
     return {
@@ -846,7 +844,7 @@ function generateSimpleCareerAchievementBullet(player: Player, achievementId: st
   }
   if (achievementId === 'played10PlusSeasons' || achievementId === 'played15PlusSeasons') {
     if (!player.stats) {
-      return { text: `Did not meet ${constraintLabel || 'Played 15+ Seasons'}`, type: 'longevity' };
+      return null;
     }
     const seasonCount = new Set(player.stats.filter(s => !s.playoffs).map(s => s.season)).size;
     return {
@@ -866,7 +864,7 @@ function generateSimpleCareerAchievementBullet(player: Player, achievementId: st
         type: 'award'
       };
     } else {
-      return { text: `Did not meet Hall of Fame`, type: 'award' };
+      return null;
     }
   }
 
@@ -910,11 +908,7 @@ function generateSimpleCareerAchievementBullet(player: Player, achievementId: st
   }
 
   // Default fallback for any other unhandled career achievements
-  const label = constraintLabel || achievementId;
-  return {
-    text: `Did not meet ${label}`, // Fallback for unhandled career achievements
-    type: 'award'
-  };
+  return null;
 }
 
 // Build a team bullet: Team Name (minYear–maxYear)
@@ -1048,7 +1042,7 @@ function generateDraftBullet(player: Player, achievementId: string): ReasonBulle
   };
   
   const label = draftLabels[achievementId];
-  if (!label) return { text: `Did not meet ${achievementId}`, type: 'draft' };
+  if (!label) return null;
   
   // Handle undrafted players - just show the year
   if (achievementId === 'isUndrafted') {
@@ -1081,7 +1075,7 @@ function generateDraftBullet(player: Player, achievementId: string): ReasonBulle
 
 function generateLongevityBullet(player: Player, achievementId: string): ReasonBullet | null {
   if (!player.stats) {
-    return { text: `Did not meet ${achievementId}`, type: 'longevity' };
+    return null;
   }
   
   if (achievementId === 'played5PlusFranchises') {
@@ -1120,7 +1114,7 @@ function generateLongevityBullet(player: Player, achievementId: string): ReasonB
 
 function generateHallOfFameBullet(player: Player): ReasonBullet | null {
   if (!player.awards || !Array.isArray(player.awards)) {
-    return { text: 'Did not meet Hall of Fame', type: 'award' };
+    return null;
   }
   
   // Find the Hall of Fame induction award
@@ -1129,7 +1123,7 @@ function generateHallOfFameBullet(player: Player): ReasonBullet | null {
   );
   
   if (!hofAward || !hofAward.season) {
-    return { text: 'Did not meet Hall of Fame', type: 'award' };
+    return null;
   }
   
   return {
@@ -1140,12 +1134,12 @@ function generateHallOfFameBullet(player: Player): ReasonBullet | null {
 
 function generateDecadeBullet(player: Player, achievementId: string, type: 'played' | 'debuted' | 'retired'): ReasonBullet | null {
   if (!player.stats || player.stats.length === 0) {
-    return { text: `Did not meet ${achievementId}`, type: 'decade' };
+    return null;
   }
   
   const regularSeasonStats = player.stats.filter(s => !s.playoffs && (s.gp || 0) > 0);
   if (regularSeasonStats.length === 0) {
-    return { text: `Did not meet ${achievementId}`, type: 'decade' };
+    return null;
   }
   
   let actualYear: number;
@@ -1177,7 +1171,7 @@ function generateDecadeBullet(player: Player, achievementId: string, type: 'play
     }
     labelText = `Retired in ${actualYear}`;
   } else {
-    return { text: `Did not meet ${achievementId}`, type: 'decade' };
+    return null;
   }
   
   return {
@@ -1293,7 +1287,7 @@ function generateSeasonThresholdBullet(player: Player, achievementId: string, sp
   
   const bestSeason = getBestSeason(player, threshold.stat, threshold.isMin);
   if (bestSeason.year === 0) {
-    return { text: `Did not meet ${constraintLabel || threshold.label}`, type: 'category' };
+    return null;
   }
   
   let valueStr = formatNumber(bestSeason.value);
@@ -1364,12 +1358,12 @@ function generateAwardBullet(player: Player, achievementId: string, sport: strin
   
   const award = awardMap[achievementId];
   if (!award) {
-    return { text: `Did not meet ${constraintLabel || achievementId}`, type: 'award' };
+    return null;
   }
   
   const seasons = getAwardSeasons(player, award.searchTerms);
   if (seasons.length === 0) {
-    return { text: `Did not meet ${constraintLabel || award.label}`, type: 'award' };
+    return null;
   }
   
   let seasonText = '';
