@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Copy, Download, Upload, Check, Clipboard } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/lib/hooks/use-toast';
 import type { CatTeam, LeagueData } from '@/types/bbgm';
 import { exportGrid, importGrid, generateGridCode, parseGridCode, detectSport, type SharedGrid } from '@/lib/grid-sharing';
 

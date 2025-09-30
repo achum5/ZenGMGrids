@@ -1160,12 +1160,8 @@ export function getPlayerCareerAttemptsTotal(player: Player, percentageType: str
       case 'r':
         totalAttempts += (stat as any).ab || 0; // At-bats for hitters
         break;
-      case 'w':
-      case 'sv':
       case 'soPit':
       case 'era':
-        totalAttempts += (stat as any).bf || 0; // Batters faced for pitchers
-        break;
       default:
         // For other types, assume 0 attempts if not explicitly handled
         break;

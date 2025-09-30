@@ -25,7 +25,7 @@ import { calculateOptimizedIntersection, type IntersectionConstraint, clearInter
 import { getSeasonEligiblePlayers, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 import { debugIndividualAchievements, playerMeetsAchievement, setCachedLeagueYears } from '@/lib/achievements';
 import { clearHintCache } from '@/lib/hint-generation';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/lib/hooks/use-toast';
 import type { LeagueData, CatTeam, CellState, Player, SearchablePlayer } from '@/types/bbgm';
 
 // Helper functions for attempt tracking

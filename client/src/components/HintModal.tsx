@@ -10,7 +10,7 @@ import type { Player, CatTeam, Team, LeagueData } from '@/types/bbgm';
 import type { SeasonIndex } from '@/lib/season-achievements';
 import { generateHintOptions, type HintOption, type HintGenerationResult } from '@/lib/hint-generation';
 import { playerMeetsAchievement } from '@/lib/achievements';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/lib/hooks/use-toast';
 
 // Helper function to create test functions for constraints if missing
 function createTestFunction(constraint: CatTeam, seasonIndex?: SeasonIndex): (player: Player) => boolean {
