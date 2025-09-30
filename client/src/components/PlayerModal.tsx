@@ -51,18 +51,24 @@ function generateFeedbackMessage(
     return `${player.name} ${rowPhraseMet.replace(`${player.name} `, '')}, but ${colPhraseNotMet.replace(`${player.name} `, '')}.`;
   } else if (!rowMet && colMet) {
     return `${player.name} ${colPhraseMet.replace(`${player.name} `, '')}, but ${rowPhraseNotMet.replace(`${player.name} `, '')}.`;
-  } else { // !rowMet && !colMet
-    const rowNegative = extractNegativeObjectAndVerb(rowPhraseNotMet, player.name);
-    const colNegative = extractNegativeObjectAndVerb(colPhraseNotMet, player.name);
+      } else { // !rowMet && !colMet
+        const rowNegative = extractNegativeObjectAndVerb(rowPhraseNotMet, player.name);
+        const colNegative = extractNegativeObjectAndVerb(colPhraseNotMet, player.name);
 
-    if (rowNegative.verb === colNegative.verb) {
-      // If verbs are the same, use "neither X nor Y"
-      return `${player.name} ${rowNegative.verb} neither ${rowNegative.object} nor ${colNegative.object}.`;
-    } else {
-      // If verbs are different, use the slightly more verbose but still correct structure
-      return `${player.name} ${rowPhraseNotMet.replace(`${player.name} `, '')}, nor ${colPhraseNotMet.replace(`${player.name} `, '')}.`;
-    }
-  }
+        if (rowNegative.verb === colNegative.verb) {
+          // If verbs are the same, use "neither X nor Y"
+          return `${player.name} ${rowNegative.verb} neither ${rowNegative.object} nor ${colNegative.object}.`;
+        } else {
+          // If verbs are different, use "nor did they..." or "nor was/is [player name]..."
+          let norClause = '';
+          if (colNegative.verb === 'was' || colNegative.verb === 'is') {
+            norClause = `nor ${colNegative.verb} ${player.name} ${colNegative.object}`;
+          } else {
+            norClause = `nor did they ${colNegative.verb} ${colNegative.object}`;
+          }
+          return `${rowPhraseNotMet.replace('.', '')}, ${norClause}.`;
+        }
+      }
 }
 
 // Helper to check if a player meets a constraint
@@ -324,7 +330,7 @@ function getAchievementDetails(
       years = combinedYears.length === 1 ? combinedYears[0].toString() : `${combinedYears[0]}–${combinedYears[combinedYears.length - 1]}`;
     }
   } else if (achievementId.includes('playedIn') && achievementId.endsWith('s')) {
-    const decadeMatch = achievementId.match(/playedIn(\\d{4})s/);
+    const decadeMatch = achievementId.match(/playedIn(\d{4})s/);
     if (decadeMatch) {
       const decade = parseInt(decadeMatch[1]);
       const playedSeasonsInDecade = player.stats?.filter(s => !s.playoffs && s.season >= decade && s.season < decade + 10).map(s => s.season).sort((a, b) => a - b) || [];
@@ -438,7 +444,7 @@ function getConstraintPhrase(
       } else {
         return `${playerName} never won the ${contestName}`;
       }
-    } else if (constraint.achievementId?.startsWith('Season')) {
+    } else if (constraint.achievementId?.startsWith('Season') || label.includes('(Season)')) {
       const seasonStatLabel = label.replace(' (Season)', '');
       const statName = seasonStatLabel.replace(/(\d+,?\d*\+?)/, '').trim().toLowerCase();
       const verb = achievementDetails.isAverage ? 'averaged' : 'had';
@@ -918,7 +924,7 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                         condensedAwards.push({ text: "ROY" });
                         break;
                       case "All-Star MVP":
-                        condensedAwards.push({ text: count > 1 ? `${count}x All-Star MVP` : "All-Star MVP" });
+                        condcondensedAwards.push({ text: count > 1 ? `${count}x All-Star MVP` : "All-Star MVP" });
                         break;
                       case "All-Star":
                         condensedAwards.push({ text: count > 1 ? `${count}x All-Star` : "All-Star" });
@@ -1196,28 +1202,12 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                       return (
                         <div 
                           key={eligiblePlayer.pid} 
-                          className={`flex justify-between items-center py-1 px-2 rounded ${
-                            isUserGuess 
-                              ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 italic font-medium" 
-                              : ""
-                          }`}
+                          className={`flex justify-between items-center py-1 px-2 rounded ${isUserGuess ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 italic font-medium" : ""}`}
                         >
                           <span className="flex-1">
                             {idx + 1}. {eligiblePlayer.name}
                           </span>
-                          <span className={`text-xs font-medium ml-2 ${
-                            rarity >= 1 && rarity <= 20 
-                              ? "text-red-600" 
-                              : rarity >= 21 && rarity <= 40 
-                                ? "text-orange-500"
-                                : rarity >= 41 && rarity <= 60 
-                                  ? "text-yellow-600" 
-                                  : rarity >= 61 && rarity <= 80 
-                                    ? "text-green-500" 
-                                    : rarity >= 81 && rarity <= 100 
-                                      ? "text-indigo-600" 
-                                      : "text-muted-foreground"
-                          }`}>
+                          <span className={`text-xs font-medium ml-2 ${rarity >= 1 && rarity <= 20 ? "text-red-600" : rarity >= 21 && rarity <= 40 ? "text-orange-500" : rarity >= 41 && rarity <= 60 ? "text-yellow-600" : rarity >= 61 && rarity <= 80 ? "text-green-500" : rarity >= 81 && rarity <= 100 ? "text-indigo-600" : "text-muted-foreground"}`}>
                             {rarity}
                           </span>
                         </div>
