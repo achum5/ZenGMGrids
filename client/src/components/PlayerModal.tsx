@@ -924,7 +924,7 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                         condensedAwards.push({ text: "ROY" });
                         break;
                       case "All-Star MVP":
-                        condcondensedAwards.push({ text: count > 1 ? `${count}x All-Star MVP` : "All-Star MVP" });
+                        condensedAwards.push({ text: count > 1 ? `${count}x All-Star MVP` : "All-Star MVP" });
                         break;
                       case "All-Star":
                         condensedAwards.push({ text: count > 1 ? `${count}x All-Star` : "All-Star" });
