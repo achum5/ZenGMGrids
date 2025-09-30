@@ -70,3 +70,41 @@ What to consider adding next (suggestions)
 
 Notes
 - This is a read-only report. No files were modified in this message.
+# Plan: Bugfix for 3PT% Season Custom Grid in Create Custom Grid Modal
+
+Summary
+- There is a bug where editing the operator or threshold for a 3PT percentage season achievement in the customizable grid does not update the eligibility calculations. This likely stems from not propagating the operator through the onNumberChange path, causing the custom test to be rebuilt with stale parameters or not rebuilt at all.
+
+Root cause hypothesis
+- EditableAchievementLabel currently calls onNumberChange(newNumber, newLabel) without passing the operator context.
+- The grid logic relies on the operator to recreate the custom achievement test (e.g., using createCustomNumericalAchievement with the correct operator). Without the operator, the test function may continue using the old threshold/operator logic and not reflect changes immediately.
+- The caching layer for custom intersections may also cache results keyed by operator; if operator isn’t updated, cached results won’t reflect the new operator/threshold.
+
+What I plan to change
+- Change: Propagate operator context through EditableAchievementLabel so the parent can rebuild the custom achievement when number or operator changes.
+- Files to modify:
+  1) client/src/components/editable-achievement-label.tsx
+     - Add an optional operator prop: operator?: '≥' | '≤'
+     - Extend onNumberChange signature to: (newNumber: number, newLabel: string, operator?: '≥' | '≤') => void
+     - When invoking onNumberChange after edits, pass the operator prop along.
+  2) Ensure usage sites pass the operator prop to EditableAchievementLabel where available
+     - If needed, adjust any call sites to forward operator so the new third parameter is populated.
+- Why this fixes the bug
+  - The createCustomNumericalAchievement path already supports an operator and will re-create the test function with the new threshold and operator. By ensuring the operator is always passed through, edits to the operator or threshold will cause a fresh custom achievement to be created, which updates eligibilities immediately rather than relying on stale data or cached results.
+- Optional follow-up (if needed after this change)
+  - Review the custom grid’s cache keys to ensure operator changes invalidate relevant caches (or rely on the new test function generation to re-run calculations).
+  - Add a small regression test to simulate editing 3PT% (Season) with a new threshold and operator and verify computed eligibility updates.
+- Testing plan (manual)
+  - Open the Create Custom Grid modal.
+  - Locate a 3PT% (Season) editable achievement.
+  - Change the threshold from 40 to 5 and switch operator to ≤.
+  - Verify that the grid cells re-calculate and reflect the new eligible player count, instead of remaining at the previous set.
+  - Repeat with operator ≥ and different thresholds to confirm dynamic updates.
+
+Questions for you
+- Is it okay to add an optional operator prop to EditableAchievementLabel and pass it through from all usage sites, so we can always re-build the custom achievement when the user changes the threshold or operator?
+- If there are existing usage sites that do not pass operator, should we default operator to undefined and rely on the existing non-custom path, or should we enforce passing an operator everywhere for clarity?
+
+Notes
+- This plan is scoped to fix the 3PT% (Season) case without changing other behaviors.
+- After you approve, I will provide the exact SEARCH/REPLACE blocks to implement these changes.

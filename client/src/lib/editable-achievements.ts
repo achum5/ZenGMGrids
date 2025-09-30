@@ -641,20 +641,32 @@ function checkSeasonPercentage(player: Player, percentageType: string, newThresh
         percentage = (computedStats as any)[percentageType] || 0;
         
         // Ensure there was at least one attempt for this season for percentages
+        // Determine per-season attempts for percentage calculation
         let seasonAttempts = 0;
         switch (percentageType) {
-          case 'savePct':
-            seasonAttempts = (rawStat as any)?.sa || 0;
+          case 'fg':
+            seasonAttempts = (stat as any).fga || 0;
             break;
-          case 'faceoffPct':
-            seasonAttempts = ((rawStat as any)?.fow || 0) + ((rawStat as any)?.fol || 0);
+          case 'efg':
+            seasonAttempts = (stat as any).fga || 0;
             break;
-          default:
-            seasonAttempts = 1; // Assume 1 for other computed percentages if no direct attempt stat
+          case 'ts':
+            seasonAttempts = (stat as any).fga || 0; // approximate
+            break;
+          case 'tp':
+            seasonAttempts = (stat as any).tpa || 0;
+            break;
+          case 'ft':
+            seasonAttempts = (stat as any).fta || 0;
+            break;
         }
 
-        if (seasonAttempts === 0) continue; // Skip season if no attempts
+        // If no attempts recorded for this season, skip
+        if (seasonAttempts === 0) continue;
+        // Ensure minimum attempts threshold is met
+        if (seasonAttempts < minAttempts) continue;
 
+        // Recompute percentage for this season (percentage variable)
         if (operator === '≤' && percentage <= newThreshold) {
           return true;
         } else if (operator === '≥' && percentage >= newThreshold) {
