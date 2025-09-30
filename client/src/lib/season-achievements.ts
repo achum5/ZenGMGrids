@@ -1394,16 +1394,33 @@ export function buildSeasonIndex(
   ).length;
   
   // Add stats-based achievements like 250+ 3PM Season
+  // 3PT percentage season eligibility (Season40_3PT200_3PA)
+  // Allow qualification with at least 1 three-point attempt in the season
   for (const player of players) {
     if (!player.stats || player.stats.length === 0) continue;
-    
+
     for (const seasonStat of player.stats) {
       if (seasonStat.playoffs) continue; // Only regular season
-      if ((seasonStat.gp || 0) === 0) continue; // Must have played games
-      
+      // We require at least one three-point attempt to consider eligibility
+      const attempts = (seasonStat as any).tpa ?? (seasonStat as any).tpA ?? 0;
+      if ((seasonStat.gp || 0) === 0 && attempts < 1) continue; // Ensure we have data
+
       const season = seasonStat.season;
-      const tid = seasonStat.tid;
-      
+
+      // Compute 3PT made/attempts with fallbacks
+      const made = ((seasonStat as any).tpm ?? (seasonStat as any).tp ?? 0) as number;
+      const threePA = attempts;
+      if (threePA >= 1) {
+        const pct = threePA > 0 ? made / threePA : 0;
+        if (pct >= 0.40) {
+          const primaryTeam = resolvePrimaryTeamForSeason(player, season);
+          if (primaryTeam === null) continue;
+          if (!seasonIndex[season]) seasonIndex[season] = {};
+          if (!seasonIndex[season][primaryTeam]) seasonIndex[season][primaryTeam] = {} as Record<SeasonAchievementId, Set<number>>;
+          if (!seasonIndex[season][primaryTeam]['Season40_3PT200_3PA']) seasonIndex[season][primaryTeam]['Season40_3PT200_3PA'] = new Set();
+          seasonIndex[season][primaryTeam]['Season40_3PT200_3PA'].add(player.pid);
+        }
+      }
     }
   }
   
