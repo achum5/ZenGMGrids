@@ -81,6 +81,7 @@ export function getAchievementOptions(
       achievement.id !== 'SFMVP' && // Exclude Superstar Finals MVP
       achievement.id !== 'career10kRebounds' && // 10k+ career rebounds returns 0 players
       achievement.id !== 'Season22PPG' && // 22+ ppg in a season returns 0 players
+      achievement.id !== 'Season3PPercent' && // 3pt% in a season achievement
       achievement.id !== 'RandomPoints25000pts' && // 25k+ career points returns 0 players  
       achievement.id !== 'RandomRebounds6000trb' && // 6k+ career rebounds returns 0 players
       // Remove duplicate lower-tier random achievements (keep only highest thresholds)
