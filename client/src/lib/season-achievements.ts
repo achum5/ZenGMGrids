@@ -2081,3 +2081,37 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
 
   return result;
 }
+  // 3PT percentage season eligibility (Season40_3PT200_3PA)
+  // Allow customization for thresholds
+  const SEASON_3PT_CONFIG: Partial<Record<SeasonAchievementId, { minAtt: number; threshold: number }>> = {
+    Season40_3PT200_3PA: { minAtt: 200, threshold: 0.40 }
+  };
+
+  for (const player of players) {
+    if (!player.stats || player.stats.length === 0) continue;
+
+    for (const seasonStat of player.stats) {
+      if (seasonStat.playoffs) continue; // Only regular season
+      // We require minimum attempts per config
+      const attempts = (seasonStat as any).tpa ?? (seasonStat as any).tpA ?? 0;
+      if ((seasonStat.gp || 0) === 0 && attempts < (SEASON_3PT_CONFIG.Season40_3PT200_3PA?.minAtt ?? 1)) continue;
+
+      const season = seasonStat.season;
+
+      // Compute 3PT made/attempts with fallbacks
+      const made = ((seasonStat as any).tpm ?? (seasonStat as any).tp ?? 0) as number;
+      const threePA = attempts;
+      if (threePA >= (SEASON_3PT_CONFIG.Season40_3PT200_3PA?.minAtt ?? 1)) {
+        const pct = threePA > 0 ? made / threePA : 0;
+        const cfg = SEASON_3PT_CONFIG.Season40_3PT200_3PA ?? { minAtt: 1, threshold: 0.40 };
+        if (pct >= cfg.threshold) {
+          const primaryTeam = resolvePrimaryTeamForSeason(player, season);
+          if (primaryTeam === null) continue;
+          if (!seasonIndex[season]) seasonIndex[season] = {};
+          if (!seasonIndex[season][primaryTeam]) seasonIndex[season][primaryTeam] = {} as Record<SeasonAchievementId, Set<number>>;
+          if (!seasonIndex[season][primaryTeam]['Season40_3PT200_3PA']) seasonIndex[season][primaryTeam]['Season40_3PT200_3PA'] = new Set();
+          seasonIndex[season][primaryTeam]['Season40_3PT200_3PA'].add(player.pid);
+        }
+      }
+    }
+  }
