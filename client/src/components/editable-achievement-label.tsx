@@ -38,7 +38,7 @@ export function EditableAchievementLabel({
     
     const newNumber = parseFloat(inputValue) || 0;
     if (newNumber !== parsed.number && onNumberChange) {
-      const newLabel = generateUpdatedLabel(parsed, newNumber);
+      const newLabel = generateUpdatedLabel(parsed, newNumber).trim();
       onNumberChange(newNumber, newLabel);
     }
   }, [inputValue, parsed, onNumberChange]);
@@ -131,7 +131,7 @@ export function EditableAchievementLabelNoPlus({
     
     const newNumber = parseFloat(inputValue) || 0;
     if (newNumber !== parsed.number && onNumberChange) {
-      const newLabel = generateUpdatedLabel(parsed, newNumber);
+      const newLabel = generateUpdatedLabel(parsed, newNumber).trim();
       onNumberChange(newNumber, newLabel);
     }
   }, [inputValue, parsed, onNumberChange]);
