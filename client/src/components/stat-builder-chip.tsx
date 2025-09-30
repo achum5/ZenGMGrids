@@ -277,8 +277,8 @@ export function StatBuilderChip({
     const newNumber = parseFloat(inputValue);
     const originalOperator = parseOperator(parsed.originalLabel);
     
-    // Trigger only if number changed or operator changed
-    if (newNumber !== parsed.number || operator !== originalOperator) {
+    // Trigger only if number changed or operator changed or user input differs from baseline
+    if (newNumber !== parsed.number || operator !== originalOperator || inputValue !== parsed.number.toString()) {
       const newLabelRaw = generateUpdatedLabel(parsed, newNumber, operator);
       const newLabel = (newLabelRaw ?? '').trim();
       // Use setTimeout to avoid setState during render
