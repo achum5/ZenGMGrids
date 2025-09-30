@@ -218,7 +218,36 @@ export function headerConfigToCatTeam(
           // For custom achievements, use the custom achievement's test function directly
           // Fix: Ensure playerMeetsAchievement is used for Season3PPercent to handle season filtering correctly
           if (achievementToUse.id === 'Season3PPercent') {
-            return playerMeetsAchievement(p, achievementToUse.id as string, seasonIndex, config.operator === '≤' ? '<=' : '>=');
+            // Use a custom test that properly handles season filtering and percentage threshold
+            // The customAchievement.test may not handle season filtering correctly, so override here
+            if (!seasonIndex) return false;
+            const seasonIds = Object.keys(seasonIndex);
+            for (const seasonStr of seasonIds) {
+              const seasonNum = parseInt(seasonStr);
+              if (seasonNum === undefined || isNaN(seasonNum)) continue;
+              const achievementsForSeason = seasonIndex[seasonNum];
+              if (!achievementsForSeason) continue;
+              const playersWithAchievement = achievementsForSeason[achievementToUse.id];
+              if (!playersWithAchievement) continue;
+              if (playersWithAchievement.has(p.pid)) {
+                // Now check if player's 3pt% in that season meets the operator and threshold
+                // We must get player's stats for that season and calculate 3pt%
+                if (!p.stats) continue;
+                const seasonStats = p.stats.find(s => s.season === seasonNum && !s.playoffs);
+                if (!seasonStats) continue;
+                const threePM = seasonStats.fg3m ?? 0;
+                const threePA = seasonStats.fg3a ?? 0;
+                if (threePA === 0) continue;
+                const threePct = (threePM / threePA) * 100;
+                if (config.operator === '≤' && threePct <= (config.customAchievement?.threshold ?? 0)) {
+                  return true;
+                }
+                if (config.operator === '≥' && threePct >= (config.customAchievement?.threshold ?? 0)) {
+                  return true;
+                }
+              }
+            }
+            return false;
           }
           return config.customAchievement.test(p);
         } else {
