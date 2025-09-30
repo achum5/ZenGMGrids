@@ -10,6 +10,7 @@ export interface Achievement {
   test: (player: Player) => boolean;
   minPlayers: number;
   isSeasonSpecific?: boolean;
+  operator?: '≥' | '≤';
 }
 
 // Extended achievement interface for season-specific achievements

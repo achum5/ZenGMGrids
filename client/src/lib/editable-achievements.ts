@@ -175,7 +175,8 @@ export function createCustomNumericalAchievement(
     ...baseAchievement,
     id: `${baseAchievement.id}_custom_${newThreshold}_${operatorStr}`,
     label: newLabel,
-    test: newTestFunction
+    test: newTestFunction,
+    operator
   };
 }
 
