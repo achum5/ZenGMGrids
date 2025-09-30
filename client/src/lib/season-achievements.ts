@@ -2045,4 +2045,22 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
     isSeasonSpecific: true,
     minPlayers: 3
   }
-];
+];export function getThreePtPctBySeason(player: Player): Record<number, number> {
+  const result: Record<number, number> = {};
+  if (!player.stats) return result;
+
+  for (const stat of player.stats) {
+    // Only regular season data
+    const season = (stat as any).season;
+    if (!season || (stat as any).playoffs) continue;
+
+    const made = ((stat as any).tpm ?? (stat as any).tp ?? 0) as number;
+    const att = ((stat as any).tpa ?? 0) as number;
+
+    if (att > 0) {
+      result[season] = made / att;
+    }
+  }
+
+  return result;
+}
