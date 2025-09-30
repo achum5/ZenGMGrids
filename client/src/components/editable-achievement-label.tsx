@@ -3,16 +3,18 @@ import { parseAchievementLabel, generateUpdatedLabel, type ParsedAchievement } f
 
 interface EditableAchievementLabelProps {
   label: string;
-  onNumberChange?: (newNumber: number, newLabel: string) => void;
+  onNumberChange?: (newNumber: number, newLabel: string, operator?: '≥' | '≤') => void;
   className?: string;
   sport?: string;
+  operator?: '≥' | '≤';
 }
 
 export function EditableAchievementLabel({ 
   label, 
   onNumberChange, 
   className,
-  sport
+  sport,
+  operator
 }: EditableAchievementLabelProps) {
   const [parsed, setParsed] = useState<ParsedAchievement>(() => parseAchievementLabel(label, sport));
   const [inputValue, setInputValue] = useState<string>(() => parsed.number.toString());
@@ -35,13 +37,13 @@ export function EditableAchievementLabel({
 
   const handleInputBlur = useCallback(() => {
     setIsEditing(false);
-    
+  
     const newNumber = parseFloat(inputValue) || 0;
     if (newNumber !== parsed.number && onNumberChange) {
-      const newLabel = generateUpdatedLabel(parsed, newNumber);
-      onNumberChange(newNumber, newLabel);
+      const newLabel = generateUpdatedLabel(parsed, newNumber, operator);
+      onNumberChange(newNumber, newLabel, operator);
     }
-  }, [inputValue, parsed, onNumberChange]);
+  }, [inputValue, parsed, onNumberChange, operator]);
 
   const handleInputFocus = useCallback(() => {
     setIsEditing(true);
@@ -105,7 +107,8 @@ export function EditableAchievementLabelNoPlus({
   label, 
   onNumberChange, 
   className,
-  sport
+  sport,
+  operator
 }: EditableAchievementLabelProps) {
   const [parsed, setParsed] = useState<ParsedAchievement>(() => parseAchievementLabel(label, sport));
   const [inputValue, setInputValue] = useState<string>(() => parsed.number.toString());
@@ -128,13 +131,13 @@ export function EditableAchievementLabelNoPlus({
 
   const handleInputBlur = useCallback(() => {
     setIsEditing(false);
-    
+  
     const newNumber = parseFloat(inputValue) || 0;
     if (newNumber !== parsed.number && onNumberChange) {
-      const newLabel = generateUpdatedLabel(parsed, newNumber);
-      onNumberChange(newNumber, newLabel);
+      const newLabel = generateUpdatedLabel(parsed, newNumber, operator);
+      onNumberChange(newNumber, newLabel, operator);
     }
-  }, [inputValue, parsed, onNumberChange]);
+  }, [inputValue, parsed, onNumberChange, operator]);
 
   const handleInputFocus = useCallback(() => {
     setIsEditing(true);
