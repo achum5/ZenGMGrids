@@ -1,8 +1,8 @@
+import type { JerseyInfo } from './jersey-utils';
+
 let facesLib: any | null = null;
 const svgCache = new Map<number, string>();   // pid -> svg
 const urlCache = new Map<number, string>();   // pid -> url
-
-import type { JerseyInfo } from './jersey-utils';
 
 export type PlayerLite = { 
   pid: number; 
@@ -10,8 +10,7 @@ export type PlayerLite = {
   imgURL?: string | null; 
   face?: any | null;
   jerseyInfo?: JerseyInfo;
-};
-
+}; 
 
 export function normalizeSvg(svg: string) {
   // Remove fixed sizing so it can scale with CSS; keep viewBox
