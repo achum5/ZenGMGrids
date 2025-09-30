@@ -265,7 +265,7 @@ export function StatBuilderChip({
 
 
 
-  // Commit value changes; ensure we propagate changes even if number stays same to fix missed updates
+  // Commit value changes; propagate only when number changes or operator changes
   const commitValue = useCallback(() => {
     const validationResult = validateInput(inputValue, validation);
     
@@ -277,13 +277,13 @@ export function StatBuilderChip({
     const newNumber = parseFloat(inputValue);
     const originalOperator = parseOperator(parsed.originalLabel);
     
-    // Always propagate a change when validation passes to ensure UI updates
-    if (onNumberChange) {
+    // Trigger only if number changed or operator changed
+    if (newNumber !== parsed.number || operator !== originalOperator) {
       const newLabelRaw = generateUpdatedLabel(parsed, newNumber, operator);
       const newLabel = (newLabelRaw ?? '').trim();
       // Use setTimeout to avoid setState during render
       setTimeout(() => {
-        onNumberChange(newNumber, newLabel, operator);
+        onNumberChange?.(newNumber, newLabel, operator);
       }, 0);
     }
     
