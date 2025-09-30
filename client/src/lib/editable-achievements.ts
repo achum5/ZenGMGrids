@@ -127,7 +127,8 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
         mainSuffix = cleanSuffix.replace(/\(career\)/gi, '').trim();
       }
 
-      let result = `${formattedNumber} ${cleanPrefix} ${mainSuffix} or fewer`;
+      let resultSuffix = mainSuffix.replace(/^\+\s*/, '').trim(); // Remove leading '+'
+      let result = `${formattedNumber} ${cleanPrefix} ${resultSuffix} or fewer`;
       if (contextWord) {
         result += ` (${contextWord})`;
       }
