@@ -216,6 +216,10 @@ export function headerConfigToCatTeam(
       test: (p: Player) => {
         if (config.customAchievement) {
           // For custom achievements, use the custom achievement's test function directly
+          // Fix: Ensure playerMeetsAchievement is used for Season3PPercent to handle season filtering correctly
+          if (achievementToUse.id === 'Season3PPercent') {
+            return playerMeetsAchievement(p, achievementToUse.id as string, seasonIndex, config.operator === '≤' ? '<=' : '>=');
+          }
           return config.customAchievement.test(p);
         } else {
           // For regular achievements, use the standard function
