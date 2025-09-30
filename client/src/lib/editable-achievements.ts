@@ -618,7 +618,7 @@ function checkSeasonPercentage(player: Player, percentageType: string, newThresh
   if (!player.stats) return false;
 
   // Ensure player has at least one attempt for this percentage stat in their career
-  const careerAttempts = getPlayerCareerAttemptsTotal(player, percentageType);
+  const careerAttempts = getPlayerCareerAttemptsTotal(player, percentageType, sport || 'basketball');
   if (careerAttempts === 0) {
     return false;
   }
