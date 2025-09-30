@@ -444,9 +444,9 @@ function generateTestFunction(
         // Free throw percentage
         return (player: Player) => checkSeasonPercentage(player, 'ft', thresholdDecimal, operator, 10, 1, sport);
       }
-      if (originalLabel.includes('3pt') || (originalLabel.includes('3p') && originalLabel.includes('%'))) {
+      if ((originalLabel.includes('3pt') || originalLabel.includes('3p')) && originalLabel.includes('%')) {
         // 3-point percentage
-        return (player: Player) => checkSeasonPercentage(player, 'tp', thresholdDecimal, operator, 10, 50, sport);
+        return (player: Player) => checkSeasonPercentage(player, 'tp', thresholdDecimal, operator, 1, 1, sport);
       }
     }
   }
