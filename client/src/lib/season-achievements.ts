@@ -1394,33 +1394,16 @@ export function buildSeasonIndex(
   ).length;
   
   // Add stats-based achievements like 250+ 3PM Season
-  // 3PT percentage season eligibility (Season40_3PT200_3PA)
-  // Allow qualification with at least 1 three-point attempt in the season
   for (const player of players) {
     if (!player.stats || player.stats.length === 0) continue;
-
+    
     for (const seasonStat of player.stats) {
       if (seasonStat.playoffs) continue; // Only regular season
-      // We require at least one three-point attempt to consider eligibility
-      const attempts = (seasonStat as any).tpa ?? (seasonStat as any).tpA ?? 0;
-      if ((seasonStat.gp || 0) === 0 && attempts < 1) continue; // Ensure we have data
-
+      if ((seasonStat.gp || 0) === 0) continue; // Must have played games
+      
       const season = seasonStat.season;
-
-      // Compute 3PT made/attempts with fallbacks
-      const made = ((seasonStat as any).tpm ?? (seasonStat as any).tp ?? 0) as number;
-      const threePA = attempts;
-      if (threePA >= 1) {
-        const pct = threePA > 0 ? made / threePA : 0;
-        if (pct >= 0.40) {
-          const primaryTeam = resolvePrimaryTeamForSeason(player, season);
-          if (primaryTeam === null) continue;
-          if (!seasonIndex[season]) seasonIndex[season] = {};
-          if (!seasonIndex[season][primaryTeam]) seasonIndex[season][primaryTeam] = {} as Record<SeasonAchievementId, Set<number>>;
-          if (!seasonIndex[season][primaryTeam]['Season40_3PT200_3PA']) seasonIndex[season][primaryTeam]['Season40_3PT200_3PA'] = new Set();
-          seasonIndex[season][primaryTeam]['Season40_3PT200_3PA'].add(player.pid);
-        }
-      }
+      const tid = seasonStat.tid;
+      
     }
   }
   
@@ -2062,56 +2045,4 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
     isSeasonSpecific: true,
     minPlayers: 3
   }
-];export function getThreePtPctBySeason(player: Player): Record<number, number> {
-  const result: Record<number, number> = {};
-  if (!player.stats) return result;
-
-  for (const stat of player.stats) {
-    // Only regular season data
-    const season = (stat as any).season;
-    if (!season || (stat as any).playoffs) continue;
-
-    const made = ((stat as any).tpm ?? (stat as any).tp ?? 0) as number;
-    const att = ((stat as any).tpa ?? 0) as number;
-
-    if (att > 0) {
-      result[season] = made / att;
-    }
-  }
-
-  return result;
-}
-  // 3PT percentage season eligibility (Season40_3PT200_3PA)
-  // Allow customization for thresholds
-  const SEASON_3PT_CONFIG: Partial<Record<SeasonAchievementId, { minAtt: number; threshold: number }>> = {
-    Season40_3PT200_3PA: { minAtt: 200, threshold: 0.40 }
-  };
-
-  for (const player of players) {
-    if (!player.stats || player.stats.length === 0) continue;
-
-    for (const seasonStat of player.stats) {
-      if (seasonStat.playoffs) continue; // Only regular season
-      // We require minimum attempts per config
-      const attempts = (seasonStat as any).tpa ?? (seasonStat as any).tpA ?? 0;
-      if ((seasonStat.gp || 0) === 0 && attempts < (SEASON_3PT_CONFIG.Season40_3PT200_3PA?.minAtt ?? 1)) continue;
-
-      const season = seasonStat.season;
-
-      // Compute 3PT made/attempts with fallbacks
-      const made = ((seasonStat as any).tpm ?? (seasonStat as any).tp ?? 0) as number;
-      const threePA = attempts;
-      if (threePA >= (SEASON_3PT_CONFIG.Season40_3PT200_3PA?.minAtt ?? 1)) {
-        const pct = threePA > 0 ? made / threePA : 0;
-        const cfg = SEASON_3PT_CONFIG.Season40_3PT200_3PA ?? { minAtt: 1, threshold: 0.40 };
-        if (pct >= cfg.threshold) {
-          const primaryTeam = resolvePrimaryTeamForSeason(player, season);
-          if (primaryTeam === null) continue;
-          if (!seasonIndex[season]) seasonIndex[season] = {};
-          if (!seasonIndex[season][primaryTeam]) seasonIndex[season][primaryTeam] = {} as Record<SeasonAchievementId, Set<number>>;
-          if (!seasonIndex[season][primaryTeam]['Season40_3PT200_3PA']) seasonIndex[season][primaryTeam]['Season40_3PT200_3PA'] = new Set();
-          seasonIndex[season][primaryTeam]['Season40_3PT200_3PA'].add(player.pid);
-        }
-      }
-    }
-  }
+];

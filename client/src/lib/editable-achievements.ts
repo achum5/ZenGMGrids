@@ -444,9 +444,9 @@ function generateTestFunction(
         // Free throw percentage
         return (player: Player) => checkSeasonPercentage(player, 'ft', thresholdDecimal, operator, 10, 1, sport);
       }
-      if ((originalLabel.includes('3pt') || originalLabel.includes('3p')) && originalLabel.includes('%')) {
+      if (originalLabel.includes('3pt') || (originalLabel.includes('3p') && originalLabel.includes('%'))) {
         // 3-point percentage
-        return (player: Player) => checkSeasonPercentage(player, 'tp', thresholdDecimal, operator, 1, 1, sport);
+        return (player: Player) => checkSeasonPercentage(player, 'tp', thresholdDecimal, operator, 10, 50, sport);
       }
     }
   }
@@ -618,7 +618,7 @@ function checkSeasonPercentage(player: Player, percentageType: string, newThresh
   if (!player.stats) return false;
 
   // Ensure player has at least one attempt for this percentage stat in their career
-  const careerAttempts = getPlayerCareerAttemptsTotal(player, percentageType, sport || 'basketball');
+  const careerAttempts = getPlayerCareerAttemptsTotal(player, percentageType);
   if (careerAttempts === 0) {
     return false;
   }
