@@ -435,16 +435,18 @@ function generateTestFunction(
       // Percentage achievements - convert user's percentage input (e.g., 40) to decimal (0.40)
       const thresholdDecimal = newThreshold / 100;
 
+      // Use a robust lower-cased check to handle variations like "3PT" vs "3pt" in labels
+      const lower = originalLabel;
 
-      if (originalLabel.includes('efg')) {
+      if (lower.includes('efg')) {
         // Effective field goal percentage
         return (player: Player) => checkSeasonPercentage(player, 'efg', thresholdDecimal, operator, 10, 1, sport);
       }
-      if (originalLabel.includes('ft') && originalLabel.includes('%')) {
+      if (lower.includes('ft') && lower.includes('%')) {
         // Free throw percentage
         return (player: Player) => checkSeasonPercentage(player, 'ft', thresholdDecimal, operator, 10, 1, sport);
       }
-      if (originalLabel.includes('3pt') || (originalLabel.includes('3p') && originalLabel.includes('%'))) {
+      if (lower.includes('3pt') || (lower.includes('3p') && lower.includes('%'))) {
         // 3-point percentage
         return (player: Player) => checkSeasonPercentage(player, 'tp', thresholdDecimal, operator, 10, 50, sport);
       }
