@@ -100,11 +100,9 @@ function getConstraintLabel(
     const team = teams.find(t => t.tid === constraint.tid);
     return constraint.label || (team ? `${team.region} ${team.name}` : `Team ${constraint.tid}`);
   } else if (constraint.type === 'achievement') {
-    if (!constraint.achievementId) return 'Unknown Achievement'; // Add null check
     const achievement = allAchievements.find(a => a.id === constraint.achievementId);
     if (achievement) {
-      const parsed = parseAchievementLabel(achievement.label, getCachedSportDetection() || 'basketball');
-      return parsed.isEditable ? `${parsed.prefix}${parsed.number}${parsed.suffix}` : parsed.originalLabel;
+      return parseAchievementLabel(achievement.label, getCachedSportDetection() || 'basketball').fullLabel;
     }
     return constraint.label || constraint.achievementId || 'Unknown Achievement';
   }
@@ -122,8 +120,7 @@ function getAchievementDetails(
   const achievement = allAchievements.find(a => a.id === achievementId);
   if (!achievement) return null;
 
-  const parsedLabel = parseAchievementLabel(achievement.label, sport);
-  const baseLabel = parsedLabel.isEditable ? `${parsedLabel.prefix}${parsedLabel.number}${parsedLabel.suffix}` : parsedLabel.originalLabel || achievement.label || achievementId || 'Unknown Achievement';
+  const baseLabel = parseAchievementLabel(achievement.label, sport).fullLabel || achievement.label || achievementId || 'Unknown Achievement';
   let value: string | number | undefined;
   let years: string | undefined;
   let isPlural = false;
@@ -656,8 +653,8 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
         return null;
       }
 
-      let rowConstraint: CatTeam | undefined;
-      let colConstraint: CatTeam | undefined;
+      let rowConstraint: any;
+      let colConstraint: any;
       
       if (currentCellKey.includes('|')) {
         // Traditional format: "rowKey|colKey"
@@ -722,7 +719,7 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
             label: colConstraint.label
           },
           Array.isArray(teams) ? teams : [],
-          sport as 'basketball' | 'football' | 'hockey' | 'baseball' | undefined || 'basketball'
+          sport || 'basketball'
         );
 
         return {

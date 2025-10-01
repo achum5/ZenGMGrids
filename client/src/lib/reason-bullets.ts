@@ -865,9 +865,74 @@ function generateSimpleCareerAchievementBullet(player: Player, achievementId: st
     };
   }
 
+// Build a team bullet: Team Name (minYear–maxYear)
+function buildTeamBullet(player: Player, teamTid: number, teams: Team[], constraintLabel?: string): ReasonBullet | null {
+  if (!player.stats) return null;
+  
+  const teamSeasons = player.stats
+    .filter(s => s.tid === teamTid && !s.playoffs && (s.gp || 0) > 0)
+    .map(s => s.season)
+    .sort((a, b) => a - b);
+  
+  if (teamSeasons.length === 0) return null;
+  
+  const team = teams.find(t => t.tid === teamTid);
+  const teamName = constraintLabel || (team ? `${team.region} ${team.name}` : `Team ${teamTid}`);
+  
+  const seasonRange = teamSeasons.length === 1 
+    ? teamSeasons[0].toString()
+    : `${teamSeasons[0]}–${teamSeasons[teamSeasons.length - 1]}`;
+  
+  return {
+    text: `${teamName} (${seasonRange})`,
+    type: 'team'
+  };
+}
 
+// Build a season achievement bullet: Award Label (season list with playoff teams for Finals/CFMVP)
+function buildSeasonAchievementBullet(player: Player, achievementId: SeasonAchievementId, teams: Team[], constraintLabel?: string): ReasonBullet | null {
+  const achLabel = constraintLabel || SEASON_ACHIEVEMENT_LABELS[achievementId];
+  const seasons = getSeasonAchievementSeasons(player, achievementId, teams);
+  
+  if (seasons.length === 0) return null;
+  
+  const isPlayoffAward = achievementId === 'FinalsMVP' || achievementId === 'SFMVP' || 
+                        achievementId === 'FBFinalsMVP' || achievementId === 'HKPlayoffsMVP' || 
+                        achievementId === 'BBPlayoffsMVP' || achievementId === 'FBChampion' || 
+                        achievementId === 'HKChampion' || achievementId === 'BBChampion';
+  const seasonStr = formatBulletSeasonList(seasons, isPlayoffAward);
+  
+  return {
+    text: `${achLabel} (${seasonStr})`,
+    type: 'award'
+  };
+}
 
+// Build a career/misc achievement bullet: Award Label (value)
+function buildCareerAchievementBullet(player: Player, achievementId: string, teams: Team[], sport: string, constraintLabel?: string): ReasonBullet | null {
+  // Use existing achievement bullet generation logic
+  return generateAchievementBullet(player, achievementId, teams, sport, constraintLabel);
+}
 
+// Legacy function for compatibility
+function generateCategoryBullet(
+  player: Player,
+  constraint: GridConstraint,
+  teams: Team[],
+  sport: string
+): ReasonBullet | null {
+  if (constraint.type === 'team') {
+    return buildTeamBullet(player, constraint.tid!, teams, constraint.label);
+  } else if (constraint.type === 'achievement') {
+    if (isSeasonAchievement(constraint.achievementId!)) {
+      return buildSeasonAchievementBullet(player, constraint.achievementId! as SeasonAchievementId, teams, constraint.label);
+    } else {
+      return buildCareerAchievementBullet(player, constraint.achievementId!, teams, sport, constraint.label);
+    }
+  }
+  
+  return null;
+}
 
 
 function generateAchievementBullet(

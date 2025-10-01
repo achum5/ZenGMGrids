@@ -1,7 +1,8 @@
 import type { LeagueData, CatTeam, Player, Team } from '@/types/bbgm';
 import { getViableAchievements, playerMeetsAchievement, getAllAchievements, type Achievement, debugIndividualAchievements } from '@/lib/achievements';
-import { calculateOptimizedIntersection, type IntersectionConstraint } from '@/lib/intersection-cache';
+import { evaluateConstraintPair, GridConstraint } from '@/lib/feedback';
 import { getSeasonEligiblePlayers, type SeasonAchievementId, type SeasonIndex, SEASON_ACHIEVEMENTS } from './season-achievements';
+import { calculateOptimizedIntersection, type IntersectionConstraint } from '@/lib/intersection-cache';
 
 // Define conflicting achievement sets at module level
 const draftAchievements = new Set(['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen']);
@@ -1436,8 +1437,8 @@ function validateAchievementIntersection(
 
 // Helper function to calculate intersection between two constraints (optimized version)
 function calculateIntersectionSimple(
-  rowConstraint: CatTeam,
-  colConstraint: CatTeam,
+  rowConstraint: any,
+  colConstraint: any,
   players: Player[],
   seasonIndex?: SeasonIndex,
   teams?: Team[]
@@ -1445,13 +1446,13 @@ function calculateIntersectionSimple(
   // Use optimized intersection calculation
   const rowIntersectionConstraint: IntersectionConstraint = {
     type: rowConstraint.type,
-    id: rowConstraint.type === 'team' ? rowConstraint.tid! : rowConstraint.achievementId!,
+    id: rowConstraint.type === 'team' ? rowConstraint.tid : rowConstraint.achievementId,
     label: rowConstraint.label
   };
   
   const colIntersectionConstraint: IntersectionConstraint = {
     type: colConstraint.type,
-    id: colConstraint.type === 'team' ? colConstraint.tid! : colConstraint.achievementId!,
+    id: colConstraint.type === 'team' ? colConstraint.tid : colConstraint.achievementId,
     label: colConstraint.label
   };
   

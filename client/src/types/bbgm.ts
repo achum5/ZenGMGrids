@@ -1,5 +1,3 @@
-import type { SeasonIndex } from '@/lib/season-achievements';
-
 export interface Team {
   tid: number;
   abbrev: string;
@@ -148,7 +146,7 @@ export interface LeagueData {
   teamOverlaps?: TeamOverlapData; // Pre-analyzed team combination data
   sport?: 'basketball' | 'football' | 'hockey' | 'baseball';
   // Season index for season-specific achievements (basketball only)
-  seasonIndex?: SeasonIndex; // SeasonIndex from season-achievements
+  seasonIndex?: any; // SeasonIndex from season-achievements
   // League year bounds for dynamic decade achievements
   leagueYears?: { minSeason: number; maxSeason: number };
 }
