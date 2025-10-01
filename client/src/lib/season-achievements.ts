@@ -1636,7 +1636,7 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
   },
   {
     id: 'Season40_3PT200_3PA',
-    label: '40%+ 3PT (Season)',
+    label: '40%+ 3PM (Season)',
     isSeasonSpecific: true,
     minPlayers: 1
   },

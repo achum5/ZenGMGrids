@@ -83,7 +83,7 @@ export function getAchievementOptions(
       achievement.id !== 'Season22PPG' && // 22+ ppg in a season returns 0 players
       // achievement.id !== 'Season3PPercent' && // 3pt% in a season achievement
       achievement.id !== 'RandomPoints25000pts' && // 25k+ career points returns 0 players  
-      achievement.id !== 'RandomRebounds6000trb' && // 6k+ career rebounds returns 0 players
+      !achievement.id.startsWith('RandomRebounds6000trb') && // 6k+ career rebounds returns 0 players
       // Remove duplicate lower-tier random achievements (keep only highest thresholds)
       !achievement.id.startsWith('Randomcareer3000') && // Remove 3k+ career achievements
       !achievement.id.startsWith('Randomcareer5000') && // Remove 5k+ career achievements  
@@ -144,13 +144,13 @@ export function getAchievementOptions(
       }
       
       // Only A found - A comes first
-      if (aIndex !== -1 && bIndex === -1) {
-        return -1;
+      if (aIndex === -1 && bIndex !== -1) {
+        return 1;
       }
       
       // Only B found - B comes first
-      if (aIndex === -1 && bIndex !== -1) {
-        return 1;
+      if (aIndex !== -1 && bIndex === -1) {
+        return -1;
       }
       
       // Neither found - handle special cases
@@ -217,28 +217,28 @@ export function headerConfigToCatTeam(
         if (config.customAchievement) {
           // For custom achievements, use the custom achievement's test function directly
           // Fix: Ensure playerMeetsAchievement is used for Season3PPercent to handle season filtering correctly
-          if (achievementToUse.id === 'Season3PPercent') {
+          if (achievementToUse.id === 'Season3PPercent' || achievementToUse.id === 'SeasonFTPercent') {
             // Use a custom test that properly handles season filtering and percentage threshold
             // The customAchievement.test may not handle season filtering correctly, so override here
             if (!seasonIndex) return false;
             const seasonIds = Object.keys(seasonIndex);
             for (const seasonStr of seasonIds) {
               const seasonNum = parseInt(seasonStr);
-              if (seasonNum === undefined || isNaN(seasonNum)) continue;
+              if (isNaN(seasonNum)) continue;
               const achievementsForSeason = seasonIndex[seasonNum];
               if (!achievementsForSeason) continue;
-              const playersWithAchievement = achievementsForSeason[achievementToUse.id];
-              if (!playersWithAchievement) continue;
-              if (playersWithAchievement.has(p.pid)) {
+              const playersWithAchievementSet = achievementsForSeason[achievementToUse.id as SeasonAchievementId];
+              if (!playersWithAchievementSet) continue;
+              if (playersWithAchievementSet.has(p.pid)) {
                 // Now check if player's 3pt% in that season meets the operator and threshold
                 // We must get player's stats for that season and calculate 3pt%
                 if (!p.stats) continue;
                 const seasonStats = p.stats.find(s => s.season === seasonNum && !s.playoffs);
                 if (!seasonStats) continue;
 
-                // FT% calculation like 3P%: use ftm/fta, handle 0 attempts
+                // FT% calculation like 3P%: use ft/fta, handle 0 attempts
                 if (achievementToUse.id === 'SeasonFTPercent') {
-                  const ftm = seasonStats.ftm ?? 0;
+                  const ftm = seasonStats.ft ?? 0;
                   const fta = seasonStats.fta ?? 0;
                   if (fta === 0) continue;
                   const ftPct = (ftm / fta) * 100;
@@ -251,8 +251,8 @@ export function headerConfigToCatTeam(
                   continue;
                 }
 
-                const threePM = seasonStats.fg3m ?? 0;
-                const threePA = seasonStats.fg3a ?? 0;
+                const threePM = seasonStats.tpm ?? seasonStats.tp ?? 0;
+                const threePA = seasonStats.tpa ?? 0;
                 if (threePA === 0) continue;
                 const threePct = (threePM / threePA) * 100;
                 if (config.operator === '≤' && threePct <= (config.customAchievement?.threshold ?? 0)) {

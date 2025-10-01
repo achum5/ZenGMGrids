@@ -113,7 +113,12 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
     }
     if (cleanSuffix.includes('%')) {
       const stat = cleanSuffix.replace('%', '').trim();
-      return `${formattedNumber}% or less ${stat}`;
+      const finalStat = stat.replace('3PT', '3PM').replace('3PM', '3PM or fewer');
+      // Extract (Season) or (Career) if present
+      const contextMatch = stat.match(/\((Season|Career)\)/i);
+      const context = contextMatch ? ` ${contextMatch[0]}` : '';
+      const statWithoutContext = finalStat.replace(/\s*\((Season|Career)\)/gi, '').trim();
+      return `${formattedNumber}% ${statWithoutContext}${context}`;
     } else {
       // For counting stats, rephrase to "[number] [prefix] [stat] or fewer (Context)"
       let contextWord = '';
