@@ -22,3 +22,9 @@ attached_assets/
 *.json_*
 
 .aider*
+.aider.chat.history.md
+.aider.input.history
+.aider.chat.history.md
+.aider.input.history
+.aider.chat.history.md
+.aider.input.history
