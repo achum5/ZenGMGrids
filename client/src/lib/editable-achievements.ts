@@ -43,16 +43,35 @@ const ACHIEVEMENT_PATTERNS = [
  */
 export function parseAchievementLabel(label: string, sport?: string): ParsedAchievement {
   let statUnit: string = ''; // Declare statUnit here
+  // console.log(`[DEBUG parseAchievementLabel] Input label: "${label}", Sport: ${sport}`);
   // Try each pattern to find numerical thresholds
   for (const pattern of ACHIEVEMENT_PATTERNS) {
     const match = label.match(pattern);
     if (match) {
+      // console.log(`[DEBUG parseAchievementLabel] Matched pattern: ${pattern.source}, Match:`, match);
       let prefix: string, numberStr: string, suffix: string;
       let operatorPart: string = '';
       let unit: string = '';
       
       // Handle different capture group patterns
-      if (match.length === 5 && match[3] && !match[4]) {
+      if (match.length === 7 && match[3] && match[4] && match[5] && match[6]) {
+        // New "or less" percentage patterns: [full, prefix, number, percentSign, "or less", unit, seasonLiteral, suffixEnd]
+        const [, prefixMatch, numberStrMatch, percentSignMatch, , unitMatch, seasonLiteralMatch, suffixEndMatch] = match;
+        prefix = prefixMatch;
+        numberStr = numberStrMatch;
+        operatorPart = percentSignMatch; // Store the '%' part
+        suffix = `${unitMatch}${seasonLiteralMatch}${suffixEndMatch}`;
+        statUnit = unitMatch; // Store the stat unit
+      } else if (match.length === 6 && (pattern === ACHIEVEMENT_PATTERNS[0] || pattern === ACHIEVEMENT_PATTERNS[4])) {
+        // Specific handling for percentage patterns (e.g., "90%+ FT (Season)")
+        // Match: [full, prefix, number, operatorPart, statUnit, suffixEnd]
+        const [, prefixMatch, numberStrMatch, operatorPartMatch, statUnitMatch, suffixEndMatch] = match;
+        prefix = prefixMatch;
+        numberStr = numberStrMatch;
+        operatorPart = operatorPartMatch;
+        suffix = suffixEndMatch;
+        statUnit = statUnitMatch; // Store the stat unit
+      } else if (match.length === 5 && match[3] && !match[4]) {
         // Pattern 24 (season stats): [full, prefix, number, unit, suffix]
         [, prefix, numberStr, unit, suffix] = match;
         // For season stats, reconstruct the suffix to include the unit and (Season)
@@ -62,22 +81,6 @@ export function parseAchievementLabel(label: string, sport?: string): ParsedAchi
           suffix = ` ${unit} (Season)${suffix}`;
         }
         statUnit = unit; // Store the stat unit
-      } else if (match.length === 7 && match[3] && match[4] && match[5] && match[6]) {
-        // New "or less" percentage patterns: [full, prefix, number, percentSign, "or less", unit, seasonLiteral, suffixEnd]
-        const [, prefixMatch, numberStrMatch, percentSignMatch, , unitMatch, seasonLiteralMatch, suffixEndMatch] = match;
-        prefix = prefixMatch;
-        numberStr = numberStrMatch;
-        operatorPart = percentSignMatch; // Store the '%' part
-        suffix = `${unitMatch}${seasonLiteralMatch}${suffixEndMatch}`;
-        statUnit = unitMatch; // Store the stat unit
-      } else if (match.length === 5 && match[4] && (pattern === ACHIEVEMENT_PATTERNS[0] || pattern === ACHIEVEMENT_PATTERNS[4])) {
-        // Specific handling for percentage patterns where stat unit is in match[4]
-        const [, prefixMatch, numberStrMatch, operatorPartMatch, statUnitMatch, suffixMatch] = match;
-        prefix = prefixMatch;
-        numberStr = numberStrMatch;
-        operatorPart = operatorPartMatch;
-        suffix = suffixMatch;
-        statUnit = statUnitMatch; // Store the stat unit
       } else {
         // Standard patterns: [full, prefix, number, suffix]
         [, prefix, numberStr, suffix] = match;
@@ -114,6 +117,7 @@ export function parseAchievementLabel(label: string, sport?: string): ParsedAchi
  * Generate a new achievement label with a different numerical threshold
  */
 export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: number | undefined, operator?: '≥' | '≤'): string {
+  // console.log('[DEBUG generateUpdatedLabel] Input parsed:', parsed, 'newNumber:', newNumber, 'operator:', operator);
   if (!parsed.isEditable) {
     return parsed.originalLabel;
   }
@@ -130,22 +134,31 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
   } else {
     formattedNumber = ''; // If newNumber is undefined, display an empty string
   }
+  // console.log('[DEBUG generateUpdatedLabel] formattedNumber:', formattedNumber);
 
   const cleanSuffix = parsed.suffix.replace(/^\+\s*/, '').trim();
   const cleanPrefix = parsed.prefix.trim();
 
+  // Determine if the original achievement was season-specific
+  const isOriginalSeasonSpecific = parsed.originalLabel.toLowerCase().includes('(season)');
+  let finalSeasonSuffix = '';
+  if (isOriginalSeasonSpecific && !cleanSuffix.toLowerCase().includes('(season)')) {
+    finalSeasonSuffix = ' (Season)';
+  }
+
   // Handle 'less than or equal to' cases
   if (operator === '≤') {
     if (parsed.originalLabel.toLowerCase().includes('age')) {
-      return `Played at Age ${formattedNumber} or younger`;
+      const result = `Played at Age ${formattedNumber} or younger`;
+      // console.log('[DEBUG generateUpdatedLabel] Result (age <=):', result);
+      return result;
     }
     // Handle percentage achievements (e.g., "FG%", "3PT", "eFG")
     if (parsed.operatorPart === '%+' || parsed.operatorPart === '%') {
-      // Use statUnit if available, otherwise fallback to cleanSuffix
-      const statPart = parsed.statUnit || cleanSuffix;
-      // Reconstruct the suffix to ensure (Season) is always present for season percentages
-      const seasonSuffix = cleanSuffix.toLowerCase().includes('(season)') ? ' (Season)' : '';
-      return `${formattedNumber}% or less ${statPart}${seasonSuffix}`;
+      const statPart = parsed.statUnit || '';
+      const result = `${formattedNumber}% or less ${statPart}${finalSeasonSuffix}`.trim();
+      // console.log('[DEBUG generateUpdatedLabel] Result (percentage <=):', result);
+      return result;
     } else {
       // For counting stats, rephrase to "[number] [prefix] [stat] or fewer (Context)"
       let contextWord = '';
@@ -164,27 +177,31 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
       if (contextWord) {
         result += ` (${contextWord})`;
       }
+      // console.log('[DEBUG generateUpdatedLabel] Result (counting <=):', result.trim());
       return result.trim();
     }
   }
 
   // Handle 'greater than or equal to' cases (default)
-  if (parsed.operatorPart === '%+') {
-    return `${formattedNumber}%+ ${cleanSuffix}`;
-  } else if (parsed.operatorPart === '%') {
-    // If original was 'FG% (Season)', it remains 'FG% (Season)'
-    // Use statUnit if available, otherwise fallback to cleanSuffix
-    const statPart = parsed.statUnit || cleanSuffix;
-    const seasonSuffix = cleanSuffix.toLowerCase().includes('(season)') ? ' (Season)' : '';
-    return `${formattedNumber}% ${statPart}${seasonSuffix}`;
+  // This block is reached if operator is '≥'
+  if (parsed.operatorPart === '%+' || parsed.operatorPart === '%') {
+    const statPart = parsed.statUnit || '';
+    const operatorSymbol = parsed.operatorPart === '%+' ? '%+' : '%';
+    const result = `${formattedNumber}${operatorSymbol} ${statPart}${finalSeasonSuffix}`.trim();
+    // console.log('[DEBUG generateUpdatedLabel] Result (percentage >=):', result);
+    return result;
   }
   
   // For labels that don't originally have a "+", like "30 PPG (Season)"
   if (!parsed.originalLabel.includes('+')) {
-      return `${cleanPrefix} ${formattedNumber} ${cleanSuffix}`;
+      const result = `${cleanPrefix} ${formattedNumber} ${cleanSuffix}${finalSeasonSuffix}`;
+      // console.log('[DEBUG generateUpdatedLabel] Result (no plus >=):', result);
+      return result;
   }
 
-  return `${cleanPrefix} ${formattedNumber}+ ${cleanSuffix}`;
+  const result = `${cleanPrefix} ${formattedNumber}+ ${cleanSuffix}${finalSeasonSuffix}`;
+  // console.log('[DEBUG generateUpdatedLabel] Result (default >=):', result);
+  return result;
 }
 
 /**
@@ -442,10 +459,10 @@ function generateTestFunction(
       if (originalLabel.includes('rebounds') && !originalLabel.includes('rpg')) {
         return (player: Player) => checkSeasonTotal(player, 'trb', newThreshold, operator, 10, sport);
       }
-      if (originalLabel.includes('steals')) {
+      if (originalLabel.includes('steals') && !originalLabel.includes('spg')) {
         return (player: Player) => checkSeasonTotal(player, 'stl', newThreshold, operator, 10, sport);
       }
-      if (originalLabel.includes('blocks')) {
+      if (originalLabel.includes('blocks') && !originalLabel.includes('bpg')) {
         return (player: Player) => checkSeasonTotal(player, 'blk', newThreshold, operator, 10, sport);
       }
       if (originalLabel.includes('3pm') || originalLabel.includes('threes')) {
@@ -488,11 +505,13 @@ function generateTestFunction(
       }
       if (originalLabel.includes('fg') && originalLabel.includes('%')) {
         // Field goal percentage
-        return (player: Player) => checkSeasonPercentage(player, 'fg', thresholdDecimal, operator, 10, 300, sport);
+        const minAttempts = baseAchievement.id === 'SeasonFGPercent' ? 300 : 1;
+        return (player: Player) => checkSeasonPercentage(player, 'fg', thresholdDecimal, operator, 10, minAttempts, sport);
       }
       if (originalLabel.includes('3pt') || (originalLabel.includes('3p') && originalLabel.includes('%'))) {
         // 3-point percentage
-        return (player: Player) => checkSeasonPercentage(player, 'tp', thresholdDecimal, operator, 10, 100, sport);
+        const minAttempts = baseAchievement.id === 'Season3PPercent' ? 100 : 1;
+        return (player: Player) => checkSeasonPercentage(player, 'tp', thresholdDecimal, operator, 10, minAttempts, sport);
       }
     }
   }
