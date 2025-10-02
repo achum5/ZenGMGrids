@@ -92,7 +92,8 @@ function getStatValidation(label: string): StatValidation {
       lowerLabel.includes('3pt') ||
       lowerLabel.includes('ft (season)') ||
       lowerLabel.includes('efg') ||
-      lowerLabel.includes('ts on')) {
+      lowerLabel.includes('ts on') ||
+      lowerLabel.includes('fg')) {
     return {
       min: 0.0,
       max: 100.0,

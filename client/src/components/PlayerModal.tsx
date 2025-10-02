@@ -31,9 +31,7 @@ type Props = {
 function generateFeedbackMessage(
   player: Player,
   rowConstraint: GridConstraint,
-  colConstraint: GridConstraint,
-  teams: Team[],
-  sport: string,
+  sport: 'basketball' | 'football' | 'hockey' | 'baseball' | undefined,
   allAchievements: ReturnType<typeof getAllAchievements>
 ): string {
   const rowMet = checkConstraint(player, rowConstraint, teams, sport, allAchievements);
@@ -76,7 +74,7 @@ function checkConstraint(
   player: Player,
   constraint: GridConstraint,
   teams: Team[],
-  sport: string,
+  sport: 'basketball' | 'football' | 'hockey' | 'baseball' | undefined,
   allAchievements: ReturnType<typeof getAllAchievements>
 ): boolean {
   if (constraint.type === 'team') {
@@ -84,7 +82,7 @@ function checkConstraint(
   } else if (constraint.type === 'achievement') {
     const achievement = allAchievements.find(a => a.id === constraint.achievementId);
     if (achievement) {
-      return playerMeetsAchievement(player, achievement.id);
+      return playerMeetsAchievement(player, achievement.id, undefined);
     }
   }
   return false;
@@ -102,7 +100,7 @@ function getConstraintLabel(
   } else if (constraint.type === 'achievement') {
     const achievement = allAchievements.find(a => a.id === constraint.achievementId);
     if (achievement) {
-      return parseAchievementLabel(achievement.label, getCachedSportDetection() || 'basketball').fullLabel;
+      return parseAchievementLabel(achievement.label, getCachedSportDetection() || 'basketball').originalLabel;
     }
     return constraint.label || constraint.achievementId || 'Unknown Achievement';
   }
@@ -114,13 +112,13 @@ function getAchievementDetails(
   player: Player,
   achievementId: string,
   teams: Team[],
-  sport: string,
+  sport: 'basketball' | 'football' | 'hockey' | 'baseball' | undefined,
   allAchievements: ReturnType<typeof getAllAchievements>
 ): { value?: string | number; years?: string; label: string; isPlural?: boolean; isAverage?: boolean } | null {
   const achievement = allAchievements.find(a => a.id === achievementId);
   if (!achievement) return null;
 
-  const baseLabel = parseAchievementLabel(achievement.label, sport).fullLabel || achievement.label || achievementId || 'Unknown Achievement';
+  const baseLabel = parseAchievementLabel(achievement.label, sport).originalLabel || achievement.label || achievementId || 'Unknown Achievement';
   let value: string | number | undefined;
   let years: string | undefined;
   let isPlural = false;
@@ -241,8 +239,9 @@ function getAchievementDetails(
       Season200Stocks: { field: 'stocks', threshold: 200 }, // Custom field for sum of stl+blk
       Season50_40_90: { field: '50/40/90', threshold: 0 }, // Special handling
       Season60eFG500FGA: { field: 'efg', isAverage: true, threshold: 0.6 },
-      Season90FT250FTA: { field: 'ft', isAverage: true, threshold: 0.9 },
-      Season40_3PT200_3PA: { field: 'tppct', isAverage: true, threshold: 0.4 },
+  Season90FT250FTA: { field: 'ftPct', isAverage: true, threshold: 0.9 },
+  SeasonFGPercent: { field: 'fgPct', isAverage: true, threshold: 0.5 },
+  Season3PPercent: { field: 'tpPct', isAverage: true, threshold: 0.4 },
       Season70Games: { field: 'gp', threshold: 70 },
       Season36MPG: { field: 'min', isAverage: true, threshold: 36 },
       Season25_10: { field: '25/10', threshold: 0 }, // Special handling
@@ -396,7 +395,7 @@ function getConstraintPhrase(
   player: Player,
   constraint: GridConstraint,
   teams: Team[],
-  sport: string,
+  sport: 'basketball' | 'football' | 'hockey' | 'baseball' | undefined,
   allAchievements: ReturnType<typeof getAllAchievements>,
   met: boolean
 ): string {
@@ -413,9 +412,13 @@ function getConstraintPhrase(
     } else {
       return `${playerName} never played for the ${teamName}`;
     }
-  } else if (constraint.type === 'achievement') {
-    const achievementDetails = getAchievementDetails(player, constraint.achievementId!, teams, sport, allAchievements);
-    if (!achievementDetails) {
+      } else if (constraint.type === 'achievement') {
+        if (!constraint.achievementId) {
+          // Handle case where achievementId is missing for an achievement type constraint
+          const fallbackLabel = getConstraintLabel(constraint, teams, allAchievements);
+          return met ? `${playerName} met the criteria: ${fallbackLabel}` : `${playerName} did not meet the criteria: ${fallbackLabel}`;
+        }
+        const achievementDetails = getAchievementDetails(player, constraint.achievementId, teams, sport, allAchievements);    if (!achievementDetails) {
       const fallbackLabel = getConstraintLabel(constraint, teams, allAchievements);
       return met ? `${playerName} met the criteria: ${fallbackLabel}` : `${playerName} did not meet the criteria: ${fallbackLabel}`;
     }
@@ -719,7 +722,7 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
             label: colConstraint.label
           },
           Array.isArray(teams) ? teams : [],
-          sport || 'basketball'
+          currentSport
         );
 
         return {
@@ -1185,7 +1188,8 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                               }
                             },
                             fullPlayers: eligiblePlayers,
-                            teams: new Map(teams?.map(t => [t.tid, t]) ?? [])
+                            teams: new Map(teams?.map(t => [t.tid, t]) ?? []),
+                            sport: currentSport as ('basketball' | 'football' | 'hockey' | 'baseball')
                           });
                         }
                       }

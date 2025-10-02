@@ -41,7 +41,8 @@ export type SeasonAchievementId =
   | 'Season50_40_90'
   | 'Season60eFG500FGA'
   | 'Season90FT250FTA'
-  | 'Season40_3PT200_3PA'
+  | 'SeasonFGPercent'
+  | 'Season3PPercent'
   | 'Season70Games'
   | 'Season36MPG'
   | 'Season25_10'
@@ -1012,10 +1013,13 @@ export function buildSeasonIndex(
           if (ftPct >= 0.900 && fta >= 250) {
             addAchievement('Season90FT250FTA');
           }
-          
-          // 40%+ 3PT on >= 200 3PA (Season): tp/tpa >= .400, tpa >= 200
-          if (tpPct >= 0.400 && tpa >= 200) {
-            addAchievement('Season40_3PT200_3PA');
+          // For SeasonFGPercent: FG% >= 0.400 on >= 300 FGA
+          if (fgPct >= 0.400 && fga >= 300) {
+            addAchievement('SeasonFGPercent');
+          }
+          // For Season3PPercent: 3PT% >= 0.400 on >= 100 3PA
+          if (tpPct >= 0.400 && tpa >= 100) {
+            addAchievement('Season3PPercent');
           }
           
           // Workload / durability achievements
@@ -1635,7 +1639,13 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
     minPlayers: 1
   },
   {
-    id: 'Season40_3PT200_3PA',
+    id: 'SeasonFGPercent',
+    label: '50%+ FG (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 1
+  },
+  {
+    id: 'Season3PPercent',
     label: '40%+ 3PT (Season)',
     isSeasonSpecific: true,
     minPlayers: 1

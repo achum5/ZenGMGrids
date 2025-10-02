@@ -40,7 +40,8 @@ const SEASON_ACHIEVEMENT_LABELS: Partial<Record<SeasonAchievementId, string>> = 
 
   Season60eFG500FGA: '60%+ eFG (Season)',
   Season90FT250FTA: '90%+ FT (Season)',
-  Season40_3PT200_3PA: '40%+ 3PT (Season)',
+  SeasonFGPercent: '40%+ FG (Season)',
+  Season3PPercent: '40%+ 3PT (Season)',
   Season70Games: '70+ Games Played (Season)',
   Season36MPG: '36.0+ MPG (Season)',
   Season25_10: '25/10 Season (PPG/RPG)',
@@ -268,12 +269,18 @@ function getSeasonsForSeasonStatAchievement(player: Player, achievementId: Seaso
           if (check(eFG, customThreshold !== undefined ? customThreshold / 100 : 0.60, customOperator || '≥')) qualifyingSeasons.push(season);
         }
         break;
-      case 'Season90FT250FTA':
+    case 'Season90FT250FTA':
         if (fta >= 250 && check(ft / fta, customThreshold !== undefined ? customThreshold / 100 : 0.90, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
-      case 'Season40_3PT200_3PA':
-        if (tpa >= 200 && check(tp / tpa, customThreshold !== undefined ? customThreshold / 100 : 0.40, customOperator || '≥')) qualifyingSeasons.push(season);
+    case 'SeasonFGPercent':
+        if (fga >= 300 && check(fg / fga, customThreshold !== undefined ? customThreshold / 100 : 0.40, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
+    case 'Season3PPercent':
+        if (tpa >= 100 && check(tp / tpa, customThreshold !== undefined ? customThreshold / 100 : 0.40, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+        if (fta >= 250 && check(ft / fta, customThreshold !== undefined ? customThreshold / 100 : 0.90, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+
       case 'Season70Games':
         if (check(gp, customThreshold !== undefined ? customThreshold : 70, customOperator || '≥')) qualifyingSeasons.push(season);
         break;

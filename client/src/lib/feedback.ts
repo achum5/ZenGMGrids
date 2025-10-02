@@ -230,11 +230,17 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     verbTeam: 'shot 90%+ FT on 250+ free throw attempts in a season',
     verbGeneric: 'shot 90%+ FT on 250+ free throw attempts in a season'
   },
-  Season40_3PT200_3PA: {
+  SeasonFGPercent: {
+    label: '40%+ FG (Season)',
+    short: '40% FG/300 FGA',
+    verbTeam: 'shot 40%+ FG on 300+ field goal attempts in a season',
+    verbGeneric: 'shot 40%+ FG on 300+ field goal attempts in a season'
+  },
+  Season3PPercent: {
     label: '40%+ 3PT (Season)',
-    short: '40% 3PT/200 3PA',
-    verbTeam: 'shot 40%+ from three on 200+ attempts in a season',
-    verbGeneric: 'shot 40%+ from three on 200+ attempts in a season'
+    short: '40% 3PT/100 3PA',
+    verbTeam: 'shot 40%+ 3PT on 100+ three-point attempts in a season',
+    verbGeneric: 'shot 40%+ 3PT on 100+ three-point attempts in a season'
   },
   Season70Games: {
     label: '70+ Games Played (Season)',
@@ -744,8 +750,9 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     Season50_40_90: ['50/40/90 Season', '50-40-90'],
 
     Season60eFG500FGA: ['60% eFG (500+ FGA)', '60 effective FG'],
-    Season90FT250FTA: ['90% FT (250+ FTA)', '90 free throw'],
-    Season40_3PT200_3PA: ['40% 3PT (200+ 3PA)', '40 three-point'],
+  'Season90FT250FTA': ['90% FT (250+ FTA)', '90 free-throw'],
+  'SeasonFGPercent': ['40% FG (300+ FGA)', '40 field-goal'],
+  'Season3PPercent': ['40% 3PT (100+ 3PA)', '40 three-point'],
     Season70Games: ['70+ Games', '70 games'],
     Season36MPG: ['36+ MPG', '36 minutes per game'],
     Season25_10: ['25/10 Season (PPG/RPG)', '25-10 season'],
@@ -1062,9 +1069,9 @@ function getHumanReadableAchievementText(achievementId: string): string {
       'Season50_40_90': 'achieved 50/40/90 shooting in a season',
 
       'Season60eFG500FGA': 'shot 60%+ eFG on 500+ FGA in a season',
-      'Season90FT250FTA': 'shot 90%+ FT on 250+ FTA in a season',
-      'Season40_3PT200_3PA': 'shot 40%+ 3PT on 200+ 3PA in a season',
-      'Season70Games': 'played 70+ games in a season',
+        'Season90FT250FTA': 'shot 90%+ FT on 250+ FTA in a season',
+  'SeasonFGPercent': 'shot 40%+ FG on 300+ FGA in a season',
+  'Season3PPercent': 'shot 40%+ 3PT on 100+ 3PA in a season',      'Season70Games': 'played 70+ games in a season',
       'Season36MPG': 'averaged 36.0+ MPG in a season',
       'Season25_10': 'achieved 25/10 season (PPG/RPG)',
       'Season25_5_5': 'achieved 25/5/5 season (PPG/RPG/APG)',

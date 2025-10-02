@@ -1058,7 +1058,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
         {
           title: "Single-Season — Efficiency & Workload",
           achievements: [
-            'Season50_40_90', 'Season40_3PT200_3PA', 'Season90FT250FTA', 'Season60eFG500FGA', 'Season60TS20PPG', 'Season36MPG', 'Season70Games'
+            'Season50_40_90', 'Season90FT250FTA', 'SeasonFGPercent', 'Season3PPercent', 'Season60eFG500FGA', 'Season60TS20PPG', 'Season36MPG', 'Season70Games'
           ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
         },
         {
@@ -1193,7 +1193,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
                           // We need to construct a label that the chip can parse, even if the operator is '≤'.
                           // The chip will use the `operator` prop for its actual logic, so this label is just for display parsing.
                           const numberToDisplay = selector.customNumber !== undefined ? selector.customNumber : parsedOriginal.number;
-                          const parsableLabel = generateUpdatedLabel(parsedOriginal, numberToDisplay, '≥'); // Always use '≥' for a parsable format
+                          const parsableLabel = generateUpdatedLabel(parsedOriginal, numberToDisplay, selector.operator || '≥');
 
                           return (
                             <div className="pointer-events-auto">

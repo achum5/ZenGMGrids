@@ -15,7 +15,7 @@ export interface ParsedAchievement {
 // Order matters! Decimal-aware patterns must come BEFORE comma-separated patterns
 const ACHIEVEMENT_PATTERNS = [
   // Percentage achievements (e.g., "60%+ TS on 20+ PPG (Season)", "90%+ FT (Season)", "40%+ 3PT (Season)")
-  /^([^.\d]*?)(\d+(?:\.\d+)?)\%\+\s*(TS on \d+\+ PPG|eFG|FT|3PT)\s*\(Season\)(.*)$/i,
+  /^([^.\d]*?)(\d+(?:\.\d+)?)(%?\+?)\s*(TS on \d+\+ PPG|eFG|FT|3PT|FG)\s*\(Season\)(.*)$/i,
   // "1 PPG (Season)" or "30 PPG (Season)" or "2.5 BPG (Season)" - season stats without +
   /^([^.\d]*?)(\d+(?:\.\d+)?)\s*(PPG|RPG|APG|SPG|BPG|FG%|3P%|FT%|eFG%|TS%|PER|WS|BPM|VORP|USG%|TOV%|ORB%|DRB%|AST%|STL%|BLK%)\s*\(Season\)(.*)$/i,
   // "Played in X+ Decades"
@@ -43,6 +43,8 @@ export function parseAchievementLabel(label: string, sport?: string): ParsedAchi
     const match = label.match(pattern);
     if (match) {
       let prefix: string, numberStr: string, suffix: string;
+      let operatorPart: string = '';
+      let unit: string = '';
       
       // Handle different capture group patterns
       if (match.length === 5 && match[3] && !match[4]) {
@@ -55,11 +57,12 @@ export function parseAchievementLabel(label: string, sport?: string): ParsedAchi
         } else {
           suffix = ` ${unit} (Season)${suffix}`;
         }
-      } else if (match.length === 5 && match[3] && match[4]) {
-        // Percentage patterns: [full, prefix, number, unit, suffix]
-        [, prefix, numberStr, , suffix] = match;
-        const unit = match[3];
-        suffix = `%+ ${unit} (Season)${suffix}`;
+      } else if (match.length === 6 && match[3] && match[4]) {
+        // Percentage patterns: [full, prefix, number, operatorPart, unit, suffix]
+        let operatorPart: string;
+        [, prefix, numberStr, operatorPart, unit, suffix] = match;
+        // Reconstruct suffix based on operatorPart
+        suffix = `${operatorPart} ${unit} (Season)${suffix}`;
       } else {
         // Standard patterns: [full, prefix, number, suffix]
         [, prefix, numberStr, suffix] = match;
@@ -445,9 +448,13 @@ function generateTestFunction(
         // Free throw percentage
         return (player: Player) => checkSeasonPercentage(player, 'ft', thresholdDecimal, operator, 10, 1, sport);
       }
+      if (originalLabel.includes('fg') && originalLabel.includes('%')) {
+        // Field goal percentage
+        return (player: Player) => checkSeasonPercentage(player, 'fg', thresholdDecimal, operator, 10, 300, sport);
+      }
       if (originalLabel.includes('3pt') || (originalLabel.includes('3p') && originalLabel.includes('%'))) {
         // 3-point percentage
-        return (player: Player) => checkSeasonPercentage(player, 'tp', thresholdDecimal, operator, 10, 50, sport);
+        return (player: Player) => checkSeasonPercentage(player, 'tp', thresholdDecimal, operator, 10, 100, sport);
       }
     }
   }

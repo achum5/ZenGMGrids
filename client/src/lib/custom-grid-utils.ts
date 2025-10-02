@@ -128,7 +128,7 @@ export function getAchievementOptions(
         // Single-Season Volume & Combos
         'Season2000Points', 'Season30PPG', 'Season200_3PM', 'Season300_3PM', 'Season700Assists', 'Season10APG', 'Season800Rebounds', 'Season12RPG', 'Season150Steals', 'Season2SPG', 'Season150Blocks', 'Season2_5BPG', 'Season200Stocks', 'Season25_10', 'Season25_5_5', 'Season20_10_5', 'Season1_1_1',
         // Single-Season Efficiency & Workload  
-        'Season50_40_90', 'Season40_3PT200_3PA', 'Season90FT250FTA', 'Season60eFG500FGA', 'Season60TS20PPG', 'Season36MPG', 'Season70Games',
+        'Season50_40_90', 'Season90FT250FTA', 'SeasonFGPercent', 'Season3PPercent', 'Season60eFG500FGA', 'Season60TS20PPG', 'Season36MPG', 'Season70Games',
         // Longevity & Journey
         'played15PlusSeasons', 'playedAtAge40Plus', 'playedInThreeDecades', 'played5PlusFranchises',
         // Draft & Entry
@@ -217,7 +217,7 @@ export function headerConfigToCatTeam(
         if (config.customAchievement) {
           // For custom achievements, use the custom achievement's test function directly
           // Fix: Ensure playerMeetsAchievement is used for Season3PPercent to handle season filtering correctly
-          if (achievementToUse.id === 'Season3PPercent') {
+          if (achievementToUse.id === 'Season3PPercent' || achievementToUse.id === 'SeasonFTPercent') {
             // Use a custom test that properly handles season filtering and percentage threshold
             // The customAchievement.test may not handle season filtering correctly, so override here
             if (!seasonIndex) return false;
@@ -229,43 +229,44 @@ export function headerConfigToCatTeam(
               if (!achievementsForSeason) continue;
               const playersWithAchievement = achievementsForSeason[achievementToUse.id];
               if (!playersWithAchievement) continue;
-              if (playersWithAchievement.has(p.pid)) {
-                // Now check if player's 3pt% in that season meets the operator and threshold
-                // We must get player's stats for that season and calculate 3pt%
-                if (!p.stats) continue;
-                const seasonStats = p.stats.find(s => s.season === seasonNum && !s.playoffs);
-                if (!seasonStats) continue;
+              if (!(playersWithAchievement as Set<number>).has(p.pid)) continue;
 
-                // FT% calculation like 3P%: use ftm/fta, handle 0 attempts
-                if (achievementToUse.id === 'SeasonFTPercent') {
-                  const ftm = seasonStats.ftm ?? 0;
-                  const fta = seasonStats.fta ?? 0;
-                  if (fta === 0) continue;
-                  const ftPct = (ftm / fta) * 100;
-                  if (config.operator === '≤' && ftPct <= (config.customAchievement?.threshold ?? 0)) {
-                    return true;
-                  }
-                  if (config.operator === '≥' && ftPct >= (config.customAchievement?.threshold ?? 0)) {
-                    return true;
-                  }
-                  continue;
-                }
+              // Now check if player's 3pt% in that season meets the operator and threshold
+              // We must get player's stats for that season and calculate 3pt%
+              if (!p.stats) continue;
+              const seasonStats = p.stats.find(s => s.season === seasonNum && !s.playoffs) as any;
+              if (!seasonStats) continue;
 
-                const threePM = seasonStats.fg3m ?? 0;
-                const threePA = seasonStats.fg3a ?? 0;
-                if (threePA === 0) continue;
-                const threePct = (threePM / threePA) * 100;
-                if (config.operator === '≤' && threePct <= (config.customAchievement?.threshold ?? 0)) {
+              // FT% calculation like 3P%: use ftm/fta, handle 0 attempts
+              if (achievementToUse.id === 'SeasonFTPercent') {
+                const ftm = seasonStats.ftm ?? 0;
+                const fta = seasonStats.fta ?? 0;
+                if (fta === 0) continue;
+                const ftPct = (ftm / fta) * 100;
+                if (config.operator === '≤' && ftPct <= (config.customAchievement?.threshold ?? 0)) {
                   return true;
                 }
-                if (config.operator === '≥' && threePct >= (config.customAchievement?.threshold ?? 0)) {
+                if (config.operator === '≥' && ftPct >= (config.customAchievement?.threshold ?? 0)) {
                   return true;
                 }
+                continue;
+              }
+
+              const threePM = (seasonStats as any).fg3m ?? 0;
+              const threePA = (seasonStats as any).fg3a ?? 0;
+              if (threePA === 0) continue;
+              const threePct = (threePM / threePA) * 100;
+              if (config.operator === '≤' && threePct <= (config.customAchievement?.threshold ?? 0)) {
+                return true;
+              }
+              if (config.operator === '≥' && threePct >= (config.customAchievement?.threshold ?? 0)) {
+                return true;
               }
             }
             return false;
+          } else if (config.customAchievement.test) {
+            return config.customAchievement.test(p);
           }
-          return config.customAchievement.test(p);
         } else {
           // For regular achievements, use the standard function
           return playerMeetsAchievement(p, achievementToUse.id as string, seasonIndex, config.operator === '≤' ? '<=' : '>=');
