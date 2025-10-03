@@ -31,6 +31,8 @@ type Props = {
 function generateFeedbackMessage(
   player: Player,
   rowConstraint: GridConstraint,
+  colConstraint: GridConstraint,
+  teams: Team[],
   sport: 'basketball' | 'football' | 'hockey' | 'baseball' | undefined,
   allAchievements: ReturnType<typeof getAllAchievements>
 ): string {
@@ -582,7 +584,7 @@ function extractNegativeObjectAndVerb(phrase: string, playerName: string): { obj
   } else if (cleanedPhrase.startsWith('was never ')) { // Generic "was never" for other awards
     return { object: cleanedPhrase.replace('was never ', ''), verb: 'was' };
   } else if (cleanedPhrase.startsWith('did not achieve ')) {
-    return { object: cleanedPhrase.replace('did not achieve ', ''), verb: 'achieved' };
+    return { object: cleanedPhrase.replace('did not achieve ', ''), verb: 'achieve' };
   } else if (cleanedPhrase.startsWith('did not play in the ')) {
     return { object: cleanedPhrase.replace('did not play in the ', ''), verb: 'played in' };
   } else if (cleanedPhrase.startsWith('did not debut in the ')) {
@@ -602,9 +604,9 @@ function extractNegativeObjectAndVerb(phrase: string, playerName: string): { obj
   } else if (cleanedPhrase.startsWith('never won the ')) {
     return { object: cleanedPhrase.replace('never won the ', ''), verb: 'won' };
   } else if (cleanedPhrase.startsWith('did not average ')) {
-    return { object: cleanedPhrase.replace('did not average ', ''), verb: 'averaged' };
+    return { object: cleanedPhrase.replace('did not average ', ''), verb: 'average' };
   } else if (cleanedPhrase.startsWith('did not have ')) {
-    return { object: cleanedPhrase.replace('did not have ', ''), verb: 'had' };
+    return { object: cleanedPhrase.replace('did not have ', ''), verb: 'have' };
   } else if (cleanedPhrase.startsWith('was never League ')) {
     return { object: cleanedPhrase.replace('was never ', ''), verb: 'was' };
   } else if (cleanedPhrase.startsWith('never won a ')) {
@@ -741,6 +743,13 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
           achievementId: rowConstraint.achievementId,
           label: rowConstraint.label
         },
+        {
+          type: colConstraint.type,
+          tid: colConstraint.tid,
+          achievementId: colConstraint.achievementId,
+          label: colConstraint.label
+        },
+        Array.isArray(teams) ? teams : [],
         {
           type: colConstraint.type,
           tid: colConstraint.tid,
