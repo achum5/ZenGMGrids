@@ -1260,10 +1260,17 @@ export function playerMeetsAchievement(
   operator: '>=' | '<=' = '>=',
   teamId?: number,
   season?: number,
+  customAchievementObject?: Achievement // New parameter for custom achievement object
 ): boolean {
-  const DEBUG = import.meta.env.VITE_DEBUG === 'true';
+  const DEBUG = true; // Temporarily set to true for debugging
   if (DEBUG) {
-    console.log(`🐛 [playerMeetsAchievement] Player: ${player.name}, Achievement: ${achievementId}, SeasonIndex: ${!!seasonIndex}, Operator: ${operator}, TeamId: ${teamId}, Season: ${season}`);
+    console.log(`🐛 [playerMeetsAchievement] Player: ${player.name}, Achievement: ${achievementId}, CustomObject: ${!!customAchievementObject}, Operator: ${operator}, TeamId: ${teamId}, Season: ${season}, CustomAchievementObject:`, customAchievementObject);
+  }
+
+  // If a custom achievement object is provided, use its test function directly
+  if (customAchievementObject) {
+    if (DEBUG) console.log(`🐛 [playerMeetsAchievement] Using customAchievementObject.test for ${achievementId}`);
+    return customAchievementObject.test(player);
   }
 
   // Check if it's a dynamic decade achievement first
