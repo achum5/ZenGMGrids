@@ -81,7 +81,7 @@ export function getAchievementOptions(
     .filter(achievement => 
       achievement.id !== 'bornOutsideUS50DC' && // Exclude problematic achievement
       achievement.id !== 'SFMVP' && // Exclude Superstar Finals MVP
-      achievement.id !== 'career10kRebounds' && // 10k+ career rebounds returns 0 players
+      // achievement.id !== 'career10kRebounds' && // 10k+ career rebounds returns 0 players
       achievement.id !== 'Season22PPG' && // 22+ ppg in a season returns 0 players
       // achievement.id !== 'Season3PPercent' && // 3pt% in a season achievement
       achievement.id !== 'RandomPoints25000pts' && // 25k+ career points returns 0 players  
@@ -342,7 +342,26 @@ export function calculateCustomCellIntersection(
     // Direct calculation for custom achievements - count players that meet both constraints
     let count = 0;
     for (const player of players) {
-      if (rowConstraint.test(player) && colConstraint.test(player)) {
+      let rowMeets = false;
+      let colMeets = false;
+
+      // Evaluate row constraint
+      if (rowConstraint.type === 'achievement' && rowConstraint.achievementId?.startsWith('career') && colConstraint.type === 'team') {
+        // Career achievement intersected with a team
+        rowMeets = playerMeetsAchievement(player, rowConstraint.achievementId, seasonIndex, rowConfig.operator, colConstraint.tid);
+      } else {
+        rowMeets = rowConstraint.test(player);
+      }
+
+      // Evaluate column constraint
+      if (colConstraint.type === 'achievement' && colConstraint.achievementId?.startsWith('career') && rowConstraint.type === 'team') {
+        // Career achievement intersected with a team
+        colMeets = playerMeetsAchievement(player, colConstraint.achievementId, seasonIndex, colConfig.operator, rowConstraint.tid);
+      } else {
+        colMeets = colConstraint.test(player);
+      }
+
+      if (rowMeets && colMeets) {
         count++;
       }
     }
@@ -565,35 +584,10 @@ export function debugAchievementIntersection(
   teams: Team[],
   seasonIndex?: SeasonIndex
 ): void {
-  const DEBUG = import.meta.env.VITE_DEBUG === 'true';
+  const DEBUG = import.meta.env.VITE_DEBUG;
   if (!DEBUG) return;
   
   console.log('Starting achievement intersection debug test');
-  console.log(`   Players: ${players.length}, Teams: ${teams.length}, SeasonIndex: ${!!seasonIndex}`);
-  
-  // Create test configurations for our problematic intersection
-  const reboundsConfig: HeaderConfig = {
-    type: 'achievement',
-    selectedId: 'career10kRebounds',
-    selectedLabel: '10,000+ Career Rebounds'
-  };
-  
-  const assistsConfig: HeaderConfig = {
-    type: 'achievement', 
-    selectedId: 'AssistsLeader',
-    selectedLabel: 'League Assists Leader'
-  };
-  
-  // Test the intersection
-  const intersection = calculateCustomCellIntersection(
-    reboundsConfig,
-    assistsConfig, 
-    players,
-    teams,
-    seasonIndex
-  );
-  
-  console.log(`Final intersection result: ${intersection} players`);
 }
 
 // Convert custom grid state to grid generation format

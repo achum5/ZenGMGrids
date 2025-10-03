@@ -113,6 +113,7 @@ export default function Home() {
   
   // Custom grid creation state
   const [customGridModalOpen, setCustomGridModalOpen] = useState(false);
+  const [selectedCellLabelForCustomGrid, setSelectedCellLabelForCustomGrid] = useState<string | undefined>(undefined);
 
   // Help Mode state - off by default
   const [hintMode, setHintMode] = useState<boolean>(false);
@@ -1407,7 +1408,54 @@ export default function Home() {
           onGiveUp={handleGiveUp}
           onRetryGrid={handleRetryGrid}
           onShareGrid={() => setGridSharingModalOpen(true)}
-          onCreateCustomGrid={() => setCustomGridModalOpen(true)}
+          onCreateCustomGrid={async () => {
+            let labelToPreFill: string | undefined = undefined;
+
+            if (modalCellKey && rows.length && cols.length) {
+              // Existing logic: derive label from the clicked cell
+              let row: CatTeam | undefined;
+              let col: CatTeam | undefined;
+              
+              if (modalCellKey.includes('|')) {
+                const [rowKey, colKey] = modalCellKey.split('|');
+                row = rows.find(r => r.key === rowKey);
+                col = cols.find(c => c.key === colKey);
+              } else {
+                const [rowIndexStr, colIndexStr] = modalCellKey.split('-');
+                const rowIndex = parseInt(rowIndexStr, 10);
+                const colIndex = parseInt(colIndexStr, 10);
+                row = rows[rowIndex];
+                col = cols[colIndex];
+              }
+              
+              if (row && col) {
+                if (row.type === 'achievement' && col.type === 'achievement') {
+                  labelToPreFill = row.label;
+                } else if (row.type === 'achievement') {
+                  labelToPreFill = row.label;
+                } else if (col.type === 'achievement') {
+                  labelToPreFill = col.label;
+                }
+              }
+            } else {
+              // New logic: If no cell was clicked, find the first editable achievement in the current grid
+              const allConstraints = [...rows, ...cols];
+              for (const constraint of allConstraints) {
+                if (constraint.type === 'achievement' && constraint.achievementId) {
+                  // Check if it's an editable achievement (e.g., Season30PPG, not MVP)
+                  // We need to import parseAchievementLabel for this
+                  const { parseAchievementLabel } = await import('@/lib/editable-achievements');
+                  const parsed = parseAchievementLabel(constraint.label, leagueData?.sport || 'basketball');
+                  if (parsed.isEditable) {
+                    labelToPreFill = constraint.label;
+                    break;
+                  }
+                }
+              }
+            }
+            setSelectedCellLabelForCustomGrid(labelToPreFill);
+            setCustomGridModalOpen(true);
+          }}
           isGenerating={isGenerating}
           giveUpPressed={giveUpPressed}
           teams={leagueData?.teams || []}
@@ -1528,6 +1576,7 @@ export default function Home() {
           leagueData={leagueData}
           rows={rows}
           cols={cols}
+          initialSelectedCellLabel={selectedCellLabelForCustomGrid}
         />
       </main>
     </div>
