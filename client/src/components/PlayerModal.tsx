@@ -414,15 +414,17 @@ function getConstraintPhrase(
     } else {
       return `${playerName} never played for the ${teamName}`;
     }
-      } else if (constraint.type === 'achievement') {
-        if (!constraint.achievementId) {
-          // Handle case where achievementId is missing for an achievement type constraint
-          const fallbackLabel = getConstraintLabel(constraint, teams, allAchievements);
-          return met ? `${playerName} met the criteria: ${fallbackLabel}` : `${playerName} did not meet the criteria: ${fallbackLabel}`;
-        }
-        const achievementDetails = getAchievementDetails(player, constraint.achievementId, teams, sport, allAchievements);    if (!achievementDetails) {
+  } else if (constraint.type === 'achievement') {
+    if (!constraint.achievementId) {
+      // Handle case where achievementId is missing for an achievement type constraint
       const fallbackLabel = getConstraintLabel(constraint, teams, allAchievements);
-      return met ? `${playerName} met the criteria: ${fallbackLabel}` : `${playerName} did not meet the criteria: ${fallbackLabel}`;
+      return met ? `${playerName} met the criteria for: ${fallbackLabel}` : `${playerName} did not meet the criteria for: ${fallbackLabel}`;
+    }
+    
+    const achievementDetails = getAchievementDetails(player, constraint.achievementId, teams, sport, allAchievements);
+    if (!achievementDetails) {
+      const fallbackLabel = getConstraintLabel(constraint, teams, allAchievements);
+      return met ? `${playerName} met the criteria for: ${fallbackLabel}` : `${playerName} did not meet the criteria for: ${fallbackLabel}`;
     }
 
     const { value, years, label, isPlural } = achievementDetails;
@@ -548,9 +550,9 @@ function getConstraintPhrase(
     } else if (constraint.achievementId?.includes('Leader')) {
       const leaderType = label.replace('League ', '').replace(' Leader', '');
       if (met) {
-        return `${playerName} was League ${leaderType} Leader${years ? ` (${years})` : ''}`;
+        return `${playerName} was the League ${leaderType} Leader${years ? ` (${years})` : ''}`;
       } else {
-        return `${playerName} was never League ${leaderType} Leader`;
+        return `${playerName} was never the League ${leaderType} Leader`;
       }
     } else if (constraint.achievementId === 'Won Championship') {
       if (met) {
@@ -570,7 +572,9 @@ function getConstraintPhrase(
     // Fallback for any unhandled achievements (should be minimal now)
     return met ? `${playerName} met the criteria: ${label}` : `${playerName} did not meet the criteria: ${label}`;
   }
-  return met ? `${playerName} met the criteria` : `${playerName} did not meet the criteria`;
+  
+  // Fallback for unknown constraint types
+  return met ? `${player.name} met the constraint` : `${player.name} did not meet the constraint`;
 }
 
 // Helper to extract the core negative object and verb from a negative phrase
