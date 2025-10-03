@@ -48,74 +48,11 @@ export interface Player {
     playoffs?: boolean;
     gp?: number;
     min?: number;
-    pts?: number;
-    trb?: number; // rebounds
-    ast?: number; // assists
-    stl?: number; // steals
-    blk?: number; // blocks
-    tpm?: number; // made threes (preferred)
-    tp?: number; // made threes (fallback)
-    tpa?: number; // three-point attempts
-    fg?: number; // field goals made
-    fga?: number; // field goal attempts
-    ft?: number; // free throws made
-    fta?: number; // free throw attempts
-    ppg?: number; // points per game (sometimes present)
-    rpg?: number; // rebounds per game
-    apg?: number; // assists per game
-    spg?: number; // steals per game
-    bpg?: number; // blocks per game
-    fgp?: number; // field goal percentage (0-1 or 0-100)
-    tpp?: number; // three-point percentage (0-1 or 0-100)
-    ftp?: number; // free throw percentage (0-1 or 0-100)
-    ws?: number; // Win shares for determining career team
     jerseyNumber?: string;
-    // Game highs for feat detection
-    ptsMax?: number; // highest points in a game this season
-    trbMax?: number; // highest rebounds in a game this season
-    astMax?: number; // highest assists in a game this season
-    tpMax?: number; // highest made threes in a game this season
   }>;
   achievements?: Record<string, boolean | any>;
   // New: Season-specific data for same-season alignment
   teamSeasonsPaired?: Set<string>; // Set of "season|tid" strings
-  achievementSeasons?: {
-    // Single-season achievements
-    season30ppg: Set<number>;
-    season10apg: Set<number>;
-    season15rpg: Set<number>;
-    season3bpg: Set<number>;
-    season25spg: Set<number>;
-    season504090: Set<number>;
-    // League leadership
-    ledScoringAny: Set<number>;
-    ledRebAny: Set<number>;
-    ledAstAny: Set<number>;
-    ledStlAny: Set<number>;
-    ledBlkAny: Set<number>;
-    // Major awards
-    mvpWinner: Set<number>;
-    dpoyWinner: Set<number>;
-    royWinner: Set<number>;
-    smoyWinner: Set<number>;
-    mipWinner: Set<number>;
-    fmvpWinner: Set<number>;
-    // Team honors  
-    allLeagueTeam: Set<number>;
-    allDefensiveTeam: Set<number>;
-    allStarSelection: Set<number>;
-    champion: Set<number>;
-    // Draft achievements 
-    isFirstRoundPick: Set<number>;
-    isSecondRoundPick: Set<number>;
-    isUndrafted: Set<number>;
-    draftedTeen: Set<number>;
-    bornOutsideUS50DC: Set<number>;
-    // Special
-    allStar35Plus: Set<number>;
-    oneTeamOnly: Set<number>;
-    isHallOfFamer: Set<number>;
-  };
   ratings?: Array<{ season: number; pos?: string; ovr?: number }>;
   retiredYear?: number | null;
   contract?: { amount?: number; exp?: number };
@@ -168,7 +105,6 @@ export interface CellState {
   autoFilled?: boolean; // true when revealed via Give Up
   player?: Player;
   rarity?: number; // 1-100
-  points?: number; // same as rarity
   hintSuggestedPlayer?: number; // PID of player suggested in hint
   usedHint?: boolean; // whether this cell was solved using the hint
 }
@@ -183,5 +119,4 @@ export interface SearchablePlayer {
   lastLower: string;
   lastFolded: string;
   teamAbbrevs: string[];
-  careerYears: string; // Pre-calculated career year range
 }

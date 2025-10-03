@@ -88,6 +88,7 @@ interface CustomGridModalProps {
   leagueData: LeagueData | null;
   rows: CatTeam[];
   cols: CatTeam[];
+  initialSelectedCellLabel?: string; // New prop for pre-filling custom stat
 }
 
 type SelectorType = 'team' | 'achievement';
@@ -103,7 +104,7 @@ interface SelectorState {
   customNumber?: number; // Store custom number to prevent reset
 }
 
-export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows, cols }: CustomGridModalProps) {
+export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows, cols, initialSelectedCellLabel }: CustomGridModalProps) {
   
   // State for the 6 selectors (3 rows + 3 cols)
   const [rowSelectors, setRowSelectors] = useState<SelectorState[]>([
@@ -118,6 +119,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
     { type: null, value: null, label: null, customAchievement: null, operator: '≥', customNumber: undefined }
   ]);
   
+  const [initialCustomNumber, setInitialCustomNumber] = useState<number | undefined>(undefined);
+
   const sport = leagueData ? detectSport(leagueData) : 'basketball';
 
   const createEmptySelectorState = (): SelectorState => ({
@@ -126,7 +129,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
     label: null,
     customAchievement: null,
     operator: '≥',
-    customNumber: undefined,
+    customNumber: initialCustomNumber, // Use initialCustomNumber here
   });
   
   // Memoize expensive computations to prevent performance issues
@@ -141,6 +144,15 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
 
   useEffect(() => {
     if (isOpen) {
+      let parsedNumber: number | undefined = undefined;
+      if (initialSelectedCellLabel) {
+        const parsedInitialLabel = parseAchievementLabel(initialSelectedCellLabel, sport);
+        if (parsedInitialLabel.isEditable) {
+          parsedNumber = parsedInitialLabel.number;
+        }
+      }
+      setInitialCustomNumber(parsedNumber);
+
       const catTeamToSelectorState = (catTeam: CatTeam): SelectorState => {
         if (catTeam.type === 'team') {
           let logoUrl: string | null = null;
@@ -157,7 +169,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
             logoUrl,
             operator: '≥',
             customAchievement: null,
-            customNumber: undefined,
+            customNumber: undefined, // This should remain undefined for existing catTeams unless it's a custom achievement
           };
         } else if (catTeam.type === 'achievement' && catTeam.achievementId) {
           let operator: '≥' | '≤' = '≥';
@@ -191,27 +203,24 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
               customAchievement,
               customNumber,
             };
+          } else {
+            // For non-custom achievements, if initialCustomNumber is available, use it
+            // This applies when a non-custom achievement is selected, and we want to pre-fill the number
+            // from the currently selected cell in the main grid.
+            customNumber = initialCustomNumber; 
           }
 
-                  // For non-custom editable achievements, pre-fill the number
-                  const originalAchievement = achievementOptions.find(ach => ach.id === catTeam.achievementId);
-                  if (originalAchievement) {
-                    const parsedOriginal = parseAchievementLabel(originalAchievement.label, sport);
-                    if (parsedOriginal.isEditable) {
-                      customNumber = parsedOriginal.number;
-                    }
-                  }
-          
-                  return {
-                    type: 'achievement',
-                    value: catTeam.achievementId,
-                    label: catTeam.label,
-                    baseAchievementId: catTeam.achievementId, // For non-custom, base ID is its own ID
-                    operator: '≥',
-                    customAchievement: null,
-                    customNumber,
-                  };        }
-        return { type: null, value: null, label: null, operator: '≥', customAchievement: null, customNumber: undefined };
+          return {
+            type: 'achievement',
+            value: catTeam.achievementId,
+            label: catTeam.label,
+            baseAchievementId: catTeam.achievementId, // For non-custom, base ID is its own ID
+            operator: '≥',
+            customAchievement: null,
+            customNumber,
+          };
+        }
+        return { type: null, value: null, label: null, operator: '≥', customAchievement: null, customNumber: initialCustomNumber };
       };
 
       if (rows.length === 3 && cols.length === 3) {
@@ -221,9 +230,9 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
         // Reset if the grid is not fully formed
         handleClearAll();
       }
-      setCalculating(true);
+      setCalculating(true); // Trigger initial calculation when modal opens
     }
-  }, [isOpen, rows, cols, leagueData, sport, seasonIndex]);
+  }, [isOpen, rows, cols, leagueData, sport, seasonIndex, initialSelectedCellLabel, setInitialCustomNumber, initialCustomNumber]);
   
   const [hideZeroResults, setHideZeroResults] = useState(false);
   
@@ -403,8 +412,9 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
       const originalAchievement = achievementOptions.find(ach => ach.id === value);
       if (originalAchievement) {
         const parsedOriginal = parseAchievementLabel(originalAchievement.label, sport);
-        if (parsedOriginal.isEditable && customNumber === undefined) {
-          customNumber = parsedOriginal.number;
+        if (parsedOriginal.isEditable) {
+          // Initialize custom number with the parsed number from the original label
+          customNumber = initialCustomNumber !== undefined ? initialCustomNumber : parsedOriginal.number;
           // Create an initial custom achievement object
           const achievements = getAllAchievements(sport as any, seasonIndex, leagueData.leagueYears);
           const realAchievement = achievements.find((ach: any) => ach.id === originalAchievement.id);
@@ -1065,7 +1075,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
         {
           title: "Career Milestones",
           achievements: [
-            'career20kPoints', 'career5kAssists', 'career2kSteals', 'career1500Blocks', 'career2kThrees'
+            'career20kPoints', 'career10kRebounds', 'career5kAssists', 'career2kSteals', 'career1500Blocks', 'career2kThrees'
           ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
         },
         {

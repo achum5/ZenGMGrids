@@ -3,9 +3,8 @@ import type { SeasonIndex, SeasonAchievementId } from '@/lib/season-achievements
 import { getAllAchievements, playerMeetsAchievement } from '@/lib/achievements';
 import { getSeasonEligiblePlayers, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 import { calculateOptimizedIntersection, type IntersectionConstraint } from '@/lib/intersection-cache';
-import { parseAchievementLabel, generateUpdatedLabel, createCustomNumericalAchievement, generateTestFunction } from '@/lib/editable-achievements';
+import { parseAchievementLabel, generateUpdatedLabel } from '@/lib/editable-achievements';
 import { getCachedSportDetection, getCachedLeagueYears } from '@/lib/achievements';
-import { parseCustomAchievementId } from '@/lib/feedback';
 
 // Create Set for O(1) lookup instead of O(N) .some() calls
 const SEASON_ACHIEVEMENT_IDS = new Set(SEASON_ACHIEVEMENTS.map(sa => sa.id));
@@ -82,7 +81,7 @@ export function getAchievementOptions(
     .filter(achievement => 
       achievement.id !== 'bornOutsideUS50DC' && // Exclude problematic achievement
       achievement.id !== 'SFMVP' && // Exclude Superstar Finals MVP
-      achievement.id !== 'career10kRebounds' && // 10k+ career rebounds returns 0 players
+      // achievement.id !== 'career10kRebounds' && // 10k+ career rebounds returns 0 players
       achievement.id !== 'Season22PPG' && // 22+ ppg in a season returns 0 players
       // achievement.id !== 'Season3PPercent' && // 3pt% in a season achievement
       achievement.id !== 'RandomPoints25000pts' && // 25k+ career points returns 0 players  
@@ -190,105 +189,77 @@ export function headerConfigToCatTeam(
   teams: Team[],
   seasonIndex?: SeasonIndex
 ): CatTeam | null {
-    console.log('[DEBUG headerConfigToCatTeam] Input config:', config);
-    // Fix: Allow selectedId of 0 (some teams have tid 0)
-    if (config.type == null || config.selectedId == null || config.selectedLabel == null) {
-      return null;
-    }
-  
-    if (config.type === 'team') {
-      const team = teams.find(t => t.tid === config.selectedId);
-      if (!team) return null;
-      
-      return {
-        key: `team-${config.selectedId}`,
-        label: config.selectedLabel,
-        tid: config.selectedId as number,
-        type: 'team',
-        test: (p: Player) => p.teamsPlayed.has(config.selectedId as number),
-      };
-    } else {
-      let achievementLabel = config.selectedLabel;
-      let achievementId = config.selectedId as string;
-      let achievementTest = (p: Player) => false; // Default test
-      let operator: '≥' | '≤' = config.operator || '≥';
-  
-      if (config.customAchievement) {
-        console.log('[DEBUG headerConfigToCatTeam] Using customAchievement:', config.customAchievement);
-        // If a custom achievement object is provided, use its label and test function
-        achievementLabel = config.customAchievement.label;
-        achievementId = config.customAchievement.id;
-        achievementTest = config.customAchievement.test;
-        operator = config.customAchievement.operator || operator;
-      } else {
-        // If no custom achievement object, but it's an editable achievement, regenerate the label
-        const sport = getCachedSportDetection();
-        const leagueYears = getCachedLeagueYears();
-        const allAchievements = getAllAchievements(sport, seasonIndex, leagueYears);
-        const originalAchievement = allAchievements.find(a => a.id === config.selectedId);
-  
-        if (originalAchievement) {
-          const parsedOriginal = parseAchievementLabel(originalAchievement.label, sport);
-          if (parsedOriginal.isEditable) {
-            // If it's an editable achievement but not yet customized, create a temporary custom achievement
-            // This ensures its test function is dynamically generated based on its default number
-            // The customNumber from config should be used if available, otherwise fallback to parsedOriginal.number
-            const numberToUse = config.customNumber !== undefined ? config.customNumber : parsedOriginal.number;
-            
-            // Ensure the operator is correctly passed from config if available
-            const operatorToUse = config.operator || operator;
-
-            const tempCustomAchievement = createCustomNumericalAchievement(
-              originalAchievement,
-              numberToUse,
-              sport || 'basketball', // Provide a default sport
-              operatorToUse
-            );
-            achievementLabel = tempCustomAchievement.label;
-            achievementId = tempCustomAchievement.id;
-            achievementTest = tempCustomAchievement.test;
-          } else {
-            // Not editable, use the original label and test
-            achievementLabel = originalAchievement.label;
-            achievementTest = originalAchievement.test;
-          }
-        } else {
-          // Fallback for unknown achievements (should not happen if selectedId is valid)
-          console.warn('[DEBUG headerConfigToCatTeam] Original achievement not found for ID:', config.selectedId);
-          // If original not found, and it's a custom ID, try to parse it and create a temp test
-          if (config.selectedId && (config.selectedId as string).includes('_custom_')) {
-            const parsedCustom = parseCustomAchievementId(config.selectedId as string);
-            if (parsedCustom) {
-              const baseAch = allAchievements.find(a => a.id === parsedCustom.baseId);
-              if (baseAch) {
-                const tempParsed = parseAchievementLabel(baseAch.label, sport);
-                const tempCustomAchievement = createCustomNumericalAchievement(
-                  baseAch,
-                  parsedCustom.threshold,
-                  sport || 'basketball',
-                  parsedCustom.operator
-                );
-                achievementLabel = tempCustomAchievement.label;
-                achievementId = tempCustomAchievement.id;
-                achievementTest = tempCustomAchievement.test;
-              }
-            }
-          } else {
-            achievementLabel = config.selectedLabel;
-            achievementTest = (p: Player) => playerMeetsAchievement(p, config.selectedId as string, seasonIndex, operator === '≤' ? '<=' : '>=');
-          }
-        }
-      }
-      console.log('[DEBUG headerConfigToCatTeam] Final achievementId assigned:', achievementId, 'Final achievementTest assigned:', achievementTest);
-      return {
-        key: `achievement-${achievementId}-${config.customAchievement ? 'custom' : 'original'}`,
-        label: achievementLabel,
-        achievementId: achievementId as string,
-        type: 'achievement',
-        test: achievementTest,
-      };
-    }
+  console.log('[DEBUG headerConfigToCatTeam] Input config:', config);
+  // Fix: Allow selectedId of 0 (some teams have tid 0)
+  if (config.type == null || config.selectedId == null || config.selectedLabel == null) {
+    return null;
   }
+
+  if (config.type === 'team') {
+    const team = teams.find(t => t.tid === config.selectedId);
+    if (!team) return null;
+    
+    return {
+      key: `team-${config.selectedId}`,
+      label: config.selectedLabel,
+      tid: config.selectedId as number,
+      type: 'team',
+      test: (p: Player) => p.teamsPlayed.has(config.selectedId as number),
+    };
+  } else {
+    let achievementLabel = config.selectedLabel;
+    let achievementId = config.selectedId as string;
+    let achievementTest = (p: Player) => false; // Default test
+    let operator: '≥' | '≤' = config.operator || '≥';
+
+    if (config.customAchievement) {
+      console.log('[DEBUG headerConfigToCatTeam] Using customAchievement:', config.customAchievement);
+      // If a custom achievement object is provided, use its label and test function
+      achievementLabel = config.customAchievement.label;
+      achievementId = config.customAchievement.id;
+      achievementTest = config.customAchievement.test;
+      operator = config.customAchievement.operator || operator;
+    } else {
+      // If no custom achievement object, but it's an editable achievement, regenerate the label
+      const sport = getCachedSportDetection();
+      const leagueYears = getCachedLeagueYears();
+      const allAchievements = getAllAchievements(sport, seasonIndex, leagueYears);
+      const originalAchievement = allAchievements.find(a => a.id === config.selectedId);
+
+      if (originalAchievement) {
+        console.log('[DEBUG headerConfigToCatTeam] Found originalAchievement:', originalAchievement);
+        const parsedOriginal = parseAchievementLabel(originalAchievement.label, sport);
+        console.log('[DEBUG headerConfigToCatTeam] Parsed original achievement:', parsedOriginal);
+        if (parsedOriginal.isEditable) {
+          // Use the original number for the label if no custom number is set
+          const numberToUse = parsedOriginal.number;
+          console.log(`[DEBUG headerConfigToCatTeam] Generating label with number: ${numberToUse}, operator: ${operator}`);
+          achievementLabel = generateUpdatedLabel(parsedOriginal, numberToUse, operator);
+          console.log('[DEBUG headerConfigToCatTeam] Generated label:', achievementLabel);
+          // For non-customized editable achievements, use the original achievement's test
+          achievementTest = (p: Player) => playerMeetsAchievement(p, originalAchievement.id, seasonIndex, operator === '≤' ? '<=' : '>=');
+        } else {
+          // Not editable, use the original label and test
+          achievementLabel = originalAchievement.label;
+          achievementTest = originalAchievement.test;
+        }
+      } else {
+        // Fallback for unknown achievements (should not happen if selectedId is valid)
+        console.warn('[DEBUG headerConfigToCatTeam] Original achievement not found for ID:', config.selectedId);
+        achievementLabel = config.selectedLabel;
+        achievementTest = (p: Player) => playerMeetsAchievement(p, config.selectedId as string, seasonIndex, operator === '≤' ? '<=' : '>=');
+      }
+    }
+    
+    return {
+      key: `achievement-${achievementId}-${config.customAchievement ? 'custom' : 'original'}`,
+      label: achievementLabel,
+      achievementId: achievementId as string,
+      type: 'achievement',
+      test: achievementTest,
+    };
+  }
+}
 
 // Async chunked processing for custom achievement intersections to prevent UI blocking
 async function processCustomIntersectionAsync(
@@ -349,7 +320,6 @@ export function calculateCustomCellIntersection(
   teams: Team[],
   seasonIndex?: SeasonIndex
 ): number {
-  const DEBUG = true; // Temporarily set to true for debugging
   const rowConstraint = headerConfigToCatTeam(rowConfig, teams, seasonIndex);
   const colConstraint = headerConfigToCatTeam(colConfig, teams, seasonIndex);
   
@@ -366,24 +336,38 @@ export function calculateCustomCellIntersection(
     const cached = customIntersectionCache.get(cacheKey);
     
     if (cached && (Date.now() - cached.timestamp) < CUSTOM_CACHE_TTL) {
-      if (DEBUG) console.log(`🐛 [calculateCustomCellIntersection] Cache hit for custom achievement: ${cacheKey}`);
       return cached.result as number;
     }
     
     // Direct calculation for custom achievements - count players that meet both constraints
     let count = 0;
     for (const player of players) {
-      const rowTestResult = rowConstraint.test(player);
-      const colTestResult = colConstraint.test(player);
-      if (DEBUG) console.log(`🐛 [calculateCustomCellIntersection] Player ${player.name} (PID: ${player.pid}) - Row Test: ${rowTestResult}, Col Test: ${colTestResult}`);
-      if (rowTestResult && colTestResult) {
+      let rowMeets = false;
+      let colMeets = false;
+
+      // Evaluate row constraint
+      if (rowConstraint.type === 'achievement' && rowConstraint.achievementId?.startsWith('career') && colConstraint.type === 'team') {
+        // Career achievement intersected with a team
+        rowMeets = playerMeetsAchievement(player, rowConstraint.achievementId, seasonIndex, rowConfig.operator, colConstraint.tid);
+      } else {
+        rowMeets = rowConstraint.test(player);
+      }
+
+      // Evaluate column constraint
+      if (colConstraint.type === 'achievement' && colConstraint.achievementId?.startsWith('career') && rowConstraint.type === 'team') {
+        // Career achievement intersected with a team
+        colMeets = playerMeetsAchievement(player, colConstraint.achievementId, seasonIndex, colConfig.operator, rowConstraint.tid);
+      } else {
+        colMeets = colConstraint.test(player);
+      }
+
+      if (rowMeets && colMeets) {
         count++;
       }
     }
     
     // Cache the result
     customIntersectionCache.set(cacheKey, { result: count, timestamp: Date.now() });
-    if (DEBUG) console.log(`🐛 [calculateCustomCellIntersection] Cache miss, calculated and cached for custom achievement: ${cacheKey}, Count: ${count}`);
     return count;
   }
 
@@ -400,7 +384,7 @@ export function calculateCustomCellIntersection(
     label: colConstraint.label
   };
   
-  const result = calculateOptimizedIntersection(
+  return calculateOptimizedIntersection(
     rowIntersectionConstraint,
     colIntersectionConstraint,
     players,
@@ -408,8 +392,6 @@ export function calculateCustomCellIntersection(
     seasonIndex,
     true // Return count only
   ) as number;
-  if (DEBUG) console.log(`🐛 [calculateCustomCellIntersection] Using optimized intersection for standard achievement, Result: ${result}`);
-  return result;
 }
 
 // Async version for getting eligible players (for player modal and hints)
@@ -602,35 +584,10 @@ export function debugAchievementIntersection(
   teams: Team[],
   seasonIndex?: SeasonIndex
 ): void {
-  const DEBUG = import.meta.env.VITE_DEBUG === 'true';
+  const DEBUG = import.meta.env.VITE_DEBUG;
   if (!DEBUG) return;
   
   console.log('Starting achievement intersection debug test');
-  console.log(`   Players: ${players.length}, Teams: ${teams.length}, SeasonIndex: ${!!seasonIndex}`);
-  
-  // Create test configurations for our problematic intersection
-  const reboundsConfig: HeaderConfig = {
-    type: 'achievement',
-    selectedId: 'career10kRebounds',
-    selectedLabel: '10,000+ Career Rebounds'
-  };
-  
-  const assistsConfig: HeaderConfig = {
-    type: 'achievement', 
-    selectedId: 'AssistsLeader',
-    selectedLabel: 'League Assists Leader'
-  };
-  
-  // Test the intersection
-  const intersection = calculateCustomCellIntersection(
-    reboundsConfig,
-    assistsConfig, 
-    players,
-    teams,
-    seasonIndex
-  );
-  
-  console.log(`Final intersection result: ${intersection} players`);
 }
 
 // Convert custom grid state to grid generation format

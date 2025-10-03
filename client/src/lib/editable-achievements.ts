@@ -230,7 +230,7 @@ export function createCustomNumericalAchievement(
   
   return {
     ...baseAchievement,
-    id: `${baseAchievement.id}_custom_${newThreshold !== undefined ? newThreshold : 'empty'}_${operatorStr}`,
+    id: `${baseAchievement.id}_custom_${newThreshold !== undefined ? newThreshold : parsed.number}_${operatorStr}`,
     label: newLabel,
     test: newTestFunction
   };
@@ -573,7 +573,7 @@ function getPlayerCareerTotal(player: Player, statField: string | string[]): num
       let valueFound = false;
       for (const field of statField) {
         if ((stat as any)[field] !== undefined) {
-          total += (stat as any)[field] || 0;
+          total += (stat as any)[field];
           valueFound = true;
           break; // Stop after finding the first valid field
         }
@@ -591,7 +591,7 @@ function checkCareerTotal(player: Player, statField: string | string[], newThres
   const total = getPlayerCareerTotal(player, statField);
 
   // Disqualify if career total is zero for this stat, regardless of operator
-  if (total === 0 && newThreshold > 0) {
+  if (total === 0) {
     return false;
   }
 
