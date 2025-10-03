@@ -1123,7 +1123,20 @@ export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | '
 
 // Season-aligned achievements that need same-season matching for Team × Achievement cells
 export const SEASON_ALIGNED_ACHIEVEMENTS = new Set([
-  'ledScoringAny', 'ledRebAny', 'ledAstAny', 'SeasonFGPercent', 'Season3PPercent'
+  'ledScoringAny', 'ledRebAny', 'ledAstAny', 'SeasonFGPercent', 'Season3PPercent',
+  'Season30PPG', 'Season2000Points', 'Season200_3PM', 'Season12RPG', 'Season10APG',
+  'Season800Rebounds', 'Season700Assists', 'Season2SPG', 'Season2_5BPG', 'Season150Steals',
+  'Season150Blocks', 'Season200Stocks', 'Season50_40_90', 'Season70Games', 'Season36MPG',
+  'Season25_10', 'Season25_5_5', 'Season20_10_5', 'Season1_1_1',
+  'FBSeason4kPassYds', 'FBSeason1200RushYds', 'FBSeason100Receptions', 'FBSeason15Sacks',
+  'FBSeason140Tackles', 'FBSeason5Interceptions', 'FBSeason30PassTD', 'FBSeason1300RecYds',
+  'FBSeason10RecTD', 'FBSeason12RushTD', 'FBSeason1600Scrimmage', 'FBSeason2000AllPurpose',
+  'FBSeason15TFL',
+  'HKSeason40Goals', 'HKSeason60Assists', 'HKSeason90Points', 'HKSeason25Plus',
+  'HKSeason250Shots', 'HKSeason150Hits', 'HKSeason100Blocks', 'HKSeason60Takeaways',
+  'HKSeason20PowerPlay', 'HKSeason3SHGoals', 'HKSeason7GWGoals', 'HKSeason55FaceoffPct',
+  'HKSeason22TOI', 'HKSeason70PIM', 'HKSeason920SavePct', 'HKSeason260GAA',
+  'HKSeason6Shutouts', 'HKSeason2000Saves', 'HKSeason60Starts',
 ]);
 
 function getPlayerFranchiseCount(player: Player): number {
@@ -1244,9 +1257,14 @@ export function playerMeetsAchievement(
   player: Player, 
   achievementId: string, 
   seasonIndex?: SeasonIndex,
-  operator: '>=' | '<=' = '>='
+  operator: '>=' | '<=' = '>=',
+  teamId?: number,
+  season?: number,
 ): boolean {
-  // Debug logging removed for performance - was causing thousands of logs in hot paths
+  const DEBUG = import.meta.env.VITE_DEBUG === 'true';
+  if (DEBUG) {
+    console.log(`🐛 [playerMeetsAchievement] Player: ${player.name}, Achievement: ${achievementId}, SeasonIndex: ${!!seasonIndex}, Operator: ${operator}, TeamId: ${teamId}, Season: ${season}`);
+  }
 
   // Check if it's a dynamic decade achievement first
   if (achievementId.includes('playedIn') && achievementId.endsWith('s')) {
@@ -1273,31 +1291,76 @@ export function playerMeetsAchievement(
   // First, check if it's ANY achievement that needs season index (statistical leaders AND season achievements)
   const statisticalLeaders = ['PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader', 'Season30PPG', 'Season2000Points', 'Season200_3PM', 'Season12RPG', 'Season10APG', 'Season800Rebounds', 'Season700Assists', 'Season2SPG', 'Season2_5BPG', 'Season150Steals', 'Season150Blocks', 'Season200Stocks', 'Season50_40_90', 'Season70Games', 'Season36MPG', 'Season25_10', 'Season25_5_5', 'Season20_10_5', 'Season1_1_1', 'FBSeason4kPassYds', 'FBSeason1200RushYds', 'FBSeason100Receptions', 'FBSeason15Sacks', 'FBSeason140Tackles', 'FBSeason5Interceptions', 'FBSeason30PassTD', 'FBSeason1300RecYds', 'FBSeason10RecTD', 'FBSeason12RushTD', 'FBSeason1600Scrimmage', 'FBSeason2000AllPurpose', 'FBSeason15TFL', 'HKSeason40Goals', 'HKSeason60Assists', 'HKSeason90Points', 'HKSeason25Plus', 'HKSeason250Shots', 'HKSeason150Hits', 'HKSeason100Blocks', 'HKSeason60Takeaways', 'HKSeason20PowerPlay', 'HKSeason3SHGoals', 'HKSeason7GWGoals', 'HKSeason55FaceoffPct', 'HKSeason22TOI', 'HKSeason70PIM', 'HKSeason920SavePct', 'HKSeason260GAA', 'HKSeason6Shutouts', 'HKSeason2000Saves', 'HKSeason60Starts'];
   if (statisticalLeaders.includes(achievementId)) {
-    // For ALL statistical achievements, check if player appears in any season/team for this achievement
     if (!seasonIndex) {
+      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] No seasonIndex provided for statistical achievement ${achievementId}`);
       return false;
     }
-    
-    for (const seasonStr of Object.keys(seasonIndex)) {
-      const seasonData = seasonIndex[parseInt(seasonStr)];
-      for (const teamData of Object.values(seasonData)) {
-        if (teamData[achievementId as keyof typeof teamData]?.has(player.pid)) {
+
+    if (season !== undefined && teamId !== undefined) {
+      // Specific season and team provided (Team x Achievement intersection)
+      const seasonData = seasonIndex[season];
+      if (seasonData) {
+        const teamData = seasonData[teamId];
+        if (teamData) {
+          const result = teamData[achievementId as keyof typeof teamData]?.has(player.pid) || false;
+          if (DEBUG) console.log(`🐛 [playerMeetsAchievement] Specific season/team check for ${achievementId}, Season: ${season}, Team: ${teamId}, Result: ${result}`);
+          return result;
+        }
+      }
+      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] No seasonData or teamData for specific season/team check for ${achievementId}, Season: ${season}, Team: ${teamId}`);
+      return false;
+    } else if (teamId !== undefined) {
+      // Only teamId provided (e.g., checking if player ever led a stat for a specific team)
+      for (const seasonStr of Object.keys(seasonIndex)) {
+        const seasonData = seasonIndex[parseInt(seasonStr)];
+        const teamData = seasonData[teamId];
+        if (teamData && teamData[achievementId as keyof typeof teamData]?.has(player.pid)) {
+          if (DEBUG) console.log(`🐛 [playerMeetsAchievement] Team-only check for ${achievementId}, Team: ${teamId}, Found in season: ${seasonStr}, Result: true`);
           return true;
         }
       }
+      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] Team-only check for ${achievementId}, Team: ${teamId}, Result: false`);
+      return false;
+    } else {
+      // No specific team or season provided (Achievement x Achievement intersection or general check)
+      for (const seasonStr of Object.keys(seasonIndex)) {
+        const seasonData = seasonIndex[parseInt(seasonStr)];
+        for (const teamData of Object.values(seasonData)) {
+          if (teamData[achievementId as keyof typeof teamData]?.has(player.pid)) {
+            if (DEBUG) console.log(`🐛 [playerMeetsAchievement] General statistical check for ${achievementId}, Found in season: ${seasonStr}, Result: true`);
+            return true;
+          }
+        }
+      }
+      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] General statistical check for ${achievementId}, Result: false`);
+      return false;
     }
-    
-    return false;
   }
   
   // Check if it's a season-specific achievement (like SMOY, MVP, etc.)
   const seasonAchievement = SEASON_ACHIEVEMENTS.find(sa => sa.id === achievementId);
   if (seasonAchievement) {
-    // For season-specific achievements, we should ideally use the season index for proper team-season harmonization
-    // However, for general achievement checking (without team context), we fall back to award checking
-    // This is used when checking if a player meets an achievement regardless of team context
-    return player.awards?.some(award => {
+    let filteredAwards = player.awards;
+
+    if (season !== undefined) {
+      filteredAwards = filteredAwards?.filter(award => award.season === season);
+      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] Filtering awards by season: ${season}, Count: ${filteredAwards?.length}`);
+    }
+
+    // If this is a season-aligned achievement and teamId is provided, we need to check team presence
+    if (SEASON_ALIGNED_ACHIEVEMENTS.has(achievementId) && teamId !== undefined) {
+      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] Season-aligned achievement with teamId: ${achievementId}, TeamId: ${teamId}`);
+      // Further filter awards to ensure the player was on the team during that season
+      filteredAwards = filteredAwards?.filter(award => {
+        // Check if player played for teamId in the award's season
+        return player.stats?.some(s => s.season === award.season && s.tid === teamId && !s.playoffs && (s.gp || 0) > 0);
+      });
+      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] After team alignment filter, awards count: ${filteredAwards?.length}`);
+    }
+
+    return filteredAwards?.some(award => {
       const normalizedType = award.type.toLowerCase().trim();
+      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] Checking award: ${award.type} for achievement: ${achievementId}`);
       
       // Basketball achievements
       if (achievementId === 'AllStar' && normalizedType.includes('all-star')) return true;

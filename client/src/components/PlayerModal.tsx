@@ -11,6 +11,7 @@ import { cellKey } from '@/lib/grid-generator';
 import { CareerTeamLogo, checkAllTeamsHaveLogos } from '@/components/CareerTeamLogo';
 import { generateReasonBullets } from '@/lib/reason-bullets';
 import { playerMeetsAchievement, getAllAchievements, getCachedSportDetection, getCachedLeagueYears } from '@/lib/achievements';
+import { getCachedSeasonIndex } from '@/lib/season-index-cache';
 import { parseAchievementLabel } from '@/lib/editable-achievements';
 
 type Props = {
@@ -34,10 +35,11 @@ function generateFeedbackMessage(
   colConstraint: GridConstraint,
   teams: Team[],
   sport: 'basketball' | 'football' | 'hockey' | 'baseball' | undefined,
-  allAchievements: ReturnType<typeof getAllAchievements>
+  allAchievements: ReturnType<typeof getAllAchievements>,
+  seasonIndex: any // Add seasonIndex here
 ): string {
-  const rowMet = checkConstraint(player, rowConstraint, teams, sport, allAchievements);
-  const colMet = checkConstraint(player, colConstraint, teams, sport, allAchievements);
+  const rowMet = checkConstraint(player, rowConstraint, teams, sport, allAchievements, seasonIndex, colConstraint);
+  const colMet = checkConstraint(player, colConstraint, teams, sport, allAchievements, seasonIndex, rowConstraint);
 
   const rowPhraseMet = getConstraintPhrase(player, rowConstraint, teams, sport, allAchievements, true);
   const rowPhraseNotMet = getConstraintPhrase(player, rowConstraint, teams, sport, allAchievements, false);
@@ -77,14 +79,29 @@ function checkConstraint(
   constraint: GridConstraint,
   teams: Team[],
   sport: 'basketball' | 'football' | 'hockey' | 'baseball' | undefined,
-  allAchievements: ReturnType<typeof getAllAchievements>
+  allAchievements: ReturnType<typeof getAllAchievements>,
+  seasonIndex: any, // Add seasonIndex here
+  otherConstraint?: GridConstraint // Add otherConstraint here
 ): boolean {
   if (constraint.type === 'team') {
     return player.stats?.some(s => s.tid === constraint.tid && !s.playoffs) || false;
   } else if (constraint.type === 'achievement') {
     const achievement = allAchievements.find(a => a.id === constraint.achievementId);
     if (achievement) {
-      return playerMeetsAchievement(player, achievement.id, undefined);
+      let teamIdForAchievement: number | undefined;
+      let seasonForAchievement: number | undefined;
+
+      // If the other constraint is a team, use its teamId and infer a season if possible
+      if (otherConstraint?.type === 'team') {
+        teamIdForAchievement = otherConstraint.tid;
+        // For team constraints, we need to find a season where the player played for that team
+        // This is a simplification; a more robust solution might involve iterating through seasons
+        // or having the season passed explicitly from the grid cell context.
+        // For now, we'll assume if a team constraint is present, we're looking for *any* season
+        // where the player met the achievement *with that team*.
+        // However, the `playerMeetsAchievement` function will handle the season iteration.
+      }
+      return playerMeetsAchievement(player, achievement.id, seasonIndex, '>=', teamIdForAchievement, seasonForAchievement);
     }
   }
   return false;
@@ -415,16 +432,18 @@ function getConstraintPhrase(
       return `${playerName} never played for the ${teamName}`;
     }
   } else if (constraint.type === 'achievement') {
+    let isCompletePhrase: boolean;
     if (!constraint.achievementId) {
-      // Handle case where achievementId is missing for an achievement type constraint
       const fallbackLabel = getConstraintLabel(constraint, teams, allAchievements);
-      return met ? `${playerName} met the criteria for: ${fallbackLabel}` : `${playerName} did not meet the criteria for: ${fallbackLabel}`;
+      isCompletePhrase = fallbackLabel.includes('MPG') || fallbackLabel.includes('Champion') || fallbackLabel.includes('Leader') || fallbackLabel.includes('Season');
+      return met ? `${playerName} met the criteria${isCompletePhrase ? ':' : ' for:'} ${fallbackLabel}` : `${playerName} did not meet the criteria${isCompletePhrase ? ':' : ' for:'} ${fallbackLabel}`;
     }
     
     const achievementDetails = getAchievementDetails(player, constraint.achievementId, teams, sport, allAchievements);
     if (!achievementDetails) {
       const fallbackLabel = getConstraintLabel(constraint, teams, allAchievements);
-      return met ? `${playerName} met the criteria for: ${fallbackLabel}` : `${playerName} did not meet the criteria for: ${fallbackLabel}`;
+      isCompletePhrase = fallbackLabel.includes('MPG') || fallbackLabel.includes('Champion') || fallbackLabel.includes('Leader') || fallbackLabel.includes('Season');
+      return met ? `${playerName} met the criteria${isCompletePhrase ? ':' : ' for:'} ${fallbackLabel}` : `${playerName} did not meet the criteria${isCompletePhrase ? ':' : ' for:'} ${fallbackLabel}`;
     }
 
     const { value, years, label, isPlural } = achievementDetails;
@@ -570,7 +589,8 @@ function getConstraintPhrase(
       }
     }
     // Fallback for any unhandled achievements (should be minimal now)
-    return met ? `${playerName} met the criteria: ${label}` : `${playerName} did not meet the criteria: ${label}`;
+    isCompletePhrase = label.includes('MPG') || label.includes('Champion') || label.includes('Leader') || label.includes('Season');
+    return met ? `${playerName} met the criteria${isCompletePhrase ? ':' : ' for:'} ${label}` : `${playerName} did not meet the criteria${isCompletePhrase ? ':' : ' for:'} ${label}`;
   }
   
   // Fallback for unknown constraint types
@@ -650,7 +670,8 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
 
   const currentSport = sport || getCachedSportDetection() || 'basketball';
   const leagueYears = getCachedLeagueYears();
-  const allAchievements = useMemo(() => getAllAchievements(currentSport, undefined, leagueYears), [currentSport, leagueYears]);
+  const allAchievements = useMemo(() => getAllAchievements(currentSport as ('basketball' | 'football' | 'hockey' | 'baseball'), undefined, leagueYears), [currentSport, leagueYears]);
+  const seasonIndex = useMemo(() => getCachedSeasonIndex(eligiblePlayers as Player[], currentSport as ('basketball' | 'football' | 'hockey' | 'baseball')), [eligiblePlayers, currentSport]);
 
   // Create team lookup map for efficient lookups - defensive check for teams array
   const teamsByTid = new Map(Array.isArray(teams) ? teams.map(team => [team.tid, team]) : []);
@@ -754,15 +775,9 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
           label: colConstraint.label
         },
         Array.isArray(teams) ? teams : [],
-        {
-          type: colConstraint.type,
-          tid: colConstraint.tid,
-          achievementId: colConstraint.achievementId,
-          label: colConstraint.label
-        },
-        Array.isArray(teams) ? teams : [],
-        currentSport,
-        allAchievements
+        currentSport as ('basketball' | 'football' | 'hockey' | 'baseball'),
+        allAchievements,
+        seasonIndex
       );
 
       return {
@@ -1202,7 +1217,7 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                             },
                             fullPlayers: eligiblePlayers,
                             teams: new Map(teams?.map(t => [t.tid, t]) ?? []),
-                            sport: currentSport as ('basketball' | 'football' | 'hockey' | 'baseball')
+                            seasonIndex: seasonIndex
                           });
                         }
                       }
