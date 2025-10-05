@@ -16,7 +16,6 @@ import { getAllAchievements } from '@/lib/achievements';
 import { SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 import { getCachedSeasonIndex } from '@/lib/season-index-cache';
 import { StatBuilderChip } from '@/components/stat-builder-chip';
-import { CustomGridCell } from '@/components/custom-grid-cell';
 import { parseAchievementLabel, createCustomNumericalAchievement, generateUpdatedLabel } from '@/lib/editable-achievements';
 
 // Extract base stat name from achievement labels for clean modal display
@@ -1443,12 +1442,9 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
                     
                     // Row cells
                     ...colSelectors.map((_, colIndex) => (
-                      <CustomGridCell 
-                        key={`cell-${rowIndex}-${colIndex}`}
-                        playerCount={cellCounts[getCellKey(rowIndex, colIndex)] || 0}
-                        row={rowIndex}
-                        col={colIndex}
-                      />
+                      <div key={`cell-${rowIndex}-${colIndex}`} className="aspect-square flex items-center justify-center bg-background border rounded text-[8px] sm:text-xs lg:text-sm font-medium min-h-[40px] sm:min-h-[60px] lg:min-h-[80px]">
+                        {getCellDisplay(rowIndex, colIndex)}
+                      </div>
                     ))
                   ]
                 ))}
