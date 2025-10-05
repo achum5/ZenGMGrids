@@ -321,6 +321,40 @@ function getSeasonsForSeasonStatAchievement(player: Player, achievementId: Seaso
   return uniqueSeasons.map(s => s.toString());
 }
 
+// Helper function to map a career statistical achievement ID to its stat field
+function getStatFieldForCareerAchievement(achievementId: string): string | string[] | null {
+  switch (achievementId) {
+    case 'career20kPoints': return 'pts';
+    case 'career10kRebounds': return 'trb';
+    case 'career5kAssists': return 'ast';
+    case 'career2kSteals': return 'stl';
+    case 'career1500Blocks': return 'blk';
+    case 'career2kThrees': return ['tpm', 'tp'];
+    case 'FBCareer50kPassYds': return 'pssYds';
+    case 'career300PassTDs': return 'pssTD';
+    case 'career12kRushYds': return 'rusYds';
+    case 'career100RushTDs': return 'rusTD';
+    case 'career12kRecYds': return 'recYds';
+    case 'career100RecTDs': return 'recTD';
+    case 'career100Sacks': return ['sks', 'defSk'];
+    case 'career20Ints': return 'defInt';
+    case 'career500Goals': return 'goals';
+    case 'career1000Points': return 'points';
+    case 'career500Assists': return 'assists';
+    case 'career200Wins': return 'wins';
+    case 'career50Shutouts': return 'shutouts';
+    case 'career3000Hits': return 'h';
+    case 'career500HRs': return 'hr';
+    case 'career1500RBIs': return 'rbi';
+    case 'career400SBs': return 'sb';
+    case 'career1800Runs': return 'r';
+    case 'career300Wins': return 'w';
+    case 'career3000Ks': return 'soPit';
+    case 'career300Saves': return 'sv';
+    default: return null;
+  }
+}
+
 // Helper function to extract season achievement data from player
 function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchievementId, teams: Team[], teamId?: number): string[] {
   let baseAchievementId: SeasonAchievementId = achievementId;
@@ -675,12 +709,58 @@ function generateSimpleAchievementBullet(player: Player, achievementId: string, 
   if (isSeasonAchievement(achievementId)) {
     return generateSimpleSeasonAchievementBullet(player, achievementId as SeasonAchievementId, teams, constraintLabel);
   } else {
-    // Career achievements - just return simple bullet with label
-    const label = constraintLabel || achievementId;
-    return {
-      text: label,
-      type: 'award'
-    };
+    // Career achievements
+    let baseAchievementId = achievementId;
+    let customThreshold: number | undefined;
+    let customOperator: '≥' | '≤' | undefined;
+
+    // Check if it's a custom numerical achievement
+    if (achievementId.includes('_custom_')) {
+      const parsedCustom = parseCustomAchievementId(achievementId);
+      if (parsedCustom) {
+        baseAchievementId = parsedCustom.baseId;
+        customThreshold = parsedCustom.threshold;
+        customOperator = parsedCustom.operator;
+      }
+    }
+
+    const statField = getStatFieldForCareerAchievement(baseAchievementId);
+
+    if (statField) {
+      const playerCareerTotal = getPlayerCareerTotal(player, statField);
+      const originalLabel = constraintLabel || achievementId;
+      const parsedOriginal = parseAchievementLabel(originalLabel);
+
+      let statName = parsedOriginal.statUnit.trim();
+      if (!statName && parsedOriginal.suffix.trim()) {
+        // Fallback to suffix if no specific stat unit was parsed (e.g., "Rebounds")
+        statName = parsedOriginal.suffix.trim().replace(/^\+/, ''); // Remove leading '+'
+      }
+      if (!statName && parsedOriginal.prefix.trim()) {
+        // Another fallback, e.g., for "Career Points" where "Career" is prefix
+        statName = parsedOriginal.prefix.trim();
+      }
+
+      // Clean up common prefixes/suffixes that are not part of the stat name itself
+      statName = statName.replace(/^(career|season)\s*/i, '').trim();
+      statName = statName.replace(/\s*\(career\)|\s*\(season\)/gi, '').trim();
+
+      if (playerCareerTotal === 1) {
+        statName = singularizeStatWord(statName);
+      }
+
+      return {
+        text: `${formatNumber(playerCareerTotal)} Career ${statName}`.trim(),
+        type: 'award'
+      };
+    } else {
+      // Fallback for non-numerical career achievements (e.g., Hall of Famer)
+      const label = constraintLabel || achievementId;
+      return {
+        text: label,
+        type: 'award'
+      };
+    }
   }
 }
 
@@ -750,39 +830,10 @@ function getActualDecadeYears(player: Player, achievementType: 'played' | 'debut
   return '';
 }
 
-// Helper function to get a player's career total for a specific stat
-function getPlayerCareerTotal(player: Player, statField: string | string[]): number {
-  if (!player.stats) return 0;
 
-  let total = 0;
-  for (const stat of player.stats) {
-    if (stat.playoffs) continue; // Only regular season
-
-    if (Array.isArray(statField)) {
-      // For combined stats like 'stocks', sum the components
-      if (statField.includes('stl') && statField.includes('blk')) {
-        total += (stat.stl || 0) + (stat.blk || 0);
-      } else {
-        // For fallback fields like ['tpm', 'tp']
-        let valueFound = false;
-        for (const field of statField) {
-          if ((stat as any)[field] !== undefined) {
-            total += (stat as any)[field];
-            valueFound = true;
-            break; 
-          }
-        }
-      }
-    } else {
-      // Single stat field
-      total += (stat as any)[statField] || 0;
-    }
-  }
-  return total;
-}
 
 import { getAllAchievements, getCachedSportDetection, getCachedLeagueYears } from '@/lib/achievements';
-import { parseAchievementLabel, generateUpdatedLabel } from '@/lib/editable-achievements';
+import { parseAchievementLabel, generateUpdatedLabel, singularizeStatWord, getPlayerCareerTotal } from '@/lib/editable-achievements';
 import { parseCustomAchievementId } from '@/lib/feedback';
 
 // Season achievement labels for bullet display

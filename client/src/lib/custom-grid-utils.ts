@@ -81,11 +81,11 @@ export function getAchievementOptions(
     .filter(achievement => 
       achievement.id !== 'bornOutsideUS50DC' && // Exclude problematic achievement
       achievement.id !== 'SFMVP' && // Exclude Superstar Finals MVP
-      achievement.id !== 'career10kRebounds' && // 10k+ career rebounds returns 0 players
+
       achievement.id !== 'Season22PPG' && // 22+ ppg in a season returns 0 players
       // achievement.id !== 'Season3PPercent' && // 3pt% in a season achievement
       achievement.id !== 'RandomPoints25000pts' && // 25k+ career points returns 0 players  
-      achievement.id !== 'RandomRebounds6000trb' && // 6k+ career rebounds returns 0 players
+      // achievement.id !== 'RandomRebounds6000trb' && // 6k+ career rebounds returns 0 players
       // Remove duplicate lower-tier random achievements (keep only highest thresholds)
       !achievement.id.startsWith('Randomcareer3000') && // Remove 3k+ career achievements
       !achievement.id.startsWith('Randomcareer5000') && // Remove 5k+ career achievements  
@@ -104,14 +104,14 @@ export function getAchievementOptions(
       !achievement.id.startsWith('Randomcareer4000') && // Remove 4k+ career achievements
       !achievement.id.startsWith('Randomcareer6000') && // Remove 6k+ career achievements
       !achievement.id.startsWith('Randomcareer7500') && // Remove 7.5k+ career achievements (rebounds)
-      achievement.id !== 'Randomcareer100threes' && // Remove 100+ threes (we want 2k+)
-      achievement.id !== 'Randomcareer200threes' && // Remove 200+ threes (we want 2k+)
-      achievement.id !== 'Randomcareer300threes' && // Remove 300+ threes (we want 2k+)
-      achievement.id !== 'Randomcareer500threes' && // Remove 500+ threes (we want 2k+)
-      achievement.id !== 'Randomcareer750threes' && // Remove 750+ threes (we want 2k+)
-      achievement.id !== 'Randomcareer1000threes' && // Remove 1k+ threes (we want 2k+)
-      achievement.id !== 'Randomcareer1250threes' && // Remove 1.25k+ threes (we want 2k+)
-      achievement.id !== 'Randomcareer1500threes' && // Remove 1.5k+ threes (we want 2k+)
+      // achievement.id !== 'Randomcareer100threes' && // Remove 100+ threes (we want 2k+)
+      // achievement.id !== 'Randomcareer200threes' && // Remove 200+ threes (we want 2k+)
+      // achievement.id !== 'Randomcareer300threes' && // Remove 300+ threes (we want 2k+)
+      // achievement.id !== 'Randomcareer500threes' && // Remove 500+ threes (we want 2k+)
+      // achievement.id !== 'Randomcareer750threes' && // Remove 750+ threes (we want 2k+)
+      // achievement.id !== 'Randomcareer1000threes' && // Remove 1k+ threes (we want 2k+)
+      // achievement.id !== 'Randomcareer1250threes' && // Remove 1.25k+ threes (we want 2k+)
+      // achievement.id !== 'Randomcareer1500threes' && // Remove 1.5k+ threes (we want 2k+)
       achievement.id !== 'Randomseason16rpg' // Remove 16+ RPG season achievement
     )
     .map(achievement => ({
@@ -126,7 +126,7 @@ export function getAchievementOptions(
         // League Leaders
         'PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader',
         // Career Milestones  
-        'career20kPoints', 'career5kAssists', 'career2kSteals', 'career1500Blocks', 'career2kThrees',
+        'career20kPoints', 'career10kRebounds', 'career2kThrees', 'career5kAssists', 'career2kSteals', 'career1500Blocks',
         // Single-Season Volume & Combos
         'Season2000Points', 'Season30PPG', 'Season200_3PM', 'Season300_3PM', 'Season700Assists', 'Season10APG', 'Season800Rebounds', 'Season12RPG', 'Season150Steals', 'Season2SPG', 'Season2_5BPG', 'Season150Blocks', 'Season200Stocks', 'Season25_10', 'Season25_5_5', 'Season20_10_5', 'Season1_1_1',
         // Single-Season Efficiency & Workload  
@@ -560,41 +560,7 @@ export function updateCustomGridState(
 }
 
 // Debug function to test specific achievement intersection
-export function debugAchievementIntersection(
-  players: Player[],
-  teams: Team[],
-  seasonIndex?: SeasonIndex
-): void {
-  const DEBUG = import.meta.env.VITE_DEBUG === 'true';
-  if (!DEBUG) return;
-  
-  console.log('Starting achievement intersection debug test');
-  console.log(`   Players: ${players.length}, Teams: ${teams.length}, SeasonIndex: ${!!seasonIndex}`);
-  
-  // Create test configurations for our problematic intersection
-  const reboundsConfig: HeaderConfig = {
-    type: 'achievement',
-    selectedId: 'career10kRebounds',
-    selectedLabel: '10,000+ Career Rebounds'
-  };
-  
-  const assistsConfig: HeaderConfig = {
-    type: 'achievement', 
-    selectedId: 'AssistsLeader',
-    selectedLabel: 'League Assists Leader'
-  };
-  
-  // Test the intersection
-  const intersection = calculateCustomCellIntersection(
-    reboundsConfig,
-    assistsConfig, 
-    players,
-    teams,
-    seasonIndex
-  );
-  
-  console.log(`Final intersection result: ${intersection} players`);
-}
+
 
 // Convert custom grid state to grid generation format
 export function customGridToGenerated(

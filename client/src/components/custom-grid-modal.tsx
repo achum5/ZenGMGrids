@@ -564,18 +564,28 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
           // If this option doesn't create zero-result cells, use it
           if (!hasZeroResults) {
             if (slot.isRow) {
+              const teamId = type === 'team' ? parseInt(option.id.toString()) : undefined;
+              const team = teamId !== undefined ? leagueData.teams.find(t => t.tid === teamId) : undefined;
+              const logoUrl = team ? buildTeamLogoURL(team) : null;
+
               newRowSelectors[slot.index] = {
                 type: type as SelectorType,
                 value: type === 'team' ? option.id.toString() : option.id.toString(),
                 label: option.label,
-                operator: '≥'
+                operator: '≥',
+                logoUrl: logoUrl
               };
             } else {
+              const teamId = type === 'team' ? parseInt(option.id.toString()) : undefined;
+              const team = teamId !== undefined ? leagueData.teams.find(t => t.tid === teamId) : undefined;
+              const logoUrl = team ? buildTeamLogoURL(team) : null;
+
               newColSelectors[slot.index] = {
                 type: type as SelectorType,
                 value: type === 'team' ? option.id.toString() : option.id.toString(),
                 label: option.label,
-                operator: '≥'
+                operator: '≥',
+                logoUrl: logoUrl
               };
             }
             
@@ -1057,7 +1067,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
         {
           title: "Career Milestones",
           achievements: [
-            'career20kPoints', 'career5kAssists', 'career2kSteals', 'career1500Blocks', 'career2kThrees'
+            'career20kPoints', 'career10kRebounds', 'career5kAssists', 'career2kSteals', 'career1500Blocks', 'career2kThrees'
           ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
         },
         {
@@ -1191,6 +1201,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
                 
                 <div className="text-[6px] sm:text-[8px] lg:text-xs font-medium leading-tight break-words text-center px-0.5 overflow-hidden relative z-10">
                   {(() => {
+                    let displayLabel = ''; // Declare displayLabel here
                     if (selector.type === 'team' && selector.logoUrl) {
                       return <img src={selector.logoUrl} alt={selector.label || 'Team logo'} className="h-8 w-8 sm:h-10 sm:w-10 object-contain mx-auto" />;
                     }
@@ -1203,31 +1214,37 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
                           const isPercentage = parsedOriginal.operatorPart === '%' || parsedOriginal.operatorPart === '%+';
                           const numberValue = selector.customNumber !== undefined ? selector.customNumber : parsedOriginal.number;
                           
-                          let displayLabel = '';
-                          const originalLabelLower = parsedOriginal.originalLabel.toLowerCase();
+                          let displayLabelParts: string[] = [];
 
-                          if (isPercentage) {
-                              const statPart = parsedOriginal.statUnit || '';
-                              const seasonPart = originalLabelLower.includes('(season)') ? ' (Season)' : '';
-                              displayLabel = `${statPart}%${seasonPart}`.trim();
+                          // Add prefix if it exists and is not just whitespace
+                          if (parsedOriginal.prefix.trim()) {
+                              displayLabelParts.push(parsedOriginal.prefix.trim());
+                          }
+
+                          // Add stat unit if it exists
+                          if (parsedOriginal.statUnit.trim()) {
+                              displayLabelParts.push(parsedOriginal.statUnit.trim());
                           } else {
-                              let cleanedLabel = parsedOriginal.originalLabel
-                                  .replace(/(\d+(?:,\d{3})*\+?|\d+(?:\.\d+)?\+?)/g, '') // Remove numbers and optional '+'
-                                  .replace(/or fewer/gi, '') // Remove "or fewer"
-                                  .replace(/(\s*age\s*)/gi, ' Age ') // Standardize "Age"
-                                  .trim();
-
-                              if (originalLabelLower.includes('(season)') && !cleanedLabel.toLowerCase().includes('(season)')) {
-                                  cleanedLabel += ' (Season)';
-                              } else if (originalLabelLower.includes('(career)') && !cleanedLabel.toLowerCase().includes('(career)')) {
-                                  cleanedLabel += ' (Career)';
+                              // Fallback to suffix if no specific stat unit was parsed
+                              // This handles cases like "Rebounds" where "Rebounds" is in suffix
+                              if (parsedOriginal.suffix.trim()) {
+                                  displayLabelParts.push(parsedOriginal.suffix.trim().replace(/^\+/, '')); // Remove leading '+'
                               }
+                          }
 
-                              if (cleanedLabel.toLowerCase().includes('age')) {
-                                  displayLabel = 'Age';
-                              } else {
-                                  displayLabel = cleanedLabel;
-                              }
+                          // Add (Season) or (Career) if applicable
+                          const originalLabelLower = parsedOriginal.originalLabel.toLowerCase();
+                          if (originalLabelLower.includes('(season)') && !displayLabelParts.join(' ').toLowerCase().includes('(season)')) {
+                              displayLabelParts.push('(Season)');
+                          } else if (originalLabelLower.includes('(career)') && !displayLabelParts.join(' ').toLowerCase().includes('(career)')) {
+                              displayLabelParts.push('(Career)');
+                          }
+
+                          displayLabel = displayLabelParts.join(' ').trim();
+
+                          // Special handling for 'Age' if it's the primary descriptor
+                          if (originalLabelLower.includes('age') && displayLabel.toLowerCase().includes('age')) {
+                              displayLabel = 'Age';
                           }
 
                           return (

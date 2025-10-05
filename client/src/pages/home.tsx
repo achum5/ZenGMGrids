@@ -507,16 +507,14 @@ export default function Home() {
     const mockPlayers = [
       {
         pid: 1,
-        name: "Test Player 1 (Both)",
-        achievements: { career10kRebounds: true },
+        achievements: { },
         awards: [{ type: "Assists Leader", season: 2020, tid: 1 }],
         teamsPlayed: new Set([1]),
         stats: [{ season: 2020, rebounds: 12000 }, { season: 2019, rebounds: 11000 }]
       },
       {
         pid: 2, 
-        name: "Test Player 2 (Rebounds Only)",
-        achievements: { career10kRebounds: true },
+        achievements: { },
         awards: [],
         teamsPlayed: new Set([1]),
         stats: [{ season: 2020, rebounds: 15000 }, { season: 2018, rebounds: 14000 }]
@@ -524,7 +522,7 @@ export default function Home() {
       {
         pid: 3,
         name: "Test Player 3 (Assists Only)", 
-        achievements: { career10kRebounds: false },
+        achievements: { },
         awards: [{ type: "Assists Leader", season: 2021, tid: 2 }],
         teamsPlayed: new Set([2]),
         stats: [{ season: 2021, rebounds: 5000 }, { season: 2020, rebounds: 4800 }]
@@ -532,7 +530,7 @@ export default function Home() {
       {
         pid: 4,
         name: "Test Player 4 (Both Again)",
-        achievements: { career10kRebounds: true },
+        achievements: { },
         awards: [{ type: "Assists Leader", season: 2022, tid: 3 }],
         teamsPlayed: new Set([3]),
         stats: [{ season: 2022, rebounds: 11000 }]
@@ -540,7 +538,7 @@ export default function Home() {
       {
         pid: 5,
         name: "Test Player 5 (Another Both)",
-        achievements: { career10kRebounds: true },
+        achievements: { },
         awards: [{ type: "Assists Leader", season: 2019, tid: 1 }],
         teamsPlayed: new Set([1, 2]),
         stats: [{ season: 2019, rebounds: 13000 }]
@@ -548,7 +546,7 @@ export default function Home() {
       {
         pid: 6,
         name: "Test Player 6 (Rebounds Only)",
-        achievements: { career10kRebounds: true },
+        achievements: { },
         awards: [],
         teamsPlayed: new Set([4]),
         stats: [{ season: 2020, rebounds: 10500 }]
@@ -556,7 +554,7 @@ export default function Home() {
       {
         pid: 7,
         name: "Test Player 7 (Assists Only)",
-        achievements: { career10kRebounds: false },
+        achievements: { },
         awards: [{ type: "Assists Leader", season: 2018, tid: 4 }],
         teamsPlayed: new Set([4]),
         stats: [{ season: 2018, rebounds: 4000 }]
@@ -564,7 +562,7 @@ export default function Home() {
       {
         pid: 8,
         name: "Test Player 8 (Final Both)",
-        achievements: { career10kRebounds: true },
+        achievements: { },
         awards: [{ type: "Assists Leader", season: 2017, tid: 3 }],
         teamsPlayed: new Set([3]),
         stats: [{ season: 2017, rebounds: 10200 }]
@@ -648,54 +646,7 @@ export default function Home() {
     console.log('🎯 [DIRECT TEST] Testing the problematic intersection directly...');
     
     // Test each achievement individually
-    let reboundsPlayers: Player[] = [];
-    let assistsPlayers: Player[] = [];
-    let intersectionPlayers: Player[] = [];
-    
-    console.log(`   Testing ${data.players.length} players...`);
-    
-    for (const player of data.players) {
-      const hasRebounds = playerMeetsAchievement(player, 'career10kRebounds', data.seasonIndex);
-      const hasAssists = playerMeetsAchievement(player, 'AssistsLeader', data.seasonIndex);
-      
-      if (hasRebounds) {
-        reboundsPlayers.push(player);
-      }
-      
-      if (hasAssists) {
-        assistsPlayers.push(player);
-      }
-      
-      if (hasRebounds && hasAssists) {
-        intersectionPlayers.push(player);
-      }
-    }
-    
-    console.log(`📊 [DIRECT TEST] Results:`);
-    console.log(`   Career 10k Rebounds: ${reboundsPlayers.length} players`);
-    console.log(`     - Players: ${reboundsPlayers.map(p => p.name).join(', ')}`);
-    
-    console.log(`   Assists Leader: ${assistsPlayers.length} players`);
-    console.log(`     - Players: ${assistsPlayers.map(p => p.name).join(', ')}`);
-    
-    console.log(`   🎯 INTERSECTION: ${intersectionPlayers.length} players`);
-    if (intersectionPlayers.length > 0) {
-      console.log(`     - These are the players that should appear in the intersection!`);
-      console.log(`     - Players: ${intersectionPlayers.map(p => p.name).join(', ')}`);
-    } else {
-      console.log(`     - ❌ NO INTERSECTION! This is the bug we need to fix.`);
-    }
-    
-    // Test the intersection calculation function directly
-    console.log(`🔧 [INTERSECTION FUNCTION TEST] Using calculateCustomCellIntersection...`);
-    const testIntersection = calculateCustomCellIntersection(
-      { type: 'achievement', selectedId: 'career10kRebounds', selectedLabel: '10,000+ Career Rebounds' },
-      { type: 'achievement', selectedId: 'AssistsLeader', selectedLabel: 'League Assists Leader' },
-      data.players,
-      data.teams,
-      data.seasonIndex
-    );
-    console.log(`   Function result: ${testIntersection} players`);
+
     
     // Debug individual achievements first to understand the data
     console.log('🐛 [DEBUG] Testing individual achievements first...');
@@ -1352,7 +1303,7 @@ export default function Home() {
                   sportsCombinedIcon
                 }
                 alt={`${leagueData?.sport || 'Sports'} icon`} 
-                className="w-10 h-10 object-contain"
+                className="w-10 h-10 object-contain ml-[1px]"
               />
               <h1 className="text-2xl font-bold text-foreground">
                 {leagueData?.sport === 'basketball' && 'Basketball GM Grids'}

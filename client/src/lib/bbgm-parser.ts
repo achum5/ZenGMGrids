@@ -520,10 +520,10 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
       player.achievements = {
         career20kPoints: false,
         career10kRebounds: false,
+        career2kThrees: false,
         career5kAssists: false,
         career2kSteals: false,
         career1500Blocks: false,
-        career2kThrees: false,
         season30ppg: false,
         season10apg: false,
         season15rpg: false,
@@ -566,10 +566,10 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
     // Career achievements
     career20kPoints: 0,
     career10kRebounds: 0,
+    career2kThrees: 0,
     career5kAssists: 0,
     career2kSteals: 0,
     career1500Blocks: 0,
-    career2kThrees: 0,
     // Single-season achievements
     season30ppg: 0,
     season10apg: 0,
@@ -876,7 +876,7 @@ function analyzeTeamOverlaps(players: Player[], teams: Team[]): TeamOverlapData 
     'season1800RushYds', 'season20RushTDs', 'career12kRecYds', 'career100RecTDs',
     'season1400RecYds', 'season15RecTDs', 'career100Sacks', 'career20Ints',
     'season15Sacks', 'season8Ints', 'wonMVP', 'wonOPOY', 'wonDPOY', 'wonROY',
-    'career20kPoints', 'career10kRebounds', 'hasMVP', 'hasAllStar'
+    'career20kPoints', 'career10kRebounds', 'career2kThrees', 'hasMVP', 'hasAllStar'
   ];
   
   // Initialize achievement tracking

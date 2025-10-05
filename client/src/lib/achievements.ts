@@ -83,12 +83,7 @@ export const BASKETBALL_ACHIEVEMENTS: Achievement[] = [
     test: (p: Player) => p.achievements?.career20kPoints || false,
     minPlayers: 5
   },
-  {
-    id: 'career10kRebounds',
-    label: '10,000+ Career Rebounds',
-    test: (p: Player) => p.achievements?.career10kRebounds || false,
-    minPlayers: 5
-  },
+
   {
     id: 'career5kAssists',
     label: '5,000+ Career Assists',
@@ -108,11 +103,18 @@ export const BASKETBALL_ACHIEVEMENTS: Achievement[] = [
     minPlayers: 5
   },
   {
+    id: 'career10kRebounds',
+    label: '10,000+ Career Rebounds',
+    test: (p: Player) => p.achievements?.career10kRebounds || false,
+    minPlayers: 5
+  },
+  {
     id: 'career2kThrees',
-    label: '2,000+ Made Threes',
+    label: '2,000+ Career 3PM',
     test: (p: Player) => p.achievements?.career2kThrees || false,
     minPlayers: 5
   },
+
   // Contest achievements (not season-aligned)
   {
     id: 'threePointContestWinner',
@@ -1946,10 +1948,11 @@ function calculateBasketballAchievements(player: Player, achievements: any): voi
   // Set career achievements
   achievements.career20kPoints = careerPts >= 20000;
   achievements.career10kRebounds = careerReb >= 10000;
+  achievements.career2kThrees = careerThree >= 2000;
   achievements.career5kAssists = careerAst >= 5000;
   achievements.career2kSteals = careerStl >= 2000;
   achievements.career1500Blocks = careerBlk >= 1500;
-  achievements.career2kThrees = careerThree >= 2000;
+
   
   // Helper function to get decade from season
   const getDecade = (season: number) => Math.floor(season / 10) * 10;

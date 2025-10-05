@@ -2,6 +2,52 @@ import type { Achievement } from './achievements';
 import { getPlayerCareerAttemptsTotal } from './achievements';
 import type { Player } from '@/types/bbgm';
 
+// Helper function to singularize stat words
+export function singularizeStatWord(word: string): string {
+  const pluralToSingular: Record<string, string> = {
+    'points': 'point',
+    'rebounds': 'rebound',
+    'assists': 'assist',
+    'steals': 'steal',
+    'blocks': 'block',
+    'games': 'game',
+    'seasons': 'season',
+    'decades': 'decade',
+    'hrs': 'hr',
+    'rbis': 'rbi',
+    'sacks': 'sack',
+    'interceptions': 'interception',
+    'wins': 'win',
+    'shutouts': 'shutout',
+    'saves': 'save',
+    'starts': 'start',
+    'hits': 'hit',
+    'runs': 'run',
+    'strikeouts': 'strikeout',
+    'tackles': 'tackle',
+    'fumbles': 'fumble',
+    'yds': 'yd', // For Pass Yds, Rush Yds, Rec Yds
+    'home runs': 'home run',
+    'stolen bases': 'stolen base',
+  };
+
+  const lowerCaseWord = word.toLowerCase();
+  if (pluralToSingular[lowerCaseWord]) {
+    // Preserve original casing for the first letter if it was capitalized
+    if (word[0] === word[0].toUpperCase()) {
+      return pluralToSingular[lowerCaseWord].charAt(0).toUpperCase() + pluralToSingular[lowerCaseWord].slice(1);
+    }
+    return pluralToSingular[lowerCaseWord];
+  }
+
+  // Simple plural to singular for words ending in 's' if not in dictionary
+  // Avoids singularizing words like "3PM" or "TPM" which are already singular-like or acronyms
+  if (lowerCaseWord.endsWith('s') && lowerCaseWord.length > 1 && !['3pm', 'tpm'].includes(lowerCaseWord)) {
+    return word.slice(0, -1);
+  }
+  return word;
+}
+
 // Pattern to match numerical thresholds in achievement labels
 export interface ParsedAchievement {
   originalLabel: string;
@@ -31,7 +77,7 @@ const ACHIEVEMENT_PATTERNS = [
   // "Played at Age 40+"
   /^(.* Age )(\d+(?:\.\d+)?)\+(.*)$/,
   // Generic pattern for numbers followed by units (including decimals)
-  /^([^.\d]*?)(\d+(?:\.\d+)?)\s*(Points?|Rebounds?|Assists?|Steals?|Blocks?|Games?|Minutes?|Shots?|FGA?|FGM?|3PA?|3PM?|FTA?|FTM?|Pass Yds?|Rush Yds?|Rec Yds?|Sacks?|Interceptions?)(.*)$/,
+  /^([^.\d]*?)(\d+(?:\.\d+)?)\s*(Points?|Rebounds?|Assists?|Steals?|Blocks?|Games?|Minutes?|Shots?|FGA?|FGM?|3PA?|3PM?|FTA?|FTM?|Pass Yds?|Rush Yds?|Rec Yds?|Sacks?|Interceptions?|Rebounds|3PM)(.*)$/,
   // "2,000+ Career Points" or "700+ Assists in a Season" - MUST come after decimal patterns
   // Modified to NOT match if there's a decimal point before the number
   /^((?:(?!\d+\.\d+).)*?)(\d{1,3}(?:,\d{3})*)\+(.*)$/,
@@ -172,8 +218,21 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
         mainSuffix = cleanSuffix.replace(/\(career\)/gi, '').trim();
       }
 
-      let resultSuffix = mainSuffix.replace(/^\+\s*/, '').trim(); // Remove leading '+'
-      let result = `${formattedNumber} ${cleanPrefix} ${resultSuffix} or fewer`;
+      let statPartToSingularize = '';
+      if (parsed.statUnit.trim()) {
+        statPartToSingularize = parsed.statUnit.trim();
+      } else {
+        // Fallback to mainSuffix if no specific stat unit was parsed
+        // This handles cases like "Rebounds" where "Rebounds" is in suffix
+        statPartToSingularize = mainSuffix.replace(/^\+\s*/, '').trim(); // Remove leading '+'
+      }
+
+      // Singularize if the number is 1
+      if (formattedNumber === '1') {
+        statPartToSingularize = singularizeStatWord(statPartToSingularize);
+      }
+
+      let result = `${formattedNumber} ${cleanPrefix} ${statPartToSingularize} or fewer`;
       if (contextWord) {
         result += ` (${contextWord})`;
       }
@@ -562,7 +621,7 @@ function generateTestFunction(
 }
 
 // Helper function to get a player's career total for a specific stat
-function getPlayerCareerTotal(player: Player, statField: string | string[]): number {
+export function getPlayerCareerTotal(player: Player, statField: string | string[]): number {
   if (!player.stats) return 0;
 
   let total = 0;
@@ -580,7 +639,17 @@ function getPlayerCareerTotal(player: Player, statField: string | string[]): num
       }
     } else {
       // Single stat field
-      total += (stat as any)[statField] || 0;
+      if (statField === 'trb') {
+        if ((stat as any).trb !== undefined) {
+          total += (stat as any).trb;
+        } else if ((stat as any).drb !== undefined || (stat as any).orb !== undefined) {
+          total += ((stat as any).drb || 0) + ((stat as any).orb || 0);
+        }
+      } else {
+        if ((stat as any)[statField] !== undefined) {
+          total += (stat as any)[statField];
+        }
+      }
     }
   }
   return total;
@@ -589,11 +658,6 @@ function getPlayerCareerTotal(player: Player, statField: string | string[]): num
 // Helper functions for stat calculations
 function checkCareerTotal(player: Player, statField: string | string[], newThreshold: number, operator: '≥' | '≤', sport?: string): boolean {
   const total = getPlayerCareerTotal(player, statField);
-
-  // Disqualify if career total is zero for this stat, regardless of operator
-  if (total === 0) {
-    return false;
-  }
 
   if (operator === '≤') {
     return total <= newThreshold;
@@ -605,11 +669,6 @@ function checkCareerTotal(player: Player, statField: string | string[], newThres
 function checkSeasonTotal(player: Player, statField: string | string[], newThreshold: number, operator: '≥' | '≤', minGames: number = 1, sport?: string): boolean {
   if (!player.stats) return false;
 
-  // Disqualify if career total is zero for this stat, regardless of operator
-  const careerTotal = getPlayerCareerTotal(player, statField);
-  if (careerTotal === 0) {
-    return false;
-  }
 
   for (const stat of player.stats) {
     if (!stat.playoffs && (stat.gp || 0) >= minGames) {
@@ -638,11 +697,7 @@ function checkSeasonTotal(player: Player, statField: string | string[], newThres
 function checkSeasonAverage(player: Player, statField: string, newThreshold: number, operator: '≥' | '≤', minGames: number = 1, sport?: string): boolean {
   if (!player.stats) return false;
 
-  // Disqualify if career total is zero for this stat, regardless of operator
-  const careerTotal = getPlayerCareerTotal(player, statField);
-  if (careerTotal === 0) {
-    return false;
-  }
+
 
   if (sport === 'hockey' && player.achievements?.seasonStatsComputed) {
     for (const seasonYearStr in player.achievements.seasonStatsComputed) {
@@ -682,11 +737,7 @@ function checkSeasonAverage(player: Player, statField: string, newThreshold: num
 function checkSeasonPercentage(player: Player, percentageType: string, newThreshold: number, operator: '≥' | '≤', minGames: number = 1, minAttempts: number = 1, sport?: string): boolean {
   if (!player.stats) return false;
 
-  // Ensure player has at least one attempt for this percentage stat in their career
-  const careerAttempts = getPlayerCareerAttemptsTotal(player, percentageType);
-  if (careerAttempts === 0) {
-    return false;
-  }
+
 
   if (sport === 'hockey' && player.achievements?.seasonStatsComputed) {
     for (const seasonYearStr in player.achievements.seasonStatsComputed) {
