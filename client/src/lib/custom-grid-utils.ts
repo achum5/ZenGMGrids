@@ -366,7 +366,7 @@ export function calculateCustomCellIntersection(
     const cached = customIntersectionCache.get(cacheKey);
     
     if (cached && (Date.now() - cached.timestamp) < CUSTOM_CACHE_TTL) {
-      if (DEBUG) console.log(`🐛 [calculateCustomCellIntersection] Cache hit for custom achievement: ${cacheKey}`);
+  
       return cached.result as number;
     }
     
@@ -375,7 +375,7 @@ export function calculateCustomCellIntersection(
     for (const player of players) {
       const rowTestResult = rowConstraint.test(player);
       const colTestResult = colConstraint.test(player);
-      if (DEBUG) console.log(`🐛 [calculateCustomCellIntersection] Player ${player.name} (PID: ${player.pid}) - Row Test: ${rowTestResult}, Col Test: ${colTestResult}`);
+  
       if (rowTestResult && colTestResult) {
         count++;
       }
@@ -383,7 +383,7 @@ export function calculateCustomCellIntersection(
     
     // Cache the result
     customIntersectionCache.set(cacheKey, { result: count, timestamp: Date.now() });
-    if (DEBUG) console.log(`🐛 [calculateCustomCellIntersection] Cache miss, calculated and cached for custom achievement: ${cacheKey}, Count: ${count}`);
+
     return count;
   }
 
@@ -408,8 +408,7 @@ export function calculateCustomCellIntersection(
     seasonIndex,
     true // Return count only
   ) as number;
-  if (DEBUG) console.log(`🐛 [calculateCustomCellIntersection] Using optimized intersection for standard achievement, Result: ${result}`);
-  return result;
+    return result;
 }
 
 // Async version for getting eligible players (for player modal and hints)
