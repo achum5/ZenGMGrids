@@ -1303,7 +1303,7 @@ export default function Home() {
                   sportsCombinedIcon
                 }
                 alt={`${leagueData?.sport || 'Sports'} icon`} 
-                className="w-10 h-10 object-contain ml-[1px]"
+                className="w-10 h-10 object-contain"
               />
               <h1 className="text-2xl font-bold text-foreground">
                 {leagueData?.sport === 'basketball' && 'Basketball GM Grids'}

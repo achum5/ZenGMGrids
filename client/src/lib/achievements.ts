@@ -402,10 +402,10 @@ function buildDecadeAchievements(
       minPlayers: 1  // Lowered from 5 to 1 to ensure future decades appear
     });
     
-    // "Debuted in the {YYYY}s" achievement  
+    // "Debuted Year" achievement  
     achievements.push({
       id: `debutedIn${decadeStr}s`,
-      label: `Debuted in the ${decadeStr}s`,
+      label: `${decadeStr}s`,
       test: (player: Player) => player.debutDecade === decade,
       minPlayers: 1  // Lowered from 5 to 1 to ensure future decades appear
     });

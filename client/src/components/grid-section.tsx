@@ -51,7 +51,7 @@ const rarityStyles: Record<string, { bgColor: string; gradient: string; textColo
   rare: {
     bgColor: '#FFD93D',
     gradient: 'linear-gradient(135deg, #FFE875 0%, #E3B900 100%)',
-    textColor: 'white',
+    textColor: 'black',
     borderColor: '#E3B900',
   },
   epic: {

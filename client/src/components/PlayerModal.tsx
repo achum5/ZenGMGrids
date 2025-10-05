@@ -14,6 +14,63 @@ import { playerMeetsAchievement, getAllAchievements, getCachedSportDetection, ge
 import { getCachedSeasonIndex } from '@/lib/season-index-cache';
 import { parseAchievementLabel } from '@/lib/editable-achievements';
 
+// Helper to determine rarity tier based on playerCount
+const getRarityTier = (count: number) => {
+  if (count >= 90) return 'mythic';
+  if (count >= 75) return 'legendary';
+  if (count >= 60) return 'epic';
+  if (count >= 40) return 'rare';
+  if (count >= 20) return 'uncommon';
+  if (count >= 10) return 'common';
+  return 'none'; // For playerCount < 10 or 0
+};
+
+// Define color and gradient for each rarity tier
+const rarityStyles: Record<string, { bgColor: string; gradient: string; textColor: string; borderColor: string }> = {
+  common: {
+    bgColor: '#3DB2FF',
+    gradient: 'linear-gradient(135deg, #69C8FF 0%, #2A8AE0 100%)',
+    textColor: 'white',
+    borderColor: '#2A8AE0',
+  },
+  uncommon: {
+    bgColor: '#00D68F',
+    gradient: 'linear-gradient(135deg, #3EF1B3 0%, #00A070 100%)',
+    textColor: 'white',
+    borderColor: '#00A070',
+  },
+  rare: {
+    bgColor: '#FFD93D',
+    gradient: 'linear-gradient(135deg, #FFE875 0%, #E3B900 100%)',
+    textColor: 'black',
+    borderColor: '#E3B900',
+  },
+  epic: {
+    bgColor: '#FF7A00',
+    gradient: 'linear-gradient(135deg, #FF9C40 0%, #E66000 100%)',
+    textColor: 'white',
+    borderColor: '#E66000',
+  },
+  legendary: {
+    bgColor: '#FF3D68',
+    gradient: 'linear-gradient(135deg, #FF6D8C 0%, #D82A4F 100%)',
+    textColor: 'white',
+    borderColor: '#D82A4F',
+  },
+  mythic: {
+    bgColor: '#B537F2',
+    gradient: 'linear-gradient(135deg, #D178FF 0%, #8B1BD1 100%)',
+    textColor: 'white',
+    borderColor: '#8B1BD1',
+  },
+  none: { // For playerCount < 10 or 0
+    bgColor: 'transparent',
+    gradient: 'none',
+    textColor: 'white',
+    borderColor: '#ef4444', // Default red for invalid
+  }
+};
+
 type Props = {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -357,9 +414,10 @@ function getAchievementDetails(
       }
     }
   } else if (achievementId.includes('debutedIn') && achievementId.endsWith('s')) {
-    const debutDecade = player.debutDecade;
-    if (debutDecade) {
-      years = debutDecade.toString();
+    const firstSeason = player.firstSeason;
+    if (firstSeason) {
+      years = firstSeason.toString();
+      label = `Debut Year: ${years}`; // Construct the label here
     }
   } else if (achievementId === 'isHallOfFamer') {
     years = getAwardSeasons(['Inducted into the Hall of Fame']);
@@ -508,9 +566,9 @@ function getConstraintPhrase(
       }
     } else if (constraint.achievementId.includes('debutedIn') && constraint.achievementId.endsWith('s')) {
       if (met) {
-        return `${playerName} debuted in the ${label.replace('Debuted in the ', '')}${years ? ` (${years})` : ''}`;
+        return `${playerName} ${label}`;
       } else {
-        return `${playerName} did not debut in the ${label.replace('Debuted in the ', '')}`;
+        return `${playerName} did not ${label}`;
       }
     } else if (constraint.achievementId === 'isHallOfFamer') {
       if (met) {
@@ -889,9 +947,16 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
               {/* Score feedback for correct guesses OR feedback message for wrong guesses */}
               {modalData && modalData.type === 'correct' && (
                 <div className="mt-2">
-                  <span className={`text-lg font-bold ${getScoreFeedback(modalData.rarity).colorClass}`}>
-                    Score: {modalData.rarity}
-                  </span>
+                  {(() => {
+                    const rarityTier = getRarityTier(modalData.rarity);
+                    const styles = rarityStyles[rarityTier];
+                    console.log(`[DEBUG PlayerModal] Score display: rarityTier=${rarityTier}, textColor=${styles.textColor}`);
+                    return (
+                      <span className={`text-lg font-bold`} style={{ color: styles.textColor }}>
+                        Score: {modalData.rarity}
+                      </span>
+                    );
+                  })()}
                   
                   {/* Reason bullets for correct guesses */}
                   {modalData.reasonBullets.length > 0 && (
@@ -1230,6 +1295,8 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
 
                     return playersWithRarity.map(({ player: eligiblePlayer, rarity }, idx) => {
                       const isUserGuess = player && eligiblePlayer.pid === player.pid;
+                      const rarityTier = getRarityTier(rarity);
+                      const styles = rarityStyles[rarityTier];
                       
                       return (
                         <div 
@@ -1239,7 +1306,14 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                           <span className="flex-1">
                             {idx + 1}. {eligiblePlayer.name}
                           </span>
-                          <span className={`text-xs font-medium ml-2 ${rarity >= 1 && rarity <= 20 ? "text-red-600" : rarity >= 21 && rarity <= 40 ? "text-orange-500" : rarity >= 41 && rarity <= 60 ? "text-yellow-600" : rarity >= 61 && rarity <= 80 ? "text-green-500" : rarity >= 81 && rarity <= 100 ? "text-indigo-600" : "text-muted-foreground"}`}>
+                          <span 
+                            className="text-xs font-medium ml-2 px-2 py-0.5 rounded-md border"
+                            style={{
+                              background: styles.gradient !== 'none' ? styles.gradient : styles.bgColor,
+                              color: styles.textColor,
+                              borderColor: styles.borderColor,
+                            }}
+                          >
                             {rarity}
                           </span>
                         </div>
