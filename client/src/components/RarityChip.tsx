@@ -12,7 +12,7 @@ const getRarityTier = (count: number) => {
 };
 
 // Define color for each rarity tier badge
-export const rarityBadgeStyles: Record<string, { bgColor: string; textColor: string }> = {
+const rarityBadgeStyles: Record<string, { bgColor: string; textColor: string }> = {
   common: {
     bgColor: '#0078D7',
     textColor: 'white',

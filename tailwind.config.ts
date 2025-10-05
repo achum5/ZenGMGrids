@@ -61,14 +61,6 @@ export default {
           border: "var(--sidebar-border)",
           ring: "var(--sidebar-ring)",
         },
-        rarityText: {
-          common: 'white',
-          uncommon: 'white',
-          rare: 'black',
-          epic: 'white',
-                    legendary: 'white',
-          mythic: 'white'
-        }
       },
       fontFamily: {
         sans: ["var(--font-sans)"],
