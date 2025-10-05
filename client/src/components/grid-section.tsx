@@ -23,6 +23,63 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
+// Helper to determine rarity tier based on playerCount
+const getRarityTier = (count: number) => {
+  if (count >= 90) return 'mythic';
+  if (count >= 75) return 'legendary';
+  if (count >= 60) return 'epic';
+  if (count >= 40) return 'rare';
+  if (count >= 20) return 'uncommon';
+  if (count >= 10) return 'common';
+  return 'none'; // For playerCount < 10 or 0
+};
+
+// Define color and gradient for each rarity tier
+const rarityStyles: Record<string, { bgColor: string; gradient: string; textColor: string; borderColor: string }> = {
+  common: {
+    bgColor: '#3DB2FF',
+    gradient: 'linear-gradient(135deg, #69C8FF 0%, #2A8AE0 100%)',
+    textColor: 'white',
+    borderColor: '#2A8AE0',
+  },
+  uncommon: {
+    bgColor: '#00D68F',
+    gradient: 'linear-gradient(135deg, #3EF1B3 0%, #00A070 100%)',
+    textColor: 'white',
+    borderColor: '#00A070',
+  },
+  rare: {
+    bgColor: '#FFD93D',
+    gradient: 'linear-gradient(135deg, #FFE875 0%, #E3B900 100%)',
+    textColor: 'white',
+    borderColor: '#E3B900',
+  },
+  epic: {
+    bgColor: '#FF7A00',
+    gradient: 'linear-gradient(135deg, #FF9C40 0%, #E66000 100%)',
+    textColor: 'white',
+    borderColor: '#E66000',
+  },
+  legendary: {
+    bgColor: '#FF3D68',
+    gradient: 'linear-gradient(135deg, #FF6D8C 0%, #D82A4F 100%)',
+    textColor: 'white',
+    borderColor: '#D82A4F',
+  },
+  mythic: {
+    bgColor: '#B537F2',
+    gradient: 'linear-gradient(135deg, #D178FF 0%, #8B1BD1 100%)',
+    textColor: 'white',
+    borderColor: '#8B1BD1',
+  },
+  none: { // For playerCount < 10 or 0
+    bgColor: 'transparent',
+    gradient: 'none',
+    textColor: 'white',
+    borderColor: '#ef4444', // Default red for invalid
+  }
+};
+
 interface GridSectionProps {
   rows: CatTeam[];
   cols: CatTeam[];
@@ -93,52 +150,67 @@ export function GridSection({
     const key = `${rowIndex}-${colIndex}`;
     const cellState = cells[key];
     
+    // Default styles for empty/unrevealed cells
+    let background = 'var(--muted)';
+    let color = 'var(--muted-foreground)';
+    let borderColor = 'var(--border)';
+    let borderWidth = '1px';
+    let borderStyle = 'solid';
+    let className = 'hover:bg-accent/30 dark:hover:bg-accent/20 hover:border-accent/40 dark:hover:border-accent/30 transition-all duration-100 motion-reduce:transition-none cursor-pointer focus:ring-2 focus:ring-inset focus:ring-blue-500 dark:focus:ring-blue-400';
+    let disabled = false;
+    let showFace = false;
+    let player = undefined;
+
     if (!cellState?.name) {
       return {
         content: '',
-        className: 'bg-muted dark:bg-slate-800 text-muted-foreground hover:bg-accent/30 dark:hover:bg-accent/20 hover:border-accent/40 dark:hover:border-accent/30 border border-transparent transition-all duration-100 motion-reduce:transition-none cursor-pointer focus:ring-2 focus:ring-inset focus:ring-blue-500 dark:focus:ring-blue-400',
-        disabled: false,
-        showFace: false,
+        className,
+        disabled,
+        showFace,
+        player,
+        background,
+        color,
+        borderColor,
+        borderWidth,
+        borderStyle,
       };
     }
-    
-    // Handle auto-filled (revealed) cells
-    if (cellState.autoFilled) {
-      return {
-        content: cellState.name,
-        className: 'revealed-answer bg-red-500/20 dark:bg-red-600/30 text-red-900 dark:text-red-100 font-medium hover:bg-red-500/30 dark:hover:bg-red-600/40 hover:border-red-300/50 dark:hover:border-red-400/40 border border-transparent transition-all duration-100 motion-reduce:transition-none cursor-pointer focus:ring-2 focus:ring-inset focus:ring-red-400',
-        disabled: false, // Allow clicks for read-only modal
-        showFace: true,
-        player: cellState.player,
-      };
-    }
-    
+
+    // If a player is selected (cellState.name exists)
+    showFace = true;
+    player = cellState.player;
+    disabled = false; // Allow clicks for read-only modal
+
     if (cellState.correct === true) {
-      return {
-        content: cellState.name,
-        className: 'correct-answer dark:bg-green-600 text-white font-medium hover:bg-green-400/90 dark:hover:bg-green-500/90 hover:border-green-300/50 dark:hover:border-green-400/40 border border-transparent transition-all duration-100 motion-reduce:transition-none cursor-pointer focus:ring-2 focus:ring-inset focus:ring-green-400',
-        disabled: false, // Allow clicks for modal
-        showFace: true,
-        player: cellState.player,
-      };
+      const rarityTier = getRarityTier(cellState.rarity || 0);
+      const styles = rarityStyles[rarityTier];
+      background = styles.gradient !== 'none' ? styles.gradient : styles.bgColor;
+      color = styles.textColor;
+      borderColor = styles.borderColor;
+      className = 'correct-answer font-medium transition-all duration-100 motion-reduce:transition-none cursor-pointer hover:brightness-110 hover:contrast-110 hover:shadow-md focus:ring-2 focus:ring-inset focus:ring-green-400';
+    } else if (cellState.correct === false) {
+      background = '#EF4444'; // Red for incorrect
+      color = 'white';
+      borderColor = '#B91C1C';
+      className = 'incorrect-answer font-medium transition-all duration-100 motion-reduce:transition-none cursor-pointer hover:brightness-110 hover:contrast-110 hover:shadow-md focus:ring-2 focus:ring-inset focus:ring-red-400';
+    } else if (cellState.autoFilled) {
+      background = '#FCD34D'; // Yellow for auto-filled
+      color = '#92400E';
+      borderColor = '#D97706';
+      className = 'revealed-answer font-medium transition-all duration-100 motion-reduce:transition-none cursor-pointer hover:brightness-110 hover:contrast-110 hover:shadow-md focus:ring-2 focus:ring-inset focus:ring-yellow-400';
     }
-    
-    if (cellState.correct === false) {
-      return {
-        content: cellState.name,
-        className: 'incorrect-answer dark:bg-red-600 text-white font-medium hover:bg-red-400/90 dark:hover:bg-red-500/90 hover:border-red-300/50 dark:hover:border-red-400/40 border border-transparent transition-all duration-100 motion-reduce:transition-none cursor-pointer focus:ring-2 focus:ring-inset focus:ring-red-400',
-        disabled: false, // Allow clicks for modal
-        showFace: true,
-        player: cellState.player,
-      };
-    }
-    
+
     return {
       content: cellState.name,
-      className: 'bg-muted dark:bg-slate-800 text-muted-foreground',
-      disabled: false, // Allow clicks for modal
-      showFace: true,
-      player: cellState.player,
+      className,
+      disabled,
+      showFace,
+      player,
+      background,
+      color,
+      borderColor,
+      borderWidth,
+      borderStyle,
     };
   };
 
@@ -329,7 +401,7 @@ export function GridSection({
                       <button
                         key={`cell-${rowIndex}-${colIndex}`}
                         className={cn(
-                          'aspect-square w-full flex items-center justify-center text-center relative overflow-hidden transition-all duration-200 hover:brightness-110 hover:contrast-110 hover:shadow-md',
+                          'aspect-square w-full flex items-center justify-center text-center relative overflow-hidden transition-all duration-200 hover:brightness-110 hover:contrast-110 hover:shadow-md cell-reveal-animation',
                           cornerRadius,
                           cellContent.className
                         )}
@@ -356,7 +428,12 @@ export function GridSection({
                         style={{ 
                           touchAction: 'manipulation',
                           WebkitTapHighlightColor: 'transparent',
-                          userSelect: 'none'
+                          userSelect: 'none',
+                          background: cellContent.background,
+                          color: cellContent.color,
+                          borderColor: cellContent.borderColor,
+                          borderWidth: cellContent.borderWidth,
+                          borderStyle: cellContent.borderStyle,
                         }}
                         data-testid={`cell-${row.key}-${col.key}`}
                       >
