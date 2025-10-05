@@ -1403,12 +1403,11 @@ function getBasketballPositiveMessage(achievementId: string, player?: Player): s
   if (!player) {
     const fallbacks: Record<string, string> = {
       isSecondRoundPick: "was a second-round pick",
-      career20kPoints: "reached 20,000+ career points",
-      career10kRebounds: "reached 10,000+ career rebounds",
-      career5kAssists: "reached 5,000+ career assists",
-      career2kSteals: "reached 2,000+ career steals",
-      career1500Blocks: "reached 1,500+ career blocks",
-      career2kThrees: "made 2,000+ career threes",
+  // Basketball GM Career Achievements
+  career20kPoints: "reached 20,000+ career points",
+  career5kAssists: "reached 5,000+ career assists",
+  career2kSteals: "reached 2,000+ career steals",
+  career1500Blocks: "reached 1,500+ career blocks",
       season30ppg: "averaged 30+ PPG in a season",
       season10apg: "averaged 10+ APG in a season",
       season15rpg: "averaged 15+ RPG in a season",
@@ -1435,16 +1434,12 @@ function getBasketballPositiveMessage(achievementId: string, player?: Player): s
       return `was a second-round pick in ${draftYear}`;
     case 'career20kPoints':
       return `reached 20,000+ career points (${formatNumber(careerStats.pts)})`;
-    case 'career10kRebounds':
-      return `reached 10,000+ career rebounds (${formatNumber(careerStats.trb)})`;
     case 'career5kAssists':
       return `reached 5,000+ career assists (${formatNumber(careerStats.ast)})`;
     case 'career2kSteals':
       return `reached 2,000+ career steals (${formatNumber(careerStats.stl)})`;
     case 'career1500Blocks':
       return `reached 1,500+ career blocks (${formatNumber(careerStats.blk)})`;
-    case 'career2kThrees':
-      return `made 2,000+ career threes (${formatNumber(careerStats.fg3)})`;
     case 'season30ppg':
       return `averaged 30+ PPG (${seasonBests.ppg.max.toFixed(1)}) in ${seasonBests.ppg.year}`;
     case 'season10apg':
@@ -1500,11 +1495,9 @@ function getStatInfoForAchievement(baseId: string): StatInfo | null {
     const statMap: Record<string, StatInfo> = {
         // Basketball Career
         career20kPoints: { key: 'pts', name: 'career points', type: 'career' },
-        career10kRebounds: { key: 'trb', name: 'career rebounds', type: 'career' },
         career5kAssists: { key: 'ast', name: 'career assists', type: 'career' },
         career2kSteals: { key: 'stl', name: 'career steals', type: 'career' },
         career1500Blocks: { key: 'blk', name: 'career blocks', type: 'career' },
-        career2kThrees: { key: 'fg3', name: 'career threes', type: 'career' },
         // Basketball Season (Averages)
         Season30PPG: { key: 'ppg', name: 'PPG in a season', type: 'season_avg' },
         Season12RPG: { key: 'rpg', name: 'RPG in a season', type: 'season_avg' },
@@ -1713,16 +1706,12 @@ function getBasketballNegativeMessage(achievementId: string, player?: Player): s
       return `was not a second-round pick`;
     case 'career20kPoints':
       return `did not reach 20,000+ career points (career ${formatNumber(careerStats.pts)})`;
-    case 'career10kRebounds':
-      return `did not reach 10,000+ career rebounds (career ${formatNumber(careerStats.trb)})`;
     case 'career5kAssists':
       return `did not reach 5,000+ career assists (career ${formatNumber(careerStats.ast)})`;
     case 'career2kSteals':
       return `did not reach 2,000+ career steals (career ${formatNumber(careerStats.stl)})`;
     case 'career1500Blocks':
       return `did not reach 1,500+ career blocks (career ${formatNumber(careerStats.blk)})`;
-    case 'career2kThrees':
-      return `did not make 2,000+ career threes (career ${formatNumber(careerStats.fg3)})`;
     case 'season30ppg':
       if (seasonBests.ppg.max === 0 && seasonBests.ppg.year === 0) {
         return `never averaged 30+ PPG in a season (never recorded a point)`;

@@ -434,6 +434,9 @@ function generateTestFunction(
       if (originalLabel.includes('rebounds')) {
         return (player: Player) => checkCareerTotal(player, 'trb', newThreshold, operator, sport);
       }
+      if (originalLabel.includes('3pm') || originalLabel.includes('threes')) {
+        return (player: Player) => checkCareerTotal(player, ['tpm', 'tp'], newThreshold, operator, sport);
+      }
       if (originalLabel.includes('assists')) {
         return (player: Player) => checkCareerTotal(player, 'ast', newThreshold, operator, sport);
       }
@@ -442,9 +445,6 @@ function generateTestFunction(
       }
       if (originalLabel.includes('blocks')) {
         return (player: Player) => checkCareerTotal(player, 'blk', newThreshold, operator, sport);
-      }
-      if (originalLabel.includes('3pm') || originalLabel.includes('threes')) {
-        return (player: Player) => checkCareerTotal(player, ['tpm', 'tp'], newThreshold, operator, sport);
       }
     }
 

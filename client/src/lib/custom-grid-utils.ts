@@ -81,37 +81,9 @@ export function getAchievementOptions(
     .filter(achievement => 
       achievement.id !== 'bornOutsideUS50DC' && // Exclude problematic achievement
       achievement.id !== 'SFMVP' && // Exclude Superstar Finals MVP
-      // achievement.id !== 'career10kRebounds' && // 10k+ career rebounds returns 0 players
       achievement.id !== 'Season22PPG' && // 22+ ppg in a season returns 0 players
       // achievement.id !== 'Season3PPercent' && // 3pt% in a season achievement
       achievement.id !== 'RandomPoints25000pts' && // 25k+ career points returns 0 players  
-      achievement.id !== 'RandomRebounds6000trb' && // 6k+ career rebounds returns 0 players
-      // Remove duplicate lower-tier random achievements (keep only highest thresholds)
-      !achievement.id.startsWith('Randomcareer3000') && // Remove 3k+ career achievements
-      !achievement.id.startsWith('Randomcareer5000') && // Remove 5k+ career achievements  
-      !achievement.id.startsWith('Randomcareer7500') && // Remove 7.5k+ career achievements
-      !achievement.id.startsWith('Randomcareer10000') && // Remove 10k+ career achievements
-      !achievement.id.startsWith('Randomcareer12500') && // Remove 12.5k+ career achievements
-      !achievement.id.startsWith('Randomcareer15000') && // Remove 15k+ career achievements
-      !achievement.id.startsWith('Randomcareer17500') && // Remove 17.5k+ career achievements
-      !achievement.id.startsWith('Randomcareer500') && // Remove 500+ career achievements (assists/steals/blocks/rebounds/threes)
-      !achievement.id.startsWith('Randomcareer1000') && // Remove 1k+ career achievements
-      !achievement.id.startsWith('Randomcareer1250') && // Remove 1.25k+ career achievements
-      !achievement.id.startsWith('Randomcareer1500') && // Remove 1.5k+ career achievements 
-      !achievement.id.startsWith('Randomcareer2000') && // Remove 2k+ career achievements
-      !achievement.id.startsWith('Randomcareer2500') && // Remove 2.5k+ career achievements
-      !achievement.id.startsWith('Randomcareer3000') && // Remove 3k+ career achievements
-      !achievement.id.startsWith('Randomcareer4000') && // Remove 4k+ career achievements
-      !achievement.id.startsWith('Randomcareer6000') && // Remove 6k+ career achievements
-      !achievement.id.startsWith('Randomcareer7500') && // Remove 7.5k+ career achievements (rebounds)
-      achievement.id !== 'Randomcareer100threes' && // Remove 100+ threes (we want 2k+)
-      achievement.id !== 'Randomcareer200threes' && // Remove 200+ threes (we want 2k+)
-      achievement.id !== 'Randomcareer300threes' && // Remove 300+ threes (we want 2k+)
-      achievement.id !== 'Randomcareer500threes' && // Remove 500+ threes (we want 2k+)
-      achievement.id !== 'Randomcareer750threes' && // Remove 750+ threes (we want 2k+)
-      achievement.id !== 'Randomcareer1000threes' && // Remove 1k+ threes (we want 2k+)
-      achievement.id !== 'Randomcareer1250threes' && // Remove 1.25k+ threes (we want 2k+)
-      achievement.id !== 'Randomcareer1500threes' && // Remove 1.5k+ threes (we want 2k+)
       achievement.id !== 'Randomseason16rpg' // Remove 16+ RPG season achievement
     )
     .map(achievement => ({

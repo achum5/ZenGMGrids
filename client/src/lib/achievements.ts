@@ -90,6 +90,12 @@ export const BASKETBALL_ACHIEVEMENTS: Achievement[] = [
     minPlayers: 5
   },
   {
+    id: 'career2kThrees',
+    label: '2,000+ Career 3-Pointers Made',
+    test: (p: Player) => p.achievements?.career2kThrees || false,
+    minPlayers: 5
+  },
+  {
     id: 'career5kAssists',
     label: '5,000+ Career Assists',
     test: (p: Player) => p.achievements?.career5kAssists || false,
@@ -105,12 +111,6 @@ export const BASKETBALL_ACHIEVEMENTS: Achievement[] = [
     id: 'career1500Blocks',
     label: '1,500+ Career Blocks',
     test: (p: Player) => p.achievements?.career1500Blocks || false,
-    minPlayers: 5
-  },
-  {
-    id: 'career2kThrees',
-    label: '2,000+ Made Threes',
-    test: (p: Player) => p.achievements?.career2kThrees || false,
     minPlayers: 5
   },
   // Contest achievements (not season-aligned)
@@ -430,10 +430,15 @@ const NUMERICAL_ACHIEVEMENT_CONFIGS: Record<string, { career?: Record<string, St
         label: (n: number) => `${n.toLocaleString()}+ Career Points`,
         testField: 'pts'
       },
-      rebounds: { 
-        thresholds: [500, 1000, 1500, 2000, 3000, 4000, 5000, 6000, 7500, 10000, 12000, 15000],
+      rebounds: {
+        thresholds: [1000, 2500, 5000, 7500, 10000, 12500, 15000, 17500, 20000],
         label: (n: number) => `${n.toLocaleString()}+ Career Rebounds`,
-        testField: 'trb'
+        testField: 'trb' // Assuming 'trb' for total rebounds
+      },
+      threes: {
+        thresholds: [200, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000],
+        label: (n: number) => `${n.toLocaleString()}+ Career 3-Pointers Made`,
+        testField: 'tpm' // Assuming 'tpm' for 3-pointers made
       },
       assists: { 
         thresholds: [500, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 7500, 10000],
@@ -449,11 +454,6 @@ const NUMERICAL_ACHIEVEMENT_CONFIGS: Record<string, { career?: Record<string, St
         thresholds: [200, 400, 600, 800, 1000, 1250, 1500, 2000, 2500],
         label: (n: number) => `${n.toLocaleString()}+ Career Blocks`,
         testField: 'blk'
-      },
-      threes: { 
-        thresholds: [100, 200, 300, 500, 750, 1000, 1250, 1500, 2000, 2500, 3000],
-        label: (n: number) => `${n.toLocaleString()}+ Career 3PM`,
-        testField: 'tpm'
       }
     },
     season: {
@@ -1260,10 +1260,7 @@ export function playerMeetsAchievement(
   teamId?: number,
   season?: number,
 ): boolean {
-  const DEBUG = true; // Temporarily force DEBUG to true
-  if (DEBUG) {
-    console.log(`🐛 [playerMeetsAchievement] Player: ${player.name}, Achievement: ${achievementId}, SeasonIndex: ${!!seasonIndex}, Operator: ${operator}, TeamId: ${teamId}, Season: ${season}`);
-  }
+  // Debugging removed for performance
 
   // Check if it's a dynamic decade achievement first
   if (achievementId.includes('playedIn') && achievementId.endsWith('s')) {
@@ -1383,23 +1380,19 @@ export function playerMeetsAchievement(
 
     if (season !== undefined) {
       filteredAwards = filteredAwards?.filter(award => award.season === season);
-      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] Filtering awards by season: ${season}, Count: ${filteredAwards?.length}`);
     }
 
     // If this is a season-aligned achievement and teamId is provided, we need to check team presence
     if (SEASON_ALIGNED_ACHIEVEMENTS.has(achievementId) && teamId !== undefined) {
-      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] Season-aligned achievement with teamId: ${achievementId}, TeamId: ${teamId}`);
       // Further filter awards to ensure the player was on the team during that season
       filteredAwards = filteredAwards?.filter(award => {
         // Check if player played for teamId in the award's season
         return player.stats?.some(s => s.season === award.season && s.tid === teamId && !s.playoffs && (s.gp || 0) > 0);
       });
-      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] After team alignment filter, awards count: ${filteredAwards?.length}`);
     }
 
     return filteredAwards?.some(award => {
       const normalizedType = award.type.toLowerCase().trim();
-      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] Checking award: ${award.type} for achievement: ${achievementId}`);
       
       // Basketball achievements
       if (achievementId === 'AllStar' && normalizedType.includes('all-star')) return true;
@@ -1533,12 +1526,8 @@ export function getCachedLeagueYears(): { minSeason: number; maxSeason: number }
 // Debug function to test individual achievements and grid filtering
 // NOTE: This function is disabled for performance - was causing extensive logging in hot paths
 export function debugIndividualAchievements(players: Player[], seasonIndex?: SeasonIndex): void {
-  // Debug logging disabled for performance
-  const DEBUG = import.meta.env.VITE_DEBUG === 'true';
-  if (!DEBUG) return;
-  
-  console.log(`🧪 [DEBUG] Testing individual achievements`);
-  console.log(`   Players: ${players.length}, SeasonIndex: ${!!seasonIndex}`);
+  // Debug logging disabled for performance.
+  // If debugging is needed in the future, re-enable and add specific console.log statements.
   
   // Only run detailed analysis if explicitly debugging - removed verbose loops for performance
 }
@@ -1634,21 +1623,13 @@ function calculateFootballAchievements(player: Player, achievements: any): void 
   stats.forEach((season: any) => {
     if (season.playoffs) return; // Only regular season stats
     
-    // Passing stats - debug what fields are available
-    if (Math.random() < 0.001) { // Log 0.1% of seasons to see field names
-      console.log('Football season stat fields:', Object.keys(season));
-    }
-    
+    // Debugging removed for performance
     // FBGM passing stats - correct field names from documentation
     const passTDs = season.pssTD || 0;  // Passing TDs use pssTD in FBGM
     
     careerPassTDs += passTDs;
     
-    // Debug passing stats when they exist
-    if (passTDs > 15) {
-      console.log(`Player with ${passTDs} passing TDs in season, career total so far: ${careerPassTDs}`);
-    }
-    
+    // Debugging removed for performance
     // Rushing stats
     careerRushYds += season.rusYds || 0;
     careerRushTDs += season.rusTD || 0;
@@ -1664,19 +1645,11 @@ function calculateFootballAchievements(player: Player, achievements: any): void 
   });
   
   // Set career achievements - FBGM doesn't track passing yards, only TDs
-  // Debug career stats validation 
-  if (careerPassTDs > 50) {
-    console.log(`${player.firstName} ${player.lastName}: ${careerPassTDs} career passing TDs`);
-  }
-  if (careerRushYds > 3000) {
-    console.log(`${player.firstName} ${player.lastName}: ${careerRushYds} career rushing yards`);
-  }
-  if (careerRecYds > 5000) {
-    console.log(`${player.firstName} ${player.lastName}: ${careerRecYds} career receiving yards`);
-  }
-  if (careerSacks > 30) {
-    console.log(`${player.firstName} ${player.lastName}: ${careerSacks} career sacks`);
-  }
+  // Debugging removed for performance
+  // if (careerPassTDs > 50) { console.log(`${player.firstName} ${player.lastName}: ${careerPassTDs} career passing TDs`); }
+  // if (careerRushYds > 3000) { console.log(`${player.firstName} ${player.lastName}: ${careerRushYds} career rushing yards`); }
+  // if (careerRecYds > 5000) { console.log(`${player.firstName} ${player.lastName}: ${careerRecYds} career receiving yards`); }
+  // if (careerSacks > 30) { console.log(`${player.firstName} ${player.lastName}: ${careerSacks} career sacks`); }
   
   achievements.career300PassTDs = careerPassTDs >= 150; // Lowered for FBGM
   achievements.career12kRushYds = careerRushYds >= 8000; // Lowered from 11k
@@ -1809,11 +1782,7 @@ function calculateHockeyAchievements(player: Player, achievements: any): void {
     const assists = (season.evA || 0) + (season.ppA || 0) + (season.shA || 0);
     const points = goals + assists; // Calculate total points
     
-    // Debug stat fields for first few players - increase probability to see more
-    if (Math.random() < 0.05) {
-      console.log('Hockey season fields:', Object.keys(season));
-      console.log(`Season ${seasonYear}: Goals=${goals} (evG=${season.evG}, ppG=${season.ppG}, shG=${season.shG}), Assists=${assists} (evA=${season.evA}, ppA=${season.ppA}, shA=${season.shA}), Points=${points}, GP=${season.gp}`);
-    }
+    // Debugging removed for performance
     
     existing.goals += goals;
     existing.assists += assists;
@@ -1914,10 +1883,7 @@ function calculateHockeyAchievements(player: Player, achievements: any): void {
   achievements.career200Wins = careerWins >= 200;      // 200+ Career Wins (G)
   achievements.career50Shutouts = careerShutouts >= 50; // 50+ Career Shutouts (G)
   
-  // Debug career stats - show players with significant stats
-  if (careerGoals >= 20 || careerPoints >= 40) {
-    console.log(`Hockey: ${player.firstName} ${player.lastName} - Career: ${careerGoals}G, ${careerAssists}A, ${careerPoints}P (${seasonStats.size} seasons)`);
-  }
+  // Debugging removed for performance
   
   // Helper function to get decade from season
   const getDecade = (season: number) => Math.floor(season / 10) * 10;
