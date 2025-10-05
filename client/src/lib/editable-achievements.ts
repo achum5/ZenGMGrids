@@ -230,7 +230,7 @@ export function createCustomNumericalAchievement(
   
   return {
     ...baseAchievement,
-    id: `${baseAchievement.id}_custom_${newThreshold !== undefined ? newThreshold : parsed.number}_${operatorStr}`,
+    id: `${baseAchievement.id}_custom_${newThreshold !== undefined ? newThreshold : 'empty'}_${operatorStr}`,
     label: newLabel,
     test: newTestFunction
   };
@@ -434,9 +434,6 @@ function generateTestFunction(
       if (originalLabel.includes('rebounds')) {
         return (player: Player) => checkCareerTotal(player, 'trb', newThreshold, operator, sport);
       }
-      if (originalLabel.includes('3pm') || originalLabel.includes('threes')) {
-        return (player: Player) => checkCareerTotal(player, ['tpm', 'tp'], newThreshold, operator, sport);
-      }
       if (originalLabel.includes('assists')) {
         return (player: Player) => checkCareerTotal(player, 'ast', newThreshold, operator, sport);
       }
@@ -445,6 +442,9 @@ function generateTestFunction(
       }
       if (originalLabel.includes('blocks')) {
         return (player: Player) => checkCareerTotal(player, 'blk', newThreshold, operator, sport);
+      }
+      if (originalLabel.includes('3pm') || originalLabel.includes('threes')) {
+        return (player: Player) => checkCareerTotal(player, ['tpm', 'tp'], newThreshold, operator, sport);
       }
     }
 
@@ -573,7 +573,7 @@ function getPlayerCareerTotal(player: Player, statField: string | string[]): num
       let valueFound = false;
       for (const field of statField) {
         if ((stat as any)[field] !== undefined) {
-          total += (stat as any)[field];
+          total += (stat as any)[field] || 0;
           valueFound = true;
           break; // Stop after finding the first valid field
         }
@@ -591,7 +591,7 @@ function checkCareerTotal(player: Player, statField: string | string[], newThres
   const total = getPlayerCareerTotal(player, statField);
 
   // Disqualify if career total is zero for this stat, regardless of operator
-  if (total === 0) {
+  if (total === 0 && newThreshold > 0) {
     return false;
   }
 

@@ -56,7 +56,8 @@ const sportSpecificRules = {
       items: [
         "#1 Overall Pick • First Round Pick • Went Undrafted",
         "Hall of Fame • Played 15+ Seasons • Played 10+ Seasons",
-        "20,000+ Career Points • 5,000+ Career Assists • 2,000+ Career Steals • 1,500+ Career Blocks"
+        "20,000+ Career Points • 10,000+ Career Rebounds • 5,000+ Career Assists",
+        "2,000+ Career Steals • 1,500+ Career Blocks • 2,000+ Made Threes"
       ],
       basketballNote: "Basketball-specific draft note: Second Round Pick"
     },
