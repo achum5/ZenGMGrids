@@ -193,24 +193,16 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
             };
           }
 
-                  // For non-custom editable achievements, pre-fill the number
-                  const originalAchievement = achievementOptions.find(ach => ach.id === catTeam.achievementId);
-                  if (originalAchievement) {
-                    const parsedOriginal = parseAchievementLabel(originalAchievement.label, sport);
-                    if (parsedOriginal.isEditable) {
-                      customNumber = parsedOriginal.number;
-                    }
-                  }
-          
-                  return {
-                    type: 'achievement',
-                    value: catTeam.achievementId,
-                    label: catTeam.label,
-                    baseAchievementId: catTeam.achievementId, // For non-custom, base ID is its own ID
-                    operator: '≥',
-                    customAchievement: null,
-                    customNumber,
-                  };        }
+          return {
+            type: 'achievement',
+            value: catTeam.achievementId,
+            label: catTeam.label,
+            baseAchievementId: catTeam.achievementId, // For non-custom, base ID is its own ID
+            operator: '≥',
+            customAchievement: null,
+            customNumber: undefined,
+          };
+        }
         return { type: null, value: null, label: null, operator: '≥', customAchievement: null, customNumber: undefined };
       };
 
@@ -221,7 +213,6 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
         // Reset if the grid is not fully formed
         handleClearAll();
       }
-      setCalculating(true);
     }
   }, [isOpen, rows, cols, leagueData, sport, seasonIndex]);
   
@@ -403,7 +394,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
       const originalAchievement = achievementOptions.find(ach => ach.id === value);
       if (originalAchievement) {
         const parsedOriginal = parseAchievementLabel(originalAchievement.label, sport);
-        if (parsedOriginal.isEditable && customNumber === undefined) {
+        if (parsedOriginal.isEditable) {
+          // Initialize custom number with the parsed number from the original label
           customNumber = parsedOriginal.number;
           // Create an initial custom achievement object
           const achievements = getAllAchievements(sport as any, seasonIndex, leagueData.leagueYears);

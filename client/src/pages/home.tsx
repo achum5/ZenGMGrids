@@ -181,10 +181,12 @@ export default function Home() {
       if (hasCustomAchievements) {
         // Direct test function evaluation (same as eligible players list)
         isCorrect = rowConstraint.test(player) && colConstraint.test(player);
+        console.log(`🔧 [GRID VALIDATION] Custom achievements - Player ${player.name}: ${isCorrect}`);
       } else {
         // Use pre-calculated intersections for regular achievements
         const eligiblePids = intersections[cellKey] || [];
         isCorrect = eligiblePids.includes(player.pid);
+        console.log(`🔧 [GRID VALIDATION] Regular achievements - Player ${player.name}: ${isCorrect}`);
       }
     } else {
       // Fallback to pre-calculated intersections if constraints not found
@@ -340,13 +342,17 @@ export default function Home() {
   const buildRankCacheForCell = useCallback((cellKey: string): Array<{player: Player, rarity: number}> => {
     if (!leagueData || !rows.length || !cols.length) return [];
     
+    console.log(`🔧 [RANK CACHE] Building for cell ${cellKey}`);
+    
     // Determine row and column constraints
     let rowConstraint: CatTeam | undefined;
     let colConstraint: CatTeam | undefined;
     
     if (cellKey.includes('|')) {
       // Traditional format: "rowKey|colKey"
-      [rowConstraint, colConstraint] = cellKey.split('|').map(key => rows.find(r => r.key === key) || cols.find(c => c.key === key));
+      const [rowKey, colKey] = cellKey.split('|');
+      rowConstraint = rows.find(r => r.key === rowKey);
+      colConstraint = cols.find(c => c.key === colKey);
     } else {
       // Position-based format: "rowIndex-colIndex"
       const [rowIndexStr, colIndexStr] = cellKey.split('-');
@@ -367,7 +373,10 @@ export default function Home() {
       eligiblePlayers = eligiblePids
         .map(pid => byPid[pid])
         .filter(player => player);
+      console.log(`🔧 [RANK CACHE] Using stored intersection data: ${eligiblePlayers.length} players`);
     } else {
+      console.log(`🔧 [RANK CACHE] No stored data, calculating using eligible players logic`);
+      
       // Use EXACT SAME LOGIC as eligible players list in handleCellClick
       const hasCustomAchievements = rowConstraint.key.includes('custom') || colConstraint.key.includes('custom');
       
@@ -376,6 +385,7 @@ export default function Home() {
         eligiblePlayers = leagueData.players.filter(player => 
           rowConstraint.test(player) && colConstraint.test(player)
         );
+        console.log(`🔧 [RANK CACHE] Custom achievements calculation found: ${eligiblePlayers.length} players`);
       } else {
         // Use optimized intersection calculation for regular achievements
         const rowIntersectionConstraint: IntersectionConstraint = {
@@ -403,6 +413,7 @@ export default function Home() {
         eligiblePlayers = eligiblePids
           .map(pid => byPid[pid])
           .filter(player => player);
+        console.log(`🔧 [RANK CACHE] Standard calculation found: ${eligiblePlayers.length} players`);
       }
     }
     
@@ -457,6 +468,7 @@ export default function Home() {
       await processLeagueData(data);
       
     } catch (error) {
+      console.error('Error processing file:', error);
       toast({
         title: 'Error loading file',
         description: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -476,6 +488,7 @@ export default function Home() {
       await processLeagueData(data);
       
     } catch (error) {
+      console.error('Error processing URL:', error);
       toast({
         title: 'Error loading URL',
         description: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -488,6 +501,7 @@ export default function Home() {
 
   // Create minimal test data for debugging
   const createTestData = useCallback((): LeagueData => {
+    console.log('🔧 [DEBUG] Creating minimal test data for achievement debugging...');
     
     // Create mock players with achievements (add more for grid generation)
     const mockPlayers = [
@@ -594,9 +608,11 @@ export default function Home() {
 
   const loadTestData = useCallback(async () => {
     try {
+      console.log('🔧 [DEBUG] Creating and processing minimal test data...');
       const data = createTestData();
       await processLeagueData(data);
     } catch (error) {
+      console.error('Test data creation failed:', error);
     }
   }, [createTestData]);
 
@@ -628,6 +644,9 @@ export default function Home() {
     setSearchablePlayers(indices.searchablePlayers);
     setTeamsByTid(indices.teamsByTid);
     
+    // Direct intersection test (bypass grid generation)
+    console.log('🎯 [DIRECT TEST] Testing the problematic intersection directly...');
+    
     // Test each achievement individually
     let reboundsPlayers: Player[] = [];
     let assistsPlayers: Player[] = [];
@@ -652,7 +671,23 @@ export default function Home() {
       }
     }
     
+    console.log(`📊 [DIRECT TEST] Results:`);
+    console.log(`   Career 10k Rebounds: ${reboundsPlayers.length} players`);
+    console.log(`     - Players: ${reboundsPlayers.map(p => p.name).join(', ')}`);
+    
+    console.log(`   Assists Leader: ${assistsPlayers.length} players`);
+    console.log(`     - Players: ${assistsPlayers.map(p => p.name).join(', ')}`);
+    
+    console.log(`   🎯 INTERSECTION: ${intersectionPlayers.length} players`);
+    if (intersectionPlayers.length > 0) {
+      console.log(`     - These are the players that should appear in the intersection!`);
+      console.log(`     - Players: ${intersectionPlayers.map(p => p.name).join(', ')}`);
+    } else {
+      console.log(`     - ❌ NO INTERSECTION! This is the bug we need to fix.`);
+    }
+    
     // Test the intersection calculation function directly
+    console.log(`🔧 [INTERSECTION FUNCTION TEST] Using calculateCustomCellIntersection...`);
     const testIntersection = calculateCustomCellIntersection(
       { type: 'achievement', selectedId: 'career10kRebounds', selectedLabel: '10,000+ Career Rebounds' },
       { type: 'achievement', selectedId: 'AssistsLeader', selectedLabel: 'League Assists Leader' },
@@ -660,8 +695,10 @@ export default function Home() {
       data.teams,
       data.seasonIndex
     );
+    console.log(`   Function result: ${testIntersection} players`);
     
     // Debug individual achievements first to understand the data
+    console.log('🐛 [DEBUG] Testing individual achievements first...');
     debugIndividualAchievements(data.players, data.seasonIndex);
     
     // Generate initial grid
@@ -703,6 +740,7 @@ export default function Home() {
         
         // Only show error if we've exhausted all retries (should be very rare)
         if (attempt >= MAX_AUTO_RETRIES) {
+          console.error('Error generating grid after maximum retries:', error);
           toast({
             title: 'Unable to generate grid',
             description: 'Please try again or try a different league file.',
@@ -777,6 +815,7 @@ export default function Home() {
       setAttemptCount(storedAttempt);
       
     } catch (error) {
+      console.error('Error importing grid:', error);
       toast({
         title: 'Error importing grid',
         description: error instanceof Error ? error.message : 'Failed to import shared grid',
@@ -817,6 +856,7 @@ export default function Home() {
           const hasCustomAchievements = rowConstraint.key.includes('custom') || colConstraint.key.includes('custom');
           
           if (hasCustomAchievements) {
+            console.log(`🔧 [ASYNC] Using async calculation for custom intersection`);
             setIsLoadingCustomIntersection(true);
             
             try {
@@ -843,6 +883,7 @@ export default function Home() {
                 leagueData.teams,
                 leagueData.seasonIndex
               );
+              console.log(`🔧 [ASYNC] Completed async calculation: ${eligiblePlayers.length} players`);
               
             } catch (error) {
               console.error('Error in async intersection calculation:', error);
@@ -918,6 +959,7 @@ export default function Home() {
         let eligiblePidsCount = 0;
         
         if (hasCustomAchievements) {
+          console.log(`🔧 [ASYNC HINT] Using async calculation for hint modal custom intersection`);
           setIsLoadingCustomIntersection(true);
           
           try {
@@ -945,6 +987,7 @@ export default function Home() {
               leagueData?.seasonIndex
             );
             eligiblePidsCount = eligiblePlayers.length;
+            console.log(`🔧 [ASYNC HINT] Completed async calculation: ${eligiblePidsCount} players`);
             
           } catch (error) {
             console.error('Error in async hint intersection calculation:', error);
@@ -987,6 +1030,17 @@ export default function Home() {
           });
           return;
         }
+        
+        
+        // DEBUG: Check intersection availability before opening hint modal
+        const availablePlayerIds = intersections[positionalKey] || [];
+        const rowId = rowConstraint.type === 'team' ? rowConstraint.tid : rowConstraint.achievementId;
+        const colId = colConstraint.type === 'team' ? colConstraint.tid : colConstraint.achievementId;
+        console.log(`🐛 [HINT MODAL DEBUG] Cell ${positionalKey}:`);
+        console.log(`   Row: ${rowConstraint.label} (${rowId})`);
+        console.log(`   Col: ${colConstraint.label} (${colId})`);
+        console.log(`   Available players: ${availablePlayerIds.length}`);
+        console.log(`   Intersection keys available:`, Object.keys(intersections));
         
         // Open hint modal
         setHintCellKey(positionalKey);
@@ -1083,6 +1137,7 @@ export default function Home() {
     // Fill each empty cell by simulating handleCellClick to get EXACT SAME eligible list
     for (const positionalKey of emptyCells) {
       // Simulate handleCellClick to get the exact eligible players list that appears in modal
+      console.log(`🔧 [GIVE UP SIMULATE] Simulating handleCellClick for ${positionalKey}`);
       
       // Create a temporary locked cell to trigger player modal logic
       const tempCell = { locked: true, player: { pid: -1, name: 'temp' } };
@@ -1115,6 +1170,7 @@ export default function Home() {
             eligiblePlayers = leagueData.players.filter(player => 
               rowConstraint!.test(player) && colConstraint!.test(player)
             );
+            console.log(`🔧 [GIVE UP SIMULATE] Custom achievements - ${eligiblePlayers.length} eligible players`);
           } else {
             // Convert CatTeam constraints to IntersectionConstraint format
             const rowIntersectionConstraint: IntersectionConstraint = {
@@ -1143,6 +1199,7 @@ export default function Home() {
             eligiblePlayers = eligiblePids
               .map(pid => byPid[pid])
               .filter(player => player);
+            console.log(`🔧 [GIVE UP SIMULATE] Regular achievements - ${eligiblePlayers.length} eligible players`);
           }
         }
       }
@@ -1155,6 +1212,7 @@ export default function Home() {
           autoFilled: true,
           guessed: false,
         };
+        console.log(`🔍 Give Up: ${positionalKey} -> "—" (no eligible players)`);
         continue;
       }
       
@@ -1178,6 +1236,10 @@ export default function Home() {
       // Sort by rarity (ascending = most common first, SAME AS PLAYERMODAL)  
       playersWithRarity.sort((a, b) => a.rarity - b.rarity);
       
+      // DEBUG: Show first 5 players AFTER rarity sorting (should match modal)
+      console.log(`🔧 [GIVE UP RARITY SORTED] ${positionalKey} - First 5 players (modal rarity order):`, 
+        playersWithRarity.slice(0, 5).map((p, i) => `${i+1}. ${p.player.name} (rarity: ${p.rarity})`));
+      
       // Find first available player from rarity-sorted list (should match PlayerModal #1)
       let selectedPlayer: Player | null = null;
       for (const { player } of playersWithRarity) {
@@ -1196,6 +1258,7 @@ export default function Home() {
           autoFilled: true,
           guessed: false,
         };
+        console.log(`🔍 Give Up: ${positionalKey} -> "—" (all players already used)`);
       } else {
         // Use the first available player from eligible list (natural order)
         newCells[positionalKey] = {
@@ -1211,6 +1274,7 @@ export default function Home() {
         // Mark as used for next cells
         usedInGiveUp.add(selectedPlayer.pid);
         const positionInList = eligiblePlayers.findIndex(p => p.pid === selectedPlayer.pid) + 1;
+        console.log(`🔍 Give Up: ${positionalKey} -> ${selectedPlayer.name} (position #${positionInList} in eligible list)`);
       }
     }
     
