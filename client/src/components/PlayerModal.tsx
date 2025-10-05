@@ -13,6 +13,7 @@ import { generateReasonBullets } from '@/lib/reason-bullets';
 import { playerMeetsAchievement, getAllAchievements, getCachedSportDetection, getCachedLeagueYears } from '@/lib/achievements';
 import { getCachedSeasonIndex } from '@/lib/season-index-cache';
 import { parseAchievementLabel } from '@/lib/editable-achievements';
+import { rarityBadgeStyles } from '@/components/RarityChip';
 
 // Helper to determine rarity tier based on playerCount
 const getRarityTier = (count: number) => {
@@ -950,7 +951,7 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                   {(() => {
                     const rarityTier = getRarityTier(modalData.rarity);
                     const styles = rarityStyles[rarityTier];
-                    console.log(`[DEBUG PlayerModal] Score display: rarityTier=${rarityTier}, textColor=${styles.textColor}`);
+                    console.log(`[DEBUG PlayerModal Score] rarity: ${modalData.rarity}, rarityTier: ${rarityTier}, resolvedTextColor: ${styles.textColor}`);
                     return (
                       <span className={`text-lg font-bold`} style={{ color: styles.textColor }}>
                         Score: {modalData.rarity}

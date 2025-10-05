@@ -35,42 +35,48 @@ const getRarityTier = (count: number) => {
 };
 
 // Define color and gradient for each rarity tier
-const rarityStyles: Record<string, { bgColor: string; gradient: string; textColor: string; borderColor: string }> = {
+const rarityStyles: Record<string, { bgColor: string; gradient: string; textColor: string; borderColor: string; animationClass?: string }> = {
   common: {
     bgColor: '#3DB2FF',
     gradient: 'linear-gradient(135deg, #69C8FF 0%, #2A8AE0 100%)',
     textColor: 'white',
     borderColor: '#2A8AE0',
+    animationClass: 'shine-effect-common',
   },
   uncommon: {
     bgColor: '#00D68F',
     gradient: 'linear-gradient(135deg, #3EF1B3 0%, #00A070 100%)',
     textColor: 'white',
     borderColor: '#00A070',
+    animationClass: 'shine-effect-uncommon',
   },
   rare: {
     bgColor: '#FFD93D',
     gradient: 'linear-gradient(135deg, #FFE875 0%, #E3B900 100%)',
     textColor: 'black',
     borderColor: '#E3B900',
+    animationClass: 'shine-effect-rare',
   },
   epic: {
     bgColor: '#FF7A00',
     gradient: 'linear-gradient(135deg, #FF9C40 0%, #E66000 100%)',
     textColor: 'white',
     borderColor: '#E66000',
+    animationClass: 'shine-effect-epic',
   },
   legendary: {
     bgColor: '#FF3D68',
     gradient: 'linear-gradient(135deg, #FF6D8C 0%, #D82A4F 100%)',
     textColor: 'white',
     borderColor: '#D82A4F',
+    animationClass: 'shine-effect-legendary',
   },
   mythic: {
     bgColor: '#B537F2',
     gradient: 'linear-gradient(135deg, #D178FF 0%, #8B1BD1 100%)',
     textColor: 'white',
     borderColor: '#8B1BD1',
+    animationClass: 'shine-effect-mythic',
   },
   none: { // For playerCount < 10 or 0
     bgColor: 'transparent',
@@ -437,6 +443,114 @@ export function GridSection({
                         }}
                         data-testid={`cell-${row.key}-${col.key}`}
                       >
+                        {/* Global Pop-in Scale (applied via cell-reveal-animation) */}
+
+                        {/* Shine Effect Overlay (Common, Uncommon, Rare, Epic, Legendary, Mythic) */}
+                        {cellContent.player && cellContent.correct && cellContent.rarity && cellContent.rarity >= 10 && (
+                          <div className={cn("shine-overlay", rarityStyles[getRarityTier(cellContent.rarity)].animationClass)} />
+                        )}
+
+                        {/* Tier-Specific Enhancements */}
+                        {cellContent.player && cellContent.correct && cellContent.rarity && (
+                          <>
+                            {/* Common: 2 sparks */}
+                            {getRarityTier(cellContent.rarity) === 'common' && (
+                              <>
+                                <div className="sparkle-dot" style={{ width: '3px', height: '3px', top: '40%', left: '30%', animationDelay: '0.1s' }} />
+                                <div className="sparkle-dot" style={{ width: '4px', height: '4px', top: '60%', left: '70%', animationDelay: '0.2s' }} />
+                              </>
+                            )}
+
+                            {/* Uncommon: 4 sparks, 1 mini ring pulse */}
+                            {getRarityTier(cellContent.rarity) === 'uncommon' && (
+                              <>
+                                <div className="sparkle-dot" style={{ width: '3px', height: '3px', top: '25%', left: '25%', animationDelay: '0s' }} />
+                                <div className="sparkle-dot" style={{ width: '4px', height: '4px', top: '75%', left: '75%', animationDelay: '0.1s' }} />
+                                <div className="sparkle-dot" style={{ width: '3px', height: '3px', top: '50%', left: '15%', animationDelay: '0.2s' }} />
+                                <div className="sparkle-dot" style={{ width: '4px', height: '4px', top: '15%', left: '85%', animationDelay: '0.3s' }} />
+                                <div className="ring-pulse-effect" style={{ '--ring-end-scale': 1.0, '--ring-opacity': 0.24, '--ring-duration': '0.6s' } as React.CSSProperties} />
+                              </>
+                            )}
+
+                            {/* Rare: 6 sparks, 1 ring pulse, glow bloom */}
+                            {getRarityTier(cellContent.rarity) === 'rare' && (
+                              <>
+                                <div className="sparkle-dot" style={{ width: '3px', height: '3px', top: '20%', left: '20%', animationDelay: '0s' }} />
+                                <div className="sparkle-dot" style={{ width: '4px', height: '4px', top: '80%', left: '80%', animationDelay: '0.1s' }} />
+                                <div className="sparkle-dot" style={{ width: '3px', height: '3px', top: '50%', left: '10%', animationDelay: '0.2s' }} />
+                                <div className="sparkle-dot" style={{ width: '4px', height: '4px', top: '10%', left: '90%', animationDelay: '0.3s' }} />
+                                <div className="sparkle-dot" style={{ width: '3px', height: '3px', top: '70%', left: '30%', animationDelay: '0.4s' }} />
+                                <div className="sparkle-dot" style={{ width: '4px', height: '4px', top: '30%', left: '70%', animationDelay: '0.5s' }} />
+                                <div className="ring-pulse-effect" style={{ '--ring-end-scale': 1.2, '--ring-opacity': 0.26, '--ring-duration': '0.7s' } as React.CSSProperties} />
+                                <div className="glow-effect" style={{ '--glow-radius': '24px', '--glow-duration': '0.6s' } as React.CSSProperties} />
+                              </>
+                            )}
+
+                            {/* Epic: 8 sparks (2 arc), 2 ring pulses, shimmer lines, glow bloom */}
+                            {getRarityTier(cellContent.rarity) === 'epic' && (
+                              <>
+                                <div className="sparkle-dot" style={{ width: '3px', height: '3px', top: '15%', left: '15%', animationDelay: '0s' }} />
+                                <div className="sparkle-dot" style={{ width: '4px', height: '4px', top: '85%', left: '85%', animationDelay: '0.1s' }} />
+                                <div className="sparkle-dot" style={{ width: '3px', height: '3px', top: '50%', left: '5%', animationDelay: '0.2s' }} />
+                                <div className="sparkle-dot" style={{ width: '4px', height: '4px', top: '5%', left: '95%', animationDelay: '0.3s' }} />
+                                <div className="sparkle-dot" style={{ width: '3px', height: '3px', top: '75%', left: '25%', animationDelay: '0.4s' }} />
+                                <div className="sparkle-dot" style={{ width: '4px', height: '4px', top: '25%', left: '75%', animationDelay: '0.5s' }} />
+                                <div className="sparkle-dot" style={{ width: '5px', height: '5px', top: '40%', left: '40%', animationDelay: '0.6s', animationName: 'sparkle-arc' }} />
+                                <div className="sparkle-dot" style={{ width: '5px', height: '5px', top: '60%', left: '60%', animationDelay: '0.7s', animationName: 'sparkle-arc-reverse' }} />
+                                <div className="ring-pulse-effect" style={{ '--ring-end-scale': 1.3, '--ring-opacity': 0.30, '--ring-duration': '0.7s' } as React.CSSProperties} />
+                                <div className="ring-pulse-effect" style={{ '--ring-end-scale': 1.1, '--ring-opacity': 0.20, '--ring-duration': '0.7s', animationDelay: '0.1s' } as React.CSSProperties} />
+                                <div className="shimmer-effect" style={{ '--shimmer-duration': '0.7s' } as React.CSSProperties} />
+                                <div className="glow-effect" style={{ '--glow-radius': '26px', '--glow-duration': '0.7s' } as React.CSSProperties} />
+                              </>
+                            )}
+
+                            {/* Legendary: 12 sparks (1 star), 2 ring pulses (larger), 3 shimmer lines, spark burst, corner glint, glow bloom */}
+                            {getRarityTier(cellContent.rarity) === 'legendary' && (
+                              <>
+                                <div className="sparkle-dot" style={{ width: '3px', height: '3px', top: '10%', left: '10%', animationDelay: '0s' }} />
+                                <div className="sparkle-dot" style={{ width: '4px', height: '4px', top: '90%', left: '90%', animationDelay: '0.1s' }} />
+                                <div className="sparkle-dot" style={{ width: '3px', height: '3px', top: '50%', left: '0%', animationDelay: '0.2s' }} />
+                                <div className="sparkle-dot" style={{ width: '4px', height: '4px', top: '0%', left: '100%', animationDelay: '0.3s' }} />
+                                <div className="sparkle-dot" style={{ width: '3px', height: '3px', top: '80%', left: '20%', animationDelay: '0.4s' }} />
+                                <div className="sparkle-dot" style={{ width: '4px', height: '4px', top: '20%', left: '80%', animationDelay: '0.5s' }} />
+                                <div className="sparkle-dot" style={{ width: '5px', height: '5px', top: '45%', left: '45%', animationDelay: '0.6s', animationName: 'sparkle-arc' }} />
+                                <div className="sparkle-dot" style={{ width: '5px', height: '5px', top: '55%', left: '55%', animationDelay: '0.7s', animationName: 'sparkle-arc-reverse' }} />
+                                <div className="sparkle-dot star-sparkle" style={{ top: '50%', left: '50%', animationDelay: '0.8s' }} />
+                                <div className="ring-pulse-effect" style={{ '--ring-end-scale': 1.4, '--ring-opacity': 0.32, '--ring-duration': '0.8s' } as React.CSSProperties} />
+                                <div className="ring-pulse-effect" style={{ '--ring-end-scale': 1.2, '--ring-opacity': 0.22, '--ring-duration': '0.8s', animationDelay: '0.1s' } as React.CSSProperties} />
+                                <div className="shimmer-effect" style={{ '--shimmer-duration': '0.9s' } as React.CSSProperties} />
+                                <div className="spark-burst-effect" />
+                                <div className="corner-glint-effect" />
+                                <div className="glow-effect" style={{ '--glow-radius': '28px', '--glow-duration': '0.8s' } as React.CSSProperties} />
+                              </>
+                            )}
+
+                            {/* Mythic: 16 sparks (3 star), 3 ring pulses (larger), continuous shimmer, aura, border pulse, glow bloom */}
+                            {getRarityTier(cellContent.rarity) === 'mythic' && (
+                              <>
+                                <div className="sparkle-dot" style={{ width: '3px', height: '3px', top: '5%', left: '5%', animationDelay: '0s' }} />
+                                <div className="sparkle-dot" style={{ width: '4px', height: '4px', top: '95%', left: '95%', animationDelay: '0.1s' }} />
+                                <div className="sparkle-dot" style={{ width: '3px', height: '3px', top: '50%', left: '0%', animationDelay: '0.2s' }} />
+                                <div className="sparkle-dot" style={{ width: '4px', height: '4px', top: '0%', left: '100%', animationDelay: '0.3s' }} />
+                                <div className="sparkle-dot" style={{ width: '3px', height: '3px', top: '85%', left: '15%', animationDelay: '0.4s' }} />
+                                <div className="sparkle-dot" style={{ width: '4px', height: '4px', top: '15%', left: '85%', animationDelay: '0.5s' }} />
+                                <div className="sparkle-dot" style={{ width: '5px', height: '5px', top: '40%', left: '40%', animationDelay: '0.6s', animationName: 'sparkle-arc' }} />
+                                <div className="sparkle-dot" style={{ width: '5px', height: '5px', top: '60%', left: '60%', animationDelay: '0.7s', animationName: 'sparkle-arc-reverse' }} />
+                                <div className="sparkle-dot star-sparkle" style={{ top: '20%', left: '70%', animationDelay: '0.8s' }} />
+                                <div className="sparkle-dot star-sparkle" style={{ top: '80%', left: '30%', animationDelay: '0.9s' }} />
+                                <div className="sparkle-dot star-sparkle" style={{ top: '50%', left: '50%', animationDelay: '1s' }} />
+                                <div className="ring-pulse-effect" style={{ '--ring-end-scale': 1.5, '--ring-opacity': 0.32, '--ring-duration': '0.9s' } as React.CSSProperties} />
+                                <div className="ring-pulse-effect" style={{ '--ring-end-scale': 1.3, '--ring-opacity': 0.25, '--ring-duration': '0.9s', animationDelay: '0.1s' } as React.CSSProperties} />
+                                <div className="ring-pulse-effect" style={{ '--ring-end-scale': 1.1, '--ring-opacity': 0.18, '--ring-duration': '0.9s', animationDelay: '0.2s' } as React.CSSProperties} />
+                                <div className="continuous-shimmer-effect" />
+                                <div className="aura-effect" />
+                                <div className="border-pulse-effect" />
+                                <div className="glow-effect" style={{ '--glow-radius': '30px', '--glow-duration': '0.9s' } as React.CSSProperties} />
+                              </>
+                            )}
+                          </>
+                        )}
+
                         <div className="text-xs md:text-sm px-1 md:px-2 text-center w-full h-full flex items-center justify-center relative overflow-hidden">
                           {cellContent.showFace && cellContent.player ? (
                             <div className="relative w-full h-full flex items-center justify-center">
@@ -454,8 +568,11 @@ export function GridSection({
                                 // Use positional key format like home.tsx uses
                                 const positionalKey = `${rowIndex}-${colIndex}`;
                                 const cellState = cells[positionalKey];
+                                const rarityTier = getRarityTier(cellState?.rarity || 0);
+
                                 return (
                                   <>
+                                    {/* Rarity Chip (Scoring Badge) */}
                                     {cellState?.correct && cellState?.rarity && (
                                       <div className="absolute top-1 left-1 z-10">
                                         <RarityChip value={cellState.rarity} />
@@ -465,6 +582,46 @@ export function GridSection({
                                       <div className="absolute top-1 right-1 z-10 text-sm" data-testid={`hint-indicator-${rowIndex}-${colIndex}`}>
                                         💡
                                       </div>
+                                    )}
+
+                                    {/* Tier-Specific Enhancements */}
+                                    {cellState?.correct && cellState?.rarity && (
+                                      <>
+                                        {/* Uncommon: Sparkle dots */}
+                                        {rarityTier === 'uncommon' && (
+                                          <>
+                                            <div className="sparkle-dot" style={{ width: '2px', height: '2px', top: '20%', left: '30%', animationDelay: '0s' }} />
+                                            <div className="sparkle-dot" style={{ width: '3px', height: '3px', top: '70%', left: '60%', animationDelay: '0.1s' }} />
+                                            <div className="sparkle-dot" style={{ width: '2px', height: '2px', top: '40%', left: '80%', animationDelay: '0.2s' }} />
+                                          </>
+                                        )}
+
+                                        {/* Rare: Soft circular glow pulse */}
+                                        {rarityTier === 'rare' && (
+                                          <div className="glow-effect" />
+                                        )}
+
+                                        {/* Epic: Animated shimmer lines */}
+                                        {rarityTier === 'epic' && (
+                                          <div className="shimmer-effect" />
+                                        )}
+
+                                        {/* Legendary: Spark burst + ring pulse */}
+                                        {rarityTier === 'legendary' && (
+                                          <>
+                                            <div className="spark-burst-effect" />
+                                            <div className="ring-pulse-effect" />
+                                          </>
+                                        )}
+
+                                        {/* Mythic: Continuous slow shimmer loop + aura rotation */}
+                                        {rarityTier === 'mythic' && (
+                                          <>
+                                            <div className="continuous-shimmer-effect" />
+                                            <div className="aura-effect" />
+                                          </>
+                                        )}
+                                      </>
                                     )}
                                   </>
                                 );

@@ -47,8 +47,53 @@
   --shadow-lg: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00), 0px 4px 6px -1px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
   --shadow-xl: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00), 0px 8px 10px -1px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
   --shadow-2xl: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
-  --tracking-normal: 0em;
-  --spacing: 0.25rem;
+}
+
+.dark {
+  --background: hsl(0, 0%, 8%);
+  --foreground: hsl(0, 0%, 95%);
+  --card: hsl(220, 13%, 18%);
+  --card-foreground: hsl(0, 0%, 92%);
+  --popover: hsl(0, 0%, 8%);
+  --popover-foreground: hsl(0, 0%, 95%);
+  --primary: hsl(203.7736, 87.6033%, 52.5490%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(220, 13%, 28%);
+  --secondary-foreground: hsl(0, 0%, 95%);
+  --muted: hsl(220, 13%, 22%);
+  --muted-foreground: hsl(220, 9%, 70%);
+  --accent: hsl(220, 13%, 28%);
+  --accent-foreground: hsl(0, 0%, 95%);
+  --destructive: hsl(356.3033, 90.5579%, 54.3137%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --border: hsl(220, 13%, 30%);
+  --input: hsl(220, 13%, 25%);
+  --ring: hsl(202.8169, 89.1213%, 53.1373%);
+  --chart-1: hsl(203.8863, 88.2845%, 53.1373%);
+  --chart-2: hsl(159.7826, 100%, 36.0784%);
+  --chart-3: hsl(42.0290, 92.8251%, 56.2745%);
+  --chart-4: hsl(147.1429, 78.5047%, 41.9608%);
+  --chart-5: hsl(341.4894, 75.2000%, 50.9804%);
+  --sidebar: hsl(220, 13%, 18%);
+  --sidebar-foreground: hsl(0, 0%, 92%);
+  --sidebar-primary: hsl(202.8169, 89.1213%, 53.1373%);
+  --sidebar-primary-foreground: hsl(0, 0%, 100%);
+  --sidebar-accent: hsl(220, 13%, 28%);
+  --sidebar-accent-foreground: hsl(0, 0%, 95%);
+  --sidebar-border: hsl(220, 13%, 30%);
+  --sidebar-ring: hsl(202.8169, 89.1213%, 53.1373%);
+  --font-sans: Inter, system-ui, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: Menlo, monospace;
+  --radius: 0.5rem;
+  --shadow-2xs: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
+  --shadow-sm: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00), 0px 1px 2px -1px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
+  --shadow: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00), 0px 1px 2px -1px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
+  --shadow-md: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00), 0px 2px 4px -1px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
+  --shadow-lg: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00), 0px 4px 6px -1px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
+  --shadow-xl: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00), 0px 8px 10px -1px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
+  --shadow-2xl: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
 }
 
 .dark {
@@ -149,4 +194,229 @@
   .modal-backdrop {
     backdrop-filter: blur(4px);
   }
+}
+
+@keyframes popIn {
+  0% {
+    transform: scale(0.84);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cell-reveal-animation {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes shine-sweep {
+  0% {
+    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  }
+  100% {
+    transform: translateX(100%) translateY(100%) rotate(45deg);
+  }
+}
+
+.shine-overlay {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(120deg, transparent 0%, rgba(255, 255, 255, var(--shine-opacity, 0.35)) 55%, transparent 100%);
+  transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.shine-effect-common {
+  animation: shine-sweep var(--shine-duration, 0.45s) ease-out forwards;
+  --shine-duration: 0.45s;
+  --shine-opacity: 0.35;
+}
+
+.shine-effect-uncommon {
+  animation: shine-sweep var(--shine-duration, 0.6s) ease-out forwards;
+  --shine-duration: 0.6s;
+  --shine-opacity: 0.38;
+}
+
+.shine-effect-rare {
+  animation: shine-sweep var(--shine-duration, 0.6s) ease-out forwards;
+  --shine-duration: 0.6s;
+  --shine-opacity: 0.40;
+}
+
+.shine-effect-epic {
+  animation: shine-sweep var(--shine-duration, 0.6s) ease-out forwards;
+  --shine-duration: 0.6s;
+  --shine-opacity: 0.42;
+}
+
+.shine-effect-legendary {
+  animation: shine-sweep var(--shine-duration, 0.75s) ease-out forwards;
+  --shine-duration: 0.75s;
+  --shine-opacity: 0.45;
+}
+
+.shine-effect-mythic {
+  animation: shine-sweep var(--shine-duration, 0.75s) ease-out forwards;
+  --shine-duration: 0.75s;
+  --shine-opacity: 0.45;
+}
+
+@keyframes sparkle-flicker {
+  0%, 100% { opacity: 0; transform: scale(0.5); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+.sparkle-dot {
+  position: absolute;
+  background-color: white;
+  border-radius: 50%;
+  opacity: 0;
+  animation: sparkle-flicker var(--sparkle-lifetime, 0.3s) ease-out infinite alternate;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes glow-bloom {
+  0% { box-shadow: 0 0 0px rgba(255, 255, 255, 0); }
+  100% { box-shadow: 0 0 var(--glow-radius, 18px) rgba(255, 255, 255, 0.4); opacity: 0; }
+}
+
+.glow-effect {
+  animation: glow-bloom var(--glow-duration, 0.5s) ease-out forwards var(--glow-delay, 0.12s);
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  z-index: 0; /* Below player photo */
+}
+
+@keyframes shimmer-lines {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer-effect {
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer-lines var(--shimmer-duration, 1s) linear infinite;
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes spark-burst {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+}
+
+.spark-burst-effect {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  background: radial-gradient(circle at center, yellow 0%, white 20%, transparent 70%);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  animation: spark-burst 0.5s ease-out forwards;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes ring-pulse {
+  0% { transform: scale(0.5); opacity: var(--ring-opacity, 0.32); border-width: 2px; }
+  100% { transform: scale(var(--ring-end-scale, 1.5)); opacity: 0; border-width: 0px; }
+}
+
+.ring-pulse-effect {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  animation: ring-pulse var(--ring-duration, 0.7s) ease-out forwards;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes continuous-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.continuous-shimmer-effect {
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: continuous-shimmer 2s linear infinite;
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes aura-rotate {
+  0% { transform: rotate(0deg) scale(1); opacity: 0.5; }
+  50% { transform: rotate(180deg) scale(1.05); opacity: 0.7; }
+  100% { transform: rotate(360deg) scale(1); opacity: 0.5; }
+}
+
+.aura-effect {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  animation: aura-rotate 3s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes border-pulse {
+  0% { box-shadow: 0 0 0px rgba(255, 255, 255, 0.18); }
+  50% { box-shadow: 0 0 10px rgba(255, 255, 255, 0.18); }
+  100% { box-shadow: 0 0 0px rgba(255, 255, 255, 0.18); }
+}
+
+.border-pulse-effect {
+  animation: border-pulse 0.6s ease-in-out infinite;
+}
+
+@keyframes corner-glint {
+  0% { opacity: 0; transform: scale(0.5) translate(0, 0); }
+  50% { opacity: 1; transform: scale(1) translate(-50%, -50%); }
+  100% { opacity: 0; transform: scale(1.5) translate(-100%, -100%); }
+}
+
+.corner-glint-effect {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.8) 0%, transparent 70%);
+  border-radius: 0 0 0 100%;
+  transform-origin: top right;
+  animation: corner-glint 0.08s ease-out forwards;
+  pointer-events: none;
+  z-index: 2;
 }
