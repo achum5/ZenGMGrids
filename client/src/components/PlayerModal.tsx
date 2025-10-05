@@ -947,13 +947,16 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
               
               {/* Score feedback for correct guesses OR feedback message for wrong guesses */}
               {modalData && modalData.type === 'correct' && (
-                <div className="mt-2">
+                <div className="mt-2" style={{ color: `${rarityBadgeStyles[getRarityTier(modalData.rarity)].textColor} !important` }}>
                   {(() => {
                     const rarityTier = getRarityTier(modalData.rarity);
-                    const styles = rarityStyles[rarityTier];
+                    const styles = rarityBadgeStyles[rarityTier];
                     console.log(`[DEBUG PlayerModal Score] rarity: ${modalData.rarity}, rarityTier: ${rarityTier}, resolvedTextColor: ${styles.textColor}`);
                     return (
-                      <span className={`text-lg font-bold`} style={{ color: `${styles.textColor} !important` }}>
+                      <span className={cn(
+                        `text-lg font-bold`,
+                        `!text-rarity-${rarityTier}`
+                      )}>
                         Score: {modalData.rarity}
                       </span>
                     );
