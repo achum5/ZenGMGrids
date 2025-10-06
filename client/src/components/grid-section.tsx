@@ -12,6 +12,7 @@ import { RarityChip } from '@/components/RarityChip';
 import { ResponsiveText } from '@/components/ResponsiveText';
 import { TeamLogo } from '@/components/TeamLogo';
 import { ScorePopup } from './ScorePopup';
+import { CellCelebration } from './CellCelebration';
 import './score-popup.css';
 import {
   AlertDialog,
@@ -140,7 +141,6 @@ export function GridSection({
   onHintModeChange,
 }: GridSectionProps) {
   const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);
-  const [acknowledgedHeader, setAcknowledgedHeader] = useState<{ type: 'row' | 'col'; index: number } | null>(null);
   const [isFlaring, setIsFlaring] = useState(false);
   const totalScore = calculateScore(cells);
   const prevTotalScoreRef = useRef(totalScore);
@@ -151,6 +151,31 @@ export function GridSection({
   const scoreBatchQueue = useRef<number[]>([]);
   const scoreDisplayQueue = useRef<ScorePopupInfo[]>([]);
   const batchTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [celebratingCells, setCelebratingCells] = useState<Set<string>>(new Set());
+  const celebrationQueue = useRef<string[]>([]);
+
+  const processCelebrationQueue = useCallback(() => {
+    if (celebratingCells.size >= 2 || celebrationQueue.current.length === 0) {
+      return;
+    }
+
+    const cellToCelebrate = celebrationQueue.current.shift();
+    if (cellToCelebrate) {
+      setCelebratingCells(prev => new Set(prev).add(cellToCelebrate));
+      setTimeout(() => {
+        setCelebratingCells(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(cellToCelebrate);
+          return newSet;
+        });
+      }, 1100); // Animation duration
+    }
+  }, [celebratingCells.size]);
+
+  useEffect(() => {
+    processCelebrationQueue();
+  }, [celebratingCells.size, processCelebrationQueue]);
 
   const processScoreQueue = useCallback(() => {
     if (scorePopups.length >= 2 || scoreDisplayQueue.current.length === 0) {
@@ -209,15 +234,14 @@ export function GridSection({
         const cell = cells[key];
         const prevCell = prevCells[key];
         if (cell.correct && !prevCell?.correct) {
-          const [rowIndex, colIndex] = key.split('-').map(Number);
-          setAcknowledgedHeader({ type: 'row', index: rowIndex });
-          setAcknowledgedHeader({ type: 'col', index: colIndex });
-          setTimeout(() => setAcknowledgedHeader(null), 600);
+          celebrationQueue.current.push(key);
+          setLiveRegionMessage('Correct. Cell completed.');
         }
       });
+      processCelebrationQueue();
     }
     prevCellsRef.current = cells;
-  }, [cells]);
+  }, [cells, processCelebrationQueue]);
 
   // Helper function for generating unique React keys
   const getReactKey = (type: 'header-row' | 'header-col' | 'cell', rowIndex?: number, colIndex?: number, rowKey?: string, colKey?: string) => {
@@ -432,7 +456,6 @@ export function GridSection({
                 // Find the corresponding team for logo display
                 const teamForHeader = col.type === 'team' ? teams.find(t => t.tid === col.tid) : null;
                 const isHovered = hoveredCell?.col === colIndex;
-                const isAcknowledged = acknowledgedHeader?.type === 'col' && acknowledgedHeader?.index === colIndex;
 
                 return (
                   <div 
@@ -441,8 +464,7 @@ export function GridSection({
                       "aspect-square bg-secondary dark:bg-slate-700 p-2 md:p-3 overflow-hidden",
                       headerRadius,
                       teamForHeader ? 'header-logo-glow' : 'header-text-glow',
-                      isHovered && 'header-hover',
-                      isAcknowledged && 'header-acknowledged'
+                      isHovered && 'header-hover'
                     )}
                     data-testid={`header-col-${col.key}`}
                     title={teamForHeader ? `${teamForHeader.region || ''} ${teamForHeader.name}`.trim() : col.label}
@@ -471,7 +493,6 @@ export function GridSection({
                   (() => {
                     const teamForHeader = row.type === 'team' ? teams.find(t => t.tid === row.tid) : null;
                     const isHovered = hoveredCell?.row === rowIndex;
-                    const isAcknowledged = acknowledgedHeader?.type === 'row' && acknowledgedHeader?.index === rowIndex;
 
                     return (
                       <div 
@@ -480,8 +501,7 @@ export function GridSection({
                           "aspect-square bg-secondary dark:bg-slate-700 p-2 md:p-3 overflow-hidden",
                           rowIndex === rows.length - 1 ? 'rounded-bl-2xl' : '',
                           teamForHeader ? 'header-logo-glow' : 'header-text-glow',
-                          isHovered && 'header-hover',
-                          isAcknowledged && 'header-acknowledged'
+                          isHovered && 'header-hover'
                         )}
                         data-testid={`header-row-${row.key}`}
                         title={teamForHeader ? `${teamForHeader.region || ''} ${teamForHeader.name}`.trim() : row.label}
@@ -500,7 +520,9 @@ export function GridSection({
                   
                   // Grid Cells for this row
                   ...cols.map((col, colIndex) => {
+                    const positionalKey = `${rowIndex}-${colIndex}`;
                     const cellContent = getCellContent(rowIndex, colIndex);
+                    const isCelebrating = celebratingCells.has(positionalKey);
                     
                     // Determine corner radius based on position in the game grid (3x3 within the 4x4 layout)
                     const isTopLeft = rowIndex === 0 && colIndex === 0;
@@ -520,24 +542,25 @@ export function GridSection({
                         className={cn(
                           'aspect-square w-full flex items-center justify-center text-center relative overflow-hidden transition-all duration-200 hover:brightness-110 hover:contrast-110 hover:shadow-md cell-reveal-animation grid-cell-neon',
                           cornerRadius,
-                          cellContent.className
+                          cellContent.className,
+                          isCelebrating && 'cell-celebrating'
                         )}
                         onMouseEnter={() => setHoveredCell({ row: rowIndex, col: colIndex })}
                         onMouseLeave={() => setHoveredCell(null)}
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          onCellClick(`${rowIndex}-${colIndex}`);
+                          onCellClick(positionalKey);
                         }}
                         onTouchEnd={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          onCellClick(`${rowIndex}-${colIndex}`);
+                          onCellClick(positionalKey);
                         }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault();
-                            onCellClick(`${rowIndex}-${colIndex}`);
+                            onCellClick(positionalKey);
                           }
                         }}
                         disabled={cellContent.disabled}
@@ -556,6 +579,7 @@ export function GridSection({
                         }}
                         data-testid={`cell-${row.key}-${col.key}`}
                       >
+                        {isCelebrating && <CellCelebration />}
                         {/* Global Pop-in Scale (applied via cell-reveal-animation) */}
 
                         {/* Shine Effect Overlay (Common, Uncommon, Rare, Epic, Legendary, Mythic) */}
