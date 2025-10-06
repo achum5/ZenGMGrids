@@ -80,7 +80,7 @@ export function getAchievementOptions(
   return achievements
     .filter(achievement => {
       if (achievement.id.includes('debutedIn')) {
-        console.log(`[DEBUG getAchievementOptions] DebutedIn achievement label: ${achievement.label}`);
+    
       }
       return (
       achievement.id !== 'bornOutsideUS50DC' && // Exclude problematic achievement
@@ -193,7 +193,7 @@ export function headerConfigToCatTeam(
   teams: Team[],
   seasonIndex?: SeasonIndex
 ): CatTeam | null {
-  console.log('[DEBUG headerConfigToCatTeam] Input config:', config);
+
   // Fix: Allow selectedId of 0 (some teams have tid 0)
   if (config.type == null || config.selectedId == null || config.selectedLabel == null) {
     return null;
@@ -217,7 +217,7 @@ export function headerConfigToCatTeam(
     let operator: '≥' | '≤' = config.operator || '≥';
 
     if (config.customAchievement) {
-      console.log('[DEBUG headerConfigToCatTeam] Using customAchievement:', config.customAchievement);
+    
       // If a custom achievement object is provided, use its label and test function
       achievementLabel = config.customAchievement.label;
       achievementId = config.customAchievement.id;
@@ -231,15 +231,15 @@ export function headerConfigToCatTeam(
       const originalAchievement = allAchievements.find(a => a.id === config.selectedId);
 
       if (originalAchievement) {
-        console.log('[DEBUG headerConfigToCatTeam] Found originalAchievement:', originalAchievement);
+      
         const parsedOriginal = parseAchievementLabel(originalAchievement.label, sport);
-        console.log('[DEBUG headerConfigToCatTeam] Parsed original achievement:', parsedOriginal);
+      
         if (parsedOriginal.isEditable) {
           // Use the original number for the label if no custom number is set
           const numberToUse = parsedOriginal.number;
-          console.log(`[DEBUG headerConfigToCatTeam] Generating label with number: ${numberToUse}, operator: ${operator}`);
+        
           achievementLabel = generateUpdatedLabel(parsedOriginal, numberToUse, operator);
-          console.log('[DEBUG headerConfigToCatTeam] Generated label:', achievementLabel);
+        
           // For non-customized editable achievements, use the original achievement's test
           achievementTest = (p: Player) => playerMeetsAchievement(p, originalAchievement.id, seasonIndex, operator === '≤' ? '<=' : '>=');
         } else {
@@ -249,7 +249,7 @@ export function headerConfigToCatTeam(
         }
       } else {
         // Fallback for unknown achievements (should not happen if selectedId is valid)
-        console.warn('[DEBUG headerConfigToCatTeam] Original achievement not found for ID:', config.selectedId);
+      
         achievementLabel = config.selectedLabel;
         achievementTest = (p: Player) => playerMeetsAchievement(p, config.selectedId as string, seasonIndex, operator === '≤' ? '<=' : '>=');
       }

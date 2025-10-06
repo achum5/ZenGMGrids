@@ -119,7 +119,7 @@ export function HintModal({
           eligiblePlayers = leagueData.players.filter(player => 
             rowConstraint.test(player) && colConstraint.test(player)
           );
-          console.log(`🎯 Custom achievement direct filtering: ${eligiblePlayers.length} players found`);
+      
         } else {
           // Use optimized intersection calculation for regular achievements
           const { calculateOptimizedIntersection } = await import('@/lib/intersection-cache');
@@ -146,7 +146,7 @@ export function HintModal({
           ) as Set<number>;
           
           eligiblePlayers = leagueData.players.filter(p => eligiblePidsSet.has(p.pid));
-          console.log(`🎯 Regular intersection calculation: ${eligiblePlayers.length} players found`);
+      
         }
       }
       
@@ -298,7 +298,7 @@ export function HintModal({
 
   // Handle player selection - mark as coming from hint modal
   const handlePlayerSelect = (player: Player) => {
-    console.log('Player selected from hint modal:', player.name);
+
     onSelectPlayer(player, true);
     // Let parent component handle closing
   };

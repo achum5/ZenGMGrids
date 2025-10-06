@@ -63,7 +63,7 @@ function TeamLogoIcon({ teamData }: { teamData?: Team }) {
   
   if (!currentLogo || logoError) {
     return (
-      <div className="w-6 h-6 flex items-center justify-center text-xs">
+      <div className="w-6 h-6 flex items-center justify-center text-xs animate-bounce-in group-hover:animate-bounce-hover">
         🏀
       </div>
     );
@@ -236,7 +236,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
   } | null>(null);
   
   const achievementOptions = useMemo<AchievementOption[]>(() => {
-    console.log('🔧 [MEMO] Recalculating achievement options...', { sport, seasonIndex, leagueYears: leagueData?.leagueYears, achievementOptionsVersion });
+  
     return leagueData ? getAchievementOptions(sport, seasonIndex, leagueData.leagueYears) : [];
   }, [sport, seasonIndex, leagueData?.leagueYears, achievementOptionsVersion, "v2"]); // Cache bust with version v2
 
@@ -1208,7 +1208,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
                     }
 
                     if (selector.type === 'achievement' && selector.value) {
-                      console.log(`[DEBUG CustomGridModal] Achievement Header Label: ${selector.label}`);
+
                       const originalAchievement = achievementOptions.find(ach => ach.id === (selector.baseAchievementId || selector.value));
                       if (originalAchievement) {
                         const parsedOriginal = parseAchievementLabel(originalAchievement.label, sport);

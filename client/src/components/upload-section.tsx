@@ -22,7 +22,7 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing }: Uploa
       setUrlError('');
     } catch (error) {
       // Fallback or ignore if clipboard access fails
-      console.log('Clipboard access failed');
+  
     }
   };
 

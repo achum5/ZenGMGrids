@@ -950,7 +950,7 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                   {(() => {
                     const rarityTier = getRarityTier(modalData.rarity);
                     const styles = rarityStyles[rarityTier];
-                    console.log(`[DEBUG PlayerModal Score] rarity: ${modalData.rarity}, rarityTier: ${rarityTier}, resolvedTextColor: ${styles.textColor}`);
+                
                     return (
                       <span className={`text-lg font-bold`} style={{ color: styles.textColor }}>
                         Score: {modalData.rarity}
