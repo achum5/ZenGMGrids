@@ -460,161 +460,6 @@ export default function Home() {
     return playersWithRarity;
   }, [leagueData, rows, cols, intersections, byPid]);
 
-  const handleFileUpload = useCallback(async (file: File) => {
-    setIsProcessing(true);
-    
-    try {
-      // Parse the league file
-      const data = await parseLeagueFile(file);
-      await processLeagueData(data);
-      
-    } catch (error) {
-      console.error('Error processing file:', error);
-      toast({
-        title: 'Error loading file',
-        description: error instanceof Error ? error.message : 'Unknown error occurred',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [toast]);
-
-  const handleUrlUpload = useCallback(async (url: string) => {
-    setIsProcessing(true);
-    
-    try {
-      // Parse the league URL
-      const data = await parseLeagueUrl(url);
-      await processLeagueData(data);
-      
-    } catch (error) {
-      console.error('Error processing URL:', error);
-      toast({
-        title: 'Error loading URL',
-        description: error instanceof Error ? error.message : 'Unknown error occurred',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [toast]);
-
-  // Create minimal test data for debugging
-  const createTestData = useCallback((): LeagueData => {
-
-    
-    // Create mock players with achievements (add more for grid generation)
-    const mockPlayers = [
-      {
-        pid: 1,
-        achievements: { },
-        awards: [{ type: "Assists Leader", season: 2020, tid: 1 }],
-        teamsPlayed: new Set([1]),
-        stats: [{ season: 2020, rebounds: 12000 }, { season: 2019, rebounds: 11000 }]
-      },
-      {
-        pid: 2, 
-        achievements: { },
-        awards: [],
-        teamsPlayed: new Set([1]),
-        stats: [{ season: 2020, rebounds: 15000 }, { season: 2018, rebounds: 14000 }]
-      },
-      {
-        pid: 3,
-        name: "Test Player 3 (Assists Only)", 
-        achievements: { },
-        awards: [{ type: "Assists Leader", season: 2021, tid: 2 }],
-        teamsPlayed: new Set([2]),
-        stats: [{ season: 2021, rebounds: 5000 }, { season: 2020, rebounds: 4800 }]
-      },
-      {
-        pid: 4,
-        name: "Test Player 4 (Both Again)",
-        achievements: { },
-        awards: [{ type: "Assists Leader", season: 2022, tid: 3 }],
-        teamsPlayed: new Set([3]),
-        stats: [{ season: 2022, rebounds: 11000 }]
-      },
-      {
-        pid: 5,
-        name: "Test Player 5 (Another Both)",
-        achievements: { },
-        awards: [{ type: "Assists Leader", season: 2019, tid: 1 }],
-        teamsPlayed: new Set([1, 2]),
-        stats: [{ season: 2019, rebounds: 13000 }]
-      },
-      {
-        pid: 6,
-        name: "Test Player 6 (Rebounds Only)",
-        achievements: { },
-        awards: [],
-        teamsPlayed: new Set([4]),
-        stats: [{ season: 2020, rebounds: 10500 }]
-      },
-      {
-        pid: 7,
-        name: "Test Player 7 (Assists Only)",
-        achievements: { },
-        awards: [{ type: "Assists Leader", season: 2018, tid: 4 }],
-        teamsPlayed: new Set([4]),
-        stats: [{ season: 2018, rebounds: 4000 }]
-      },
-      {
-        pid: 8,
-        name: "Test Player 8 (Final Both)",
-        achievements: { },
-        awards: [{ type: "Assists Leader", season: 2017, tid: 3 }],
-        teamsPlayed: new Set([3]),
-        stats: [{ season: 2017, rebounds: 10200 }]
-      }
-    ];
-    
-    // Create mock teams (need at least 3 for grid generation)
-    const mockTeams = [
-      { tid: 1, name: "Team A", region: "Test", abbrev: "TA", disabled: false },
-      { tid: 2, name: "Team B", region: "Test", abbrev: "TB", disabled: false },
-      { tid: 3, name: "Team C", region: "Test", abbrev: "TC", disabled: false },
-      { tid: 4, name: "Team D", region: "Test", abbrev: "TD", disabled: false }
-    ];
-    
-    // Create mock season index (with 20+ seasons to trigger new seeded builder)
-    const mockSeasonIndex: any = {};
-    for (let season = 2000; season <= 2022; season++) {
-      mockSeasonIndex[season] = {
-        1: { AssistsLeader: new Set() },
-        2: { AssistsLeader: new Set() },
-        3: { AssistsLeader: new Set() },
-        4: { AssistsLeader: new Set() }
-      };
-    }
-    
-    // Add our specific assist leaders
-    mockSeasonIndex[2017][3].AssistsLeader = new Set([8]);
-    mockSeasonIndex[2018][4].AssistsLeader = new Set([7]);
-    mockSeasonIndex[2019][1].AssistsLeader = new Set([5]);
-    mockSeasonIndex[2020][1].AssistsLeader = new Set([1]);
-    mockSeasonIndex[2021][2].AssistsLeader = new Set([3]);
-    mockSeasonIndex[2022][3].AssistsLeader = new Set([4]);
-    
-    return {
-      players: mockPlayers as any,
-      teams: mockTeams as any,
-      sport: 'basketball',
-      seasonIndex: mockSeasonIndex
-    };
-  }, []);
-
-  const loadTestData = useCallback(async () => {
-    try {
-  
-      const data = createTestData();
-      await processLeagueData(data);
-    } catch (error) {
-      console.error('Test data creation failed:', error);
-    }
-  }, [createTestData]);
-
   const processLeagueData = useCallback(async (data: LeagueData) => {
     // Clear caches for the new player dataset
     clearIntersectionCachesForPlayers(data.players);
@@ -669,6 +514,18 @@ export default function Home() {
     setAttemptCount(storedAttemptCount);
     
     // Success toast removed - was blocking mobile interactions
+  }, [toast]);
+
+  const handleLeagueData = useCallback(async (data: LeagueData) => {
+    await processLeagueData(data);
+  }, [processLeagueData]);
+
+  const handleImportError = useCallback((message: string) => {
+    toast({
+      title: 'Import Error',
+      description: message,
+      variant: 'destructive',
+    });
   }, [toast]);
   
 
@@ -1286,9 +1143,8 @@ export default function Home() {
         </header>
         <main className="max-w-2xl mx-auto px-6 py-8">
           <UploadSection 
-            onFileUpload={handleFileUpload}
-            onUrlUpload={handleUrlUpload}
-            isProcessing={isProcessing}
+            onLeagueData={handleLeagueData}
+            onImportError={handleImportError}
           />
         </main>
       </div>
