@@ -1247,7 +1247,6 @@ export default function Home() {
           byPid={byPid}
           cellDescription={getCurrentCellDescription()}
           usedPids={usedPids}
-          currentCellKey={currentCellKey}
         />
         
         <HintModal
