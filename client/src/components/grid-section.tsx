@@ -12,6 +12,7 @@ import { RarityChip } from '@/components/RarityChip';
 import { ResponsiveText } from '@/components/ResponsiveText';
 import { TeamLogo } from '@/components/TeamLogo';
 import { ScorePopup } from './ScorePopup';
+import { ConvergingLight } from './ConvergingLight';
 import './score-popup.css';
 import {
   AlertDialog,
@@ -120,6 +121,13 @@ type ScorePopupInfo = {
   amount: number;
 };
 
+type AnimationTarget = {
+  rowIndex: number;
+  colIndex: number;
+  rowKey: string;
+  colKey: string;
+};
+
 export function GridSection({
   rows,
   cols,
@@ -140,7 +148,6 @@ export function GridSection({
   onHintModeChange,
 }: GridSectionProps) {
   const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);
-  const [acknowledgedHeader, setAcknowledgedHeader] = useState<{ type: 'row' | 'col'; index: number } | null>(null);
   const [isFlaring, setIsFlaring] = useState(false);
   const totalScore = calculateScore(cells);
   const prevTotalScoreRef = useRef(totalScore);
@@ -151,6 +158,43 @@ export function GridSection({
   const scoreBatchQueue = useRef<number[]>([]);
   const scoreDisplayQueue = useRef<ScorePopupInfo[]>([]);
   const batchTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [animationTarget, setAnimationTarget] = useState<AnimationTarget | null>(null);
+  const animationQueue = useRef<AnimationTarget[]>([]);
+  const isAnimating = useRef(false);
+
+  const gridContainerRef = useRef<HTMLDivElement>(null);
+  const headerRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const cellRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  const processAnimationQueue = useCallback(() => {
+    if (isAnimating.current || animationQueue.current.length === 0) {
+      return;
+    }
+    isAnimating.current = true;
+    const nextTarget = animationQueue.current.shift();
+    setAnimationTarget(nextTarget || null);
+  }, []);
+
+  const handleAnimationEnd = useCallback(() => {
+    isAnimating.current = false;
+    setAnimationTarget(null);
+    processAnimationQueue();
+  }, [processAnimationQueue]);
+
+  const getDOMRectsForAnimation = () => {
+    if (!animationTarget || !gridContainerRef.current) return null;
+
+    const grid = gridContainerRef.current.getBoundingClientRect();
+    const rowHeader = headerRefs.current[`header-row-${animationTarget.rowKey}`]?.getBoundingClientRect();
+    const colHeader = headerRefs.current[`header-col-${animationTarget.colKey}`]?.getBoundingClientRect();
+    const cell = cellRefs.current[`cell-${animationTarget.rowKey}-${animationTarget.colKey}`]?.getBoundingClientRect();
+
+    if (grid && rowHeader && colHeader && cell) {
+      return { grid, rowHeader, colHeader, cell };
+    }
+    return null;
+  };
 
   const processScoreQueue = useCallback(() => {
     if (scorePopups.length >= 2 || scoreDisplayQueue.current.length === 0) {
@@ -210,14 +254,18 @@ export function GridSection({
         const prevCell = prevCells[key];
         if (cell.correct && !prevCell?.correct) {
           const [rowIndex, colIndex] = key.split('-').map(Number);
-          setAcknowledgedHeader({ type: 'row', index: rowIndex });
-          setAcknowledgedHeader({ type: 'col', index: colIndex });
-          setTimeout(() => setAcknowledgedHeader(null), 600);
+          const row = rows[rowIndex];
+          const col = cols[colIndex];
+          if (row && col) {
+            animationQueue.current.push({ rowIndex, colIndex, rowKey: row.key, colKey: col.key });
+            setLiveRegionMessage(`Correct. Row ${row.label}, column ${col.label}.`);
+          }
         }
       });
+      processAnimationQueue();
     }
     prevCellsRef.current = cells;
-  }, [cells]);
+  }, [cells, rows, cols, processAnimationQueue]);
 
   // Helper function for generating unique React keys
   const getReactKey = (type: 'header-row' | 'header-col' | 'cell', rowIndex?: number, colIndex?: number, rowKey?: string, colKey?: string) => {
@@ -317,6 +365,7 @@ export function GridSection({
   
   // Check if there are any empty cells that can be revealed
   const hasEmptyCells = allCellKeys.some(key => !cells[key]?.name);
+  const domRects = getDOMRectsForAnimation();
 
   return (
     <div className="space-y-6">
@@ -388,7 +437,8 @@ export function GridSection({
       <Card>
         <CardContent className="p-3 md:p-6">
           {/* Grid Container with expanded max-width */}
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-4xl mx-auto relative" ref={gridContainerRef}>
+            {domRects && <ConvergingLight domRects={domRects} onAnimationEnd={handleAnimationEnd} />}
             {/* Complete 4x4 Grid - Board with Thin Separators */}
             <div className="bg-border/60 dark:bg-slate-600/90 rounded-2xl p-[2px] md:p-[3px] overflow-hidden grid-container-glow grid-divider">
               <div className="grid grid-cols-4 gap-[2px] md:gap-[3px] w-full relative z-10">
@@ -432,17 +482,16 @@ export function GridSection({
                 // Find the corresponding team for logo display
                 const teamForHeader = col.type === 'team' ? teams.find(t => t.tid === col.tid) : null;
                 const isHovered = hoveredCell?.col === colIndex;
-                const isAcknowledged = acknowledgedHeader?.type === 'col' && acknowledgedHeader?.index === colIndex;
 
                 return (
                   <div 
                     key={getReactKey('header-col', undefined, colIndex, undefined, col.key)} 
+                    ref={el => headerRefs.current[`header-col-${col.key}`] = el}
                     className={cn(
                       "aspect-square bg-secondary dark:bg-slate-700 p-2 md:p-3 overflow-hidden",
                       headerRadius,
                       teamForHeader ? 'header-logo-glow' : 'header-text-glow',
-                      isHovered && 'header-hover',
-                      isAcknowledged && 'header-acknowledged'
+                      isHovered && 'header-hover'
                     )}
                     data-testid={`header-col-${col.key}`}
                     title={teamForHeader ? `${teamForHeader.region || ''} ${teamForHeader.name}`.trim() : col.label}
@@ -471,17 +520,16 @@ export function GridSection({
                   (() => {
                     const teamForHeader = row.type === 'team' ? teams.find(t => t.tid === row.tid) : null;
                     const isHovered = hoveredCell?.row === rowIndex;
-                    const isAcknowledged = acknowledgedHeader?.type === 'row' && acknowledgedHeader?.index === rowIndex;
 
                     return (
                       <div 
                         key={getReactKey('header-row', rowIndex, undefined, row.key)}
+                        ref={el => headerRefs.current[`header-row-${row.key}`] = el}
                         className={cn(
                           "aspect-square bg-secondary dark:bg-slate-700 p-2 md:p-3 overflow-hidden",
                           rowIndex === rows.length - 1 ? 'rounded-bl-2xl' : '',
                           teamForHeader ? 'header-logo-glow' : 'header-text-glow',
-                          isHovered && 'header-hover',
-                          isAcknowledged && 'header-acknowledged'
+                          isHovered && 'header-hover'
                         )}
                         data-testid={`header-row-${row.key}`}
                         title={teamForHeader ? `${teamForHeader.region || ''} ${teamForHeader.name}`.trim() : row.label}
@@ -517,6 +565,7 @@ export function GridSection({
                     return (
                       <button
                         key={`cell-${rowIndex}-${colIndex}`}
+                        ref={el => cellRefs.current[`cell-${row.key}-${col.key}`] = el}
                         className={cn(
                           'aspect-square w-full flex items-center justify-center text-center relative overflow-hidden transition-all duration-200 hover:brightness-110 hover:contrast-110 hover:shadow-md cell-reveal-animation grid-cell-neon',
                           cornerRadius,
