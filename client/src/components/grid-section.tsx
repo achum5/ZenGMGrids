@@ -12,7 +12,7 @@ import { RarityChip } from '@/components/RarityChip';
 import { ResponsiveText } from '@/components/ResponsiveText';
 import { TeamLogo } from '@/components/TeamLogo';
 import { ScorePopup } from './ScorePopup';
-import { ConvergingLight } from './ConvergingLight';
+import { CellCelebration } from './CellCelebration';
 import './score-popup.css';
 import {
   AlertDialog,
@@ -121,13 +121,6 @@ type ScorePopupInfo = {
   amount: number;
 };
 
-type AnimationTarget = {
-  rowIndex: number;
-  colIndex: number;
-  rowKey: string;
-  colKey: string;
-};
-
 export function GridSection({
   rows,
   cols,
@@ -159,42 +152,30 @@ export function GridSection({
   const scoreDisplayQueue = useRef<ScorePopupInfo[]>([]);
   const batchTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [animationTarget, setAnimationTarget] = useState<AnimationTarget | null>(null);
-  const animationQueue = useRef<AnimationTarget[]>([]);
-  const isAnimating = useRef(false);
+  const [celebratingCells, setCelebratingCells] = useState<Set<string>>(new Set());
+  const celebrationQueue = useRef<string[]>([]);
 
-  const gridContainerRef = useRef<HTMLDivElement>(null);
-  const headerRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const cellRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-
-  const processAnimationQueue = useCallback(() => {
-    if (isAnimating.current || animationQueue.current.length === 0) {
+  const processCelebrationQueue = useCallback(() => {
+    if (celebratingCells.size >= 2 || celebrationQueue.current.length === 0) {
       return;
     }
-    isAnimating.current = true;
-    const nextTarget = animationQueue.current.shift();
-    setAnimationTarget(nextTarget || null);
-  }, []);
 
-  const handleAnimationEnd = useCallback(() => {
-    isAnimating.current = false;
-    setAnimationTarget(null);
-    processAnimationQueue();
-  }, [processAnimationQueue]);
-
-  const getDOMRectsForAnimation = () => {
-    if (!animationTarget || !gridContainerRef.current) return null;
-
-    const grid = gridContainerRef.current.getBoundingClientRect();
-    const rowHeader = headerRefs.current[`header-row-${animationTarget.rowKey}`]?.getBoundingClientRect();
-    const colHeader = headerRefs.current[`header-col-${animationTarget.colKey}`]?.getBoundingClientRect();
-    const cell = cellRefs.current[`cell-${animationTarget.rowKey}-${animationTarget.colKey}`]?.getBoundingClientRect();
-
-    if (grid && rowHeader && colHeader && cell) {
-      return { grid, rowHeader, colHeader, cell };
+    const cellToCelebrate = celebrationQueue.current.shift();
+    if (cellToCelebrate) {
+      setCelebratingCells(prev => new Set(prev).add(cellToCelebrate));
+      setTimeout(() => {
+        setCelebratingCells(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(cellToCelebrate);
+          return newSet;
+        });
+      }, 1100); // Animation duration
     }
-    return null;
-  };
+  }, [celebratingCells.size]);
+
+  useEffect(() => {
+    processCelebrationQueue();
+  }, [celebratingCells.size, processCelebrationQueue]);
 
   const processScoreQueue = useCallback(() => {
     if (scorePopups.length >= 2 || scoreDisplayQueue.current.length === 0) {
@@ -253,19 +234,14 @@ export function GridSection({
         const cell = cells[key];
         const prevCell = prevCells[key];
         if (cell.correct && !prevCell?.correct) {
-          const [rowIndex, colIndex] = key.split('-').map(Number);
-          const row = rows[rowIndex];
-          const col = cols[colIndex];
-          if (row && col) {
-            animationQueue.current.push({ rowIndex, colIndex, rowKey: row.key, colKey: col.key });
-            setLiveRegionMessage(`Correct. Row ${row.label}, column ${col.label}.`);
-          }
+          celebrationQueue.current.push(key);
+          setLiveRegionMessage('Correct. Cell completed.');
         }
       });
-      processAnimationQueue();
+      processCelebrationQueue();
     }
     prevCellsRef.current = cells;
-  }, [cells, rows, cols, processAnimationQueue]);
+  }, [cells, processCelebrationQueue]);
 
   // Helper function for generating unique React keys
   const getReactKey = (type: 'header-row' | 'header-col' | 'cell', rowIndex?: number, colIndex?: number, rowKey?: string, colKey?: string) => {
@@ -365,7 +341,6 @@ export function GridSection({
   
   // Check if there are any empty cells that can be revealed
   const hasEmptyCells = allCellKeys.some(key => !cells[key]?.name);
-  const domRects = getDOMRectsForAnimation();
 
   return (
     <div className="space-y-6">
@@ -437,8 +412,7 @@ export function GridSection({
       <Card>
         <CardContent className="p-3 md:p-6">
           {/* Grid Container with expanded max-width */}
-          <div className="max-w-4xl mx-auto relative" ref={gridContainerRef}>
-            {domRects && <ConvergingLight domRects={domRects} onAnimationEnd={handleAnimationEnd} />}
+          <div className="max-w-4xl mx-auto">
             {/* Complete 4x4 Grid - Board with Thin Separators */}
             <div className="bg-border/60 dark:bg-slate-600/90 rounded-2xl p-[2px] md:p-[3px] overflow-hidden grid-container-glow grid-divider">
               <div className="grid grid-cols-4 gap-[2px] md:gap-[3px] w-full relative z-10">
@@ -486,7 +460,6 @@ export function GridSection({
                 return (
                   <div 
                     key={getReactKey('header-col', undefined, colIndex, undefined, col.key)} 
-                    ref={el => headerRefs.current[`header-col-${col.key}`] = el}
                     className={cn(
                       "aspect-square bg-secondary dark:bg-slate-700 p-2 md:p-3 overflow-hidden",
                       headerRadius,
@@ -524,7 +497,6 @@ export function GridSection({
                     return (
                       <div 
                         key={getReactKey('header-row', rowIndex, undefined, row.key)}
-                        ref={el => headerRefs.current[`header-row-${row.key}`] = el}
                         className={cn(
                           "aspect-square bg-secondary dark:bg-slate-700 p-2 md:p-3 overflow-hidden",
                           rowIndex === rows.length - 1 ? 'rounded-bl-2xl' : '',
@@ -548,7 +520,9 @@ export function GridSection({
                   
                   // Grid Cells for this row
                   ...cols.map((col, colIndex) => {
+                    const positionalKey = `${rowIndex}-${colIndex}`;
                     const cellContent = getCellContent(rowIndex, colIndex);
+                    const isCelebrating = celebratingCells.has(positionalKey);
                     
                     // Determine corner radius based on position in the game grid (3x3 within the 4x4 layout)
                     const isTopLeft = rowIndex === 0 && colIndex === 0;
@@ -565,28 +539,28 @@ export function GridSection({
                     return (
                       <button
                         key={`cell-${rowIndex}-${colIndex}`}
-                        ref={el => cellRefs.current[`cell-${row.key}-${col.key}`] = el}
                         className={cn(
                           'aspect-square w-full flex items-center justify-center text-center relative overflow-hidden transition-all duration-200 hover:brightness-110 hover:contrast-110 hover:shadow-md cell-reveal-animation grid-cell-neon',
                           cornerRadius,
-                          cellContent.className
+                          cellContent.className,
+                          isCelebrating && 'cell-celebrating'
                         )}
                         onMouseEnter={() => setHoveredCell({ row: rowIndex, col: colIndex })}
                         onMouseLeave={() => setHoveredCell(null)}
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          onCellClick(`${rowIndex}-${colIndex}`);
+                          onCellClick(positionalKey);
                         }}
                         onTouchEnd={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          onCellClick(`${rowIndex}-${colIndex}`);
+                          onCellClick(positionalKey);
                         }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault();
-                            onCellClick(`${rowIndex}-${colIndex}`);
+                            onCellClick(positionalKey);
                           }
                         }}
                         disabled={cellContent.disabled}
@@ -605,6 +579,7 @@ export function GridSection({
                         }}
                         data-testid={`cell-${row.key}-${col.key}`}
                       >
+                        {isCelebrating && <CellCelebration />}
                         {/* Global Pop-in Scale (applied via cell-reveal-animation) */}
 
                         {/* Shine Effect Overlay (Common, Uncommon, Rare, Epic, Legendary, Mythic) */}
