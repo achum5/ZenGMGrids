@@ -1276,7 +1276,7 @@ export default function Home() {
               </div>
               <div className="flex items-center space-x-3">
                 <ThemeToggle />
-                <div className="-ml-[1px]">
+                <div>
                   <RulesModal />
                 </div>
               </div>
@@ -1327,7 +1327,7 @@ export default function Home() {
             </div>
             <div className="flex items-center space-x-1">
               <ThemeToggle />
-              <div className="-ml-[1px]">
+              <div>
                 <RulesModal sport={leagueData?.sport} />
               </div>
               {hasGuesses ? (

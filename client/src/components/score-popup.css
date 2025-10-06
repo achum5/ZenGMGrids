@@ -1,0 +1,79 @@
+.score-popup {
+  position: absolute;
+  transform: scale(0.88);
+  opacity: 0;
+  pointer-events: none;
+  font-weight: 600; /* semibold */
+  color: #ffffff;
+  /* Contrast helpers: subtle shadow and theme glow */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 
+               0 0 12px rgba(41, 255, 198, 0.12), 
+               0 0 12px rgba(70, 166, 255, 0.12), 
+               0 0 12px rgba(183, 33, 255, 0.12);
+  animation: score-popup-animation 1.2s ease-out forwards;
+  z-index: 10;
+}
+
+@keyframes score-popup-animation {
+  0% {
+    transform: scale(0.88) translateY(0);
+    opacity: 0;
+  }
+  12.5% { /* 150ms */
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+  79.16% { /* 950ms */
+    transform: scale(1) translateY(-12px);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) translateY(-12px);
+    opacity: 0;
+  }
+}
+
+/* The score tile's inner ring will carry the flare effect */
+.score-tile.score-tile-flare .score-tile-ring {
+  animation: score-tile-flare-animation 900ms ease-out;
+}
+
+@keyframes score-tile-flare-animation {
+  0% {
+    box-shadow: inset 0 0 0px 0px rgba(41, 255, 198, 0);
+  }
+  13.33% { /* 120ms */
+    box-shadow: inset 0 0 10px 2px rgba(41, 255, 198, 0.24),
+                inset 0 0 10px 2px rgba(70, 166, 255, 0.24),
+                inset 0 0 10px 2px rgba(183, 33, 255, 0.24);
+  }
+  100% {
+    box-shadow: inset 0 0 0px 0px rgba(41, 255, 198, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .score-popup {
+    /* 900ms total: 120ms fade-in, hold, 200ms fade-out */
+    animation: score-popup-fade 900ms ease-in-out forwards;
+    transform: translateY(0); /* No movement */
+  }
+  @keyframes score-popup-fade {
+    0% { opacity: 0; }
+    13.33% { opacity: 1; } /* 120ms */
+    77.77% { opacity: 1; } /* Hold until 700ms */
+    100% { opacity: 0; }   /* Fade over last 200ms */
+  }
+
+  .score-tile.score-tile-flare .score-tile-ring {
+    animation: score-tile-highlight 900ms ease-in-out;
+  }
+  @keyframes score-tile-highlight {
+    0%, 100% {
+      box-shadow: inset 0 0 0px 0px rgba(70, 166, 255, 0);
+    }
+    50% {
+      box-shadow: inset 0 0 8px 2px rgba(70, 166, 255, 0.2);
+    }
+  }
+}

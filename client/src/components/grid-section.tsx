@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -11,6 +11,8 @@ import { PlayerFace } from '@/components/PlayerFace';
 import { RarityChip } from '@/components/RarityChip';
 import { ResponsiveText } from '@/components/ResponsiveText';
 import { TeamLogo } from '@/components/TeamLogo';
+import { ScorePopup } from './ScorePopup';
+import './score-popup.css';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -113,6 +115,11 @@ function calculateScore(cells: Record<string, CellState>): number {
   }, 0);
 }
 
+type ScorePopupInfo = {
+  id: number;
+  amount: number;
+};
+
 export function GridSection({
   rows,
   cols,
@@ -136,12 +143,63 @@ export function GridSection({
   const [acknowledgedHeader, setAcknowledgedHeader] = useState<{ type: 'row' | 'col'; index: number } | null>(null);
   const [isFlaring, setIsFlaring] = useState(false);
   const totalScore = calculateScore(cells);
+  const prevTotalScoreRef = useRef(totalScore);
+
+  const [scorePopups, setScorePopups] = useState<ScorePopupInfo[]>([]);
+  const [liveRegionMessage, setLiveRegionMessage] = useState('');
+  
+  const scoreBatchQueue = useRef<number[]>([]);
+  const scoreDisplayQueue = useRef<ScorePopupInfo[]>([]);
+  const batchTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const processScoreQueue = useCallback(() => {
+    if (scorePopups.length >= 2 || scoreDisplayQueue.current.length === 0) {
+      return;
+    }
+
+    const event = scoreDisplayQueue.current.shift()!;
+    const delay = scorePopups.length * 80; // Stagger animation start
+
+    setTimeout(() => {
+      setScorePopups(prev => [...prev, event]);
+      setTimeout(() => {
+        setScorePopups(prev => prev.filter(p => p.id !== event.id));
+      }, 1200); // Animation duration
+    }, delay);
+  }, [scorePopups]);
 
   useEffect(() => {
-    setIsFlaring(true);
-    const timer = setTimeout(() => setIsFlaring(false), 1000);
-    return () => clearTimeout(timer);
-  }, [totalScore]);
+    processScoreQueue();
+  }, [scorePopups, processScoreQueue]);
+
+  useEffect(() => {
+    const scoreDifference = totalScore - prevTotalScoreRef.current;
+
+    if (scoreDifference > 0) {
+      scoreBatchQueue.current.push(scoreDifference);
+
+      if (batchTimerRef.current) {
+        clearTimeout(batchTimerRef.current);
+      }
+
+      batchTimerRef.current = setTimeout(() => {
+        const combinedScore = scoreBatchQueue.current.reduce((a, b) => a + b, 0);
+        scoreBatchQueue.current = [];
+
+        if (combinedScore > 0) {
+          setIsFlaring(true);
+          setTimeout(() => setIsFlaring(false), 900);
+
+          setLiveRegionMessage(`Score increased by ${combinedScore}, total ${totalScore}.`);
+          
+          scoreDisplayQueue.current.push({ amount: combinedScore, id: Date.now() });
+          processScoreQueue();
+        }
+      }, 300); // 300ms aggregation window
+    }
+
+    prevTotalScoreRef.current = totalScore;
+  }, [totalScore, processScoreQueue]);
   
   const prevCellsRef = React.useRef(cells);
   useEffect(() => {
@@ -335,20 +393,34 @@ export function GridSection({
             <div className="bg-border/60 dark:bg-slate-600/90 rounded-2xl p-[2px] md:p-[3px] overflow-hidden grid-container-glow grid-divider">
               <div className="grid grid-cols-4 gap-[2px] md:gap-[3px] w-full relative z-10">
               {/* Score in top-left corner */}
-              <div className={cn("aspect-square flex flex-col items-center justify-center bg-secondary dark:bg-slate-700 rounded-tl-2xl overflow-hidden score-tile", isFlaring && "score-tile-flare")}>
+              <div className={cn("relative aspect-square flex flex-col items-center justify-center bg-secondary dark:bg-slate-700 rounded-tl-2xl overflow-hidden score-tile", isFlaring && "score-tile-flare")}>
                 <div className="score-tile-ring"></div>
-                {isFlaring && <div className="sparkle"></div>}
                 <div className="text-xs sm:text-sm md:text-base font-medium text-muted-foreground dark:text-gray-400">
                   {isGridComplete ? 'Final Score:' : 'Score:'}
                 </div>
-                <div className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold leading-none text-foreground dark:text-white">
+                <div className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold leading-none text-foreground dark:text-white relative">
                   {totalScore}
+                  {scorePopups.map((popup, index) => (
+                    <ScorePopup
+                      key={popup.id}
+                      amount={popup.amount}
+                      style={{
+                        fontSize: '65%',
+                        top: `${-6 - index * 6}px`,
+                        right: `-8px`,
+                      }}
+                    />
+                  ))}
                 </div>
                 {attemptCount >= 2 && (
                   <div className="text-xs text-muted-foreground dark:text-gray-500 mt-1">
                     ({getOrdinalLabel(attemptCount)} try)
                   </div>
                 )}
+                {/* Accessibility: Screen reader announcement */}
+                <div className="sr-only" aria-live="polite" role="status">
+                  {liveRegionMessage}
+                </div>
               </div>
               
               {/* Column Headers */}
