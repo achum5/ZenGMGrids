@@ -1,6 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { cn } from '@/lib/utils';
+import { useState, useCallback, useEffect } from 'react';
 import { UploadSection } from '@/components/upload-section';
 import { GridSection } from '@/components/grid-section';
 import { PlayerSearchModal } from '@/components/player-search-modal';
@@ -1257,65 +1255,27 @@ export default function Home() {
   if (!leagueData) {
     return (
       <div>
-              <motion.header
-        initial={hasLoaded ? {} : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.3 }}
-                className="relative z-50 h-16 bg-[#141922]/[0.92] backdrop-blur-md border-b border-[#FFFFFF14] shadow-lg"
-              >
-                <div className="container mx-auto h-full flex items-center justify-between px-4 sm:px-6 lg:px-8">
-                  <div className="flex items-center gap-2 relative">
-            {/* Logo Glow */}
-            <motion.div
-              className="absolute -left-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-gradient-to-br from-[#29FFC6] to-[#46A6FF] opacity-10 blur-xl"
-              animate={{ scale: [0.96, 1.04, 0.96] }}
-              transition={{ duration: 5.5, ease: "easeInOut", repeat: Infinity, repeatType: "mirror" }}
-            />
-            {/* Badge Spark (Optional Delight) */}
-            <motion.div
-              className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-white opacity-35"
-              animate={{ opacity: [0.35, 0.65, 0.35] }}
-              transition={{ duration: 4, ease: "easeInOut", repeat: Infinity, repeatType: "mirror" }}
-            />
-            <img src="/logo.svg" alt="Logo" className="h-8 w-8 relative z-10" /> {/* Placeholder for actual logo */}
-            <h1 className="text-xl font-semibold tracking-wide text-[#E8EDF5] relative z-10">
-              ZenGM Grids
-              {/* Light Sweep across title (Optional Delight) */}
-              <motion.div
-                className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none"
-                initial={{ x: '-100%' }}
-                animate={{ x: '200%' }}
-                transition={{
-                  duration: 2.2,
-                  ease: [0.25, 0.1, 0.25, 1],
-                  repeat: Infinity,
-                  repeatDelay: 10, // ~12s total cycle (2.2s anim + 10s delay)
-                }}
-                style={{
-                  background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent)',
-                }}
-              />
-            </h1>
-          </div>
-                  <div className="flex items-center gap-3">
-            <ThemeToggle />
-            {/* Placeholder for Help Button */}
-            <Button variant="ghost" size="icon" className="text-[#9FB0C6] hover:text-[#E8EDF5] relative group">
-              <HelpCircle className="h-5 w-5" />
-              <span className="absolute inset-0 rounded-full bg-[#46A6FF] opacity-0 group-hover:opacity-24 blur-md transition-all duration-200" />
-            </Button>
-          </div>
+        <header className="bg-card border-b border-border">
+          <div className="max-w-6xl mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <img 
+                  src={sportsCombinedIcon}
+                  alt="Basketball, Football, Hockey, and Baseball icons" 
+                  className="w-12 h-12 object-contain"
+                />
+                <h1 className="text-2xl font-bold text-foreground">ZenGM Grids</h1>
+              </div>
+              <div className="flex items-center space-x-3">
+                <ThemeToggle />
+                <div className="-ml-[1px]">
+                  <RulesModal />
                 </div>
-        <motion.div
-          className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-[#29FFC6] via-[#46A6FF] to-[#B721FF] bg-[length:200%_100%]"
-          initial={{ y: -8 }}
-          animate={hasLoaded ? { y: 0 } : { y: -8 }}
-          transition={{
-            y: { duration: 0.24, ease: "easeOut" },
-            backgroundPosition: { duration: 18, ease: "linear", repeat: Infinity }
-          }}
-        />
-              </motion.header>        <main className="max-w-2xl mx-auto px-6 py-8">
+              </div>
+            </div>
+          </div>
+        </header>
+        <main className="max-w-2xl mx-auto px-6 py-8">
           <UploadSection 
             onFileUpload={handleFileUpload}
             onUrlUpload={handleUrlUpload}
@@ -1329,101 +1289,64 @@ export default function Home() {
   // Show grid section if league data is loaded
   return (
     <div>
-      <motion.header
-        initial={hasLoaded ? {} : { opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3 }}
-        className="relative z-50 h-16 bg-[#141922]/[0.92] backdrop-blur-md border-b border-[#FFFFFF14] shadow-lg"
-      >
-        <div className="container mx-auto h-full flex items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2 relative">
-            {/* Logo Glow */}
-            <motion.div
-              className="absolute -left-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-gradient-to-br from-[#29FFC6] to-[#46A6FF] opacity-10 blur-xl"
-              animate={{ scale: [0.96, 1.04, 0.96] }}
-              transition={{ duration: 5.5, ease: "easeInOut", repeat: Infinity, repeatType: "mirror" }}
-            />
-            {/* Badge Spark (Optional Delight) */}
-            <motion.div
-              className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-white opacity-35"
-              animate={{ opacity: [0.35, 0.65, 0.35] }}
-              transition={{ duration: 4, ease: "easeInOut", repeat: Infinity, repeatType: "mirror" }}
-            />
-            <img 
-              src={
-                leagueData?.sport === 'basketball' ? basketballIcon :
-                leagueData?.sport === 'football' ? footballIcon :
-                leagueData?.sport === 'hockey' ? hockeyIcon :
-                leagueData?.sport === 'baseball' ? baseballIcon :
-                sportsCombinedIcon
-              }
-              alt={`${leagueData?.sport || 'Sports'} icon`} 
-              className="h-8 w-8 object-contain relative z-10"
-            />
-            <h1 className="text-xl font-semibold tracking-wide text-[#E8EDF5] relative z-10">
-              {leagueData?.sport === 'basketball' && 'Basketball GM Grids'}
-              {leagueData?.sport === 'football' && 'Football GM Grids'}
-              {leagueData?.sport === 'hockey' && 'ZenGM Hockey Grids'}
-              {leagueData?.sport === 'baseball' && 'ZenGM Baseball Grids'}
-              {/* Light Sweep across title (Optional Delight) */}
-              <motion.div
-                className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none"
-                initial={{ x: '-100%' }}
-                animate={{ x: '200%' }}
-                transition={{
-                  duration: 2.2,
-                  ease: [0.25, 0.1, 0.25, 1],
-                  repeat: Infinity,
-                  repeatDelay: 10, // ~12s total cycle (2.2s anim + 10s delay)
-                }}
-                style={{
-                  background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent)',
-                }}
+      <header className="bg-card border-b border-border">
+        <div className="max-w-6xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <img 
+                src={
+                  leagueData?.sport === 'basketball' ? basketballIcon :
+                  leagueData?.sport === 'football' ? footballIcon :
+                  leagueData?.sport === 'hockey' ? hockeyIcon :
+                  leagueData?.sport === 'baseball' ? baseballIcon :
+                  sportsCombinedIcon
+                }
+                alt={`${leagueData?.sport || 'Sports'} icon`} 
+                className="w-10 h-10 object-contain"
               />
-            </h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <RulesModal sport={leagueData?.sport} />
-            {hasGuesses ? (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="icon" data-testid="button-home" className="text-[#9FB0C6] hover:text-[#E8EDF5] relative group">
-                    <HomeIcon className="h-5 w-5" />
-                    <span className="absolute inset-0 rounded-full bg-[#46A6FF] opacity-0 group-hover:opacity-24 blur-md transition-all duration-200" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Go back to file upload?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      You have made guesses in this grid. Going home will lose your current progress. Are you sure you want to continue?
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleGoHome}>Go Home</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            ) : (
-              <Button variant="ghost" size="icon" onClick={handleGoHome} data-testid="button-home" className="text-[#9FB0C6] hover:text-[#E8EDF5] relative group">
-                <HomeIcon className="h-5 w-5" />
-                <span className="absolute inset-0 rounded-full bg-[#46A6FF] opacity-0 group-hover:opacity-24 blur-md transition-all duration-200" />
-              </Button>
-            )}
+              <h1 className="text-2xl font-bold text-foreground">
+                {leagueData?.sport === 'basketball' && 'Basketball GM Grids'}
+                {leagueData?.sport === 'football' && 'Football GM Grids'}
+                {leagueData?.sport === 'hockey' && 'ZenGM Hockey Grids'}
+                {leagueData?.sport === 'baseball' && 'ZenGM Baseball Grids'}
+              </h1>
+            </div>
+            <div className="flex items-center space-x-1">
+              <ThemeToggle />
+              <div className="-ml-[1px]">
+                <RulesModal sport={leagueData?.sport} />
+              </div>
+              {hasGuesses ? (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="sm" data-testid="button-home">
+                      <HomeIcon className="h-[1.2rem] w-[1.2rem]" />
+                      <span className="sr-only">Go home</span>
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Go back to file upload?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        You have made guesses in this grid. Going home will lose your current progress. Are you sure you want to continue?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleGoHome}>Go Home</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              ) : (
+                <Button variant="ghost" size="sm" onClick={handleGoHome} data-testid="button-home">
+                  <HomeIcon className="h-[1.2rem] w-[1.2rem]" />
+                  <span className="sr-only">Go home</span>
+                </Button>
+              )}
+            </div>
           </div>
         </div>
-        <motion.div
-          className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-[#29FFC6] via-[#46A6FF] to-[#B721FF] bg-[length:200%_100%]"
-          initial={{ y: -8 }}
-          animate={hasLoaded ? { y: 0 } : { y: -8 }}
-          transition={{
-            y: { duration: 0.24, ease: "easeOut" },
-            backgroundPosition: { duration: 18, ease: "linear", repeat: Infinity }
-          }}
-        />
-      </motion.header>
+      </header>
       <main className="max-w-4xl mx-auto px-6 py-8">
         <GridSection
           rows={rows}
