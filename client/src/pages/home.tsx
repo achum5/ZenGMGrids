@@ -73,22 +73,15 @@ function getOrdinalLabel(count: number): string {
 
 export default function Home() {
   const { toast } = useToast();
-
-    const [hasLoaded, setHasLoaded] = useState(false);
   
-    // Core state
-    const [leagueData, setLeagueData] = useState<LeagueData | null>(null);
-    const [rows, setRows] = useState<CatTeam[]>([]);
-    const [cols, setCols] = useState<CatTeam[]>([]);
-    const [cells, setCells] = useState<Record<string, CellState>>({});
-    const [usedPids, setUsedPids] = useState<Set<number>>(new Set());
-    const [intersections, setIntersections] = useState<Record<string, number[]>>({});
-    
-    useEffect(() => {
-      if (leagueData) {
-        setHasLoaded(true);
-      }
-    }, [leagueData]);  
+  // Core state
+  const [leagueData, setLeagueData] = useState<LeagueData | null>(null);
+  const [rows, setRows] = useState<CatTeam[]>([]);
+  const [cols, setCols] = useState<CatTeam[]>([]);
+  const [cells, setCells] = useState<Record<string, CellState>>({});
+  const [usedPids, setUsedPids] = useState<Set<number>>(new Set());
+  const [intersections, setIntersections] = useState<Record<string, number[]>>({});
+  
   // Search indices
   const [byName, setByName] = useState<Record<string, number>>({});
   const [byPid, setByPid] = useState<Record<number, Player>>({});
@@ -1268,7 +1261,7 @@ export default function Home() {
         initial={hasLoaded ? {} : { opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3 }}
-                className="relative z-50 h-16 bg-[#141922]/[0.92] backdrop-blur-md shadow-lg group"
+                className="relative z-50 h-16 bg-[#141922]/[0.92] backdrop-blur-md border-b border-[#FFFFFF14] shadow-lg"
               >
                 <div className="container mx-auto h-full flex items-center justify-between px-4 sm:px-6 lg:px-8">
                   <div className="flex items-center gap-2 relative">
@@ -1314,18 +1307,12 @@ export default function Home() {
           </div>
                 </div>
         <motion.div
-          className="absolute bottom-0 left-0 w-full h-[3px] rounded-full shadow-lg shadow-[#46A6FF]/[0.25] group-hover:shadow-[#46A6FF]/[0.5] transition-shadow duration-200 motion-div-gradient-pan"
+          className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-[#29FFC6] via-[#46A6FF] to-[#B721FF] bg-[length:200%_100%]"
           initial={{ y: -8 }}
           animate={hasLoaded ? { y: 0 } : { y: -8 }}
           transition={{
             y: { duration: 0.24, ease: "easeOut" },
             backgroundPosition: { duration: 18, ease: "linear", repeat: Infinity }
-          }}
-          style={{
-            background: 'linear-gradient(to right, #29FFC6, #46A6FF, #B721FF, #46A6FF, #29FFC6)',
-            backgroundSize: '200% 100%',
-            backgroundPosition: '0% 0%',
-            animation: 'pan-gradient 18s linear infinite'
           }}
         />
               </motion.header>        <main className="max-w-2xl mx-auto px-6 py-8">
@@ -1346,7 +1333,7 @@ export default function Home() {
         initial={hasLoaded ? {} : { opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3 }}
-        className="relative z-50 h-16 bg-[#141922]/[0.92] backdrop-blur-md shadow-lg group"
+        className="relative z-50 h-16 bg-[#141922]/[0.92] backdrop-blur-md border-b border-[#FFFFFF14] shadow-lg"
       >
         <div className="container mx-auto h-full flex items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-2 relative">
@@ -1428,18 +1415,12 @@ export default function Home() {
           </div>
         </div>
         <motion.div
-          className="absolute bottom-0 left-0 w-full h-[3px] rounded-full shadow-lg shadow-[#46A6FF]/[0.25] group-hover:shadow-[#46A6FF]/[0.5] transition-shadow duration-200 motion-div-gradient-pan"
+          className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-[#29FFC6] via-[#46A6FF] to-[#B721FF] bg-[length:200%_100%]"
           initial={{ y: -8 }}
           animate={hasLoaded ? { y: 0 } : { y: -8 }}
           transition={{
             y: { duration: 0.24, ease: "easeOut" },
             backgroundPosition: { duration: 18, ease: "linear", repeat: Infinity }
-          }}
-          style={{
-            background: 'linear-gradient(to right, #29FFC6, #46A6FF, #B721FF, #46A6FF, #29FFC6)',
-            backgroundSize: '200% 100%',
-            backgroundPosition: '0% 0%',
-            animation: 'pan-gradient 18s linear infinite'
           }}
         />
       </motion.header>
