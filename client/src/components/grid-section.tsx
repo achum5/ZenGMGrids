@@ -364,7 +364,7 @@ export function GridSection({
                   // Row Header
                   (() => {
                     const teamForHeader = row.type === 'team' ? teams.find(t => t.tid === row.tid) : null;
-                    
+                    console.log(`[DEBUG GridSection] Row Header Label: ${fullName}`);
                     return (
                       <div 
                         key={getReactKey('header-row', rowIndex, undefined, row.key)}

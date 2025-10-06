@@ -409,6 +409,7 @@ function buildDecadeAchievements(
       test: (player: Player) => player.debutDecade === decade,
       minPlayers: 1  // Lowered from 5 to 1 to ensure future decades appear
     });
+    console.log(`[DEBUG buildDecadeAchievements] DebutedIn label set: Debuted in the ${decadeStr}s`);
   }
   
   return achievements;

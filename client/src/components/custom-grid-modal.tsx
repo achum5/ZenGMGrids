@@ -118,6 +118,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
     { type: null, value: null, label: null, customAchievement: null, operator: '≥', customNumber: undefined }
   ]);
   
+  const [achievementOptionsVersion, setAchievementOptionsVersion] = useState(0);
+  
   const sport = leagueData ? detectSport(leagueData) : 'basketball';
 
   const createEmptySelectorState = (): SelectorState => ({
@@ -214,12 +216,10 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
         // Reset if the grid is not fully formed
         handleClearAll();
       }
+      setAchievementOptionsVersion(prev => prev + 1); // Force achievementOptions re-memoization
     }
   }, [isOpen, rows, cols, leagueData, sport, seasonIndex]);
   
-  const [hideZeroResults, setHideZeroResults] = useState(false);
-  
-  // Loading state for cell count calculations
   const [calculating, setCalculating] = useState(false);
   
   // Cell intersection counts
@@ -236,9 +236,9 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
   } | null>(null);
   
   const achievementOptions = useMemo<AchievementOption[]>(() => {
-    console.log('🔧 [MEMO] Recalculating achievement options...');
+    console.log('🔧 [MEMO] Recalculating achievement options...', { sport, seasonIndex, leagueYears: leagueData?.leagueYears, achievementOptionsVersion });
     return leagueData ? getAchievementOptions(sport, seasonIndex, leagueData.leagueYears) : [];
-  }, [sport, seasonIndex, leagueData?.leagueYears, "v2"]); // Cache bust with version v2
+  }, [sport, seasonIndex, leagueData?.leagueYears, achievementOptionsVersion, "v2"]); // Cache bust with version v2
 
   // Handler for when achievement numbers are edited
   const handleAchievementNumberChange = useCallback((
@@ -1208,6 +1208,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
                     }
 
                     if (selector.type === 'achievement' && selector.value) {
+                      console.log(`[DEBUG CustomGridModal] Achievement Header Label: ${selector.label}`);
                       const originalAchievement = achievementOptions.find(ach => ach.id === (selector.baseAchievementId || selector.value));
                       if (originalAchievement) {
                         const parsedOriginal = parseAchievementLabel(originalAchievement.label, sport);

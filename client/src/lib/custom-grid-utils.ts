@@ -78,7 +78,11 @@ export function getAchievementOptions(
   console.log(`🔧 [ACHIEVEMENT OPTIONS] Called with sport: ${sport}, cache version: v2`);
   const achievements = getAllAchievements(sport as any, seasonIndex, leagueYears);
   return achievements
-    .filter(achievement => 
+    .filter(achievement => {
+      if (achievement.id.includes('debutedIn')) {
+        console.log(`[DEBUG getAchievementOptions] DebutedIn achievement label: ${achievement.label}`);
+      }
+      return (
       achievement.id !== 'bornOutsideUS50DC' && // Exclude problematic achievement
       achievement.id !== 'SFMVP' && // Exclude Superstar Finals MVP
 
@@ -113,7 +117,7 @@ export function getAchievementOptions(
       // achievement.id !== 'Randomcareer1250threes' && // Remove 1.25k+ threes (we want 2k+)
       // achievement.id !== 'Randomcareer1500threes' && // Remove 1.5k+ threes (we want 2k+)
       achievement.id !== 'Randomseason16rpg' // Remove 16+ RPG season achievement
-    )
+    )})
     .map(achievement => ({
       id: achievement.id,
       label: achievement.label

@@ -418,7 +418,6 @@ function getAchievementDetails(
     const firstSeason = player.firstSeason;
     if (firstSeason) {
       years = firstSeason.toString();
-      label = `Debut Year: ${years}`; // Construct the label here
     }
   } else if (achievementId === 'isHallOfFamer') {
     years = getAwardSeasons(['Inducted into the Hall of Fame']);
@@ -567,9 +566,9 @@ function getConstraintPhrase(
       }
     } else if (constraint.achievementId.includes('debutedIn') && constraint.achievementId.endsWith('s')) {
       if (met) {
-        return `${playerName} ${label}`;
+        return `${playerName} debuted in the ${label}${years ? ` (${years})` : ''}`;
       } else {
-        return `${playerName} did not ${label}`;
+        return `${playerName} did not debut in the ${label}`;
       }
     } else if (constraint.achievementId === 'isHallOfFamer') {
       if (met) {
