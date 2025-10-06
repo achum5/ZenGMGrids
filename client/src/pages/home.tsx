@@ -5,6 +5,7 @@ import { PlayerSearchModal } from '@/components/player-search-modal';
 import { PlayerModal } from '@/components/PlayerModal';
 import { HintModal } from '@/components/HintModal';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { AccentLine } from '@/components/AccentLine';
 import { RulesModal } from '@/components/RulesModal';
 import { GridSharingModal } from '@/components/grid-sharing-modal';
 import { CustomGridModal } from '@/components/custom-grid-modal';
@@ -1251,11 +1252,18 @@ export default function Home() {
     // Keep the same rows, cols, and intersections (same puzzle)
   }, [currentGridId, attemptCount]);
 
+  const [isHeaderHovered, setIsHeaderHovered] = useState(false);
+
   // Show upload section if no league data
   if (!leagueData) {
     return (
       <div>
-        <header className="bg-card border-b border-border">
+        <header 
+          className="bg-card border-border" 
+          onMouseEnter={() => setIsHeaderHovered(true)}
+          onMouseLeave={() => setIsHeaderHovered(false)}
+          style={{ position: 'relative' }}
+        >
           <div className="max-w-6xl mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
@@ -1268,12 +1276,13 @@ export default function Home() {
               </div>
               <div className="flex items-center space-x-3">
                 <ThemeToggle />
-                <div className="-ml-[1px]">
+                <div>
                   <RulesModal />
                 </div>
               </div>
             </div>
           </div>
+          <AccentLine isHovered={isHeaderHovered} />
         </header>
         <main className="max-w-2xl mx-auto px-6 py-8">
           <UploadSection 
@@ -1289,7 +1298,12 @@ export default function Home() {
   // Show grid section if league data is loaded
   return (
     <div>
-      <header className="bg-card border-b border-border">
+      <header 
+        className="bg-card border-border"
+        onMouseEnter={() => setIsHeaderHovered(true)}
+        onMouseLeave={() => setIsHeaderHovered(false)}
+        style={{ position: 'relative' }}
+      >
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -1313,7 +1327,7 @@ export default function Home() {
             </div>
             <div className="flex items-center space-x-1">
               <ThemeToggle />
-              <div className="-ml-[1px]">
+              <div>
                 <RulesModal sport={leagueData?.sport} />
               </div>
               {hasGuesses ? (
@@ -1346,6 +1360,7 @@ export default function Home() {
             </div>
           </div>
         </div>
+        <AccentLine isHovered={isHeaderHovered} />
       </header>
       <main className="max-w-4xl mx-auto px-6 py-8">
         <GridSection

@@ -1,0 +1,40 @@
+.header-accent-line {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    #29ffc6,
+    #46a6ff,
+    #b721ff,
+    #46a6ff,
+    #29ffc6
+  );
+  background-size: 200% 100%;
+  border-radius: 9999px;
+  animation: pan-gradient 18s linear infinite;
+  box-shadow: 0 0 8px 2px rgba(70, 166, 255, 0.25);
+  transition: all 0.3s ease-in-out;
+}
+
+@keyframes pan-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+.header-accent-line-bright {
+  filter: brightness(1.2);
+  animation-duration: 9s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header-accent-line {
+    animation: none;
+  }
+}
