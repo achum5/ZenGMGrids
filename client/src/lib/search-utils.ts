@@ -1,100 +1,370 @@
+import { useMemo, useCallback, useRef, useEffect, useState } from 'react';
 
-import { useMemo, useEffect, useState } from 'react';
-import Fuse from 'fuse.js';
-import unidecode from 'unidecode';
-import type { SearchablePlayer } from '@/types/bbgm';
-
-// Normalization function as per the new requirements
-export const normalizeText = (s: string): string => {
-  if (!s) return '';
-  return unidecode(s)
+// Diacritic-insensitive folding utility (consistent with existing implementation)
+export const fold = (s: string): string => {
+  return s.normalize('NFKD')
     .toLowerCase()
-    .trim()
-    .replace(/[\u0300-\u036f]/g, '') // Redundant with unidecode, but safe
-    .replace(/['".,-]/g, '') // Strip punctuation
-    .replace(/\s+/g, ' '); // Collapse spaces
+    .replace(/[\u0300-\u036f]/g, '') // Remove combining diacritical marks
+    .replace(/'/g, '') // Remove apostrophes for search matching
+    .replace(/[-]/g, ' '); // Convert hyphens to spaces for flexible search
 };
 
-// Custom hook for Fuse.js search
-export function useFuseSearch(
-  items: SearchablePlayer[],
-  options: {
-    delay?: number;
-    maxResults?: number;
-  } = {}
-) {
-  const { delay = 150, maxResults = 50 } = options;
-  const [searchQuery, setSearchQuery] = useState('');
-  const debouncedQuery = useDebounce(searchQuery, delay);
+// Search index interface for type safety
+export interface SearchIndex<T> {
+  items: T[];
+  nameIndex: Map<string, number[]>; // normalized name -> item indices
+  fullTextIndex: Map<string, number[]>; // search tokens -> item indices
+  exactMatchIndex: Map<string, number>; // exact normalized name -> item index
+}
 
-  // 1. Precompute and cache normalized search keys for each player
-  const searchableItems = useMemo(() => {
-    return items.map(player => ({
-      ...player,
-      // This key is what Fuse.js will search against
-      searchKey: normalizeText(player.name),
-      // Store original name for display
-      displayName: player.name,
+// Generic search result with relevance scoring
+export interface SearchResult<T> {
+  item: T;
+  relevance: number; // Higher = more relevant
+  matchType: 'exact' | 'prefix' | 'substring' | 'fuzzy';
+}
+
+// Build a search index for fast lookups
+export function buildSearchIndex<T>(
+  items: T[],
+  getSearchText: (item: T) => string[],
+  getId: (item: T) => string | number
+): SearchIndex<T> {
+  const nameIndex = new Map<string, number[]>();
+  const fullTextIndex = new Map<string, number[]>();
+  const exactMatchIndex = new Map<string, number>();
+
+  items.forEach((item, index) => {
+    const searchTexts = getSearchText(item);
+    
+    searchTexts.forEach(text => {
+      const folded = fold(text);
+      
+      // Add to exact match index (first occurrence only)
+      if (!exactMatchIndex.has(folded)) {
+        exactMatchIndex.set(folded, index);
+      }
+      
+      // Add to name index
+      if (!nameIndex.has(folded)) {
+        nameIndex.set(folded, []);
+      }
+      nameIndex.get(folded)!.push(index);
+      
+      // Tokenize for full-text search
+      const tokens = folded.split(/\s+/).filter(token => token.length > 0);
+      tokens.forEach(token => {
+        if (!fullTextIndex.has(token)) {
+          fullTextIndex.set(token, []);
+        }
+        fullTextIndex.get(token)!.push(index);
+      });
+      
+      // Add prefixes for better matching - reduced range for performance
+      for (let i = 2; i <= Math.min(folded.length, 4); i++) {
+        const prefix = folded.substring(0, i);
+        if (!fullTextIndex.has(prefix)) {
+          fullTextIndex.set(prefix, []);
+        }
+        fullTextIndex.get(prefix)!.push(index);
+      }
+    });
+  });
+
+  return {
+    items,
+    nameIndex,
+    fullTextIndex,
+    exactMatchIndex
+  };
+}
+
+// Fast search using pre-built index
+export function searchIndex<T>(
+  index: SearchIndex<T>,
+  query: string,
+  maxResults: number = 100
+): SearchResult<T>[] {
+  if (!query.trim()) {
+    return index.items.slice(0, maxResults).map(item => ({
+      item,
+      relevance: 1,
+      matchType: 'exact' as const
     }));
-  }, [items]);
+  }
 
-  // 2. Memoize the Fuse instance
-  const fuse = useMemo(() => {
-    const fuseOptions = {
-      keys: ['searchKey'],
-      includeScore: true,
-      includeMatches: true,
-      threshold: 0.4, // Adjust for desired fuzziness
-      distance: 100,
-      // Custom sort to prioritize matches
-      sortFn: (a: any, b: any) => {
-        // Exact matches first
-        if (a.item.searchKey === debouncedQuery) return -1;
-        if (b.item.searchKey === debouncedQuery) return 1;
-        
-        // Starts-with matches next
-        const aStartsWith = a.item.searchKey.startsWith(debouncedQuery);
-        const bStartsWith = b.item.searchKey.startsWith(debouncedQuery);
-        if (aStartsWith && !bStartsWith) return -1;
-        if (!aStartsWith && bStartsWith) return 1;
+  const queryFolded = fold(query.trim());
+  const queryTokens = queryFolded.split(/\s+/).filter(token => token.length > 0);
+  
+  if (queryTokens.length === 0) {
+    return index.items.slice(0, maxResults).map(item => ({
+      item,
+      relevance: 1,
+      matchType: 'exact' as const
+    }));
+  }
 
-        // Then by Fuse score
-        return a.score - b.score;
-      },
-    };
-    return new Fuse(searchableItems, fuseOptions);
-  }, [searchableItems, debouncedQuery]);
-
-  // 3. Perform the search
-  const searchResults = useMemo(() => {
-    if (!debouncedQuery.trim()) {
-      // Return top items when search is empty, preserving original structure
-      return searchableItems.slice(0, maxResults).map((item, index) => ({ item, matches: [], score: 1, refIndex: index }));
+  const resultMap = new Map<number, SearchResult<T>>();
+  
+  // 1. Exact matches (highest relevance)
+  const exactIndex = index.exactMatchIndex.get(queryFolded);
+  if (exactIndex !== undefined) {
+    resultMap.set(exactIndex, {
+      item: index.items[exactIndex],
+      relevance: 100,
+      matchType: 'exact'
+    });
+  }
+  
+  // 2. Prefix matches (high relevance)
+  for (const [indexedText, indices] of Array.from(index.nameIndex.entries())) {
+    if (indexedText.startsWith(queryFolded)) {
+      indices.forEach((idx: number) => {
+        if (!resultMap.has(idx)) {
+          resultMap.set(idx, {
+            item: index.items[idx],
+            relevance: 80 - (indexedText.length - queryFolded.length), // Shorter = better
+            matchType: 'prefix'
+          });
+        }
+      });
     }
-    return fuse.search(normalizeText(debouncedQuery)).slice(0, maxResults);
-  }, [fuse, debouncedQuery, searchableItems, maxResults]);
+  }
+  
+  // 3. Substring matches (medium relevance)
+  for (const [indexedText, indices] of Array.from(index.nameIndex.entries())) {
+    if (indexedText.includes(queryFolded) && !indexedText.startsWith(queryFolded)) {
+      indices.forEach((idx: number) => {
+        if (!resultMap.has(idx)) {
+          resultMap.set(idx, {
+            item: index.items[idx],
+            relevance: 60,
+            matchType: 'substring'
+          });
+        }
+      });
+    }
+  }
+  
+  // 4. Token-based fuzzy matches (lower relevance) - REQUIRE ALL TOKENS for multi-token queries
+  const tokenMatchCounts = new Map<number, { exactMatches: number, prefixMatches: number }>();
+  
+  queryTokens.forEach(token => {
+    // Exact token matches
+    const exactIndices = index.fullTextIndex.get(token) || [];
+    exactIndices.forEach(idx => {
+      const current = tokenMatchCounts.get(idx) || { exactMatches: 0, prefixMatches: 0 };
+      tokenMatchCounts.set(idx, { 
+        exactMatches: current.exactMatches + 1, 
+        prefixMatches: current.prefixMatches 
+      });
+    });
+    
+    // Prefix token matches
+    for (const [indexedToken, indices] of Array.from(index.fullTextIndex.entries())) {
+      if (indexedToken.startsWith(token) && indexedToken !== token) {
+        indices.forEach((idx: number) => {
+          const current = tokenMatchCounts.get(idx) || { exactMatches: 0, prefixMatches: 0 };
+          tokenMatchCounts.set(idx, {
+            exactMatches: current.exactMatches,
+            prefixMatches: current.prefixMatches + 1
+          });
+        });
+      }
+    }
+  });
+  
+  // Add fuzzy matches - for multi-token queries, require ALL tokens to match
+  for (const [idx, matches] of Array.from(tokenMatchCounts.entries())) {
+    if (!resultMap.has(idx)) {
+      const totalMatches = matches.exactMatches + matches.prefixMatches;
+      const hasAllTokens = totalMatches >= queryTokens.length;
+      
+      // For single token queries, use the old logic (50% coverage)
+      // For multi-token queries, require ALL tokens to match
+      const shouldInclude = queryTokens.length === 1 
+        ? totalMatches >= 1
+        : hasAllTokens;
+        
+      if (shouldInclude) {
+        // Higher relevance for exact matches
+        const relevance = Math.floor(30 + (matches.exactMatches * 10) + (matches.prefixMatches * 5));
+        resultMap.set(idx, {
+          item: index.items[idx],
+          relevance: Math.min(relevance, 45), // Cap at 45 to stay below substring matches
+          matchType: 'fuzzy'
+        });
+      }
+    }
+  }
+  
+  // Convert to array and sort by relevance
+  const results = Array.from(resultMap.values())
+    .sort((a, b) => b.relevance - a.relevance)
+    .slice(0, maxResults);
+  
+  return results;
+}
 
+// Debounced search hook
+export function useDebouncedSearch<T>(
+  items: T[],
+  getSearchText: (item: T) => string[],
+  getId: (item: T) => string | number,
+  delay: number = 250
+) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const timeoutRef = useRef<NodeJS.Timeout>();
+  
+  // Build search index (memoized for performance)
+  const builtIndex = useMemo(() => {
+    return buildSearchIndex(items, getSearchText, getId);
+  }, [items, getSearchText, getId]);
+  
+  // Debounce the search query
+  useEffect(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    timeoutRef.current = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, delay);
+    
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [searchQuery, delay]);
+  
+  // Perform search with memoized results
+  const searchResults = useMemo(() => {
+    return searchIndex(builtIndex, debouncedQuery);
+  }, [builtIndex, debouncedQuery]);
+  
+  // Clear timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+  
   return {
     searchQuery,
     setSearchQuery,
     searchResults,
     isSearching: searchQuery !== debouncedQuery,
+    debouncedQuery
   };
 }
 
-// Simple debounce hook (retained for use with Fuse search)
+// Simple debounce hook for general use
 export function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
+  
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedValue(value);
     }, delay);
-
+    
     return () => {
       clearTimeout(handler);
     };
   }, [value, delay]);
-
+  
   return debouncedValue;
+}
+
+// Memoized search results cache
+export function useSearchCache<T>() {
+  const cacheRef = useRef(new Map<string, SearchResult<T>[]>());
+  
+  const getCachedResults = useCallback((query: string): SearchResult<T>[] | undefined => {
+    return cacheRef.current.get(query);
+  }, []);
+  
+  const setCachedResults = useCallback((query: string, results: SearchResult<T>[]): void => {
+    // Limit cache size to prevent memory issues
+    if (cacheRef.current.size > 100) {
+      const firstKey = cacheRef.current.keys().next().value;
+      if (firstKey !== undefined) {
+        cacheRef.current.delete(firstKey);
+      }
+    }
+    cacheRef.current.set(query, results);
+  }, []);
+  
+  const clearCache = useCallback(() => {
+    cacheRef.current.clear();
+  }, []);
+  
+  return {
+    getCachedResults,
+    setCachedResults,
+    clearCache
+  };
+}
+
+// Combined hook for optimized search with caching
+export function useOptimizedSearch<T>(
+  items: T[],
+  getSearchText: (item: T) => string[],
+  getId: (item: T) => string | number,
+  options: {
+    delay?: number;
+    maxResults?: number;
+    enableCache?: boolean;
+  } = {}
+) {
+  const { delay = 250, maxResults = 100, enableCache = true } = options;
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const debouncedQuery = useDebounce(searchQuery, delay);
+  const { getCachedResults, setCachedResults } = useSearchCache<T>();
+  
+  // Build search index (memoized for performance)
+  const builtIndex = useMemo(() => {
+    return buildSearchIndex(items, getSearchText, getId);
+  }, [items, getSearchText, getId]);
+  
+  // Perform search with caching
+  const searchResults = useMemo(() => {
+    if (!debouncedQuery.trim()) {
+      return builtIndex.items.slice(0, maxResults).map(item => ({
+        item,
+        relevance: 1,
+        matchType: 'exact' as const
+      }));
+    }
+    
+    // Check cache first
+    if (enableCache) {
+      const cached = getCachedResults(debouncedQuery);
+      if (cached) {
+        return cached;
+      }
+    }
+    
+    // Perform search
+    const results = searchIndex(builtIndex, debouncedQuery, maxResults);
+    
+    // Cache results
+    if (enableCache && results.length > 0) {
+      setCachedResults(debouncedQuery, results);
+    }
+    
+    return results;
+  }, [builtIndex, debouncedQuery, maxResults, enableCache, getCachedResults, setCachedResults]);
+  
+  return {
+    searchQuery,
+    setSearchQuery,
+    searchResults,
+    isSearching: searchQuery !== debouncedQuery,
+    debouncedQuery
+  };
 }

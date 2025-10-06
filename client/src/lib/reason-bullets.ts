@@ -384,62 +384,63 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
     return getSeasonsForSeasonStatAchievement(player, baseAchievementId, customThreshold, customOperator, minGamesForAchievement);
   }
 
-  // Handle award-based achievements with a season-by-season check
-  if (!player.stats || !player.awards) return [];
+  // Handle award-based achievements
+  if (!player.awards) return [];
 
-  const qualifyingSeasons: number[] = [];
-  const regularSeasonStats = player.stats.filter(s => !s.playoffs);
+  const awardMap: Record<string, string[]> = {
+    'AllStar': ['All-Star'],
+    'MVP': ['Most Valuable Player'],
+    'DPOY': ['Defensive Player of the Year', 'DPOY'],
+    'ROY': ['Rookie of the Year'],
+    'SMOY': ['Sixth Man of the Year'],
+    'MIP': ['Most Improved Player'],
+    'FinalsMVP': ['Finals MVP'],
+    'AllLeagueAny': ['All-League'],
+    'AllDefAny': ['All-Defensive'],
+    'AllRookieAny': ['All-Rookie'],
+    'PointsLeader': ['Points Leader'],
+    'ReboundsLeader': ['Rebounds Leader'],
+    'AssistsLeader': ['Assists Leader'],
+    'StealsLeader': ['Steals Leader'],
+    'BlocksLeader': ['Blocks Leader'],
+    'Champion': ['Won Championship', 'Championship'],
+    'FBAllStar': ['All-Star'],
+    'FBMVP': ['MVP'],
+    'FBDPOY': ['Defensive Player of the Year'],
+    'FBOffROY': ['Offensive Rookie of the Year'],
+    'FBDefROY': ['Defensive Rookie of the Year'],
+    'FBAllRookie': ['All-Rookie Team'],
+    'FBAllLeague': ['All-League Team'],
+    'FBFinalsMVP': ['Finals MVP'],
+    'FBChampion': ['Won Championship'],
+    'HKAllStar': ['All-Star'],
+    'HKMVP': ['MVP'],
+    'HKROY': ['Rookie of the Year'],
+    'HKAllRookie': ['All-Rookie Team'],
+    'HKAllLeague': ['All-League Team'],
+    'HKPlayoffsMVP': ['Playoffs MVP'],
+    'HKChampion': ['Won Championship'],
+    'HKFinalsMVP': ['Finals MVP'],
+    'BBAllStar': ['All-Star'],
+    'BBMVP': ['MVP'],
+    'BBROY': ['Rookie of the Year'],
+    'BBAllRookie': ['All-Rookie Team'],
+    'BBAllLeague': ['All-League Team'],
+    'BBPlayoffsMVP': ['Playoffs MVP'],
+    'BBChampion': ['Won Championship'],
+  };
 
-  for (const seasonStats of regularSeasonStats) {
-    const season = seasonStats.season;
-    const awardsThisSeason = player.awards.filter(a => a.season === season);
-
-    if (awardsThisSeason.length > 0) {
-      // Create a temporary player object representing just this season's achievements
-      const playerInSeason: Player = {
-        ...player,
-        awards: awardsThisSeason,
-        stats: [seasonStats],
-      };
-
-      // Use a simplified check based on the logic inside playerMeetsAchievement
-      const meetsInSeason = tempPlayerMeetsAchievement(playerInSeason, achievementId);
-      if (meetsInSeason) {
-        qualifyingSeasons.push(season);
-      }
-    }
+  const awardTypesToLookFor = awardMap[baseAchievementId];
+  if (!awardTypesToLookFor) {
+    return [];
   }
 
-  // Remove duplicates and sort
-  const uniqueSeasons = Array.from(new Set(qualifyingSeasons)).sort();
-  return uniqueSeasons.map(s => s.toString());
-}
+  const seasons = player.awards
+    .filter(award => awardTypesToLookFor.some(type => award.type.includes(type)))
+    .map(award => award.season);
 
-// A temporary, simplified version of playerMeetsAchievement for season-by-season checks.
-// This avoids circular dependencies and focuses only on award-based season achievements.
-function tempPlayerMeetsAchievement(player: Player, achievementId: string): boolean {
-  return player.awards?.some(award => {
-    const normalizedType = award.type.toLowerCase().trim();
-    switch (achievementId) {
-      case 'AllStar': return normalizedType.includes('all-star');
-      case 'MVP': return normalizedType.includes('most valuable player');
-      case 'DPOY': return normalizedType.includes('defensive player');
-      case 'ROY': return normalizedType.includes('rookie of the year');
-      case 'SMOY': return normalizedType.includes('sixth man');
-      case 'MIP': return normalizedType.includes('most improved');
-      case 'FinalsMVP': return normalizedType.includes('finals mvp');
-      case 'AllLeagueAny': return normalizedType.includes('all-league');
-      case 'AllDefAny': return normalizedType.includes('all-defensive');
-      case 'AllRookieAny': return normalizedType.includes('all-rookie');
-      case 'PointsLeader': return normalizedType.includes('points leader');
-      case 'ReboundsLeader': return normalizedType.includes('rebounds leader');
-      case 'AssistsLeader': return normalizedType.includes('assists leader');
-      case 'StealsLeader': return normalizedType.includes('steals leader');
-      case 'BlocksLeader': return normalizedType.includes('blocks leader');
-      // Add other award-based season achievements here if needed
-      default: return false;
-    }
-  }) || false;
+  const uniqueSeasons = [...new Set(seasons)].sort((a, b) => a - b);
+  return uniqueSeasons.map(s => s.toString());
 }
 
 // Helper function to get playoff team abbreviation for bullets

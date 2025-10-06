@@ -1,15 +1,11 @@
-
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Search, X } from 'lucide-react';
 import type { SearchablePlayer, Player } from '@/types/bbgm';
-import { useFuseSearch } from '@/lib/search-utils';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { PlayerFace } from './PlayerFace';
-import type Fuse from 'fuse.js';
-import type { FuseResult, FuseResultMatch } from 'fuse.js';
+import { useOptimizedSearch } from '@/lib/search-utils';
 
 interface PlayerSearchModalProps {
   isOpen: boolean;
@@ -19,43 +15,8 @@ interface PlayerSearchModalProps {
   byPid: Record<number, Player>;
   cellDescription: string;
   usedPids: Set<number>;
+  currentCellKey: string | null;
 }
-
-// Helper to generate highlighted name from Fuse.js matches
-const generateHighlightedName = (
-  name: string,
-  matches: readonly FuseResultMatch[] | undefined
-) => {
-  if (!matches || matches.length === 0) {
-    return <span>{name}</span>;
-  }
-
-  const result: (string | JSX.Element)[] = [];
-  let lastIndex = 0;
-
-  // Assuming we only care about the 'searchKey' matches
-  const nameMatch = matches.find(m => m.key === 'searchKey');
-  if (!nameMatch) return <span>{name}</span>;
-
-  nameMatch.indices.forEach((match: readonly [number, number], i: number) => {
-    const [start, end] = match;
-    // Add non-matching part
-    if (start > lastIndex) {
-      result.push(name.substring(lastIndex, start));
-    }
-    // Add matching part
-    result.push(<strong key={`match-${i}`}>{name.substring(start, end + 1)}</strong>);
-    lastIndex = end + 1;
-  });
-
-  // Add the rest of the string
-  if (lastIndex < name.length) {
-    result.push(name.substring(lastIndex));
-  }
-
-  return <span>{result}</span>;
-};
-
 
 export function PlayerSearchModal({
   isOpen,
@@ -65,49 +26,66 @@ export function PlayerSearchModal({
   byPid,
   cellDescription,
   usedPids,
+  currentCellKey,
 }: PlayerSearchModalProps) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const parentRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const [inputRef, setInputRef] = useState<HTMLInputElement | null>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
+  // Use optimized search with debouncing and memoization
   const {
     searchQuery,
     setSearchQuery,
     searchResults,
-  } = useFuseSearch(searchablePlayers, { delay: 120, maxResults: 30 });
+    isSearching
+  } = useOptimizedSearch(
+    searchablePlayers,
+    (player: SearchablePlayer) => [
+      player.name,
+      player.firstFolded,
+      player.lastFolded,
+      player.nameFolded
+    ],
+    (player: SearchablePlayer) => player.pid,
+    {
+      delay: 150, // Reduced debounce for faster response
+      maxResults: 50, // Reduced results for better performance
+      enableCache: true
+    }
+  );
 
-  const rowVirtualizer = useVirtualizer({
-    count: searchResults.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 56,
-    overscan: 5,
-  });
+  // Extract just the SearchablePlayer items from search results
+  const filteredPlayers = useMemo(() => {
+    return searchResults.map((result: any) => result.item);
+  }, [searchResults]);
 
-  const resetAndFocus = useCallback(() => {
-    setSearchQuery('');
-    setActiveIndex(0);
-    // Delay focus to ensure modal is fully rendered
-    setTimeout(() => inputRef.current?.focus(), 100);
-  }, [setSearchQuery]);
-
+  // Reset search when modal opens or cell changes and focus input
   useEffect(() => {
     if (isOpen) {
-      resetAndFocus();
+      setSearchQuery('');
+      setActiveIndex(0); // Always start with first item selected
+      // Focus input on next tick
+      setTimeout(() => {
+        if (inputRef) {
+          inputRef.focus();
+        }
+      }, 0);
     }
-  }, [isOpen, resetAndFocus]);
+  }, [isOpen, currentCellKey, inputRef]);
 
+  // Auto-select first item when search results change
   useEffect(() => {
-    setActiveIndex(0);
-    // This check prevents scrolling to top on every keystroke if already there
-    if (rowVirtualizer.getVirtualItems().length > 0 && rowVirtualizer.getVirtualItems()[0].index !== 0) {
-      rowVirtualizer.scrollToIndex(0);
+    if (filteredPlayers.length > 0) {
+      setActiveIndex(0); // Always highlight the first player
+    } else {
+      setActiveIndex(-1);
     }
-  }, [searchQuery, rowVirtualizer]);
+  }, [filteredPlayers]);
 
-
-  const handleSelectPlayer = (playerResult: FuseResult<SearchablePlayer>) => {
-    if (playerResult && !usedPids.has(playerResult.item.pid)) {
-      onSelectPlayer(byPid[playerResult.item.pid]);
+  const handleSelectPlayer = (searchablePlayer: SearchablePlayer) => {
+    const player = byPid[searchablePlayer.pid];
+    if (player && !usedPids.has(player.pid)) {
+      onSelectPlayer(player);
       onClose();
     }
   };
@@ -117,128 +95,179 @@ export function PlayerSearchModal({
       onClose();
       return;
     }
-    if (searchResults.length === 0) return;
-
+    
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      const newIndex = Math.min(activeIndex + 1, searchResults.length - 1);
+      const newIndex = Math.min(activeIndex + 1, filteredPlayers.length - 1);
       setActiveIndex(newIndex);
-      rowVirtualizer.scrollToIndex(newIndex, { align: 'auto' });
+      scrollToActiveItem(newIndex);
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
-      const newIndex = Math.max(activeIndex - 1, 0);
+      const newIndex = Math.max(activeIndex - 1, -1);
       setActiveIndex(newIndex);
-      rowVirtualizer.scrollToIndex(newIndex, { align: 'auto' });
+      scrollToActiveItem(newIndex);
     } else if (event.key === 'Enter') {
       event.preventDefault();
-      if (searchResults[activeIndex]) {
-        handleSelectPlayer(searchResults[activeIndex]);
+      // If there's an active selection, use it
+      if (activeIndex >= 0 && filteredPlayers[activeIndex]) {
+        const selectedPlayer = filteredPlayers[activeIndex];
+        if (selectedPlayer && !usedPids.has(selectedPlayer.pid)) {
+          handleSelectPlayer(selectedPlayer);
+        }
+      }
+      // If there's exactly one result and no active selection, select it
+      else if (filteredPlayers.length === 1) {
+        const selectedPlayer = filteredPlayers[0];
+        if (selectedPlayer && !usedPids.has(selectedPlayer.pid)) {
+          handleSelectPlayer(selectedPlayer);
+        }
+      }
+    }
+  };
+
+  const scrollToActiveItem = (index: number) => {
+    if (index >= 0 && scrollAreaRef.current) {
+      const activeElement = document.getElementById(`player-option-${filteredPlayers[index]?.pid}`);
+      if (activeElement && scrollAreaRef.current) {
+        // Use direct scrolling on mobile to avoid keyboard conflicts
+        const isMobile = window.innerWidth <= 768 || 'ontouchstart' in window;
+        const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+        
+        if (scrollContainer && isMobile) {
+          // Calculate position relative to scroll container
+          const containerRect = scrollContainer.getBoundingClientRect();
+          const elementRect = activeElement.getBoundingClientRect();
+          const relativeTop = elementRect.top - containerRect.top + scrollContainer.scrollTop;
+          const relativeBottom = relativeTop + elementRect.height;
+          
+          // Scroll only if element is not fully visible
+          if (relativeTop < scrollContainer.scrollTop) {
+            scrollContainer.scrollTop = relativeTop - 10; // Add small margin
+          } else if (relativeBottom > scrollContainer.scrollTop + scrollContainer.clientHeight) {
+            scrollContainer.scrollTop = relativeBottom - scrollContainer.clientHeight + 10;
+          }
+        } else {
+          // Use smooth scrolling on desktop
+          activeElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest'
+          });
+        }
       }
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent
-        className="sm:max-w-md max-h-[80vh] flex flex-col p-0 shadow-lg border"
+      <DialogContent 
+        className="sm:max-w-md max-h-[80vh] sm:max-h-[80vh] max-h-[75vh] flex flex-col p-0"
         onKeyDown={handleKeyDown}
-        role="dialog"
-        aria-modal="true"
-        aria-label={cellDescription}
+        data-testid="modal-player-search"
+        style={{
+          // Prevent viewport issues on mobile with keyboard
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+        }}
       >
-        <DialogHeader className="border-b p-4">
-          <DialogTitle className="text-lg font-semibold">Find a Player</DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground mt-1">
+        <DialogHeader className="border-b border-border p-4">
+          <DialogTitle className="text-lg font-semibold">Search Player</DialogTitle>
+          <DialogDescription className="text-sm text-muted-foreground text-left mt-2">
             {cellDescription}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="p-4 border-b">
+        <div className="p-4 border-b border-border">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
-              ref={inputRef}
+              ref={setInputRef}
               type="text"
               placeholder="Type player name..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setActiveIndex(-1);
+              }}
               className="pl-10"
-              aria-autocomplete="list"
-              aria-controls="player-listbox"
-              aria-activedescendant={searchResults.length > 0 ? `player-option-${activeIndex}`: undefined}
+              autoFocus
+              data-testid="input-player-search"
             />
           </div>
         </div>
 
-        <div
-          ref={parentRef}
-          className="overflow-y-auto h-full"
-          id="player-listbox"
-          role="listbox"
+        <ScrollArea 
+          className="h-48 overflow-y-auto" 
+          ref={scrollAreaRef}
+          style={{
+            // Prevent momentum scrolling issues on mobile
+            WebkitOverflowScrolling: 'touch',
+            overscrollBehavior: 'contain',
+            // Prevent scrolling interference with keyboard
+            touchAction: 'pan-y',
+          }}
         >
-          <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
-            {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-              const result = searchResults[virtualItem.index];
-              const player = result.item;
-              const fullPlayer = byPid[player.pid];
-              const isUsed = usedPids.has(player.pid);
-              const isActive = virtualItem.index === activeIndex;
-
-              return (
-                <div
-                  key={virtualItem.key}
-                  id={`player-option-${virtualItem.index}`}
-                  role="option"
-                  aria-selected={isActive}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: `${virtualItem.size}px`,
-                    transform: `translateY(${virtualItem.start}px)`,
-                  }}
-                  className={`p-2 ${isActive && !isUsed ? 'bg-accent' : ''}`}
-                  onMouseEnter={() => setActiveIndex(virtualItem.index)}
-                  onClick={() => !isUsed && handleSelectPlayer(result)}
-                >
+          <div 
+            className="p-2 space-y-1"
+            role="listbox"
+            aria-activedescendant={activeIndex >= 0 ? `player-option-${filteredPlayers[activeIndex]?.pid}` : undefined}
+          >
+            {filteredPlayers.length === 0 ? (
+              <div className="text-center py-4 text-muted-foreground" data-testid="text-no-results">
+                {searchQuery.trim() ? 'No matching players found' : 'No players found'}
+              </div>
+            ) : (
+              filteredPlayers.map((searchablePlayer: SearchablePlayer, index: number) => {
+                const player = byPid[searchablePlayer.pid];
+                const isUsed = usedPids.has(searchablePlayer.pid);
+                const isActive = index === activeIndex;
+                
+                return (
                   <Button
+                    key={searchablePlayer.pid}
+                    id={`player-option-${searchablePlayer.pid}`}
                     variant="ghost"
-                    className={`w-full justify-start h-full text-left ${isUsed ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    className={`w-full justify-start px-3 py-2 h-auto ${
+                      isUsed 
+                        ? 'opacity-60 cursor-not-allowed bg-muted/50 text-muted-foreground' 
+                        : 'hover:bg-accent hover:text-accent-foreground'
+                    } ${
+                      isActive && !isUsed ? 'bg-accent text-accent-foreground ring-2 ring-ring' : ''
+                    }`}
+                    onClick={() => !isUsed && handleSelectPlayer(searchablePlayer)}
                     disabled={isUsed}
+                    aria-disabled={isUsed}
+                    role="option"
+                    aria-selected={isActive}
+                    data-testid={`button-select-player-${searchablePlayer.pid}`}
                   >
-                    <PlayerFace
-                      pid={fullPlayer.pid}
-                      name={fullPlayer.name}
-                      imgURL={fullPlayer.imgURL}
-                      face={fullPlayer.face}
-                      player={fullPlayer}
-                      size={40}
-                    />
-                    <div className="flex-grow ml-3">
-                      <div className="font-medium">
-                        {generateHighlightedName(player.displayName, result.matches)}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {player.careerYears}
+                    <div className="text-left flex-1">
+                      <div className="font-medium flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span>{player.name}</span>
+                          {searchablePlayer.careerYears && (
+                            <span className="text-xs text-muted-foreground font-normal">
+                              {searchablePlayer.careerYears}
+                            </span>
+                          )}
+                        </div>
+                        {isUsed && (
+                          <span className="text-xs text-muted-foreground ml-2 font-normal">Already used</span>
+                        )}
                       </div>
                     </div>
                   </Button>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
-        </div>
+        </ScrollArea>
 
-        {searchResults.length === 0 && searchQuery.length > 0 && (
-          <div className="text-center py-8 text-muted-foreground">
-            <p>No matches found for "{searchQuery}".</p>
-            <p className="text-xs mt-2">Try a different spelling or another player.</p>
+        <div className="border-t border-border p-4">
+          <div className="text-xs text-muted-foreground text-center">
+            Click a player to submit your answer
           </div>
-        )}
-
-        <div className="border-t p-3 text-center text-xs text-muted-foreground">
-          Click a player or press <strong>Enter</strong> to submit.
         </div>
       </DialogContent>
     </Dialog>

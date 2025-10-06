@@ -1,40 +1,37 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite';
-// import { cartographer } from '@replit/vite-plugin-cartographer';
-import runtimeErrorModal from '@replit/vite-plugin-runtime-error-modal';
-import { nodePolyfills } from 'vite-plugin-node-polyfills';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import path from "path";
+import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
 export default defineConfig({
   plugins: [
     react(),
-    tailwindcss(),
-    // cartographer(),
-    runtimeErrorModal(),
-    nodePolyfills({
-      // Whether to polyfill `node:` protocol imports.
-      protocolImports: true,
-    }),
+    runtimeErrorOverlay(),
+    ...(process.env.NODE_ENV !== "production" &&
+    process.env.REPL_ID !== undefined
+      ? [
+          await import("@replit/vite-plugin-cartographer").then((m) =>
+            m.cartographer(),
+          ),
+        ]
+      : []),
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './client/src'),
+      "@": path.resolve(import.meta.dirname, "client", "src"),
+      "@shared": path.resolve(import.meta.dirname, "shared"),
+      "@assets": path.resolve(import.meta.dirname, "attached_assets"),
     },
   },
+  root: path.resolve(import.meta.dirname, "client"),
   build: {
-    outDir: '../dist/public',
+    outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
-    sourcemap: true,
   },
-  root: 'client',
   server: {
-    proxy: {
-      '/api': 'http://localhost:3001',
+    fs: {
+      strict: true,
+      deny: ["**/.*"],
     },
   },
 });
