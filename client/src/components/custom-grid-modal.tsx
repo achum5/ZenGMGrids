@@ -195,6 +195,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
             };
           }
 
+          const parsedOriginal = parseAchievementLabel(catTeam.label, sport);
           return {
             type: 'achievement',
             value: catTeam.achievementId,
@@ -202,7 +203,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
             baseAchievementId: catTeam.achievementId, // For non-custom, base ID is its own ID
             operator: '≥',
             customAchievement: null,
-            customNumber: undefined,
+            customNumber: parsedOriginal.isEditable ? parsedOriginal.number : undefined, // Initialize with default number if editable
           };
         }
         return { type: null, value: null, label: null, operator: '≥', customAchievement: null, customNumber: undefined };

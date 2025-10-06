@@ -1,6 +1,10 @@
 import type { Player, Team } from '@/types/bbgm';
 import type { GridConstraint } from '@/lib/feedback';
 import { type SeasonAchievementId } from '@/lib/season-achievements';
+import { getAllAchievements } from '@/lib/achievements';
+import { parseAchievementLabel, generateUpdatedLabel, singularizeStatWord, getPlayerCareerTotal } from '@/lib/editable-achievements';
+import { parseCustomAchievementId } from '@/lib/feedback';
+
 
 // Season achievement labels for bullet display
 const SEASON_ACHIEVEMENT_LABELS: Partial<Record<SeasonAchievementId, string>> = {
@@ -170,7 +174,7 @@ function getStatFieldForAchievement(achievementId: SeasonAchievementId): string 
 }
 
 // Helper function to calculate seasons where player achieved Season* statistical thresholds
-function getSeasonsForSeasonStatAchievement(player: Player, achievementId: SeasonAchievementId, customThreshold?: number, customOperator?: '≥' | '≤'): string[] {
+function getSeasonsForSeasonStatAchievement(player: Player, achievementId: SeasonAchievementId, customThreshold?: number, customOperator?: '≥' | '≤', minGames: number = 1): string[] {
   if (!player.stats || player.stats.length === 0) return [];
   
   const qualifyingSeasons: number[] = [];
@@ -214,7 +218,7 @@ function getSeasonsForSeasonStatAchievement(player: Player, achievementId: Seaso
     // Basketball GM Season achievements
     switch (achievementId) {
       case 'Season30PPG':
-        if (gp >= 50 && check(pts / gp, customThreshold !== undefined ? customThreshold : 30, customOperator || '≥')) qualifyingSeasons.push(season);
+        if (gp >= minGames && check(pts / gp, customThreshold !== undefined ? customThreshold : 30, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season2000Points':
         if (check(pts, customThreshold !== undefined ? customThreshold : 2000, customOperator || '≥')) qualifyingSeasons.push(season);
@@ -224,10 +228,10 @@ function getSeasonsForSeasonStatAchievement(player: Player, achievementId: Seaso
         if (check(tp, customThreshold !== undefined ? customThreshold : 200, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season12RPG':
-        if (gp >= 50 && check(trb / gp, customThreshold !== undefined ? customThreshold : 12, customOperator || '≥')) qualifyingSeasons.push(season);
+        if (gp >= minGames && check(trb / gp, customThreshold !== undefined ? customThreshold : 12, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season10APG':
-        if (gp >= 50 && check(ast / gp, customThreshold !== undefined ? customThreshold : 10, customOperator || '≥')) qualifyingSeasons.push(season);
+        if (gp >= minGames && check(ast / gp, customThreshold !== undefined ? customThreshold : 10, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season800Rebounds':
         if (check(trb, customThreshold !== undefined ? customThreshold : 800, customOperator || '≥')) qualifyingSeasons.push(season);
@@ -236,10 +240,10 @@ function getSeasonsForSeasonStatAchievement(player: Player, achievementId: Seaso
         if (check(ast, customThreshold !== undefined ? customThreshold : 700, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season2SPG':
-        if (gp >= 50 && check(stl / gp, customThreshold !== undefined ? customThreshold : 2.0, customOperator || '≥')) qualifyingSeasons.push(season);
+        if (gp >= minGames && check(stl / gp, customThreshold !== undefined ? customThreshold : 2.0, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season2_5BPG':
-        if (gp >= 50 && check(blk / gp, customThreshold !== undefined ? customThreshold : 2.5, customOperator || '≥')) qualifyingSeasons.push(season);
+        if (gp >= minGames && check(blk / gp, customThreshold !== undefined ? customThreshold : 2.5, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season150Steals':
         if (check(stl, customThreshold !== undefined ? customThreshold : 150, customOperator || '≥')) qualifyingSeasons.push(season);
@@ -283,19 +287,19 @@ function getSeasonsForSeasonStatAchievement(player: Player, achievementId: Seaso
         if (check(gp, customThreshold !== undefined ? customThreshold : 70, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season36MPG':
-        if (gp >= 50 && check(min / gp, customThreshold !== undefined ? customThreshold : 36.0, customOperator || '≥')) qualifyingSeasons.push(season);
+        if (gp >= minGames && check(min / gp, customThreshold !== undefined ? customThreshold : 36.0, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season25_10':
-        if (gp >= 50 && check(pts / gp, customThreshold !== undefined ? customThreshold : 25, customOperator || '≥') && check(trb / gp, customThreshold !== undefined ? customThreshold : 10, customOperator || '≥')) qualifyingSeasons.push(season);
+        if (gp >= minGames && check(pts / gp, customThreshold !== undefined ? customThreshold : 25, customOperator || '≥') && check(trb / gp, customThreshold !== undefined ? customThreshold : 10, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season25_5_5':
-        if (gp >= 50 && check(pts / gp, customThreshold !== undefined ? customThreshold : 25, customOperator || '≥') && check(trb / gp, customThreshold !== undefined ? customThreshold : 5, customOperator || '≥') && check(ast / gp, customThreshold !== undefined ? customThreshold : 5, customOperator || '≥')) qualifyingSeasons.push(season);
+        if (gp >= minGames && check(pts / gp, customThreshold !== undefined ? customThreshold : 25, customOperator || '≥') && check(trb / gp, customThreshold !== undefined ? customThreshold : 5, customOperator || '≥') && check(ast / gp, customThreshold !== undefined ? customThreshold : 5, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season20_10_5':
-        if (gp >= 50 && check(pts / gp, customThreshold !== undefined ? customThreshold : 20, customOperator || '≥') && check(trb / gp, customThreshold !== undefined ? customThreshold : 10, customOperator || '≥') && check(ast / gp, customThreshold !== undefined ? customThreshold : 5, customOperator || '≥')) qualifyingSeasons.push(season);
+        if (gp >= minGames && check(pts / gp, customThreshold !== undefined ? customThreshold : 20, customOperator || '≥') && check(trb / gp, customThreshold !== undefined ? customThreshold : 10, customOperator || '≥') && check(ast / gp, customThreshold !== undefined ? customThreshold : 5, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season1_1_1':
-        if (gp >= 50 && check(stl / gp, customThreshold !== undefined ? customThreshold : 1, customOperator || '≥') && check(blk / gp, customThreshold !== undefined ? customThreshold : 1, customOperator || '≥') && check(tp / gp, customThreshold !== undefined ? customThreshold : 1, customOperator || '≥')) qualifyingSeasons.push(season);
+        if (gp >= minGames && check(stl / gp, customThreshold !== undefined ? customThreshold : 1, customOperator || '≥') && check(blk / gp, customThreshold !== undefined ? customThreshold : 1, customOperator || '≥') && check(tp / gp, customThreshold !== undefined ? customThreshold : 1, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
         
       // Football GM Season achievements would go here
@@ -356,7 +360,7 @@ function getStatFieldForCareerAchievement(achievementId: string): string | strin
 }
 
 // Helper function to extract season achievement data from player
-function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchievementId, teams: Team[], teamId?: number): string[] {
+function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchievementId, teams: Team[], teamId?: number, sport?: string): string[] {
   let baseAchievementId: SeasonAchievementId = achievementId;
   let customThreshold: number | undefined;
   let customOperator: '≥' | '≤' | undefined;
@@ -372,7 +376,12 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
 
   // Handle Season* statistical achievements by calculating from stats
   if (baseAchievementId.startsWith('Season')) {
-    return getSeasonsForSeasonStatAchievement(player, baseAchievementId, customThreshold, customOperator);
+    // Need to get the minGames from the original achievement definition
+    const allAchievements = getAllAchievements(sport as any);
+    const baseAchievement = allAchievements.find(ach => ach.id === baseAchievementId);
+    const minGamesForAchievement = baseAchievement?.minPlayers || 1; // Default to 1 game if not specified
+
+    return getSeasonsForSeasonStatAchievement(player, baseAchievementId, customThreshold, customOperator, minGamesForAchievement);
   }
 
   // Handle award-based achievements with a season-by-season check
@@ -501,7 +510,7 @@ function formatBulletSeasonList(seasons: string[], isFinalsOrCFMVP: boolean = fa
     // If all seasons have the same team, group years and append team
     const uniqueTeams = Array.from(new Set(yearsWithTeams.map(y => y.team)));
     if (uniqueTeams.length === 1 && uniqueTeams[0]) {
-      const years = yearsWithTeams.map(y => y.year);
+      const years = uniqueTeams[0] ? yearsWithTeams.filter(y => y.team === uniqueTeams[0]).map(y => y.year) : [];
       const yearRanges = groupConsecutiveYears(years);
       return yearRanges.map(range => `${range} ${uniqueTeams[0]}`).join('; ');
     } else {
@@ -559,10 +568,6 @@ function getCareerStats(player: Player, statTypes: string[]) {
           // Fallback to direct field if components not available
           const fallbackAssists = seasonAssists || (season as any).a || (season as any).ast || (season as any).assists || 0;
           
-          // Debug logging for hockey assists
-          if (fallbackAssists > 0) {
-            console.log(`🏒 ASSISTS DEBUG: Season ${season.season}, evA:${evA} + ppA:${ppA} + shA:${shA} = ${seasonAssists}, total so far: ${total + fallbackAssists}`);
-          }
           total += fallbackAssists;
         } else if (statType === 'ast') {
           total += (season as any).ast || 0;
@@ -651,18 +656,14 @@ export function generateReasonBullets(
 ): ReasonBullet[] {
   const bullets: ReasonBullet[] = [];
   
-  // Always generate exactly 2 bullets:
-  // 1. Column constraint (top bullet) 
-  // 2. Row constraint (bottom bullet)
-  
   // Generate bullet for column constraint
-  const colBullet = generateSimpleBullet(player, colConstraint, teams, sport);
+  const colBullet = generateConstraintBullet(player, colConstraint, teams, sport);
   if (colBullet) {
     bullets.push(colBullet);
   }
   
   // Generate bullet for row constraint  
-  const rowBullet = generateSimpleBullet(player, rowConstraint, teams, sport);
+  const rowBullet = generateConstraintBullet(player, rowConstraint, teams, sport);
   if (rowBullet) {
     bullets.push(rowBullet);
   }
@@ -670,18 +671,18 @@ export function generateReasonBullets(
   return bullets;
 }
 
-// Generate a simple bullet for any constraint (team or achievement)
-function generateSimpleBullet(player: Player, constraint: GridConstraint, teams: Team[], sport: string): ReasonBullet | null {
+// Generate a bullet for any constraint (team or achievement)
+function generateConstraintBullet(player: Player, constraint: GridConstraint, teams: Team[], sport: string): ReasonBullet | null {
   if (constraint.type === 'team') {
-    return generateSimpleTeamBullet(player, constraint.tid!, teams, constraint.label);
+    return generateTeamBullet(player, constraint.tid!, teams, constraint.label);
   } else if (constraint.type === 'achievement') {
-    return generateSimpleAchievementBullet(player, constraint.achievementId!, teams, constraint.label, sport);
+    return generateAchievementBullet(player, constraint.achievementId!, teams, constraint.label, sport);
   }
   return null;
 }
 
-// Generate simple team bullet: "Team Name (years)"
-function generateSimpleTeamBullet(player: Player, teamTid: number, teams: Team[], constraintLabel?: string): ReasonBullet | null {
+// Generate team bullet: "Team Name (years)"
+function generateTeamBullet(player: Player, teamTid: number, teams: Team[], constraintLabel?: string): ReasonBullet | null {
   if (!player.stats) return null;
   
   const teamSeasons = player.stats
@@ -689,10 +690,15 @@ function generateSimpleTeamBullet(player: Player, teamTid: number, teams: Team[]
     .map(s => s.season)
     .sort((a, b) => a - b);
   
-  if (teamSeasons.length === 0) return null;
-  
   const team = teams.find(t => t.tid === teamTid);
   const teamName = constraintLabel || (team ? `${team.region} ${team.name}` : `Team ${teamTid}`);
+  
+  if (teamSeasons.length === 0) {
+    return {
+      text: teamName,
+      type: 'team'
+    };
+  }
   
   const seasonRange = teamSeasons.length === 1 
     ? teamSeasons[0].toString()
@@ -704,136 +710,80 @@ function generateSimpleTeamBullet(player: Player, teamTid: number, teams: Team[]
   };
 }
 
-// Generate simple achievement bullet: "Achievement Name (years)"
-function generateSimpleAchievementBullet(player: Player, achievementId: string, teams: Team[], constraintLabel?: string, sport?: string): ReasonBullet | null {
+// Generate achievement bullet: "Achievement Label (years)" or "N Career Stat"
+function generateAchievementBullet(player: Player, achievementId: string, teams: Team[], constraintLabel?: string, sport?: string): ReasonBullet | null {
   if (isSeasonAchievement(achievementId)) {
-    return generateSimpleSeasonAchievementBullet(player, achievementId as SeasonAchievementId, teams, constraintLabel);
+    return generateSeasonAchievementBullet(player, achievementId as SeasonAchievementId, teams, constraintLabel, sport);
   } else {
-    // Career achievements
-    let baseAchievementId = achievementId;
-    let customThreshold: number | undefined;
-    let customOperator: '≥' | '≤' | undefined;
-
-    // Check if it's a custom numerical achievement
-    if (achievementId.includes('_custom_')) {
-      const parsedCustom = parseCustomAchievementId(achievementId);
-      if (parsedCustom) {
-        baseAchievementId = parsedCustom.baseId;
-        customThreshold = parsedCustom.threshold;
-        customOperator = parsedCustom.operator;
-      }
-    }
-
-    const statField = getStatFieldForCareerAchievement(baseAchievementId);
-
-    if (statField) {
-      const playerCareerTotal = getPlayerCareerTotal(player, statField);
-      const originalLabel = constraintLabel || achievementId;
-      const parsedOriginal = parseAchievementLabel(originalLabel);
-
-      let statName = parsedOriginal.statUnit.trim();
-      if (!statName && parsedOriginal.suffix.trim()) {
-        // Fallback to suffix if no specific stat unit was parsed (e.g., "Rebounds")
-        statName = parsedOriginal.suffix.trim().replace(/^\+/, ''); // Remove leading '+'
-      }
-      if (!statName && parsedOriginal.prefix.trim()) {
-        // Another fallback, e.g., for "Career Points" where "Career" is prefix
-        statName = parsedOriginal.prefix.trim();
-      }
-
-      // Clean up common prefixes/suffixes that are not part of the stat name itself
-      statName = statName.replace(/^(career|season)\s*/i, '').trim();
-      statName = statName.replace(/\s*\(career\)|\s*\(season\)/gi, '').trim();
-
-      if (playerCareerTotal === 1) {
-        statName = singularizeStatWord(statName);
-      }
-
-      return {
-        text: `${formatNumber(playerCareerTotal)} Career ${statName}`.trim(),
-        type: 'award'
-      };
-    } else {
-      // Fallback for non-numerical career achievements (e.g., Hall of Famer)
-      const label = constraintLabel || achievementId;
-      return {
-        text: label,
-        type: 'award'
-      };
-    }
+    return generateCareerAchievementBullet(player, achievementId, teams, constraintLabel, sport);
   }
 }
 
-// Generate simple season achievement bullet
-function generateSimpleSeasonAchievementBullet(player: Player, achievementId: SeasonAchievementId, teams: Team[], constraintLabel?: string): ReasonBullet | null {
+// Generate season achievement bullet
+function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAchievementId, teams: Team[], constraintLabel?: string, sport?: string): ReasonBullet | null {
+  // Use the constraintLabel directly, as it should already be the customized label if applicable.
+  // Fallback to SEASON_ACHIEVEMENT_LABELS or achievementId if constraintLabel is not provided.
   let achLabel = constraintLabel || SEASON_ACHIEVEMENT_LABELS[achievementId] || achievementId;
-
-  if (achievementId.includes('_custom_')) {
-    const parts = achievementId.split('_custom_');
-    const baseAchievementId = parts[0] as SeasonAchievementId;
-    const customParts = parts[1].split('_');
-    const customThreshold = parseFloat(customParts[0]);
-    const customOperator = customParts[1] === 'lte' ? '≤' : '≥';
-    
-    const originalLabel = SEASON_ACHIEVEMENT_LABELS[baseAchievementId] || baseAchievementId;
-    const parsedOriginal = parseAchievementLabel(originalLabel);
-    achLabel = generateUpdatedLabel(parsedOriginal, customThreshold, customOperator);
-  } else if (achievementId.includes('Leader')) {
-    // For non-custom Leader achievements, use the label directly from SEASON_ACHIEVEMENT_LABELS
-    achLabel = SEASON_ACHIEVEMENT_LABELS[achievementId] || achievementId;
-  }
   
   // Consistently remove " (Season)" suffix using regex, as the years in parentheses already imply it's season-specific
   achLabel = achLabel.replace(/\s*\(Season\)/gi, '').trim();
   
-  const seasons = getSeasonAchievementSeasons(player, achievementId, teams);
-  
-  if (seasons.length === 0) {
-    return null;
-  }
+  const seasons = getSeasonAchievementSeasons(player, achievementId, teams, undefined, sport);
   
   const seasonStr = formatBulletSeasonList(seasons, false);
   
   return {
-    text: `${achLabel} (${seasonStr})`,
+    text: seasons.length > 0 ? `${achLabel} (${seasonStr})` : achLabel,
     type: 'award'
   };
 }
 
-// Helper function to calculate actual years for decade achievements
-function getActualDecadeYears(player: Player, achievementType: 'played' | 'debuted'): string {
-  if (!player.stats || player.stats.length === 0) return '';
-  
-  const regularSeasonStats = player.stats.filter(s => !s.playoffs && (s.gp || 0) > 0);
-  if (regularSeasonStats.length === 0) return '';
-  
-  if (achievementType === 'played') {
-    // For "played", show the year span or range
-    const seasons = regularSeasonStats.map(s => s.season).sort((a, b) => a - b);
-    const firstSeason = seasons[0];
-    const lastSeason = seasons[seasons.length - 1];
-    
-    if (firstSeason === lastSeason) {
-      return firstSeason.toString();
-    } else {
-      return `${firstSeason}–${lastSeason}`;
+// Generate career achievement bullet
+function generateCareerAchievementBullet(player: Player, achievementId: string, teams: Team[], constraintLabel?: string, sport?: string): ReasonBullet | null {
+  let baseAchievementId = achievementId;
+  let customThreshold: number | undefined;
+  let customOperator: '≥' | '≤' | undefined;
+
+  if (achievementId.includes('_custom_')) {
+    const parsedCustom = parseCustomAchievementId(achievementId);
+    if (parsedCustom) {
+      baseAchievementId = parsedCustom.baseId;
+      customThreshold = parsedCustom.threshold;
+      customOperator = parsedCustom.operator;
     }
-  } else if (achievementType === 'debuted') {
-    // For "debuted", show the first season - avoid stack overflow
-    let actualYear = regularSeasonStats.length > 0 ? regularSeasonStats[0].season : 0;
-    for (const stat of regularSeasonStats) {
-      if (stat.season < actualYear) actualYear = stat.season;
-    }
-    return actualYear.toString();
   }
-  
-  return '';
+
+  const statField = getStatFieldForCareerAchievement(baseAchievementId);
+
+  if (statField) {
+    const playerCareerTotal = getPlayerCareerTotal(player, statField);
+    const originalLabel = constraintLabel || achievementId;
+    const parsedOriginal = parseAchievementLabel(originalLabel);
+
+    let statName = parsedOriginal.statUnit.trim();
+    if (!statName && parsedOriginal.suffix.trim()) {
+      statName = parsedOriginal.suffix.trim().replace(/^\+/, '');
+    }
+    if (!statName && parsedOriginal.prefix.trim()) {
+      statName = parsedOriginal.prefix.trim();
+    }
+
+    statName = statName.replace(/^(career|season)\s*/i, '').trim();
+    statName = statName.replace(/\s*\(career\)|\s*\(season\)/gi, '').trim();
+
+    if (playerCareerTotal === 1) {
+      statName = singularizeStatWord(statName);
+    }
+
+    return {
+      text: `${formatNumber(playerCareerTotal)} Career ${statName}`.trim(),
+      type: 'award'
+    };
+  } else {
+    const label = constraintLabel || achievementId;
+    return {
+      text: label,
+      type: 'award'
+    };
+  }
 }
-
-
-
-import { getAllAchievements, getCachedSportDetection, getCachedLeagueYears } from '@/lib/achievements';
-import { parseAchievementLabel, generateUpdatedLabel, singularizeStatWord, getPlayerCareerTotal } from '@/lib/editable-achievements';
-import { parseCustomAchievementId } from '@/lib/feedback';
-
-// Season achievement labels for bullet display
