@@ -126,7 +126,7 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing }: Uploa
                   <Button
                     onClick={() => document.getElementById('file-input')?.click()}
                     disabled={isProcessing}
-                    className="bg-primary hover:bg-primary/90 dark:bg-primary dark:hover:bg-primary/90 text-primary-foreground"
+                    className="bg-primary hover:bg-primary/90 dark:bg-primary dark:hover:bg-primary/90 text-primary-foreground ml-[1px]"
                     data-testid="button-upload"
                   >
                     {isProcessing ? (
