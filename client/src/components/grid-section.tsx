@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -132,8 +132,35 @@ export function GridSection({
   hintMode,
   onHintModeChange,
 }: GridSectionProps) {
+  const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);
+  const [acknowledgedHeader, setAcknowledgedHeader] = useState<{ type: 'row' | 'col'; index: number } | null>(null);
+  const [isFlaring, setIsFlaring] = useState(false);
   const totalScore = calculateScore(cells);
+
+  useEffect(() => {
+    setIsFlaring(true);
+    const timer = setTimeout(() => setIsFlaring(false), 1000);
+    return () => clearTimeout(timer);
+  }, [totalScore]);
   
+  const prevCellsRef = React.useRef(cells);
+  useEffect(() => {
+    const prevCells = prevCellsRef.current;
+    if (prevCells !== cells) {
+      Object.keys(cells).forEach(key => {
+        const cell = cells[key];
+        const prevCell = prevCells[key];
+        if (cell.correct && !prevCell?.correct) {
+          const [rowIndex, colIndex] = key.split('-').map(Number);
+          setAcknowledgedHeader({ type: 'row', index: rowIndex });
+          setAcknowledgedHeader({ type: 'col', index: colIndex });
+          setTimeout(() => setAcknowledgedHeader(null), 600);
+        }
+      });
+    }
+    prevCellsRef.current = cells;
+  }, [cells]);
+
   // Helper function for generating unique React keys
   const getReactKey = (type: 'header-row' | 'header-col' | 'cell', rowIndex?: number, colIndex?: number, rowKey?: string, colKey?: string) => {
     // Explicit duplicate detection
@@ -305,10 +332,12 @@ export function GridSection({
           {/* Grid Container with expanded max-width */}
           <div className="max-w-4xl mx-auto">
             {/* Complete 4x4 Grid - Board with Thin Separators */}
-            <div className="bg-border/60 dark:bg-slate-600/90 rounded-2xl p-[2px] md:p-[3px] overflow-hidden">
-              <div className="grid grid-cols-4 gap-[2px] md:gap-[3px] w-full">
+            <div className="bg-border/60 dark:bg-slate-600/90 rounded-2xl p-[2px] md:p-[3px] overflow-hidden grid-container-glow grid-divider">
+              <div className="grid grid-cols-4 gap-[2px] md:gap-[3px] w-full relative z-10">
               {/* Score in top-left corner */}
-              <div className="aspect-square flex flex-col items-center justify-center bg-secondary dark:bg-slate-700 rounded-tl-2xl overflow-hidden">
+              <div className={cn("aspect-square flex flex-col items-center justify-center bg-secondary dark:bg-slate-700 rounded-tl-2xl overflow-hidden score-tile", isFlaring && "score-tile-flare")}>
+                <div className="score-tile-ring"></div>
+                {isFlaring && <div className="sparkle"></div>}
                 <div className="text-xs sm:text-sm md:text-base font-medium text-muted-foreground dark:text-gray-400">
                   {isGridComplete ? 'Final Score:' : 'Score:'}
                 </div>
@@ -330,13 +359,18 @@ export function GridSection({
                 
                 // Find the corresponding team for logo display
                 const teamForHeader = col.type === 'team' ? teams.find(t => t.tid === col.tid) : null;
-                
+                const isHovered = hoveredCell?.col === colIndex;
+                const isAcknowledged = acknowledgedHeader?.type === 'col' && acknowledgedHeader?.index === colIndex;
+
                 return (
                   <div 
                     key={getReactKey('header-col', undefined, colIndex, undefined, col.key)} 
                     className={cn(
                       "aspect-square bg-secondary dark:bg-slate-700 p-2 md:p-3 overflow-hidden",
-                      headerRadius
+                      headerRadius,
+                      teamForHeader ? 'header-logo-glow' : 'header-text-glow',
+                      isHovered && 'header-hover',
+                      isAcknowledged && 'header-acknowledged'
                     )}
                     data-testid={`header-col-${col.key}`}
                     title={teamForHeader ? `${teamForHeader.region || ''} ${teamForHeader.name}`.trim() : col.label}
@@ -364,13 +398,18 @@ export function GridSection({
                   // Row Header
                   (() => {
                     const teamForHeader = row.type === 'team' ? teams.find(t => t.tid === row.tid) : null;
-                
+                    const isHovered = hoveredCell?.row === rowIndex;
+                    const isAcknowledged = acknowledgedHeader?.type === 'row' && acknowledgedHeader?.index === rowIndex;
+
                     return (
                       <div 
                         key={getReactKey('header-row', rowIndex, undefined, row.key)}
                         className={cn(
                           "aspect-square bg-secondary dark:bg-slate-700 p-2 md:p-3 overflow-hidden",
-                          rowIndex === rows.length - 1 ? 'rounded-bl-2xl' : ''
+                          rowIndex === rows.length - 1 ? 'rounded-bl-2xl' : '',
+                          teamForHeader ? 'header-logo-glow' : 'header-text-glow',
+                          isHovered && 'header-hover',
+                          isAcknowledged && 'header-acknowledged'
                         )}
                         data-testid={`header-row-${row.key}`}
                         title={teamForHeader ? `${teamForHeader.region || ''} ${teamForHeader.name}`.trim() : row.label}
@@ -407,10 +446,12 @@ export function GridSection({
                       <button
                         key={`cell-${rowIndex}-${colIndex}`}
                         className={cn(
-                          'aspect-square w-full flex items-center justify-center text-center relative overflow-hidden transition-all duration-200 hover:brightness-110 hover:contrast-110 hover:shadow-md cell-reveal-animation',
+                          'aspect-square w-full flex items-center justify-center text-center relative overflow-hidden transition-all duration-200 hover:brightness-110 hover:contrast-110 hover:shadow-md cell-reveal-animation grid-cell-neon',
                           cornerRadius,
                           cellContent.className
                         )}
+                        onMouseEnter={() => setHoveredCell({ row: rowIndex, col: colIndex })}
+                        onMouseLeave={() => setHoveredCell(null)}
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
