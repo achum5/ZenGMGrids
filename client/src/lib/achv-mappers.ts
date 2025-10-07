@@ -3,10 +3,10 @@ import type { Achv, Comp } from '@/lib/feedback';
 
 // Helper to parse stat labels like "20,000+ Career Points"
 function parseStatLabel(label: string): { value: number; comp: Comp; stat: string } | null {
-    const match = label.match(/([\d,]+)\+?\s*(Career|Season)?\s*(.*)/);
+    const match = label.match(/([\d,]+)\+?\s*(?:\(Season\))?\s*(.*)/i); // Updated regex
     if (match) {
         const value = parseInt(match[1].replace(/,/g, ''));
-        const stat = match[3].trim();
+        const stat = match[2].trim(); // Capture the second group for the stat name
         const comp = label.includes('+') ? '>=' : label.includes('≤') ? '<=' : '=';
         return { value, comp, stat };
     }

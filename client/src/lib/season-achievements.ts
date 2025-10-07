@@ -878,183 +878,194 @@ export function buildSeasonIndex(
       for (const player of players) {
         if (!player.stats) continue;
         
-        // Get all regular season stats for this season, excluding TOT rows
+        // Aggregate all regular season stats for this season
         const seasonStats = player.stats.filter(stat => 
           stat.season === season && !stat.playoffs && (stat.gp || 0) > 0 && stat.tid !== -1
         );
-        
+
+        if (seasonStats.length === 0) continue;
+
+        // Aggregate stats
+        const aggregatedStats = {
+          pts: 0, trb: 0, ast: 0, stl: 0, blk: 0, fg: 0, fga: 0,
+          tp: 0, tpa: 0, ft: 0, fta: 0, gp: 0, min: 0,
+          teams: new Set<number>()
+        };
+
         for (const stat of seasonStats) {
-          const tid = stat.tid;
-          
-          // Extract all relevant Basketball GM stats from the season stat
-          const pts = stat.pts || 0;
-          const trb = stat.trb || ((stat as any).orb || 0) + ((stat as any).drb || 0) || 0;
-          const ast = stat.ast || 0;
-          const stl = stat.stl || 0;
-          const blk = stat.blk || 0;
-          const fg = stat.fg || 0;
-          const fga = stat.fga || 0;
-          const tp = stat.tp || (stat as any).tpm || 0;
-          const tpa = stat.tpa || (stat as any).tpat || 0;
-          const ft = stat.ft || (stat as any).ftm || 0;
-          const fta = stat.fta || 0;
-          const gp = stat.gp || 0;
-          const min = stat.min || 0;
-          
-          // Guard against zero division
-          const ppg = gp > 0 ? pts / gp : 0;
-          const rpg = gp > 0 ? trb / gp : 0;
-          const apg = gp > 0 ? ast / gp : 0;
-          const spg = gp > 0 ? stl / gp : 0;
-          const bpg = gp > 0 ? blk / gp : 0;
-          const tpg = gp > 0 ? tp / gp : 0;
-          const mpg = gp > 0 ? min / gp : 0;
-          
-          // Efficiency calculations with guards
-          const fgPct = fga > 0 ? fg / fga : 0;
-          const tpPct = tpa > 0 ? tp / tpa : 0;
-          const ftPct = fta > 0 ? ft / fta : 0;
-          const tsDenom = 2 * (fga + 0.44 * fta);
-          const tsPct = tsDenom > 0 ? pts / tsDenom : 0;
-          const eFgPct = fga > 0 ? (fg + 0.5 * tp) / fga : 0;
-          
-          // Computed values
-          const stocks = stl + blk;
-          
-          // Helper function to add achievement
-          const addAchievement = (achievementId: SeasonAchievementId) => {
+          aggregatedStats.pts += stat.pts || 0;
+          aggregatedStats.trb += stat.trb || ((stat as any).orb || 0) + ((stat as any).drb || 0) || 0;
+          aggregatedStats.ast += stat.ast || 0;
+          aggregatedStats.stl += stat.stl || 0;
+          aggregatedStats.blk += stat.blk || 0;
+          aggregatedStats.fg += stat.fg || 0;
+          aggregatedStats.fga += stat.fga || 0;
+          aggregatedStats.tp += stat.tp || (stat as any).tpm || 0;
+          aggregatedStats.tpa += stat.tpa || (stat as any).tpat || 0;
+          aggregatedStats.ft += stat.ft || (stat as any).ftm || 0;
+          aggregatedStats.fta += stat.fta || 0;
+          aggregatedStats.gp += stat.gp || 0;
+          aggregatedStats.min += stat.min || 0;
+          aggregatedStats.teams.add(stat.tid);
+        }
+        
+        const { pts, trb, ast, stl, blk, fg, fga, tp, tpa, ft, fta, gp, min, teams } = aggregatedStats;
+        
+        // Guard against zero division
+        const ppg = gp > 0 ? pts / gp : 0;
+        const rpg = gp > 0 ? trb / gp : 0;
+        const apg = gp > 0 ? ast / gp : 0;
+        const spg = gp > 0 ? stl / gp : 0;
+        const bpg = gp > 0 ? blk / gp : 0;
+        const tpg = gp > 0 ? tp / gp : 0;
+        const mpg = gp > 0 ? min / gp : 0;
+        
+        // Efficiency calculations with guards
+        const fgPct = fga > 0 ? fg / fga : 0;
+        const tpPct = tpa > 0 ? tp / tpa : 0;
+        const ftPct = fta > 0 ? ft / fta : 0;
+        const tsDenom = 2 * (fga + 0.44 * fta);
+        const tsPct = tsDenom > 0 ? pts / tsDenom : 0;
+        const eFgPct = fga > 0 ? (fg + 0.5 * tp) / fga : 0;
+        
+        // Computed values
+        const stocks = stl + blk;
+        
+        // Helper function to add achievement to all teams played for in the season
+        const addAchievement = (achievementId: SeasonAchievementId) => {
+          for (const tid of Array.from(teams)) {
             if (!seasonIndex[season]) seasonIndex[season] = {};
             if (!seasonIndex[season][tid]) seasonIndex[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
             if (!seasonIndex[season][tid][achievementId]) seasonIndex[season][tid][achievementId] = new Set();
             
             seasonIndex[season][tid][achievementId].add(player.pid);
             basketballEntriesAdded++;
-          };
-          
-          // Scoring & Volume achievements
-          
-          // 30+ PPG (Season): ppg >= 30 and gp >= 50
-          if (ppg >= 30 && gp >= 50) {
-            addAchievement('Season30PPG');
           }
-          
-          // 2,000+ Points (Season): pts >= 2000
-          if (pts >= 2000) {
-            addAchievement('Season2000Points');
-          }
-          
-          // 200+ 3PM (Season): tp >= 200
-          if (tp >= 200) {
-            addAchievement('Season200_3PM');
-          }
-          
-          // Rebounding & Playmaking achievements
-          
-          // 12+ RPG (Season): rpg >= 12 and gp >= 50
-          if (rpg >= 12 && gp >= 50) {
-            addAchievement('Season12RPG');
-          }
-          
-          // 10+ APG (Season): apg >= 10 and gp >= 50
-          if (apg >= 10 && gp >= 50) {
-            addAchievement('Season10APG');
-          }
-          
-          // 800+ Rebounds (Season): trb >= 800
-          if (trb >= 800) {
-            addAchievement('Season800Rebounds');
-          }
-          
-          // 700+ Assists (Season): ast >= 700
-          if (ast >= 700) {
-            addAchievement('Season700Assists');
-          }
-          
-          // Defense achievements
-          
-          // 2.0+ SPG (Season): spg >= 2.0 and gp >= 50
-          if (spg >= 2.0 && gp >= 50) {
-            addAchievement('Season2SPG');
-          }
-          
-          // 2.5+ BPG (Season): bpg >= 2.5 and gp >= 50
-          if (bpg >= 2.5 && gp >= 50) {
-            addAchievement('Season2_5BPG');
-          }
-          
-          // 150+ Steals (Season): stl >= 150
-          if (stl >= 150) {
-            addAchievement('Season150Steals');
-          }
-          
-          // 150+ Blocks (Season): blk >= 150
-          if (blk >= 150) {
-            addAchievement('Season150Blocks');
-          }
-          
-          // 200+ Stocks (Season): (stl + blk) >= 200
-          if (stocks >= 200) {
-            addAchievement('Season200Stocks');
-          }
-          
-          // Efficiency achievements (with attempt qualifiers)
-          
-          // 50/40/90 Club (Season): FG% >= .500 (fga >= 500), 3P% >= .400 (tpa >= 125), FT% >= .900 (fta >= 250)
-          if (fga >= 500 && tpa >= 125 && fta >= 250 && fgPct >= 0.500 && tpPct >= 0.400 && ftPct >= 0.900) {
-            addAchievement('Season50_40_90');
-          }
-          
-          // 60%+ eFG on >= 500 FGA (Season): eFG >= .600, fga >= 500
-          if (eFgPct >= 0.600 && fga >= 500) {
-            addAchievement('Season60eFG500FGA');
-          }
-          
-          // 90%+ FT on >= 250 FTA (Season): ft/fta >= .900, fta >= 250
-          if (ftPct >= 0.900 && fta >= 250) {
-            addAchievement('Season90FT250FTA');
-          }
-          // For SeasonFGPercent: FG% >= 0.400 on >= 300 FGA
-          if (fgPct >= 0.400 && fga >= 300) {
-            addAchievement('SeasonFGPercent');
-          }
-          // For Season3PPercent: 3PT% >= 0.400 on >= 100 3PA
-          if (tpPct >= 0.400 && tpa >= 100) {
-            addAchievement('Season3PPercent');
-          }
-          
-          // Workload / durability achievements
-          
-          // 70+ Games Played (Season): gp >= 70
-          if (gp >= 70) {
-            addAchievement('Season70Games');
-          }
-          
-          // 36.0+ MPG (Season): mpg >= 36.0 and gp >= 50
-          if (mpg >= 36.0 && gp >= 50) {
-            addAchievement('Season36MPG');
-          }
-          
-          // "Combo" seasons achievements
-          
-          // 25/10 Season (PPG/RPG): ppg >= 25 and rpg >= 10 and gp >= 50
-          if (ppg >= 25 && rpg >= 10 && gp >= 50) {
-            addAchievement('Season25_10');
-          }
-          
-          // 25/5/5 Season (PPG/RPG/APG): ppg >= 25 and rpg >= 5 and apg >= 5 and gp >= 50
-          if (ppg >= 25 && rpg >= 5 && apg >= 5 && gp >= 50) {
-            addAchievement('Season25_5_5');
-          }
-          
-          // 20/10/5 Season (PPG/RPG/APG): ppg >= 20 and rpg >= 10 and apg >= 5 and gp >= 50
-          if (ppg >= 20 && rpg >= 10 && apg >= 5 && gp >= 50) {
-            addAchievement('Season20_10_5');
-          }
-          
-          // 1/1/1 Season (SPG/BPG/3PM/G): spg >= 1.0 and bpg >= 1.0 and tpg >= 1.0 and gp >= 50
-          if (spg >= 1.0 && bpg >= 1.0 && tpg >= 1.0 && gp >= 50) {
-            addAchievement('Season1_1_1');
-          }
+        };
+        
+        // Scoring & Volume achievements
+        
+        // 30+ PPG (Season): ppg >= 30 and gp >= 50
+        if (ppg >= 30 && gp >= 50) {
+          addAchievement('Season30PPG');
+        }
+        
+        // 2,000+ Points (Season): pts >= 2000
+        if (pts >= 2000) {
+          addAchievement('Season2000Points');
+        }
+        
+        // 200+ 3PM (Season): tp >= 200
+        if (tp >= 200) {
+          addAchievement('Season200_3PM');
+        }
+        
+        // Rebounding & Playmaking achievements
+        
+        // 12+ RPG (Season): rpg >= 12 and gp >= 50
+        if (rpg >= 12 && gp >= 50) {
+          addAchievement('Season12RPG');
+        }
+        
+        // 10+ APG (Season): apg >= 10 and gp >= 50
+        if (apg >= 10 && gp >= 50) {
+          addAchievement('Season10APG');
+        }
+        
+        // 800+ Rebounds (Season): trb >= 800
+        if (trb >= 800) {
+          addAchievement('Season800Rebounds');
+        }
+        
+        // 700+ Assists (Season): ast >= 700
+        if (ast >= 700) {
+          addAchievement('Season700Assists');
+        }
+        
+        // Defense achievements
+        
+        // 2.0+ SPG (Season): spg >= 2.0 and gp >= 50
+        if (spg >= 2.0 && gp >= 50) {
+          addAchievement('Season2SPG');
+        }
+        
+        // 2.5+ BPG (Season): bpg >= 2.5 and gp >= 50
+        if (bpg >= 2.5 && gp >= 50) {
+          addAchievement('Season2_5BPG');
+        }
+        
+        // 150+ Steals (Season): stl >= 150
+        if (stl >= 150) {
+          addAchievement('Season150Steals');
+        }
+        
+        // 150+ Blocks (Season): blk >= 150
+        if (blk >= 150) {
+          addAchievement('Season150Blocks');
+        }
+        
+        // 200+ Stocks (Season): (stl + blk) >= 200
+        if (stocks >= 200) {
+          addAchievement('Season200Stocks');
+        }
+        
+        // Efficiency achievements (with attempt qualifiers)
+        
+        // 50/40/90 Club (Season): FG% >= .500 (fga >= 500), 3P% >= .400 (tpa >= 125), FT% >= .900 (fta >= 250)
+        if (fga >= 500 && tpa >= 125 && fta >= 250 && fgPct >= 0.500 && tpPct >= 0.400 && ftPct >= 0.900) {
+          addAchievement('Season50_40_90');
+        }
+        
+        // 60%+ eFG on >= 500 FGA (Season): eFG >= .600, fga >= 500
+        if (eFgPct >= 0.600 && fga >= 500) {
+          addAchievement('Season60eFG500FGA');
+        }
+        
+        // 90%+ FT on >= 250 FTA (Season): ft/fta >= .900, fta >= 250
+        if (ftPct >= 0.900 && fta >= 250) {
+          addAchievement('Season90FT250FTA');
+        }
+        // For SeasonFGPercent: FG% >= 0.400 on >= 300 FGA
+        if (fgPct >= 0.400 && fga >= 300) {
+          addAchievement('SeasonFGPercent');
+        }
+        // For Season3PPercent: 3PT% >= 0.400 on >= 100 3PA
+        if (tpPct >= 0.400 && tpa >= 100) {
+          addAchievement('Season3PPercent');
+        }
+        
+        // Workload / durability achievements
+        
+        // 70+ Games Played (Season): gp >= 70
+        if (gp >= 70) {
+          addAchievement('Season70Games');
+        }
+        
+        // 36.0+ MPG (Season): mpg >= 36.0 and gp >= 50
+        if (mpg >= 36.0 && gp >= 50) {
+          addAchievement('Season36MPG');
+        }
+        
+        // "Combo" seasons achievements
+        
+        // 25/10 Season (PPG/RPG): ppg >= 25 and rpg >= 10 and gp >= 50
+        if (ppg >= 25 && rpg >= 10 && gp >= 50) {
+          addAchievement('Season25_10');
+        }
+        
+        // 25/5/5 Season (PPG/RPG/APG): ppg >= 25 and rpg >= 5 and apg >= 5 and gp >= 50
+        if (ppg >= 25 && rpg >= 5 && apg >= 5 && gp >= 50) {
+          addAchievement('Season25_5_5');
+        }
+        
+        // 20/10/5 Season (PPG/RPG/APG): ppg >= 20 and rpg >= 10 and apg >= 5 and gp >= 50
+        if (ppg >= 20 && rpg >= 10 && apg >= 5 && gp >= 50) {
+          addAchievement('Season20_10_5');
+        }
+        
+        // 1/1/1 Season (SPG/BPG/3PM/G): spg >= 1.0 and bpg >= 1.0 and tpg >= 1.0 and gp >= 50
+        if (spg >= 1.0 && bpg >= 1.0 && tpg >= 1.0 && gp >= 50) {
+          addAchievement('Season1_1_1');
         }
       }
     }
@@ -1065,77 +1076,76 @@ export function buildSeasonIndex(
   // Calculate Football GM season achievements (FBSeason4kPassYds) - OPTIMIZED FOR LARGE FILES
   if (sport === 'football') {
     let footballEntriesAdded = 0;
-    console.log('🏈 [OPTIMIZATION] Building football season achievements with memory-efficient processing...');
     
-    // OPTIMIZATION 1: Pre-build season-to-player-stats map to avoid O(n²) filtering
-    const seasonStatsMap = new Map<number, Array<{player: Player, stat: any}>>();
-    
-    // Single pass through all players to build the map
+    // Get all seasons from player stats
+    const allSeasons = new Set<number>();
     for (const player of players) {
-      if (!player.stats) continue;
-      
-      for (const stat of player.stats) {
-        if (stat.season && !stat.playoffs && (stat.gp || 0) > 0 && stat.tid !== -1) {
-          if (!seasonStatsMap.has(stat.season)) {
-            seasonStatsMap.set(stat.season, []);
+      if (player.stats) {
+        for (const stat of player.stats) {
+          if (stat.season && !stat.playoffs) {
+            allSeasons.add(stat.season);
           }
-          seasonStatsMap.get(stat.season)!.push({ player, stat });
         }
       }
     }
     
-    const allSeasons = Array.from(seasonStatsMap.keys()).sort((a, b) => a - b);
-    console.log(`🏈 [OPTIMIZATION] Processing ${allSeasons.length} seasons with ${seasonStatsMap.size} pre-built stat maps`);
-    
-    // OPTIMIZATION 2: Process seasons directly from the pre-built map
-    for (const season of allSeasons) {
-      const seasonPlayerStats = seasonStatsMap.get(season) || [];
-      
-      // Process all stats for this season in one optimized pass
-      for (const { player, stat } of seasonPlayerStats) {
+    // Calculate achievements for each season
+    for (const season of Array.from(allSeasons)) {
+      // Process each player's stats for this season
+      for (const player of players) {
+        if (!player.stats) continue;
         
-        const tid = stat.tid;
+        // Aggregate all regular season stats for this season
+        const seasonStats = player.stats.filter(stat => 
+          stat.season === season && !stat.playoffs && (stat.gp || 0) > 0 && stat.tid !== -1
+        );
+
+        if (seasonStats.length === 0) continue;
+
+        // Aggregate stats
+        const aggregatedStats = {
+          pssYds: 0, rusYds: 0, rec: 0, defSk: 0, defTckSolo: 0, defTckAst: 0,
+          defInt: 0, pssTD: 0, recYds: 0, recTD: 0, rusTD: 0, prYds: 0,
+          krYds: 0, defTckLoss: 0,
+          teams: new Set<number>()
+        };
+
+        for (const stat of seasonStats) {
+          const statData = stat as any;
+          aggregatedStats.pssYds += statData.pssYds || 0;
+          aggregatedStats.rusYds += statData.rusYds || 0;
+          aggregatedStats.rec += statData.rec || 0;
+          aggregatedStats.defSk += statData.defSk || 0;
+          aggregatedStats.defTckSolo += statData.defTckSolo || 0;
+          aggregatedStats.defTckAst += statData.defTckAst || 0;
+          aggregatedStats.defInt += statData.defInt || 0;
+          aggregatedStats.pssTD += statData.pssTD || 0;
+          aggregatedStats.recYds += statData.recYds || 0;
+          aggregatedStats.recTD += statData.recTD || 0;
+          aggregatedStats.rusTD += statData.rusTD || 0;
+          aggregatedStats.prYds += statData.prYds || 0;
+          aggregatedStats.krYds += statData.krYds || 0;
+          aggregatedStats.defTckLoss += statData.defTckLoss || 0;
+          aggregatedStats.teams.add(stat.tid);
+        }
         
-        // OPTIMIZATION 3: Extract stats with efficient access and early termination
-        const statData = stat as any;
-        const pssYds = statData.pssYds || 0;
-        const rusYds = statData.rusYds || 0;
-        const rec = statData.rec || 0;
-        const defSk = statData.defSk || 0;
-        const defTckSolo = statData.defTckSolo || 0;
-        const defTckAst = statData.defTckAst || 0;
-        const defInt = statData.defInt || 0;
-        const pssTD = statData.pssTD || 0;
-        const recYds = statData.recYds || 0;
-        const recTD = statData.recTD || 0;
-        const rusTD = statData.rusTD || 0;
-        const prYds = statData.prYds || 0;
-        const krYds = statData.krYds || 0;
-        const defTckLoss = statData.defTckLoss || 0;
+        const { pssYds, rusYds, rec, defSk, defTckSolo, defTckAst, defInt, pssTD, recYds, recTD, rusTD, prYds, krYds, defTckLoss, teams } = aggregatedStats;
         
         // Pre-compute values once
         const totalTackles = defTckSolo + defTckAst;
         const scrimmageYards = rusYds + recYds;
         const allPurposeYards = rusYds + recYds + prYds + krYds;
         
-        // OPTIMIZATION 4: Early exit if player has no meaningful stats for any achievement
-        if (pssYds < 4000 && rusYds < 1200 && rec < 100 && defSk < 15 && 
-            totalTackles < 140 && defInt < 5 && pssTD < 30 && recYds < 1300 && 
-            recTD < 10 && rusTD < 12 && scrimmageYards < 1600 && allPurposeYards < 2000 && defTckLoss < 15) {
-          continue; // Skip this player - no achievements possible
-        }
-        
-        // OPTIMIZATION 5: Optimized helper function with lazy structure creation
-        const ensureSeasonStructure = () => {
-          if (!seasonIndex[season]) seasonIndex[season] = {};
-          if (!seasonIndex[season][tid]) seasonIndex[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
-        };
-        
+        // Helper function to add achievement to all teams played for in the season
         const addAchievement = (achievementId: SeasonAchievementId) => {
-          ensureSeasonStructure();
-          if (!seasonIndex[season][tid][achievementId]) seasonIndex[season][tid][achievementId] = new Set();
-          seasonIndex[season][tid][achievementId].add(player.pid);
-          footballEntriesAdded++;
+          for (const tid of Array.from(teams)) {
+            if (!seasonIndex[season]) seasonIndex[season] = {};
+            if (!seasonIndex[season][tid]) seasonIndex[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
+            if (!seasonIndex[season][tid][achievementId]) seasonIndex[season][tid][achievementId] = new Set();
+            
+            seasonIndex[season][tid][achievementId].add(player.pid);
+            footballEntriesAdded++;
+          }
         };
         
         // Check for 4,000+ passing yards achievement
@@ -1205,10 +1215,7 @@ export function buildSeasonIndex(
       }
     }
     
-    console.log(`🏈 [OPTIMIZATION] Football achievements completed: ${footballEntriesAdded} entries added`);
-    
-    // OPTIMIZATION 6: Clean up the season stats map to free memory
-    seasonStatsMap.clear();
+    // Debug logging removed for performance
   }
   
   // Calculate Hockey GM season achievements (HKSeason achievements)
@@ -1233,157 +1240,168 @@ export function buildSeasonIndex(
       for (const player of players) {
         if (!player.stats) continue;
         
-        // Get all regular season stats for this season, excluding TOT rows
+        // Aggregate all regular season stats for this season
         const seasonStats = player.stats.filter(stat => 
           stat.season === season && !stat.playoffs && (stat.gp || 0) > 0 && stat.tid !== -1
         );
-        
+
+        if (seasonStats.length === 0) continue;
+
+        // Aggregate stats
+        const aggregatedStats = {
+          evG: 0, ppG: 0, shG: 0, evA: 0, ppA: 0, shA: 0, pm: 0, s: 0,
+          hit: 0, blk: 0, tk: 0, gwG: 0, fow: 0, fol: 0, min: 0, pim: 0,
+          gp: 0, sv: 0, ga: 0, so: 0, gs: 0,
+          teams: new Set<number>()
+        };
+
         for (const stat of seasonStats) {
-          const tid = stat.tid;
-          
-          // Extract all relevant Hockey GM stats from the season stat
-          const evG = (stat as any).evG || 0;
-          const ppG = (stat as any).ppG || 0;
-          const shG = (stat as any).shG || 0;
-          const evA = (stat as any).evA || 0;
-          const ppA = (stat as any).ppA || 0;
-          const shA = (stat as any).shA || 0;
-          const pm = (stat as any).pm || 0;
-          const s = (stat as any).s || 0;  // shots
-          const hit = (stat as any).hit || 0;
-          const blk = (stat as any).blk || 0;
-          const tk = (stat as any).tk || 0;  // takeaways
-          const gwG = (stat as any).gwG || 0;  // game-winning goals
-          const fow = (stat as any).fow || 0;  // faceoffs won
-          const fol = (stat as any).fol || 0;  // faceoffs lost
-          const min = (stat as any).min || 0;  // minutes
-          const pim = (stat as any).pim || 0;  // penalty minutes
-          const gp = stat.gp || 0;
-          
-          // Goalie stats
-          const sv = (stat as any).sv || 0;  // saves
-          const ga = (stat as any).ga || 0;  // goals against
-          const so = (stat as any).so || 0;  // shutouts
-          const gs = (stat as any).gs || 0;  // games started
-          
-          // Computed values
-          const goals = evG + ppG + shG;
-          const assists = evA + ppA + shA;
-          const points = goals + assists;
-          const powerPlayPoints = ppG + ppA;
-          const faceoffTotal = fow + fol;
-          const faceoffPct = faceoffTotal > 0 ? fow / faceoffTotal : 0;
-          const toiPerGame = gp > 0 ? min / gp : 0;
-          const savesTotal = sv + ga;
-          const savePct = savesTotal > 0 ? sv / savesTotal : 0;
-          const gaaRate = min > 0 ? (ga / (min / 60)) : 0;
-          
-          // Helper function to add achievement
-          const addAchievement = (achievementId: SeasonAchievementId) => {
+          const statData = stat as any;
+          aggregatedStats.evG += statData.evG || 0;
+          aggregatedStats.ppG += statData.ppG || 0;
+          aggregatedStats.shG += statData.shG || 0;
+          aggregatedStats.evA += statData.evA || 0;
+          aggregatedStats.ppA += statData.ppA || 0;
+          aggregatedStats.shA += statData.shA || 0;
+          aggregatedStats.pm += statData.pm || 0;
+          aggregatedStats.s += statData.s || 0;
+          aggregatedStats.hit += statData.hit || 0;
+          aggregatedStats.blk += statData.blk || 0;
+          aggregatedStats.tk += statData.tk || 0;
+          aggregatedStats.gwG += statData.gwG || 0;
+          aggregatedStats.fow += statData.fow || 0;
+          aggregatedStats.fol += statData.fol || 0;
+          aggregatedStats.min += statData.min || 0;
+          aggregatedStats.pim += statData.pim || 0;
+          aggregatedStats.gp += stat.gp || 0;
+          aggregatedStats.sv += statData.sv || 0;
+          aggregatedStats.ga += statData.ga || 0;
+          aggregatedStats.so += statData.so || 0;
+          aggregatedStats.gs += statData.gs || 0;
+          aggregatedStats.teams.add(stat.tid);
+        }
+        
+        const { evG, ppG, shG, evA, ppA, shA, pm, s, hit, blk, tk, gwG, fow, fol, min, pim, gp, sv, ga, so, gs, teams } = aggregatedStats;
+        
+        // Computed values
+        const goals = evG + ppG + shG;
+        const assists = evA + ppA + shA;
+        const points = goals + assists;
+        const powerPlayPoints = ppG + ppA;
+        const faceoffTotal = fow + fol;
+        const faceoffPct = faceoffTotal > 0 ? fow / faceoffTotal : 0;
+        const toiPerGame = gp > 0 ? min / gp : 0;
+        const savesTotal = sv + ga;
+        const savePct = savesTotal > 0 ? sv / savesTotal : 0;
+        const gaaRate = min > 0 ? (ga / (min / 60)) : 0;
+        
+        // Helper function to add achievement to all teams played for in the season
+        const addAchievement = (achievementId: SeasonAchievementId) => {
+          for (const tid of Array.from(teams)) {
             if (!seasonIndex[season]) seasonIndex[season] = {};
             if (!seasonIndex[season][tid]) seasonIndex[season][tid] = {} as Record<SeasonAchievementId, Set<number>>;
             if (!seasonIndex[season][tid][achievementId]) seasonIndex[season][tid][achievementId] = new Set();
             
             seasonIndex[season][tid][achievementId].add(player.pid);
             hockeyEntriesAdded++;
-          };
-          
-          // Skater achievements
-          // Check for 40+ goals achievement
-          if (goals >= 40) {
-            addAchievement('HKSeason40Goals');
           }
-          
-          // Check for 60+ assists achievement
-          if (assists >= 60) {
-            addAchievement('HKSeason60Assists');
-          }
-          
-          // Check for 90+ points achievement
-          if (points >= 90) {
-            addAchievement('HKSeason90Points');
-          }
-          
-          // Check for +25 plus/minus achievement
-          if (pm >= 25) {
-            addAchievement('HKSeason25Plus');
-          }
-          
-          // Check for 250+ shots achievement
-          if (s >= 250) {
-            addAchievement('HKSeason250Shots');
-          }
-          
-          // Check for 150+ hits achievement
-          if (hit >= 150) {
-            addAchievement('HKSeason150Hits');
-          }
-          
-          // Check for 100+ blocks achievement
-          if (blk >= 100) {
-            addAchievement('HKSeason100Blocks');
-          }
-          
-          // Check for 60+ takeaways achievement
-          if (tk >= 60) {
-            addAchievement('HKSeason60Takeaways');
-          }
-          
-          // Check for 20+ power-play points achievement
-          if (powerPlayPoints >= 20) {
-            addAchievement('HKSeason20PowerPlay');
-          }
-          
-          // Check for 3+ short-handed goals achievement
-          if (shG >= 3) {
-            addAchievement('HKSeason3SHGoals');
-          }
-          
-          // Check for 7+ game-winning goals achievement
-          if (gwG >= 7) {
-            addAchievement('HKSeason7GWGoals');
-          }
-          
-          // Check for 55%+ faceoff win rate achievement (with qualifier)
-          if (faceoffTotal >= 600 && faceoffPct >= 0.55) {
-            addAchievement('HKSeason55FaceoffPct');
-          }
-          
-          // Check for 22:00+ TOI per game achievement
-          if (toiPerGame >= 22) {
-            addAchievement('HKSeason22TOI');
-          }
-          
-          // Check for 70+ PIM achievement
-          if (pim >= 70) {
-            addAchievement('HKSeason70PIM');
-          }
-          
-          // Goalie achievements (with qualifiers)
-          // Check for .920+ save percentage achievement (with qualifier)
-          if (min >= 1500 && savePct >= 0.920) {
-            addAchievement('HKSeason920SavePct');
-          }
-          
-          // Check for ≤2.60 GAA achievement (with qualifier)
-          if (min >= 1500 && gaaRate <= 2.60) {
-            addAchievement('HKSeason260GAA');
-          }
-          
-          // Check for 6+ shutouts achievement
-          if (so >= 6) {
-            addAchievement('HKSeason6Shutouts');
-          }
-          
-          // Check for 2000+ saves achievement
-          if (sv >= 2000) {
-            addAchievement('HKSeason2000Saves');
-          }
-          
-          // Check for 60+ starts achievement
-          if (gs >= 60) {
-            addAchievement('HKSeason60Starts');
-          }
+        };
+        
+        // Skater achievements
+        // Check for 40+ goals achievement
+        if (goals >= 40) {
+          addAchievement('HKSeason40Goals');
+        }
+        
+        // Check for 60+ assists achievement
+        if (assists >= 60) {
+          addAchievement('HKSeason60Assists');
+        }
+        
+        // Check for 90+ points achievement
+        if (points >= 90) {
+          addAchievement('HKSeason90Points');
+        }
+        
+        // Check for +25 plus/minus achievement
+        if (pm >= 25) {
+          addAchievement('HKSeason25Plus');
+        }
+        
+        // Check for 250+ shots achievement
+        if (s >= 250) {
+          addAchievement('HKSeason250Shots');
+        }
+        
+        // Check for 150+ hits achievement
+        if (hit >= 150) {
+          addAchievement('HKSeason150Hits');
+        }
+        
+        // Check for 100+ blocks achievement
+        if (blk >= 100) {
+          addAchievement('HKSeason100Blocks');
+        }
+        
+        // Check for 60+ takeaways achievement
+        if (tk >= 60) {
+          addAchievement('HKSeason60Takeaways');
+        }
+        
+        // Check for 20+ power-play points achievement
+        if (powerPlayPoints >= 20) {
+          addAchievement('HKSeason20PowerPlay');
+        }
+        
+        // Check for 3+ short-handed goals achievement
+        if (shG >= 3) {
+          addAchievement('HKSeason3SHGoals');
+        }
+        
+        // Check for 7+ game-winning goals achievement
+        if (gwG >= 7) {
+          addAchievement('HKSeason7GWGoals');
+        }
+        
+        // Check for 55%+ faceoff win rate achievement (with qualifier)
+        if (faceoffTotal >= 600 && faceoffPct >= 0.55) {
+          addAchievement('HKSeason55FaceoffPct');
+        }
+        
+        // Check for 22:00+ TOI per game achievement
+        if (toiPerGame >= 22) {
+          addAchievement('HKSeason22TOI');
+        }
+        
+        // Check for 70+ PIM achievement
+        if (pim >= 70) {
+          addAchievement('HKSeason70PIM');
+        }
+        
+        // Goalie achievements (with qualifiers)
+        // Check for .920+ save percentage achievement (with qualifier)
+        if (min >= 1500 && savePct >= 0.920) {
+          addAchievement('HKSeason920SavePct');
+        }
+        
+        // Check for ≤2.60 GAA achievement (with qualifier)
+        if (min >= 1500 && gaaRate <= 2.60) {
+          addAchievement('HKSeason260GAA');
+        }
+        
+        // Check for 6+ shutouts achievement
+        if (so >= 6) {
+          addAchievement('HKSeason6Shutouts');
+        }
+        
+        // Check for 2000+ saves achievement
+        if (sv >= 2000) {
+          addAchievement('HKSeason2000Saves');
+        }
+        
+        // Check for 60+ starts achievement
+        if (gs >= 60) {
+          addAchievement('HKSeason60Starts');
         }
       }
     }

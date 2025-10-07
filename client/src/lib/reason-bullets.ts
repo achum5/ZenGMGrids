@@ -171,7 +171,7 @@ function getStatFieldForAchievement(achievementId: SeasonAchievementId): string 
 }
 
 // Helper function to calculate seasons where player achieved Season* statistical thresholds
-function getSeasonsForSeasonStatAchievement(player: Player, achievementId: SeasonAchievementId, customThreshold?: number, customOperator?: '≥' | '≤', minGames: number = 1): string[] {
+export function getSeasonsForSeasonStatAchievement(player: Player, achievementId: SeasonAchievementId, customThreshold?: number, customOperator?: '≥' | '≤', minGames: number = 1): string[] {
   if (!player.stats || player.stats.length === 0) return [];
   
   const qualifyingSeasons: number[] = [];
@@ -493,7 +493,7 @@ function groupConsecutiveYears(years: number[]): string[] {
 }
 
 // Helper function to format season list for bullets
-function formatBulletSeasonList(seasons: string[], isFinalsOrCFMVP: boolean = false): string {
+export function formatBulletSeasonList(seasons: string[], isFinalsOrCFMVP: boolean = false): string {
   if (seasons.length === 0) return '';
   if (seasons.length === 1) return seasons[0];
   
@@ -721,6 +721,23 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
   achLabel = achLabel.replace(/\s*\(Season\)/gi, '').trim();
   
   const seasons = getSeasonAchievementSeasons(player, achievementId, teams, undefined, sport);
+  
+  // Special handling for "1/1/1 Season" when the player does not meet the criteria for the team
+  if (achievementId === 'Season1_1_1' && seasons.length === 0) {
+    const all111Seasons = getSeasonsForSeasonStatAchievement(player, 'Season1_1_1', 1, '≥', 1);
+    if (all111Seasons.length > 0) {
+      const seasonStr = formatBulletSeasonList(all111Seasons, false);
+      return {
+        text: `had a 1/1/1 season (${seasonStr}), but not with this team`,
+        type: 'award'
+      };
+    } else {
+      return {
+        text: `did not ever have a 1/1/1 season`,
+        type: 'award'
+      };
+    }
+  }
   
   const seasonStr = formatBulletSeasonList(seasons, false);
   
