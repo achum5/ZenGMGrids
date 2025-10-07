@@ -2383,17 +2383,11 @@ export function generateFeedbackMessage(
   } else if (rowMet && !colMet) {
     const positivePhrase = rowPhraseMet.replace(`${player.name} `, "");
     const negativePhrase = colPhraseNotMet.replace(`${player.name} `, "");
-    if (negativePhrase.startsWith("was") || negativePhrase.startsWith("is")) {
-      return `${player.name} ${positivePhrase}, but ${negativePhrase}.`;
-    }
-    return `${player.name} ${positivePhrase}, but they ${negativePhrase}.`;
+    return `${player.name} ${positivePhrase}, but ${negativePhrase}.`;
   } else if (!rowMet && colMet) {
     const positivePhrase = colPhraseMet.replace(`${player.name} `, "");
     const negativePhrase = rowPhraseNotMet.replace(`${player.name} `, "");
-    if (negativePhrase.startsWith("was") || negativePhrase.startsWith("is")) {
-      return `${player.name} ${positivePhrase}, but ${negativePhrase}.`;
-    }
-    return `${player.name} ${positivePhrase}, but they ${negativePhrase}.`;
+    return `${player.name} ${positivePhrase}, but ${negativePhrase}.`;
   } else {
     // !rowMet && !colMet
     const rowNegative = extractNegativeObjectAndVerb(
