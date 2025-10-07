@@ -2458,6 +2458,59 @@ function checkConstraint(
     }
     // ** END OF MANUAL FIX **
 
+    // ** START OF MANUAL FIX for playedAtAge... **
+    if (baseAchievementId.startsWith("playedAtAge")) {
+      const age = parsedCustom
+        ? parsedCustom.threshold
+        : parseInt(
+            baseAchievementId.match(/playedAtAge(\d+)Plus/)?.[1] || "40",
+            10
+          );
+      const operator = parsedCustom?.operator === "≤" ? "<=" : ">=";
+
+      let minAge = 999;
+      let maxAge = 0;
+      let hasPlayed = false;
+
+      player.stats?.forEach((s) => {
+        if (s.playoffs || (s.gp || 0) === 0 || !player.born?.year) return;
+        hasPlayed = true;
+        const currentAge = s.season - player.born.year;
+        minAge = Math.min(minAge, currentAge);
+        maxAge = Math.max(maxAge, currentAge);
+      });
+
+      if (!hasPlayed) return false;
+
+      if (operator === ">=") {
+        return maxAge >= age;
+      } else {
+        // operator is "<="
+        return minAge <= age;
+      }
+    }
+    // ** END OF MANUAL FIX **
+
+    // ** START OF MANUAL FIX for royLaterMVP **
+    if (baseAchievementId === "royLaterMVP") {
+      const royAward = player.awards?.find((a) =>
+        a.type?.includes("Rookie of the Year")
+      );
+      const mvpAwards = player.awards?.filter((a) =>
+        a.type?.includes("Most Valuable Player")
+      );
+
+      if (!royAward?.season || !mvpAwards || mvpAwards.length === 0) {
+        return false;
+      }
+
+      // Check if there's at least one MVP award with a season later than the ROY award
+      return mvpAwards.some(
+        (mvp) => mvp.season && mvp.season > royAward.season!
+      );
+    }
+    // ** END OF MANUAL FIX **
+
     const achievement = allAchievements.find(
       (a) => a.id === baseAchievementId
     );
@@ -2476,7 +2529,7 @@ function checkConstraint(
         // "played15PlusSeasons" is now handled above
         "played5PlusFranchises",
         "playedInThreeDecades",
-        "royLaterMVP",
+        // "royLaterMVP" is now handled above
       ];
 
       const isCareerAchievement =
@@ -2567,14 +2620,17 @@ function getAchievementDetails(
   const getAwardSeasons = (awardTypes: string[]) => {
     const seasons =
       player.awards
-        ?.filter((a) => awardTypes.some((type) => a.type?.includes(type)))
+        ?.filter(
+          (a) =>
+            a.season !== undefined &&
+            awardTypes.some((type) => a.type?.includes(type))
+        )
         .map((a) => a.season)
-        .sort((a, b) => a - b) || [];
-    if (seasons.length > 0) {
+        .sort((a, b) => a - b) as number[] | undefined;
+
+    if (seasons && seasons.length > 0) {
       isPlural = seasons.length > 1;
-      return seasons.length === 1
-        ? seasons[0].toString()
-        : `${seasons[0]}–${seasons[seasons.length - 1]}`;
+      return formatYearsWithRanges(seasons);
     }
     return undefined;
   };
@@ -2751,44 +2807,46 @@ function getAchievementDetails(
     years = getAwardSeasons(["Three-Point Contest Winner"]);
   } else if (baseAchievementId === "dunkContestWinner") {
     years = getAwardSeasons(["Slam Dunk Contest Winner"]);
-  } else if (baseAchievementId === "playedAtAge40Plus") {
-    const seasonsAtAge40Plus =
+  } else if (
+    baseAchievementId.startsWith("playedAtAge") &&
+    baseAchievementId.endsWith("Plus")
+  ) {
+    const age = parsedCustom
+      ? parsedCustom.threshold
+      : parseInt(
+          baseAchievementId.match(/playedAtAge(\d+)Plus/)?.[1] || "40",
+          10
+        );
+    const seasonsAtAgePlus =
       player.stats
         ?.filter(
           (s) =>
             !s.playoffs &&
             (s.gp || 0) > 0 &&
-            s.season - (player.born?.year || 0) >= 40
+            s.season - (player.born?.year || 0) >= age
         )
         .map((s) => s.season)
         .sort((a, b) => a - b) || [];
-    if (seasonsAtAge40Plus.length > 0) {
-      years =
-        seasonsAtAge40Plus.length === 1
-          ? seasonsAtAge40Plus[0].toString()
-          : `${seasonsAtAge40Plus[0]}–${
-              seasonsAtAge40Plus[seasonsAtAge40Plus.length - 1]
-            }`;
+    if (seasonsAtAgePlus.length > 0) {
+      years = formatYearsWithRanges(seasonsAtAgePlus);
     }
   } else if (baseAchievementId === "royLaterMVP") {
-    const roySeasons =
+    const royAward = player.awards?.find((a) =>
+      a.type?.includes("Rookie of the Year")
+    );
+    const mvpAwards =
       player.awards
-        ?.filter((a) => a.type?.includes("Rookie of the Year"))
-        .map((a) => a.season) || [];
-    const mvpSeasons =
-      player.awards
-        ?.filter((a) => a.type?.includes("Most Valuable Player"))
-        .map((a) => a.season) || [];
-    if (roySeasons.length > 0 && mvpSeasons.length > 0) {
-      const combinedYears = [...new Set([...roySeasons, ...mvpSeasons])].sort(
-        (a, b) => a - b
-      );
-      years =
-        combinedYears.length === 1
-          ? combinedYears[0].toString()
-          : `${combinedYears[0]}–${
-              combinedYears[combinedYears.length - 1]
-            }`;
+        ?.filter(
+          (a) =>
+            a.season !== undefined && a.type?.includes("Most Valuable Player")
+        )
+        .map((a) => a.season)
+        .sort((a, b) => a - b) as number[] | undefined;
+
+    if (royAward?.season && mvpAwards && mvpAwards.length > 0) {
+      const royYear = royAward.season;
+      const mvpYears = formatYearsWithRanges(mvpAwards);
+      years = `(ROY ${royYear}; MVP ${mvpYears})`;
     }
   } else if (
     baseAchievementId.includes("playedIn") &&
@@ -2805,12 +2863,7 @@ function getAchievementDetails(
           .map((s) => s.season)
           .sort((a, b) => a - b) || [];
       if (playedSeasonsInDecade.length > 0) {
-        years =
-          playedSeasonsInDecade.length === 1
-            ? playedSeasonsInDecade[0].toString()
-            : `${playedSeasonsInDecade[0]}–${
-                playedSeasonsInDecade[playedSeasonsInDecade.length - 1]
-              }`;
+        years = formatYearsWithRanges(playedSeasonsInDecade);
       }
     }
   } else if (
@@ -2876,16 +2929,15 @@ function getAchievementDetails(
     if (field) {
       const leaderSeasons =
         player.awards
-          ?.filter((a) => a.type?.includes(`${leaderType} Leader`))
+          ?.filter(
+            (a) =>
+              a.season !== undefined &&
+              a.type?.includes(`${leaderType} Leader`)
+          )
           .map((a) => a.season)
-          .sort((a, b) => a - b) || [];
-      if (leaderSeasons.length > 0) {
-        years =
-          leaderSeasons.length === 1
-            ? leaderSeasons[0].toString()
-            : `${leaderSeasons[0]}–${
-                leaderSeasons[leaderSeasons.length - 1]
-              }`;
+          .sort((a, b) => a - b) as number[] | undefined;
+      if (leaderSeasons && leaderSeasons.length > 0) {
+        years = formatYearsWithRanges(leaderSeasons);
         isPlural = leaderSeasons.length > 1;
       }
     }
@@ -3038,18 +3090,21 @@ function getConstraintPhrase(
           awardLabel.startsWith("all-") ? "an" : "a"
         } ${awardLabel}`;
       }
-    } else if (
-      ["threePointContestWinner", "dunkContestWinner"].includes(
-        baseAchievementId
-      )
-    ) {
-      const contestName = label.replace(" Champion", "").toLowerCase();
+    } else if (baseAchievementId === "threePointContestWinner") {
       if (met) {
-        return `${playerName} won the ${contestName}${
+        return `${playerName} won the 3-Point Contest${
           years ? ` (${years})` : ""
         }`;
       } else {
-        return `${playerName} never won the ${contestName}`;
+        return `${playerName} never won the 3-Point Contest`;
+      }
+    } else if (baseAchievementId === "dunkContestWinner") {
+      if (met) {
+        return `${playerName} won the Slam Dunk Contest${
+          years ? ` (${years})` : ""
+        }`;
+      } else {
+        return `${playerName} never won the Slam Dunk Contest`;
       }
     } else if (
       baseAchievementId.startsWith("Season") ||
@@ -3108,21 +3163,32 @@ function getConstraintPhrase(
       } else {
         return `${playerName} was never named to an ${awardLabel}`;
       }
-    } else if (baseAchievementId === "playedAtAge40Plus") {
+    } else if (baseAchievementId.startsWith("playedAtAge")) {
+      const age = parsedCustom
+        ? parsedCustom.threshold
+        : parseInt(
+            baseAchievementId.match(/playedAtAge(\d+)Plus/)?.[1] || "40",
+            10
+          );
+      const operator = parsedCustom?.operator === "≤" ? "<=" : ">=";
+
+      const phrase =
+        operator === ">="
+          ? `played at age ${age}+`
+          : `played at age ${age} or younger`;
+
       if (met) {
-        return `${playerName} played at Age 40+${
-          years ? ` (${years})` : ""
-        }`;
+        return `${playerName} ${phrase}${years ? ` (${years})` : ""}`;
       } else {
-        return `${playerName} did not play at Age 40+`;
+        return `${playerName} never ${phrase}`;
       }
     } else if (baseAchievementId === "royLaterMVP") {
       if (met) {
-        return `${playerName} was a ROY who later won MVP${
-          years ? ` (${years})` : ""
+        return `${playerName} won Rookie of the Year and later won MVP${
+          years ? ` ${years}` : ""
         }`;
       } else {
-        return `${playerName} was not a ROY who later won MVP`;
+        return `${playerName} never ever won Rookie of the Year and a later MVP`;
       }
     } else if (
       baseAchievementId.includes("playedIn") &&
@@ -3152,7 +3218,7 @@ function getConstraintPhrase(
       }
     } else if (baseAchievementId === "isHallOfFamer") {
       if (met) {
-        return `${playerName} is a Hall of Famer${
+        return `${playerName} was inducted into the Hall of Fame${
           years ? ` (${years})` : ""
         }`;
       } else {
@@ -3172,7 +3238,9 @@ function getConstraintPhrase(
           isPlural ? "s" : ""
         }`;
       } else {
-        return `${playerName} did not play for 5+ franchises`;
+        return `${playerName} only played for ${value} franchise${
+          isPlural ? "s" : ""
+        }`;
       }
     } else if (baseAchievementId === "isPick1Overall") {
       if (met) {
@@ -3302,12 +3370,11 @@ function extractNegativeObjectAndVerb(
   if (cleanedPhrase.startsWith("never played for ")) {
     return {
       object: cleanedPhrase.replace("never played for ", ""),
-      verb: "played for",
+      verb: "play for",
     };
   } else if (cleanedPhrase.startsWith("was never an ")) {
     return { object: cleanedPhrase.replace("was never ", ""), verb: "was" };
   } else if (cleanedPhrase.startsWith("was never ")) {
-    // Generic "was never" for other awards
     return { object: cleanedPhrase.replace("was never ", ""), verb: "was" };
   } else if (cleanedPhrase.startsWith("did not achieve ")) {
     return {
@@ -3317,37 +3384,48 @@ function extractNegativeObjectAndVerb(
   } else if (cleanedPhrase.startsWith("did not play in the ")) {
     return {
       object: cleanedPhrase.replace("did not play in the ", ""),
-      verb: "played in",
+      verb: "play in",
     };
   } else if (cleanedPhrase.startsWith("did not debut in the ")) {
     return {
       object: cleanedPhrase.replace("did not debut in the ", ""),
-      verb: "debuted in",
+      verb: "debut in",
     };
   } else if (cleanedPhrase.startsWith("is not a Hall of Famer")) {
     return { object: "a Hall of Famer", verb: "is" };
-  } else if (cleanedPhrase.startsWith("did not play ")) {
-    // for played15PlusSeasons
+  } else if (cleanedPhrase.startsWith("only played ")) {
     return {
-      object: cleanedPhrase.replace("did not play ", ""),
-      verb: "played",
+      object: cleanedPhrase.replace("only played ", ""),
+      verb: "play",
     };
-  } else if (cleanedPhrase.startsWith("did not play for ")) {
-    // for played5PlusFranchises
+  } else if (cleanedPhrase.startsWith("only played for ")) {
     return {
-      object: cleanedPhrase.replace("did not play for ", ""),
-      verb: "played for",
+      object: cleanedPhrase.replace("only played for ", ""),
+      verb: "play for",
     };
   } else if (cleanedPhrase.startsWith("was not Undrafted")) {
     return { object: "Undrafted", verb: "was" };
-  } else if (cleanedPhrase.startsWith("was not drafted as a teenager")) {
-    return { object: "drafted as a teenager", verb: "was" };
+  } else if (cleanedPhrase.startsWith("was drafted at age ")) {
+    return {
+      object: `at age ${cleanedPhrase.replace("was drafted at age ", "")}`,
+      verb: "was drafted",
+    };
   } else if (cleanedPhrase.startsWith("was born in the US")) {
     return { object: "born outside the US", verb: "was" }; // Special case for negation
+  } else if (cleanedPhrase.startsWith("never ever won ")) {
+    return {
+      object: cleanedPhrase.replace("never ever won ", ""),
+      verb: "ever win",
+    };
   } else if (cleanedPhrase.startsWith("never won the ")) {
     return {
       object: cleanedPhrase.replace("never won the ", ""),
-      verb: "won",
+      verb: "win the",
+    };
+  } else if (cleanedPhrase.startsWith("never won a ")) {
+    return {
+      object: cleanedPhrase.replace("never won a ", ""),
+      verb: "win a",
     };
   } else if (cleanedPhrase.startsWith("did not average ")) {
     return {
@@ -3361,20 +3439,18 @@ function extractNegativeObjectAndVerb(
     };
   } else if (cleanedPhrase.startsWith("was never League ")) {
     return { object: cleanedPhrase.replace("was never ", ""), verb: "was" };
-  } else if (cleanedPhrase.startsWith("never won a ")) {
-    return {
-      object: cleanedPhrase.replace("never won a ", ""),
-      verb: "won",
-    };
   } else if (cleanedPhrase.startsWith("was never named to an ")) {
     return {
-      object: cleanedPhrase.replace("was never named to an ", ""),
-      verb: "was named to",
+      object: `named to an ${cleanedPhrase.replace(
+        "was never named to an ",
+        ""
+      )}`,
+      verb: "was",
     };
-  } else if (cleanedPhrase.startsWith("did not play at Age ")) {
+  } else if (cleanedPhrase.startsWith("never played at age ")) {
     return {
-      object: cleanedPhrase.replace("did not play at ", ""),
-      verb: "played at",
+      object: cleanedPhrase.replace("never played at ", ""),
+      verb: "play at",
     };
   }
   // Fallback for unhandled or generic cases
