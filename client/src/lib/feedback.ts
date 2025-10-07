@@ -2381,15 +2381,19 @@ export function generateFeedbackMessage(
       ""
     )}. (Unexpected: This player meets both criteria.)`;
   } else if (rowMet && !colMet) {
-    return `${player.name} ${rowPhraseMet.replace(
-      `${player.name} `,
-      ""
-    )}, but ${colPhraseNotMet.replace(`${player.name} `, "")}.`;
+    const positivePhrase = rowPhraseMet.replace(`${player.name} `, "");
+    const negativePhrase = colPhraseNotMet.replace(`${player.name} `, "");
+    if (negativePhrase.startsWith("was") || negativePhrase.startsWith("is")) {
+      return `${player.name} ${positivePhrase}, but ${negativePhrase}.`;
+    }
+    return `${player.name} ${positivePhrase}, but they ${negativePhrase}.`;
   } else if (!rowMet && colMet) {
-    return `${player.name} ${colPhraseMet.replace(
-      `${player.name} `,
-      ""
-    )}, but ${rowPhraseNotMet.replace(`${player.name} `, "")}.`;
+    const positivePhrase = colPhraseMet.replace(`${player.name} `, "");
+    const negativePhrase = rowPhraseNotMet.replace(`${player.name} `, "");
+    if (negativePhrase.startsWith("was") || negativePhrase.startsWith("is")) {
+      return `${player.name} ${positivePhrase}, but ${negativePhrase}.`;
+    }
+    return `${player.name} ${positivePhrase}, but they ${negativePhrase}.`;
   } else {
     // !rowMet && !colMet
     const rowNegative = extractNegativeObjectAndVerb(
@@ -2428,32 +2432,79 @@ function checkConstraint(
   otherConstraint?: GridConstraint // Add otherConstraint here
 ): boolean {
   if (constraint.type === "team") {
-    return player.stats?.some((s) => s.tid === constraint.tid && !s.playoffs) || false;
-  } else if (constraint.type === "achievement") {
-    const achievement = allAchievements.find(
-      (a) => a.id === constraint.achievementId
+    return (
+      player.stats?.some(
+        (s) => s.tid === constraint.tid && !s.playoffs && (s.gp || 0) > 0
+      ) || false
     );
+  } else if (constraint.type === "achievement") {
+    if (!constraint.achievementId) return false;
+
+    const parsedCustom = parseCustomAchievementId(constraint.achievementId);
+    const baseAchievementId = parsedCustom
+      ? parsedCustom.baseId
+      : constraint.achievementId;
+
+    // ** START OF MANUAL FIX for played15PlusSeasons **
+    if (baseAchievementId === "played15PlusSeasons") {
+      const seasonCount = new Set(
+        player.stats
+          ?.filter((s) => !s.playoffs && (s.gp || 0) > 0)
+          .map((s) => s.season)
+      ).size;
+      const threshold = parsedCustom ? parsedCustom.threshold : 15;
+      const operator = parsedCustom?.operator === "≤" ? "<=" : ">=";
+
+      if (operator === ">=") {
+        return seasonCount >= threshold;
+      } else {
+        // operator is "<="
+        return seasonCount <= threshold;
+      }
+    }
+    // ** END OF MANUAL FIX **
+
+    const achievement = allAchievements.find(
+      (a) => a.id === baseAchievementId
+    );
+
     if (achievement) {
       let teamIdForAchievement: number | undefined;
-      let seasonForAchievement: number | undefined;
 
-      // If the other constraint is a team, use its teamId and infer a season if possible
-      if (otherConstraint?.type === "team") {
+      const CAREER_ACHIEVEMENTS = [
+        "isHallOfFamer",
+        "isPick1Overall",
+        "isFirstRoundPick",
+        "isSecondRoundPick",
+        "isUndrafted",
+        "draftedTeen",
+        "bornOutsideUS50DC",
+        // "played15PlusSeasons" is now handled above
+        "played5PlusFranchises",
+        "playedInThreeDecades",
+        "royLaterMVP",
+      ];
+
+      const isCareerAchievement =
+        CAREER_ACHIEVEMENTS.includes(baseAchievementId) ||
+        baseAchievementId.startsWith("career") ||
+        (baseAchievementId.includes("playedIn") &&
+          baseAchievementId.endsWith("s")) ||
+        (baseAchievementId.includes("debutedIn") &&
+          baseAchievementId.endsWith("s"));
+
+      if (otherConstraint?.type === "team" && !isCareerAchievement) {
         teamIdForAchievement = otherConstraint.tid;
-        // For team constraints, we need to find a season where the player played for that team
-        // This is a simplification; a more robust solution might involve iterating through seasons
-        // or having the season passed explicitly from the grid cell context.
-        // For now, we'll assume if a team constraint is present, we're looking for *any* season
-        // where the player met the achievement *with that team*.
-        // However, the `playerMeetsAchievement` function will handle the season iteration.
       }
+
+      const operator = parsedCustom?.operator === "≤" ? "<=" : ">=";
+
       return playerMeetsAchievement(
         player,
-        achievement.id,
+        constraint.achievementId, // Pass the original, full ID
         seasonIndex,
-        ">=",
-        teamIdForAchievement,
-        seasonForAchievement
+        operator,
+        teamIdForAchievement
       );
     }
   }
@@ -2503,7 +2554,10 @@ function getAchievementDetails(
   isPlural?: boolean;
   isAverage?: boolean;
 } | null {
-  const achievement = allAchievements.find((a) => a.id === achievementId);
+  const parsedCustom = parseCustomAchievementId(achievementId);
+  const baseAchievementId = parsedCustom ? parsedCustom.baseId : achievementId;
+
+  const achievement = allAchievements.find((a) => a.id === baseAchievementId);
   if (!achievement) return null;
 
   const baseLabel =
@@ -2532,140 +2586,140 @@ function getAchievementDetails(
   };
 
   // Logic to extract details based on achievement type
-  if (achievementId.startsWith("career")) {
+  if (baseAchievementId.startsWith("career")) {
     // Career statistical milestones
-    if (achievementId.includes("Points")) {
+    if (baseAchievementId.includes("Points")) {
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + (s.pts || 0), 0)
         ?.toLocaleString();
-    } else if (achievementId.includes("Rebounds")) {
+    } else if (baseAchievementId.includes("Rebounds")) {
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + (s.trb || 0), 0)
         ?.toLocaleString();
-    } else if (achievementId.includes("Assists")) {
+    } else if (baseAchievementId.includes("Assists")) {
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + (s.ast || 0), 0)
         ?.toLocaleString();
-    } else if (achievementId.includes("Steals")) {
+    } else if (baseAchievementId.includes("Steals")) {
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + (s.stl || 0), 0)
         ?.toLocaleString();
-    } else if (achievementId.includes("Blocks")) {
+    } else if (baseAchievementId.includes("Blocks")) {
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + (s.blk || 0), 0)
         ?.toLocaleString();
-    } else if (achievementId.includes("Threes")) {
+    } else if (baseAchievementId.includes("Threes")) {
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + ((s as any).tpm || (s as any).tp || 0), 0)
         ?.toLocaleString();
-    } else if (achievementId.includes("PassTDs")) {
+    } else if (baseAchievementId.includes("PassTDs")) {
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + ((s as any).pssTD || 0), 0)
         ?.toLocaleString();
-    } else if (achievementId.includes("RushYds")) {
+    } else if (baseAchievementId.includes("RushYds")) {
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + ((s as any).rusYds || 0), 0)
         ?.toLocaleString();
-    } else if (achievementId.includes("RushTDs")) {
+    } else if (baseAchievementId.includes("RushTDs")) {
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + ((s as any).rusTD || 0), 0)
         ?.toLocaleString();
-    } else if (achievementId.includes("RecYds")) {
+    } else if (baseAchievementId.includes("RecYds")) {
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + ((s as any).recYds || 0), 0)
         ?.toLocaleString();
-    } else if (achievementId.includes("RecTDs")) {
+    } else if (baseAchievementId.includes("RecTDs")) {
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + ((s as any).recTD || 0), 0)
         ?.toLocaleString();
-    } else if (achievementId.includes("Sacks")) {
+    } else if (baseAchievementId.includes("Sacks")) {
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + ((s as any).sks || (s as any).defSk || 0), 0)
         ?.toLocaleString();
-    } else if (achievementId.includes("Ints")) {
+    } else if (baseAchievementId.includes("Ints")) {
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + ((s as any).defInt || 0), 0)
         ?.toLocaleString();
-    } else if (achievementId.includes("Hits")) {
+    } else if (baseAchievementId.includes("Hits")) {
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + ((s as any).h || 0), 0)
         ?.toLocaleString();
-    } else if (achievementId.includes("HRs")) {
+    } else if (baseAchievementId.includes("HRs")) {
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + ((s as any).hr || 0), 0)
         ?.toLocaleString();
-    } else if (achievementId.includes("RBIs")) {
+    } else if (baseAchievementId.includes("RBIs")) {
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + ((s as any).rbi || 0), 0)
         ?.toLocaleString();
-    } else if (achievementId.includes("SBs")) {
+    } else if (baseAchievementId.includes("SBs")) {
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + ((s as any).sb || 0), 0)
         ?.toLocaleString();
-    } else if (achievementId.includes("Runs")) {
+    } else if (baseAchievementId.includes("Runs")) {
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + ((s as any).r || 0), 0)
         ?.toLocaleString();
-    } else if (achievementId.includes("Wins") && sport === "baseball") {
+    } else if (baseAchievementId.includes("Wins") && sport === "baseball") {
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + ((s as any).w || 0), 0)
         ?.toLocaleString();
-    } else if (achievementId.includes("Ks")) {
+    } else if (baseAchievementId.includes("Ks")) {
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + ((s as any).soPit || 0), 0)
         ?.toLocaleString();
-    } else if (achievementId.includes("Saves") && sport === "baseball") {
+    } else if (baseAchievementId.includes("Saves") && sport === "baseball") {
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + ((s as any).sv || 0), 0)
         ?.toLocaleString();
-    } else if (achievementId.includes("Goals") && sport === "hockey") {
+    } else if (baseAchievementId.includes("Goals") && sport === "hockey") {
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + ((s as any).goals || 0), 0)
         ?.toLocaleString();
-    } else if (achievementId.includes("Assists") && sport === "hockey") {
+    } else if (baseAchievementId.includes("Assists") && sport === "hockey") {
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + ((s as any).assists || 0), 0)
         ?.toLocaleString();
-    } else if (achievementId.includes("Points") && sport === "hockey") {
+    } else if (baseAchievementId.includes("Points") && sport === "hockey") {
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + ((s as any).points || 0), 0)
         ?.toLocaleString();
-    } else if (achievementId.includes("Wins") && sport === "hockey") {
+    } else if (baseAchievementId.includes("Wins") && sport === "hockey") {
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + ((s as any).wins || 0), 0)
         ?.toLocaleString();
-    } else if (achievementId.includes("Shutouts") && sport === "hockey") {
+    } else if (baseAchievementId.includes("Shutouts") && sport === "hockey") {
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + ((s as any).shutouts || 0), 0)
         ?.toLocaleString();
     }
-  } else if (achievementId.startsWith("Season")) {
+  } else if (baseAchievementId.startsWith("Season")) {
     // For ALL Season* achievements, use the robust logic from reason-bullets.
     const qualifyingSeasons = getSeasonsForSeasonStatAchievement(
       player,
@@ -2679,31 +2733,31 @@ function getAchievementDetails(
       isPlural = qualifyingSeasons.length > 1;
     }
     // No single "value" for these, so we leave it undefined.
-  } else if (achievementId === "AllStar") {
+  } else if (baseAchievementId === "AllStar") {
     years = getAwardSeasons(["All-Star"]);
-  } else if (achievementId === "MVP") {
+  } else if (baseAchievementId === "MVP") {
     years = getAwardSeasons(["Most Valuable Player"]);
-  } else if (achievementId === "DPOY") {
+  } else if (baseAchievementId === "DPOY") {
     years = getAwardSeasons(["Defensive Player of the Year", "DPOY"]);
-  } else if (achievementId === "ROY") {
+  } else if (baseAchievementId === "ROY") {
     years = getAwardSeasons(["Rookie of the Year"]);
-  } else if (achievementId === "SMOY") {
+  } else if (baseAchievementId === "SMOY") {
     years = getAwardSeasons(["Sixth Man of the Year"]);
-  } else if (achievementId === "MIP") {
+  } else if (baseAchievementId === "MIP") {
     years = getAwardSeasons(["Most Improved Player"]);
-  } else if (achievementId === "FinalsMVP") {
+  } else if (baseAchievementId === "FinalsMVP") {
     years = getAwardSeasons(["Finals MVP"]);
-  } else if (achievementId === "AllLeagueAny") {
+  } else if (baseAchievementId === "AllLeagueAny") {
     years = getAwardSeasons(["All-League"]);
-  } else if (achievementId === "AllDefAny") {
+  } else if (baseAchievementId === "AllDefAny") {
     years = getAwardSeasons(["All-Defensive"]);
-  } else if (achievementId === "AllRookieAny") {
+  } else if (baseAchievementId === "AllRookieAny") {
     years = getAwardSeasons(["All-Rookie"]);
-  } else if (achievementId === "threePointContestWinner") {
+  } else if (baseAchievementId === "threePointContestWinner") {
     years = getAwardSeasons(["Three-Point Contest Winner"]);
-  } else if (achievementId === "dunkContestWinner") {
+  } else if (baseAchievementId === "dunkContestWinner") {
     years = getAwardSeasons(["Slam Dunk Contest Winner"]);
-  } else if (achievementId === "playedAtAge40Plus") {
+  } else if (baseAchievementId === "playedAtAge40Plus") {
     const seasonsAtAge40Plus =
       player.stats
         ?.filter(
@@ -2722,7 +2776,7 @@ function getAchievementDetails(
               seasonsAtAge40Plus[seasonsAtAge40Plus.length - 1]
             }`;
     }
-  } else if (achievementId === "royLaterMVP") {
+  } else if (baseAchievementId === "royLaterMVP") {
     const roySeasons =
       player.awards
         ?.filter((a) => a.type?.includes("Rookie of the Year"))
@@ -2743,10 +2797,10 @@ function getAchievementDetails(
             }`;
     }
   } else if (
-    achievementId.includes("playedIn") &&
-    achievementId.endsWith("s")
+    baseAchievementId.includes("playedIn") &&
+    baseAchievementId.endsWith("s")
   ) {
-    const decadeMatch = achievementId.match(/playedIn(\d{4})s/);
+    const decadeMatch = baseAchievementId.match(/playedIn(\d{4})s/);
     if (decadeMatch) {
       const decade = parseInt(decadeMatch[1]);
       const playedSeasonsInDecade =
@@ -2766,16 +2820,16 @@ function getAchievementDetails(
       }
     }
   } else if (
-    achievementId.includes("debutedIn") &&
-    achievementId.endsWith("s")
+    baseAchievementId.includes("debutedIn") &&
+    baseAchievementId.endsWith("s")
   ) {
     const firstSeason = player.firstSeason;
     if (firstSeason) {
       years = firstSeason.toString();
     }
-  } else if (achievementId === "isHallOfFamer") {
+  } else if (baseAchievementId === "isHallOfFamer") {
     years = getAwardSeasons(["Inducted into the Hall of Fame"]);
-  } else if (achievementId === "played15PlusSeasons") {
+  } else if (baseAchievementId === "played15PlusSeasons") {
     const seasonCount = new Set(
       player.stats
         ?.filter((s) => !s.playoffs && (s.gp || 0) > 0)
@@ -2783,39 +2837,40 @@ function getAchievementDetails(
     ).size;
     value = seasonCount;
     isPlural = seasonCount !== 1;
-  } else if (achievementId === "played5PlusFranchises") {
+  } else if (baseAchievementId === "played5PlusFranchises") {
     const franchiseCount = new Set(
       player.stats?.filter((s) => s.tid !== -1).map((s) => s.tid)
     ).size;
     value = franchiseCount;
     isPlural = franchiseCount !== 1;
   } else if (
-    achievementId === "isPick1Overall" ||
-    achievementId === "isFirstRoundPick" ||
-    achievementId === "isSecondRoundPick" ||
-    achievementId === "isUndrafted" ||
-    achievementId === "draftedTeen"
+    baseAchievementId === "isPick1Overall" ||
+    baseAchievementId === "isFirstRoundPick" ||
+    baseAchievementId === "isSecondRoundPick" ||
+    baseAchievementId === "isUndrafted" ||
+    baseAchievementId === "draftedTeen"
   ) {
     if (player.draft) {
       const draftYear = player.draft.year;
       const round = player.draft.round;
       const pick = player.draft.pick;
-      if (achievementId === "isUndrafted") {
-        years = draftYear ? `(${draftYear})` : "";
+      if (player.born?.year && draftYear) {
+        value = draftYear - player.born.year;
+      }
+      // The 'isUndrafted' case is now handled directly in getConstraintPhrase
+      if (round && pick) {
+        years = `(R${round}P${pick})`;
+      } else if (draftYear) {
+        years = `(${draftYear})`;
       } else {
-        years =
-          draftYear && round && pick
-            ? `(${draftYear} - Round ${round} Pick ${pick})`
-            : draftYear
-            ? `(${draftYear})`
-            : "";
+        years = "";
       }
     }
-  } else if (achievementId === "bornOutsideUS50DC") {
+  } else if (baseAchievementId === "bornOutsideUS50DC") {
     // No specific years or value needed, just the boolean status
-  } else if (achievementId.includes("Leader")) {
+  } else if (baseAchievementId.includes("Leader")) {
     // For statistical leaders (e.g., PointsLeader)
-    const leaderType = achievementId.replace("Leader", "");
+    const leaderType = baseAchievementId.replace("Leader", "");
     const statFieldMap: Record<string, string> = {
       Points: "pts",
       Rebounds: "trb",
@@ -2840,7 +2895,7 @@ function getAchievementDetails(
         isPlural = leaderSeasons.length > 1;
       }
     }
-  } else if (achievementId === "Won Championship") {
+  } else if (baseAchievementId === "Won Championship") {
     years = getAwardSeasons(["Won Championship", "Championship"]);
   }
 
@@ -2886,45 +2941,13 @@ function getConstraintPhrase(
       return `${playerName} never played for the ${teamName}`;
     }
   } else if (constraint.type === "achievement") {
-    // Special handling for "1/1/1 Season" to provide more detailed feedback
-    if (constraint.achievementId === "Season1_1_1") {
-      if (met) {
-        const seasons = getSeasonsForSeasonStatAchievement(
-          player,
-          "Season1_1_1",
-          1,
-          "≥",
-          1
-        );
-        const seasonStr = formatBulletSeasonList(seasons, false);
-        return `${playerName} had a 1/1/1 season${
-          seasonStr ? ` (${seasonStr})` : ""
-        }`;
-      } else {
-        const all111Seasons = getSeasonsForSeasonStatAchievement(
-          player,
-          "Season1_1_1",
-          1,
-          "≥",
-          1
-        );
-        if (all111Seasons.length > 0) {
-          const seasonStr = formatBulletSeasonList(all111Seasons, false);
-          return `${playerName} did have a 1/1/1 season (${seasonStr}), just not with this team`;
-        } else {
-          return `${playerName} did not ever have a 1/1/1 season`;
-        }
-      }
-    }
-
-    let isCompletePhrase: boolean;
     if (!constraint.achievementId) {
       const fallbackLabel = getConstraintLabel(
         constraint,
         teams,
         allAchievements
       );
-      isCompletePhrase =
+      const isCompletePhrase =
         fallbackLabel.includes("MPG") ||
         fallbackLabel.includes("Champion") ||
         fallbackLabel.includes("Leader") ||
@@ -2938,6 +2961,11 @@ function getConstraintPhrase(
           } ${fallbackLabel.toLowerCase()}`;
     }
 
+    const parsedCustom = parseCustomAchievementId(constraint.achievementId);
+    const baseAchievementId = parsedCustom
+      ? parsedCustom.baseId
+      : constraint.achievementId;
+
     const achievementDetails = getAchievementDetails(
       player,
       constraint.achievementId,
@@ -2945,13 +2973,14 @@ function getConstraintPhrase(
       sport,
       allAchievements
     );
+
     if (!achievementDetails) {
       const fallbackLabel = getConstraintLabel(
         constraint,
         teams,
         allAchievements
       );
-      isCompletePhrase =
+      const isCompletePhrase =
         fallbackLabel.includes("MPG") ||
         fallbackLabel.includes("Champion") ||
         fallbackLabel.includes("Leader") ||
@@ -2968,26 +2997,21 @@ function getConstraintPhrase(
     const { value, years, label, isPlural } = achievementDetails;
 
     // Specific phrasing for different achievement types
-    if (constraint.achievementId?.startsWith("career")) {
+    if (baseAchievementId.startsWith("career")) {
       const statName = label
         .replace(/(\d+,?\d*\+?)\s*Career\s*/, "")
         .toLowerCase();
       if (met) {
         return `${playerName} had ${value} career ${statName}`;
       } else {
-        // Parse the achievement to get operator information
         const parsed = parseCustomAchievementId(constraint.achievementId);
         if (parsed && value !== undefined) {
-          // Use natural language based on operator
           if (parsed.operator === "≤") {
-            // Failed "less than or equal" means they had MORE
             return `${playerName} had more than ${parsed.threshold.toLocaleString()} career ${statName} (${value})`;
           } else {
-            // Failed "greater than or equal" means they had FEWER
             return `${playerName} had fewer than ${parsed.threshold.toLocaleString()} career ${statName} (${value})`;
           }
         }
-        // Fallback if we can't parse
         const threshold = label.match(/(\d+,?\d*\+?)/)?.[1];
         if (threshold) {
           return `${playerName} ${
@@ -3008,9 +3032,9 @@ function getConstraintPhrase(
         "AllLeagueAny",
         "AllDefAny",
         "AllRookieAny",
-      ].includes(constraint.achievementId!)
+      ].includes(baseAchievementId)
     ) {
-      const awardLabel = label.toLowerCase().replace("any", "").trim(); // Clean up 'AllLeagueAny' etc.
+      const awardLabel = label.toLowerCase().replace("any", "").trim();
       if (met) {
         return `${playerName} was ${
           awardLabel.startsWith("all-") ? "an" : "a"
@@ -3022,7 +3046,7 @@ function getConstraintPhrase(
       }
     } else if (
       ["threePointContestWinner", "dunkContestWinner"].includes(
-        constraint.achievementId!
+        baseAchievementId
       )
     ) {
       const contestName = label.replace(" Champion", "").toLowerCase();
@@ -3034,40 +3058,9 @@ function getConstraintPhrase(
         return `${playerName} never won the ${contestName}`;
       }
     } else if (
-      constraint.achievementId?.startsWith("Season") ||
+      baseAchievementId.startsWith("Season") ||
       label.includes("(Season)")
     ) {
-      // Special handling for "1/1/1 Season" to provide more detailed feedback
-      if (constraint.achievementId === "Season1_1_1") {
-        if (met) {
-          const seasons = getSeasonsForSeasonStatAchievement(
-            player,
-            "Season1_1_1",
-            1,
-            "≥",
-            1
-          );
-          const seasonStr = formatBulletSeasonList(seasons, false);
-          return `${playerName} had a 1/1/1 season${
-            seasonStr ? ` (${seasonStr})` : ""
-          }`;
-        } else {
-          const all111Seasons = getSeasonsForSeasonStatAchievement(
-            player,
-            "Season1_1_1",
-            1,
-            "≥",
-            1
-          );
-          if (all111Seasons.length > 0) {
-            const seasonStr = formatBulletSeasonList(all111Seasons, false);
-            return `${playerName} did have a 1/1/1 season (${seasonStr}), just not with this team`;
-          } else {
-            return `${playerName} did not ever have a 1/1/1 season`;
-          }
-        }
-      }
-
       const seasonStatLabel = label.replace(" (Season)", "");
       const statName = seasonStatLabel
         .replace(/(\d+,?\d*\+?)/, "")
@@ -3080,10 +3073,7 @@ function getConstraintPhrase(
           years ? ` (${years})` : ""
         }`;
       } else {
-        // Parse the achievement to get operator information
         const parsed = parseCustomAchievementId(constraint.achievementId);
-
-        // For any unmet Season* achievement, check if they ever achieved it in their career.
         const allSeasonsForStat = getSeasonsForSeasonStatAchievement(
           player,
           constraint.achievementId as any,
@@ -3095,9 +3085,7 @@ function getConstraintPhrase(
           const seasonStr = formatBulletSeasonList(allSeasonsForStat, false);
           return `${playerName} did have a ${seasonStatLabel.toLowerCase()} season (${seasonStr}), just not with this team`;
         } else {
-          // Use natural language based on operator
           if (parsed && parsed.operator === "≤") {
-            // Failed "less than or equal" means they never had a season LOW enough
             const threshold = parsed.threshold.toLocaleString();
             if (achievementDetails.isAverage) {
               return `${playerName} never averaged under ${threshold} ${statName} in a season`;
@@ -3105,7 +3093,6 @@ function getConstraintPhrase(
               return `${playerName} never had fewer than ${threshold} ${statName} in a season`;
             }
           } else {
-            // Failed "greater than or equal" (default) means they never had a season HIGH enough
             const threshold =
               seasonStatLabel.match(/(\d+,?\d*\.?\d*\+?)/)?.[1] || "";
             if (achievementDetails.isAverage) {
@@ -3117,9 +3104,7 @@ function getConstraintPhrase(
         }
       }
     } else if (
-      ["AllLeagueAny", "AllDefAny", "AllRookieAny"].includes(
-        constraint.achievementId!
-      )
+      ["AllLeagueAny", "AllDefAny", "AllRookieAny"].includes(baseAchievementId)
     ) {
       const awardLabel = label.toLowerCase().replace("any", "").trim();
       if (met) {
@@ -3129,7 +3114,7 @@ function getConstraintPhrase(
       } else {
         return `${playerName} was never named to an ${awardLabel}`;
       }
-    } else if (constraint.achievementId === "playedAtAge40Plus") {
+    } else if (baseAchievementId === "playedAtAge40Plus") {
       if (met) {
         return `${playerName} played at Age 40+${
           years ? ` (${years})` : ""
@@ -3137,7 +3122,7 @@ function getConstraintPhrase(
       } else {
         return `${playerName} did not play at Age 40+`;
       }
-    } else if (constraint.achievementId === "royLaterMVP") {
+    } else if (baseAchievementId === "royLaterMVP") {
       if (met) {
         return `${playerName} was a ROY who later won MVP${
           years ? ` (${years})` : ""
@@ -3146,8 +3131,8 @@ function getConstraintPhrase(
         return `${playerName} was not a ROY who later won MVP`;
       }
     } else if (
-      constraint.achievementId.includes("playedIn") &&
-      constraint.achievementId.endsWith("s")
+      baseAchievementId.includes("playedIn") &&
+      baseAchievementId.endsWith("s")
     ) {
       if (met) {
         return `${playerName} played in the ${label.replace(
@@ -3161,8 +3146,8 @@ function getConstraintPhrase(
         )}`;
       }
     } else if (
-      constraint.achievementId.includes("debutedIn") &&
-      constraint.achievementId.endsWith("s")
+      baseAchievementId.includes("debutedIn") &&
+      baseAchievementId.endsWith("s")
     ) {
       if (met) {
         return `${playerName} debuted in the ${label}${
@@ -3171,7 +3156,7 @@ function getConstraintPhrase(
       } else {
         return `${playerName} did not debut in the ${label}`;
       }
-    } else if (constraint.achievementId === "isHallOfFamer") {
+    } else if (baseAchievementId === "isHallOfFamer") {
       if (met) {
         return `${playerName} is a Hall of Famer${
           years ? ` (${years})` : ""
@@ -3179,13 +3164,15 @@ function getConstraintPhrase(
       } else {
         return `${playerName} is not a Hall of Famer`;
       }
-    } else if (constraint.achievementId === "played15PlusSeasons") {
+    } else if (baseAchievementId === "played15PlusSeasons") {
       if (met) {
         return `${playerName} played ${value} season${isPlural ? "s" : ""}`;
       } else {
-        return `${playerName} did not play 15+ seasons`;
+        return `${playerName} only played ${value} season${
+          isPlural ? "s" : ""
+        }`;
       }
-    } else if (constraint.achievementId === "played5PlusFranchises") {
+    } else if (baseAchievementId === "played5PlusFranchises") {
       if (met) {
         return `${playerName} played for ${value} franchise${
           isPlural ? "s" : ""
@@ -3193,51 +3180,62 @@ function getConstraintPhrase(
       } else {
         return `${playerName} did not play for 5+ franchises`;
       }
-    } else if (constraint.achievementId === "isPick1Overall") {
+    } else if (baseAchievementId === "isPick1Overall") {
       if (met) {
         return `${playerName} was the #1 overall pick${
-          years ? ` (${years})` : ""
-        }`;
-      } else {
-        return `${playerName} was not the #1 overall pick`;
-      }
-    } else if (constraint.achievementId === "isFirstRoundPick") {
-      if (met) {
-        return `${playerName} was a First Round Pick${
           years ? ` ${years}` : ""
         }`;
       } else {
-        return `${playerName} was never a First Round Pick`;
+        return `${playerName} was not the #1 overall pick${
+          years ? ` ${years}` : ""
+        }`;
       }
-    } else if (constraint.achievementId === "isSecondRoundPick") {
+    } else if (baseAchievementId === "isFirstRoundPick") {
       if (met) {
-        return `${playerName} was a Second Round Pick${
+        return `${playerName} was a first-round pick${
           years ? ` ${years}` : ""
         }`;
       } else {
-        return `${playerName} was never a Second Round Pick`;
+        return `${playerName} was not a first-round pick${
+          years ? ` ${years}` : ""
+        }`;
       }
-    } else if (constraint.achievementId === "isUndrafted") {
+    } else if (baseAchievementId === "isSecondRoundPick") {
       if (met) {
-        return `${playerName} went Undrafted${years ? ` ${years}` : ""}`;
-      } else {
-        return `${playerName} was not Undrafted`;
-      }
-    } else if (constraint.achievementId === "draftedTeen") {
-      if (met) {
-        return `${playerName} was drafted as a teenager${
+        return `${playerName} was a second-round pick${
           years ? ` ${years}` : ""
         }`;
       } else {
-        return `${playerName} was not drafted as a teenager`;
+        return `${playerName} was not a second-round pick${
+          years ? ` ${years}` : ""
+        }`;
       }
-    } else if (constraint.achievementId === "bornOutsideUS50DC") {
+    } else if (baseAchievementId === "isUndrafted") {
+      if (met) {
+        return `${playerName} went undrafted`;
+      } else {
+        const draftInfo = player.draft;
+        let draftString = "";
+        if (draftInfo && draftInfo.round && draftInfo.pick > 0) {
+          draftString = ` (R${draftInfo.round}P${draftInfo.pick})`;
+        }
+        return `${playerName} did not go undrafted${draftString}`;
+      }
+    } else if (baseAchievementId === "draftedTeen") {
+      if (met) {
+        return `${playerName} was drafted at age ${value}${
+          years ? ` ${years}` : ""
+        }`;
+      } else {
+        return `${playerName} was drafted at age ${value}`;
+      }
+    } else if (baseAchievementId === "bornOutsideUS50DC") {
       if (met) {
         return `${playerName} was born outside the US`;
       } else {
         return `${playerName} was born in the US`;
       }
-    } else if (constraint.achievementId?.includes("Leader")) {
+    } else if (baseAchievementId.includes("Leader")) {
       const leaderType = label.replace("League ", "").replace(" Leader", "");
       if (met) {
         return `${playerName} was the League ${leaderType} Leader${
@@ -3246,7 +3244,7 @@ function getConstraintPhrase(
       } else {
         return `${playerName} was never the League ${leaderType} Leader`;
       }
-    } else if (constraint.achievementId === "Won Championship") {
+    } else if (baseAchievementId === "Won Championship") {
       if (met) {
         return `${playerName} won a Championship${
           years ? ` (${years})` : ""
@@ -3254,19 +3252,10 @@ function getConstraintPhrase(
       } else {
         return `${playerName} never won a Championship`;
       }
-    } else if (constraint.achievementId?.startsWith("Season")) {
-      // Generic phrasing for other season statistical achievements
-      const seasonStatLabel = label.replace(" (Season)", "");
-      if (met) {
-        return `${playerName} had a season with ${seasonStatLabel}${
-          years ? ` (${years})` : ""
-        }`;
-      } else {
-        return `${playerName} never had a season with ${seasonStatLabel}`;
-      }
     }
-    // Fallback for any unhandled achievements (should be minimal now)
-    isCompletePhrase =
+
+    // Fallback for any unhandled achievements
+    const isCompletePhrase =
       label.includes("MPG") ||
       label.includes("Champion") ||
       label.includes("Leader") ||
@@ -3276,22 +3265,18 @@ function getConstraintPhrase(
         isCompletePhrase ? ":" : " for:"
       } ${label}`;
     } else {
-      // Parse the achievement to get operator information for more natural phrasing
       const parsed = parseCustomAchievementId(constraint.achievementId);
-
       if (label.includes("(Season)")) {
         const seasonStatLabel = label.replace(" (Season)", "").toLowerCase();
         const statName = seasonStatLabel
           .replace(/(\d+,?\d*\+?)/, "")
           .trim();
-
         if (parsed && parsed.operator === "≤") {
           return `${playerName} never achieved under ${parsed.threshold.toLocaleString()} ${statName} in a season`;
         } else {
           return `${playerName} never achieved ${seasonStatLabel} in a season`;
         }
       }
-
       if (parsed && label.toLowerCase().includes("career")) {
         const statName = label
           .replace(/(\d+,?\d*\+?)\s*Career\s*/i, "")
@@ -3302,7 +3287,6 @@ function getConstraintPhrase(
           return `${playerName} had fewer than ${parsed.threshold.toLocaleString()} ${statName}`;
         }
       }
-
       return `${playerName} never achieved${
         isCompletePhrase ? ":" : ""
       } ${label.toLowerCase()}`;
