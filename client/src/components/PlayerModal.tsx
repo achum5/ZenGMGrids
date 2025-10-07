@@ -12,7 +12,7 @@ import { CareerTeamLogo, checkAllTeamsHaveLogos } from '@/components/CareerTeamL
 import { generateReasonBullets, getSeasonsForSeasonStatAchievement, formatBulletSeasonList } from '@/lib/reason-bullets';
 import { playerMeetsAchievement, getAllAchievements, getCachedSportDetection, getCachedLeagueYears } from '@/lib/achievements';
 import { getCachedSeasonIndex } from '@/lib/season-index-cache';
-import { parseAchievementLabel } from '@/lib/editable-achievements';
+import { parseAchievementLabel, parseCustomAchievementId } from '@/lib/editable-achievements';
 import { rarityBadgeStyles } from '@/components/RarityChip';
 
 // Helper to determine rarity tier based on playerCount
@@ -416,32 +416,14 @@ function getConstraintPhrase(
     if (!constraint.achievementId) {
       const fallbackLabel = getConstraintLabel(constraint, teams, allAchievements);
       isCompletePhrase = fallbackLabel.includes('MPG') || fallbackLabel.includes('Champion') || fallbackLabel.includes('Leader') || fallbackLabel.includes('Season');
-      if (met) {
-        return `${playerName} met the criteria${isCompletePhrase ? ':' : ' for:'} ${fallbackLabel}`;
-      } else {
-        // More natural phrasing for unmet criteria
-        if (fallbackLabel.includes('(Season)')) {
-          const seasonStatLabel = fallbackLabel.replace(' (Season)', '').toLowerCase();
-          return `${playerName} never achieved ${seasonStatLabel} in a season`;
-        }
-        return `${playerName} never achieved${isCompletePhrase ? ':' : ''} ${fallbackLabel.toLowerCase()}`;
-      }
+      return met ? `${playerName} met the criteria${isCompletePhrase ? ':' : ' for:'} ${fallbackLabel}` : `${playerName} never achieved${isCompletePhrase ? ':' : ''} ${fallbackLabel.toLowerCase()}`;
     }
     
     const achievementDetails = getAchievementDetails(player, constraint.achievementId, teams, sport, allAchievements);
     if (!achievementDetails) {
       const fallbackLabel = getConstraintLabel(constraint, teams, allAchievements);
       isCompletePhrase = fallbackLabel.includes('MPG') || fallbackLabel.includes('Champion') || fallbackLabel.includes('Leader') || fallbackLabel.includes('Season');
-      if (met) {
-        return `${playerName} met the criteria${isCompletePhrase ? ':' : ' for:'} ${fallbackLabel}`;
-      } else {
-        // More natural phrasing for unmet criteria
-        if (fallbackLabel.includes('(Season)')) {
-          const seasonStatLabel = fallbackLabel.replace(' (Season)', '').toLowerCase();
-          return `${playerName} never achieved ${seasonStatLabel} in a season`;
-        }
-        return `${playerName} never achieved${isCompletePhrase ? ':' : ''} ${fallbackLabel.toLowerCase()}`;
-      }
+      return met ? `${playerName} met the criteria${isCompletePhrase ? ':' : ' for:'} ${fallbackLabel}` : `${playerName} never achieved${isCompletePhrase ? ':' : ''} ${fallbackLabel.toLowerCase()}`;
     }
 
     const { value, years, label, isPlural } = achievementDetails;
@@ -452,6 +434,23 @@ function getConstraintPhrase(
       if (met) {
         return `${playerName} had ${value} career ${statName}`;
       } else {
+        // Parse the achievement to get operator information
+        const parsed = parseCustomAchievementId(constraint.achievementId);
+        if (parsed && value !== undefined) {
+          // Use natural language based on operator
+          if (parsed.operator === '≤') {
+            // Failed "less than or equal" means they had MORE
+            return `${playerName} had more than ${parsed.threshold.toLocaleString()} career ${statName} (${value})`;
+          } else {
+            // Failed "greater than or equal" means they had FEWER
+            return `${playerName} had fewer than ${parsed.threshold.toLocaleString()} career ${statName} (${value})`;
+          }
+        }
+        // Fallback if we can't parse
+        const threshold = label.match(/(\d+,?\d*\+?)/)?.[1];
+        if (threshold) {
+          return `${playerName} ${value ? `had ${value} career ${statName}, but ` : ''}never reached ${threshold} career ${statName}`;
+        }
         return `${playerName} did not achieve ${label.toLowerCase()}`;
       }
     } else if (['AllStar', 'MVP', 'DPOY', 'ROY', 'SMOY', 'MIP', 'FinalsMVP', 'AllLeagueAny', 'AllDefAny', 'AllRookieAny'].includes(constraint.achievementId!)) {
@@ -489,18 +488,37 @@ function getConstraintPhrase(
       const seasonStatLabel = label.replace(' (Season)', '');
       const statName = seasonStatLabel.replace(/(\d+,?\d*\+?)/, '').trim().toLowerCase();
       const verb = achievementDetails.isAverage ? 'averaged' : 'had';
-      const negativeVerb = achievementDetails.isAverage ? 'did not average' : 'did not have';
 
       if (met) {
         return `${playerName} ${verb} ${seasonStatLabel.toLowerCase()} in a season${years ? ` (${years})` : ''}`;
       } else {
+        // Parse the achievement to get operator information
+        const parsed = parseCustomAchievementId(constraint.achievementId);
+        
         // For any unmet Season* achievement, check if they ever achieved it in their career.
         const allSeasonsForStat = getSeasonsForSeasonStatAchievement(player, constraint.achievementId as any, undefined, undefined, 1);
         if (allSeasonsForStat.length > 0) {
           const seasonStr = formatBulletSeasonList(allSeasonsForStat, false);
           return `${playerName} did have a ${seasonStatLabel.toLowerCase()} season (${seasonStr}), just not with this team`;
         } else {
-          return `${playerName} did not ever have a ${seasonStatLabel.toLowerCase()} season`;
+          // Use natural language based on operator
+          if (parsed && parsed.operator === '≤') {
+            // Failed "less than or equal" means they never had a season LOW enough
+            const threshold = parsed.threshold.toLocaleString();
+            if (achievementDetails.isAverage) {
+              return `${playerName} never averaged under ${threshold} ${statName} in a season`;
+            } else {
+              return `${playerName} never had fewer than ${threshold} ${statName} in a season`;
+            }
+          } else {
+            // Failed "greater than or equal" (default) means they never had a season HIGH enough
+            const threshold = seasonStatLabel.match(/(\d+,?\d*\.?\d*\+?)/)?.[1] || '';
+            if (achievementDetails.isAverage) {
+              return `${playerName} never averaged ${threshold} ${statName} in a season`;
+            } else {
+              return `${playerName} never had ${threshold} ${statName} in a season`;
+            }
+          }
         }
       }
     } else if (['AllLeagueAny', 'AllDefAny', 'AllRookieAny'].includes(constraint.achievementId!)) {
@@ -615,11 +633,29 @@ function getConstraintPhrase(
     if (met) {
       return `${playerName} met the criteria${isCompletePhrase ? ':' : ' for:'} ${label}`;
     } else {
-      // More natural phrasing for unmet criteria
+      // Parse the achievement to get operator information for more natural phrasing
+      const parsed = parseCustomAchievementId(constraint.achievementId);
+      
       if (label.includes('(Season)')) {
         const seasonStatLabel = label.replace(' (Season)', '').toLowerCase();
-        return `${playerName} never achieved ${seasonStatLabel} in a season`;
+        const statName = seasonStatLabel.replace(/(\d+,?\d*\+?)/, '').trim();
+        
+        if (parsed && parsed.operator === '≤') {
+          return `${playerName} never achieved under ${parsed.threshold.toLocaleString()} ${statName} in a season`;
+        } else {
+          return `${playerName} never achieved ${seasonStatLabel} in a season`;
+        }
       }
+      
+      if (parsed && label.toLowerCase().includes('career')) {
+        const statName = label.replace(/(\d+,?\d*\+?)\s*Career\s*/i, '').toLowerCase();
+        if (parsed.operator === '≤') {
+          return `${playerName} had more than ${parsed.threshold.toLocaleString()} ${statName}`;
+        } else {
+          return `${playerName} had fewer than ${parsed.threshold.toLocaleString()} ${statName}`;
+        }
+      }
+      
       return `${playerName} never achieved${isCompletePhrase ? ':' : ''} ${label.toLowerCase()}`;
     }
   }

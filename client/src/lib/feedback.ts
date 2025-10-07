@@ -1685,8 +1685,24 @@ function getNegativeMessageForCustomAchievement(player: Player, achievementId: s
     const cleanLabel = getHumanReadableAchievementText(achievementId);
     if (cleanLabel.includes('(Season)')) {
       const seasonStatLabel = cleanLabel.replace(' (Season)', '').toLowerCase();
-      return `never achieved ${seasonStatLabel} in a season`;
+      const statName = seasonStatLabel.replace(/(\d+,?\d*\+?)/, '').trim();
+      
+      if (parsed.operator === '≤') {
+        return `never achieved under ${parsed.threshold.toLocaleString()} ${statName} in a season`;
+      } else {
+        return `never achieved ${seasonStatLabel} in a season`;
+      }
     }
+    
+    if (cleanLabel.toLowerCase().includes('career')) {
+      const statName = cleanLabel.replace(/(\d+,?\d*\+?)\s*Career\s*/i, '').toLowerCase();
+      if (parsed.operator === '≤') {
+        return `had more than ${parsed.threshold.toLocaleString()} ${statName}`;
+      } else {
+        return `had fewer than ${parsed.threshold.toLocaleString()} ${statName}`;
+      }
+    }
+    
     return `never achieved ${cleanLabel.toLowerCase()}`;
   }
 
