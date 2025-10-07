@@ -1,4 +1,5 @@
 import type { Player, Team, CatTeam, LeagueData } from '@/types/bbgm';
+import type { Achv } from '@/lib/feedback';
 import type { SeasonIndex, SeasonAchievementId } from '@/lib/season-achievements';
 import { getAllAchievements, playerMeetsAchievement } from '@/lib/achievements';
 import { getSeasonEligiblePlayers, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
@@ -255,13 +256,57 @@ export function headerConfigToCatTeam(
       }
     }
     
-    return {
-      key: `achievement-${achievementId}-${config.customAchievement ? 'custom' : 'original'}`,
-      label: achievementLabel,
-      achievementId: achievementId as string,
-      type: 'achievement',
-      test: achievementTest,
-    };
+    const sport = getCachedSportDetection();
+    const leagueYears = getCachedLeagueYears();
+    const allAchievements = getAllAchievements(sport, seasonIndex, leagueYears);
+    const achievement = allAchievements.find(a => a.id === achievementId);
+
+    if (achievement) {
+            let achv: Achv | undefined = undefined;
+            
+            const playedInMatch = achievement.id.match(/playedIn(\d{4})s/);
+            if (playedInMatch) {
+              achv = {
+                type: 'decade',
+                decadeYear: parseInt(playedInMatch[1], 10),
+                decadeType: 'played',
+              };
+            }
+      
+            const debutedInMatch = achievement.id.match(/debutedIn(\d{4})s/);
+            if (debutedInMatch) {
+              achv = {
+                type: 'decade',
+                decadeYear: parseInt(debutedInMatch[1], 10),
+                decadeType: 'debuted',
+              };
+            } else if (achievement.achv) {
+              achv = achievement.achv;
+            } else {
+              achv = {
+                  type: 'boolean',
+                  booleanNoun: achievement.label,
+              };
+            }
+      
+            return {
+              key: `achievement-${achievementId}-${config.customAchievement ? 'custom' : 'original'} `,
+              label: achievementLabel,
+              achievementId: achievementId as string,
+              type: 'achievement',
+              test: achievementTest,
+              achv,
+            };
+      
+    } else {
+      return {
+        key: `achievement-${achievementId}-${config.customAchievement ? 'custom' : 'original'}`,
+        label: achievementLabel,
+        achievementId: achievementId as string,
+        type: 'achievement',
+        test: achievementTest,
+      };
+    }
   }
 }
 

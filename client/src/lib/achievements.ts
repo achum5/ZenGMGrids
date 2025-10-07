@@ -1,8 +1,7 @@
 import type { Player } from "@/types/bbgm";
 import { SEASON_ACHIEVEMENTS, type SeasonAchievement, type SeasonIndex, type SeasonAchievementId, getSeasonEligiblePlayers } from './season-achievements';
 import { SeededRandom } from './seeded';
-import { createCustomNumericalAchievement, parseAchievementLabel } from './editable-achievements';
-import { parseCustomAchievementId } from './feedback';
+import { createCustomNumericalAchievement, parseAchievementLabel, parseCustomAchievementId } from './editable-achievements';
 
 export interface Achievement {
   id: string;
@@ -918,7 +917,7 @@ function buildCustomizablePercentageAchievements(
       minPlayers: 5,
       isSeasonSpecific: true,
     };
-    achievements.push(createCustomNumericalAchievement(fgAchievement, 50, sport, '>='));
+    achievements.push(createCustomNumericalAchievement(fgAchievement, 50, sport, '≥'));
 
     // 40% 3PT (Season)
     const threePtAchievement: Achievement = {
@@ -928,7 +927,7 @@ function buildCustomizablePercentageAchievements(
       minPlayers: 5,
       isSeasonSpecific: true,
     };
-    achievements.push(createCustomNumericalAchievement(threePtAchievement, 40, sport, '>='));
+    achievements.push(createCustomNumericalAchievement(threePtAchievement, 40, sport, '≥'));
 
     // 90%+ FT (Season) - with minimum attempts
     const ftAchievement: Achievement = {
@@ -938,7 +937,7 @@ function buildCustomizablePercentageAchievements(
       minPlayers: 5,
       isSeasonSpecific: true,
     };
-    achievements.push(createCustomNumericalAchievement(ftAchievement, 90, sport, '>='));
+    achievements.push(createCustomNumericalAchievement(ftAchievement, 90, sport, '≥'));
 
     // 60%+ eFG (Season) - with minimum attempts
     const efgAchievement: Achievement = {
@@ -948,7 +947,7 @@ function buildCustomizablePercentageAchievements(
       minPlayers: 5,
       isSeasonSpecific: true,
     };
-    achievements.push(createCustomNumericalAchievement(efgAchievement, 60, sport, '>='));
+    achievements.push(createCustomNumericalAchievement(efgAchievement, 60, sport, '≥'));
   }
 
   return achievements;

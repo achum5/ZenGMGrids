@@ -219,7 +219,7 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
       }
 
       let statPartToSingularize = '';
-      if (parsed.statUnit.trim()) {
+      if (parsed.statUnit?.trim()) {
         statPartToSingularize = parsed.statUnit.trim();
       } else {
         // Fallback to mainSuffix if no specific stat unit was parsed
@@ -823,4 +823,16 @@ function checkSeasonPercentage(player: Player, percentageType: string, newThresh
     }
   }
   return false;
+}
+
+export function parseCustomAchievementId(achievementId: string): { baseId: string; threshold: number; operator: '≥' | '≤' } | null {
+  const match = achievementId.match(/_custom_(\d+)_(\w+)$/);
+  if (!match) return null;
+
+  const [, thresholdStr, operatorStr] = match;
+  const threshold = parseInt(thresholdStr, 10);
+  const operator = operatorStr === 'lte' ? '≤' : '≥';
+  const baseId = achievementId.split('_custom_')[0];
+
+  return { baseId, threshold, operator };
 }

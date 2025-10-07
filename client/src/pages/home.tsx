@@ -21,10 +21,11 @@ import baseballIcon from '@/assets/baseball.png';
 import { parseLeagueFile, parseLeagueUrl, buildSearchIndex } from '@/lib/bbgm-parser';
 import { generateTeamsGrid, cellKey } from '@/lib/grid-generator';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
-import { debugAchievementIntersection, calculateCustomCellIntersection, headerConfigToCatTeam, getCustomCellEligiblePlayersAsync } from '@/lib/custom-grid-utils';
+import { calculateCustomCellIntersection, headerConfigToCatTeam, getCustomCellEligiblePlayersAsync } from '@/lib/custom-grid-utils';
 import { calculateOptimizedIntersection, type IntersectionConstraint, clearIntersectionCachesForPlayers } from '@/lib/intersection-cache';
 import { getSeasonEligiblePlayers, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
-import { debugIndividualAchievements, playerMeetsAchievement, setCachedLeagueYears } from '@/lib/achievements';
+import { generateIncorrectFeedback, type RowInput, type Achv, type SideEvidence } from '@/lib/feedback';
+import { playerMeetsAchievement, setCachedLeagueYears } from '@/lib/achievements';
 import { clearHintCache } from '@/lib/hint-generation';
 import { useToast } from '@/lib/hooks/use-toast';
 import type { LeagueData, CatTeam, CellState, Player, SearchablePlayer } from '@/types/bbgm';
@@ -229,13 +230,17 @@ export default function Home() {
             type: rowConstraint.type,
             tid: rowConstraint.tid,
             achievementId: rowConstraint.achievementId,
-            label: rowConstraint.label
+            label: rowConstraint.label,
+            key: rowConstraint.key,
+            test: rowConstraint.test,
           },
           colConstraint: {
             type: colConstraint.type,
             tid: colConstraint.tid,
             achievementId: colConstraint.achievementId,
-            label: colConstraint.label
+            label: colConstraint.label,
+            key: colConstraint.key,
+            test: colConstraint.test,
           }
         } : undefined,
         fullPlayers: eligiblePlayers,
@@ -274,15 +279,39 @@ export default function Home() {
     setUsedPids(prev => new Set([...Array.from(prev), player.pid]));
 
     // Show toast for incorrect guesses
-    if (!isCorrect) {
-      // Provide a more descriptive reason for the incorrect guess
-      const reason = rowConstraint && colConstraint 
-        ? `Player must meet criteria for both "${rowConstraint.label}" and "${colConstraint.label}".`
-        : 'Player does not meet the required criteria for this cell.';
+    if (!isCorrect && rowConstraint && colConstraint && leagueData) {
+      const leftEvidence: SideEvidence = {
+        met: rowConstraint.test(player),
+        teamName: rowConstraint.type === 'team' ? rowConstraint.label : undefined,
+      };
+      const rightEvidence: SideEvidence = {
+        met: colConstraint.test(player),
+        teamName: colConstraint.type === 'team' ? colConstraint.label : undefined,
+      };
+
+      const feedbackInput: RowInput = {
+        sport: leagueData.sport as any,
+        playerName: player.name,
+        player,
+        left: {
+          kind: rowConstraint.type,
+          teamName: rowConstraint.type === 'team' ? rowConstraint.label : undefined,
+          achv: rowConstraint.achv,
+        },
+        right: {
+          kind: colConstraint.type,
+          teamName: colConstraint.type === 'team' ? colConstraint.label : undefined,
+          achv: colConstraint.achv,
+        },
+        leftEvidence,
+        rightEvidence,
+      };
       
+      const feedback = generateIncorrectFeedback(feedbackInput);
+
       toast({
         title: 'Incorrect Guess',
-        description: `${player.name} is not a valid answer. ${reason}`,
+        description: feedback,
         variant: 'destructive',
       });
     }
@@ -432,21 +461,24 @@ export default function Home() {
         guessed: guessedPlayer,
         eligiblePool: eligiblePool,
         puzzleSeed: puzzleSeed,
-        cellContext: {
-          rowConstraint: {
-            type: rowConstraint.type,
-            tid: rowConstraint.tid,
-            achievementId: rowConstraint.achievementId,
-            label: rowConstraint.label
-          },
-          colConstraint: {
-            type: colConstraint.type,
-            tid: colConstraint.tid,
-            achievementId: colConstraint.achievementId,
-            label: colConstraint.label
-          }
-        },
-        fullPlayers: eligiblePlayers,
+                            cellContext: {
+                              rowConstraint: {
+                                type: rowConstraint.type,
+                                tid: rowConstraint.tid,
+                                achievementId: rowConstraint.achievementId,
+                                label: rowConstraint.label,
+                                key: rowConstraint.key,
+                                test: rowConstraint.test,
+                              },
+                              colConstraint: {
+                                type: colConstraint.type,
+                                tid: colConstraint.tid,
+                                achievementId: colConstraint.achievementId,
+                                label: colConstraint.label,
+                                key: colConstraint.key,
+                                test: colConstraint.test,
+                              },
+                            },        fullPlayers: eligiblePlayers,
         teams: teamsMap,
         seasonIndex: leagueData.seasonIndex
       });
@@ -651,8 +683,6 @@ export default function Home() {
     
     // Debug individual achievements first to understand the data
 
-    debugIndividualAchievements(data.players, data.seasonIndex);
-    
     // Generate initial grid
     const gridResult = generateTeamsGrid(data);
     setRows(gridResult.rows);

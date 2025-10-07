@@ -1,5 +1,4 @@
-import type { Player, Team } from '@/types/bbgm';
-import type { GridConstraint } from '@/lib/feedback';
+import type { Player, Team, CatTeam } from '@/types/bbgm';
 import type { SeasonIndex, SeasonAchievementId } from '@/lib/season-achievements';
 
 // ===== HELPER FUNCTIONS =====
@@ -30,8 +29,8 @@ function isPlayerInSeasonIndex(
 // ===== TYPES AND INTERFACES =====
 
 export interface CellContext {
-  rowConstraint: GridConstraint;
-  colConstraint: GridConstraint;
+  rowConstraint: CatTeam;
+  colConstraint: CatTeam;
   teams: Map<number, Team>;
 }
 

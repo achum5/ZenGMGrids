@@ -1,8 +1,8 @@
 import type { LeagueData, CatTeam, Player, Team } from '@/types/bbgm';
 import { getViableAchievements, playerMeetsAchievement, getAllAchievements, type Achievement, debugIndividualAchievements } from '@/lib/achievements';
-import { evaluateConstraintPair, GridConstraint } from '@/lib/feedback';
 import { getSeasonEligiblePlayers, type SeasonAchievementId, type SeasonIndex, SEASON_ACHIEVEMENTS } from './season-achievements';
 import { calculateOptimizedIntersection, type IntersectionConstraint } from '@/lib/intersection-cache';
+import { mapAchievementToAchv } from './achv-mappers';
 
 // Define conflicting achievement sets at module level
 const draftAchievements = new Set(['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen']);
@@ -171,6 +171,7 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
       key: `achievement-${achievement.id}`,
       label: achievement.label,
       achievementId: achievement.id,
+      achv: mapAchievementToAchv(achievement),
       type: 'achievement',
       test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex),
     }));
@@ -573,18 +574,21 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
       const col = cols[colIndex];
       const cellKey = `${rowIndex}-${colIndex}`;
       
-      // Find players who satisfy both constraints using same-season alignment
-      const rowConstraint: GridConstraint = {
+      const rowConstraint: CatTeam = {
         type: row.type,
         tid: row.tid,
         achievementId: row.achievementId,
-        label: row.label
+        label: row.label,
+        key: row.key,
+        test: row.test,
       };
-      const colConstraint: GridConstraint = {
+      const colConstraint: CatTeam = {
         type: col.type,
         tid: col.tid,
         achievementId: col.achievementId,
-        label: col.label
+        label: col.label,
+        key: col.key,
+        test: col.test,
       };
       
       // Pre-check for team × team intersections using pre-analyzed data
@@ -856,6 +860,7 @@ function generateGridSeeded(leagueData: LeagueData): {
     achievementId: seedAchievement.id,
     label: seedAchievement.label,
     key: `achievement-${seedAchievement.id}`,
+    achv: mapAchievementToAchv(seedAchievement),
     test: (p: Player) => playerMeetsAchievement(p, seedAchievement.id, seasonIndex),
   };
   
@@ -1004,6 +1009,7 @@ function generateGridSeeded(leagueData: LeagueData): {
         achievementId: selectedAch.id,
         label: selectedAch.label,
         key: `achievement-${selectedAch.id}`,
+        achv: mapAchievementToAchv(selectedAch),
         test: (p: Player) => playerMeetsAchievement(p, selectedAch.id, seasonIndex),
       };
       
@@ -1183,6 +1189,7 @@ function generateGridSeeded(leagueData: LeagueData): {
               achievementId: ach.id,
               label: ach.label,
               key: `achievement-${ach.id}`,
+              achv: mapAchievementToAchv(ach),
               test: (p: Player) => playerMeetsAchievement(p, ach.id, seasonIndex),
             };
             
@@ -1319,6 +1326,7 @@ function generateGridSeeded(leagueData: LeagueData): {
               achievementId: ach.id,
               label: ach.label,
               key: `achievement-${ach.id}`,
+              achv: mapAchievementToAchv(ach),
               test: (p: Player) => playerMeetsAchievement(p, ach.id, seasonIndex),
             };
             
@@ -1705,17 +1713,21 @@ function buildOppositeAxisForSeed(
   for (let row = 0; row < 3; row++) {
     for (let col = 0; col < 3; col++) {
       const key = `${row}-${col}`;
-      const rowConstraint: GridConstraint = {
+      const rowConstraint: CatTeam = {
         type: rows[row].type,
         tid: rows[row].tid,
         achievementId: rows[row].achievementId,
-        label: rows[row].label
+        label: rows[row].label,
+        key: rows[row].key,
+        test: rows[row].test,
       };
-      const colConstraint: GridConstraint = {
+      const colConstraint: CatTeam = {
         type: cols[col].type,
         tid: cols[col].tid,
         achievementId: cols[col].achievementId,
-        label: cols[col].label
+        label: cols[col].label,
+        key: cols[col].key,
+        test: cols[col].test,
       };
       
       // Handle different constraint combinations

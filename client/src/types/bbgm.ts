@@ -151,11 +151,14 @@ export interface LeagueData {
   leagueYears?: { minSeason: number; maxSeason: number };
 }
 
+import type { Achv } from '@/lib/feedback';
+
 export interface CatTeam {
   key: string;
   label: string;
   tid?: number; // Optional for achievement constraints
   achievementId?: string; // Optional for achievement constraints
+  achv?: Achv; // Full achievement definition for feedback
   type: 'team' | 'achievement';
   test(p: Player): boolean;
 }

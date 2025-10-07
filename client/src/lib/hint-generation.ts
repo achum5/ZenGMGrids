@@ -334,8 +334,8 @@ export function generateHintOptions(
 
   // Sort eligible players by rarity using cell-aware logic
   const cellContext: CellContext = {
-    rowConstraint: { type: rowConstraint.type, tid: rowConstraint.tid, achievementId: rowConstraint.achievementId, label: rowConstraint.label },
-    colConstraint: { type: colConstraint.type, tid: colConstraint.tid, achievementId: colConstraint.achievementId, label: colConstraint.label },
+    rowConstraint,
+    colConstraint,
     teams: new Map(teams.map(t => [t.tid, t]))
   };
 

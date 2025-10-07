@@ -288,6 +288,8 @@ export function GridSection({
         borderColor,
         borderWidth,
         borderStyle,
+        correct: false,
+        rarity: 0,
       };
     }
 
@@ -326,6 +328,8 @@ export function GridSection({
       borderColor,
       borderWidth,
       borderStyle,
+      correct: cellState.correct,
+      rarity: cellState.rarity,
     };
   };
 
@@ -799,7 +803,7 @@ export function GridSection({
         </div>
 
         {/* Hint mode toggle (center) */}
-        <div className="flex items-center justify-center gap-2" data-testid="hint-mode-toggle">
+        <div className="flex items-center justify-center gap-2" data-testid="hint-mode-toggle" style={{ marginLeft: '-1px' }}>
           <Switch
             id="hint-mode"
             checked={hintMode}

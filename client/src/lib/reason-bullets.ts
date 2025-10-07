@@ -1,11 +1,8 @@
-import type { Player, Team } from '@/types/bbgm';
-import type { GridConstraint } from '@/lib/feedback';
-import { type SeasonAchievementId } from '@/lib/season-achievements';
-import { getAllAchievements } from '@/lib/achievements';
-import { parseAchievementLabel, generateUpdatedLabel, singularizeStatWord, getPlayerCareerTotal } from '@/lib/editable-achievements';
-import { parseCustomAchievementId } from '@/lib/feedback';
-
-
+import type { Player, Team, CatTeam } from '@/types/bbgm';
+import type { SeasonAchievementId } from './season-achievements';
+import { getPlayerCareerTotal, parseAchievementLabel, singularizeStatWord, parseCustomAchievementId } from './editable-achievements';
+import { getCachedLeagueYears, getCachedSportDetection, getAllAchievements } from './achievements';
+import { getCachedSeasonIndex } from './season-index-cache';
 // Season achievement labels for bullet display
 const SEASON_ACHIEVEMENT_LABELS: Partial<Record<SeasonAchievementId, string>> = {
   // Basketball GM achievements
@@ -648,13 +645,7 @@ function getAwardSeasons(player: Player, awardTypes: string[]): number[] {
 }
 
 // Build proof bullets for both constraints in a cell
-export function generateReasonBullets(
-  player: Player,
-  rowConstraint: GridConstraint,
-  colConstraint: GridConstraint,
-  teams: Team[],
-  sport: string = 'basketball'
-): ReasonBullet[] {
+export function generateReasonBullets(player: Player, rowConstraint: CatTeam, colConstraint: CatTeam, teams: Team[], sport: string): ReasonBullet[] {
   const bullets: ReasonBullet[] = [];
   
   // Generate bullet for column constraint
@@ -673,7 +664,7 @@ export function generateReasonBullets(
 }
 
 // Generate a bullet for any constraint (team or achievement)
-function generateConstraintBullet(player: Player, constraint: GridConstraint, teams: Team[], sport: string): ReasonBullet | null {
+function generateConstraintBullet(player: Player, constraint: CatTeam, teams: Team[], sport: string): ReasonBullet | null {
   if (constraint.type === 'team') {
     return generateTeamBullet(player, constraint.tid!, teams, constraint.label);
   } else if (constraint.type === 'achievement') {
@@ -761,7 +752,7 @@ function generateCareerAchievementBullet(player: Player, achievementId: string, 
     const originalLabel = constraintLabel || achievementId;
     const parsedOriginal = parseAchievementLabel(originalLabel);
 
-    let statName = parsedOriginal.statUnit.trim();
+    let statName = parsedOriginal.statUnit?.trim();
     if (!statName && parsedOriginal.suffix.trim()) {
       statName = parsedOriginal.suffix.trim().replace(/^\+/, '');
     }
@@ -769,8 +760,8 @@ function generateCareerAchievementBullet(player: Player, achievementId: string, 
       statName = parsedOriginal.prefix.trim();
     }
 
-    statName = statName.replace(/^(career|season)\s*/i, '').trim();
-    statName = statName.replace(/\s*\(career\)|\s*\(season\)/gi, '').trim();
+    statName = (statName || '').replace(/^(career|season)\s*/i, '').trim();
+    statName = (statName || '').replace(/\s*\(career\)|\s*\(season\)/gi, '').trim();
 
     if (playerCareerTotal === 1) {
       statName = singularizeStatWord(statName);

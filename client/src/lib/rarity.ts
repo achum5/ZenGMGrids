@@ -1,5 +1,4 @@
-import type { Player, Team } from '@/types/bbgm';
-import type { GridConstraint } from '@/lib/feedback';
+import type { Player, Team, CatTeam } from '@/types/bbgm';
 import { computeCellAwareRarity } from './cell-aware-rarity';
 
 export type EligiblePlayerLite = {
@@ -19,8 +18,8 @@ export type EligiblePlayerLite = {
 };
 
 export interface CellContext {
-  rowConstraint: GridConstraint;
-  colConstraint: GridConstraint;
+  rowConstraint: CatTeam;
+  colConstraint: CatTeam;
 }
 
 // Extract award counts from BBGM player.awards array

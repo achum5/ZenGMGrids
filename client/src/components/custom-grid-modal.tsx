@@ -245,7 +245,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
   const handleAchievementNumberChange = useCallback((
     selectorType: 'row' | 'col',
     index: number,
-    newNumber: number,
+    newNumber: number | undefined,
     newLabel: string, // newLabel is now the fully formatted label
     operator?: '≥' | '≤'
   ) => {
@@ -1225,7 +1225,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
                           }
 
                           // Add stat unit if it exists
-                          if (parsedOriginal.statUnit.trim()) {
+                          if (parsedOriginal.statUnit?.trim()) {
                               displayLabelParts.push(parsedOriginal.statUnit.trim());
                           } else {
                               // Fallback to suffix if no specific stat unit was parsed
@@ -1255,7 +1255,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
                               <div className="flex items-center justify-center gap-0.5 sm:gap-1 flex-wrap">
                                 <Button
                                   variant="outline"
-                                  size="xs"
+                                  size="sm"
                                   className="h-5 w-5 sm:h-6 sm:w-6 p-0 text-xs flex-shrink-0"
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -1282,7 +1282,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
                                           isRow ? 'row' : 'col', 
                                           index, 
                                           undefined, 
-                                          generateUpdatedLabel(parsedOriginal, undefined, selector.operator),
+                                          generateUpdatedLabel(parsedOriginal, 0, selector.operator),
                                           selector.operator
                                         );
                                       } else if (!isNaN(newNumber)) {
