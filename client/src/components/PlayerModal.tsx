@@ -395,244 +395,269 @@ function getConstraintPhrase(
       return `${playerName} never played for the ${teamName}`;
     }
   } else if (constraint.type === 'achievement') {
-    const originalAchievementId = constraint.achievementId;
-    let baseAchievementId = originalAchievementId;
-    if (originalAchievementId?.includes('_custom_')) {
-        baseAchievementId = originalAchievementId.split('_custom_')[0];
+    // Special handling for "1/1/1 Season" to provide more detailed feedback
+    if (constraint.achievementId === 'Season1_1_1') {
+      if (met) {
+        const seasons = getSeasonsForSeasonStatAchievement(player, 'Season1_1_1', 1, '≥', 1);
+        const seasonStr = formatBulletSeasonList(seasons, false);
+        return `${playerName} had a 1/1/1 season${seasonStr ? ` (${seasonStr})` : ''}`;
+      } else {
+        const all111Seasons = getSeasonsForSeasonStatAchievement(player, 'Season1_1_1', 1, '≥', 1);
+        if (all111Seasons.length > 0) {
+          const seasonStr = formatBulletSeasonList(all111Seasons, false);
+          return `${playerName} did have a 1/1/1 season (${seasonStr}), just not with this team`;
+        } else {
+          return `${playerName} did not ever have a 1/1/1 season`;
+        }
+      }
     }
 
     let isCompletePhrase: boolean;
     if (!constraint.achievementId) {
       const fallbackLabel = getConstraintLabel(constraint, teams, allAchievements);
       isCompletePhrase = fallbackLabel.includes('MPG') || fallbackLabel.includes('Champion') || fallbackLabel.includes('Leader') || fallbackLabel.includes('Season');
-      return met ? `${playerName} met the criteria${isCompletePhrase ? ':' : ' for:'} ${fallbackLabel}` : `${playerName} did not meet the criteria${isCompletePhrase ? ':' : ' for:'} ${fallbackLabel}`;
+      return met ? `${playerName} met the criteria${isCompletePhrase ? ':' : ' for:'} ${fallbackLabel}` : `${playerName} never achieved${isCompletePhrase ? ':' : ''} ${fallbackLabel.toLowerCase()}`;
     }
     
     const achievementDetails = getAchievementDetails(player, constraint.achievementId, teams, sport, allAchievements);
     if (!achievementDetails) {
       const fallbackLabel = getConstraintLabel(constraint, teams, allAchievements);
       isCompletePhrase = fallbackLabel.includes('MPG') || fallbackLabel.includes('Champion') || fallbackLabel.includes('Leader') || fallbackLabel.includes('Season');
-      return met ? `${playerName} met the criteria${isCompletePhrase ? ':' : ' for:'} ${fallbackLabel}` : `${playerName} did not meet the criteria${isCompletePhrase ? ':' : ' for:'} ${fallbackLabel}`;
+      return met ? `${playerName} met the criteria${isCompletePhrase ? ':' : ' for:'} ${fallbackLabel}` : `${playerName} never achieved${isCompletePhrase ? ':' : ''} ${fallbackLabel.toLowerCase()}`;
     }
 
     const { value, years, label, isPlural } = achievementDetails;
 
     // Specific phrasing for different achievement types
-    if (baseAchievementId?.startsWith('career')) {
+    if (constraint.achievementId?.startsWith('career')) {
       const statName = label.replace(/(\d+,?\d*\+?)\s*Career\s*/, '').toLowerCase();
       if (met) {
         return `${playerName} had ${value} career ${statName}`;
       } else {
+        // Parse the achievement to get operator information
+        const parsed = parseCustomAchievementId(constraint.achievementId);
+        if (parsed && value !== undefined) {
+          // Use natural language based on operator
+          if (parsed.operator === '≤') {
+            // Failed "less than or equal" means they had MORE
+            return `${playerName} had more than ${parsed.threshold.toLocaleString()} career ${statName} (${value})`;
+          } else {
+            // Failed "greater than or equal" means they had FEWER
+            return `${playerName} had fewer than ${parsed.threshold.toLocaleString()} career ${statName} (${value})`;
+          }
+        }
+        // Fallback if we can't parse
+        const threshold = label.match(/(\d+,?\d*\+?)/)?.[1];
+        if (threshold) {
+          return `${playerName} ${value ? `had ${value} career ${statName}, but ` : ''}never reached ${threshold} career ${statName}`;
+        }
         return `${playerName} did not achieve ${label.toLowerCase()}`;
       }
-    } else if (['AllStar', 'MVP', 'DPOY', 'ROY', 'SMOY', 'MIP', 'FinalsMVP', 'AllLeagueAny', 'AllDefAny', 'AllRookieAny'].includes(baseAchievementId!)) {
+    } else if (['AllStar', 'MVP', 'DPOY', 'ROY', 'SMOY', 'MIP', 'FinalsMVP', 'AllLeagueAny', 'AllDefAny', 'AllRookieAny'].includes(constraint.achievementId!)) {
       const awardLabel = label.toLowerCase().replace('any', '').trim(); // Clean up 'AllLeagueAny' etc.
       if (met) {
         return `${playerName} was ${awardLabel.startsWith('all-') ? 'an' : 'a'} ${awardLabel}${years ? ` (${years})` : ''}`;
       } else {
         return `${playerName} was never ${awardLabel.startsWith('all-') ? 'an' : 'a'} ${awardLabel}`;
       }
-    } else if (['threePointContestWinner', 'dunkContestWinner'].includes(baseAchievementId!)) {
+    } else if (['threePointContestWinner', 'dunkContestWinner'].includes(constraint.achievementId!)) {
       const contestName = label.replace(' Champion', '').toLowerCase();
       if (met) {
         return `${playerName} won the ${contestName}${years ? ` (${years})` : ''}`;
       } else {
         return `${playerName} never won the ${contestName}`;
       }
-    } else if (baseAchievementId?.startsWith('Season') || label.includes('(Season)')) {
+    } else if (constraint.achievementId?.startsWith('Season') || label.includes('(Season)')) {
+      // Special handling for "1/1/1 Season" to provide more detailed feedback
+      if (constraint.achievementId === 'Season1_1_1') {
+        if (met) {
+          const seasons = getSeasonsForSeasonStatAchievement(player, 'Season1_1_1', 1, '≥', 1);
+          const seasonStr = formatBulletSeasonList(seasons, false);
+          return `${playerName} had a 1/1/1 season${seasonStr ? ` (${seasonStr})` : ''}`;
+        } else {
+          const all111Seasons = getSeasonsForSeasonStatAchievement(player, 'Season1_1_1', 1, '≥', 1);
+          if (all111Seasons.length > 0) {
+            const seasonStr = formatBulletSeasonList(all111Seasons, false);
+            return `${playerName} did have a 1/1/1 season (${seasonStr}), just not with this team`;
+          } else {
+            return `${playerName} did not ever have a 1/1/1 season`;
+          }
+        }
+      }
+
       const seasonStatLabel = label.replace(' (Season)', '');
+      const statName = seasonStatLabel.replace(/(\d+,?\d*\+?)/, '').trim().toLowerCase();
       const verb = achievementDetails.isAverage ? 'averaged' : 'had';
 
       if (met) {
         return `${playerName} ${verb} ${seasonStatLabel.toLowerCase()} in a season${years ? ` (${years})` : ''}`;
       } else {
+        // Parse the achievement to get operator information
+        const parsed = parseCustomAchievementId(constraint.achievementId);
+        
         // For any unmet Season* achievement, check if they ever achieved it in their career.
         const allSeasonsForStat = getSeasonsForSeasonStatAchievement(player, constraint.achievementId as any, undefined, undefined, 1);
         if (allSeasonsForStat.length > 0) {
           const seasonStr = formatBulletSeasonList(allSeasonsForStat, false);
           return `${playerName} did have a ${seasonStatLabel.toLowerCase()} season (${seasonStr}), just not with this team`;
         } else {
-          // Generate a natural language phrase for the unmet criteria.
-          const parsed = parseAchievementLabel(label, sport || 'basketball');
-          const { threshold } = parsed;
-          let phrase = `did not ever have a ${seasonStatLabel.toLowerCase()} season`; // Fallback
-
-          if (threshold !== null) {
-            switch (baseAchievementId) {
-              case 'Season30PPG':
-              case 'Season12RPG':
-              case 'Season10APG':
-              case 'Season2SPG':
-              case 'Season2_5BPG':
-              case 'Season36MPG':
-                phrase = `never averaged ${threshold}+ ${parsed.statUnit} in a season`;
-                break;
-              case 'Season2000Points':
-                phrase = `never scored ${threshold}+ points in a season`;
-                break;
-              case 'Season200_3PM':
-                phrase = `never made ${threshold}+ 3-pointers in a season`;
-                break;
-              case 'Season800Rebounds':
-                phrase = `never grabbed ${threshold}+ rebounds in a season`;
-                break;
-              case 'Season700Assists':
-                phrase = `never recorded ${threshold}+ assists in a season`;
-                break;
-              case 'Season150Steals':
-                phrase = `never recorded ${threshold}+ steals in a season`;
-                break;
-              case 'Season150Blocks':
-                phrase = `never recorded ${threshold}+ blocks in a season`;
-                break;
-              case 'Season200Stocks':
-                phrase = `never recorded ${threshold}+ stocks (steals + blocks) in a season`;
-                break;
-              case 'Season70Games':
-                phrase = `never played ${threshold}+ games in a season`;
-                break;
-              case 'Season90FT250FTA':
-                phrase = `never shot ${threshold}%+ from the free-throw line in a season`;
-                break;
-              case 'SeasonFGPercent':
-                phrase = `never shot ${threshold}%+ from the field in a season`;
-                break;
-              case 'Season3PPercent':
-                phrase = `never shot ${threshold}%+ on 3-pointers in a season`;
-                break;
-              case 'Season50_40_90':
-                phrase = 'never had a 50/40/90 season';
-                break;
-              case 'Season60eFG500FGA':
-                phrase = `never had an eFG% of ${threshold}%+ in a season`;
-                break;
-              case 'Season25_10':
-                phrase = 'never had a 25/10 (PPG/RPG) season';
-                break;
-              case 'Season25_5_5':
-                phrase = 'never had a 25/5/5 (PPG/RPG/APG) season';
-                break;
-              case 'Season20_10_5':
-                phrase = 'never had a 20/10/5 (PPG/RPG/APG) season';
-                break;
-              case 'Season1_1_1':
-                phrase = 'did not ever have a 1/1/1 season';
-                break;
-              default:
-                // Generic fallback for other or custom seasonal stats
-                if (achievementDetails.isAverage) {
-                  phrase = `never averaged ${threshold}${parsed.operator === '≥' ? '+' : ''} ${parsed.statUnit} in a season`;
-                } else {
-                  phrase = `never recorded ${threshold}${parsed.operator === '≥' ? '+' : ''} ${parsed.statUnit} in a season`;
-                }
-                break;
+          // Use natural language based on operator
+          if (parsed && parsed.operator === '≤') {
+            // Failed "less than or equal" means they never had a season LOW enough
+            const threshold = parsed.threshold.toLocaleString();
+            if (achievementDetails.isAverage) {
+              return `${playerName} never averaged under ${threshold} ${statName} in a season`;
+            } else {
+              return `${playerName} never had fewer than ${threshold} ${statName} in a season`;
+            }
+          } else {
+            // Failed "greater than or equal" (default) means they never had a season HIGH enough
+            const threshold = seasonStatLabel.match(/(\d+,?\d*\.?\d*\+?)/)?.[1] || '';
+            if (achievementDetails.isAverage) {
+              return `${playerName} never averaged ${threshold} ${statName} in a season`;
+            } else {
+              return `${playerName} never had ${threshold} ${statName} in a season`;
             }
           }
-          return `${playerName} ${phrase}`;
         }
       }
-    } else if (['AllLeagueAny', 'AllDefAny', 'AllRookieAny'].includes(baseAchievementId!)) {
+    } else if (['AllLeagueAny', 'AllDefAny', 'AllRookieAny'].includes(constraint.achievementId!)) {
       const awardLabel = label.toLowerCase().replace('any', '').trim();
       if (met) {
         return `${playerName} was named to an ${awardLabel}${years ? ` (${years})` : ''}`;
       } else {
         return `${playerName} was never named to an ${awardLabel}`;
       }
-    } else if (baseAchievementId === 'playedAtAge40Plus') {
+    } else if (constraint.achievementId === 'playedAtAge40Plus') {
       if (met) {
         return `${playerName} played at Age 40+${years ? ` (${years})` : ''}`;
       } else {
         return `${playerName} did not play at Age 40+`;
       }
-    } else if (baseAchievementId === 'royLaterMVP') {
+    } else if (constraint.achievementId === 'royLaterMVP') {
       if (met) {
         return `${playerName} was a ROY who later won MVP${years ? ` (${years})` : ''}`;
       } else {
         return `${playerName} was not a ROY who later won MVP`;
       }
-    } else if (baseAchievementId.includes('playedIn') && baseAchievementId.endsWith('s')) {
+    } else if (constraint.achievementId.includes('playedIn') && constraint.achievementId.endsWith('s')) {
       if (met) {
         return `${playerName} played in the ${label.replace('Played in the ', '')}${years ? ` (${years})` : ''}`;
       } else {
         return `${playerName} did not play in the ${label.replace('Played in the ', '')}`;
       }
-    } else if (baseAchievementId.includes('debutedIn') && baseAchievementId.endsWith('s')) {
+    } else if (constraint.achievementId.includes('debutedIn') && constraint.achievementId.endsWith('s')) {
       if (met) {
         return `${playerName} debuted in the ${label}${years ? ` (${years})` : ''}`;
       } else {
         return `${playerName} did not debut in the ${label}`;
       }
-    } else if (baseAchievementId === 'isHallOfFamer') {
+    } else if (constraint.achievementId === 'isHallOfFamer') {
       if (met) {
         return `${playerName} is a Hall of Famer${years ? ` (${years})` : ''}`;
       } else {
         return `${playerName} is not a Hall of Famer`;
       }
-    } else if (baseAchievementId === 'played15PlusSeasons') {
+    } else if (constraint.achievementId === 'played15PlusSeasons') {
       if (met) {
         return `${playerName} played ${value} season${isPlural ? 's' : ''}`;
       } else {
         return `${playerName} did not play 15+ seasons`;
       }
-    } else if (baseAchievementId === 'played5PlusFranchises') {
+    } else if (constraint.achievementId === 'played5PlusFranchises') {
       if (met) {
         return `${playerName} played for ${value} franchise${isPlural ? 's' : ''}`;
       } else {
         return `${playerName} did not play for 5+ franchises`;
       }
-    } else if (baseAchievementId === 'isPick1Overall') {
+    } else if (constraint.achievementId === 'isPick1Overall') {
       if (met) {
         return `${playerName} was a #1 Overall Pick${years ? ` ${years}` : ''}`;
       } else {
-        return `${playerName} was not a #1 Overall Pick`;
+        return `${playerName} was never a #1 Overall Pick`;
       }
-    } else if (baseAchievementId === 'isFirstRoundPick') {
+    } else if (constraint.achievementId === 'isFirstRoundPick') {
       if (met) {
         return `${playerName} was a First Round Pick${years ? ` ${years}` : ''}`;
       } else {
         return `${playerName} was never a First Round Pick`;
       }
-    } else if (baseAchievementId === 'isSecondRoundPick') {
+    } else if (constraint.achievementId === 'isSecondRoundPick') {
       if (met) {
         return `${playerName} was a Second Round Pick${years ? ` ${years}` : ''}`;
       } else {
         return `${playerName} was never a Second Round Pick`;
       }
-    } else if (baseAchievementId === 'isUndrafted') {
+    } else if (constraint.achievementId === 'isUndrafted') {
       if (met) {
         return `${playerName} went Undrafted${years ? ` ${years}` : ''}`;
       } else {
         return `${playerName} was not Undrafted`;
       }
-    } else if (baseAchievementId === 'draftedTeen') {
+    } else if (constraint.achievementId === 'draftedTeen') {
       if (met) {
         return `${playerName} was drafted as a teenager${years ? ` ${years}` : ''}`;
       } else {
         return `${playerName} was not drafted as a teenager`;
       }
-    } else if (baseAchievementId === 'bornOutsideUS50DC') {
+    } else if (constraint.achievementId === 'bornOutsideUS50DC') {
       if (met) {
         return `${playerName} was born outside the US`;
       } else {
         return `${playerName} was born in the US`;
       }
-    } else if (baseAchievementId?.includes('Leader')) {
+    } else if (constraint.achievementId?.includes('Leader')) {
       const leaderType = label.replace('League ', '').replace(' Leader', '');
       if (met) {
         return `${playerName} was the League ${leaderType} Leader${years ? ` (${years})` : ''}`;
       } else {
         return `${playerName} was never the League ${leaderType} Leader`;
       }
-    } else if (baseAchievementId === 'Won Championship') {
+    } else if (constraint.achievementId === 'Won Championship') {
       if (met) {
         return `${playerName} won a Championship${years ? ` (${years})` : ''}`;
       } else {
         return `${playerName} never won a Championship`;
       }
+    } else if (constraint.achievementId?.startsWith('Season')) {
+      // Generic phrasing for other season statistical achievements
+      const seasonStatLabel = label.replace(' (Season)', '');
+      if (met) {
+        return `${playerName} had a season with ${seasonStatLabel}${years ? ` (${years})` : ''}`;
+      } else {
+        return `${playerName} never had a season with ${seasonStatLabel}`;
+      }
     }
     // Fallback for any unhandled achievements (should be minimal now)
     isCompletePhrase = label.includes('MPG') || label.includes('Champion') || label.includes('Leader') || label.includes('Season');
-    return met ? `${playerName} met the criteria${isCompletePhrase ? ':' : ' for:'} ${label}` : `${playerName} did not meet the criteria${isCompletePhrase ? ':' : ' for:'} ${label}`;
+    if (met) {
+      return `${playerName} met the criteria${isCompletePhrase ? ':' : ' for:'} ${label}`;
+    } else {
+      // Parse the achievement to get operator information for more natural phrasing
+      const parsed = parseCustomAchievementId(constraint.achievementId);
+      
+      if (label.includes('(Season)')) {
+        const seasonStatLabel = label.replace(' (Season)', '').toLowerCase();
+        const statName = seasonStatLabel.replace(/(\d+,?\d*\+?)/, '').trim();
+        
+        if (parsed && parsed.operator === '≤') {
+          return `${playerName} never achieved under ${parsed.threshold.toLocaleString()} ${statName} in a season`;
+        } else {
+          return `${playerName} never achieved ${seasonStatLabel} in a season`;
+        }
+      }
+      
+      if (parsed && label.toLowerCase().includes('career')) {
+        const statName = label.replace(/(\d+,?\d*\+?)\s*Career\s*/i, '').toLowerCase();
+        if (parsed.operator === '≤') {
+          return `${playerName} had more than ${parsed.threshold.toLocaleString()} ${statName}`;
+        } else {
+          return `${playerName} had fewer than ${parsed.threshold.toLocaleString()} ${statName}`;
+        }
+      }
+      
+      return `${playerName} never achieved${isCompletePhrase ? ':' : ''} ${label.toLowerCase()}`;
+    }
   }
   
   // Fallback for unknown constraint types
@@ -704,4 +729,612 @@ function teamNameAtSeason(teamsByTid: Map<number, Team>, tid: number, season: nu
   const region = team.region || team.abbrev || '';
   const name = team.name || 'Unknown Team';
   return region ? `${region} ${name}` : name;
+}
+
+export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers = [], puzzleSeed = "", rows = [], cols = [], currentCellKey = "", sport, isGridCompleted = false }: Props) {
+  if (!player) return null;
+
+  const currentSport = sport || getCachedSportDetection() || 'basketball';
+  const leagueYears = getCachedLeagueYears();
+  const allAchievements = useMemo(() => getAllAchievements(currentSport as ('basketball' | 'football' | 'hockey' | 'baseball'), undefined, leagueYears), [currentSport, leagueYears]);
+  const seasonIndex = useMemo(() => getCachedSeasonIndex(eligiblePlayers as Player[], currentSport as ('basketball' | 'football' | 'hockey' | 'baseball')), [eligiblePlayers, currentSport]);
+
+  // Create team lookup map for efficient lookups - defensive check for teams array
+  const teamsByTid = new Map(Array.isArray(teams) ? teams.map(team => [team.tid, team]) : []);
+
+  // Memoize expensive calculations
+  const modalData = useMemo(() => {
+    try {
+      if (!currentCellKey || rows.length === 0 || cols.length === 0) {
+        return null;
+      }
+
+      let rowConstraint: any;
+      let colConstraint: any;
+      
+      if (currentCellKey.includes('|')) {
+        // Traditional format: "rowKey|colKey"
+        const [rowKey, colKey] = currentCellKey.split('|');
+        rowConstraint = rows.find(r => r.key === rowKey);
+        colConstraint = cols.find(c => c.key === colKey);
+      } else {
+        // Position-based format: "rowIndex-colIndex"
+        const [rowIndexStr, colIndexStr] = currentCellKey.split('-');
+        const rowIndex = parseInt(rowIndexStr, 10);
+        const colIndex = parseInt(colIndexStr, 10);
+        rowConstraint = rows[rowIndex];
+        colConstraint = cols[colIndex];
+      }
+      
+      if (!rowConstraint || !colConstraint) {
+        return null;
+      }
+
+      const isCorrectGuess = eligiblePlayers.some(p => p.pid === player.pid);
+      
+      if (isCorrectGuess) {
+      // Calculate rarity for correct guesses
+      const eligiblePool = eligiblePlayers.map(p => playerToEligibleLite(p));
+      if (eligiblePool.length > 0) {
+        const guessedPlayer = playerToEligibleLite(player);
+        const rarity = computeRarityForGuess({
+          guessed: guessedPlayer,
+          eligiblePool: eligiblePool,
+          puzzleSeed: puzzleSeed,
+          cellContext: {
+            rowConstraint: {
+              type: rowConstraint.type,
+              tid: rowConstraint.tid,
+              achievementId: rowConstraint.achievementId,
+              label: rowConstraint.label
+            },
+            colConstraint: {
+              type: colConstraint.type,
+              tid: colConstraint.tid,
+              achievementId: colConstraint.achievementId,
+              label: colConstraint.label
+            }
+          },
+          fullPlayers: eligiblePlayers,
+          teams: new Map(Array.isArray(teams) ? teams.map(t => [t.tid, t]) : [])
+        });
+        
+        // Generate reason bullets for correct guess
+        const reasonBullets = generateReasonBullets(
+          player,
+          {
+            type: rowConstraint.type,
+            tid: rowConstraint.tid,
+            achievementId: rowConstraint.achievementId,
+            label: rowConstraint.label
+          },
+          {
+            type: colConstraint.type,
+            tid: colConstraint.tid,
+            achievementId: colConstraint.achievementId,
+            label: colConstraint.label
+          },
+          Array.isArray(teams) ? teams : [],
+          currentSport
+        );
+
+        return {
+          type: 'correct' as const,
+          rarity,
+          reasonBullets
+        };
+      }
+    } else {
+      // Generate feedback for wrong guesses
+      const feedbackMessage = generateFeedbackMessage(
+        player,
+        {
+          type: rowConstraint.type,
+          tid: rowConstraint.tid,
+          achievementId: rowConstraint.achievementId,
+          label: rowConstraint.label
+        },
+        {
+          type: colConstraint.type,
+          tid: colConstraint.tid,
+          achievementId: colConstraint.achievementId,
+          label: colConstraint.label
+        },
+        Array.isArray(teams) ? teams : [],
+        currentSport as ('basketball' | 'football' | 'hockey' | 'baseball'),
+        allAchievements,
+        seasonIndex
+      );
+
+      return {
+        type: 'wrong' as const,
+        feedbackMessage
+      };
+    }
+
+    return null;
+    } catch (error) {
+      console.error('Error in PlayerModal modalData calculation:', error);
+      return null;
+    }
+  }, [player.pid, currentCellKey, eligiblePlayers, puzzleSeed, rows, cols, teams, sport, currentSport, allAchievements]);
+
+  // Get feedback message and color for score
+  const getScoreFeedback = (score: number): { message: string; colorClass: string } => {
+    const feedbackOptions = {
+      "10-20": [
+        "Classic choice",
+        "Reliable pick",
+        "Can't go wrong",
+        "Staple answer",
+        "Trusted name"
+      ],
+      "21-40": [
+        "Good call",
+        "Solid choice",
+        "Steady pick",
+        "Well played",
+        "Strong answer"
+      ],
+      "41-60": [
+        "Nice find",
+        "Quality pick",
+        "Smart call",
+        "Good eye",
+        "Well spotted"
+      ],
+      "61-80": [
+        "Great pull",
+        "Sharp choice",
+        "Underrated find",
+        "Well done",
+        "Strong grab"
+      ],
+      "81-100": [
+        "Rare gem",
+        "Brilliant find",
+        "Elite choice",
+        "Outstanding",
+        "Legendary pick"
+      ]
+    };
+
+    let options: string[] = [];
+    let colorClass = "";
+
+    if (score >= 10 && score <= 20) {
+      options = feedbackOptions["10-20"];
+      colorClass = "text-red-600";
+    } else if (score >= 21 && score <= 40) {
+      options = feedbackOptions["21-40"];
+      colorClass = "text-orange-500";
+    } else if (score >= 41 && score <= 60) {
+      options = feedbackOptions["41-60"];
+      colorClass = "text-yellow-600";
+    } else if (score >= 61 && score <= 80) {
+      options = feedbackOptions["61-80"];
+      colorClass = "text-green-500";
+    } else if (score >= 81 && score <= 100) {
+      options = feedbackOptions["81-100"];
+      colorClass = "text-indigo-600";
+    }
+
+    // Use player pid as seed for consistent random selection
+    const randomIndex = Math.abs(player.pid) % options.length;
+    const message = options[randomIndex] || "Nice pick";
+
+    return { message, colorClass };
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg w-[92vw] max-h-[85vh] sm:max-h-[80vh] flex flex-col overflow-hidden" data-testid="modal-player-details">
+        <DialogHeader>
+          <div className="flex items-center gap-4">
+            <div className="shrink-0 w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40">
+              <PlayerFace
+                pid={player.pid}
+                name={player.name}
+                imgURL={player.imgURL ?? undefined}
+                face={player.face}
+                size={160}
+                hideName={true}
+                player={player}
+                teams={teams}
+                sport={sport}
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <DialogTitle className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight dark:text-white">
+                {player.name}
+              </DialogTitle>
+              <DialogDescription className="sr-only">
+                Player details including career statistics, achievements, and team history.
+              </DialogDescription>
+              
+              {/* Score feedback for correct guesses OR feedback message for wrong guesses */}
+              {modalData && modalData.type === 'correct' && (
+                <div className="mt-2">
+                  {(() => {
+                    const rarityTier = getRarityTier(modalData.rarity);
+                    const styles = rarityStyles[rarityTier];
+                
+                    return (
+                      <span className={`text-lg font-bold`} style={{ color: styles.textColor }}>
+                        Score: {modalData.rarity}
+                      </span>
+                    );
+                  })()}
+                  
+                  {/* Reason bullets for correct guesses */}
+                  {modalData.reasonBullets.length > 0 && (
+                    <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                      {modalData.reasonBullets.map((bullet, index) => (
+                        <div key={index} className="flex items-start gap-2">
+                          <span className="text-xs leading-5">•</span>
+                          <span className="leading-5">{bullet.text}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {modalData && modalData.type === 'wrong' && (
+                <div className="mt-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
+                    <span className="text-sm text-red-700 dark:text-red-300 leading-5">
+                      {modalData.feedbackMessage}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogHeader>
+
+        <div className="mt-4 flex-1 overflow-y-auto min-h-0 space-y-4">
+          {/* Awards */}
+          {player.awards && player.awards.length > 0 && (
+            <div>
+              <h3 className="font-semibold text-base mb-2">Awards & Honors</h3>
+              <div className="flex flex-wrap gap-2">
+                {(() => {
+                  // Group and count awards
+                  const awardCounts: Record<string, number> = {};
+                  player.awards.forEach(award => {
+                    awardCounts[award.type] = (awardCounts[award.type] || 0) + 1;
+                  });
+
+                  // Create condensed award display
+                  const condensedAwards: { text: string; isHallOfFame?: boolean }[] = [];
+                  
+                  Object.entries(awardCounts).forEach(([type, count]) => {
+                    switch (type) {
+                      case "Inducted into the Hall of Fame":
+                        condensedAwards.push({ text: "Hall of Fame", isHallOfFame: true });
+                        break;
+                      case "Most Valuable Player":
+                        condensedAwards.push({ text: count > 1 ? `${count}x MVP` : "MVP" });
+                        break;
+                      case "Finals MVP":
+                        condensedAwards.push({ text: count > 1 ? `${count}x FMVP` : "FMVP" });
+                        break;
+                      case "Won Championship":
+                        condensedAwards.push({ text: count > 1 ? `${count}x Champion` : "Champion" });
+                        break;
+                      case "Rookie of the Year":
+                        condensedAwards.push({ text: "ROY" });
+                        break;
+                      case "All-Star MVP":
+                        condensedAwards.push({ text: count > 1 ? `${count}x All-Star MVP` : "All-Star MVP" });
+                        break;
+                      case "All-Star":
+                        condensedAwards.push({ text: count > 1 ? `${count}x All-Star` : "All-Star" });
+                        break;
+                      case "First Team All-League":
+                      case "Second Team All-League":
+                      case "Third Team All-League":
+                        // Count all All-League teams together
+                        if (!condensedAwards.some(award => award.text.includes("All-League"))) {
+                          const allLeagueCount = (player.awards || []).filter(a => 
+                            a.type.includes("All-League")
+                          ).length;
+                          condensedAwards.push({ text: allLeagueCount > 1 ? `${allLeagueCount}x All-League` : "All-League" });
+                        }
+                        break;
+                      case "First Team All-Defensive":
+                      case "Second Team All-Defensive":
+                        // Count all All-Defensive teams together
+                        if (!condensedAwards.some(award => award.text.includes("All-Defensive"))) {
+                          const allDefensiveCount = (player.awards || []).filter(a => 
+                            a.type.includes("All-Defensive")
+                          ).length;
+                          condensedAwards.push({ text: allDefensiveCount > 1 ? `${allDefensiveCount}x All-Defensive` : "All-Defensive" });
+                        }
+                        break;
+                      case "League Scoring Leader":
+                        condensedAwards.push({ text: count > 1 ? `${count}x Scoring Leader` : "Scoring Leader" });
+                        break;
+                      case "League Rebounding Leader":
+                        condensedAwards.push({ text: count > 1 ? `${count}x Rebounding Leader` : "Rebounding Leader" });
+                        break;
+                      case "League Assists Leader":
+                        condensedAwards.push({ text: count > 1 ? `${count}x Assists Leader` : "Assists Leader" });
+                        break;
+                      case "League Steals Leader":
+                        condensedAwards.push({ text: count > 1 ? `${count}x Steals Leader` : "Steals Leader" });
+                        break;
+                      case "League Blocks Leader":
+                        condensedAwards.push({ text: count > 1 ? `${count}x Blocks Leader` : "Blocks Leader" });
+                        break;
+                      default:
+                        // Handle dynamic decade achievements
+                        if (type.includes('playedIn') && type.endsWith('s')) {
+                          const decadeMatch = type.match(/playedIn(\d{4})s/);
+                          if (decadeMatch) {
+                            const decade = decadeMatch[1];
+                            condensedAwards.push({ text: `Played in the ${decade}s` });
+                            break;
+                          }
+                        }
+                        if (type.includes('debutedIn') && type.endsWith('s')) {
+                          const decadeMatch = type.match(/debutedIn(\d{4})s/);
+                          if (decadeMatch) {
+                            const decade = decadeMatch[1];
+                            condensedAwards.push({ text: `Debuted in the ${decade}s` });
+                            break;
+                          }
+                        }
+                        
+                        // Handle other achievement types with improved naming  
+                        let displayText = type;
+                        
+                        // Handle age-related achievements
+                        if (type.includes('playedAt') && type.includes('Plus')) {
+                          const ageMatch = type.match(/playedAt(\d+)Plus/);
+                          if (ageMatch) {
+                            const age = ageMatch[1];
+                            displayText = `Played at Age ${age}+`;
+                          }
+                        }
+                        
+                        // Default case for unknown types
+                        condensedAwards.push({ text: count > 1 ? `${count}x ${displayText}` : displayText });
+                        break;
+                    }
+                  });
+
+                  if (player.achievements?.royLaterMVP) {
+                    condensedAwards.push({ text: "ROY, then MVP" });
+                  }
+
+                  // Sort to put Hall of Fame first
+                  const sortedAwards = condensedAwards.sort((a, b) => {
+                    if (a.isHallOfFame && !b.isHallOfFame) return -1;
+                    if (!a.isHallOfFame && b.isHallOfFame) return 1;
+                    return 0;
+                  });
+
+                  return sortedAwards.map((award, idx) => (
+                    <Badge 
+                      key={idx} 
+                      variant="secondary" 
+                      className={award.isHallOfFame 
+                        ? "text-xs bg-gradient-to-r from-yellow-400 to-yellow-600 text-yellow-900 border-yellow-500 font-bold dark:from-yellow-500 dark:to-yellow-700 dark:text-yellow-100" 
+                        : "text-xs bg-slate-500 text-white dark:bg-slate-600 dark:text-slate-100"
+                      }
+                    >
+                      {award.text}
+                    </Badge>
+                  ));
+                })()}
+              </div>
+            </div>
+          )}
+
+          <Separator className="my-4" />
+
+          {/* Career Summary - Teams and Years */}
+          {player.seasons && player.seasons.length > 0 && (
+            <div>
+              <h3 className="font-semibold text-base mb-2">Career Summary</h3>
+              <div className="w-full rounded-md border p-3 overflow-y-auto" style={{ maxHeight: '12rem' }}>
+                <div className="space-y-1 text-sm">
+                {(() => {
+                  // Get regular season stats only and sort by season
+                  const regularSeasonStats = player.seasons
+                    .filter(s => !s.playoffs)
+                    .sort((a, b) => a.season - b.season);
+
+                  if (regularSeasonStats.length === 0) return null;
+
+                  // Group consecutive seasons by team
+                  const teamStints: Array<{
+                    tid: number;
+                    firstSeason: number;
+                    lastSeason: number;
+                    seasons: number[];
+                  }> = [];
+
+                  let currentStint = {
+                    tid: regularSeasonStats[0].tid,
+                    firstSeason: regularSeasonStats[0].season,
+                    lastSeason: regularSeasonStats[0].season,
+                    seasons: [regularSeasonStats[0].season]
+                  };
+
+                  for (let i = 1; i < regularSeasonStats.length; i++) {
+                    const season = regularSeasonStats[i];
+                    
+                    // If same team and consecutive season, extend current stint
+                    if (season.tid === currentStint.tid && 
+                        season.season === currentStint.lastSeason + 1) {
+                      currentStint.lastSeason = season.season;
+                      currentStint.seasons.push(season.season);
+                    } else {
+                      // Different team or gap in years, start new stint
+                      teamStints.push(currentStint);
+                      currentStint = {
+                        tid: season.tid,
+                        firstSeason: season.season,
+                        lastSeason: season.season,
+                        seasons: [season.season]
+                      };
+                    }
+                  }
+                  
+                  // Don't forget the last stint
+                  teamStints.push(currentStint);
+
+                  // Check if all teams in the career have working logos (all-or-nothing approach)
+                  const teamsInCareer = teamStints.map(stint => teamsByTid.get(stint.tid)).filter(Boolean) as Team[];
+                  const allTeamsHaveLogos = checkAllTeamsHaveLogos(teamsInCareer);
+                  
+                  
+                  return teamStints.map((stint, idx) => {
+                    const team = teamsByTid.get(stint.tid);
+                    const teamName = teamNameAtSeason(teamsByTid, stint.tid, stint.firstSeason);
+                    const yearRange = stint.firstSeason === stint.lastSeason 
+                      ? `${stint.firstSeason}` 
+                      : `${stint.firstSeason}–${stint.lastSeason}`;
+                    
+                    if (allTeamsHaveLogos && team) {
+                      return (
+                        <CareerTeamLogo
+                          key={idx}
+                          team={team}
+                          yearRange={yearRange}
+                        />
+                      );
+                    } else {
+                      return (
+                        <div key={idx} className="font-medium">
+                          {teamName} {yearRange}
+                        </div>
+                      );
+                    }
+                  });
+                })()}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <Separator className="my-4" />
+
+          {/* Other Eligible Answers */}
+          {eligiblePlayers.length > 0 && (
+            <div>
+              <h3 className="font-semibold text-base mb-2">
+                {(() => {
+                  // Check if the current player is in the eligible list (correct answer)
+                  const isCorrectAnswer = player && eligiblePlayers.some(p => p.pid === player.pid);
+                  return isCorrectAnswer ? "Other Eligible Answers" : "Eligible Answers";
+                })()}
+              </h3>
+              <div className="w-full rounded-md border p-3 overflow-y-auto" style={{ maxHeight: '12rem' }}>
+                {!isGridCompleted ? (
+                  <div className="text-sm text-muted-foreground text-center py-8">
+                    Revealed upon grid completion...
+                  </div>
+                ) : (
+                  <div className="space-y-1 text-sm">
+                  {(() => {
+                    // Calculate rarity for all eligible players
+                    const eligiblePool = eligiblePlayers.map(p => playerToEligibleLite(p));
+                    const playersWithRarity = eligiblePlayers.map(p => {
+                      const guessedPlayer = playerToEligibleLite(p);
+                      
+                      // Use the same cell context as the main score calculation
+                      let rarity = computeRarityForGuess({
+                        guessed: guessedPlayer,
+                        eligiblePool: eligiblePool,
+                        puzzleSeed: puzzleSeed
+                      });
+                      
+                      // If we have cell context, recalculate with cell-aware system
+                      if (currentCellKey && rows && cols) {
+                        let rowKey, colKey;
+                        if (currentCellKey.includes('|')) {
+                          [rowKey, colKey] = currentCellKey.split('|');
+                        } else {
+                          const [rowIndexStr, colIndexStr] = currentCellKey.split('-');
+                          const rowIndex = parseInt(rowIndexStr, 10);
+                          const colIndex = parseInt(colIndexStr, 10);
+                          rowKey = rows[rowIndex]?.key;
+                          colKey = cols[colIndex]?.key;
+                        }
+                        const rowConstraint = rows.find(r => r.key === rowKey);
+                        const colConstraint = cols.find(c => c.key === colKey);
+                        
+                        if (rowConstraint && colConstraint) {
+                          rarity = computeRarityForGuess({
+                            guessed: guessedPlayer,
+                            eligiblePool: eligiblePool,
+                            puzzleSeed: puzzleSeed,
+                            cellContext: {
+                              rowConstraint: {
+                                type: rowConstraint.type,
+                                tid: rowConstraint.tid,
+                                achievementId: rowConstraint.achievementId,
+                                label: rowConstraint.label
+                              },
+                              colConstraint: {
+                                type: colConstraint.type,
+                                tid: colConstraint.tid,
+                                achievementId: colConstraint.achievementId,
+                                label: colConstraint.label
+                              }
+                            },
+                            fullPlayers: eligiblePlayers,
+                            teams: new Map(teams?.map(t => [t.tid, t]) ?? []),
+                            seasonIndex: seasonIndex
+                          });
+                        }
+                      }
+                      
+                      return { player: p, rarity };
+                    });
+
+                    // Sort by rarity (most common first = lowest rarity score)
+                    playersWithRarity.sort((a, b) => a.rarity - b.rarity);
+
+                    return playersWithRarity.map(({ player: eligiblePlayer, rarity }, idx) => {
+                      const isUserGuess = player && eligiblePlayer.pid === player.pid;
+                      const rarityTier = getRarityTier(rarity);
+                      const styles = rarityStyles[rarityTier];
+                      
+                      return (
+                        <div 
+                          key={eligiblePlayer.pid} 
+                          className={`flex justify-between items-center py-1 px-2 rounded ${isUserGuess ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 italic font-medium" : ""}`}
+                        >
+                          <span className="flex-1">
+                            {idx + 1}. {eligiblePlayer.name}
+                          </span>
+                          <span 
+                            className="text-xs font-medium ml-2 px-2 py-0.5 rounded-md border"
+                            style={{
+                              background: styles.gradient !== 'none' ? styles.gradient : styles.bgColor,
+                              color: styles.textColor,
+                              borderColor: styles.borderColor,
+                            }}
+                          >
+                            {rarity}
+                          </span>
+                        </div>
+                      );
+                    });
+                  })()}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }

@@ -1,5 +1,3 @@
-import { formatNumber } from '@/lib/utils';
-import { BASKETBALL_NEGATIVE_MESSAGES, HOCKEY_NEGATIVE_MESSAGES, BASEBALL_NEGATIVE_MESSAGES, FOOTBALL_NEGATIVE_MESSAGES } from './feedback-messages';
 import type { Player, Team } from '@/types/bbgm';
 import { SEASON_ALIGNED_ACHIEVEMENTS, getAllAchievements, getCachedSportDetection } from '@/lib/achievements';
 import { playerMeetsAchievement } from '@/lib/achievements';
@@ -970,7 +968,9 @@ function getFootballSeasonBests(player: Player) {
   return { passTDs, rushYds, rushTDs, recYds, recTDs, sacks, ints };
 }
 
-
+function formatNumber(num: number): string {
+  return num.toLocaleString();
+}
 
 /**
  * Universal function to convert achievement IDs to human-readable text
@@ -1102,7 +1102,7 @@ function getHumanReadableAchievementText(achievementId: string): string {
   const commonMappings: Record<string, string> = {
     'oneTeamOnly': 'spent entire career with one team',
     'isHallOfFamer': 'was inducted into the Hall of Fame',
-    'isPick1Overall': 'the #1 overall pick',
+    'isPick1Overall': 'was the #1 overall draft pick',
     'isFirstRoundPick': 'was a first round draft pick',
     'isSecondRoundPick': 'was a second round draft pick',
     'isUndrafted': 'went undrafted',
@@ -1158,9 +1158,6 @@ function getFootballPositiveMessage(achievementId: string, player?: Player): str
   const seasonBests = getFootballSeasonBests(player);
 
   switch (achievementId) {
-    case 'isPick1Overall':
-      const draftYear = player.draft?.year || 'unknown';
-      return `was the #1 overall pick (${draftYear})`;
     case 'career300PassTDs':
       return `threw 150+ career pass TDs (${formatNumber(careerStats.passTDs)})`;
     case 'season35PassTDs':
@@ -1435,11 +1432,10 @@ function getBasketballPositiveMessage(achievementId: string, player?: Player): s
   const seasonBests = getBasketballSeasonBests(player);
 
   switch (achievementId) {
-    case 'isPick1Overall':
+    case 'isSecondRoundPick':
       const draftYear = player.draft?.year || 'unknown';
-      return `was the #1 overall pick (${draftYear})`;
-          case 'isSecondRoundPick':
-            return `was a second-round pick in ${player.draft?.year || 'unknown'}`;    case 'career20kPoints':
+      return `was a second-round pick in ${draftYear}`;
+    case 'career20kPoints':
       return `reached 20,000+ career points (${formatNumber(careerStats.pts)})`;
     case 'career10kRebounds':
       return `reached 10,000+ career rebounds (${formatNumber(careerStats.trb)})`;
@@ -1735,40 +1731,66 @@ function getBasketballNegativeMessage(achievementId: string, player?: Player): s
   const careerStats = getBasketballCareerStats(player);
   const seasonBests = getBasketballSeasonBests(player);
 
-  const messageGenerator = (BASKETBALL_NEGATIVE_MESSAGES as any)[achievementId];
-
-  if (messageGenerator) {
-    switch (achievementId) {
-      case 'career20kPoints':
-        return messageGenerator(careerStats.pts);
-      case 'career10kRebounds':
-        return messageGenerator(careerStats.trb);
-      case 'career5kAssists':
-        return messageGenerator(careerStats.ast);
-      case 'career2kSteals':
-        return messageGenerator(careerStats.stl);
-      case 'career1500Blocks':
-        return messageGenerator(careerStats.blk);
-      case 'career2kThrees':
-        return messageGenerator(careerStats.fg3);
-      case 'season30ppg':
-        return messageGenerator(seasonBests.ppg.max, seasonBests.ppg.year);
-      case 'season10apg':
-        return messageGenerator(seasonBests.apg.max, seasonBests.apg.year);
-      case 'season15rpg':
-        return messageGenerator(seasonBests.rpg.max, seasonBests.rpg.year);
-      case 'season3bpg':
-        return messageGenerator(seasonBests.bpg.max, seasonBests.bpg.year);
-      case 'season25spg':
-        return messageGenerator(seasonBests.spg.max, seasonBests.spg.year);
-      case 'played5PlusFranchises':
-        return messageGenerator(getPlayerFranchiseCount(player));
-      default:
-        return messageGenerator();
-    }
+  switch (achievementId) {
+    case 'isSecondRoundPick':
+      return `was not a second-round pick`;
+    case 'career20kPoints':
+      return `did not reach 20,000+ career points (career ${formatNumber(careerStats.pts)})`;
+    case 'career10kRebounds':
+      return `did not reach 10,000+ career rebounds (career ${formatNumber(careerStats.trb)})`;
+    case 'career5kAssists':
+      return `did not reach 5,000+ career assists (career ${formatNumber(careerStats.ast)})`;
+    case 'career2kSteals':
+      return `did not reach 2,000+ career steals (career ${formatNumber(careerStats.stl)})`;
+    case 'career1500Blocks':
+      return `did not reach 1,500+ career blocks (career ${formatNumber(careerStats.blk)})`;
+    case 'career2kThrees':
+      return `did not make 2,000+ career threes (career ${formatNumber(careerStats.fg3)})`;
+    case 'season30ppg':
+      if (seasonBests.ppg.max === 0 && seasonBests.ppg.year === 0) {
+        return `never averaged 30+ PPG in a season (never recorded a point)`;
+      }
+      return `never averaged 30+ PPG in a season (best ${seasonBests.ppg.max.toFixed(1)} in ${seasonBests.ppg.year})`;
+    case 'season10apg':
+      if (seasonBests.apg.max === 0 && seasonBests.apg.year === 0) {
+        return `never averaged 10+ APG in a season (never recorded an assist)`;
+      }
+      return `never averaged 10+ APG in a season (best ${seasonBests.apg.max.toFixed(1)} in ${seasonBests.apg.year})`;
+    case 'season15rpg':
+      if (seasonBests.rpg.max === 0 && seasonBests.rpg.year === 0) {
+        return `never averaged 15+ RPG in a season (never recorded a rebound)`;
+      }
+      return `never averaged 15+ RPG in a season (best ${seasonBests.rpg.max.toFixed(1)} in ${seasonBests.rpg.year})`;
+    case 'season3bpg':
+      if (seasonBests.bpg.max === 0 && seasonBests.bpg.year === 0) {
+        return `never averaged 3+ BPG in a season (never recorded a block)`;
+      }
+      return `never averaged 3+ BPG in a season (best ${seasonBests.bpg.max.toFixed(1)} in ${seasonBests.bpg.year})`;
+    case 'season25spg':
+      if (seasonBests.spg.max === 0 && seasonBests.spg.year === 0) {
+        return `never averaged 2.5+ SPG in a season (never recorded a steal)`;
+      }
+      return `never averaged 2.5+ SPG in a season (best ${seasonBests.spg.max.toFixed(1)} in ${seasonBests.spg.year})`;
+    case 'played5PlusFranchises':
+      const franchiseCount = getPlayerFranchiseCount(player);
+      return `only played for ${franchiseCount} franchises`;
+    case 'hasMVP':
+      return `never won MVP`;
+    case 'hasDPOY':
+      return `never won Defensive Player of the Year`;
+    case 'hasROY':
+      return `never won Rookie of the Year`;
+    case 'wonSixMOY':
+      return `never won Sixth Man of the Year`;
+    case 'wonFinalsMVP':
+      return `never won Finals MVP`;
+    case 'hasAllStar':
+      return `was never selected to an All-Star Game`;
+    case 'wonChampionship':
+      return `never won a championship`;
+    default:
+      return `did not achieve ${achievementId}`;
   }
-
-  return BASKETBALL_NEGATIVE_MESSAGES.default(achievementId);
 }
 
 // Hockey-specific helper functions
@@ -1868,9 +1890,6 @@ function getHockeyPositiveMessage(achievementId: string, player?: Player): strin
   const seasonBests = getHockeySeasonBests(player);
 
   switch (achievementId) {
-    case 'isPick1Overall':
-      const draftYear = player.draft?.year || 'unknown';
-      return `was the #1 overall pick (${draftYear})`;
     case 'career500Goals':
       return `reached 500+ career goals (${formatNumber(careerStats.g)})`;
     case 'career1000Points':
@@ -1930,40 +1949,67 @@ function getHockeyNegativeMessage(achievementId: string, player?: Player): strin
   const careerStats = getHockeyCareerStats(player);
   const seasonBests = getHockeySeasonBests(player);
 
-  const messageGenerator = (HOCKEY_NEGATIVE_MESSAGES as any)[achievementId];
-
-  if (messageGenerator) {
-    switch (achievementId) {
-      case 'career500Goals':
-        return messageGenerator(careerStats.g);
-      case 'career1000Points':
-        return messageGenerator(careerStats.pts);
-      case 'career500Assists':
-        return messageGenerator(careerStats.a);
-      case 'career200Wins':
-        return messageGenerator(careerStats.w);
-      case 'career50Shutouts':
-        return messageGenerator(careerStats.so);
-      case 'season50Goals':
-        return messageGenerator(seasonBests.g.max, seasonBests.g.year);
-      case 'season100Points':
-        return messageGenerator(seasonBests.pts.max, seasonBests.pts.year);
-      case 'season60Assists':
-        return messageGenerator(seasonBests.a.max, seasonBests.a.year);
-      case 'season35Wins':
-        return messageGenerator(seasonBests.w.max, seasonBests.w.year);
-      case 'season10Shutouts':
-        return messageGenerator(seasonBests.so.max, seasonBests.so.year);
-      case 'season925SavePct':
-        return messageGenerator(seasonBests.svPct.max, seasonBests.svPct.year);
-      case 'played5PlusFranchises':
-        return messageGenerator(getPlayerFranchiseCount(player));
-      default:
-        return messageGenerator();
-    }
+  switch (achievementId) {
+    case 'career500Goals':
+      return `did not reach 500+ career goals (career ${formatNumber(careerStats.g)})`;
+    case 'career1000Points':
+      return `did not reach 1,000+ career points (career ${formatNumber(careerStats.pts)})`;
+    case 'career500Assists':
+      return `did not reach 500+ career assists (career ${formatNumber(careerStats.a)})`;
+    case 'career200Wins':
+      return `did not reach 200+ career wins (career ${formatNumber(careerStats.w)})`;
+    case 'career50Shutouts':
+      return `did not reach 50+ career shutouts (career ${formatNumber(careerStats.so)})`;
+    case 'season50Goals':
+      if (seasonBests.g.max === 0 && seasonBests.g.year === 0) {
+        return `never scored 50+ goals in a season (never recorded a goal)`;
+      }
+      return `never scored 50+ goals in a season (best ${seasonBests.g.max} in ${seasonBests.g.year})`;
+    case 'season100Points':
+      if (seasonBests.pts.max === 0 && seasonBests.pts.year === 0) {
+        return `never had 100+ points in a season (never recorded a point)`;
+      }
+      return `never had 100+ points in a season (best ${seasonBests.pts.max} in ${seasonBests.pts.year})`;
+    case 'season60Assists':
+      if (seasonBests.a.max === 0 && seasonBests.a.year === 0) {
+        return `never had 60+ assists in a season (never recorded an assist)`;
+      }
+      return `never had 60+ assists in a season (best ${seasonBests.a.max} in ${seasonBests.a.year})`;
+    case 'season35Wins':
+      if (seasonBests.w.max === 0 && seasonBests.w.year === 0) {
+        return `never recorded 35+ wins in a season (never recorded a win)`;
+      }
+      return `never recorded 35+ wins in a season (best ${seasonBests.w.max} in ${seasonBests.w.year})`;
+    case 'season10Shutouts':
+      if (seasonBests.so.max === 0 && seasonBests.so.year === 0) {
+        return `never recorded 10+ shutouts in a season (never recorded a shutout)`;
+      }
+      return `never recorded 10+ shutouts in a season (best ${seasonBests.so.max} in ${seasonBests.so.year})`;
+    case 'season925SavePct':
+      if (seasonBests.svPct.max === 0 && seasonBests.svPct.year === 0) {
+        return `never had a .925+ save percentage in a season (no goalie stats recorded)`;
+      }
+      return `never had a .925+ save percentage in a season (best ${seasonBests.svPct.max.toFixed(3)} in ${seasonBests.svPct.year})`;
+    case 'wonMVP':
+      return `never won MVP`;
+    case 'wonDefensiveForward':
+      return `never won Defensive Forward of the Year`;
+    case 'wonGoalieOfYear':
+      return `never won Goalie of the Year`;
+    case 'wonROY':
+      return `never won Rookie of the Year`;
+    case 'wonPlayoffsMVP':
+      return `never won Playoffs MVP`;
+    case 'madeAllStar':
+      return `was never selected to an All-Star Game`;
+    case 'wonChampionship':
+      return `never won a championship`;
+    case 'played5PlusFranchises':
+      const franchiseCount = getPlayerFranchiseCount(player);
+      return `only played for ${franchiseCount} franchises`;
+    default:
+      return 'did not meet this achievement';
   }
-
-  return HOCKEY_NEGATIVE_MESSAGES.default();
 }
 
 function getBaseballCareerStats(player: Player) {
@@ -2068,9 +2114,6 @@ function getBaseballPositiveMessage(achievementId: string, player?: Player): str
   const seasonBests = getBaseballSeasonBests(player);
 
   switch (achievementId) {
-    case 'isPick1Overall':
-      const draftYear = player.draft?.year || 'unknown';
-      return `was the #1 overall pick (${draftYear})`;
     case 'career3000Hits':
       return `reached 3,000+ career hits (${formatNumber(careerStats.h)})`;
     case 'career500HRs':
@@ -2134,50 +2177,55 @@ function getBaseballNegativeMessage(achievementId: string, player?: Player): str
   const careerStats = getBaseballCareerStats(player);
   const seasonBests = getBaseballSeasonBests(player);
 
-  const messageGenerator = (BASEBALL_NEGATIVE_MESSAGES as any)[achievementId];
-
-  if (messageGenerator) {
-    switch (achievementId) {
-      case 'career3000Hits':
-        return messageGenerator(careerStats.h);
-      case 'career500HRs':
-        return messageGenerator(careerStats.hr);
-      case 'career1500RBIs':
-        return messageGenerator(careerStats.rbi);
-      case 'career400SBs':
-        return messageGenerator(careerStats.sb);
-      case 'career1800Runs':
-        return messageGenerator(careerStats.r);
-      case 'career300Wins':
-        return messageGenerator(careerStats.w);
-      case 'career3000Ks':
-        return messageGenerator(careerStats.so);
-      case 'career300Saves':
-        return messageGenerator(careerStats.sv);
-      case 'season50HRs':
-        return messageGenerator(seasonBests.hr.max, seasonBests.hr.year);
-      case 'season130RBIs':
-        return messageGenerator(seasonBests.rbi.max, seasonBests.rbi.year);
-      case 'season200Hits':
-        return messageGenerator(seasonBests.h.max, seasonBests.h.year);
-      case 'season50SBs':
-        return messageGenerator(seasonBests.sb.max, seasonBests.sb.year);
-      case 'season20Wins':
-        return messageGenerator(seasonBests.w.max, seasonBests.w.year);
-      case 'season40Saves':
-        return messageGenerator(seasonBests.sv.max, seasonBests.sv.year);
-      case 'season300Ks':
-        return messageGenerator(seasonBests.so.max, seasonBests.so.year);
-      case 'season200ERA':
-        return messageGenerator(seasonBests.era.min, seasonBests.era.year);
-      case 'played5PlusFranchises':
-        return messageGenerator(getPlayerFranchiseCount(player));
-      default:
-        return messageGenerator();
-    }
+  switch (achievementId) {
+    case 'career3000Hits':
+      return `did not reach 3,000+ career hits (career ${formatNumber(careerStats.h)})`;
+    case 'career500HRs':
+      return `did not hit 500+ career home runs (career ${formatNumber(careerStats.hr)})`;
+    case 'career1500RBIs':
+      return `did not reach 1,500+ career RBIs (career ${formatNumber(careerStats.rbi)})`;
+    case 'career400SBs':
+      return `did not reach 400+ career stolen bases (career ${formatNumber(careerStats.sb)})`;
+    case 'career1800Runs':
+      return `did not reach 1,800+ career runs (career ${formatNumber(careerStats.r)})`;
+    case 'career300Wins':
+      return `did not reach 300+ career wins (career ${formatNumber(careerStats.w)})`;
+    case 'career3000Ks':
+      return `did not reach 3,000+ career strikeouts (career ${formatNumber(careerStats.so)})`;
+    case 'career300Saves':
+      return `did not reach 300+ career saves (career ${formatNumber(careerStats.sv)})`;
+    case 'season50HRs':
+      return `never hit 50+ home runs in a season (best ${seasonBests.hr.max} in ${seasonBests.hr.year})`;
+    case 'season130RBIs':
+      return `never had 130+ RBIs in a season (best ${seasonBests.rbi.max} in ${seasonBests.rbi.year})`;
+    case 'season200Hits':
+      return `never had 200+ hits in a season (best ${seasonBests.h.max} in ${seasonBests.h.year})`;
+    case 'season50SBs':
+      return `never stole 50+ bases in a season (best ${seasonBests.sb.max} in ${seasonBests.sb.year})`;
+    case 'season20Wins':
+      return `never won 20+ games in a season (best ${seasonBests.w.max} in ${seasonBests.w.year})`;
+    case 'season40Saves':
+      return `never recorded 40+ saves in a season (best ${seasonBests.sv.max} in ${seasonBests.sv.year})`;
+    case 'season300Ks':
+      return `never recorded 300+ strikeouts in a season (best ${seasonBests.so.max} in ${seasonBests.so.year})`;
+    case 'season200ERA':
+      return `never had a sub-2.00 ERA season (best ${seasonBests.era.min.toFixed(2)} in ${seasonBests.era.year})`;
+    case 'wonMVP':
+      return `never won MVP`;
+    case 'wonFinalsMVP':
+      return `never won Finals MVP`;
+    case 'wonROY':
+      return `never won Rookie of the Year`;
+    case 'madeAllStar':
+      return `was never selected to an All-Star Game`;
+    case 'wonChampionship':
+      return `never won a championship`;
+    case 'played5PlusFranchises':
+      const franchiseCount = getPlayerFranchiseCount(player);
+      return `only played for ${franchiseCount} franchises`;
+    default:
+      return 'did not meet this achievement';
   }
-
-  return BASEBALL_NEGATIVE_MESSAGES.default();
 }
 
 function getFootballNegativeMessage(achievementId: string, player?: Player): string {
@@ -2191,44 +2239,38 @@ function getFootballNegativeMessage(achievementId: string, player?: Player): str
   const careerStats = getFootballCareerStats(player);
   const seasonBests = getFootballSeasonBests(player);
 
-  const messageGenerator = (FOOTBALL_NEGATIVE_MESSAGES as any)[achievementId];
-
-  if (messageGenerator) {
-    switch (achievementId) {
-      case 'career300PassTDs':
-        return messageGenerator(careerStats.passTDs);
-      case 'season35PassTDs':
-        return messageGenerator(seasonBests.passTDs.max, seasonBests.passTDs.year);
-      case 'career12kRushYds':
-        return messageGenerator(careerStats.rushYds);
-      case 'career100RushTDs':
-        return messageGenerator(careerStats.rushTDs);
-      case 'season1800RushYds':
-        return messageGenerator(seasonBests.rushYds.max, seasonBests.rushYds.year);
-      case 'season20RushTDs':
-        return messageGenerator(seasonBests.rushTDs.max, seasonBests.rushTDs.year);
-      case 'career12kRecYds':
-        return messageGenerator(careerStats.recYds);
-      case 'career100RecTDs':
-        return messageGenerator(careerStats.recTDs);
-      case 'season1400RecYds':
-        return messageGenerator(seasonBests.recYds.max, seasonBests.recYds.year);
-      case 'season15RecTDs':
-        return messageGenerator(seasonBests.recTDs.max, seasonBests.recTDs.year);
-      case 'career100Sacks':
-        return messageGenerator(careerStats.sacks);
-      case 'career20Ints':
-        return messageGenerator(careerStats.ints);
-      case 'season15Sacks':
-        return messageGenerator(seasonBests.sacks.max, seasonBests.sacks.year);
-      case 'season8Ints':
-        return messageGenerator(seasonBests.ints.max, seasonBests.ints.year);
-      default:
-        return messageGenerator();
-    }
+  switch (achievementId) {
+    case 'career300PassTDs':
+      return `never threw 300+ career TDs (career ${formatNumber(careerStats.passTDs)})`;
+    case 'season35PassTDs':
+      return `never had 35+ pass TDs in a season (best ${seasonBests.passTDs.max} in ${seasonBests.passTDs.year})`;
+    case 'career12kRushYds':
+      return `did not reach 11,000+ rushing yards (career ${formatNumber(careerStats.rushYds)})`;
+    case 'career100RushTDs':
+      return `did not score 100+ rushing TDs (career ${formatNumber(careerStats.rushTDs)})`;
+    case 'season1800RushYds':
+      return `never had 1,600+ rushing yards in a season (best ${formatNumber(seasonBests.rushYds.max)} in ${seasonBests.rushYds.year})`;
+    case 'season20RushTDs':
+      return `never had 20+ rushing TDs in a season (best ${seasonBests.rushTDs.max} in ${seasonBests.rushTDs.year})`;
+    case 'career12kRecYds':
+      return `did not reach 12,000+ receiving yards (career ${formatNumber(careerStats.recYds)})`;
+    case 'career100RecTDs':
+      return `did not score 85+ receiving TDs (career ${formatNumber(careerStats.recTDs)})`;
+    case 'season1400RecYds':
+      return `never had 1,400+ receiving yards in a season (best ${formatNumber(seasonBests.recYds.max)} in ${seasonBests.recYds.year})`;
+    case 'season15RecTDs':
+      return `never had 15+ receiving TDs in a season (best ${seasonBests.recTDs.max} in ${seasonBests.recTDs.year})`;
+    case 'career100Sacks':
+      return `did not record 100+ career sacks (career ${formatNumber(careerStats.sacks)})`;
+    case 'career20Ints':
+      return `did not record 20+ career interceptions (career ${formatNumber(careerStats.ints)})`;
+    case 'season15Sacks':
+      return `never had 15+ sacks in a season (best ${seasonBests.sacks.max} in ${seasonBests.sacks.year})`;
+    case 'season8Ints':
+      return `never had 8+ interceptions in a season (best ${seasonBests.ints.max} in ${seasonBests.ints.year})`;
+    default:
+      return 'did not meet this achievement';
   }
-
-  return FOOTBALL_NEGATIVE_MESSAGES.default();
 }
 
 // export interface FeedbackResult {
@@ -2316,10 +2358,14 @@ function generateFeedbackMessage(
     }
     
     const negativeMessage = getNegativeMessage(failedConstraint, player, teams, sport);
-    const otherFailedConstraint = failedConstraint === rowConstraint ? colConstraint : rowConstraint;
-    const otherNegativeMessage = getNegativeMessage(otherFailedConstraint, player, teams, sport);
+    const otherConstraintMessage = getPositiveMessage(
+      failedConstraint === rowConstraint ? colConstraint : rowConstraint,
+      player,
+      teams,
+      sport
+    );
     
-    return `${player.name} ${negativeMessage}, and also ${otherNegativeMessage}.`;
+    return `${player.name} ${negativeMessage}, and never ${otherConstraintMessage}.`;
   }
   
   // Case 2: Fails one constraint
@@ -2413,5 +2459,7 @@ function getPositiveMessage(constraint: GridConstraint, player: Player, teams: T
     default:
       return `did achieve ${getHumanReadableAchievementText(achievementId)}`;
   }
-export { generateFeedbackMessage };
 }
+
+}
+
