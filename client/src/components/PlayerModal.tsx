@@ -12,6 +12,7 @@ import { getAllAchievements, getCachedSportDetection, getCachedLeagueYears } fro
 import { getCachedSeasonIndex } from '@/lib/season-index-cache';
 import { parseAchievementLabel, parseCustomAchievementId } from '@/lib/editable-achievements';
 import { rarityBadgeStyles } from '@/components/RarityChip';
+import { CareerTeamLogo, checkAllTeamsHaveLogos } from '@/components/CareerTeamLogo';
 
 // Helper to determine rarity tier based on playerCount
 const getRarityTier = (count: number) => {

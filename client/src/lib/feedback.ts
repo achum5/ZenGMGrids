@@ -3195,11 +3195,11 @@ function getConstraintPhrase(
       }
     } else if (constraint.achievementId === "isPick1Overall") {
       if (met) {
-        return `${playerName} was a #1 Overall Pick${
-          years ? ` ${years}` : ""
+        return `${playerName} was the #1 overall pick${
+          years ? ` (${years})` : ""
         }`;
       } else {
-        return `${playerName} was never a #1 Overall Pick`;
+        return `${playerName} was not the #1 overall pick`;
       }
     } else if (constraint.achievementId === "isFirstRoundPick") {
       if (met) {
