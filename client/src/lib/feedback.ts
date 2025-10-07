@@ -1683,7 +1683,11 @@ function getNegativeMessageForCustomAchievement(player: Player, achievementId: s
 
     // Fallback if we can't calculate the stat
     const cleanLabel = getHumanReadableAchievementText(achievementId);
-    return `did not meet the criteria for ${cleanLabel}`;
+    if (cleanLabel.includes('(Season)')) {
+      const seasonStatLabel = cleanLabel.replace(' (Season)', '').toLowerCase();
+      return `never achieved ${seasonStatLabel} in a season`;
+    }
+    return `never achieved ${cleanLabel.toLowerCase()}`;
   }
 
   return null; // Default return for all code paths}

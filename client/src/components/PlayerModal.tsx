@@ -416,14 +416,32 @@ function getConstraintPhrase(
     if (!constraint.achievementId) {
       const fallbackLabel = getConstraintLabel(constraint, teams, allAchievements);
       isCompletePhrase = fallbackLabel.includes('MPG') || fallbackLabel.includes('Champion') || fallbackLabel.includes('Leader') || fallbackLabel.includes('Season');
-      return met ? `${playerName} met the criteria${isCompletePhrase ? ':' : ' for:'} ${fallbackLabel}` : `${playerName} did not meet the criteria${isCompletePhrase ? ':' : ' for:'} ${fallbackLabel}`;
+      if (met) {
+        return `${playerName} met the criteria${isCompletePhrase ? ':' : ' for:'} ${fallbackLabel}`;
+      } else {
+        // More natural phrasing for unmet criteria
+        if (fallbackLabel.includes('(Season)')) {
+          const seasonStatLabel = fallbackLabel.replace(' (Season)', '').toLowerCase();
+          return `${playerName} never achieved ${seasonStatLabel} in a season`;
+        }
+        return `${playerName} never achieved${isCompletePhrase ? ':' : ''} ${fallbackLabel.toLowerCase()}`;
+      }
     }
     
     const achievementDetails = getAchievementDetails(player, constraint.achievementId, teams, sport, allAchievements);
     if (!achievementDetails) {
       const fallbackLabel = getConstraintLabel(constraint, teams, allAchievements);
       isCompletePhrase = fallbackLabel.includes('MPG') || fallbackLabel.includes('Champion') || fallbackLabel.includes('Leader') || fallbackLabel.includes('Season');
-      return met ? `${playerName} met the criteria${isCompletePhrase ? ':' : ' for:'} ${fallbackLabel}` : `${playerName} did not meet the criteria${isCompletePhrase ? ':' : ' for:'} ${fallbackLabel}`;
+      if (met) {
+        return `${playerName} met the criteria${isCompletePhrase ? ':' : ' for:'} ${fallbackLabel}`;
+      } else {
+        // More natural phrasing for unmet criteria
+        if (fallbackLabel.includes('(Season)')) {
+          const seasonStatLabel = fallbackLabel.replace(' (Season)', '').toLowerCase();
+          return `${playerName} never achieved ${seasonStatLabel} in a season`;
+        }
+        return `${playerName} never achieved${isCompletePhrase ? ':' : ''} ${fallbackLabel.toLowerCase()}`;
+      }
     }
 
     const { value, years, label, isPlural } = achievementDetails;
@@ -594,7 +612,16 @@ function getConstraintPhrase(
     }
     // Fallback for any unhandled achievements (should be minimal now)
     isCompletePhrase = label.includes('MPG') || label.includes('Champion') || label.includes('Leader') || label.includes('Season');
-    return met ? `${playerName} met the criteria${isCompletePhrase ? ':' : ' for:'} ${label}` : `${playerName} did not meet the criteria${isCompletePhrase ? ':' : ' for:'} ${label}`;
+    if (met) {
+      return `${playerName} met the criteria${isCompletePhrase ? ':' : ' for:'} ${label}`;
+    } else {
+      // More natural phrasing for unmet criteria
+      if (label.includes('(Season)')) {
+        const seasonStatLabel = label.replace(' (Season)', '').toLowerCase();
+        return `${playerName} never achieved ${seasonStatLabel} in a season`;
+      }
+      return `${playerName} never achieved${isCompletePhrase ? ':' : ''} ${label.toLowerCase()}`;
+    }
   }
   
   // Fallback for unknown constraint types
@@ -922,10 +949,7 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                   <div className="flex items-start gap-2">
                     <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
                     <span className="text-sm text-red-700 dark:text-red-300 leading-5">
-                      {modalData.feedbackMessage.replace(
-                        'did not meet the criteria: 90%+ FT (Season)',
-                        'never shot 90%+ from the free-throw line in a season'
-                      )}
+                      {modalData.feedbackMessage}
                     </span>
                   </div>
                 </div>
