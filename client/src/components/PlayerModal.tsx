@@ -451,16 +451,13 @@ function getConstraintPhrase(
         return `${playerName} never won the ${contestName}`;
       }
     } else if (constraint.achievementId?.startsWith('Season') || label.includes('(Season)')) {
-      const seasonStatLabel = label.replace(' (Season)', '');
-      const statName = seasonStatLabel.replace(/(\d+,?\d*\+?)/, '').trim().toLowerCase();
-      const verb = achievementDetails.isAverage ? 'averaged' : 'had';
-      const negativeVerb = achievementDetails.isAverage ? 'did not average' : 'did not have';
-
-      if (met) {
-        return `${playerName} ${verb} ${seasonStatLabel.toLowerCase()} in a season${years ? ` (${years})` : ''}`;
-      } else {
-        // Special handling for "1/1/1 Season" when not met
-        if (constraint.achievementId === 'Season1_1_1') {
+      // Special handling for "1/1/1 Season" to provide more detailed feedback
+      if (constraint.achievementId === 'Season1_1_1') {
+        if (met) {
+          const seasons = getSeasonsForSeasonStatAchievement(player, 'Season1_1_1', 1, '≥', 1);
+          const seasonStr = formatBulletSeasonList(seasons, false);
+          return `${playerName} had a 1/1/1 season${seasonStr ? ` (${seasonStr})` : ''}`;
+        } else {
           const all111Seasons = getSeasonsForSeasonStatAchievement(player, 'Season1_1_1', 1, '≥', 1);
           if (all111Seasons.length > 0) {
             const seasonStr = formatBulletSeasonList(all111Seasons, false);
@@ -469,7 +466,24 @@ function getConstraintPhrase(
             return `${playerName} did not ever have a 1/1/1 season`;
           }
         }
-        return `${playerName} ${negativeVerb} ${seasonStatLabel.toLowerCase()} in a season`;
+      }
+
+      const seasonStatLabel = label.replace(' (Season)', '');
+      const statName = seasonStatLabel.replace(/(\d+,?\d*\+?)/, '').trim().toLowerCase();
+      const verb = achievementDetails.isAverage ? 'averaged' : 'had';
+      const negativeVerb = achievementDetails.isAverage ? 'did not average' : 'did not have';
+
+      if (met) {
+        return `${playerName} ${verb} ${seasonStatLabel.toLowerCase()} in a season${years ? ` (${years})` : ''}`;
+      } else {
+        // For any unmet Season* achievement, check if they ever achieved it in their career.
+        const allSeasonsForStat = getSeasonsForSeasonStatAchievement(player, constraint.achievementId as any, undefined, undefined, 1);
+        if (allSeasonsForStat.length > 0) {
+          const seasonStr = formatBulletSeasonList(allSeasonsForStat, false);
+          return `${playerName} did have a ${seasonStatLabel.toLowerCase()} season (${seasonStr}), just not with this team`;
+        } else {
+          return `${playerName} did not ever have a ${seasonStatLabel.toLowerCase()} season`;
+        }
       }
     } else if (['AllLeagueAny', 'AllDefAny', 'AllRookieAny'].includes(constraint.achievementId!)) {
       const awardLabel = label.toLowerCase().replace('any', '').trim();
@@ -908,7 +922,10 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                   <div className="flex items-start gap-2">
                     <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
                     <span className="text-sm text-red-700 dark:text-red-300 leading-5">
-                      {modalData.feedbackMessage}
+                      {modalData.feedbackMessage.replace(
+                        'did not meet the criteria: 90%+ FT (Season)',
+                        'never shot 90%+ from the free-throw line in a season'
+                      )}
                     </span>
                   </div>
                 </div>
