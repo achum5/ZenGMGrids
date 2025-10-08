@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { UploadSection } from '@/components/upload-section';
 import { GridSection } from '@/components/grid-section';
 import { PlayerSearchModal } from '@/components/player-search-modal';
@@ -92,8 +92,13 @@ export default function Home() {
   // Give Up state tracking
   const [giveUpPressed, setGiveUpPressed] = useState(false);
   
+  // Attempt tracking state
+  const [currentGridId, setCurrentGridId] = useState<string>('');
+  const [attemptCount, setAttemptCount] = useState<number>(1);
+  
   // UI state
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoadingCustomIntersection, setIsLoadingCustomIntersection] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
@@ -103,10 +108,77 @@ export default function Home() {
   const [modalEligiblePlayers, setModalEligiblePlayers] = useState<Player[]>([]);
   const [modalPuzzleSeed, setModalPuzzleSeed] = useState<string>("");
   const [modalCellKey, setModalCellKey] = useState<string>("");
-  
-  // Attempt tracking state
-  const [currentGridId, setCurrentGridId] = useState<string>('');
-  const [attemptCount, setAttemptCount] = useState<number>(1);
+  const workerRef = useRef<Worker | null>(null);
+
+  const processLeagueData = useCallback(async (data: LeagueData) => {
+    // The 'data' object from the worker has accessors, not the full players array.
+    // We need to fetch all players from the DB to proceed with the existing sync functions.
+    const allPlayers = (data as any).players && (data as any).players.length > 0 
+        ? data.players 
+        : await (data as any).getPlayers(Array.from((data as any).allPids));
+
+    // Reconstruct a "classic" LeagueData object that the old functions understand.
+    const fullLeagueData = {
+        ...data,
+        players: allPlayers,
+    };
+
+    setLeagueData(fullLeagueData);
+    if (fullLeagueData.leagueYears) {
+      setCachedLeagueYears(fullLeagueData.leagueYears);
+    }
+    
+    const indices = buildSearchIndex(fullLeagueData.players, fullLeagueData.teams);
+    setByName(indices.byName);
+    setByPid(indices.byPid);
+    setSearchablePlayers(indices.searchablePlayers);
+    setTeamsByTid(indices.teamsByTid);
+    
+    const gridResult = generateTeamsGrid(fullLeagueData);
+    setRows(gridResult.rows);
+    setCols(gridResult.cols);
+    setIntersections(gridResult.intersections);
+    setCells({});
+    
+    const gridId = `${gridResult.rows.map(r => r.key).join('-')}_${gridResult.cols.map(c => c.key).join('-')}`;
+    setCurrentGridId(gridId);
+    
+    const storedAttemptCount = getAttemptCount(gridId);
+    setAttemptCount(storedAttemptCount);
+  }, [toast]);
+
+  useEffect(() => {
+    // Initialize and terminate worker
+    workerRef.current = new Worker(new URL('../workers/import.worker.ts', import.meta.url), { type: 'module' });
+
+    workerRef.current.onmessage = async (event) => {
+      const { type, payload } = event.data;
+      if (type === 'progress') {
+        setImportProgress(payload);
+      } else if (type === 'complete') {
+        await processLeagueData(payload);
+        setIsImporting(false);
+        toast({ title: 'Import successful!' });
+      } else if (type === 'error') {
+        toast({
+          title: 'Import Failed',
+          description: payload,
+          variant: 'destructive',
+        });
+        setIsImporting(false);
+      }
+    };
+
+    return () => {
+      workerRef.current?.terminate();
+    };
+  }, [toast, processLeagueData]);
+
+  const handleImport = (input: { file?: File; url?: string }) => {
+    setIsImporting(true);
+    setImportProgress(0);
+    workerRef.current?.postMessage(input);
+  };
   
   // Grid sharing state
   const [gridSharingModalOpen, setGridSharingModalOpen] = useState(false);
@@ -612,63 +684,7 @@ export default function Home() {
     } catch (error) {
       console.error('Test data creation failed:', error);
     }
-  }, [createTestData]);
-
-  const processLeagueData = useCallback(async (data: LeagueData) => {
-    // Clear caches for the new player dataset
-    clearIntersectionCachesForPlayers(data.players);
-    
-    setLeagueData(data);
-    if (data.leagueYears) {
-      setCachedLeagueYears(data.leagueYears);
-    }
-    
-    // Force close any open dropdowns/modals on mobile after file upload
-    if (typeof window !== 'undefined' && window.innerWidth < 768) {
-      // Close any open dialogs or dropdowns by clicking outside
-      document.body.click();
-      // Remove focus from any elements that might be capturing events
-      if (document.activeElement && document.activeElement instanceof HTMLElement) {
-        document.activeElement.blur();
-      }
-      // Force a brief delay to let any modal states resolve
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    
-    // Build search indices
-    const indices = buildSearchIndex(data.players, data.teams);
-    setByName(indices.byName);
-    setByPid(indices.byPid);
-    setSearchablePlayers(indices.searchablePlayers);
-    setTeamsByTid(indices.teamsByTid);
-    
-    // Direct intersection test (bypass grid generation)
-
-    
-    // Test each achievement individually
-
-    
-    // Debug individual achievements first to understand the data
-
-    debugIndividualAchievements(data.players, data.seasonIndex);
-    
-    // Generate initial grid
-    const gridResult = generateTeamsGrid(data);
-    setRows(gridResult.rows);
-    setCols(gridResult.cols);
-    setIntersections(gridResult.intersections);
-    setCells({});
-    
-    // Initialize grid tracking
-    const gridId = `${gridResult.rows.map(r => r.key).join('-')}_${gridResult.cols.map(c => c.key).join('-')}`;
-    setCurrentGridId(gridId);
-    
-    // Load attempt count from localStorage
-    const storedAttemptCount = getAttemptCount(gridId);
-    setAttemptCount(storedAttemptCount);
-    
-    // Success toast removed - was blocking mobile interactions
-  }, [toast]);
+  }, [createTestData, processLeagueData]);
   
 
   const handleGenerateNewGrid = useCallback(() => {
@@ -1284,9 +1300,10 @@ export default function Home() {
         </header>
         <main className="max-w-2xl mx-auto px-6 py-8">
           <UploadSection 
-            onFileUpload={handleFileUpload}
-            onUrlUpload={handleUrlUpload}
-            isProcessing={isProcessing}
+            onFileUpload={(file) => handleImport({ file })}
+            onUrlUpload={(url) => handleImport({ url })}
+            isImporting={isImporting}
+            importProgress={importProgress}
           />
         </main>
       </div>
