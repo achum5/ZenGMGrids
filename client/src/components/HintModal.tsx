@@ -318,7 +318,7 @@ export function HintModal({
         <div className="flex flex-col items-center gap-3">
           {team?.imgURL ? (
             <div className="w-20 h-20 md:w-28 md:h-28 flex-shrink-0">
-              <TeamLogo team={team} className="w-full h-full" />
+              <TeamLogo team={team} className="w-full h-full" sport={leagueData?.sport} />
             </div>
           ) : (
             <div className="text-center">

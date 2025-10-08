@@ -474,7 +474,7 @@ export function GridSection({
                     title={teamForHeader ? `${teamForHeader.region || ''} ${teamForHeader.name}`.trim() : col.label}
                   >
                     {teamForHeader ? (
-                      <TeamLogo team={teamForHeader} />
+                      <TeamLogo team={teamForHeader} sport={sport} />
                     ) : (
                       <ResponsiveText
                         text={col.label}
@@ -511,7 +511,7 @@ export function GridSection({
                         title={teamForHeader ? `${teamForHeader.region || ''} ${teamForHeader.name}`.trim() : row.label}
                       >
                         {teamForHeader ? (
-                          <TeamLogo team={teamForHeader} />
+                          <TeamLogo team={teamForHeader} sport={sport} />
                         ) : (
                           <ResponsiveText
                             text={fullName}
@@ -803,7 +803,7 @@ export function GridSection({
         </div>
 
         {/* Hint mode toggle (center) */}
-        <div className="flex items-center justify-center gap-2" data-testid="hint-mode-toggle" style={{ marginLeft: '1px' }}>
+        <div className="flex items-center justify-center gap-2" data-testid="hint-mode-toggle" style={{ marginLeft: '0px' }}>
           <Switch
             id="hint-mode"
             checked={hintMode}

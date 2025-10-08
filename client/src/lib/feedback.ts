@@ -2390,6 +2390,58 @@ export function generateFeedbackMessage(
     return `${player.name} ${positivePhrase}, but ${negativePhrase}.`;
   } else {
     // !rowMet && !colMet
+
+    // ** START OF MANUAL FIX for career stats + team miss **
+    const rowIsCareer = rowConstraint.achievementId?.startsWith("career");
+    const colIsCareer = colConstraint.achievementId?.startsWith("career");
+    const rowIsTeam = rowConstraint.type === "team";
+    const colIsTeam = colConstraint.type === "team";
+
+    let careerConstraint: GridConstraint | undefined;
+    let teamConstraint: GridConstraint | undefined;
+    let teamPhraseNotMet: string;
+
+    if (rowIsCareer && colIsTeam) {
+        careerConstraint = rowConstraint;
+        teamConstraint = colConstraint;
+        teamPhraseNotMet = colPhraseNotMet;
+    } else if (colIsCareer && rowIsTeam) {
+        careerConstraint = colConstraint;
+        teamConstraint = rowConstraint;
+        teamPhraseNotMet = rowPhraseNotMet;
+    }
+
+    if (careerConstraint?.achievementId && teamConstraint) {
+        const details = getAchievementDetails(player, careerConstraint.achievementId, teams, sport, allAchievements);
+        const parsedCustom = parseCustomAchievementId(careerConstraint.achievementId);
+        
+        if (details?.value && parsedCustom?.threshold) {
+            const actualValue = parseInt(String(details.value).replace(/,/g, ''));
+            const threshold = parsedCustom.threshold;
+            const operator = parsedCustom.operator;
+
+            let actuallyMet = false;
+            if (operator === '≥') {
+                actuallyMet = actualValue >= threshold;
+            } else { // '≤'
+                actuallyMet = actualValue <= threshold;
+            }
+
+            const statName = details.label.replace(/(\d+,?\d*\+?)\s*Career\s*/, "").toLowerCase();
+            const usePositivePhrasing = (operator === '≥' && actuallyMet) || (operator === '≤' && !actuallyMet);
+
+            if (usePositivePhrasing) {
+                const phrase = `${player.name} had ${details.value} career ${statName}`;
+                const conjunction = (operator === '≥' && actuallyMet) ? 'but' : 'and';
+                return `${phrase}, ${conjunction} ${teamPhraseNotMet.replace(player.name + " ", "")}.`;
+            } else {
+                const phrase = `${player.name} only had ${details.value} career ${statName}`;
+                return `${phrase}, and ${teamPhraseNotMet.replace(player.name + " ", "")}.`;
+            }
+        }
+    }
+    // ** END OF MANUAL FIX **
+
     const rowNegative = extractNegativeObjectAndVerb(
       rowPhraseNotMet,
       player.name
@@ -2646,7 +2698,17 @@ function getAchievementDetails(
     } else if (baseAchievementId.includes("Rebounds")) {
       value = player.stats
         ?.filter((s) => !s.playoffs)
-        .reduce((acc, s) => acc + (s.trb || 0), 0)
+        .reduce((acc, s) => {
+            let seasonRebounds = 0;
+            if (s.trb !== undefined) {
+                seasonRebounds = s.trb;
+            } else if (s.orb !== undefined || s.drb !== undefined) {
+                seasonRebounds = (s.orb || 0) + (s.drb || 0);
+            } else if ((s as any).reb !== undefined) {
+                seasonRebounds = (s as any).reb;
+            }
+            return acc + seasonRebounds;
+        }, 0)
         ?.toLocaleString();
     } else if (baseAchievementId.includes("Assists")) {
       value = player.stats
@@ -2666,7 +2728,7 @@ function getAchievementDetails(
     } else if (baseAchievementId.includes("Threes")) {
       value = player.stats
         ?.filter((s) => !s.playoffs)
-        .reduce((acc, s) => acc + ((s as any).tpm || (s as any).tp || 0), 0)
+        .reduce((acc, s) => acc + ((s as any).tpm || (s as any).tp || (s as any).fg3 || 0), 0)
         ?.toLocaleString();
     } else if (baseAchievementId.includes("PassTDs")) {
       value = player.stats
@@ -3188,7 +3250,7 @@ function getConstraintPhrase(
           years ? ` ${years}` : ""
         }`;
       } else {
-        return `${playerName} never ever won Rookie of the Year and a later MVP`;
+        return `${playerName} never won Rookie of the Year and later MVP`;
       }
     } else if (
       baseAchievementId.includes("playedIn") &&
@@ -3367,9 +3429,9 @@ function extractNegativeObjectAndVerb(
 ): { object: string; verb: string } {
   const cleanedPhrase = phrase.replace(`${playerName} `, ""); // Remove player name
 
-  if (cleanedPhrase.startsWith("never played for ")) {
+  if (cleanedPhrase.startsWith("did not play for ")) {
     return {
-      object: cleanedPhrase.replace("never played for ", ""),
+      object: cleanedPhrase.replace("did not play for ", ""),
       verb: "play for",
     };
   } else if (cleanedPhrase.startsWith("was never an ")) {
@@ -3403,15 +3465,6 @@ function extractNegativeObjectAndVerb(
       object: cleanedPhrase.replace("only played for ", ""),
       verb: "play for",
     };
-  } else if (cleanedPhrase.startsWith("was not Undrafted")) {
-    return { object: "Undrafted", verb: "was" };
-  } else if (cleanedPhrase.startsWith("was drafted at age ")) {
-    return {
-      object: `at age ${cleanedPhrase.replace("was drafted at age ", "")}`,
-      verb: "was drafted",
-    };
-  } else if (cleanedPhrase.startsWith("was born in the US")) {
-    return { object: "born outside the US", verb: "was" }; // Special case for negation
   } else if (cleanedPhrase.startsWith("never ever won ")) {
     return {
       object: cleanedPhrase.replace("never ever won ", ""),
@@ -3426,6 +3479,20 @@ function extractNegativeObjectAndVerb(
     return {
       object: cleanedPhrase.replace("never won a ", ""),
       verb: "win a",
+    };
+  } else if (cleanedPhrase.startsWith("was not Undrafted")) {
+    return { object: "Undrafted", verb: "was" };
+  } else if (cleanedPhrase.startsWith("was drafted at age ")) {
+    return {
+      object: `at age ${cleanedPhrase.replace("was drafted at age ", "")}`,
+      verb: "was drafted",
+    };
+  } else if (cleanedPhrase.startsWith("was born in the US")) {
+    return { object: "born outside the US", verb: "was" }; // Special case for negation
+  } else if (cleanedPhrase.startsWith("never won ")) {
+    return {
+      object: cleanedPhrase.replace("never won ", ""),
+      verb: "ever win",
     };
   } else if (cleanedPhrase.startsWith("did not average ")) {
     return {

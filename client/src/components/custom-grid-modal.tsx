@@ -17,6 +17,8 @@ import { SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 import { getCachedSeasonIndex } from '@/lib/season-index-cache';
 import { StatBuilderChip } from '@/components/stat-builder-chip';
 import { parseAchievementLabel, createCustomNumericalAchievement, generateUpdatedLabel } from '@/lib/editable-achievements';
+import { getAssetBaseUrl } from '@/components/TeamLogo';
+
 
 // Extract base stat name from achievement labels for clean modal display
 function extractBaseStatName(label: string): string {
@@ -29,7 +31,7 @@ function extractBaseStatName(label: string): string {
 }
 
 // Team logo icon component for combobox
-function TeamLogoIcon({ teamData }: { teamData?: Team }) {
+function TeamLogoIcon({ teamData, sport }: { teamData?: Team, sport: string }) {
   const [logoError, setLogoError] = useState(false);
   const [currentLogo, setCurrentLogo] = useState<string | null>(null);
   
@@ -41,6 +43,7 @@ function TeamLogoIcon({ teamData }: { teamData?: Team }) {
     
     // Build logo candidates similar to TeamLogo component
     const candidates: string[] = [];
+    const assetBase = getAssetBaseUrl(sport);
     
     // Try small logo first, then regular logo
     if (teamData.imgURLSmall) {
@@ -53,13 +56,13 @@ function TeamLogoIcon({ teamData }: { teamData?: Team }) {
     // Try BBGM default paths if no custom logos
     if (candidates.length === 0 && teamData.abbrev) {
       const abbrev = teamData.abbrev.toUpperCase();
-      candidates.push(`https://basketball-gm.com/img/logos-primary/${abbrev}.svg`);
-      candidates.push(`https://basketball-gm.com/img/logos-secondary/${abbrev}.svg`);
+      candidates.push(`${assetBase}/img/logos-primary/${abbrev}.svg`);
+      candidates.push(`${assetBase}/img/logos-secondary/${abbrev}.svg`);
     }
     
     setCurrentLogo(candidates[0] || null);
     setLogoError(false);
-  }, [teamData]);
+  }, [teamData, sport]);
   
   if (!currentLogo || logoError) {
     return (
@@ -149,7 +152,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
           if (leagueData) {
             const team = leagueData.teams.find(t => t.tid === catTeam.tid);
             if (team) {
-              logoUrl = team.imgURLSmall || team.imgURL || null;
+              logoUrl = buildTeamLogoURL(team, sport);
             }
           }
           return {
@@ -389,7 +392,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
     if (type === 'team' && leagueData) {
       const team = leagueData.teams.find(t => t.tid === parseInt(value));
       if (team) {
-        logoUrl = team.imgURLSmall || team.imgURL || null;
+        logoUrl = buildTeamLogoURL(team, sport); // Correctly translate the URL here
       }
     } else if (type === 'achievement' && leagueData) {
       baseAchievementId = value; // The value is the base achievement ID
@@ -568,7 +571,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
             if (slot.isRow) {
               const teamId = type === 'team' ? parseInt(option.id.toString()) : undefined;
               const team = teamId !== undefined ? leagueData.teams.find(t => t.tid === teamId) : undefined;
-              const logoUrl = team ? buildTeamLogoURL(team) : null;
+              const logoUrl = team ? buildTeamLogoURL(team, sport) : null;
 
               newRowSelectors[slot.index] = {
                 type: type as SelectorType,
@@ -580,7 +583,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
             } else {
               const teamId = type === 'team' ? parseInt(option.id.toString()) : undefined;
               const team = teamId !== undefined ? leagueData.teams.find(t => t.tid === teamId) : undefined;
-              const logoUrl = team ? buildTeamLogoURL(team) : null;
+              const logoUrl = team ? buildTeamLogoURL(team, sport) : null;
 
               newColSelectors[slot.index] = {
                 type: type as SelectorType,
@@ -610,7 +613,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
     if (filledCount > 0) {
       setCanUndo(true);
     }
-  }, [leagueData, rowSelectors, colSelectors, teamOptions, achievementOptions, seasonIndex]);
+  }, [leagueData, rowSelectors, colSelectors, teamOptions, achievementOptions, seasonIndex, sport]);
 
   // Undo last autofill operation
   const handleUndo = useCallback(() => {
@@ -789,7 +792,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
     if (customRows.length === 3 && customCols.length === 3) {
       onPlayGrid(customRows, customCols, rowSelectors, colSelectors);
     }
-  }, [isGridSolvable, leagueData, rowSelectors, colSelectors, seasonIndex, onPlayGrid]);
+  }, [isGridSolvable, leagueData, rowSelectors, colSelectors, seasonIndex, onPlayGrid, sport, achievementOptions]);
 
   // Get cell key for intersection
   const getCellKey = (rowIndex: number, colIndex: number) => `${rowIndex}-${colIndex}`;
@@ -815,9 +818,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
 
 
   // Build team logo URL
-  const buildTeamLogoURL = (team: Team): string => {
-    // Constants for BBGM logo URLs
-    const BBGM_ASSET_BASE = 'https://play.basketball-gm.com';
+  const buildTeamLogoURL = (team: Team, sport: string): string => {
+    const assetBase = getAssetBaseUrl(sport);
     
     function isBBGMDefaultLogo(logoURL: string | null | undefined): boolean {
       if (!logoURL) return false;
@@ -837,19 +839,19 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
     // 3. If BBGM default small logo path is provided, convert to absolute URL
     if (team.imgURLSmall && isBBGMDefaultLogo(team.imgURLSmall)) {
       const cleanPath = team.imgURLSmall.startsWith('/') ? team.imgURLSmall.substring(1) : team.imgURLSmall;
-      return `${BBGM_ASSET_BASE}/${cleanPath}`;
+      return `${assetBase}/${cleanPath}`;
     }
     
     // 4. If BBGM default logo path is provided, convert to absolute URL
     if (team.imgURL && isBBGMDefaultLogo(team.imgURL)) {
       const cleanPath = team.imgURL.startsWith('/') ? team.imgURL.substring(1) : team.imgURL;
-      return `${BBGM_ASSET_BASE}/${cleanPath}`;
+      return `${assetBase}/${cleanPath}`;
     }
     
     // 5. Build BBGM default URL from abbreviation
     if (team.abbrev) {
       const abbrev = team.abbrev.toUpperCase();
-      return `${BBGM_ASSET_BASE}/img/logos-primary/${abbrev}.svg`;
+      return `${assetBase}/img/logos-primary/${abbrev}.svg`;
     }
     
     // 6. Fallback empty string
@@ -866,13 +868,12 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
       ?.map(team => ({
         id: team.tid.toString(),
         name: `${team.region || team.abbrev} ${team.name}`.trim(),
-        logoUrl: buildTeamLogoURL(team),
+        logoUrl: buildTeamLogoURL(team, sport),
         type: 'team' as const
       }))
       ?.sort((a, b) => a.name.localeCompare(b.name)) || [];
 
     // Get all available achievements
-    const sport = detectSport(leagueData);
     const seasonIndex = getCachedSeasonIndex(leagueData.players, sport);
     const achievementOptions = getAchievementOptions(sport, seasonIndex, leagueData.leagueYears);
     
