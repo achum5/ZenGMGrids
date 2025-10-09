@@ -17,6 +17,7 @@ import { SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 import { getCachedSeasonIndex } from '@/lib/season-index-cache';
 import { StatBuilderChip } from '@/components/stat-builder-chip';
 import { parseAchievementLabel, createCustomNumericalAchievement, generateUpdatedLabel } from '@/lib/editable-achievements';
+import { storeCustomAchievement } from '@/lib/custom-achievements';
 import { getAssetBaseUrl } from '@/components/TeamLogo';
 
 
@@ -268,8 +269,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
           if (realAchievement) {
             const currentOperator = operator || currentSelector.operator || '≥';
             
-            // Create custom achievement with new threshold using the real achievement
-            const customAchievement = createCustomNumericalAchievement(realAchievement, newNumber, sport, currentOperator);
+            // Create and STORE the custom achievement in the central store
+            const customAchievement = storeCustomAchievement(realAchievement, newNumber, sport, currentOperator);
             
             // Update the selector with custom achievement and new label
             newSelectors[index] = {
