@@ -312,20 +312,36 @@ function generateTestFunction(
   if (sport === 'hockey') {
     // Career achievements for hockey
     if (originalLabel.includes('career')) {
+      const operatorFn = (val: number) => operator === '≥' ? val >= newThreshold : val <= newThreshold;
       if (originalLabel.includes('goals')) {
-        return (player: Player) => checkCareerTotal(player, 'goals', newThreshold, operator, sport);
+        return (p: Player) => {
+          const total = p.stats?.filter(s => !s.playoffs).reduce((sum, s) => sum + ((s as any).evG || 0) + ((s as any).ppG || 0) + ((s as any).shG || 0), 0) || 0;
+          return operatorFn(total);
+        };
       }
       if (originalLabel.includes('assists')) {
-        return (player: Player) => checkCareerTotal(player, 'assists', newThreshold, operator, sport);
+        return (p: Player) => {
+          const total = p.stats?.filter(s => !s.playoffs).reduce((sum, s) => sum + ((s as any).evA || 0) + ((s as any).ppA || 0) + ((s as any).shA || 0), 0) || 0;
+          return operatorFn(total);
+        };
       }
       if (originalLabel.includes('points')) {
-        return (player: Player) => checkCareerTotal(player, 'points', newThreshold, operator, sport);
+        return (p: Player) => {
+          const total = p.stats?.filter(s => !s.playoffs).reduce((sum, s) => sum + ((s as any).evG || 0) + ((s as any).ppG || 0) + ((s as any).shG || 0) + ((s as any).evA || 0) + ((s as any).ppA || 0) + ((s as any).shA || 0), 0) || 0;
+          return operatorFn(total);
+        };
       }
       if (originalLabel.includes('wins (g)')) {
-        return (player: Player) => checkCareerTotal(player, 'wins', newThreshold, operator, sport);
+        return (p: Player) => {
+          const total = p.stats?.filter(s => !s.playoffs && ((s as any).gpGoalie || 0) > 0).reduce((sum, s) => sum + ((s as any).gW || 0), 0) || 0;
+          return operatorFn(total);
+        };
       }
       if (originalLabel.includes('shutouts (g)')) {
-        return (player: Player) => checkCareerTotal(player, 'shutouts', newThreshold, operator, sport);
+        return (p: Player) => {
+          const total = p.stats?.filter(s => !s.playoffs && ((s as any).gpGoalie || 0) > 0).reduce((sum, s) => sum + ((s as any).so || 0), 0) || 0;
+          return operatorFn(total);
+        };
       }
     }
 

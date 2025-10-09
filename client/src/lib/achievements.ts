@@ -277,32 +277,62 @@ export const HOCKEY_ACHIEVEMENTS: Achievement[] = [
   {
     id: 'career500Goals',
     label: '500+ Career Goals',
-    test: (p: Player) => p.achievements?.career500Goals || false,
-    minPlayers: 1  // Lowered for hockey - very rare achievement
+    test: (p: Player) => {
+      if (!p.stats) return false;
+      const totalGoals = p.stats
+        .filter(stat => !stat.playoffs)
+        .reduce((sum, stat) => sum + ((stat as any).evG || 0) + ((stat as any).ppG || 0) + ((stat as any).shG || 0), 0);
+      return totalGoals >= 500;
+    },
+    minPlayers: 1
   },
   {
     id: 'career1000Points',
     label: '1,000+ Career Points',
-    test: (p: Player) => p.achievements?.career1000Points || false,
-    minPlayers: 1  // Lowered for hockey - very rare achievement
+    test: (p: Player) => {
+      if (!p.stats) return false;
+      const totalPoints = p.stats
+        .filter(stat => !stat.playoffs)
+        .reduce((sum, stat) => sum + ((stat as any).evG || 0) + ((stat as any).ppG || 0) + ((stat as any).shG || 0) + ((stat as any).evA || 0) + ((stat as any).ppA || 0) + ((stat as any).shA || 0), 0);
+      return totalPoints >= 1000;
+    },
+    minPlayers: 1
   },
   {
     id: 'career500Assists',
     label: '500+ Career Assists',
-    test: (p: Player) => p.achievements?.career500Assists || false,
-    minPlayers: 3  // Lowered for hockey - still challenging but more achievable
+    test: (p: Player) => {
+      if (!p.stats) return false;
+      const totalAssists = p.stats
+        .filter(stat => !stat.playoffs)
+        .reduce((sum, stat) => sum + ((stat as any).evA || 0) + ((stat as any).ppA || 0) + ((stat as any).shA || 0), 0);
+      return totalAssists >= 500;
+    },
+    minPlayers: 3
   },
   {
     id: 'career200Wins',
     label: '200+ Career Wins (G)',
-    test: (p: Player) => p.achievements?.career200Wins || false,
-    minPlayers: 1  // Lowered for hockey - very rare goalie achievement
+    test: (p: Player) => {
+      if (!p.stats) return false;
+      const totalWins = p.stats
+        .filter(stat => !stat.playoffs && ((stat as any).gpGoalie || 0) > 0)
+        .reduce((sum, stat) => sum + ((stat as any).gW || 0), 0);
+      return totalWins >= 200;
+    },
+    minPlayers: 1
   },
   {
     id: 'career50Shutouts',
     label: '50+ Career Shutouts (G)',
-    test: (p: Player) => p.achievements?.career50Shutouts || false,
-    minPlayers: 1  // Lowered for hockey - very rare goalie achievement
+    test: (p: Player) => {
+      if (!p.stats) return false;
+      const totalShutouts = p.stats
+        .filter(stat => !stat.playoffs && ((stat as any).gpGoalie || 0) > 0)
+        .reduce((sum, stat) => sum + ((stat as any).so || 0), 0);
+      return totalShutouts >= 50;
+    },
+    minPlayers: 1
   },
   // Note: Single-season awards removed from game entirely
   // wonMVP, wonDefensiveForward, wonGoalieOfYear, wonROY, wonPlayoffsMVP, madeAllStar, wonChampionship
@@ -1291,7 +1321,51 @@ export function playerMeetsAchievement(
 
 
   // First, check if it's ANY achievement that needs season index (statistical leaders AND season achievements)
-  const statisticalLeaders = ['PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader', 'Season30PPG', 'Season2000Points', 'Season200_3PM', 'Season12RPG', 'Season10APG', 'Season800Rebounds', 'Season700Assists', 'Season2SPG', 'Season2_5BPG', 'Season150Steals', 'Season150Blocks', 'Season200Stocks', 'Season50_40_90', 'Season70Games', 'Season36MPG', 'Season25_10', 'Season25_5_5', 'Season20_10_5', 'Season1_1_1', 'FBSeason4kPassYds', 'FBSeason1200RushYds', 'FBSeason100Receptions', 'FBSeason15Sacks', 'FBSeason140Tackles', 'FBSeason5Interceptions', 'FBSeason30PassTD', 'FBSeason1300RecYds', 'FBSeason10RecTD', 'FBSeason12RushTD', 'FBSeason1600Scrimmage', 'FBSeason2000AllPurpose', 'FBSeason15TFL', 'HKSeason40Goals', 'HKSeason60Assists', 'HKSeason90Points', 'HKSeason25Plus', 'HKSeason250Shots', 'HKSeason150Hits', 'HKSeason100Blocks', 'HKSeason60Takeaways', 'HKSeason20PowerPlay', 'HKSeason3SHGoals', 'HKSeason7GWGoals', 'HKSeason55FaceoffPct', 'HKSeason22TOI', 'HKSeason70PIM', 'HKSeason920SavePct', 'HKSeason260GAA', 'HKSeason6Shutouts', 'HKSeason2000Saves', 'HKSeason60Starts'];
+  const statisticalLeaders = ['PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader', 'Season30PPG', 'Season2000Points', 'Season200_3PM', 'Season12RPG', 'Season10APG', 'Season800Rebounds', 'Season700Assists', 'Season2SPG', 'Season2_5BPG', 'Season150Steals', 'Season150Blocks', 'Season200Stocks', 'Season50_40_90', 'Season70Games', 'Season36MPG', 'Season25_10', 'Season25_5_5', 'Season20_10_5', 'Season1_1_1', 'FBSeason4kPassYds', 'FBSeason1200RushYds', 'FBSeason100Receptions', 'FBSeason15Sacks', 'FBSeason140Tackles', 'FBSeason5Interceptions', 'FBSeason30PassTD', 'FBSeason1300RecYds', 'FBSeason10RecTD', 'FBSeason12RushTD', 'FBSeason1600Scrimmage', 'FBSeason2000AllPurpose', 'FBSeason15TFL'];
+  const hockeyStatisticalLeaders = ['HKSeason40Goals', 'HKSeason60Assists', 'HKSeason90Points', 'HKSeason25Plus', 'HKSeason250Shots', 'HKSeason150Hits', 'HKSeason100Blocks', 'HKSeason60Takeaways', 'HKSeason20PowerPlay', 'HKSeason3SHGoals', 'HKSeason7GWGoals', 'HKSeason55FaceoffPct', 'HKSeason22TOI', 'HKSeason70PIM', 'HKSeason920SavePct', 'HKSeason260GAA', 'HKSeason6Shutouts', 'HKSeason2000Saves', 'HKSeason60Starts'];
+
+  if (hockeyStatisticalLeaders.includes(achievementId)) {
+    const seasonStats = player.achievements?.seasonStatsComputed;
+    if (!seasonStats) return false;
+
+    const threshold = parseFloat(achievementId.match(/(\d+(\.\d+)?)/)?.[0] || '0');
+    const statField = achievementId.replace(/HKSeason(\d+)/, '').charAt(0).toLowerCase() + achievementId.replace(/HKSeason(\d+)/, '').slice(1);
+    
+    for (const year in seasonStats) {
+      const data = (seasonStats as any)[year];
+      let value;
+      switch (achievementId) {
+        case 'HKSeason40Goals': value = data.goals; break;
+        case 'HKSeason60Assists': value = data.assists; break;
+        case 'HKSeason90Points': value = data.points; break;
+        case 'HKSeason25Plus': value = data.pm; break;
+        case 'HKSeason250Shots': value = data.s; break;
+        case 'HKSeason150Hits': value = data.hit; break;
+        case 'HKSeason100Blocks': value = data.blk; break;
+        case 'HKSeason60Takeaways': value = data.tk; break;
+        case 'HKSeason20PowerPlay': value = data.powerPlayPoints; break;
+        case 'HKSeason3SHGoals': value = data.shG; break;
+        case 'HKSeason7GWGoals': value = data.gwG; break;
+        case 'HKSeason55FaceoffPct': value = data.faceoffPct; break;
+        case 'HKSeason22TOI': value = data.toiPerGame; break;
+        case 'HKSeason70PIM': value = data.pim; break;
+        case 'HKSeason920SavePct': value = data.savePct; break;
+        case 'HKSeason260GAA': value = data.gaaRate; break;
+        case 'HKSeason6Shutouts': value = data.so; break;
+        case 'HKSeason2000Saves': value = data.sv; break;
+        case 'HKSeason60Starts': value = data.gs; break;
+        default: continue;
+      }
+      
+      if (achievementId === 'HKSeason260GAA') {
+        if (value <= threshold) return true;
+      } else {
+        if (value >= threshold) return true;
+      }
+    }
+    return false;
+  }
+
   if (statisticalLeaders.includes(achievementId)) {
     if (!seasonIndex) {
       if (DEBUG) console.log(`🐛 [playerMeetsAchievement] No seasonIndex provided for statistical achievement ${achievementId}`);
@@ -1388,17 +1462,17 @@ export function playerMeetsAchievement(
       if (achievementId === 'FBFinalsMVP' && award.type === 'Finals MVP') return true;
       
       // Hockey achievements (case-sensitive exact matches)
-      if (achievementId === 'HKAllStar' && award.type === 'All-Star Game') return true;
-      if (achievementId === 'HKMVP' && award.type === 'MVP') return true;
+      if (achievementId === 'HKAllStar' && award.type === 'All-Star') return true;
+      if (achievementId === 'HKMVP' && award.type === 'Most Valuable Player') return true;
       if (achievementId === 'HKDefenseman' && award.type === 'Best Defenseman') return true;
       if (achievementId === 'HKROY' && award.type === 'Rookie of the Year') return true;
-      if (achievementId === 'HKChampion' && award.type === 'Championship') return true;
+      if (achievementId === 'HKChampion' && award.type === 'Won Championship') return true;
       if (achievementId === 'HKPlayoffsMVP' && award.type === 'Playoffs MVP') return true;
       if (achievementId === 'HKFinalsMVP' && award.type === 'Finals MVP') return true;
       if (achievementId === 'HKAllRookie' && award.type === 'All-Rookie Team') return true;
-      if (achievementId === 'HKAllLeague' && award.type === 'All-League Team') return true;
-      if (achievementId === 'HKAllStarMVP' && award.type === 'All-Star Game MVP') return true;
-      if (achievementId === 'HKAssistsLeader' && award.type === 'Assists Leader') return true;
+      if (achievementId === 'HKAllLeague' && (award.type === 'First Team All-League' || award.type === 'Second Team All-League' || award.type === 'Third Team All-League')) return true;
+      if (achievementId === 'HKAllStarMVP' && award.type === 'All-Star MVP') return true;
+      if (achievementId === 'HKAssistsLeader' && award.type === 'League Assists Leader') return true;
       
       // Baseball achievements
       if (achievementId === 'BBAllStar' && award.type === 'All-Star') return true;
@@ -1436,6 +1510,7 @@ export function playerMeetsAchievement(
     // This means we need to get all achievements again, including the dynamically generated ones
     const allPossibleAchievements = getAllAchievements(getCachedSportDetection(), seasonIndex, getCachedLeagueYears());
     const customAchievement = allPossibleAchievements.find(a => a.id === achievementId);
+
     if (customAchievement) {
       return customAchievement.test(player);
     }
@@ -1761,12 +1836,6 @@ function calculateHockeyAchievements(player: Player, achievements: any): void {
     const assists = (season.evA || 0) + (season.ppA || 0) + (season.shA || 0);
     const points = goals + assists; // Calculate total points
     
-    // Debug stat fields for first few players - increase probability to see more
-    if (Math.random() < 0.05) {
-      console.log('Hockey season fields:', Object.keys(season));
-      console.log(`Season ${seasonYear}: Goals=${goals} (evG=${season.evG}, ppG=${season.ppG}, shG=${season.shG}), Assists=${assists} (evA=${season.evA}, ppA=${season.ppA}, shA=${season.shA}), Points=${points}, GP=${season.gp}`);
-    }
-    
     existing.goals += goals;
     existing.assists += assists;
     existing.points += points;
@@ -1790,10 +1859,10 @@ function calculateHockeyAchievements(player: Player, achievements: any): void {
     existing.ppA += season.ppA || 0;
     
     // Goalie stats - filter to goalies only
-    const isGoalie = player.pos === 'G' || season.svPct != null || season.so != null || season.w != null;
+    const isGoalie = player.pos === 'G' || season.svPct != null || season.so != null || season.gW != null;
     if (isGoalie) {
       existing.isGoalie = true;
-      existing.wins += season.w || 0;
+      existing.wins += season.gW || 0;
       existing.shutouts += season.so || 0;
       
       // For save percentage calculation
@@ -1865,11 +1934,6 @@ function calculateHockeyAchievements(player: Player, achievements: any): void {
   achievements.career500Assists = careerAssists >= 500;  // 500+ Career Assists
   achievements.career200Wins = careerWins >= 200;      // 200+ Career Wins (G)
   achievements.career50Shutouts = careerShutouts >= 50; // 50+ Career Shutouts (G)
-  
-  // Debug career stats - show players with significant stats
-  if (careerGoals >= 20 || careerPoints >= 40) {
-    console.log(`Hockey: ${player.firstName} ${player.lastName} - Career: ${careerGoals}G, ${careerAssists}A, ${careerPoints}P (${seasonStats.size} seasons)`);
-  }
   
   // Helper function to get decade from season
   const getDecade = (season: number) => Math.floor(season / 10) * 10;

@@ -1786,19 +1786,23 @@ function getHockeyCareerStats(player: Player) {
   const stats = player.stats || [];
   let g = 0, a = 0, pts = 0, w = 0, so = 0;
   
-  stats.forEach((season: any) => {
-    if (season.playoffs) return; // Only regular season stats
-    
-    // Use ACTUAL ZGMH field names: evG+ppG+shG for goals, evA+ppA+shA for assists
-    const goals = (season.evG || 0) + (season.ppG || 0) + (season.shG || 0);
-    const assists = (season.evA || 0) + (season.ppA || 0) + (season.shA || 0);
-    
-    g += goals;
-    a += assists;
-    pts += goals + assists;
-    w += season.w || 0; // goalie wins
-    so += season.so || 0; // shutouts
-  });
+  // Filter for regular season stats only
+  const regularSeasonStats = stats.filter(stat => !stat.playoffs);
+
+  for (const stat of regularSeasonStats) {
+    // Skater stats
+    const rowGoals = ((stat as any).evG || 0) + ((stat as any).ppG || 0) + ((stat as any).shG || 0);
+    const rowAssists = ((stat as any).evA || 0) + ((stat as any).ppA || 0) + ((stat as any).shA || 0);
+    g += rowGoals;
+    a += rowAssists;
+    pts += rowGoals + rowAssists;
+
+    // Goalie stats (only from goalie rows)
+    if (((stat as any).gpGoalie || 0) > 0) {
+      w += (stat as any).gW || 0;
+      so += (stat as any).so || 0;
+    }
+  }
   
   return { g, a, pts, w, so };
 }
@@ -2391,6 +2395,10 @@ export function generateFeedbackMessage(
   } else {
     // !rowMet && !colMet
 
+    if (rowPhraseNotMet.includes(" only had ") && colPhraseNotMet.includes(" only had ")) {
+        return `${rowPhraseNotMet}, and ${colPhraseNotMet.replace(player.name + " ", "")}.`;
+    }
+
     // ** START OF MANUAL FIX for career stats + team miss **
     const rowIsCareer = rowConstraint.achievementId?.startsWith("career");
     const colIsCareer = colConstraint.achievementId?.startsWith("career");
@@ -2805,33 +2813,17 @@ function getAchievementDetails(
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + ((s as any).sv || 0), 0)
         ?.toLocaleString();
-    } else if (baseAchievementId.includes("Goals") && sport === "hockey") {
-      value = player.stats
-        ?.filter((s) => !s.playoffs)
-        .reduce((acc, s) => acc + ((s as any).goals || 0), 0)
-        ?.toLocaleString();
-    } else if (baseAchievementId.includes("Assists") && sport === "hockey") {
-      value = player.stats
-        ?.filter((s) => !s.playoffs)
-        .reduce((acc, s) => acc + ((s as any).assists || 0), 0)
-        ?.toLocaleString();
-    } else if (baseAchievementId.includes("Points") && sport === "hockey") {
-      value = player.stats
-        ?.filter((s) => !s.playoffs)
-        .reduce((acc, s) => acc + ((s as any).points || 0), 0)
-        ?.toLocaleString();
-    } else if (baseAchievementId.includes("Wins") && sport === "hockey") {
-      value = player.stats
-        ?.filter((s) => !s.playoffs)
-        .reduce((acc, s) => acc + ((s as any).wins || 0), 0)
-        ?.toLocaleString();
-    } else if (baseAchievementId.includes("Shutouts") && sport === "hockey") {
-      value = player.stats
-        ?.filter((s) => !s.playoffs)
-        .reduce((acc, s) => acc + ((s as any).shutouts || 0), 0)
-        ?.toLocaleString();
-    }
-  } else if (baseAchievementId.startsWith("Season")) {
+                    } else if (baseAchievementId.includes("Goals") && sport === "hockey") {
+                      value = getHockeyCareerStats(player).g.toLocaleString();
+                    } else if (baseAchievementId.includes("Assists") && sport === "hockey") {
+                      value = getHockeyCareerStats(player).a.toLocaleString();
+                    } else if (baseAchievementId.includes("Points") && sport === "hockey") {
+                      value = getHockeyCareerStats(player).pts.toLocaleString();
+                    } else if (baseAchievementId.includes("Wins") && sport === "hockey") {
+                      value = getHockeyCareerStats(player).w.toLocaleString();
+                    } else if (baseAchievementId.includes("Shutouts") && sport === "hockey") {
+                      value = getHockeyCareerStats(player).so.toLocaleString();
+                    }  } else if (baseAchievementId.startsWith("Season")) {
     // For ALL Season* achievements, use the robust logic from reason-bullets.
     const qualifyingSeasons = getSeasonsForSeasonStatAchievement(
       player,
@@ -3112,21 +3104,7 @@ function getConstraintPhrase(
       if (met) {
         return `${playerName} had ${value} career ${statName}`;
       } else {
-        const parsed = parseCustomAchievementId(constraint.achievementId);
-        if (parsed && value !== undefined) {
-          if (parsed.operator === "≤") {
-            return `${playerName} had more than ${parsed.threshold.toLocaleString()} career ${statName} (${value})`;
-          } else {
-            return `${playerName} had fewer than ${parsed.threshold.toLocaleString()} career ${statName} (${value})`;
-          }
-        }
-        const threshold = label.match(/(\d+,?\d*\+?)/)?.[1];
-        if (threshold) {
-          return `${playerName} ${
-            value ? `had ${value} career ${statName}, but ` : ""
-          }never reached ${threshold} career ${statName}`;
-        }
-        return `${playerName} did not achieve ${label.toLowerCase()}`;
+        return `${playerName} only had ${value} career ${statName}`;
       }
     } else if (
       [
