@@ -1,5 +1,7 @@
-import { getAllAchievements, playerMeetsAchievement, getCareerStatTotal, getStatFieldForAchievementId } from '@/lib/achievements';
-import { getCustomAchievement } from './custom-achievements';
+import type { Player, Team, CatTeam, LeagueData } from '@/types/bbgm';
+import type { Achv } from '@/lib/feedback';
+import type { SeasonIndex, SeasonAchievementId } from '@/lib/season-achievements';
+import { getAllAchievements, playerMeetsAchievement } from '@/lib/achievements';
 import { getSeasonEligiblePlayers, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 import { calculateOptimizedIntersection, type IntersectionConstraint } from '@/lib/intersection-cache';
 import { parseAchievementLabel, generateUpdatedLabel } from '@/lib/editable-achievements';
@@ -83,7 +85,39 @@ export function getAchievementOptions(
       }
       return (
       achievement.id !== 'bornOutsideUS50DC' && // Exclude problematic achievement
-      achievement.id !== 'SFMVP' // Exclude Superstar Finals MVP
+      achievement.id !== 'SFMVP' && // Exclude Superstar Finals MVP
+
+      achievement.id !== 'Season22PPG' && // 22+ ppg in a season returns 0 players
+      // achievement.id !== 'Season3PPercent' && // 3pt% in a season achievement
+      achievement.id !== 'RandomPoints25000pts' && // 25k+ career points returns 0 players  
+      // achievement.id !== 'RandomRebounds6000trb' && // 6k+ career rebounds returns 0 players
+      // Remove duplicate lower-tier random achievements (keep only highest thresholds)
+      !achievement.id.startsWith('Randomcareer3000') && // Remove 3k+ career achievements
+      !achievement.id.startsWith('Randomcareer5000') && // Remove 5k+ career achievements  
+      !achievement.id.startsWith('Randomcareer7500') && // Remove 7.5k+ career achievements
+      !achievement.id.startsWith('Randomcareer10000') && // Remove 10k+ career achievements
+      !achievement.id.startsWith('Randomcareer12500') && // Remove 12.5k+ career achievements
+      !achievement.id.startsWith('Randomcareer15000') && // Remove 15k+ career achievements
+      !achievement.id.startsWith('Randomcareer17500') && // Remove 17.5k+ career achievements
+      !achievement.id.startsWith('Randomcareer500') && // Remove 500+ career achievements (assists/steals/blocks/rebounds/threes)
+      !achievement.id.startsWith('Randomcareer1000') && // Remove 1k+ career achievements
+      !achievement.id.startsWith('Randomcareer1250') && // Remove 1.25k+ career achievements
+      !achievement.id.startsWith('Randomcareer1500') && // Remove 1.5k+ career achievements 
+      !achievement.id.startsWith('Randomcareer2000') && // Remove 2k+ career achievements
+      !achievement.id.startsWith('Randomcareer2500') && // Remove 2.5k+ career achievements
+      !achievement.id.startsWith('Randomcareer3000') && // Remove 3k+ career achievements
+      !achievement.id.startsWith('Randomcareer4000') && // Remove 4k+ career achievements
+      !achievement.id.startsWith('Randomcareer6000') && // Remove 6k+ career achievements
+      !achievement.id.startsWith('Randomcareer7500') && // Remove 7.5k+ career achievements (rebounds)
+      // achievement.id !== 'Randomcareer100threes' && // Remove 100+ threes (we want 2k+)
+      // achievement.id !== 'Randomcareer200threes' && // Remove 200+ threes (we want 2k+)
+      // achievement.id !== 'Randomcareer300threes' && // Remove 300+ threes (we want 2k+)
+      // achievement.id !== 'Randomcareer500threes' && // Remove 500+ threes (we want 2k+)
+      // achievement.id !== 'Randomcareer750threes' && // Remove 750+ threes (we want 2k+)
+      // achievement.id !== 'Randomcareer1000threes' && // Remove 1k+ threes (we want 2k+)
+      // achievement.id !== 'Randomcareer1250threes' && // Remove 1.25k+ threes (we want 2k+)
+      // achievement.id !== 'Randomcareer1500threes' && // Remove 1.5k+ threes (we want 2k+)
+      achievement.id !== 'Randomseason16rpg' // Remove 16+ RPG season achievement
     )})
     .map(achievement => ({
       id: achievement.id,
@@ -178,48 +212,54 @@ export function headerConfigToCatTeam(
       test: (p: Player) => p.teamsPlayed.has(config.selectedId as number),
     };
   } else {
-    const sport = getCachedSportDetection();
-    const leagueYears = getCachedLeagueYears();
-    const allAchievements = getAllAchievements(sport, seasonIndex, leagueYears);
-    const originalAchievement = allAchievements.find(a => a.id === config.selectedId);
-
-    if (!originalAchievement) {
-      // Fallback for an unknown achievement ID
-      return {
-        key: `achievement-${config.selectedId}`,
-        label: config.selectedLabel,
-        achievementId: config.selectedId as string,
-        type: 'achievement',
-        test: (p: Player) => playerMeetsAchievement(p, config.selectedId as string, seasonIndex),
-      };
-    }
-
     let achievementLabel = config.selectedLabel;
     let achievementId = config.selectedId as string;
-    let achievementTest = originalAchievement.test; // Default to original test
+    let achievementTest = (p: Player) => false; // Default test
+    let operator: '≥' | '≤' = config.operator || '≥';
+
+    if (config.customAchievement) {
     
-    const parsedOriginal = parseAchievementLabel(originalAchievement.label, sport);
+      // If a custom achievement object is provided, use its label and test function
+      achievementLabel = config.customAchievement.label;
+      achievementId = config.customAchievement.id;
+      achievementTest = config.customAchievement.test;
+      operator = config.customAchievement.operator || operator;
+    } else {
+      // If no custom achievement object, but it's an editable achievement, regenerate the label
+      const sport = getCachedSportDetection();
+      const leagueYears = getCachedLeagueYears();
+      const allAchievements = getAllAchievements(sport, seasonIndex, leagueYears);
+      const originalAchievement = allAchievements.find(a => a.id === config.selectedId);
 
-    if (parsedOriginal.isEditable && sport) {
-      // This achievement is customizable, so we build the test function dynamically
-      const parsedCustom = parseAchievementLabel(config.selectedLabel, sport);
-      const threshold = parsedCustom.number;
-      const operator = config.operator || '≥';
-      const statField = getStatFieldForAchievementId(originalAchievement.id, sport);
-
-      if (statField && threshold !== null) {
-        achievementTest = (p: Player) => {
-          const total = getCareerStatTotal(p, statField);
-          return operator === '≥' ? total >= threshold : total <= threshold;
-        };
-        // Update the label to be sure it's correct
-        achievementLabel = generateUpdatedLabel(parsedOriginal, threshold, operator);
-        // Use a more specific ID for caching custom achievements
-        achievementId = `${originalAchievement.id}_${threshold}_${operator}`;
+      if (originalAchievement) {
+      
+        const parsedOriginal = parseAchievementLabel(originalAchievement.label, sport);
+      
+        if (parsedOriginal.isEditable) {
+          // Use the original number for the label if no custom number is set
+          const numberToUse = parsedOriginal.number;
+        
+          achievementLabel = generateUpdatedLabel(parsedOriginal, numberToUse, operator);
+        
+          // For non-customized editable achievements, use the original achievement's test
+          achievementTest = (p: Player) => playerMeetsAchievement(p, originalAchievement.id, seasonIndex, operator === '≤' ? '<=' : '>=');
+        } else {
+          // Not editable, use the original label and test
+          achievementLabel = originalAchievement.label;
+          achievementTest = originalAchievement.test;
+        }
+      } else {
+        // Fallback for unknown achievements (should not happen if selectedId is valid)
+      
+        achievementLabel = config.selectedLabel;
+        achievementTest = (p: Player) => playerMeetsAchievement(p, config.selectedId as string, seasonIndex, operator === '≤' ? '<=' : '>=');
       }
     }
     
-    const achievement = allAchievements.find(a => a.id === achievementId) || originalAchievement;
+    const sport = getCachedSportDetection();
+    const leagueYears = getCachedLeagueYears();
+    const allAchievements = getAllAchievements(sport, seasonIndex, leagueYears);
+    const achievement = allAchievements.find(a => a.id === achievementId);
 
     if (achievement) {
             let achv: Achv | undefined = undefined;
@@ -240,8 +280,8 @@ export function headerConfigToCatTeam(
                 decadeYear: parseInt(debutedInMatch[1], 10),
                 decadeType: 'debuted',
               };
-            } else if ((achievement as any).achv) {
-              achv = (achievement as any).achv;
+            } else if (achievement.achv) {
+              achv = achievement.achv;
             } else {
               achv = {
                   type: 'boolean',
@@ -250,7 +290,7 @@ export function headerConfigToCatTeam(
             }
       
             return {
-              key: `achievement-${achievementId}`,
+              key: `achievement-${achievementId}-${config.customAchievement ? 'custom' : 'original'} `,
               label: achievementLabel,
               achievementId: achievementId as string,
               type: 'achievement',
@@ -260,7 +300,7 @@ export function headerConfigToCatTeam(
       
     } else {
       return {
-        key: `achievement-${achievementId}`,
+        key: `achievement-${achievementId}-${config.customAchievement ? 'custom' : 'original'}`,
         label: achievementLabel,
         achievementId: achievementId as string,
         type: 'achievement',

@@ -90,7 +90,7 @@ function detectSport(raw: any): Sport {
       
       // Check for football stats (rushing, passing, receiving)
       const stats = player.stats?.[0];
-      if (stats && (stats.rusYds !== undefined || stats.pssYds !== undefined || stats.recYds !== undefined)) {
+      if (stats && (stats.rusYds !== undefined || stats.pasYds !== undefined || stats.recYds !== undefined)) {
         return 'football';
       }
     }
@@ -458,7 +458,7 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
           hgt: rawPlayer.hgt,
           tid: rawPlayer.tid ?? -1,
           awards: rawPlayer.awards || [],
-          stats: rawPlayer.stats || [], // rawPlayer.stats should already contain pssYds if present
+          stats: rawPlayer.stats || [],
           ratings: rawPlayer.ratings || [],
           retiredYear: rawPlayer.retiredYear,
           contract: rawPlayer.contract,
@@ -472,14 +472,6 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
           retiredDecade: retiredDecade > 0 ? retiredDecade : undefined,
           decadesPlayed: decadesPlayed.size > 0 ? decadesPlayed : undefined,
         };
-
-        // Debug: Log raw stats for football players to verify pssYds
-        if (sport === 'football' && rawPlayer.stats && rawPlayer.stats.length > 0) {
-          console.log(`🏈 DEBUG: Player ${player.name} (PID: ${player.pid}) raw stats sample:`);
-          rawPlayer.stats.slice(0, 2).forEach((s: any, i: number) => {
-            console.log(`  Season ${s.season}, Team ${s.tid}: pssYds=${s.pssYds}, pssTD=${s.pssTD}, rusYds=${s.rusYds}, recYds=${s.recYds}, keys=${Object.keys(s)}`);
-          });
-        }
 
         // Note: achievements will be calculated after all players are processed
         
@@ -880,7 +872,7 @@ function analyzeTeamOverlaps(players: Player[], teams: Team[]): TeamOverlapData 
   const achievementIds = [
     'isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen',
     'isHallOfFamer', 'played15PlusSeasons', 'bornOutsideUS50DC',
-    'career300PassTDs', 'FBCareer50kPassYds', 'season35PassTDs', 'career12kRushYds', 'career100RushTDs', 
+    'career300PassTDs', 'season35PassTDs', 'career12kRushYds', 'career100RushTDs', 
     'season1800RushYds', 'season20RushTDs', 'career12kRecYds', 'career100RecTDs',
     'season1400RecYds', 'season15RecTDs', 'career100Sacks', 'career20Ints',
     'season15Sacks', 'season8Ints', 'wonMVP', 'wonOPOY', 'wonDPOY', 'wonROY',

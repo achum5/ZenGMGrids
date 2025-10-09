@@ -2435,23 +2435,16 @@ export function generateFeedbackMessage(
                 actuallyMet = actualValue <= threshold;
             }
 
-            const statName = details.label.replace(/(\d+,?\d*\+?)\s*Career\s*/, "").toLowerCase().replace("touchdowns", "TDs");
+            const statName = details.label.replace(/(\d+,?\d*\+?)\s*Career\s*/, "").toLowerCase();
+            const usePositivePhrasing = (operator === '≥' && actuallyMet) || (operator === '≤' && !actuallyMet);
 
-            if (actuallyMet) {
-                // Scenario A: Met stat, unmet team.
-                const positivePhrase = `${player.name} had ${details.value} career ${statName}`;
-                return `${positivePhrase}, but ${teamPhraseNotMet.replace(player.name + " ", "")}.`;
+            if (usePositivePhrasing) {
+                const phrase = `${player.name} had ${details.value} career ${statName}`;
+                const conjunction = (operator === '≥' && actuallyMet) ? 'but' : 'and';
+                return `${phrase}, ${conjunction} ${teamPhraseNotMet.replace(player.name + " ", "")}.`;
             } else {
-                // Scenario B: Unmet stat, unmet team.
-                if (operator === '≤') {
-                    // Failed a "less than" constraint, meaning they had MORE.
-                    const phrase = `${player.name} had ${details.value} career ${statName}`;
-                    return `${phrase}, and ${teamPhraseNotMet.replace(player.name + " ", "")}.`;
-                } else { // operator === '≥'
-                    // Failed a "greater than" constraint, meaning they had FEWER.
-                    const negativePhrase = `${player.name} only had ${details.value} career ${statName}`;
-                    return `${negativePhrase}, and ${teamPhraseNotMet.replace(player.name + " ", "")}.`;
-                }
+                const phrase = `${player.name} only had ${details.value} career ${statName}`;
+                return `${phrase}, and ${teamPhraseNotMet.replace(player.name + " ", "")}.`;
             }
         }
     }
@@ -2744,11 +2737,6 @@ function getAchievementDetails(
       value = player.stats
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => acc + ((s as any).tpm || (s as any).tp || (s as any).fg3 || 0), 0)
-        ?.toLocaleString();
-    } else if (baseAchievementId.includes("PassYds")) {
-      value = player.stats
-        ?.filter((s) => !s.playoffs)
-        .reduce((acc, s) => acc + ((s as any).pssYds || 0), 0)
         ?.toLocaleString();
     } else if (baseAchievementId.includes("PassTDs")) {
       value = player.stats

@@ -162,15 +162,10 @@ export function parseAchievementLabel(label: string, sport?: string): ParsedAchi
 /**
  * Generate a new achievement label with a different numerical threshold
  */
-export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: number | undefined, operator: '≥' | '≤'): string {
+export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: number | undefined, operator?: '≥' | '≤'): string {
   // console.log('[DEBUG generateUpdatedLabel] Input parsed:', parsed, 'newNumber:', newNumber, 'operator:', operator);
   if (!parsed.isEditable) {
     return parsed.originalLabel;
-  }
-
-  // If the input is cleared, it might come in as NaN. Treat it as undefined for labeling.
-  if (newNumber !== undefined && isNaN(newNumber)) {
-    newNumber = undefined;
   }
 
   // Use parsed.number as a fallback if newNumber is undefined
@@ -283,19 +278,18 @@ export function createCustomNumericalAchievement(
     return baseAchievement; // Return original if not editable
   }
   
-  // A cleared input can result in `undefined` or `NaN`. Treat both as an empty input for the label.
-  const isInputEmpty = newThreshold === undefined || isNaN(newThreshold);
-  const newLabel = generateUpdatedLabel(parsed, isInputEmpty ? undefined : newThreshold, operator);
+  // Ensure newThreshold is a number for generateUpdatedLabel
+  const numberForLabel = newThreshold !== undefined ? newThreshold : parsed.number;
+  const newLabel = generateUpdatedLabel(parsed, numberForLabel, operator);
   
-  // For the test function and ID, an empty/invalid input should be treated as a threshold of 0.
-  const thresholdForTest = !isInputEmpty ? newThreshold : 0;
-  const newTestFunction = generateTestFunction(baseAchievement, parsed, thresholdForTest, sport, operator);
+  // Generate new test function based on achievement type patterns
+  const newTestFunction = generateTestFunction(baseAchievement, parsed, newThreshold !== undefined ? newThreshold : parsed.number, sport, operator);
   
   const operatorStr = operator === '≤' ? 'lte' : 'gte';
   
   return {
     ...baseAchievement,
-    id: `${baseAchievement.id}_custom_${thresholdForTest}_${operatorStr}`,
+    id: `${baseAchievement.id}_custom_${newThreshold !== undefined ? newThreshold : parsed.number}_${operatorStr}`,
     label: newLabel,
     test: newTestFunction
   };
@@ -417,9 +411,6 @@ function generateTestFunction(
       if (originalLabel.includes('pass yds')) {
         return (player: Player) => checkCareerTotal(player, 'pssYds', newThreshold, operator, sport);
       }
-      if (originalLabel.includes('pass tds')) {
-        return (player: Player) => checkCareerTotal(player, 'pssTD', newThreshold, operator, sport);
-      }
       if (originalLabel.includes('rush yds')) {
         return (player: Player) => checkCareerTotal(player, 'rusYds', newThreshold, operator, sport);
       }
@@ -451,20 +442,11 @@ function generateTestFunction(
       if (originalLabel.includes('pass yds')) {
         return (player: Player) => checkSeasonTotal(player, 'pssYds', newThreshold, operator, 1, sport);
       }
-      if (originalLabel.includes('pass tds')) {
-        return (player: Player) => checkSeasonTotal(player, 'pssTD', newThreshold, operator, 1, sport);
-      }
       if (originalLabel.includes('rush yds')) {
         return (player: Player) => checkSeasonTotal(player, 'rusYds', newThreshold, operator, 1, sport);
       }
-      if (originalLabel.includes('rush tds')) {
-        return (player: Player) => checkSeasonTotal(player, 'rusTD', newThreshold, operator, 1, sport);
-      }
       if (originalLabel.includes('rec yds')) {
         return (player: Player) => checkSeasonTotal(player, 'recYds', newThreshold, operator, 1, sport);
-      }
-      if (originalLabel.includes('rec tds')) {
-        return (player: Player) => checkSeasonTotal(player, 'recTD', newThreshold, operator, 1, sport);
       }
       if (originalLabel.includes('sacks')) {
         return (player: Player) => checkSeasonTotal(player, ['sks', 'defSk'], newThreshold, operator, 1, sport);
@@ -477,6 +459,15 @@ function generateTestFunction(
       }
       if (originalLabel.includes('fumbles')) {
         return (player: Player) => checkSeasonTotal(player, 'ff', newThreshold, operator, 1, sport);
+      }
+      if (originalLabel.includes('pass tds')) {
+        return (player: Player) => checkSeasonTotal(player, 'pssTD', newThreshold, operator, 1, sport);
+      }
+      if (originalLabel.includes('rush tds')) {
+        return (player: Player) => checkSeasonTotal(player, 'rusTD', newThreshold, operator, 1, sport);
+      }
+      if (originalLabel.includes('rec tds')) {
+        return (player: Player) => checkSeasonTotal(player, 'recTD', newThreshold, operator, 1, sport);
       }
     }
   } else if (sport === 'baseball') {
@@ -640,13 +631,6 @@ function generateTestFunction(
       return false;
     };
   }
-
-  if (originalLabel.includes('seasons') && originalLabel.includes('played')) {
-    return (player: Player) => {
-      const seasonsPlayed = player.stats?.filter(s => !s.playoffs).length || 0;
-      return operator === '≥' ? seasonsPlayed >= newThreshold : seasonsPlayed <= newThreshold;
-    };
-  }
   
   // If we can't determine the type, return the original test function
   return baseAchievement.test;
@@ -701,30 +685,6 @@ function checkCareerTotal(player: Player, statField: string | string[], newThres
 function checkSeasonTotal(player: Player, statField: string | string[], newThreshold: number, operator: '≥' | '≤', minGames: number = 1, sport?: string): boolean {
   if (!player.stats) return false;
 
-  if ((sport === 'hockey' || sport === 'football') && player.achievements?.seasonStatsComputed) {
-    for (const seasonYearStr in player.achievements.seasonStatsComputed) {
-      const computedStats = (player.achievements.seasonStatsComputed as any)[seasonYearStr];
-      const gp = computedStats.gp || 0;
-
-      if (gp >= minGames) {
-        let value = 0;
-        if (Array.isArray(statField)) {
-          for (const field of statField) {
-            if (computedStats[field] !== undefined) {
-              value = computedStats[field];
-              break;
-            }
-          }
-        } else {
-          value = computedStats[statField] || 0;
-        }
-
-        if (operator === '≤' && value <= newThreshold) return true;
-        if (operator === '≥' && value >= newThreshold) return true;
-      }
-    }
-    return false;
-  }
 
   for (const stat of player.stats) {
     if (!stat.playoffs && (stat.gp || 0) >= minGames) {
@@ -753,6 +713,8 @@ function checkSeasonTotal(player: Player, statField: string | string[], newThres
 function checkSeasonAverage(player: Player, statField: string, newThreshold: number, operator: '≥' | '≤', minGames: number = 1, sport?: string): boolean {
   if (!player.stats) return false;
 
+
+
   if (sport === 'hockey' && player.achievements?.seasonStatsComputed) {
     for (const seasonYearStr in player.achievements.seasonStatsComputed) {
       const seasonYear = parseInt(seasonYearStr);
@@ -769,19 +731,6 @@ function checkSeasonAverage(player: Player, statField: string, newThreshold: num
         } else if (operator === '≥' && average >= newThreshold) {
           return true;
         }
-      }
-    }
-  } else if (sport === 'football' && player.achievements?.seasonStatsComputed) {
-    for (const seasonYearStr in player.achievements.seasonStatsComputed) {
-      const computedStats = (player.achievements.seasonStatsComputed as any)[seasonYearStr];
-      const gp = computedStats.gp || 0;
-
-      if (gp >= minGames) {
-        const total = computedStats[statField] || 0;
-        const games = gp || 1;
-        const average = games > 0 ? total / games : 0;
-        if (operator === '≤' && average <= newThreshold) return true;
-        if (operator === '≥' && average >= newThreshold) return true;
       }
     }
   } else {
