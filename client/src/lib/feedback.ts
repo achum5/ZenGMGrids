@@ -1205,8 +1205,6 @@ function getBasketballCareerStats(player: Player) {
     let seasonRebounds = 0;
     if (season.trb !== undefined) {
       seasonRebounds = season.trb;
-    } else if (season.orb !== undefined || season.drb !== undefined) {
-      seasonRebounds = (season.orb || 0) + (season.drb || 0);
     } else if (season.reb !== undefined) {
       seasonRebounds = season.reb;
     }
@@ -2375,6 +2373,19 @@ export function generateFeedbackMessage(
     false
   );
 
+  const rowIsCareer = rowConstraint.achievementId?.startsWith("career");
+  const colIsCareer = colConstraint.achievementId?.startsWith("career");
+  const rowIsTeam = rowConstraint.type === "team";
+  const colIsTeam = colConstraint.type === "team";
+  
+  let teamPhraseNotMet: string = '';
+  
+  if (rowIsCareer && colIsTeam) {
+    teamPhraseNotMet = colPhraseNotMet;
+  } else if (colIsCareer && rowIsTeam) {
+    teamPhraseNotMet = rowPhraseNotMet;
+  }
+
   if (rowMet && colMet) {
     // This case should ideally not be reached for an "incorrect guess" modal, but as a fallback:
     return `${player.name} ${rowPhraseMet.replace(
@@ -2395,19 +2406,9 @@ export function generateFeedbackMessage(
   } else {
     // !rowMet && !colMet
 
-    if (rowPhraseNotMet.includes(" only had ") && colPhraseNotMet.includes(" only had ")) {
-        return `${rowPhraseNotMet}, and ${colPhraseNotMet.replace(player.name + " ", "")}.`;
-    }
-
-    // ** START OF MANUAL FIX for career stats + team miss **
-    const rowIsCareer = rowConstraint.achievementId?.startsWith("career");
-    const colIsCareer = colConstraint.achievementId?.startsWith("career");
-    const rowIsTeam = rowConstraint.type === "team";
-    const colIsTeam = colConstraint.type === "team";
-
     let careerConstraint: GridConstraint | undefined;
     let teamConstraint: GridConstraint | undefined;
-    let teamPhraseNotMet: string;
+    let teamPhraseNotMet: string = '';
 
     if (rowIsCareer && colIsTeam) {
         careerConstraint = rowConstraint;
@@ -2435,20 +2436,27 @@ export function generateFeedbackMessage(
                 actuallyMet = actualValue <= threshold;
             }
 
-            const statName = details.label.replace(/(\d+,?\d*\+?)\s*Career\s*/, "").toLowerCase();
-            const usePositivePhrasing = (operator === '≥' && actuallyMet) || (operator === '≤' && !actuallyMet);
+            const statName = details.label.replace(/(\d+,?\d*\+?)\s*Career\s*/, "").toLowerCase().replace("touchdowns", "TDs");
 
-            if (usePositivePhrasing) {
-                const phrase = `${player.name} had ${details.value} career ${statName}`;
-                const conjunction = (operator === '≥' && actuallyMet) ? 'but' : 'and';
-                return `${phrase}, ${conjunction} ${teamPhraseNotMet.replace(player.name + " ", "")}.`;
+            if (actuallyMet) {
+                // Scenario A: Met stat, unmet team.
+                const positivePhrase = `${player.name} had ${details.value} career ${statName}`;
+                return `${positivePhrase}, but ${teamPhraseNotMet.replace(player.name + " ", "")}.`;
             } else {
-                const phrase = `${player.name} only had ${details.value} career ${statName}`;
-                return `${phrase}, and ${teamPhraseNotMet.replace(player.name + " ", "")}.`;
+                // Scenario B: Unmet stat, unmet team.
+                if (operator === '≤') {
+                    // Failed a "less than" constraint, meaning they had MORE.
+                    const phrase = `${player.name} had ${details.value} career ${statName}`;
+                    return `${phrase}, and ${teamPhraseNotMet.replace(player.name + " ", "")}.`;
+                } else { // operator === '≥'
+                    // Failed a "greater than" constraint, meaning they had FEWER.
+                    const negativePhrase = `${player.name} only had ${details.value} career ${statName}`;
+                    return `${negativePhrase}, and ${teamPhraseNotMet.replace(player.name + " ", "")}.`;
+                }
             }
         }
     }
-    // ** END OF MANUAL FIX **
+
 
     const rowNegative = extractNegativeObjectAndVerb(
       rowPhraseNotMet,

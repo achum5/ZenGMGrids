@@ -860,7 +860,7 @@ function generateGridSeeded(leagueData: LeagueData): {
     achievementId: seedAchievement.id,
     label: seedAchievement.label,
     key: `achievement-${seedAchievement.id}`,
-    achv: mapAchievementToAchv(seedAchievement),
+    achv: mapAchievementToAchv(seedAchievement as Achievement),
     test: (p: Player) => playerMeetsAchievement(p, seedAchievement.id, seasonIndex),
   };
   
@@ -1009,7 +1009,7 @@ function generateGridSeeded(leagueData: LeagueData): {
         achievementId: selectedAch.id,
         label: selectedAch.label,
         key: `achievement-${selectedAch.id}`,
-        achv: mapAchievementToAchv(selectedAch),
+        achv: mapAchievementToAchv(selectedAch as Achievement),
         test: (p: Player) => playerMeetsAchievement(p, selectedAch.id, seasonIndex),
       };
       

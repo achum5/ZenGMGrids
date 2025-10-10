@@ -151,7 +151,7 @@ export interface LeagueData {
   leagueYears?: { minSeason: number; maxSeason: number };
 }
 
-import type { Achv } from '@/lib/feedback';
+import type { Achv } from '@/lib/types';
 
 export interface CatTeam {
   key: string;

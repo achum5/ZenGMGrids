@@ -1,5 +1,5 @@
 import type { Achievement } from '@/lib/achievements';
-import type { Achv, Comp } from '@/lib/feedback';
+import type { Achv, Comp } from '@/lib/types';
 
 // Helper to parse stat labels like "20,000+ Career Points"
 function parseStatLabel(label: string): { value: number; comp: Comp; stat: string } | null {

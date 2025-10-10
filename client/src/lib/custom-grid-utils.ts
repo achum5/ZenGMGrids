@@ -1,5 +1,5 @@
 import type { Player, Team, CatTeam, LeagueData } from '@/types/bbgm';
-import type { Achv } from '@/lib/feedback';
+import type { Achv } from '@/lib/types';
 import type { SeasonIndex, SeasonAchievementId } from '@/lib/season-achievements';
 import { getAllAchievements, playerMeetsAchievement } from '@/lib/achievements';
 import { getSeasonEligiblePlayers, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
@@ -270,6 +270,7 @@ export function headerConfigToCatTeam(
                 type: 'decade',
                 decadeYear: parseInt(playedInMatch[1], 10),
                 decadeType: 'played',
+                booleanNoun: achievement.label,
               };
             }
       
@@ -279,6 +280,7 @@ export function headerConfigToCatTeam(
                 type: 'decade',
                 decadeYear: parseInt(debutedInMatch[1], 10),
                 decadeType: 'debuted',
+                booleanNoun: achievement.label,
               };
             } else if (achievement.achv) {
               achv = achievement.achv;

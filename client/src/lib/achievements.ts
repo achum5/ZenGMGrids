@@ -3,12 +3,15 @@ import { SEASON_ACHIEVEMENTS, type SeasonAchievement, type SeasonIndex, type Sea
 import { SeededRandom } from './seeded';
 import { createCustomNumericalAchievement, parseAchievementLabel, parseCustomAchievementId } from './editable-achievements';
 
+import { Achv } from "./types";
+
 export interface Achievement {
   id: string;
   label: string;
   test: (player: Player) => boolean;
   minPlayers: number;
   isSeasonSpecific?: boolean;
+  achv?: Achv;
 }
 
 // Extended achievement interface for season-specific achievements
@@ -344,15 +347,20 @@ export const FOOTBALL_ACHIEVEMENTS: Achievement[] = [
   {
     id: 'career300PassTDs',
     label: '150+ Career Pass TDs',
-    test: (p: Player) => p.achievements?.career300PassTDs || false,
+    test: (p: Player) => {
+      if (!p.stats) return false;
+      const total = p.stats
+        .filter(stat => !stat.playoffs && (stat.gp || 0) > 0)
+        .reduce((sum, stat) => sum + ((stat as any).pssTD || 0), 0);
+      return total >= 150;
+    },
     minPlayers: 5
   },
   {
-    id: 'FBCareer50kPassYds',
+    id: 'career50kPassYds',
     label: '50,000+ Career Passing Yards',
     test: (p: Player) => {
       if (!p.stats) return false;
-      // FBGM uses 'pssYds' field for passing yards
       const totalPassingYards = p.stats
         .filter(stat => !stat.playoffs && (stat.gp || 0) > 0)
         .reduce((sum, stat) => sum + ((stat as any).pssYds || 0), 0);
@@ -364,39 +372,75 @@ export const FOOTBALL_ACHIEVEMENTS: Achievement[] = [
   {
     id: 'career12kRushYds',
     label: '8,000+ Career Rush Yards',
-    test: (p: Player) => p.achievements?.career12kRushYds || false,
+    test: (p: Player) => {
+      if (!p.stats) return false;
+      const total = p.stats
+        .filter(stat => !stat.playoffs && (stat.gp || 0) > 0)
+        .reduce((sum, stat) => sum + ((stat as any).rusYds || 0), 0);
+      return total >= 8000;
+    },
     minPlayers: 5
   },
   {
     id: 'career100RushTDs',
     label: '40+ Career Rush TDs',
-    test: (p: Player) => p.achievements?.career100RushTDs || false,
+    test: (p: Player) => {
+      if (!p.stats) return false;
+      const total = p.stats
+        .filter(stat => !stat.playoffs && (stat.gp || 0) > 0)
+        .reduce((sum, stat) => sum + ((stat as any).rusTD || 0), 0);
+      return total >= 40;
+    },
     minPlayers: 5
   },
   // Receiving achievements
   {
     id: 'career12kRecYds',
     label: '6,000+ Career Rec Yards',
-    test: (p: Player) => p.achievements?.career12kRecYds || false,
+    test: (p: Player) => {
+      if (!p.stats) return false;
+      const total = p.stats
+        .filter(stat => !stat.playoffs && (stat.gp || 0) > 0)
+        .reduce((sum, stat) => sum + ((stat as any).recYds || 0), 0);
+      return total >= 6000;
+    },
     minPlayers: 5
   },
   {
     id: 'career100RecTDs',
     label: '40+ Career Rec TDs',
-    test: (p: Player) => p.achievements?.career100RecTDs || false,
+    test: (p: Player) => {
+      if (!p.stats) return false;
+      const total = p.stats
+        .filter(stat => !stat.playoffs && (stat.gp || 0) > 0)
+        .reduce((sum, stat) => sum + ((stat as any).recTD || 0), 0);
+      return total >= 40;
+    },
     minPlayers: 5
   },
   // Defensive achievements
   {
     id: 'career100Sacks',
     label: '60+ Career Sacks',
-    test: (p: Player) => p.achievements?.career100Sacks || false,
+    test: (p: Player) => {
+      if (!p.stats) return false;
+      const total = p.stats
+        .filter(stat => !stat.playoffs && (stat.gp || 0) > 0)
+        .reduce((sum, stat) => sum + ((stat as any).sks || (stat as any).defSk || 0), 0);
+      return total >= 60;
+    },
     minPlayers: 5
   },
   {
     id: 'career20Ints',
     label: '20+ Career Interceptions',
-    test: (p: Player) => p.achievements?.career20Ints || false,
+    test: (p: Player) => {
+      if (!p.stats) return false;
+      const total = p.stats
+        .filter(stat => !stat.playoffs && (stat.gp || 0) > 0)
+        .reduce((sum, stat) => sum + ((stat as any).defInt || 0), 0);
+      return total >= 20;
+    },
     minPlayers: 5
   },
   // Note: Single-season awards removed from game entirely
@@ -1491,28 +1535,19 @@ export function playerMeetsAchievement(
   const allAchievements = [...COMMON_ACHIEVEMENTS, ...BASKETBALL_ACHIEVEMENTS, ...FOOTBALL_ACHIEVEMENTS, ...HOCKEY_ACHIEVEMENTS, ...BASEBALL_ACHIEVEMENTS];
   const achievement = allAchievements.find(a => a.id === achievementId);
   
-  // CRITICAL FIX: If it's a custom numerical achievement, directly use its test function
   if (achievementId.includes('_custom_')) {
-    // Handle custom 'played5PlusFranchises' achievement
-    if (achievementId.includes('played5PlusFranchises')) {
-      const parsedCustom = parseCustomAchievementId(achievementId);
-      if (parsedCustom) {
-        const actualFranchises = getPlayerFranchiseCount(player);
-        if (parsedCustom.operator === '≤') {
-          return actualFranchises <= parsedCustom.threshold;
-        } else {
-          return actualFranchises >= parsedCustom.threshold;
+    const parsedCustom = parseCustomAchievementId(achievementId);
+    if (parsedCustom) {
+      const allAchievements = getAllAchievements(getCachedSportDetection(), seasonIndex, getCachedLeagueYears());
+      const baseAchievement = allAchievements.find(a => a.id === parsedCustom.baseId);
+
+      if (baseAchievement) {
+        const sport = getCachedSportDetection();
+        if (sport) {
+          const customAchievement = createCustomNumericalAchievement(baseAchievement, parsedCustom.threshold, sport, parsedCustom.operator);
+          return customAchievement.test(player);
         }
       }
-    }
-
-    // We need to find the *actual* custom achievement object that was created
-    // This means we need to get all achievements again, including the dynamically generated ones
-    const allPossibleAchievements = getAllAchievements(getCachedSportDetection(), seasonIndex, getCachedLeagueYears());
-    const customAchievement = allPossibleAchievements.find(a => a.id === achievementId);
-
-    if (customAchievement) {
-      return customAchievement.test(player);
     }
   }
 
@@ -1652,69 +1687,99 @@ function calculateFootballAchievements(player: Player, achievements: any): void 
   const stats = player.stats || [];
   
   // Career totals
-  let careerPassTDs = 0;
+  let careerPassTDs = 0, careerPassYds = 0;
   let careerRushYds = 0, careerRushTDs = 0;
   let careerRecYds = 0, careerRecTDs = 0;
   let careerSacks = 0, careerInts = 0;
-  
-  
+
+  // Tracking for multi-team seasons
+  const seasonStats = new Map<number, {
+    passYds: number; passTDs: number; rushYds: number; rushTDs: number;
+    recYds: number; recTDs: number; rec: number; sacks: number;
+    tackles: number; ints: number; tfl: number; gp: number;
+    prYds: number; krYds: number;
+  }>();
+
+  // First pass: aggregate stats by season
   stats.forEach((season: any) => {
-    if (season.playoffs) return; // Only regular season stats
+    if (season.playoffs) return;
     
-    // Passing stats - debug what fields are available
-    if (Math.random() < 0.001) { // Log 0.1% of seasons to see field names
-      console.log('Football season stat fields:', Object.keys(season));
+    const seasonYear = season.season;
+    if (!seasonYear) return;
+    
+    const existing = seasonStats.get(seasonYear) || {
+      passYds: 0, passTDs: 0, rushYds: 0, rushTDs: 0,
+      recYds: 0, recTDs: 0, rec: 0, sacks: 0,
+      tackles: 0, ints: 0, tfl: 0, gp: 0,
+      prYds: 0, krYds: 0,
+    };
+    
+    existing.passYds += season.pssYds || 0;
+    existing.passTDs += season.pssTD || 0;
+    existing.rushYds += season.rusYds || 0;
+    existing.rushTDs += season.rusTD || 0;
+    existing.recYds += season.recYds || 0;
+    existing.recTDs += season.recTD || 0;
+    existing.rec += season.rec || 0;
+    existing.sacks += (season.sks ?? season.defSk) || 0;
+    existing.tackles += (season.defTckSolo || 0) + (season.defTckAst || 0);
+    existing.ints += season.defInt || 0;
+    existing.tfl += season.defTckLoss || 0;
+    existing.gp += season.gp || 0;
+    existing.prYds += season.prYds || 0;
+    existing.krYds += season.krYds || 0;
+    
+    seasonStats.set(seasonYear, existing);
+  });
+
+  // Second pass: calculate career totals and store season-specific computed stats
+  if (!player.achievements) {
+    player.achievements = {};
+  }
+  if (!player.achievements.seasonStatsComputed) {
+    player.achievements.seasonStatsComputed = {};
+  }
+
+  seasonStats.forEach((seasonData, seasonYear) => {
+    careerPassTDs += seasonData.passTDs;
+    careerPassYds += seasonData.passYds;
+    careerRushYds += seasonData.rushYds;
+    careerRushTDs += seasonData.rushTDs;
+    careerRecYds += seasonData.recYds;
+    careerRecTDs += seasonData.recTDs;
+    careerSacks += seasonData.sacks;
+    careerInts += seasonData.ints;
+
+    // Store computed season stats
+    if (player.achievements) {
+      player.achievements.seasonStatsComputed[seasonYear] = {
+        pssYds: seasonData.passYds,
+        pssTD: seasonData.passTDs,
+        rusYds: seasonData.rushYds,
+        rusTD: seasonData.rushTDs,
+        recYds: seasonData.recYds,
+        recTD: seasonData.recTDs,
+        rec: seasonData.rec,
+        sks: seasonData.sacks,
+        defTck: seasonData.tackles,
+        defInt: seasonData.ints,
+        scrimmageYds: seasonData.rushYds + seasonData.recYds,
+        allPurposeYds: seasonData.rushYds + seasonData.recYds + seasonData.prYds + seasonData.krYds,
+        defTckLoss: seasonData.tfl,
+        gp: seasonData.gp,
+      };
     }
-    
-    // FBGM passing stats - correct field names from documentation
-    const passTDs = season.pssTD || 0;  // Passing TDs use pssTD in FBGM
-    
-    careerPassTDs += passTDs;
-    
-    // Debug passing stats when they exist
-    if (passTDs > 15) {
-      console.log(`Player with ${passTDs} passing TDs in season, career total so far: ${careerPassTDs}`);
-    }
-    
-    // Rushing stats
-    careerRushYds += season.rusYds || 0;
-    careerRushTDs += season.rusTD || 0;
-    
-    // Receiving stats
-    careerRecYds += season.recYds || 0;
-    careerRecTDs += season.recTD || 0;
-    
-    // Defensive stats - FBGM uses 'sk' field, fallback to 'defSk'
-    const seasonSacks = season.sks ?? season.defSk ?? 0;
-    careerSacks += seasonSacks;
-    careerInts += season.defInt || 0;
   });
   
-  // Set career achievements - FBGM doesn't track passing yards, only TDs
-  // Debug career stats validation 
-  if (careerPassTDs > 50) {
-    console.log(`${player.firstName} ${player.lastName}: ${careerPassTDs} career passing TDs`);
-  }
-  if (careerRushYds > 3000) {
-    console.log(`${player.firstName} ${player.lastName}: ${careerRushYds} career rushing yards`);
-  }
-  if (careerRecYds > 5000) {
-    console.log(`${player.firstName} ${player.lastName}: ${careerRecYds} career receiving yards`);
-  }
-  if (careerSacks > 30) {
-    console.log(`${player.firstName} ${player.lastName}: ${careerSacks} career sacks`);
-  }
-  
-  achievements.career300PassTDs = careerPassTDs >= 150; // Lowered for FBGM
-  achievements.career12kRushYds = careerRushYds >= 8000; // Lowered from 11k
-  achievements.career100RushTDs = careerRushTDs >= 40; // Lowered to get 3→5+ players
-  achievements.career12kRecYds = careerRecYds >= 6000; // Lowered to get 2→5+ players  
-  achievements.career100RecTDs = careerRecTDs >= 40; // Lowered to get 4→5+ players
-  achievements.career100Sacks = careerSacks >= 60; // Lowered from 100
+  // Set career achievements
+  achievements.career300PassTDs = careerPassTDs >= 150;
+  achievements.career50kPassYds = careerPassYds >= 50000;
+  achievements.career12kRushYds = careerRushYds >= 8000;
+  achievements.career100RushTDs = careerRushTDs >= 40;
+  achievements.career12kRecYds = careerRecYds >= 6000;
+  achievements.career100RecTDs = careerRecTDs >= 40;
+  achievements.career100Sacks = careerSacks >= 60;
   achievements.career20Ints = careerInts >= 20;
-  
-  
-  // Note: Single-season award calculations removed from game entirely
 }
 
 // Calculate baseball-specific achievements

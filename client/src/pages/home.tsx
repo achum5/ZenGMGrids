@@ -20,7 +20,7 @@ import baseballIcon from '@/assets/baseball.png';
 import { parseLeagueFile, parseLeagueUrl, buildSearchIndex } from '@/lib/bbgm-parser';
 import { generateTeamsGrid, cellKey } from '@/lib/grid-generator';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
-import { debugAchievementIntersection, calculateCustomCellIntersection, headerConfigToCatTeam, getCustomCellEligiblePlayersAsync } from '@/lib/custom-grid-utils';
+import { calculateCustomCellIntersection, headerConfigToCatTeam, getCustomCellEligiblePlayersAsync } from '@/lib/custom-grid-utils';
 import { calculateOptimizedIntersection, type IntersectionConstraint, clearIntersectionCachesForPlayers } from '@/lib/intersection-cache';
 import { getSeasonEligiblePlayers, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
 import { debugIndividualAchievements, playerMeetsAchievement, setCachedLeagueYears } from '@/lib/achievements';
@@ -223,20 +223,10 @@ export default function Home() {
         guessed: guessedPlayer,
         eligiblePool: eligiblePool,
         puzzleSeed: puzzleSeed,
-        cellContext: rowConstraint && colConstraint ? {
-          rowConstraint: {
-            type: rowConstraint.type,
-            tid: rowConstraint.tid,
-            achievementId: rowConstraint.achievementId,
-            label: rowConstraint.label
-          },
-          colConstraint: {
-            type: colConstraint.type,
-            tid: colConstraint.tid,
-            achievementId: colConstraint.achievementId,
-            label: colConstraint.label
-          }
-        } : undefined,
+        cellContext: {
+          rowConstraint: rowConstraint,
+          colConstraint: colConstraint
+        },
         fullPlayers: eligiblePlayers,
         teams: teamsMap,
         seasonIndex: leagueData.seasonIndex
@@ -432,18 +422,8 @@ export default function Home() {
         eligiblePool: eligiblePool,
         puzzleSeed: puzzleSeed,
         cellContext: {
-          rowConstraint: {
-            type: rowConstraint.type,
-            tid: rowConstraint.tid,
-            achievementId: rowConstraint.achievementId,
-            label: rowConstraint.label
-          },
-          colConstraint: {
-            type: colConstraint.type,
-            tid: colConstraint.tid,
-            achievementId: colConstraint.achievementId,
-            label: colConstraint.label
-          }
+          rowConstraint: rowConstraint,
+          colConstraint: colConstraint
         },
         fullPlayers: eligiblePlayers,
         teams: teamsMap,

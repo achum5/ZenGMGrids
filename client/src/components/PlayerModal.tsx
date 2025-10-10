@@ -157,18 +157,8 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
           eligiblePool: eligiblePool,
           puzzleSeed: puzzleSeed,
           cellContext: {
-            rowConstraint: {
-              type: rowConstraint.type,
-              tid: rowConstraint.tid,
-              achievementId: rowConstraint.achievementId,
-              label: rowConstraint.label
-            },
-            colConstraint: {
-              type: colConstraint.type,
-              tid: colConstraint.tid,
-              achievementId: colConstraint.achievementId,
-              label: colConstraint.label
-            }
+            rowConstraint: rowConstraint,
+            colConstraint: colConstraint
           },
           fullPlayers: eligiblePlayers,
           teams: new Map(Array.isArray(teams) ? teams.map(t => [t.tid, t]) : [])
@@ -177,18 +167,8 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
         // Generate reason bullets for correct guess
         const reasonBullets = generateReasonBullets(
           player,
-          {
-            type: rowConstraint.type,
-            tid: rowConstraint.tid,
-            achievementId: rowConstraint.achievementId,
-            label: rowConstraint.label
-          },
-          {
-            type: colConstraint.type,
-            tid: colConstraint.tid,
-            achievementId: colConstraint.achievementId,
-            label: colConstraint.label
-          },
+          rowConstraint,
+          colConstraint,
           Array.isArray(teams) ? teams : [],
           currentSport
         );
@@ -203,18 +183,8 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
       // Generate feedback for wrong guesses
       const feedbackMessage = generateFeedbackMessage(
         player,
-        {
-          type: rowConstraint.type,
-          tid: rowConstraint.tid,
-          achievementId: rowConstraint.achievementId,
-          label: rowConstraint.label,
-        },
-        {
-          type: colConstraint.type,
-          tid: colConstraint.tid,
-          achievementId: colConstraint.achievementId,
-          label: colConstraint.label,
-        },
+        rowConstraint,
+        colConstraint,
         Array.isArray(teams) ? teams : [],
         currentSport as "basketball" | "football" | "hockey" | "baseball",
         allAchievements,
@@ -650,18 +620,8 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                             eligiblePool: eligiblePool,
                             puzzleSeed: puzzleSeed,
                             cellContext: {
-                              rowConstraint: {
-                                type: rowConstraint.type,
-                                tid: rowConstraint.tid,
-                                achievementId: rowConstraint.achievementId,
-                                label: rowConstraint.label
-                              },
-                              colConstraint: {
-                                type: colConstraint.type,
-                                tid: colConstraint.tid,
-                                achievementId: colConstraint.achievementId,
-                                label: colConstraint.label
-                              }
+                              rowConstraint: rowConstraint,
+                              colConstraint: colConstraint
                             },
                             fullPlayers: eligiblePlayers,
                             teams: new Map(teams?.map(t => [t.tid, t]) ?? []),
