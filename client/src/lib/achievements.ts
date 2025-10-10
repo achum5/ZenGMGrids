@@ -12,12 +12,6 @@ export interface Achievement {
   minPlayers: number;
   isSeasonSpecific?: boolean;
   achv?: Achv;
-  // New fields for numerical achievements
-  statField?: string | string[];
-  statScope?: 'career' | 'season';
-  defaultThreshold?: number;
-  testType?: 'total' | 'average' | 'percentage';
-  sport?: 'basketball' | 'football' | 'hockey' | 'baseball';
 }
 
 // Extended achievement interface for season-specific achievements
@@ -1348,39 +1342,8 @@ export function playerMeetsAchievement(
     console.log(`🐛 [playerMeetsAchievement] Player: ${player.name}, Achievement: ${achievementId}, SeasonIndex: ${!!seasonIndex}, Operator: ${operator}, TeamId: ${teamId}, Season: ${season}`);
   }
 
-  // Add debug logging for custom achievements
-  if (achievementId.includes('_custom_')) {
-          const parsedCustom = parseCustomAchievementId(achievementId);
-          if (parsedCustom) {
-            let currentSport = getCachedSportDetection();
-            // Fallback to infer sport from baseAchievement.id if not cached
-            if (!currentSport) {
-              if (parsedCustom.baseId.startsWith('FB')) {
-                currentSport = 'football';
-              } else if (parsedCustom.baseId.startsWith('HK')) {
-                currentSport = 'hockey';
-              } else if (parsedCustom.baseId.startsWith('BB')) {
-                currentSport = 'baseball';
-              } else {
-                currentSport = 'basketball'; // Default to basketball
-              }
-            }
-            if (DEBUG) console.log(`🐛 [playerMeetsAchievement] Custom Achievement Detected: baseId=${parsedCustom.baseId}, threshold=${parsedCustom.threshold}, operator=${parsedCustom.operator}, currentSport=${currentSport}`);
-    
-            const allAchievements = getAllAchievements(currentSport, seasonIndex, getCachedLeagueYears());
-            const baseAchievement = allAchievements.find(a => a.id === parsedCustom.baseId);
-    
-            if (baseAchievement) {
-                        if (currentSport) {
-                          const customAchievement = createCustomNumericalAchievement(baseAchievement, parsedCustom.threshold, currentSport, parsedCustom.operator);
-                          const testResult = customAchievement.test(player);
-                          if (DEBUG) console.log(`🐛 [playerMeetsAchievement] Custom Achievement Test Result for ${achievementId}: ${testResult}`);
-                          return testResult;
-                        }
-                        }
-        }
-    
-      // Check if it's a dynamic decade achievement first  if (achievementId.includes('playedIn') && achievementId.endsWith('s')) {
+  // Check if it's a dynamic decade achievement first
+  if (achievementId.includes('playedIn') && achievementId.endsWith('s')) {
     // Extract decade from achievement ID (e.g., "playedIn1990s" -> 1990)
     const decadeMatch = achievementId.match(/playedIn(\d{4})s/);
     if (decadeMatch) {

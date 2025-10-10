@@ -62,8 +62,6 @@ export interface ParsedAchievement {
 // Regex patterns for different numerical achievement formats
 // Order matters! Decimal-aware patterns must come BEFORE comma-separated patterns
 const ACHIEVEMENT_PATTERNS = [
-  // NEW: Specific pattern for Tackles (Season) and Tackles for Loss (Season)
-  /^([^.\d]*?)(\d+(?:\.\d+)?)\s*(Tackles|Tackles for Loss)\s*\(Season\)(.*)$/i,
   // Percentage achievements (e.g., "60%+ TS on 20+ PPG (Season)", "90%+ FT (Season)", "40%+ 3PT (Season)")
   /^([^.\d]*?)(\d+(?:\.\d+)?)(%?\+?)\s*(TS on \d+\+ PPG|eFG|FT|3PT|FG)\s*\(Season\)(.*)$/i,
   // "1 PPG (Season)" or "30 PPG (Season)" or "2.5 BPG (Season)" - season stats without +
@@ -91,10 +89,12 @@ const ACHIEVEMENT_PATTERNS = [
  */
 export function parseAchievementLabel(label: string, sport?: string): ParsedAchievement {
   let statUnit: string = ''; // Declare statUnit here
+  // console.log(`[DEBUG parseAchievementLabel] Input label: "${label}", Sport: ${sport}`);
   // Try each pattern to find numerical thresholds
   for (const pattern of ACHIEVEMENT_PATTERNS) {
     const match = label.match(pattern);
     if (match) {
+      // console.log(`[DEBUG parseAchievementLabel] Matched pattern: ${pattern.source}, Match:`, match);
       let prefix: string, numberStr: string, suffix: string;
       let operatorPart: string = '';
       let unit: string = '';
@@ -277,11 +277,6 @@ export function createCustomNumericalAchievement(
   if (!parsed.isEditable) {
     return baseAchievement; // Return original if not editable
   }
-
-  // If newThreshold is undefined (e.g., textbox is empty), revert to base achievement
-  if (newThreshold === undefined) {
-    return baseAchievement;
-  }
   
   // Ensure newThreshold is a number for generateUpdatedLabel
   const numberForLabel = newThreshold !== undefined ? newThreshold : parsed.number;
@@ -328,9 +323,6 @@ function generateTestFunction(
     // Season achievements for football
     if (baseAchievement.id === 'FBSeason140Tackles') {
       return (player: Player) => checkSeasonTotal(player, 'defTck', newThreshold, operator, 1);
-    }
-    if (baseAchievement.id === 'FBSeason15TFL') {
-      return (player: Player) => checkSeasonTotal(player, 'defTckLoss', newThreshold, operator, 1);
     }
   }
   // Handle hockey-specific achievements
@@ -645,27 +637,6 @@ function checkCareerTotal(player: Player, statField: string | string[], newThres
 function checkSeasonTotal(player: Player, statField: string | string[], newThreshold: number, operator: '≥' | '≤', minGames: number = 1): boolean {
   if (!player.stats) return false;
 
-  // For football-specific season stats that are computed and stored in seasonStatsComputed
-  if (player.achievements?.seasonStatsComputed && (statField === 'defTck' || statField === 'defTckLoss')) {
-    for (const seasonYearStr in player.achievements.seasonStatsComputed) {
-      const seasonYear = parseInt(seasonYearStr);
-      const computedStats = player.achievements.seasonStatsComputed[seasonYear];
-
-      // Find the raw stat for this season to get gp
-      const rawStat = player.stats.find(s => s.season === seasonYear && !s.playoffs);
-      const gp = rawStat?.gp || 0;
-
-      if (gp >= minGames) {
-        const value = (computedStats as any)[statField] || 0;
-        if (operator === '≤' && value <= newThreshold) {
-          return true;
-        } else if (operator === '≥' && value >= newThreshold) {
-          return true;
-        }
-      }
-    }
-    return false; // If no season meets the criteria in computed stats
-  }
 
   for (const stat of player.stats) {
     if (!stat.playoffs && (stat.gp || 0) >= minGames) {
