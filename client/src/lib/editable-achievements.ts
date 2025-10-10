@@ -308,243 +308,296 @@ function generateTestFunction(
   const originalLabel = parsed.originalLabel.toLowerCase();
   
   // Handle football-specific achievements
-  if (sport === 'football') {
-    // Career achievements for football
-    if (baseAchievement.id === 'career100RushTDs') {
-      return (player: Player) => checkCareerTotal(player, 'rusTD', newThreshold, operator);
-    }
-    if (baseAchievement.id === 'career12kRecYds') {
-      return (player: Player) => checkCareerTotal(player, 'recYds', newThreshold, operator);
-    }
-    if (baseAchievement.id === 'career100RecTDs') {
-      return (player: Player) => checkCareerTotal(player, 'recTD', newThreshold, operator);
-    }
-
-    // Season achievements for football
-    if (baseAchievement.id === 'FBSeason140Tackles') {
-      return (player: Player) => checkSeasonTotal(player, 'defTck', newThreshold, operator, 1);
-    }
-  }
-  // Handle hockey-specific achievements
-  if (sport === 'hockey') {
-    // Career achievements for hockey
-    if (originalLabel.includes('career')) {
-      const operatorFn = (val: number) => operator === '≥' ? val >= newThreshold : val <= newThreshold;
-      if (originalLabel.includes('goals')) {
-        return (p: Player) => {
-          const total = p.stats?.filter(s => !s.playoffs).reduce((sum, s) => sum + ((s as any).evG || 0) + ((s as any).ppG || 0) + ((s as any).shG || 0), 0) || 0;
-          return operatorFn(total);
-        };
+      if (sport === 'football') {
+      // Career achievements for football
+      if (baseAchievement.id === 'career300PassTDs') {
+        return (player: Player) => checkCareerTotal(player, 'pssTD', newThreshold, operator);
       }
-      if (originalLabel.includes('assists')) {
-        return (p: Player) => {
-          const total = p.stats?.filter(s => !s.playoffs).reduce((sum, s) => sum + ((s as any).evA || 0) + ((s as any).ppA || 0) + ((s as any).shA || 0), 0) || 0;
-          return operatorFn(total);
-        };
+      if (baseAchievement.id === 'FBCareer50kPassYds') {
+        return (player: Player) => checkCareerTotal(player, 'pssYds', newThreshold, operator);
       }
-      if (originalLabel.includes('points')) {
-        return (p: Player) => {
-          const total = p.stats?.filter(s => !s.playoffs).reduce((sum, s) => sum + ((s as any).evG || 0) + ((s as any).ppG || 0) + ((s as any).shG || 0) + ((s as any).evA || 0) + ((s as any).ppA || 0) + ((s as any).shA || 0), 0) || 0;
-          return operatorFn(total);
-        };
+      if (baseAchievement.id === 'career12kRushYds') {
+        return (player: Player) => checkCareerTotal(player, 'rusYds', newThreshold, operator);
       }
-      if (originalLabel.includes('wins (g)')) {
-        return (p: Player) => {
-          const total = p.stats?.filter(s => !s.playoffs && ((s as any).gpGoalie || 0) > 0).reduce((sum, s) => sum + ((s as any).gW || 0), 0) || 0;
-          return operatorFn(total);
-        };
+      if (baseAchievement.id === 'career100RushTDs') {
+        return (player: Player) => checkCareerTotal(player, 'rusTD', newThreshold, operator);
       }
-      if (originalLabel.includes('shutouts (g)')) {
-        return (p: Player) => {
-          const total = p.stats?.filter(s => !s.playoffs && ((s as any).gpGoalie || 0) > 0).reduce((sum, s) => sum + ((s as any).so || 0), 0) || 0;
-          return operatorFn(total);
-        };
+      if (baseAchievement.id === 'career12kRecYds') {
+        return (player: Player) => checkCareerTotal(player, 'recYds', newThreshold, operator);
       }
-    }
-
-    // Season achievements for hockey
-    if (originalLabel.includes('season') && !originalLabel.includes('seasons')) {
-      if (originalLabel.includes('goals')) {
-        return (player: Player) => checkSeasonTotal(player, 'goals', newThreshold, operator, 1);
+      if (baseAchievement.id === 'career100RecTDs') {
+        return (player: Player) => checkCareerTotal(player, 'recTD', newThreshold, operator);
       }
-      if (originalLabel.includes('assists')) {
-        return (player: Player) => checkSeasonTotal(player, 'assists', newThreshold, operator, 1);
+      if (baseAchievement.id === 'career100Sacks') {
+        return (player: Player) => checkCareerTotal(player, 'defSk', newThreshold, operator);
       }
-      if (originalLabel.includes('points')) {
-        return (player: Player) => checkSeasonTotal(player, 'points', newThreshold, operator, 1);
+      if (baseAchievement.id === 'career20Ints') {
+        return (player: Player) => checkCareerTotal(player, 'defInt', newThreshold, operator);
       }
-      if (originalLabel.includes('plus/minus')) {
-        return (player: Player) => checkSeasonTotal(player, 'pm', newThreshold, operator, 1);
+  
+      // Single-Season — Passing
+      if (baseAchievement.id === 'FBSeason4kPassYds') {
+        return (player: Player) => checkSeasonTotal(player, 'pssYds', newThreshold, operator, 1);
       }
-      if (originalLabel.includes('shots')) {
-        return (player: Player) => checkSeasonTotal(player, 's', newThreshold, operator, 1);
+      if (baseAchievement.id === 'FBSeason30PassTD') {
+        return (player: Player) => checkSeasonTotal(player, 'pssTD', newThreshold, operator, 1);
       }
-      if (originalLabel.includes('hits')) {
-        return (player: Player) => checkSeasonTotal(player, 'hit', newThreshold, operator, 1);
+  
+      // Single-Season — Rushing
+      if (baseAchievement.id === 'FBSeason1200RushYds') {
+        return (player: Player) => checkSeasonTotal(player, 'rusYds', newThreshold, operator, 1);
       }
-      if (originalLabel.includes('blocks')) {
-        return (player: Player) => checkSeasonTotal(player, 'blk', newThreshold, operator, 1);
+      if (baseAchievement.id === 'FBSeason12RushTD') {
+        return (player: Player) => checkSeasonTotal(player, 'rusTD', newThreshold, operator, 1);
       }
-      if (originalLabel.includes('takeaways')) {
-        return (player: Player) => checkSeasonTotal(player, 'tk', newThreshold, operator, 1);
+  
+      // Single-Season — Receiving
+      if (baseAchievement.id === 'FBSeason1300RecYds') {
+        return (player: Player) => checkSeasonTotal(player, 'recYds', newThreshold, operator, 1);
       }
-      if (originalLabel.includes('power-play points')) {
-        return (player: Player) => checkSeasonTotal(player, 'powerPlayPoints', newThreshold, operator, 1);
+      if (baseAchievement.id === 'FBSeason10RecTD') {
+        return (player: Player) => checkSeasonTotal(player, 'recTD', newThreshold, operator, 1);
       }
-      if (originalLabel.includes('short-handed goals')) {
+      if (baseAchievement.id === 'FBSeason100Receptions') {
+        return (player: Player) => checkSeasonTotal(player, 'rec', newThreshold, operator, 1);
+      }
+  
+      // Single-Season — Defense
+      if (baseAchievement.id === 'FBSeason15Sacks') {
+        return (player: Player) => checkSeasonTotal(player, 'defSk', newThreshold, operator, 1);
+      }
+          if (baseAchievement.id === 'FBSeason140Tackles') {
+            return (player: Player) => checkSeasonTotal(player, ['defTckSolo', 'defTckAst'], newThreshold, operator, 1);
+          }      if (baseAchievement.id === 'FBSeason5Interceptions') {
+        return (player: Player) => checkSeasonTotal(player, 'defInt', newThreshold, operator, 1);
+      }
+      if (baseAchievement.id === 'FBSeason15TFL') {
+        return (player: Player) => checkSeasonTotal(player, 'defTFL', newThreshold, operator, 1);
+      }
+  
+      // Single-Season — Combined
+      if (baseAchievement.id === 'FBSeason1600Scrimmage') {
+        return (player: Player) => checkSeasonTotal(player, ['rusYds', 'recYds'], newThreshold, operator, 1);
+      }
+      if (baseAchievement.id === 'FBSeason2000AllPurpose') {
+        return (player: Player) => checkSeasonTotal(player, ['rusYds', 'recYds', 'krYds', 'prYds'], newThreshold, operator, 1);
+      }
+    }  // Handle hockey-specific achievements
+      if (sport === 'hockey') {
+      // Career achievements for hockey
+      if (baseAchievement.id === 'career500Goals') {
+        return (player: Player) => checkCareerTotal(player, ['evG', 'ppG', 'shG'], newThreshold, operator);
+      }
+      if (baseAchievement.id === 'career1000Points') {
+        return (player: Player) => checkCareerTotal(player, ['evG', 'ppG', 'shG', 'evA', 'ppA', 'shA'], newThreshold, operator);
+      }
+      if (baseAchievement.id === 'career500Assists') {
+        return (player: Player) => checkCareerTotal(player, ['evA', 'ppA', 'shA'], newThreshold, operator);
+      }
+      if (baseAchievement.id === 'career200Wins') {
+        return (player: Player) => checkCareerTotal(player, 'gW', newThreshold, operator);
+      }
+      if (baseAchievement.id === 'career50Shutouts') {
+        return (player: Player) => checkCareerTotal(player, 'so', newThreshold, operator);
+      }
+  
+      // Season achievements for hockey
+      if (baseAchievement.id === 'HKSeason40Goals') {
+        return (player: Player) => checkSeasonTotal(player, ['evG', 'ppG', 'shG'], newThreshold, operator, 1);
+      }
+      if (baseAchievement.id === 'HKSeason60Assists') {
+        return (player: Player) => checkSeasonTotal(player, ['evA', 'ppA', 'shA'], newThreshold, operator, 1);
+      }
+      if (baseAchievement.id === 'HKSeason90Points') {
+        return (player: Player) => checkSeasonTotal(player, ['evG', 'ppG', 'shG', 'evA', 'ppA', 'shA'], newThreshold, operator, 1);
+      }
+      if (baseAchievement.id === 'HKSeason20PowerPlay') {
+        return (player: Player) => checkSeasonTotal(player, ['ppG', 'ppA'], newThreshold, operator, 1);
+      }
+      if (baseAchievement.id === 'HKSeason3SHGoals') {
         return (player: Player) => checkSeasonTotal(player, 'shG', newThreshold, operator, 1);
       }
-      if (originalLabel.includes('game-winning goals')) {
+      if (baseAchievement.id === 'HKSeason7GWGoals') {
         return (player: Player) => checkSeasonTotal(player, 'gwG', newThreshold, operator, 1);
       }
-      if (originalLabel.includes('faceoff win rate')) {
-        return (player: Player) => checkSeasonPercentage(player, 'faceoffPct', newThreshold, operator, 1, 1);
+      if (baseAchievement.id === 'HKSeason250Shots') {
+        return (player: Player) => checkSeasonTotal(player, 's', newThreshold, operator, 1);
       }
-      if (originalLabel.includes('toi per game')) {
-        return (player: Player) => checkSeasonAverage(player, 'toiPerGame', newThreshold, operator, 1);
+      if (baseAchievement.id === 'HKSeason150Hits') {
+        return (player: Player) => checkSeasonTotal(player, 'hit', newThreshold, operator, 1);
       }
-      if (originalLabel.includes('pim')) {
+      if (baseAchievement.id === 'HKSeason100Blocks') {
+        return (player: Player) => checkSeasonTotal(player, 'blk', newThreshold, operator, 1);
+      }
+      if (baseAchievement.id === 'HKSeason60Takeaways') {
+        return (player: Player) => checkSeasonTotal(player, 'tk', newThreshold, operator, 1);
+      }
+      if (baseAchievement.id === 'HKSeason70PIM') {
         return (player: Player) => checkSeasonTotal(player, 'pim', newThreshold, operator, 1);
       }
-      if (originalLabel.includes('save percentage')) {
-        return (player: Player) => checkSeasonPercentage(player, 'savePct', newThreshold, operator, 1, 1);
+      if (baseAchievement.id === 'HKSeason25Plus') {
+        return (player: Player) => checkSeasonTotal(player, 'pm', newThreshold, operator, 1);
       }
-      if (originalLabel.includes('gaa')) {
-        return (player: Player) => checkSeasonAverage(player, 'gaaRate', newThreshold, operator, 1);
+      if (baseAchievement.id === 'HKSeason55FaceoffPct') {
+        const thresholdDecimal = newThreshold / 100;
+        return (player: Player) => checkSeasonPercentage(player, 'faceoffPct', thresholdDecimal, operator, 1, 1);
       }
-      if (originalLabel.includes('shutouts')) {
+      if (baseAchievement.id === 'HKSeason22TOI') {
+        return (player: Player) => checkSeasonAverage(player, 'toi', newThreshold, operator, 1);
+      }
+      if (baseAchievement.id === 'HKSeason920SavePct') {
+        const thresholdDecimal = newThreshold / 1000; // Save percentage is usually .920, so divide by 1000
+        return (player: Player) => checkSeasonPercentage(player, 'savePct', thresholdDecimal, operator, 1, 1);
+      }
+      if (baseAchievement.id === 'HKSeason260GAA') {
+        return (player: Player) => checkSeasonAverage(player, 'gaa', newThreshold, operator, 1);
+      }
+      if (baseAchievement.id === 'HKSeason6Shutouts') {
         return (player: Player) => checkSeasonTotal(player, 'so', newThreshold, operator, 1);
       }
-      if (originalLabel.includes('saves')) {
+      if (baseAchievement.id === 'HKSeason2000Saves') {
         return (player: Player) => checkSeasonTotal(player, 'sv', newThreshold, operator, 1);
       }
-      if (originalLabel.includes('starts')) {
+      if (baseAchievement.id === 'HKSeason60Starts') {
         return (player: Player) => checkSeasonTotal(player, 'gs', newThreshold, operator, 1);
       }
-    }
-  } else if (sport === 'baseball') {
+    } else if (sport === 'baseball') {
     // Career achievements for baseball
-    if (originalLabel.includes('career')) {
-      if (originalLabel.includes('hits')) {
-        return (player: Player) => checkCareerTotal(player, 'h', newThreshold, operator);
-      }
-      if (originalLabel.includes('home runs')) {
-        return (player: Player) => checkCareerTotal(player, 'hr', newThreshold, operator);
-      }
-      if (originalLabel.includes('rbis')) {
-        return (player: Player) => checkCareerTotal(player, 'rbi', newThreshold, operator);
-      }
-      if (originalLabel.includes('stolen bases')) {
-        return (player: Player) => checkCareerTotal(player, 'sb', newThreshold, operator);
-      }
-      if (originalLabel.includes('runs')) {
-        return (player: Player) => checkCareerTotal(player, 'r', newThreshold, operator);
-      }
-      if (originalLabel.includes('wins (p)')) {
-        return (player: Player) => checkCareerTotal(player, 'w', newThreshold, operator);
-      }
-      if (originalLabel.includes('strikeouts')) {
-        return (player: Player) => checkCareerTotal(player, 'soPit', newThreshold, operator);
-      }
-      if (originalLabel.includes('saves')) {
-        return (player: Player) => checkCareerTotal(player, 'sv', newThreshold, operator);
-      }
+    if (baseAchievement.id === 'career3000Hits') {
+      return (player: Player) => checkCareerTotal(player, 'h', newThreshold, operator);
+    }
+    if (baseAchievement.id === 'career500HRs') {
+      return (player: Player) => checkCareerTotal(player, 'hr', newThreshold, operator);
+    }
+    if (baseAchievement.id === 'career1500RBIs') {
+      return (player: Player) => checkCareerTotal(player, 'rbi', newThreshold, operator);
+    }
+    if (baseAchievement.id === 'career400SBs') {
+      return (player: Player) => checkCareerTotal(player, 'sb', newThreshold, operator);
+    }
+    if (baseAchievement.id === 'career1800Runs') {
+      return (player: Player) => checkCareerTotal(player, 'r', newThreshold, operator);
+    }
+    if (baseAchievement.id === 'career300Wins') {
+      return (player: Player) => checkCareerTotal(player, 'w', newThreshold, operator);
+    }
+    if (baseAchievement.id === 'career3000Ks') {
+      return (player: Player) => checkCareerTotal(player, 'so', newThreshold, operator);
+    }
+    if (baseAchievement.id === 'career300Saves') {
+      return (player: Player) => checkCareerTotal(player, 'sv', newThreshold, operator);
     }
   } else {
     // Default to basketball logic
     // Default to basketball logic
     // Career achievements - check career totals
-    if (originalLabel.includes('career')) {
-      if (originalLabel.includes('points')) {
-        return (player: Player) => checkCareerTotal(player, 'pts', newThreshold, operator);
-      }
-      if (originalLabel.includes('rebounds')) {
-        return (player: Player) => checkCareerTotal(player, 'trb', newThreshold, operator);
-      }
-      if (originalLabel.includes('assists')) {
-        return (player: Player) => checkCareerTotal(player, 'ast', newThreshold, operator);
-      }
-      if (originalLabel.includes('steals')) {
-        return (player: Player) => checkCareerTotal(player, 'stl', newThreshold, operator);
-      }
-      if (originalLabel.includes('blocks')) {
-        return (player: Player) => checkCareerTotal(player, 'blk', newThreshold, operator);
-      }
-      if (originalLabel.includes('3pm') || originalLabel.includes('threes')) {
-        return (player: Player) => checkCareerTotal(player, ['tpm', 'tp'], newThreshold, operator);
-      }
+    if (baseAchievement.id === 'career20kPoints') {
+      return (player: Player) => checkCareerTotal(player, 'pts', newThreshold, operator);
+    }
+    if (baseAchievement.id === 'career10kRebounds') {
+      return (player: Player) => checkCareerTotal(player, 'trb', newThreshold, operator);
+    }
+    if (baseAchievement.id === 'career5kAssists') {
+      return (player: Player) => checkCareerTotal(player, 'ast', newThreshold, operator);
+    }
+    if (baseAchievement.id === 'career2kSteals') {
+      return (player: Player) => checkCareerTotal(player, 'stl', newThreshold, operator);
+    }
+    if (baseAchievement.id === 'career1500Blocks') {
+      return (player: Player) => checkCareerTotal(player, 'blk', newThreshold, operator);
+    }
+    if (baseAchievement.id === 'career2kThrees') {
+      return (player: Player) => checkCareerTotal(player, ['tpm', 'tp'], newThreshold, operator);
     }
 
     // Season achievements - check single season bests
-    if (originalLabel.includes('season') && !originalLabel.includes('seasons')) {
-      if (originalLabel.includes('points') && !originalLabel.includes('ppg')) {
-        return (player: Player) => checkSeasonTotal(player, 'pts', newThreshold, operator, 10);
-      }
-      if (originalLabel.includes('assists') && !originalLabel.includes('apg')) {
-        return (player: Player) => checkSeasonTotal(player, 'ast', newThreshold, operator, 10);
-      }
-      if (originalLabel.includes('rebounds') && !originalLabel.includes('rpg')) {
-        return (player: Player) => checkSeasonTotal(player, 'trb', newThreshold, operator, 10);
-      }
-      if (originalLabel.includes('steals') && !originalLabel.includes('spg')) {
-        return (player: Player) => checkSeasonTotal(player, 'stl', newThreshold, operator, 10);
-      }
-      if (originalLabel.includes('blocks') && !originalLabel.includes('bpg')) {
-        return (player: Player) => checkSeasonTotal(player, 'blk', newThreshold, operator, 10);
-      }
-      if (originalLabel.includes('3pm') || originalLabel.includes('threes')) {
-        return (player: Player) => checkSeasonTotal(player, ['tpm', 'tp'], newThreshold, operator, 10);
-      }
-      if (originalLabel.includes('games')) {
-        return (player: Player) => checkSeasonTotal(player, 'gp', newThreshold, operator, 1);
-      }
-
-      // Per-game averages
-      if (originalLabel.includes('ppg')) {
-        return (player: Player) => checkSeasonAverage(player, 'pts', newThreshold, operator, 10);
-      }
-      if (originalLabel.includes('rpg')) {
-        return (player: Player) => checkSeasonAverage(player, 'trb', newThreshold, operator, 10);
-      }
-      if (originalLabel.includes('apg')) {
-        return (player: Player) => checkSeasonAverage(player, 'ast', newThreshold, operator, 10);
-      }
-      if (originalLabel.includes('spg')) {
-        return (player: Player) => checkSeasonAverage(player, 'stl', newThreshold, operator, 10);
-      }
-      if (originalLabel.includes('bpg')) {
-        return (player: Player) => checkSeasonAverage(player, 'blk', newThreshold, operator, 10);
-      }
-
-      // Percentage achievements - convert user's percentage input (e.g., 40) to decimal (0.40)
+    if (baseAchievement.id === 'Season2000Points') {
+      return (player: Player) => checkSeasonTotal(player, 'pts', newThreshold, operator, 10);
+    }
+    if (baseAchievement.id === 'Season30PPG') {
+      return (player: Player) => checkSeasonAverage(player, 'pts', newThreshold, operator, 10);
+    }
+    if (baseAchievement.id === 'Season200_3PM') {
+      return (player: Player) => checkSeasonTotal(player, ['tpm', 'tp'], newThreshold, operator, 10);
+    }
+    if (baseAchievement.id === 'Season300_3PM') {
+      return (player: Player) => checkSeasonTotal(player, ['tpm', 'tp'], newThreshold, operator, 10);
+    }
+    if (baseAchievement.id === 'Season700Assists') {
+      return (player: Player) => checkSeasonTotal(player, 'ast', newThreshold, operator, 10);
+    }
+    if (baseAchievement.id === 'Season10APG') {
+      return (player: Player) => checkSeasonAverage(player, 'ast', newThreshold, operator, 10);
+    }
+    if (baseAchievement.id === 'Season800Rebounds') {
+      return (player: Player) => checkSeasonTotal(player, 'trb', newThreshold, operator, 10);
+    }
+    if (baseAchievement.id === 'Season12RPG') {
+      return (player: Player) => checkSeasonAverage(player, 'trb', newThreshold, operator, 10);
+    }
+    if (baseAchievement.id === 'Season150Steals') {
+      return (player: Player) => checkSeasonTotal(player, 'stl', newThreshold, operator, 10);
+    }
+    if (baseAchievement.id === 'Season2SPG') {
+      return (player: Player) => checkSeasonAverage(player, 'stl', newThreshold, operator, 10);
+    }
+    if (baseAchievement.id === 'Season150Blocks') {
+      return (player: Player) => checkSeasonTotal(player, 'blk', newThreshold, operator, 10);
+    }
+    if (baseAchievement.id === 'Season2_5BPG') {
+      return (player: Player) => checkSeasonAverage(player, 'blk', newThreshold, operator, 10);
+    }
+    if (baseAchievement.id === 'Season200Stocks') {
+      return (player: Player) => checkSeasonTotal(player, ['stl', 'blk'], newThreshold, operator, 10);
+    }
+    if (baseAchievement.id === 'Season25_10') {
+      return (player: Player) => checkSeasonCombo(player, { pts: newThreshold, trb: 10 }, newThreshold, operator, 10);
+    }
+    if (baseAchievement.id === 'Season25_5_5') {
+      return (player: Player) => checkSeasonCombo(player, { pts: newThreshold, trb: 5, ast: 5 }, newThreshold, operator, 10);
+    }
+    if (baseAchievement.id === 'Season20_10_5') {
+      return (player: Player) => checkSeasonCombo(player, { pts: newThreshold, trb: 10, ast: 5 }, newThreshold, operator, 10);
+    }
+    if (baseAchievement.id === 'Season1_1_1') {
+      return (player: Player) => checkSeasonCombo(player, { pts: newThreshold, trb: 1, ast: 1, stl: 1, blk: 1 }, newThreshold, operator, 1);
+    }
+    if (baseAchievement.id === 'Season50_40_90') {
+      return (player: Player) => checkSeason50_40_90(player, newThreshold, operator, 10);
+    }
+    if (baseAchievement.id === 'Season60eFG500FGA') {
+      const minAttempts = 500;
       const thresholdDecimal = newThreshold / 100;
-
-
-      if (originalLabel.includes('efg')) {
-        // Effective field goal percentage
-        const minAttempts = baseAchievement.id === 'Season60eFG500FGA' ? 500 : 1;
-        return (player: Player) => checkSeasonPercentage(player, 'efg', thresholdDecimal, operator, 10, minAttempts);
-      }
-      if (originalLabel.includes('ft') && originalLabel.includes('%')) {
-        // Free throw percentage
-        const minAttempts = baseAchievement.id === 'Season90FT250FTA' ? 250 : 1;
-        return (player: Player) => checkSeasonPercentage(player, 'ft', thresholdDecimal, operator, 10, minAttempts);
-      }
-      if (originalLabel.includes('fg') && originalLabel.includes('%')) {
-        // Field goal percentage
-        const minAttempts = baseAchievement.id === 'SeasonFGPercent' ? 300 : 1;
-        return (player: Player) => checkSeasonPercentage(player, 'fg', thresholdDecimal, operator, 10, minAttempts);
-      }
-      if (originalLabel.includes('3pt') || (originalLabel.includes('3p') && originalLabel.includes('%'))) {
-        // 3-point percentage
-        const minAttempts = baseAchievement.id === 'Season3PPercent' ? 100 : 1;
-        return (player: Player) => checkSeasonPercentage(player, 'tp', thresholdDecimal, operator, 10, minAttempts);
-      }
+      return (player: Player) => checkSeasonPercentage(player, 'efg', thresholdDecimal, operator, 10, minAttempts);
+    }
+    if (baseAchievement.id === 'Season60TS20PPG') {
+      return (player: Player) => checkSeason60TS20PPG(player, newThreshold, operator, 10);
+    }
+    if (baseAchievement.id === 'Season90FT250FTA') {
+      const minAttempts = 250;
+      const thresholdDecimal = newThreshold / 100;
+      return (player: Player) => checkSeasonPercentage(player, 'ft', thresholdDecimal, operator, 10, minAttempts);
+    }
+    if (baseAchievement.id === 'SeasonFGPercent') {
+      const minAttempts = 300;
+      const thresholdDecimal = newThreshold / 100;
+      return (player: Player) => checkSeasonPercentage(player, 'fg', thresholdDecimal, operator, 10, minAttempts);
+    }
+    if (baseAchievement.id === 'Season3PPercent') {
+      const minAttempts = 100;
+      const thresholdDecimal = newThreshold / 100;
+      return (player: Player) => checkSeasonPercentage(player, 'tp', thresholdDecimal, operator, 10, minAttempts);
+    }
+    if (baseAchievement.id === 'Season36MPG') {
+      return (player: Player) => checkSeasonAverage(player, 'min', newThreshold, operator, 10);
+    }
+    if (baseAchievement.id === 'Season70Games') {
+      return (player: Player) => checkSeasonTotal(player, 'gp', newThreshold, operator, 1);
     }
   }
   
   // Longevity achievements
-  if (originalLabel.includes('decades') && originalLabel.includes('played')) {
+  if (baseAchievement.id === 'playedInThreeDecades') {
     return (player: Player) => {
       const decadesPlayedCount = player.decadesPlayed?.size || 0;
       return operator === '≤'
@@ -552,7 +605,7 @@ function generateTestFunction(
         : decadesPlayedCount >= newThreshold;
     };
   }
-  if (originalLabel.includes('seasons') && originalLabel.includes('played')) {
+  if (baseAchievement.id === 'played15PlusSeasons') {
     return (player: Player) => {
       const seasonsPlayedCount = player.stats?.filter(s => !s.playoffs).length || 0;
       return operator === '≤'
@@ -562,7 +615,7 @@ function generateTestFunction(
   }
   
   // Age achievements  
-  if (originalLabel.includes('age')) {
+  if (baseAchievement.id === 'playedAtAge40Plus') {
     return (player: Player) => {
       if (!player.born?.year || !player.stats) return false;
       
@@ -787,6 +840,103 @@ function checkSeasonPercentage(player: Player, percentageType: string, newThresh
         } else if (operator === '≥' && percentage >= newThreshold) {
           return true;
         }
+      }
+    }
+  }
+  return false;
+}
+
+// Helper function for combo achievements (e.g., 25+ PTS, 10+ REB/AST)
+function checkSeasonCombo(player: Player, statThresholds: Record<string, number>, newThreshold: number, operator: '≥' | '≤', minGames: number = 1): boolean {
+  if (!player.stats) return false;
+
+  for (const stat of player.stats) {
+    if (!stat.playoffs && (stat.gp || 0) >= minGames) {
+      let allConditionsMet = true;
+      for (const statField in statThresholds) {
+        const threshold = statThresholds[statField];
+        let value = (stat as any)[statField] || 0;
+
+        // Special handling for trb (total rebounds) if orb/drb are present
+        if (statField === 'trb' && (stat as any).drb !== undefined || (stat as any).orb !== undefined) {
+          value = ((stat as any).drb || 0) + ((stat as any).orb || 0);
+        }
+
+        if (operator === '≤') {
+          if (value > threshold) {
+            allConditionsMet = false;
+            break;
+          }
+        } else { // operator === '≥'
+          if (value < threshold) {
+            allConditionsMet = false;
+            break;
+          }
+        }
+      }
+      if (allConditionsMet) return true;
+    }
+  }
+  return false;
+}
+
+// Helper function for 50/40/90 achievement
+function checkSeason50_40_90(player: Player, newThreshold: number, operator: '≥' | '≤', minGames: number = 1): boolean {
+  if (!player.stats) return false;
+
+  for (const stat of player.stats) {
+    if (!stat.playoffs && (stat.gp || 0) >= minGames) {
+      const fgPct = (stat.fga || 0) > 0 ? ((stat.fg || 0) / (stat.fga || 0)) : 0;
+      const tpPct = (stat.tpa || 0) > 0 ? ((stat.tpm || 0) / (stat.tpa || 0)) : 0;
+      const ftPct = (stat.fta || 0) > 0 ? ((stat.ft || 0) / (stat.fta || 0)) : 0;
+
+      const fgThreshold = 0.50; // 50%
+      const tpThreshold = 0.40; // 40%
+      const ftThreshold = 0.90; // 90%
+
+      // For 50/40/90, the newThreshold from the input box isn't directly used for the percentages themselves,
+      // but rather the *existence* of the achievement. If we wanted to make the percentages editable,
+      // we'd need to parse them from the label. For now, we assume fixed 50/40/90.
+
+      const fgCondition = operator === '≤' ? fgPct <= fgThreshold : fgPct >= fgThreshold;
+      const tpCondition = operator === '≤' ? tpPct <= tpThreshold : tpPct >= tpThreshold;
+      const ftCondition = operator === '≤' ? ftPct <= ftThreshold : ftPct >= ftThreshold;
+
+      if (fgCondition && tpCondition && ftCondition) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// Helper function for 60% TS on 20+ PPG achievement
+function checkSeason60TS20PPG(player: Player, newThreshold: number, operator: '≥' | '≤', minGames: number = 1): boolean {
+  if (!player.stats) return false;
+
+  for (const stat of player.stats) {
+    if (!stat.playoffs && (stat.gp || 0) >= minGames) {
+      const pts = stat.pts || 0;
+      const fga = stat.fga || 0;
+      const fta = stat.fta || 0;
+      const gp = stat.gp || 1;
+
+      const ppg = gp > 0 ? pts / gp : 0;
+
+      let tsPct = 0;
+      const tsDenominator = 2 * (fga + 0.44 * fta);
+      if (tsDenominator > 0) {
+        tsPct = pts / tsDenominator;
+      }
+
+      const tsThreshold = 0.60; // 60% TS
+      const ppgThreshold = 20;  // 20 PPG
+
+      const tsCondition = operator === '≤' ? tsPct <= tsThreshold : tsPct >= tsThreshold;
+      const ppgCondition = operator === '≤' ? ppg <= ppgThreshold : ppg >= ppgThreshold;
+
+      if (tsCondition && ppgCondition) {
+        return true;
       }
     }
   }
