@@ -803,7 +803,7 @@ export function GridSection({
         </div>
 
         {/* Hint mode toggle (center) */}
-        <div className="flex items-center justify-center gap-2" data-testid="hint-mode-toggle" style={{ marginLeft: '2px' }}>
+        <div className="flex items-center justify-center gap-2" data-testid="hint-mode-toggle" style={{ marginLeft: '1px' }}>
           <Switch
             id="hint-mode"
             checked={hintMode}

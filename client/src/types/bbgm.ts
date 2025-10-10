@@ -75,6 +75,52 @@ export interface Player {
     trbMax?: number; // highest rebounds in a game this season
     astMax?: number; // highest assists in a game this season
     tpMax?: number; // highest made threes in a game this season
+
+    // Football-specific stats
+    pssYds?: number;
+    pssTD?: number;
+    rusYds?: number;
+    rusTD?: number;
+    recYds?: number;
+    recTD?: number;
+    rec?: number;
+    sks?: number;
+    defSk?: number;
+    defTckSolo?: number;
+    defTckAst?: number;
+    defInt?: number;
+    defTckLoss?: number;
+    prYds?: number;
+    krYds?: number;
+    ff?: number;
+
+    // Hockey-specific stats
+    fow?: number; // Faceoffs won
+    fol?: number; // Faceoffs lost
+    min?: number; // Minutes played
+    pim?: number; // Penalty minutes
+    ga?: number; // Goals against
+    gs?: number; // Goalie starts
+    ppG?: number; // Power play goals
+    ppA?: number; // Power play assists
+    evG?: number; // Even strength goals
+    evA?: number; // Even strength assists
+    shG?: number; // Short handed goals
+    shA?: number; // Short handed assists
+    gW?: number; // Goalie wins
+    so?: number; // Shutouts
+    sa?: number; // Shots against (for goalies)
+    sv?: number; // Saves (for goalies)
+    gpGoalie?: number; // Games played as goalie
+
+    // Baseball-specific stats
+    h?: number; // Hits
+    hr?: number; // Home runs
+    rbi?: number; // Runs batted in
+    sb?: number; // Stolen bases
+    r?: number; // Runs
+    w?: number; // Wins (pitcher)
+    soPit?: number; // Strikeouts (pitcher)
   }>;
   achievements?: Record<string, boolean | any>;
   // New: Season-specific data for same-season alignment
