@@ -13,8 +13,28 @@ function parseStatLabel(label: string): { value: number; comp: Comp; stat: strin
     return null;
 }
 
-export function mapAchievementToAchv(achievement: Achievement): Achv {
+export function mapAchievementToAchv(achievement: Achievement, existingAchv?: Achv): Achv {
     const { id, label } = achievement;
+
+    // For stat achievements, parse the label, but prioritize existing Achv data
+    const parsed = parseStatLabel(label);
+    if (parsed) {
+        const achv: Achv = {
+            type: 'stat',
+            scope: label.toLowerCase().includes('season') ? 'season' : 'career',
+            stat: { key: parsed.stat, noun: parsed.stat },
+            comp: parsed.comp,
+            value: parsed.value,
+            booleanNoun: label,
+        };
+
+        // If an existing stat achievement is passed, use its comp and value
+        if (existingAchv && existingAchv.type === 'stat') {
+            achv.comp = existingAchv.comp;
+            achv.value = existingAchv.value;
+        }
+        return achv;
+    }
 
     // Default structure
     const baseAchv: Achv = {
@@ -95,18 +115,6 @@ export function mapAchievementToAchv(achievement: Achievement): Achv {
                 }
             }
 
-            // For stat achievements, parse the label
-            const parsed = parseStatLabel(label);
-            if (parsed) {
-                return {
-                    type: 'stat',
-                    scope: label.toLowerCase().includes('season') ? 'season' : 'career',
-                    stat: { key: parsed.stat, noun: parsed.stat },
-                    comp: parsed.comp,
-                    value: parsed.value,
-                    booleanNoun: label,
-                };
-            }
             return baseAchv;
     }
 }
