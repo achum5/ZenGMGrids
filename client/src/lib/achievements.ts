@@ -1,7 +1,7 @@
 import type { Player } from "@/types/bbgm";
 import { SEASON_ACHIEVEMENTS, type SeasonAchievement, type SeasonIndex, type SeasonAchievementId, getSeasonEligiblePlayers } from './season-achievements';
 import { SeededRandom } from './seeded';
-import { createCustomNumericalAchievement, parseAchievementLabel, parseCustomAchievementId } from './editable-achievements';
+import { createCustomNumericalAchievement, parseAchievementLabel, parseCustomAchievementId, getPlayerCareerTotal } from './editable-achievements';
 
 import { Achv } from "./types";
 
@@ -82,37 +82,37 @@ export const BASKETBALL_ACHIEVEMENTS: Achievement[] = [
   {
     id: 'career20kPoints',
     label: '20,000+ Career Points',
-    test: (p: Player) => (p.careerStats?.pts || 0) >= 20000,
+    test: (p: Player) => getPlayerCareerTotal(p, 'pts') >= 20000,
     minPlayers: 5
   },
   {
     id: 'career5kAssists',
     label: '5,000+ Career Assists',
-    test: (p: Player) => (p.careerStats?.ast || 0) >= 5000,
+    test: (p: Player) => getPlayerCareerTotal(p, 'ast') >= 5000,
     minPlayers: 5
   },
   {
     id: 'career2kSteals',
     label: '2,000+ Career Steals',
-    test: (p: Player) => (p.careerStats?.stl || 0) >= 2000,
+    test: (p: Player) => getPlayerCareerTotal(p, 'stl') >= 2000,
     minPlayers: 5
   },
   {
     id: 'career1500Blocks',
     label: '1,500+ Career Blocks',
-    test: (p: Player) => (p.careerStats?.blk || 0) >= 1500,
+    test: (p: Player) => getPlayerCareerTotal(p, 'blk') >= 1500,
     minPlayers: 5
   },
   {
     id: 'career10kRebounds',
     label: '10,000+ Career Rebounds',
-    test: (p: Player) => (p.careerStats?.trb || 0) >= 10000,
+    test: (p: Player) => getPlayerCareerTotal(p, 'trb') >= 10000,
     minPlayers: 5
   },
   {
     id: 'career2kThrees',
     label: '2,000+ Career 3PM',
-    test: (p: Player) => (p.careerStats?.tpm || 0) >= 2000,
+    test: (p: Player) => getPlayerCareerTotal(p, 'tpm') >= 2000,
     minPlayers: 5
   },
 
@@ -2486,6 +2486,11 @@ export function getViableAchievements(
       }
     });
     const hasEnough = qualifyingPlayers.length >= Math.max(minCount, achievement.minPlayers);
+    
+    // DEBUG CAREER ACHIEVEMENTS
+    if (achievement.id.startsWith('career')) {
+      console.log(`🔍 CAREER: ${achievement.id} - ${qualifyingPlayers.length} players (need ${Math.max(minCount, achievement.minPlayers)}) - ${hasEnough ? 'VIABLE' : 'FILTERED OUT'}`);
+    }
     
     // Debug logging removed for performance - was causing logs for every achievement evaluation
     const DEBUG = import.meta.env.VITE_DEBUG === 'true';
