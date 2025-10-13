@@ -1,7 +1,7 @@
 import type { Player, Team } from '@/types/bbgm';
-import { SEASON_ALIGNED_ACHIEVEMENTS, getAllAchievements, getCachedSportDetection } from '@/lib/achievements';
+import { SEASON_ALIGNED_ACHIEVEMENTS, getAllAchievements, getCachedSportDetection, type Achievement } from '@/lib/achievements';
 import { playerMeetsAchievement } from '@/lib/achievements';
-import { SEASON_ACHIEVEMENTS, type SeasonAchievementId } from './season-achievements';
+import { SEASON_ACHIEVEMENTS, type SeasonAchievementId, type SeasonIndex } from './season-achievements';
 import { parseAchievementLabel, generateUpdatedLabel, parseCustomAchievementId } from './editable-achievements';
 import {
   getSeasonsForSeasonStatAchievement,
@@ -1589,81 +1589,270 @@ export function generateFeedbackMessage(
   allAchievements: Achievement[],
   seasonIndex?: SeasonIndex
 ): string[] {
-  const feedback: string[] = [];
+  const bullets: string[] = [];
 
-  // --- First bullet point (Row - Team) ---
+  // --- First bullet point (Row - Team or Achievement) ---
   if (rowConstraint.type === "team") {
     const team = teams.find((t) => t.tid === rowConstraint.tid);
-    const teamName = team ? `${team.region} ${team.name}` : `Team ${rowConstraint.tid}`;
-    const playerPlayed = playerPlayedForTeam(player, rowConstraint.tid!);
+    const teamName = rowConstraint.label || (team ? `${team.region} ${team.name}` : `Team ${rowConstraint.tid}`);
+    const teamYearRange = getTeamYearRange(player, rowConstraint.tid!);
 
-    if (playerPlayed) {
-      const teamSeasons = getPlayerTeamSeasons(player, rowConstraint.tid!);
-      const yearRange =
-        teamSeasons.length === 1
-          ? teamSeasons[0].toString()
-          : teamSeasons.length > 1
-          ? `${teamSeasons[0]}–${teamSeasons[teamSeasons.length - 1]}`
-          : "";
-      feedback.push(`${teamName}${yearRange ? ` (${yearRange})` : ""}`);
+    if (teamYearRange === '') {
+      bullets.push(`• Never played for the ${teamName}.`);
     } else {
-      feedback.push(`Never played for the ${teamName}`);
+      bullets.push(`• ${teamName} (${teamYearRange})`);
     }
-  } else {
-    // Fallback for if row is an achievement (shouldn't happen based on grid structure, but for safety)
-    feedback.push(`Row: ${getConstraintLabel(rowConstraint, teams, allAchievements)}`);
+  } else if (rowConstraint.type === "achievement") {
+    // Handle achievement as row (though less common)
+    const achievementId = rowConstraint.achievementId!;
+    const achievementLabel = getConstraintLabel(rowConstraint, teams, allAchievements);
+    const details = getAchievementDetailsForBullets(player, achievementId, teams, sport, allAchievements, seasonIndex);
+    
+    if (details.years) {
+      bullets.push(`• ${details.label} (${details.years})`);
+    } else if (details.value !== undefined) {
+      bullets.push(`• ${details.label}: ${details.value}`);
+    } else {
+      bullets.push(`• ${details.label}`);
+    }
   }
 
-  // --- Second bullet point (Column - Achievement) ---
-  if (colConstraint.type === "achievement") {
+  // --- Second bullet point (Column - Team or Achievement) ---
+  if (colConstraint.type === "team") {
+    const colTeam = teams.find((t) => t.tid === colConstraint.tid);
+    const colTeamName = colConstraint.label || (colTeam ? `${colTeam.region} ${colTeam.name}` : `Team ${colConstraint.tid}`);
+    const colTeamYearRange = getTeamYearRange(player, colConstraint.tid!);
+
+    if (colTeamYearRange === '') {
+      bullets.push(`• Never played for the ${colTeamName}.`);
+    } else {
+      bullets.push(`• ${colTeamName} (${colTeamYearRange})`);
+    }
+  } else if (colConstraint.type === "achievement") {
     const achievementId = colConstraint.achievementId!;
-    const achievementLabel = getHumanReadableAchievementText(achievementId);
-    const metGlobally = playerMeetsAchievement(
-      player,
-      achievementId,
-      seasonIndex,
-      undefined, // operator
-      undefined, // teamId - check globally
-      undefined  // season
-    );
-    const metWithTeam = playerMeetsAchievement(
-      player,
-      achievementId,
-      seasonIndex,
-      undefined, // operator
-      rowConstraint.tid, // teamId - check with row team
-      undefined  // season
-    );
-
-    if (metWithTeam) {
-      const achievementDetails = getAchievementDetails(
-        player,
-        achievementId,
-        teams,
-        sport,
-        allAchievements
-      );
-      feedback.push(`${achievementLabel}${achievementDetails?.years ? ` (${achievementDetails.years})` : ""}`);
-    } else if (metGlobally) {
-      // Player has the achievement, but not with the guessed team (row team)
-      const achievementDetails = getAchievementDetails(
-        player,
-        achievementId,
-        teams,
-        sport,
-        allAchievements
-      );
-      const teamName = teams.find(t => t.tid === rowConstraint.tid)?.name || "this team";
-      feedback.push(`${achievementLabel}${achievementDetails?.years ? ` (${achievementDetails.years})` : ""} (never with the ${teamName})`);
+    const rowTeamId = rowConstraint.type === "team" ? rowConstraint.tid : undefined;
+    const details = getAchievementDetailsForBullets(player, achievementId, teams, sport, allAchievements, seasonIndex, rowTeamId);
+    
+    if (details.years) {
+      bullets.push(`• ${details.label} (${details.years})`);
+    } else if (details.value !== undefined) {
+      bullets.push(`• ${details.label}: ${details.value}`);
     } else {
-      feedback.push(`Did not achieve: ${achievementLabel}`);
+      bullets.push(`• ${details.label}`);
     }
-  } else {
-    // Fallback for if col is a team (shouldn't happen based on grid structure, but for safety)
-    feedback.push(`Col: ${getConstraintLabel(colConstraint, teams, allAchievements)}`);
   }
 
-  return feedback;
+  return bullets;
+}
+
+// Helper function to get team year range from stats
+function getTeamYearRange(player: Player, teamId: number): string {
+  if (!player.stats) return '';
+  
+  const seasons = player.stats
+    .filter(s => s.tid === teamId && !s.playoffs && (s.gp || 0) > 0)
+    .map(s => s.season)
+    .sort((a, b) => a - b);
+  
+  if (seasons.length === 0) return '';
+  if (seasons.length === 1) return seasons[0].toString();
+  
+  return `${seasons[0]}–${seasons[seasons.length - 1]}`;
+}
+
+// Helper to get achievement details formatted for bullet points
+function getAchievementDetailsForBullets(
+  player: Player,
+  achievementId: string,
+  teams: Team[],
+  sport: "basketball" | "football" | "hockey" | "baseball" | undefined,
+  allAchievements: Achievement[],
+  seasonIndex?: SeasonIndex,
+  rowTeamId?: number
+): { label: string; years?: string; value?: string | number; count?: number } {
+  const parsedCustom = parseCustomAchievementId(achievementId);
+  const baseAchievementId = parsedCustom ? parsedCustom.baseId : achievementId;
+
+  // Get the label from the achievement or constraint
+  const achievement = allAchievements.find((a) => a.id === baseAchievementId);
+  let label = achievement?.label || achievementId;
+
+  // Parse the label for custom achievements
+  if (parsedCustom) {
+    const parsedLabel = parseAchievementLabel(label, sport);
+    if (parsedLabel.isEditable) {
+      label = generateUpdatedLabel(parsedLabel, parsedCustom.threshold, parsedCustom.operator);
+    }
+  }
+
+  // Determine if this is a career achievement
+  const CAREER_ACHIEVEMENTS = [
+    "isHallOfFamer",
+    "isPick1Overall",
+    "isFirstRoundPick",
+    "isSecondRoundPick",
+    "isUndrafted",
+    "draftedTeen",
+    "bornOutsideUS50DC",
+    "played15PlusSeasons",
+    "played5PlusFranchises",
+    "playedInThreeDecades",
+    "royLaterMVP",
+  ];
+
+  const isCareerAchievement =
+    CAREER_ACHIEVEMENTS.includes(baseAchievementId) ||
+    baseAchievementId.startsWith("career") ||
+    (baseAchievementId.includes("playedIn") && baseAchievementId.endsWith("s")) ||
+    (baseAchievementId.includes("debutedIn") && baseAchievementId.endsWith("s"));
+
+  // Handle career counting stat achievements - just show the total amount
+  if (baseAchievementId.startsWith("career") && 
+      (baseAchievementId.includes("Points") || baseAchievementId.includes("Rebounds") || 
+       baseAchievementId.includes("Assists") || baseAchievementId.includes("Steals") || 
+       baseAchievementId.includes("Blocks") || baseAchievementId.includes("Threes") ||
+       baseAchievementId.includes("PassTDs") || baseAchievementId.includes("RushYds") ||
+       baseAchievementId.includes("Hits") || baseAchievementId.includes("HRs") ||
+       baseAchievementId.includes("Goals") || baseAchievementId.includes("Wins"))) {
+    
+    const achievementDetails = getAchievementDetails(player, achievementId, teams, sport, allAchievements);
+    if (achievementDetails?.value) {
+      return { label, value: achievementDetails.value };
+    }
+  }
+
+  // Handle season-specific achievements and awards
+  if (baseAchievementId.startsWith("Season") || baseAchievementId.startsWith("FBSeason") || 
+      baseAchievementId.startsWith("HKSeason") || baseAchievementId.startsWith("BBSeason")) {
+    
+    // Get the seasons where player achieved this stat
+    const qualifyingSeasons = getSeasonsForSeasonStatAchievement(
+      player,
+      baseAchievementId as any,
+      parsedCustom?.threshold,
+      parsedCustom?.operator,
+      1
+    );
+
+    // If there's a team requirement, filter to only years with that team
+    if (rowTeamId !== undefined) {
+      const teamSeasons = new Set(
+        player.stats
+          ?.filter(s => s.tid === rowTeamId && !s.playoffs && (s.gp || 0) > 0)
+          .map(s => s.season.toString()) || []
+      );
+      
+      const seasonsWithTeam = qualifyingSeasons.filter(season => teamSeasons.has(season));
+      
+      if (seasonsWithTeam.length > 0) {
+        const team = teams.find(t => t.tid === rowTeamId);
+        const teamName = team ? team.name : `Team ${rowTeamId}`;
+        const yearStr = formatBulletSeasonList(seasonsWithTeam, false);
+        
+        // Remove "(Season)" from label for cleaner display
+        const cleanLabel = label.replace(/\s*\(Season\)/gi, '').trim();
+        return { label: cleanLabel, years: `${yearStr} with the ${teamName}` };
+      }
+    } else {
+      // No team requirement, show all qualifying seasons
+      if (qualifyingSeasons.length > 0) {
+        const yearStr = formatBulletSeasonList(qualifyingSeasons, false);
+        const cleanLabel = label.replace(/\s*\(Season\)/gi, '').trim();
+        return { label: cleanLabel, years: yearStr };
+      }
+    }
+    
+    // No qualifying seasons found
+    const cleanLabel = label.replace(/\s*\(Season\)/gi, '').trim();
+    return { label: cleanLabel };
+  }
+
+  // Handle award-based achievements
+  const awardMap: Record<string, string[]> = {
+    'AllStar': ['All-Star'],
+    'MVP': ['Most Valuable Player'],
+    'DPOY': ['Defensive Player of the Year', 'DPOY'],
+    'ROY': ['Rookie of the Year'],
+    'SMOY': ['Sixth Man of the Year'],
+    'MIP': ['Most Improved Player'],
+    'FinalsMVP': ['Finals MVP'],
+    'SFMVP': ['Conference Finals MVP'],
+    'AllLeagueAny': ['All-League'],
+    'AllDefAny': ['All-Defensive'],
+    'AllRookieAny': ['All-Rookie'],
+    'PointsLeader': ['Points Leader'],
+    'ReboundsLeader': ['Rebounds Leader'],
+    'AssistsLeader': ['Assists Leader'],
+    'StealsLeader': ['Steals Leader'],
+    'BlocksLeader': ['Blocks Leader'],
+    'Champion': ['Won Championship', 'Championship'],
+    'FBAllStar': ['All-Star'],
+    'FBMVP': ['MVP'],
+    'FBDPOY': ['Defensive Player of the Year'],
+    'FBOffROY': ['Offensive Rookie of the Year'],
+    'FBDefROY': ['Defensive Rookie of the Year'],
+    'FBAllRookie': ['All-Rookie Team'],
+    'FBAllLeague': ['All-League Team'],
+    'FBFinalsMVP': ['Finals MVP'],
+    'FBChampion': ['Won Championship'],
+    'HKAllStar': ['All-Star'],
+    'HKMVP': ['MVP'],
+    'HKROY': ['Rookie of the Year'],
+    'HKAllRookie': ['All-Rookie Team'],
+    'HKAllLeague': ['All-League Team'],
+    'HKPlayoffsMVP': ['Playoffs MVP'],
+    'HKChampion': ['Won Championship'],
+    'HKFinalsMVP': ['Finals MVP'],
+    'BBAllStar': ['All-Star'],
+    'BBMVP': ['MVP'],
+    'BBROY': ['Rookie of the Year'],
+    'BBAllRookie': ['All-Rookie Team'],
+    'BBAllLeague': ['All-League Team'],
+    'BBPlayoffsMVP': ['Playoffs MVP'],
+    'BBChampion': ['Won Championship'],
+  };
+
+  const awardTypesToLookFor = awardMap[baseAchievementId];
+  if (awardTypesToLookFor && player.awards) {
+    const matchingAwards = player.awards.filter(award => 
+      awardTypesToLookFor.some(type => award.type.includes(type))
+    );
+
+    if (matchingAwards.length > 0) {
+      // If there's a team requirement, filter to only awards with that team
+      if (rowTeamId !== undefined && player.stats) {
+        // Match awards with player's team at that season
+        const awardsWithTeam = matchingAwards.filter(award => {
+          const seasonStats = player.stats?.find(s => s.season === award.season && !s.playoffs && s.tid === rowTeamId);
+          return seasonStats !== undefined;
+        });
+        
+        if (awardsWithTeam.length > 0) {
+          const seasons = [...new Set(awardsWithTeam.map(a => a.season))].sort((a, b) => a - b);
+          const yearStr = formatBulletSeasonList(seasons.map(String), false);
+          const team = teams.find(t => t.tid === rowTeamId);
+          const teamName = team ? team.name : `Team ${rowTeamId}`;
+          
+          // Format as "#x Award (years with the Team)"
+          const count = awardsWithTeam.length;
+          const countPrefix = count > 1 ? `${count}x ` : '';
+          return { label: `${countPrefix}${label}`, years: `${yearStr} with the ${teamName}`, count };
+        }
+      } else {
+        // No team requirement, show all awards
+        const seasons = [...new Set(matchingAwards.map(a => a.season))].sort((a, b) => a - b);
+        const yearStr = formatBulletSeasonList(seasons.map(String), false);
+        
+        // Format as "#x Award (years)"
+        const count = matchingAwards.length;
+        const countPrefix = count > 1 ? `${count}x ` : '';
+        return { label: `${countPrefix}${label}`, years: yearStr, count };
+      }
+    }
+  }
+
+  // Default: just return the label
+  return { label };
 }
 
 

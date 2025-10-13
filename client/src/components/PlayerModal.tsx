@@ -325,14 +325,13 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                 </div>
               )}
 
-              {modalData && modalData.type === 'wrong' && (
-                <div className="mt-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
-                    <span className="text-sm text-red-700 dark:text-red-300 leading-5">
-                      {modalData.feedbackMessage}
-                    </span>
-                  </div>
+              {modalData && modalData.type === 'wrong' && modalData.feedbackMessage && modalData.feedbackMessage.length > 0 && (
+                <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                  {modalData.feedbackMessage.map((bullet, index) => (
+                    <div key={index} className="flex items-start gap-2">
+                      <span className="leading-5">{bullet}</span>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
