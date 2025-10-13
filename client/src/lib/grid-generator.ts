@@ -957,6 +957,7 @@ function generateGridSeeded(leagueData: LeagueData): {
         
         // Apply decade skewing for decade achievements
         const isDecadeAchievement = ach.id.includes('playedIn') || ach.id.includes('debutedIn');
+        const isCustomStat = ach.id.includes('custom_');
         
         if (isDecadeAchievement) {
           const decadeMatch = ach.id.match(/(\d{4})s/);
@@ -972,6 +973,9 @@ function generateGridSeeded(leagueData: LeagueData): {
               weight = 1.5 - ((yearsDiff - 20) / 40); // Moderate for 20-40 years ago
             }
           }
+        } else if (isCustomStat) {
+          // Give custom stat achievements high weight to ensure they appear frequently
+          weight = 3;
         }
         
         // Create weighted array (duplicate items based on weight)
@@ -1054,6 +1058,7 @@ function generateGridSeeded(leagueData: LeagueData): {
     
     // Apply decade skewing for decade achievements
     const isDecadeAchievement = ach.id.includes('playedIn') || ach.id.includes('debutedIn');
+    const isCustomStat = ach.id.includes('custom_');
     
     if (isDecadeAchievement) {
       const decadeMatch = ach.id.match(/(\d{4})s/);
@@ -1069,6 +1074,9 @@ function generateGridSeeded(leagueData: LeagueData): {
           weight = 1.5 - ((yearsDiff - 20) / 40); // Moderate for 20-40 years ago
         }
       }
+    } else if (isCustomStat) {
+      // Give custom stat achievements high weight to ensure they appear frequently
+      weight = 3;
     }
     
     // Create weighted array (duplicate items based on weight)

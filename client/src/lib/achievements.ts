@@ -2514,17 +2514,10 @@ export function generateCustomStatAchievements(
   const customAchievements: Achievement[] = [];
   const allAchievements = getAllAchievements(sport, seasonIndex, leagueYears);
   
-  // Define stat achievements that can be customized (career and season stats)
-  const statAchievements = allAchievements.filter(a => 
-    a.id.startsWith('career') || 
-    a.id.includes('Season') && (
-      a.id.includes('Points') || a.id.includes('PPG') || a.id.includes('Rebounds') ||
-      a.id.includes('Assists') || a.id.includes('Blocks') || a.id.includes('Steals') ||
-      a.id.includes('Pass') || a.id.includes('Rush') || a.id.includes('Rec') ||
-      a.id.includes('Goals') || a.id.includes('Wins') || a.id.includes('Saves') ||
-      a.id.includes('Hits') || a.id.includes('HR') || a.id.includes('RBI')
-    )
-  );
+  // Define stat achievements that can be customized (CAREER ONLY for now)
+  const statAchievements = allAchievements.filter(a => a.id.startsWith('career'));
+  
+  console.log(`🎯 [CUSTOM STATS] Found ${statAchievements.length} career stat achievements to customize for ${sport}`);
   
   for (const achievement of statAchievements) {
     const parsed = parseAchievementLabel(achievement.label, sport);
@@ -2542,6 +2535,7 @@ export function generateCustomStatAchievements(
       // Add if it has 3-15 qualifying players (viable range)
       if (gteCount >= 3 && gteCount <= 15) {
         customAchievements.push(gteCustom);
+        console.log(`✅ Added custom: ${gteCustom.label} (${gteCount} players)`);
       }
       
       // Try <= operator (for "role player" challenges)
@@ -2551,10 +2545,12 @@ export function generateCustomStatAchievements(
       // Add if it has 3-15 qualifying players
       if (lteCount >= 3 && lteCount <= 15) {
         customAchievements.push(lteCustom);
+        console.log(`✅ Added custom: ${lteCustom.label} (${lteCount} players)`);
       }
     }
   }
   
+  console.log(`🎯 [CUSTOM STATS] Generated ${customAchievements.length} total custom achievements`);
   return customAchievements;
 }
 
