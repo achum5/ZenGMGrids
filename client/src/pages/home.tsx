@@ -17,16 +17,19 @@ import basketballIcon from '@/assets/basketball.png';
 import footballIcon from '@/assets/football.png';
 import hockeyIcon from '@/assets/hockey.png';
 import baseballIcon from '@/assets/baseball.png';
-import { parseLeagueFile, parseLeagueUrl, buildSearchIndex } from '@/lib/bbgm-parser';
+import { parseLeagueFile, parseLeagueUrl } from '@/lib/bbgm-parser';
 import { generateTeamsGrid, cellKey } from '@/lib/grid-generator';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
 import { calculateCustomCellIntersection, headerConfigToCatTeam, getCustomCellEligiblePlayersAsync } from '@/lib/custom-grid-utils';
 import { calculateOptimizedIntersection, type IntersectionConstraint, clearIntersectionCachesForPlayers } from '@/lib/intersection-cache';
 import { getSeasonEligiblePlayers, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
-import { debugIndividualAchievements, playerMeetsAchievement, setCachedLeagueYears } from '@/lib/achievements';
+import { playerMeetsAchievement } from '@/lib/achievements';
 import { clearHintCache } from '@/lib/hint-generation';
 import { useToast } from '@/lib/hooks/use-toast';
 import type { LeagueData, CatTeam, CellState, Player, SearchablePlayer } from '@/types/bbgm';
+
+// Import the new Web Worker
+import ProcessLeagueWorker from '../workers/decompress.worker.ts?worker';
 
 // Helper functions for attempt tracking
 function getAttemptCount(gridId: string): number {
@@ -127,6 +130,71 @@ export default function Home() {
   // Reshuffle count tracking per cell
   const [reshuffleCounts, setReshuffleCounts] = useState<Record<string, number>>({});
 
+  // Initialize the Web Worker
+  const processWorker = new ProcessLeagueWorker();
+
+  // Effect to handle messages from the worker
+  useEffect(() => {
+    processWorker.onmessage = (event: MessageEvent<any>) => {
+      const { success, error, leagueData, rows, cols, intersections, byName, byPid, searchablePlayers, teamsByTid } = event.data;
+
+      if (success) {
+        setLeagueData(leagueData);
+        setRows(rows);
+        setCols(cols);
+        setIntersections(intersections);
+        setByName(byName);
+        setByPid(byPid);
+        setSearchablePlayers(searchablePlayers);
+        setTeamsByTid(teamsByTid);
+        setCells({}); // Reset cells for new grid
+        setUsedPids(new Set()); // Reset used players
+        setRankCache({}); // Reset cached rankings
+        setGiveUpPressed(false); // Reset Give Up state
+        clearHintCache(); // Clear hint cache for new grid
+        setReshuffleCounts({}); // Reset reshuffle counts for new grid
+
+        // Initialize grid tracking
+        const gridId = `${rows.map((r: CatTeam) => r.key).join('-')}_${cols.map((c: CatTeam) => c.key).join('-')}`;
+        setCurrentGridId(gridId);
+        setAttemptCount(getAttemptCount(gridId)); // Load attempt count from localStorage
+        
+        // Force close any open dropdowns/modals on mobile after file upload
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+          document.body.click();
+          if (document.activeElement && document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur();
+          }
+        }
+
+      } else {
+        console.error('Error processing league data in worker:', error);
+        toast({
+          title: 'Error processing league data',
+          description: error,
+          variant: 'destructive',
+        });
+      }
+      setIsProcessing(false);
+    };
+
+    processWorker.onerror = (error) => {
+      console.error('Web Worker error:', error);
+      toast({
+        title: 'Web Worker Error',
+        description: 'An unexpected error occurred during data processing.',
+        variant: 'destructive',
+      });
+      setIsProcessing(false);
+    };
+
+    return () => {
+      processWorker.onmessage = null;
+      processWorker.onerror = null;
+    };
+  }, [toast]);
+
+
   // Handle hint mode toggle
   const handleHintModeChange = useCallback((enabled: boolean) => {
     setHintMode(enabled);
@@ -165,7 +233,8 @@ export default function Home() {
       const [rowKey, colKey] = cellKey.split('|');
       rowConstraint = rows.find(r => r.key === rowKey);
       colConstraint = cols.find(c => c.key === colKey);
-    } else {
+    }
+    else {
       // Position-based format: "rowIndex-colIndex"
       const [rowIndexStr, colIndexStr] = cellKey.split('-');
       const rowIndex = parseInt(rowIndexStr, 10);
@@ -182,13 +251,15 @@ export default function Home() {
         // Direct test function evaluation (same as eligible players list)
         isCorrect = rowConstraint.test(player) && colConstraint.test(player);
     
-      } else {
+      }
+      else {
         // Use pre-calculated intersections for regular achievements
         const eligiblePids = intersections[cellKey] || [];
         isCorrect = eligiblePids.includes(player.pid);
     
       }
-    } else {
+    }
+    else {
       // Fallback to pre-calculated intersections if constraints not found
       const eligiblePids = intersections[cellKey] || [];
       isCorrect = eligiblePids.includes(player.pid);
@@ -208,7 +279,8 @@ export default function Home() {
         eligiblePlayers = leagueData.players.filter(player => 
           rowConstraint.test(player) && colConstraint.test(player)
         );
-      } else {
+      }
+      else {
         // Use pre-calculated intersections for regular achievements
         const eligiblePids = intersections[cellKey] || [];
         eligiblePlayers = leagueData.players.filter(p => eligiblePids.includes(p.pid));
@@ -330,7 +402,8 @@ export default function Home() {
 
   // Helper function to build and cache player rankings for a cell
   const buildRankCacheForCell = useCallback((cellKey: string): Array<{player: Player, rarity: number}> => {
-    if (!leagueData || !rows.length || !cols.length) return [];
+    if (!leagueData) return [];
+    if (!rows.length || !cols.length) return [];
     
 
     
@@ -343,7 +416,8 @@ export default function Home() {
       const [rowKey, colKey] = cellKey.split('|');
       rowConstraint = rows.find(r => r.key === rowKey);
       colConstraint = cols.find(c => c.key === colKey);
-    } else {
+    }
+    else {
       // Position-based format: "rowIndex-colIndex"
       const [rowIndexStr, colIndexStr] = cellKey.split('-');
       const rowIndex = parseInt(rowIndexStr, 10);
@@ -364,7 +438,8 @@ export default function Home() {
         .map(pid => byPid[pid])
         .filter(player => player);
   
-    } else {
+    }
+    else {
   
       
       // Use EXACT SAME LOGIC as eligible players list in handleCellClick
@@ -376,7 +451,8 @@ export default function Home() {
           rowConstraint.test(player) && colConstraint.test(player)
         );
     
-      } else {
+      }
+      else {
         // Use optimized intersection calculation for regular achievements
         const rowIntersectionConstraint: IntersectionConstraint = {
           type: rowConstraint.type,
@@ -443,10 +519,8 @@ export default function Home() {
     setIsProcessing(true);
     
     try {
-      // Parse the league file
       const data = await parseLeagueFile(file);
-      await processLeagueData(data);
-      
+      processWorker.postMessage({ type: 'processLeagueData', data });
     } catch (error) {
       console.error('Error processing file:', error);
       toast({
@@ -454,7 +528,6 @@ export default function Home() {
         description: error instanceof Error ? error.message : 'Unknown error occurred',
         variant: 'destructive',
       });
-    } finally {
       setIsProcessing(false);
     }
   }, [toast]);
@@ -463,10 +536,8 @@ export default function Home() {
     setIsProcessing(true);
     
     try {
-      // Parse the league URL
       const data = await parseLeagueUrl(url);
-      await processLeagueData(data);
-      
+      processWorker.postMessage({ type: 'processLeagueData', data });
     } catch (error) {
       console.error('Error processing URL:', error);
       toast({
@@ -474,7 +545,6 @@ export default function Home() {
         description: error instanceof Error ? error.message : 'Unknown error occurred',
         variant: 'destructive',
       });
-    } finally {
       setIsProcessing(false);
     }
   }, [toast]);
@@ -588,68 +658,17 @@ export default function Home() {
     try {
   
       const data = createTestData();
-      await processLeagueData(data);
+      processWorker.postMessage({ type: 'processLeagueData', data });
     } catch (error) {
       console.error('Test data creation failed:', error);
+      toast({
+        title: 'Error loading test data',
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        variant: 'destructive',
+      });
+      setIsProcessing(false);
     }
   }, [createTestData]);
-
-  const processLeagueData = useCallback(async (data: LeagueData) => {
-    // Clear caches for the new player dataset
-    clearIntersectionCachesForPlayers(data.players);
-    
-    setLeagueData(data);
-    if (data.leagueYears) {
-      setCachedLeagueYears(data.leagueYears);
-    }
-    
-    // Force close any open dropdowns/modals on mobile after file upload
-    if (typeof window !== 'undefined' && window.innerWidth < 768) {
-      // Close any open dialogs or dropdowns by clicking outside
-      document.body.click();
-      // Remove focus from any elements that might be capturing events
-      if (document.activeElement && document.activeElement instanceof HTMLElement) {
-        document.activeElement.blur();
-      }
-      // Force a brief delay to let any modal states resolve
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    
-    // Build search indices
-    const indices = buildSearchIndex(data.players, data.teams);
-    setByName(indices.byName);
-    setByPid(indices.byPid);
-    setSearchablePlayers(indices.searchablePlayers);
-    setTeamsByTid(indices.teamsByTid);
-    
-    // Direct intersection test (bypass grid generation)
-
-    
-    // Test each achievement individually
-
-    
-    // Debug individual achievements first to understand the data
-
-    debugIndividualAchievements(data.players, data.seasonIndex);
-    
-    // Generate initial grid
-    const gridResult = generateTeamsGrid(data);
-    setRows(gridResult.rows);
-    setCols(gridResult.cols);
-    setIntersections(gridResult.intersections);
-    setCells({});
-    
-    // Initialize grid tracking
-    const gridId = `${gridResult.rows.map(r => r.key).join('-')}_${gridResult.cols.map(c => c.key).join('-')}`;
-    setCurrentGridId(gridId);
-    
-    // Load attempt count from localStorage
-    const storedAttemptCount = getAttemptCount(gridId);
-    setAttemptCount(storedAttemptCount);
-    // Success toast removed - was blocking mobile interactions
-    setGiveUpPressed(false); // Ensure Give Up state is reset on new file load
-  }, [toast]);
-  
 
   const handleGenerateNewGrid = useCallback(() => {
     if (!leagueData) return;
@@ -769,7 +788,8 @@ export default function Home() {
           const [rowKey, colKey] = positionalKey.split('|');
           rowConstraint = rows.find(r => r.key === rowKey);
           colConstraint = cols.find(c => c.key === colKey);
-        } else {
+        }
+        else {
           // Position-based format: "rowIndex-colIndex"
           const [rowIndexStr, colIndexStr] = positionalKey.split('-');
           const rowIndex = parseInt(rowIndexStr, 10);
@@ -821,7 +841,8 @@ export default function Home() {
             } finally {
               setIsLoadingCustomIntersection(false);
             }
-          } else {
+          }
+          else {
             // Convert CatTeam constraints to IntersectionConstraint format
             const rowIntersectionConstraint: IntersectionConstraint = {
               type: rowConstraint.type,
@@ -926,7 +947,8 @@ export default function Home() {
           } finally {
             setIsLoadingCustomIntersection(false);
           }
-        } else {
+        }
+        else {
           // Use optimized intersection calculation for regular achievements
           const rowIntersectionConstraint: IntersectionConstraint = {
             type: rowConstraint.type,
@@ -975,7 +997,8 @@ export default function Home() {
         setHintColConstraint(colConstraint);
         setHintModalOpen(true);
       }
-    } else {
+    }
+    else {
       // Open search modal (existing behavior)
       setCurrentCellKey(positionalKey);
       setSearchModalOpen(true);
@@ -994,7 +1017,8 @@ export default function Home() {
       const [rowKey, colKey] = currentCellKey.split('|');
       row = rows.find(r => r.key === rowKey);
       col = cols.find(c => c.key === colKey);
-    } else {
+    }
+    else {
       // Position-based format: "rowIndex-colIndex"
       const [rowIndexStr, colIndexStr] = currentCellKey.split('-');
       const rowIndex = parseInt(rowIndexStr, 10);
@@ -1080,7 +1104,8 @@ export default function Home() {
           const [rowKey, colKey] = positionalKey.split('|');
           rowConstraint = rows.find(r => r.key === rowKey);
           colConstraint = cols.find(c => c.key === colKey);
-        } else {
+        }
+        else {
           const [rowIndexStr, colIndexStr] = positionalKey.split('-');
           const rowIndex = parseInt(rowIndexStr, 10);
           const colIndex = parseInt(colIndexStr, 10);
@@ -1098,7 +1123,8 @@ export default function Home() {
               rowConstraint!.test(player) && colConstraint!.test(player)
             );
         
-          } else {
+          }
+          else {
             // Convert CatTeam constraints to IntersectionConstraint format
             const rowIntersectionConstraint: IntersectionConstraint = {
               type: rowConstraint.type,
@@ -1185,7 +1211,8 @@ export default function Home() {
           guessed: false,
         };
     
-      } else {
+      }
+      else {
         // Use the first available player from eligible list (natural order)
         newCells[positionalKey] = {
           name: selectedPlayer.name,

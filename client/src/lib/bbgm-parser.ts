@@ -4,6 +4,12 @@ import { calculatePlayerAchievements, clearSeasonLengthCache, calculateLeagueLea
 import { type SeasonIndex } from './season-achievements';
 import { getCachedSeasonIndex } from './season-index-cache';
 
+// Import the Web Worker
+import DecompressWorker from '../workers/decompress.worker?worker';
+
+// Create a single worker instance to reuse
+const decompressWorker = new DecompressWorker();
+
 export type Sport = 'basketball' | 'football' | 'hockey' | 'baseball';
 
 // Sport detection based on league data characteristics
@@ -106,6 +112,24 @@ export async function parseLeagueFile(file: File): Promise<LeagueData & { sport:
   try {
     let content: string;
     
+    if (file.name.endsWith('.gz')) {
+      console.log(`🔧 [FILE UPLOAD] Processing .gz file`);
+      // Handle .gz files
+      const arrayBuffer = await file.arrayBuffer();
+      const compressed = new Uint8Array(arrayBuffer);
+      
+      console.log(`🔧 [FILE UPLOAD] Compressed data length: ${compressed.length}`);
+      if (compressed.length > 0) {
+        // Log first 16 bytes in hex for inspection
+        const hexSnippet = Array.from(compressed.slice(0, Math.min(compressed.length, 16)))
+          .map(b => b.toString(16).padStart(2, '0'))
+          .join(' ');
+        console.log(`🔧 [FILE UPLOAD] Compressed data snippet (first 16 bytes): ${hexSnippet}`);
+      } else {
+        console.log(`🔧 [FILE UPLOAD] Compressed data is empty.`);
+        throw new Error('Compressed data is empty.');
+      }
+
       // Use Web Worker for decompression
       const decompressedBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
         const handleWorkerMessage = (event: MessageEvent) => {
@@ -290,6 +314,129 @@ export async function parseLeagueUrl(url: string): Promise<LeagueData> {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     throw new Error(`Failed to load league data: ${errorMessage}`);
   }
+}
+
+async function streamParseLeagueData(buffer: ArrayBuffer): Promise<LeagueData & { sport: Sport }> {
+  const uint8Array = new Uint8Array(buffer);
+  const decoder = new TextDecoder('utf-8');
+
+  const playersKeyBytes = new TextEncoder().encode('"players":');
+  
+  let playersKeyIndex = -1;
+  // Search for "players": byte sequence
+  for (let i = 0; i < uint8Array.length - playersKeyBytes.length; i++) {
+    let match = true;
+    for (let j = 0; j < playersKeyBytes.length; j++) {
+      if (uint8Array[i + j] !== playersKeyBytes[j]) {
+        match = false;
+        break;
+      }
+    }
+    if (match) {
+      playersKeyIndex = i;
+      break;
+    }
+  }
+
+  if (playersKeyIndex === -1) {
+    // If no "players" key, parse as normal JSON (assuming it's small enough)
+    const text = decoder.decode(uint8Array);
+    const rawData = JSON.parse(text);
+    return normalizeLeague(rawData);
+  }
+
+  let arrayStart = -1;
+  let openBrackets = 0;
+  let inString = false;
+  let escapeNext = false;
+
+  // Find the actual start of the players array content (after "players": [)
+  for (let i = playersKeyIndex + playersKeyBytes.length; i < uint8Array.length; i++) {
+    const char = uint8Array[i];
+    if (char === 0x5B) { // ASCII for '['
+      arrayStart = i;
+      break;
+    }
+  }
+
+  if (arrayStart === -1) {
+    throw new Error('Could not find start of players array content.');
+  }
+
+  let arrayEnd = -1;
+  openBrackets = 0; // Reset for finding the closing bracket of the players array
+  inString = false;
+  escapeNext = false;
+
+  // Find the matching closing bracket for the players array
+  for (let i = arrayStart + 1; i < uint8Array.length; i++) {
+    const char = uint8Array[i];
+
+    if (escapeNext) {
+      escapeNext = false;
+    } else if (char === 0x5C) { // ASCII for '\\'
+      escapeNext = true;
+    } else if (char === 0x22) { // ASCII for '"'
+      inString = !inString;
+    } else if (!inString) {
+      if (char === 0x5B) { // ASCII for '['
+        openBrackets++;
+      } else if (char === 0x5D) { // ASCII for ']'
+        if (openBrackets === 0) {
+          arrayEnd = i;
+          break;
+        }
+        openBrackets--;
+      }
+    }
+  }
+
+  if (arrayEnd === -1) {
+    throw new Error('Could not find end of players array content.');
+  }
+
+  // Extract parts of the JSON as Uint8Array
+  const prePlayersBuffer = uint8Array.slice(0, arrayStart);
+  const postPlayersBuffer = uint8Array.slice(arrayEnd + 1);
+  const playersContentBuffer = uint8Array.slice(arrayStart + 1, arrayEnd); // Content between [ and ]
+
+  // Parse non-player data first by replacing the players array with an empty one
+  const baseJsonString = `${decoder.decode(prePlayersBuffer)}[]${decoder.decode(postPlayersBuffer)}`;
+  const rawData: any = JSON.parse(baseJsonString);
+
+  // Now, parse players one by one from playersContentBuffer
+  const players: Player[] = [];
+  let playerStartIndex = 0;
+  openBrackets = 0; // Reset for parsing individual player objects
+  inString = false;
+  escapeNext = false;
+
+  for (let i = 0; i < playersContentBuffer.length; i++) {
+    const char = playersContentBuffer[i];
+
+    if (escapeNext) {
+      escapeNext = false;
+    } else if (char === 0x5C) { // ASCII for '\\'
+      escapeNext = true;
+    } else if (char === 0x22) { // ASCII for '"'
+      inString = !inString;
+    } else if (!inString) {
+      if (char === 0x7B) { // ASCII for '{'
+        openBrackets++;
+      } else if (char === 0x7D) { // ASCII for '}'
+        openBrackets--;
+        if (openBrackets === 0) {
+          // Found a complete player object
+          const playerJsonBuffer = playersContentBuffer.slice(playerStartIndex, i + 1);
+          players.push(JSON.parse(decoder.decode(playerJsonBuffer)));
+          playerStartIndex = i + 2; // Move past '},' or '}'
+        }
+      }
+    }
+  }
+
+  rawData.players = players;
+  return normalizeLeague(rawData);
 }
 
 function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
