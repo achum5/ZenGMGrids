@@ -1445,37 +1445,33 @@ function validateAchievementIntersection(
 
 // Helper function to calculate intersection between two constraints (optimized version)
 function calculateIntersectionSimple(
-  rowConstraint: any,
-  colConstraint: any,
+  rowConstraint: CatTeam,
+  colConstraint: CatTeam,
   players: Player[],
   seasonIndex?: SeasonIndex,
   teams?: Team[]
 ): Player[] {
-  // Use optimized intersection calculation
-  const rowIntersectionConstraint: IntersectionConstraint = {
-    type: rowConstraint.type,
-    id: rowConstraint.type === 'team' ? rowConstraint.tid : rowConstraint.achievementId,
-    label: rowConstraint.label
-  };
-  
-  const colIntersectionConstraint: IntersectionConstraint = {
-    type: colConstraint.type,
-    id: colConstraint.type === 'team' ? colConstraint.tid : colConstraint.achievementId,
-    label: colConstraint.label
-  };
-  
-  // Get the Set of eligible player IDs
-  const eligiblePids = calculateOptimizedIntersection(
-    rowIntersectionConstraint,
-    colIntersectionConstraint,
-    players,
-    teams || [], // Use teams parameter if available
-    seasonIndex,
-    false // Return Set, not count
-  ) as Set<number>;
-  
-  // Convert Set to Player array
-  return players.filter(p => eligiblePids.has(p.pid));
+  return players.filter(p => {
+    let meetsRow = false;
+    if (rowConstraint.type === 'team') {
+        meetsRow = p.stats?.some(s => s.tid === rowConstraint.tid && !s.playoffs && (s.gp || 0) > 0) || false;
+    } else if (rowConstraint.type === 'achievement') {
+        const teamId = colConstraint.type === 'team' ? colConstraint.tid : undefined;
+        meetsRow = playerMeetsAchievement(p, rowConstraint.achievementId!, seasonIndex, '>=', teamId);
+    }
+
+    if (!meetsRow) return false;
+
+    let meetsCol = false;
+    if (colConstraint.type === 'team') {
+        meetsCol = p.stats?.some(s => s.tid === colConstraint.tid && !s.playoffs && (s.gp || 0) > 0) || false;
+    } else if (colConstraint.type === 'achievement') {
+        const teamId = rowConstraint.type === 'team' ? rowConstraint.tid : undefined;
+        meetsCol = playerMeetsAchievement(p, colConstraint.achievementId!, seasonIndex, '>=', teamId);
+    }
+
+    return meetsCol;
+  });
 }
 
 // Build opposite axis to ensure seed has 3/3 coverage (simplified implementation)
