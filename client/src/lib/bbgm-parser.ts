@@ -4,6 +4,12 @@ import { calculatePlayerAchievements, clearSeasonLengthCache, calculateLeagueLea
 import { type SeasonIndex } from './season-achievements';
 import { getCachedSeasonIndex } from './season-index-cache';
 
+// Import the Web Worker
+import DecompressWorker from '../workers/decompress.worker?worker';
+
+// Create a single worker instance to reuse
+const decompressWorker = new DecompressWorker();
+
 export type Sport = 'basketball' | 'football' | 'hockey' | 'baseball';
 
 // Sport detection based on league data characteristics
@@ -121,29 +127,37 @@ export async function parseLeagueFile(file: File): Promise<LeagueData & { sport:
         console.log(`🔧 [FILE UPLOAD] Compressed data snippet (first 16 bytes): ${hexSnippet}`);
       } else {
         console.log(`🔧 [FILE UPLOAD] Compressed data is empty.`);
+        throw new Error('Compressed data is empty.');
       }
 
-      try {
-        const decompressed = pako.inflate(compressed, { to: 'string' });
-        content = decompressed;
-        console.log(`🔧 [FILE UPLOAD] Successfully decompressed .gz file (${content.length} chars)`);
-      } catch (inflateError1) {
-        console.error('Pako inflation error (attempt 1):', inflateError1);
-        console.log(`🔧 [FILE UPLOAD] Trying decompression with fallback method...`);
-        try {
-          const decompressedBytes = pako.inflate(compressed);
-          try {
-            content = new TextDecoder('utf-8').decode(decompressedBytes);
-            console.log(`🔧 [FILE UPLOAD] Decompressed with fallback method (${content.length} chars)`);
-          } catch (decodeError) {
-            console.error('TextDecoder error after fallback decompression:', decodeError);
-            throw new Error('Failed to decode decompressed data. The file might be corrupted or use an unsupported encoding.');
+      // Use Web Worker for decompression
+      const decompressedBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+        const handleWorkerMessage = (event: MessageEvent) => {
+          decompressWorker.removeEventListener('message', handleWorkerMessage);
+          decompressWorker.removeEventListener('error', handleWorkerError);
+          if (event.data.success) {
+            resolve(event.data.decompressedBuffer);
+          } else {
+            reject(new Error(event.data.error));
           }
-        } catch (inflateError2) {
-          console.error('Pako inflation error (attempt 2, fallback):', inflateError2);
-          throw new Error('Failed to decompress .gz file. It might be corrupted or not a valid gzip archive.');
-        }
-      }
+        };
+
+        const handleWorkerError = (error: ErrorEvent) => {
+          decompressWorker.removeEventListener('message', handleWorkerMessage);
+          decompressWorker.removeEventListener('error', handleWorkerError);
+          reject(new Error(`Web Worker decompression error: ${error.message}`));
+        };
+
+        decompressWorker.addEventListener('message', handleWorkerMessage);
+        decompressWorker.addEventListener('error', handleWorkerError);
+        decompressWorker.postMessage({ fileBuffer: arrayBuffer }, [arrayBuffer]); // Transfer arrayBuffer
+      });
+      console.log(`🔧 [FILE UPLOAD] Successfully decompressed .gz file (ArrayBuffer size: ${decompressedBuffer.byteLength} bytes)`);
+      
+      // Now, stream parse the decompressed ArrayBuffer
+      const result = await streamParseLeagueData(decompressedBuffer);
+      console.log(`🔧 [FILE UPLOAD] File processed successfully as ${result.sport}`);
+      return result;
     } else {
       console.log(`🔧 [FILE UPLOAD] Processing .json file`);
       // Handle .json files
@@ -300,6 +314,129 @@ export async function parseLeagueUrl(url: string): Promise<LeagueData> {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     throw new Error(`Failed to load league data: ${errorMessage}`);
   }
+}
+
+async function streamParseLeagueData(buffer: ArrayBuffer): Promise<LeagueData & { sport: Sport }> {
+  const uint8Array = new Uint8Array(buffer);
+  const decoder = new TextDecoder('utf-8');
+
+  const playersKeyBytes = new TextEncoder().encode('"players":');
+  
+  let playersKeyIndex = -1;
+  // Search for "players": byte sequence
+  for (let i = 0; i < uint8Array.length - playersKeyBytes.length; i++) {
+    let match = true;
+    for (let j = 0; j < playersKeyBytes.length; j++) {
+      if (uint8Array[i + j] !== playersKeyBytes[j]) {
+        match = false;
+        break;
+      }
+    }
+    if (match) {
+      playersKeyIndex = i;
+      break;
+    }
+  }
+
+  if (playersKeyIndex === -1) {
+    // If no "players" key, parse as normal JSON (assuming it's small enough)
+    const text = decoder.decode(uint8Array);
+    const rawData = JSON.parse(text);
+    return normalizeLeague(rawData);
+  }
+
+  let arrayStart = -1;
+  let openBrackets = 0;
+  let inString = false;
+  let escapeNext = false;
+
+  // Find the actual start of the players array content (after "players": [)
+  for (let i = playersKeyIndex + playersKeyBytes.length; i < uint8Array.length; i++) {
+    const char = uint8Array[i];
+    if (char === 0x5B) { // ASCII for '['
+      arrayStart = i;
+      break;
+    }
+  }
+
+  if (arrayStart === -1) {
+    throw new Error('Could not find start of players array content.');
+  }
+
+  let arrayEnd = -1;
+  openBrackets = 0; // Reset for finding the closing bracket of the players array
+  inString = false;
+  escapeNext = false;
+
+  // Find the matching closing bracket for the players array
+  for (let i = arrayStart + 1; i < uint8Array.length; i++) {
+    const char = uint8Array[i];
+
+    if (escapeNext) {
+      escapeNext = false;
+    } else if (char === 0x5C) { // ASCII for '\\'
+      escapeNext = true;
+    } else if (char === 0x22) { // ASCII for '"'
+      inString = !inString;
+    } else if (!inString) {
+      if (char === 0x5B) { // ASCII for '['
+        openBrackets++;
+      } else if (char === 0x5D) { // ASCII for ']'
+        if (openBrackets === 0) {
+          arrayEnd = i;
+          break;
+        }
+        openBrackets--;
+      }
+    }
+  }
+
+  if (arrayEnd === -1) {
+    throw new Error('Could not find end of players array content.');
+  }
+
+  // Extract parts of the JSON as Uint8Array
+  const prePlayersBuffer = uint8Array.slice(0, arrayStart);
+  const postPlayersBuffer = uint8Array.slice(arrayEnd + 1);
+  const playersContentBuffer = uint8Array.slice(arrayStart + 1, arrayEnd); // Content between [ and ]
+
+  // Parse non-player data first by replacing the players array with an empty one
+  const baseJsonString = `${decoder.decode(prePlayersBuffer)}[]${decoder.decode(postPlayersBuffer)}`;
+  const rawData: any = JSON.parse(baseJsonString);
+
+  // Now, parse players one by one from playersContentBuffer
+  const players: Player[] = [];
+  let playerStartIndex = 0;
+  openBrackets = 0; // Reset for parsing individual player objects
+  inString = false;
+  escapeNext = false;
+
+  for (let i = 0; i < playersContentBuffer.length; i++) {
+    const char = playersContentBuffer[i];
+
+    if (escapeNext) {
+      escapeNext = false;
+    } else if (char === 0x5C) { // ASCII for '\\'
+      escapeNext = true;
+    } else if (char === 0x22) { // ASCII for '"'
+      inString = !inString;
+    } else if (!inString) {
+      if (char === 0x7B) { // ASCII for '{'
+        openBrackets++;
+      } else if (char === 0x7D) { // ASCII for '}'
+        openBrackets--;
+        if (openBrackets === 0) {
+          // Found a complete player object
+          const playerJsonBuffer = playersContentBuffer.slice(playerStartIndex, i + 1);
+          players.push(JSON.parse(decoder.decode(playerJsonBuffer)));
+          playerStartIndex = i + 2; // Move past '},' or '}'
+        }
+      }
+    }
+  }
+
+  rawData.players = players;
+  return normalizeLeague(rawData);
 }
 
 function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
