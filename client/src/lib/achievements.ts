@@ -78,42 +78,41 @@ export const BASKETBALL_ACHIEVEMENTS: Achievement[] = [
     test: (p: Player) => p.achievements?.isSecondRoundPick || false,
     minPlayers: 5
   },
-  // Career achievements
+  // Career achievements - computed dynamically
   {
     id: 'career20kPoints',
     label: '20,000+ Career Points',
-    test: (p: Player) => p.achievements?.career20kPoints || false,
+    test: (p: Player) => (p.careerStats?.pts || 0) >= 20000,
     minPlayers: 5
   },
-
   {
     id: 'career5kAssists',
     label: '5,000+ Career Assists',
-    test: (p: Player) => p.achievements?.career5kAssists || false,
+    test: (p: Player) => (p.careerStats?.ast || 0) >= 5000,
     minPlayers: 5
   },
   {
     id: 'career2kSteals',
     label: '2,000+ Career Steals',
-    test: (p: Player) => p.achievements?.career2kSteals || false,
+    test: (p: Player) => (p.careerStats?.stl || 0) >= 2000,
     minPlayers: 5
   },
   {
     id: 'career1500Blocks',
     label: '1,500+ Career Blocks',
-    test: (p: Player) => p.achievements?.career1500Blocks || false,
+    test: (p: Player) => (p.careerStats?.blk || 0) >= 1500,
     minPlayers: 5
   },
   {
     id: 'career10kRebounds',
     label: '10,000+ Career Rebounds',
-    test: (p: Player) => p.achievements?.career10kRebounds || false,
+    test: (p: Player) => (p.careerStats?.trb || 0) >= 10000,
     minPlayers: 5
   },
   {
     id: 'career2kThrees',
     label: '2,000+ Career 3PM',
-    test: (p: Player) => p.achievements?.career2kThrees || false,
+    test: (p: Player) => (p.careerStats?.tpm || 0) >= 2000,
     minPlayers: 5
   },
 
