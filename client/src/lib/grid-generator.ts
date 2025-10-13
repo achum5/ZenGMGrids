@@ -858,7 +858,7 @@ function generateGridSeeded(leagueData: LeagueData): {
   const seedConstraint: CatTeam = {
     type: 'achievement',
     achievementId: seedAchievement.id,
-    label: seedAchievement.label || seedAchievement.id,
+    label: seedAchievement.label,
     key: `achievement-${seedAchievement.id}`,
     achv: mapAchievementToAchv(seedAchievement as Achievement),
     test: (p: Player) => playerMeetsAchievement(p, seedAchievement.id, seasonIndex),
@@ -1007,7 +1007,7 @@ function generateGridSeeded(leagueData: LeagueData): {
       oppositeArray[i] = {
         type: 'achievement',
         achievementId: selectedAch.id,
-        label: selectedAch.label || selectedAch.id,
+        label: selectedAch.label,
         key: `achievement-${selectedAch.id}`,
         achv: mapAchievementToAchv(selectedAch as Achievement),
         test: (p: Player) => playerMeetsAchievement(p, selectedAch.id, seasonIndex),
@@ -1180,7 +1180,7 @@ function generateGridSeeded(leagueData: LeagueData): {
             rows[i] = {
               type: 'achievement',
               achievementId: ach.id,
-              label: ach.label || ach.id,
+              label: ach.label,
               key: `achievement-${ach.id}`,
               achv: mapAchievementToAchv(ach),
               test: (p: Player) => playerMeetsAchievement(p, ach.id, seasonIndex),
@@ -1317,7 +1317,7 @@ function generateGridSeeded(leagueData: LeagueData): {
             cols[i] = {
               type: 'achievement',
               achievementId: ach.id,
-              label: ach.label || ach.id,
+              label: ach.label,
               key: `achievement-${ach.id}`,
               achv: mapAchievementToAchv(ach),
               test: (p: Player) => playerMeetsAchievement(p, ach.id, seasonIndex),
@@ -1444,12 +1444,6 @@ function calculateIntersectionSimple(
   seasonIndex?: SeasonIndex,
   teams?: Team[]
 ): Player[] {
-  // Handle null or undefined constraints
-  if (!rowConstraint || !colConstraint) {
-    console.warn('calculateIntersectionSimple called with null/undefined constraint');
-    return [];
-  }
-  
   // Use optimized intersection calculation
   const rowIntersectionConstraint: IntersectionConstraint = {
     type: rowConstraint.type,
@@ -1565,7 +1559,7 @@ function buildOppositeAxisForSeed(
         console.log(`Filled row ${i} with team: ${selectedTeams[teamIndex].label}`);
         teamIndex++;
       } else {
-        throw new Error(`ERROR: No more teams available for row ${i}, teamIndex=${teamIndex}, selectedTeams.length=${selectedTeams.length}`);
+        console.log(`ERROR: No more teams available for row ${i}, teamIndex=${teamIndex}, selectedTeams.length=${selectedTeams.length}`);
       }
     }
   }
@@ -1609,7 +1603,7 @@ function buildOppositeAxisForSeed(
       if (!usedIds.has(ca.id)) {
         return {
           key: `achievement-${ca.id}`,
-          label: ca.label || ca.id,
+          label: ca.label,
           achievementId: ca.id,
           type: 'achievement',
           test: (p: Player) => playerMeetsAchievement(p, ca.id, seasonIndex),
