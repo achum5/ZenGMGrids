@@ -399,19 +399,13 @@ function normalizeLeague(raw: any): LeagueData & { sport: Sport } {
         }))
       ];
 
-      // Calculate teams played (TIDs where GP > 0 in either RS or playoffs)
+      // Calculate teams played (TIDs where GP > 0 in REGULAR SEASON ONLY)
+      // NOTE: We only count regular season games to match constraint checking logic
       const teamsPlayed = new Set<number>();
       
-      // Add teams from regular season
+      // Add teams from regular season only
       regularSeasonStats.forEach((stat: any) => {
-        if (stat.gp > 0) {
-          teamsPlayed.add(stat.tid);
-        }
-      });
-      
-      // Add teams from playoffs
-      playoffStats.forEach((stat: any) => {
-        if (stat.gp > 0) {
+        if ((stat.gp || 0) > 0) {
           teamsPlayed.add(stat.tid);
         }
       });
