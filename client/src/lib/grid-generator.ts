@@ -1,5 +1,5 @@
 import type { LeagueData, CatTeam, Player, Team } from '@/types/bbgm';
-import { getViableAchievements, playerMeetsAchievement, getAllAchievements, type Achievement, debugIndividualAchievements } from '@/lib/achievements';
+import { getViableAchievements, playerMeetsAchievement, getAllAchievements, type Achievement, debugIndividualAchievements, generateCustomStatAchievements } from '@/lib/achievements';
 import { getSeasonEligiblePlayers, type SeasonAchievementId, type SeasonIndex, SEASON_ACHIEVEMENTS } from './season-achievements';
 import { calculateOptimizedIntersection, type IntersectionConstraint } from '@/lib/intersection-cache';
 import { mapAchievementToAchv } from './achv-mappers';
@@ -135,8 +135,14 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
   const minPlayersRequired = sport === 'hockey' ? 3 : 5; // Lower requirement for hockey due to fewer players
   const allAchievements = getViableAchievements(players, minPlayersRequired, sport, seasonIndex, leagueYears);
   
+  // Generate custom stat achievements with different thresholds
+  const customStatAchievements = generateCustomStatAchievements(players, sport, seasonIndex, leagueYears);
+  
+  // Combine viable achievements with custom stat achievements
+  const combinedAchievements = [...allAchievements, ...customStatAchievements];
+  
   // Filter out season-specific achievements for old builder
-  const viableAchievements = allAchievements.filter(achievement => 
+  const viableAchievements = combinedAchievements.filter(achievement => 
     !SEASON_ACHIEVEMENTS.some(sa => sa.id === achievement.id)
   );
   
@@ -933,11 +939,15 @@ function generateGridSeeded(leagueData: LeagueData): {
       // Only try career achievements with decade weighting applied
       const rawAchievements = getAllAchievements(sport, seasonIndex, leagueData.leagueYears);
       
+      // Add custom stat achievements with different thresholds
+      const customStatAchievements = generateCustomStatAchievements(players, sport, seasonIndex, leagueData.leagueYears);
+      const combinedAchievements = [...rawAchievements, ...customStatAchievements];
+      
       // Apply decade weighting for achievement selection 
       const currentYear = leagueData.leagueYears?.maxSeason || new Date().getFullYear();
       const weightedAchievements: Achievement[] = [];
       
-      for (const ach of rawAchievements) {
+      for (const ach of combinedAchievements) {
         if (ach.isSeasonSpecific) continue;
         if (ach.id === 'bornOutsideUS50DC') continue;
         
@@ -1030,11 +1040,15 @@ function generateGridSeeded(leagueData: LeagueData): {
     .filter(ach => !ach.isSeasonSpecific)
     .filter(ach => ach.id !== 'bornOutsideUS50DC');
   
+  // Add custom stat achievements with different thresholds
+  const customAchievements = generateCustomStatAchievements(players, sport, seasonIndex, leagueData.leagueYears);
+  const combinedRawAchievements = [...rawAllAchievements, ...customAchievements];
+  
   // Apply decade weighting to create final achievement list
   const currentYear = leagueData.leagueYears?.maxSeason || new Date().getFullYear();
   const allAchievements: Achievement[] = [];
   
-  for (const ach of rawAllAchievements) {
+  for (const ach of combinedRawAchievements) {
     let weight = 1;
     
     // Apply decade skewing for decade achievements

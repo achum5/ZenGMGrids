@@ -2501,3 +2501,164 @@ export function getViableAchievements(
     return hasEnough;
   });
 }
+
+// Generate custom stat achievement variations with different thresholds
+export function generateCustomStatAchievements(
+  players: Player[],
+  sport?: 'basketball' | 'football' | 'hockey' | 'baseball',
+  seasonIndex?: any,
+  leagueYears?: { minSeason: number; maxSeason: number }
+): Achievement[] {
+  if (!sport) return [];
+  
+  const customAchievements: Achievement[] = [];
+  const allAchievements = getAllAchievements(sport, seasonIndex, leagueYears);
+  
+  // Define stat achievements that can be customized (career and season stats)
+  const statAchievements = allAchievements.filter(a => 
+    a.id.startsWith('career') || 
+    a.id.includes('Season') && (
+      a.id.includes('Points') || a.id.includes('PPG') || a.id.includes('Rebounds') ||
+      a.id.includes('Assists') || a.id.includes('Blocks') || a.id.includes('Steals') ||
+      a.id.includes('Pass') || a.id.includes('Rush') || a.id.includes('Rec') ||
+      a.id.includes('Goals') || a.id.includes('Wins') || a.id.includes('Saves') ||
+      a.id.includes('Hits') || a.id.includes('HR') || a.id.includes('RBI')
+    )
+  );
+  
+  for (const achievement of statAchievements) {
+    const parsed = parseAchievementLabel(achievement.label, sport);
+    if (!parsed.isEditable) continue;
+    
+    // Generate threshold options based on the original threshold
+    const thresholds = generateThresholdOptions(parsed.number, achievement.id);
+    
+    // Test each threshold with both >= and <= operators
+    for (const threshold of thresholds) {
+      // Try >= operator
+      const gteCustom = createCustomNumericalAchievement(achievement, threshold, sport, '≥');
+      const gteCount = players.filter(p => gteCustom.test(p)).length;
+      
+      // Add if it has 3-15 qualifying players (viable range)
+      if (gteCount >= 3 && gteCount <= 15) {
+        customAchievements.push(gteCustom);
+      }
+      
+      // Try <= operator (for "role player" challenges)
+      const lteCustom = createCustomNumericalAchievement(achievement, threshold, sport, '≤');
+      const lteCount = players.filter(p => lteCustom.test(p)).length;
+      
+      // Add if it has 3-15 qualifying players
+      if (lteCount >= 3 && lteCount <= 15) {
+        customAchievements.push(lteCustom);
+      }
+    }
+  }
+  
+  return customAchievements;
+}
+
+// Generate threshold options based on original value
+function generateThresholdOptions(originalThreshold: number, achievementId: string): number[] {
+  const thresholds: number[] = [];
+  
+  // Basketball points/rebounds/assists
+  if (achievementId.includes('Points') || achievementId.includes('pts') || 
+      achievementId.includes('Rebounds') || achievementId.includes('trb') ||
+      achievementId.includes('Assists') || achievementId.includes('ast')) {
+    thresholds.push(
+      25000, 20000, 15000, 10000, 7500, 5000, 2500, 2000, 1500, 1000, 
+      750, 500, 250, 100, 50
+    );
+  }
+  
+  // Basketball steals/blocks/3PM
+  else if (achievementId.includes('Steals') || achievementId.includes('Blocks') || 
+           achievementId.includes('3') || achievementId.includes('tpm')) {
+    thresholds.push(
+      3000, 2500, 2000, 1500, 1000, 750, 500, 250, 100, 50, 25
+    );
+  }
+  
+  // Football passing yards
+  else if (achievementId.includes('Pass') && achievementId.includes('Yds')) {
+    thresholds.push(
+      70000, 60000, 50000, 40000, 30000, 20000, 15000, 10000, 5000, 2500, 1000, 500
+    );
+  }
+  
+  // Football rushing/receiving yards
+  else if (achievementId.includes('Rush') || achievementId.includes('Rec')) {
+    thresholds.push(
+      20000, 15000, 12000, 10000, 7500, 5000, 2500, 1000, 500, 250, 100
+    );
+  }
+  
+  // TDs/Sacks/Interceptions
+  else if (achievementId.includes('TD') || achievementId.includes('Sack') || 
+           achievementId.includes('Int')) {
+    thresholds.push(
+      500, 400, 300, 200, 150, 100, 75, 50, 25, 10, 5
+    );
+  }
+  
+  // Hockey goals/points/assists
+  else if (achievementId.includes('Goals') || achievementId.includes('Points') || 
+           achievementId.includes('Assists')) {
+    thresholds.push(
+      2000, 1500, 1000, 800, 600, 500, 400, 300, 200, 100, 50, 25
+    );
+  }
+  
+  // Hockey wins/shutouts (goalies)
+  else if (achievementId.includes('Wins') || achievementId.includes('Shutouts')) {
+    thresholds.push(
+      500, 400, 300, 200, 150, 100, 75, 50, 25, 10
+    );
+  }
+  
+  // Baseball hits
+  else if (achievementId.includes('Hits')) {
+    thresholds.push(
+      4000, 3500, 3000, 2500, 2000, 1500, 1000, 500, 250, 100
+    );
+  }
+  
+  // Baseball home runs
+  else if (achievementId.includes('HR')) {
+    thresholds.push(
+      700, 600, 500, 400, 300, 250, 200, 150, 100, 50, 25, 10
+    );
+  }
+  
+  // Baseball RBIs/Runs
+  else if (achievementId.includes('RBI') || achievementId.includes('Runs')) {
+    thresholds.push(
+      2500, 2000, 1800, 1500, 1200, 1000, 750, 500, 250, 100
+    );
+  }
+  
+  // Baseball stolen bases
+  else if (achievementId.includes('SB') || achievementId.includes('Stolen')) {
+    thresholds.push(
+      800, 600, 500, 400, 300, 200, 150, 100, 50, 25
+    );
+  }
+  
+  // Baseball pitching (wins/strikeouts/saves)
+  else if (achievementId.includes('Wins') || achievementId.includes('Strikeouts') || 
+           achievementId.includes('Saves')) {
+    thresholds.push(
+      400, 350, 300, 250, 200, 150, 100, 75, 50, 25
+    );
+  }
+  
+  // Default fallback: scale from original value
+  else {
+    const scales = [2, 1.5, 1, 0.75, 0.5, 0.25, 0.1, 0.05];
+    thresholds.push(...scales.map(s => Math.round(originalThreshold * s)));
+  }
+  
+  // Remove duplicates and sort descending
+  return [...new Set(thresholds)].sort((a, b) => b - a);
+}
