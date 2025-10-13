@@ -779,18 +779,11 @@ function maybeCustomizeAchievement(
   
   const parsed = parseAchievementLabel(achievement.label, sport);
   if (!parsed.isEditable) {
+    console.log(`⏭️ Skipping ${achievement.label} - not editable`);
     return achievement;
   }
   
-  // Use seeded random to pick threshold and operator
-  const hashValue = simpleHash(seed + achievement.id);
-  const shouldCustomize = (hashValue % 3) === 0; // 33% chance to customize
-  
-  if (!shouldCustomize) {
-    return achievement;
-  }
-  
-  // Get available thresholds for this stat
+  // ALWAYS customize (100% chance) - pick random threshold and operator
   const thresholds = generateThresholdOptions(parsed.number, achievement.id);
   const thresholdIndex = Math.abs(simpleHash(seed + achievement.id + '_thresh')) % thresholds.length;
   const selectedThreshold = thresholds[thresholdIndex];
