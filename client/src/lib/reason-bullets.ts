@@ -762,9 +762,13 @@ function generateCareerAchievementBullet(player: Player, achievementId: string, 
     }
   }
 
-  const statField = getStatFieldForCareerAchievement(baseAchievementId);
-
-  if (statField) {
+  if (achievementId === 'isPick1Overall') {
+    const draftYear = player.draft?.year;
+    return {
+      text: draftYear ? `#1 Overall Pick (Draft Year: ${draftYear})` : `#1 Overall Pick`,
+      type: 'draft'
+    };
+  } else if (statField) {
     const playerCareerTotal = getPlayerCareerTotal(player, statField);
     const originalLabel = constraintLabel || achievementId;
     const parsedOriginal = parseAchievementLabel(originalLabel);

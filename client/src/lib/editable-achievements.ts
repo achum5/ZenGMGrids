@@ -440,17 +440,17 @@ function generateTestFunction(
       }
       if (baseAchievement.id === 'HKSeason55FaceoffPct') {
         const thresholdDecimal = newThreshold / 100;
-        return (player: Player) => checkSeasonPercentage(player, 'faceoffPct', thresholdDecimal, operator, 1, 1);
+        return (player: Player) => checkSeasonPercentage(player, 'faceoffPct', thresholdDecimal, operator, 1, 1, sport);
       }
       if (baseAchievement.id === 'HKSeason22TOI') {
-        return (player: Player) => checkSeasonAverage(player, 'toi', newThreshold, operator, 1);
+        return (player: Player) => checkSeasonAverage(player, 'toi', newThreshold, operator, 1, sport);
       }
       if (baseAchievement.id === 'HKSeason920SavePct') {
         const thresholdDecimal = newThreshold / 1000; // Save percentage is usually .920, so divide by 1000
-        return (player: Player) => checkSeasonPercentage(player, 'savePct', thresholdDecimal, operator, 1, 1);
+        return (player: Player) => checkSeasonPercentage(player, 'savePct', thresholdDecimal, operator, 1, 1, sport);
       }
       if (baseAchievement.id === 'HKSeason260GAA') {
-        return (player: Player) => checkSeasonAverage(player, 'gaa', newThreshold, operator, 1);
+        return (player: Player) => checkSeasonAverage(player, 'gaa', newThreshold, operator, 1, sport);
       }
       if (baseAchievement.id === 'HKSeason6Shutouts') {
         return (player: Player) => checkSeasonTotal(player, 'so', newThreshold, operator, 1);
@@ -515,7 +515,7 @@ function generateTestFunction(
       return (player: Player) => checkSeasonTotal(player, 'pts', newThreshold, operator, 10);
     }
     if (baseAchievement.id === 'Season30PPG') {
-      return (player: Player) => checkSeasonAverage(player, 'pts', newThreshold, operator, 10);
+      return (player: Player) => checkSeasonAverage(player, 'pts', newThreshold, operator, 10, sport);
     }
     if (baseAchievement.id === 'Season200_3PM') {
       return (player: Player) => checkSeasonTotal(player, ['tpm', 'tp'], newThreshold, operator, 10);
@@ -527,25 +527,25 @@ function generateTestFunction(
       return (player: Player) => checkSeasonTotal(player, 'ast', newThreshold, operator, 10);
     }
     if (baseAchievement.id === 'Season10APG') {
-      return (player: Player) => checkSeasonAverage(player, 'ast', newThreshold, operator, 10);
+      return (player: Player) => checkSeasonAverage(player, 'ast', newThreshold, operator, 10, sport);
     }
     if (baseAchievement.id === 'Season800Rebounds') {
       return (player: Player) => checkSeasonTotal(player, 'trb', newThreshold, operator, 10);
     }
     if (baseAchievement.id === 'Season12RPG') {
-      return (player: Player) => checkSeasonAverage(player, 'trb', newThreshold, operator, 10);
+      return (player: Player) => checkSeasonAverage(player, 'trb', newThreshold, operator, 10, sport);
     }
     if (baseAchievement.id === 'Season150Steals') {
       return (player: Player) => checkSeasonTotal(player, 'stl', newThreshold, operator, 10);
     }
     if (baseAchievement.id === 'Season2SPG') {
-      return (player: Player) => checkSeasonAverage(player, 'stl', newThreshold, operator, 10);
+      return (player: Player) => checkSeasonAverage(player, 'stl', newThreshold, operator, 10, sport);
     }
     if (baseAchievement.id === 'Season150Blocks') {
       return (player: Player) => checkSeasonTotal(player, 'blk', newThreshold, operator, 10);
     }
     if (baseAchievement.id === 'Season2_5BPG') {
-      return (player: Player) => checkSeasonAverage(player, 'blk', newThreshold, operator, 10);
+      return (player: Player) => checkSeasonAverage(player, 'blk', newThreshold, operator, 10, sport);
     }
     if (baseAchievement.id === 'Season200Stocks') {
       return (player: Player) => checkSeasonTotal(player, ['stl', 'blk'], newThreshold, operator, 10);
@@ -568,7 +568,7 @@ function generateTestFunction(
     if (baseAchievement.id === 'Season60eFG500FGA') {
       const minAttempts = 500;
       const thresholdDecimal = newThreshold / 100;
-      return (player: Player) => checkSeasonPercentage(player, 'efg', thresholdDecimal, operator, 10, minAttempts);
+      return (player: Player) => checkSeasonPercentage(player, 'efg', thresholdDecimal, operator, 10, minAttempts, sport);
     }
     if (baseAchievement.id === 'Season60TS20PPG') {
       return (player: Player) => checkSeason60TS20PPG(player, newThreshold, operator, 10);
@@ -576,20 +576,20 @@ function generateTestFunction(
     if (baseAchievement.id === 'Season90FT250FTA') {
       const minAttempts = 250;
       const thresholdDecimal = newThreshold / 100;
-      return (player: Player) => checkSeasonPercentage(player, 'ft', thresholdDecimal, operator, 10, minAttempts);
+      return (player: Player) => checkSeasonPercentage(player, 'ft', thresholdDecimal, operator, 10, minAttempts, sport);
     }
     if (baseAchievement.id === 'SeasonFGPercent') {
       const minAttempts = 300;
       const thresholdDecimal = newThreshold / 100;
-      return (player: Player) => checkSeasonPercentage(player, 'fg', thresholdDecimal, operator, 10, minAttempts);
+      return (player: Player) => checkSeasonPercentage(player, 'fg', thresholdDecimal, operator, 10, minAttempts, sport);
     }
     if (baseAchievement.id === 'Season3PPercent') {
       const minAttempts = 100;
       const thresholdDecimal = newThreshold / 100;
-      return (player: Player) => checkSeasonPercentage(player, 'tp', thresholdDecimal, operator, 10, minAttempts);
+      return (player: Player) => checkSeasonPercentage(player, 'tp', thresholdDecimal, operator, 10, minAttempts, sport);
     }
     if (baseAchievement.id === 'Season36MPG') {
-      return (player: Player) => checkSeasonAverage(player, 'min', newThreshold, operator, 10);
+      return (player: Player) => checkSeasonAverage(player, 'min', newThreshold, operator, 10, sport);
     }
     if (baseAchievement.id === 'Season70Games') {
       return (player: Player) => checkSeasonTotal(player, 'gp', newThreshold, operator, 1);
@@ -715,7 +715,7 @@ function checkSeasonTotal(player: Player, statField: string | string[], newThres
   return false;
 }
 
-function checkSeasonAverage(player: Player, statField: string, newThreshold: number, operator: '≥' | '≤', minGames: number = 1): boolean {
+function checkSeasonAverage(player: Player, statField: string, newThreshold: number, operator: '≥' | '≤', minGames: number = 1, sport: string): boolean {
   if (!player.stats) return false;
 
 
@@ -755,7 +755,7 @@ function checkSeasonAverage(player: Player, statField: string, newThreshold: num
   return false;
 }
 
-function checkSeasonPercentage(player: Player, percentageType: string, newThreshold: number, operator: '≥' | '≤', minGames: number = 1, minAttempts: number = 1): boolean {
+function checkSeasonPercentage(player: Player, percentageType: string, newThreshold: number, operator: '≥' | '≤', minGames: number = 1, minAttempts: number = 1, sport: string): boolean {
   if (!player.stats) return false;
 
 

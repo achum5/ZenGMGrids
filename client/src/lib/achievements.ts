@@ -1141,17 +1141,15 @@ export function getAllAchievements(
   }
   
   // Add random numerical achievements for variety (basketball only for now)
-  if (sport === 'basketball' && leagueYears) {
-    const gridSeed = `${leagueYears.minSeason}-${leagueYears.maxSeason}`;
-    const numericalAchievements = buildRandomNumericalAchievements(sport, gridSeed, 6);
-    achievements.push(...numericalAchievements);
-
-    const percentageAchievements = buildCustomizablePercentageAchievements(sport, leagueYears);
-    achievements.push(...percentageAchievements);
-  }
+    if (sport === 'basketball' && leagueYears) {
+      const gridSeed = `${leagueYears.minSeason}-${leagueYears.maxSeason}`;
+      const numericalAchievements = buildRandomNumericalAchievements(sport, gridSeed, 6);
+      achievements.push(...numericalAchievements);
   
-  return achievements;
-}
+      const percentageAchievements = buildCustomizablePercentageAchievements(sport, leagueYears);
+      achievements.push(...percentageAchievements);
+    }
+      return achievements;}
 
 // Get achievements based on sport (legacy function for backward compatibility)
 // For new code, prefer getAllAchievements with leagueYears parameter
@@ -1476,6 +1474,12 @@ export function playerMeetsAchievement(
         return player.stats?.some(s => s.season === award.season && s.tid === teamId && !s.playoffs && (s.gp || 0) > 0);
       });
       if (DEBUG) console.log(`🐛 [playerMeetsAchievement] After team alignment filter, awards count: ${filteredAwards?.length}`);
+    }
+
+    if (achievementId === 'MVP' && teamId === undefined) {
+      console.log(`DEBUG: playerMeetsAchievement - Checking MVP globally for ${player.name}`);
+      console.log(`DEBUG: playerMeetsAchievement - Player awards:`, player.awards?.map(a => a.type));
+      console.log(`DEBUG: playerMeetsAchievement - Filtered awards for MVP:`, filteredAwards?.map(a => a.type));
     }
 
     return filteredAwards?.some(award => {
