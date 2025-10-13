@@ -2558,104 +2558,81 @@ export function generateCustomStatAchievements(
   return customAchievements;
 }
 
-// Generate threshold options based on original value
+// Generate threshold options based on original value (optimized for performance)
 function generateThresholdOptions(originalThreshold: number, achievementId: string): number[] {
   const thresholds: number[] = [];
+  
+  // Reduced threshold counts for better performance (5-7 key values instead of 10-15)
   
   // Basketball points/rebounds/assists
   if (achievementId.includes('Points') || achievementId.includes('pts') || 
       achievementId.includes('Rebounds') || achievementId.includes('trb') ||
       achievementId.includes('Assists') || achievementId.includes('ast')) {
-    thresholds.push(
-      25000, 20000, 15000, 10000, 7500, 5000, 2500, 2000, 1500, 1000, 
-      750, 500, 250, 100, 50
-    );
+    thresholds.push(20000, 10000, 5000, 2000, 1000, 500, 100);
   }
   
   // Basketball steals/blocks/3PM
   else if (achievementId.includes('Steals') || achievementId.includes('Blocks') || 
            achievementId.includes('3') || achievementId.includes('tpm')) {
-    thresholds.push(
-      3000, 2500, 2000, 1500, 1000, 750, 500, 250, 100, 50, 25
-    );
+    thresholds.push(2000, 1000, 500, 250, 100, 50);
   }
   
   // Football passing yards
   else if (achievementId.includes('Pass') && achievementId.includes('Yds')) {
-    thresholds.push(
-      70000, 60000, 50000, 40000, 30000, 20000, 15000, 10000, 5000, 2500, 1000, 500
-    );
+    thresholds.push(60000, 40000, 20000, 10000, 5000, 1000);
   }
   
   // Football rushing/receiving yards
   else if (achievementId.includes('Rush') || achievementId.includes('Rec')) {
-    thresholds.push(
-      20000, 15000, 12000, 10000, 7500, 5000, 2500, 1000, 500, 250, 100
-    );
+    thresholds.push(15000, 10000, 5000, 2500, 1000, 500);
   }
   
   // TDs/Sacks/Interceptions
   else if (achievementId.includes('TD') || achievementId.includes('Sack') || 
            achievementId.includes('Int')) {
-    thresholds.push(
-      500, 400, 300, 200, 150, 100, 75, 50, 25, 10, 5
-    );
+    thresholds.push(300, 200, 100, 50, 25, 10);
   }
   
   // Hockey goals/points/assists
   else if (achievementId.includes('Goals') || achievementId.includes('Points') || 
            achievementId.includes('Assists')) {
-    thresholds.push(
-      2000, 1500, 1000, 800, 600, 500, 400, 300, 200, 100, 50, 25
-    );
+    thresholds.push(1500, 1000, 500, 300, 100, 50);
   }
   
   // Hockey wins/shutouts (goalies)
   else if (achievementId.includes('Wins') || achievementId.includes('Shutouts')) {
-    thresholds.push(
-      500, 400, 300, 200, 150, 100, 75, 50, 25, 10
-    );
+    thresholds.push(400, 200, 100, 50, 25);
   }
   
   // Baseball hits
   else if (achievementId.includes('Hits')) {
-    thresholds.push(
-      4000, 3500, 3000, 2500, 2000, 1500, 1000, 500, 250, 100
-    );
+    thresholds.push(3000, 2000, 1500, 1000, 500, 250);
   }
   
   // Baseball home runs
   else if (achievementId.includes('HR')) {
-    thresholds.push(
-      700, 600, 500, 400, 300, 250, 200, 150, 100, 50, 25, 10
-    );
+    thresholds.push(600, 400, 300, 200, 100, 50);
   }
   
   // Baseball RBIs/Runs
   else if (achievementId.includes('RBI') || achievementId.includes('Runs')) {
-    thresholds.push(
-      2500, 2000, 1800, 1500, 1200, 1000, 750, 500, 250, 100
-    );
+    thresholds.push(2000, 1500, 1000, 500, 250);
   }
   
   // Baseball stolen bases
   else if (achievementId.includes('SB') || achievementId.includes('Stolen')) {
-    thresholds.push(
-      800, 600, 500, 400, 300, 200, 150, 100, 50, 25
-    );
+    thresholds.push(600, 400, 200, 100, 50);
   }
   
   // Baseball pitching (wins/strikeouts/saves)
   else if (achievementId.includes('Wins') || achievementId.includes('Strikeouts') || 
            achievementId.includes('Saves')) {
-    thresholds.push(
-      400, 350, 300, 250, 200, 150, 100, 75, 50, 25
-    );
+    thresholds.push(350, 250, 150, 100, 50);
   }
   
   // Default fallback: scale from original value
   else {
-    const scales = [2, 1.5, 1, 0.75, 0.5, 0.25, 0.1, 0.05];
+    const scales = [2, 1, 0.5, 0.25, 0.1];
     thresholds.push(...scales.map(s => Math.round(originalThreshold * s)));
   }
   

@@ -779,6 +779,9 @@ function generateGridSeeded(leagueData: LeagueData): {
     throw new Error('Season index required for seeded builder');
   }
   
+  // Generate custom stat achievements ONCE at the beginning for performance
+  const customStatAchievements = generateCustomStatAchievements(players, sport, seasonIndex, leagueData.leagueYears);
+  
   
   
   // Step 1: Pick layout randomly (seeded by current time)
@@ -939,8 +942,7 @@ function generateGridSeeded(leagueData: LeagueData): {
       // Only try career achievements with decade weighting applied
       const rawAchievements = getAllAchievements(sport, seasonIndex, leagueData.leagueYears);
       
-      // Add custom stat achievements with different thresholds
-      const customStatAchievements = generateCustomStatAchievements(players, sport, seasonIndex, leagueData.leagueYears);
+      // Use pre-generated custom stat achievements for performance
       const combinedAchievements = [...rawAchievements, ...customStatAchievements];
       
       // Apply decade weighting for achievement selection 
@@ -1040,9 +1042,8 @@ function generateGridSeeded(leagueData: LeagueData): {
     .filter(ach => !ach.isSeasonSpecific)
     .filter(ach => ach.id !== 'bornOutsideUS50DC');
   
-  // Add custom stat achievements with different thresholds
-  const customAchievements = generateCustomStatAchievements(players, sport, seasonIndex, leagueData.leagueYears);
-  const combinedRawAchievements = [...rawAllAchievements, ...customAchievements];
+  // Use pre-generated custom stat achievements for performance
+  const combinedRawAchievements = [...rawAllAchievements, ...customStatAchievements];
   
   // Apply decade weighting to create final achievement list
   const currentYear = leagueData.leagueYears?.maxSeason || new Date().getFullYear();
