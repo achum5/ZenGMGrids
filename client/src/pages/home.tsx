@@ -646,9 +646,8 @@ export default function Home() {
     // Load attempt count from localStorage
     const storedAttemptCount = getAttemptCount(gridId);
     setAttemptCount(storedAttemptCount);
-    setGiveUpPressed(false); // Ensure Give Up state is reset on new file load
-    
     // Success toast removed - was blocking mobile interactions
+    setGiveUpPressed(false); // Ensure Give Up state is reset on new file load
   }, [toast]);
   
 
@@ -737,15 +736,10 @@ export default function Home() {
       setCells({}); // Reset all answers
       setUsedPids(new Set()); // Reset used players
       setRankCache({}); // Reset cached rankings
-      setGiveUpPressed(false); // Reset Give Up state
-      
-      // Initialize grid tracking for imported grid
-      const gridId = `${importedRows.map(r => r.key).join('-')}_${importedCols.map(c => c.key).join('-')}`;
-      setCurrentGridId(gridId);
-      
       // Check if we've played this grid before
       const storedAttempt = getAttemptCount(gridId);
       setAttemptCount(storedAttempt);
+      setGiveUpPressed(false); // Reset Give Up state
       
     } catch (error) {
       console.error('Error importing grid:', error);
@@ -1232,6 +1226,11 @@ export default function Home() {
     
     // Keep the same rows, cols, and intersections (same puzzle)
   }, [currentGridId, attemptCount]);
+
+  // Reset Give Up state when league data changes (e.g., new file loaded)
+  useEffect(() => {
+    setGiveUpPressed(false);
+  }, [leagueData]);
 
   const [isHeaderHovered, setIsHeaderHovered] = useState(false);
 

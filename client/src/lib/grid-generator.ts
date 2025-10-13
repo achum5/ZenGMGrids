@@ -1444,6 +1444,12 @@ function calculateIntersectionSimple(
   seasonIndex?: SeasonIndex,
   teams?: Team[]
 ): Player[] {
+  // Handle null or undefined constraints
+  if (!rowConstraint || !colConstraint) {
+    console.warn('calculateIntersectionSimple called with null/undefined constraint');
+    return [];
+  }
+  
   // Use optimized intersection calculation
   const rowIntersectionConstraint: IntersectionConstraint = {
     type: rowConstraint.type,
@@ -1559,7 +1565,7 @@ function buildOppositeAxisForSeed(
         console.log(`Filled row ${i} with team: ${selectedTeams[teamIndex].label}`);
         teamIndex++;
       } else {
-        console.log(`ERROR: No more teams available for row ${i}, teamIndex=${teamIndex}, selectedTeams.length=${selectedTeams.length}`);
+        throw new Error(`ERROR: No more teams available for row ${i}, teamIndex=${teamIndex}, selectedTeams.length=${selectedTeams.length}`);
       }
     }
   }
