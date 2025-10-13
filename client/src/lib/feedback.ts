@@ -1717,7 +1717,7 @@ function getAchievementDetails(
   const achievement = allAchievements.find((a) => a.id === baseAchievementId);
   if (!achievement) return null;
 
-  const baseLabel =
+  let baseLabel =
     parseAchievementLabel(achievement.label, sport).originalLabel ||
     achievement.label ||
     achievementId ||

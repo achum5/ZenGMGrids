@@ -736,6 +736,7 @@ export default function Home() {
       setCells({}); // Reset all answers
       setUsedPids(new Set()); // Reset used players
       setRankCache({}); // Reset cached rankings
+      setGiveUpPressed(false); // Reset Give Up state
       
       // Initialize grid tracking for imported grid
       const gridId = `${importedRows.map(r => r.key).join('-')}_${importedCols.map(c => c.key).join('-')}`;

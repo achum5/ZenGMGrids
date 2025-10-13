@@ -46,12 +46,12 @@ export function generateTeamsGrid(leagueData: LeagueData): {
 } {
   const { players, teams, sport } = leagueData;
   
-  console.log(`🔧 [GRID GEN] Starting grid generation for ${sport} (${players.length} players, ${teams.length} teams)`);
+  
   
   try {
     const DEBUG = import.meta.env.VITE_DEBUG === 'true';
     if (DEBUG) {
-      console.log(`Starting grid generation for ${sport} (${players.length} players, ${teams.length} teams)`);
+      
     }
     
     // Season count gate: compute unique seasons
@@ -65,22 +65,22 @@ export function generateTeamsGrid(leagueData: LeagueData): {
       }
     });
 
-    console.log(`🔧 [GRID GEN] Unique seasons found: ${uniqueSeasons.size}`);
+    
 
     // If < 20 seasons, use old random builder without season-specific achievements
     if (uniqueSeasons.size < 20) {
-      console.log(`🔧 [GRID GEN] Using old random builder (< 20 seasons)`);
+      
       return generateGridOldRandom(leagueData);
     }
 
     // If >= 20 seasons and basketball, football, hockey, or baseball, use new seeded builder
     if ((sport === 'basketball' || sport === 'football' || sport === 'hockey' || sport === 'baseball') && leagueData.seasonIndex) {
-      console.log(`🔧 [GRID GEN] Using new seeded coverage-aware builder (>= 20 seasons, ${sport})`);
+      
       return generateGridSeeded(leagueData);
     }
 
     // Fallback to old builder for other sports or insufficient seasons
-    console.log(`🔧 [GRID GEN] Using old random builder (fallback)`);
+    
     return generateGridOldRandom(leagueData);
   } catch (error) {
     console.error('🔧 [GRID GEN] Error during grid generation:', error);
@@ -109,12 +109,12 @@ function generateGridOldRandom(leagueData: LeagueData): {
     try {
       const result = attemptGridGenerationOldRandom(leagueData);
       const DEBUG = import.meta.env.VITE_DEBUG === 'true';
-      if (DEBUG) console.log(`Grid generation successful after ${attempt + 1} attempts`);
+      if (DEBUG) {}
       return result;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       const DEBUG = import.meta.env.VITE_DEBUG === 'true';
-      if (DEBUG) console.log(`Grid generation attempt ${attempt + 1} failed: ${lastError.message}`);
+      if (DEBUG) {}
     }
     attempt++;
   }
@@ -143,16 +143,16 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
   // Debug logging removed for performance - was causing verbose logs on every grid generation
   const DEBUG = import.meta.env.VITE_DEBUG === 'true';
   if (DEBUG) {
-    console.log('=== ACHIEVEMENT COUNTS ===');
+    
     const sportAchievements = getAllAchievements(sport, seasonIndex, leagueYears);
     sportAchievements.forEach((achievement: Achievement) => {
       const count = players.filter(p => p.achievements && (p.achievements as any)[achievement.id]).length;
       const viable = count >= 15 ? '✓' : '✗';
-      console.log(`${viable} ${achievement.id}: ${count} players`);
+      
     });
-    console.log('==========================');
     
-    console.log('🔍 [GRID-DEBUG] Adding detailed achievement analysis...');
+    
+    
     debugIndividualAchievements(players, seasonIndex);
   }
   
@@ -223,16 +223,16 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
     // Log conflict resolution for debugging
     if (seasonLengthAchs.length > 1) {
       if (import.meta.env.VITE_DEBUG === 'true') {
-        console.log(`🔧 Resolving season length conflict: found ${seasonLengthAchs.map(a => a.label).join(' + ')}, keeping only first`);
+        
       }
     }
     
     if (hasDecadeConflicts) {
       if (import.meta.env.VITE_DEBUG === 'true') {
-        console.log(`🔧 Resolving decade conflicts: found multiple achievements from same decades`);
+        
         decadeGroups.forEach((group, decade) => {
           if (group.length > 1) {
-            console.log(`   ${decade}s: ${group.map(a => a.label).join(' + ')}, keeping only first`);
+            
           }
         });
       }
@@ -304,13 +304,13 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
       
       // COMPLETELY BYPASS team coverage for stat achievements
       if (isStatAchievement) {
-        console.log(`Stat achievement ${achievement.achievementId}: BYPASSING coverage check, always viable=true`);
+        
         return true; // Always allow stat achievements regardless of team coverage
       }
       
       // COMPLETELY BYPASS team coverage for decade achievements
       if (isDecadeAchievement) {
-        console.log(`🎯 Decade achievement ${achievement.achievementId}: BYPASSING coverage check (coverage=${teamCoverage}), always viable=true`);
+        
         return true; // Always allow decade achievements regardless of team coverage
       }
       
@@ -499,13 +499,13 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
     }
   } else {
     // Fallback: no overlap data available, use random selection
-    console.log('⚠️ No team overlap data available, using random team selection');
+    
     selectedTeams.push(...teamConstraints.sort(() => Math.random() - 0.5).slice(0, numTeams));
   }
   
   // Emergency fallback: if we still don't have enough teams, duplicate the most viable ones
   while (selectedTeams.length < numTeams && teamConstraints.length > 0) {
-    console.log(`🚨 Not enough unique teams, duplicating viable teams (have ${selectedTeams.length}, need ${numTeams})`);
+    
     const additionalTeams = teamConstraints.filter(tc => 
       !selectedTeams.some(st => st.tid === tc.tid)
     );
@@ -556,14 +556,14 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
   // cols.sort(() => Math.random() - 0.5);
 
   // Debug: Log the selected constraints
-  console.log(`Selected: ${numAchievements} achievements, ${numTeams} teams`);
-  console.log(`Rows (${rows.length}):`, rows.map(r => r.label));
-  console.log(`Cols (${cols.length}):`, cols.map(c => c.label));
+  
+  
+  
   
   // Log the achievement distribution for debugging
   const rowAchievements = rows.filter(r => r.type === 'achievement').length;
   const colAchievements = cols.filter(c => c.type === 'achievement').length;
-  console.log(`Grid generated with ${numAchievements} total achievements: ${rowAchievements} in rows, ${colAchievements} in columns`);
+  
 
   // Build intersections and validate
   const intersections: Record<string, number[]> = {};
@@ -665,7 +665,7 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
       // Debug logging removed for performance - was logging for every intersection calculation
       const DEBUG = import.meta.env.VITE_DEBUG === 'true';
       if (DEBUG) {
-        console.log(`Intersection ${row.label} × ${col.label}: ${eligiblePids.length} eligible players`);
+        
       }
     }
   }
@@ -708,7 +708,7 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
     }
   });
   
-  console.log(`✅ Grid solvability validated: ${singlePlayerCells.length} single-player cells, no conflicts detected`);
+  
   
   // Track used teams and achievements for variety in future generations
   const usedTeams = [...rows, ...cols].filter(item => item.type === 'team');
@@ -773,7 +773,7 @@ function generateGridSeeded(leagueData: LeagueData): {
     throw new Error('Season index required for seeded builder');
   }
   
-  console.log('🎯 Starting simplified seeded grid generation...');
+  
   
   // Step 1: Pick layout randomly (seeded by current time)
   const ALLOWED_LAYOUTS = [
@@ -786,7 +786,7 @@ function generateGridSeeded(leagueData: LeagueData): {
   const gridId = Date.now().toString();
   const layoutIndex = simpleHash(gridId) % ALLOWED_LAYOUTS.length;
   const layout = ALLOWED_LAYOUTS[layoutIndex];
-  console.log(`✅ Step 1: Selected layout: ${layout.name}`);
+  
   
   // Step 2: Seed with one random season achievement
   let retryCount = 0;
@@ -810,13 +810,13 @@ function generateGridSeeded(leagueData: LeagueData): {
       
       // Debug baseball achievements specifically
       if (sport === 'baseball') {
-        console.log(`🏀 Baseball achievement ${sa.id}: ${eligibleTeams.size} eligible teams`, Array.from(eligibleTeams));
+        
       }
       
       return eligibleTeams.size >= 3;
     });
     
-    console.log(`Found ${viableSeasonAchievements.length} viable season achievements:`, viableSeasonAchievements.map(sa => sa.id));
+    
     
     if (viableSeasonAchievements.length === 0) {
       throw new Error('No viable season achievements found for seeded generation');
@@ -845,7 +845,7 @@ function generateGridSeeded(leagueData: LeagueData): {
     retryCount++;
   } while (retryCount < 10);
   
-  console.log(`✅ Step 2: Seeded with ${seedAchievement.label} at ${seedSlot.axis} ${seedSlot.index}`);
+  
   
   // Track used season achievements to prevent duplicates
   const usedSeasonAchievements = new Set<SeasonAchievementId>();
@@ -875,7 +875,7 @@ function generateGridSeeded(leagueData: LeagueData): {
   const oppositeLayout = oppositeAxis === 'row' ? layout.rows : layout.cols;
   const oppositeArray = oppositeAxis === 'row' ? rows : cols;
   
-  console.log(`✅ Step 3: Filling opposite ${oppositeAxis} with layout [${oppositeLayout.join(', ')}]`);
+  
   
   const eligibleTeams = getTeamsForAchievement(seasonIndex, seedAchievement.id, teams);
   const eligibleTeamsList = Array.from(eligibleTeams)
@@ -922,7 +922,7 @@ function generateGridSeeded(leagueData: LeagueData): {
         test: (p: Player) => p.teamsPlayed.has(team.tid),
       };
       
-      console.log(`   Filled ${oppositeAxis} ${i} with team: ${team.name || `Team ${team.tid}`}`);
+      
     } else if (oppositeLayout[i] === 'A') {
       // Pick achievement that has shared players in same season with seed
       const viableAchievements: (typeof SEASON_ACHIEVEMENTS[0] | Achievement)[] = [];
@@ -1018,12 +1018,12 @@ function generateGridSeeded(leagueData: LeagueData): {
         usedSeasonAchievements.add(selectedAch.id as SeasonAchievementId);
       }
       
-      console.log(`   Filled ${oppositeAxis} ${i} with achievement: ${selectedAch.label}`);
+      
     }
   }
   
   // Step 4: Fill remaining slots using old-style approach
-  console.log(`✅ Step 4: Filling remaining slots old-style`);
+  
   
   // Only use career achievements for old-style fill with decade weighting
   const rawAllAchievements = getAllAchievements(sport, seasonIndex, leagueData.leagueYears)
@@ -1069,7 +1069,7 @@ function generateGridSeeded(leagueData: LeagueData): {
   // Find remaining empty slots
   for (let i = 0; i < 3; i++) {
     if (!rows[i]) {
-      console.log(`   Filling empty row ${i} slot (type: ${layout.rows[i]})`);
+      
       
       if (layout.rows[i] === 'T') {
         // Fill team slot - try up to 100 random teams
@@ -1105,14 +1105,7 @@ function generateGridSeeded(leagueData: LeagueData): {
           }
           
           if (validForAllCols) {
-            rows[i] = {
-              type: 'team',
-              tid: team.tid,
-              label: team.name || `Team ${team.tid}`,
-              key: `team-${team.tid}`,
-              test: (p: Player) => p.teamsPlayed.has(team.tid),
-            };
-            console.log(`     Selected team: ${team.name || `Team ${team.tid}`} (attempt ${attempt + 1})`);
+
             found = true;
             break;
           }
@@ -1703,6 +1696,18 @@ function buildOppositeAxisForSeed(
     }
   }
   
+
+  
+  // Ensure all slots are filled before proceeding to intersection calculation
+  for (let i = 0; i < 3; i++) {
+    if (!rows[i]) {
+      throw new Error(`Internal Error: Row slot ${i} is undefined after filling process.`);
+    }
+    if (!cols[i]) {
+      throw new Error(`Internal Error: Column slot ${i} is undefined after filling process.`);
+    }
+  }
+
   console.log(`Grid structure verified: 3x3 with unique constraints`);
   console.log(`Rows: ${rows.map(r => r.label).join(', ')}`);
   console.log(`Cols: ${cols.map(c => c.label).join(', ')}`);

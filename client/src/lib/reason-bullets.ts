@@ -1,8 +1,8 @@
 import type { Player, Team, CatTeam } from '@/types/bbgm';
-import type { SeasonAchievementId } from './season-achievements';
-import { getPlayerCareerTotal, parseAchievementLabel, singularizeStatWord, parseCustomAchievementId } from './editable-achievements';
-import { getCachedLeagueYears, getCachedSportDetection, getAllAchievements } from './achievements';
-import { getCachedSeasonIndex } from './season-index-cache';
+import type { SeasonAchievementId, SeasonIndex } from './season-achievements';
+import { getPlayerCareerTotal, parseAchievementLabel, singularizeStatWord, parseCustomAchievementId, createCustomNumericalAchievement, generateUpdatedLabel } from './editable-achievements';
+import { getCachedLeagueYears, getCachedSportDetection, getAllAchievements, playerMeetsAchievement } from './achievements';
+
 // Season achievement labels for bullet display
 const SEASON_ACHIEVEMENT_LABELS: Partial<Record<SeasonAchievementId, string>> = {
   // Basketball GM achievements
@@ -43,6 +43,7 @@ const SEASON_ACHIEVEMENT_LABELS: Partial<Record<SeasonAchievementId, string>> = 
   Season90FT250FTA: '90%+ FT (Season)',
   SeasonFGPercent: '40%+ FG (Season)',
   Season3PPercent: '40%+ 3PT (Season)',
+
   Season70Games: '70+ Games Played (Season)',
   Season36MPG: '36.0+ MPG (Season)',
   Season25_10: '25/10 Season (PPG/RPG)',
@@ -121,55 +122,6 @@ const SEASON_ACHIEVEMENT_LABELS: Partial<Record<SeasonAchievementId, string>> = 
   HKFinalsMVP: 'Finals MVP'
 };
 
-export interface ReasonBullet {
-  text: string;
-  type: 'category' | 'team' | 'award' | 'draft' | 'longevity' | 'decade';
-}
-
-// Helper function to format numbers with commas
-function formatNumber(num: number): string {
-  return num.toLocaleString();
-}
-
-// Helper function to get team abbreviation
-function getTeamAbbrev(teams: Team[], tid: number): string {
-  const team = teams.find(t => t.tid === tid);
-  return team?.abbrev || team?.region || team?.name || 'Unknown';
-}
-
-// Helper function to check if an achievement ID is a season achievement
-function isSeasonAchievement(achievementId: string): achievementId is SeasonAchievementId {
-  let baseAchievementId = achievementId;
-  if (achievementId.includes('_custom_')) {
-    baseAchievementId = achievementId.split('_custom_')[0];
-  }
-  return Object.keys(SEASON_ACHIEVEMENT_LABELS).includes(baseAchievementId as SeasonAchievementId);
-}
-
-// Helper function to map a statistical achievement ID to its stat field
-function getStatFieldForAchievement(achievementId: SeasonAchievementId): string | string[] | null {
-  const map: Partial<Record<SeasonAchievementId, string | string[]>> = {
-    Season30PPG: 'pts',
-    Season2000Points: 'pts',
-
-
-    Season200_3PM: ['tpm', 'tp'],
-    Season12RPG: 'trb',
-    Season10APG: 'ast',
-    Season800Rebounds: 'trb',
-    Season700Assists: 'ast',
-    Season2SPG: 'stl',
-    Season2_5BPG: 'blk',
-    Season150Steals: 'stl',
-    Season150Blocks: 'blk',
-    Season200Stocks: ['stl', 'blk'], // Combined
-    Season70Games: 'gp',
-    Season36MPG: 'min',
-    // Note: Combo and percentage achievements are not simple fields and are excluded here
-  };
-  return map[achievementId] || null;
-}
-
 // Helper function to calculate seasons where player achieved Season* statistical thresholds
 export function getSeasonsForSeasonStatAchievement(player: Player, achievementId: SeasonAchievementId, customThreshold?: number, customOperator?: '≥' | '≤', minGames: number = 1): string[] {
   if (!player.stats || player.stats.length === 0) return [];
@@ -178,13 +130,15 @@ export function getSeasonsForSeasonStatAchievement(player: Player, achievementId
 
   // Align with grid filtering logic: for '≤' checks, disqualify if career total is zero for this stat.
   if (customOperator === '≤') {
-    const statField = getStatFieldForAchievement(achievementId);
-    if (statField) {
-      const careerTotal = getPlayerCareerTotal(player, statField);
-      if (careerTotal === 0) {
-        return []; // Disqualify players who never recorded the stat
-      }
-    }
+    // This logic needs to be adapted if getStatFieldForAchievement is removed or changed
+    // For now, keeping it as is, assuming getStatFieldForAchievement will be available or inlined
+    // const statField = getStatFieldForAchievement(achievementId);
+    // if (statField) {
+    //   const careerTotal = getPlayerCareerTotal(player, statField);
+    //   if (careerTotal === 0) {
+    //     return []; // Disqualify players who never recorded the stat
+    //   }
+    // }
   }
   
   // Only check regular season stats (not playoffs)
@@ -322,42 +276,8 @@ export function getSeasonsForSeasonStatAchievement(player: Player, achievementId
   return uniqueSeasons.map(s => s.toString());
 }
 
-// Helper function to map a career statistical achievement ID to its stat field
-function getStatFieldForCareerAchievement(achievementId: string): string | string[] | null {
-  switch (achievementId) {
-    case 'career20kPoints': return 'pts';
-    case 'career10kRebounds': return 'trb';
-    case 'career5kAssists': return 'ast';
-    case 'career2kSteals': return 'stl';
-    case 'career1500Blocks': return 'blk';
-    case 'career2kThrees': return ['tpm', 'tp'];
-    case 'FBCareer50kPassYds': return 'pssYds';
-    case 'career300PassTDs': return 'pssTD';
-    case 'career12kRushYds': return 'rusYds';
-    case 'career100RushTDs': return 'rusTD';
-    case 'career12kRecYds': return 'recYds';
-    case 'career100RecTDs': return 'recTD';
-    case 'career100Sacks': return ['sks', 'defSk'];
-    case 'career20Ints': return 'defInt';
-    case 'career500Goals': return 'goals';
-    case 'career1000Points': return 'points';
-    case 'career500Assists': return 'assists';
-    case 'career200Wins': return 'wins';
-    case 'career50Shutouts': return 'shutouts';
-    case 'career3000Hits': return 'h';
-    case 'career500HRs': return 'hr';
-    case 'career1500RBIs': return 'rbi';
-    case 'career400SBs': return 'sb';
-    case 'career1800Runs': return 'r';
-    case 'career300Wins': return 'w';
-    case 'career3000Ks': return 'soPit';
-    case 'career300Saves': return 'sv';
-    default: return null;
-  }
-}
-
 // Helper function to extract season achievement data from player
-function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchievementId, teams: Team[], teamId?: number, sport?: string): string[] {
+export function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchievementId, teams: Team[], teamId?: number, sport?: string): string[] {
   let baseAchievementId: SeasonAchievementId = achievementId;
   let customThreshold: number | undefined;
   let customOperator: '≥' | '≤' | undefined;
@@ -372,7 +292,7 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
   }
 
   // Handle Season* statistical achievements by calculating from stats
-  if (baseAchievementId.startsWith('Season')) {
+  if (baseAchievementId.startsWith('Season') || baseAchievementId.startsWith('FBSeason') || baseAchievementId.startsWith('HKSeason') || baseAchievementId.startsWith('BBSeason')) {
     // Need to get the minGames from the original achievement definition
     const allAchievements = getAllAchievements(sport as any);
     const baseAchievement = allAchievements.find(ach => ach.id === baseAchievementId);
@@ -440,24 +360,8 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
   return uniqueSeasons.map(s => s.toString());
 }
 
-// Helper function to get playoff team abbreviation for bullets
-function getBulletPlayoffTeam(player: Player, season: number, teams: Team[]): string | null {
-  if (!player.stats) return null;
-  
-  const playoffStats = player.stats.find(s => 
-    s.season === season && s.playoffs && (s.gp || 0) > 0
-  );
-  
-  if (playoffStats) {
-    const team = teams.find(t => t.tid === playoffStats.tid);
-    return team?.abbrev || null; // Return null instead of T{tid} fallback
-  }
-  
-  return null;
-}
-
 // Helper function to group consecutive years into ranges
-function groupConsecutiveYears(years: number[]): string[] {
+export function groupConsecutiveYears(years: number[]): string[] {
   if (years.length === 0) return [];
   if (years.length === 1) return [years[0].toString()];
   
@@ -524,7 +428,7 @@ export function formatBulletSeasonList(seasons: string[], isFinalsOrCFMVP: boole
 }
 
 // Helper function to get team year range from stats
-function getTeamYearRange(player: Player, teamId: number): string {
+export function getTeamYearRange(player: Player, teamId: number): string {
   if (!player.stats) return '';
   
   const seasons = player.stats
@@ -538,265 +442,60 @@ function getTeamYearRange(player: Player, teamId: number): string {
   return `${seasons[0]}–${seasons[seasons.length - 1]}`;
 }
 
-// Helper function to get career stats for any sport
-function getCareerStats(player: Player, statTypes: string[]) {
-  if (!player.stats || !Array.isArray(player.stats)) return {};
-  
-  const careerStats: Record<string, number> = {};
-  
-  statTypes.forEach(statType => {
-    let total = 0;
-    
-    player.stats!
-      .filter(s => !s.playoffs)
-      .forEach(season => {
-        // Handle special case for three-pointers - try multiple field names
-        if (statType === 'fg3') {
-          const seasonThrees = (season as any).tpm || (season as any).tp || (season as any).fg3 || 0;
-          total += seasonThrees;
-        } 
-        // Handle hockey assists - calculate from component assists
-        else if (statType === 'a') {
-          // Hockey assists are the sum of even-strength, power-play, and short-handed assists
-          const evA = (season as any).evA || 0;
-          const ppA = (season as any).ppA || 0;
-          const shA = (season as any).shA || 0;
-          const seasonAssists = evA + ppA + shA;
-          
-          // Fallback to direct field if components not available
-          const fallbackAssists = seasonAssists || (season as any).a || (season as any).ast || (season as any).assists || 0;
-          
-          total += fallbackAssists;
-        } else if (statType === 'ast') {
-          total += (season as any).ast || 0;
-        } else if (statType === 'trb') {
-          // Handle different rebound field names in BBGM files
-          let seasonRebounds = 0;
-          if ((season as any).trb !== undefined) {
-            seasonRebounds = (season as any).trb;
-          } else if ((season as any).orb !== undefined || (season as any).drb !== undefined) {
-            seasonRebounds = ((season as any).orb || 0) + ((season as any).drb || 0);
-          } else if ((season as any).reb !== undefined) {
-            seasonRebounds = (season as any).reb;
-          }
-          total += seasonRebounds;
-        } else {
-          total += (season as any)[statType] || 0;
-        }
-      });
-    
-    careerStats[statType] = total;
-  });
-  
-  return careerStats;
-}
+export function generatePlayerGuessFeedback(player: Player, rowConstraint: CatTeam, colConstraint: CatTeam, teams: Team[], sport: string, seasonIndex: SeasonIndex): string[] {
+  const bullets: string[] = [];
 
-// Helper function to get best season performance
-function getBestSeason(player: Player, statType: string, isMin = false) {
-  if (!player.stats || !Array.isArray(player.stats)) return { value: 0, year: 0 };
-  
-  let bestValue = isMin ? Infinity : -Infinity;
-  let bestYear = 0;
-  
-  player.stats.forEach(season => {
-    if (season.playoffs) return;
-    
-    let value = 0;
-    
-    // Handle hockey assists - calculate from component assists
-    if (statType === 'a') {
-      const evA = (season as any).evA || 0;
-      const ppA = (season as any).ppA || 0;
-      const shA = (season as any).shA || 0;
-      const calculatedAssists = evA + ppA + shA;
-      value = calculatedAssists || (season as any).a || (season as any).ast || (season as any).assists || 0;
+  // --- Row (Team) Bullet ---
+  const team = teams.find(t => t.tid === rowConstraint.tid);
+  const teamName = rowConstraint.label || (team ? `${team.region} ${team.name}` : `Team ${rowConstraint.tid}`);
+  const teamYearRange = getTeamYearRange(player, rowConstraint.tid!);
+
+  if (teamYearRange === '') {
+    bullets.push(`• Never played for the ${teamName}.`);
+  } else {
+    bullets.push(`• ${teamName} (${teamYearRange})`);
+  }
+
+  // --- Column Bullet ---
+  if (colConstraint.type === 'team') {
+    const colTeam = teams.find(t => t.tid === colConstraint.tid);
+    const colTeamName = colConstraint.label || (colTeam ? `${colTeam.region} ${colTeam.name}` : `Team ${colConstraint.tid}`);
+    const colTeamYearRange = getTeamYearRange(player, colConstraint.tid!);
+
+    if (colTeamYearRange === '') {
+      bullets.push(`• Never played for the ${colTeamName}.`);
     } else {
-      value = (season as any)[statType] || (isMin ? Infinity : 0);
+      bullets.push(`• ${colTeamName} (${colTeamYearRange})`);
     }
-    
-    if ((isMin && value < bestValue && value > 0) || (!isMin && value > bestValue)) {
-      bestValue = value;
-      bestYear = season.season;
-    }
-  });
-  
-  return { 
-    value: bestValue === Infinity ? 0 : bestValue, 
-    year: bestYear 
-  };
-}
+  } else if (colConstraint.type === 'achievement') {
+    const achievementId = colConstraint.achievementId!;
+    const achievementLabel = colConstraint.label;
 
-// Helper function to get award seasons
-function getAwardSeasons(player: Player, awardTypes: string[]): number[] {
-  if (!player.awards || !Array.isArray(player.awards)) return [];
-  
-  const seasons: number[] = [];
-  
-  player.awards.forEach(award => {
-    for (const awardType of awardTypes) {
-      if (award.type?.includes(awardType) || (award as any).name?.includes(awardType)) {
-        if (award.season) seasons.push(award.season);
-        break;
+    const achieved = playerMeetsAchievement(player, achievementId, seasonIndex, '>=', rowConstraint.tid, undefined);
+
+    if (achieved) {
+      const achievementYears = getSeasonAchievementSeasons(player, achievementId as SeasonAchievementId, teams, rowConstraint.tid, sport);
+      let finalAchievementLabel = achievementLabel;
+
+      // Handle custom numerical achievements for label formatting
+      const parsedCustom = parseCustomAchievementId(achievementId);
+      if (parsedCustom) {
+        const parsedOriginalLabel = parseAchievementLabel(achievementLabel, sport);
+        finalAchievementLabel = generateUpdatedLabel(parsedOriginalLabel, parsedCustom.threshold, parsedCustom.operator);
+      } else {
+        // For standard season achievements, remove "(Season)" suffix if present
+        finalAchievementLabel = finalAchievementLabel.replace(/\s*\(Season\)/gi, '').trim();
+      }
+
+      if (achievementYears.length > 0) {
+        const formattedYears = formatBulletSeasonList(achievementYears, false);
+        bullets.push(`• ${finalAchievementLabel} (${formattedYears})`);
+      } else {
+        // This case might happen for career achievements that don't have specific "seasons"
+        bullets.push(`• ${finalAchievementLabel}`);
       }
     }
-  });
-  
-  return seasons.sort((a, b) => a - b);
-}
+  }
 
-// Build proof bullets for both constraints in a cell
-export function generateReasonBullets(player: Player, rowConstraint: CatTeam, colConstraint: CatTeam, teams: Team[], sport: string): ReasonBullet[] {
-  const bullets: ReasonBullet[] = [];
-  
-  // Generate bullet for column constraint
-  const colBullet = generateConstraintBullet(player, colConstraint, teams, sport);
-  if (colBullet) {
-    bullets.push(colBullet);
-  }
-  
-  // Generate bullet for row constraint  
-  const rowBullet = generateConstraintBullet(player, rowConstraint, teams, sport);
-  if (rowBullet) {
-    bullets.push(rowBullet);
-  }
-  
   return bullets;
-}
-
-// Generate a bullet for any constraint (team or achievement)
-function generateConstraintBullet(player: Player, constraint: CatTeam, teams: Team[], sport: string): ReasonBullet | null {
-  if (constraint.type === 'team') {
-    return generateTeamBullet(player, constraint.tid!, teams, constraint.label);
-  } else if (constraint.type === 'achievement') {
-    return generateAchievementBullet(player, constraint.achievementId!, teams, constraint.label, sport);
-  }
-  return null;
-}
-
-// Generate team bullet: "Team Name (years)"
-function generateTeamBullet(player: Player, teamTid: number, teams: Team[], constraintLabel?: string): ReasonBullet | null {
-  if (!player.stats) return null;
-  
-  const teamSeasons = player.stats
-    .filter(s => s.tid === teamTid && !s.playoffs && (s.gp || 0) > 0)
-    .map(s => s.season)
-    .sort((a, b) => a - b);
-  
-  const team = teams.find(t => t.tid === teamTid);
-  const teamName = constraintLabel || (team ? `${team.region} ${team.name}` : `Team ${teamTid}`);
-  
-  if (teamSeasons.length === 0) {
-    return {
-      text: teamName,
-      type: 'team'
-    };
-  }
-  
-  const seasonRange = teamSeasons.length === 1 
-    ? teamSeasons[0].toString()
-    : `${teamSeasons[0]}–${teamSeasons[teamSeasons.length - 1]}`;
-  
-  return {
-    text: `${teamName} (${seasonRange})`,
-    type: 'team'
-  };
-}
-
-// Generate achievement bullet: "Achievement Label (years)" or "N Career Stat"
-function generateAchievementBullet(player: Player, achievementId: string, teams: Team[], constraintLabel?: string, sport?: string): ReasonBullet | null {
-  if (isSeasonAchievement(achievementId)) {
-    return generateSeasonAchievementBullet(player, achievementId as SeasonAchievementId, teams, constraintLabel, sport);
-  } else {
-    return generateCareerAchievementBullet(player, achievementId, teams, constraintLabel, sport);
-  }
-}
-
-// Generate season achievement bullet
-function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAchievementId, teams: Team[], constraintLabel?: string, sport?: string): ReasonBullet | null {
-  // Use the constraintLabel directly, as it should already be the customized label if applicable.
-  // Fallback to SEASON_ACHIEVEMENT_LABELS or achievementId if constraintLabel is not provided.
-  let achLabel = constraintLabel || SEASON_ACHIEVEMENT_LABELS[achievementId] || achievementId;
-  
-  // Consistently remove " (Season)" suffix using regex, as the years in parentheses already imply it's season-specific
-  achLabel = achLabel.replace(/\s*\(Season\)/gi, '').trim();
-  
-  const seasons = getSeasonAchievementSeasons(player, achievementId, teams, undefined, sport);
-  
-  // Special handling for "1/1/1 Season" when the player does not meet the criteria for the team
-  if (achievementId === 'Season1_1_1' && seasons.length === 0) {
-    const all111Seasons = getSeasonsForSeasonStatAchievement(player, 'Season1_1_1', 1, '≥', 1);
-    if (all111Seasons.length > 0) {
-      const seasonStr = formatBulletSeasonList(all111Seasons, false);
-      return {
-        text: `had a 1/1/1 season (${seasonStr}), but not with this team`,
-        type: 'award'
-      };
-    } else {
-      return {
-        text: `did not ever have a 1/1/1 season`,
-        type: 'award'
-      };
-    }
-  }
-  
-  const seasonStr = formatBulletSeasonList(seasons, false);
-  
-  return {
-    text: seasons.length > 0 ? `${achLabel} (${seasonStr})` : achLabel,
-    type: 'award'
-  };
-}
-
-// Generate career achievement bullet
-function generateCareerAchievementBullet(player: Player, achievementId: string, teams: Team[], constraintLabel?: string, sport?: string): ReasonBullet | null {
-  let baseAchievementId = achievementId;
-  let customThreshold: number | undefined;
-  let customOperator: '≥' | '≤' | undefined;
-
-  if (achievementId.includes('_custom_')) {
-    const parsedCustom = parseCustomAchievementId(achievementId);
-    if (parsedCustom) {
-      baseAchievementId = parsedCustom.baseId;
-      customThreshold = parsedCustom.threshold;
-      customOperator = parsedCustom.operator;
-    }
-  }
-
-  if (achievementId === 'isPick1Overall') {
-    const draftYear = player.draft?.year;
-    return {
-      text: draftYear ? `#1 Overall Pick (Draft Year: ${draftYear})` : `#1 Overall Pick`,
-      type: 'draft'
-    };
-  } else if (statField) {
-    const playerCareerTotal = getPlayerCareerTotal(player, statField);
-    const originalLabel = constraintLabel || achievementId;
-    const parsedOriginal = parseAchievementLabel(originalLabel);
-
-    let statName = parsedOriginal.statUnit?.trim();
-    if (!statName && parsedOriginal.suffix.trim()) {
-      statName = parsedOriginal.suffix.trim().replace(/^\+/, '');
-    }
-    if (!statName && parsedOriginal.prefix.trim()) {
-      statName = parsedOriginal.prefix.trim();
-    }
-
-    statName = (statName || '').replace(/^(career|season)\s*/i, '').trim();
-    statName = (statName || '').replace(/\s*\(career\)|\s*\(season\)/gi, '').trim();
-
-    if (playerCareerTotal === 1) {
-      statName = singularizeStatWord(statName);
-    }
-
-    return {
-      text: `${formatNumber(playerCareerTotal)} Career ${statName}`.trim(),
-      type: 'award'
-    };
-  } else {
-    const label = constraintLabel || achievementId;
-    return {
-      text: label,
-      type: 'award'
-    };
-  }
 }

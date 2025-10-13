@@ -7,7 +7,7 @@ import { useMemo } from 'react';
 import type { Player, Team, CatTeam } from '@/types/bbgm';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
 import { generateFeedbackMessage } from '@/lib/feedback';
-import { generateReasonBullets, getSeasonsForSeasonStatAchievement, formatBulletSeasonList } from '@/lib/reason-bullets';
+import { generatePlayerGuessFeedback, getSeasonsForSeasonStatAchievement, formatBulletSeasonList } from '@/lib/reason-bullets';
 import { getAllAchievements, getCachedSportDetection, getCachedLeagueYears } from '@/lib/achievements';
 import { getCachedSeasonIndex } from '@/lib/season-index-cache';
 import { parseAchievementLabel, parseCustomAchievementId } from '@/lib/editable-achievements';
@@ -165,12 +165,13 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
         });
         
         // Generate reason bullets for correct guess
-        const reasonBullets = generateReasonBullets(
+        const reasonBullets = generatePlayerGuessFeedback(
           player,
           rowConstraint,
           colConstraint,
           Array.isArray(teams) ? teams : [],
-          currentSport
+          currentSport,
+          seasonIndex
         );
 
         return {
@@ -316,8 +317,7 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                     <div className="mt-2 space-y-1 text-sm text-muted-foreground">
                       {modalData.reasonBullets.map((bullet, index) => (
                         <div key={index} className="flex items-start gap-2">
-                          <span className="text-xs leading-5">•</span>
-                          <span className="leading-5">{bullet.text}</span>
+                          <span className="leading-5">{bullet}</span>
                         </div>
                       ))}
                     </div>
