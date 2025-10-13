@@ -646,6 +646,7 @@ export default function Home() {
     // Load attempt count from localStorage
     const storedAttemptCount = getAttemptCount(gridId);
     setAttemptCount(storedAttemptCount);
+    setGiveUpPressed(false); // Ensure Give Up state is reset on new file load
     
     // Success toast removed - was blocking mobile interactions
   }, [toast]);
