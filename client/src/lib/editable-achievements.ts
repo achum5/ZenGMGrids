@@ -1,6 +1,5 @@
 import type { Achievement } from './achievements';
 import { getPlayerCareerAttemptsTotal } from './achievements';
-import { getPlayerFranchiseCount } from './player-utils';
 import type { Player } from '@/types/bbgm';
 
 // Helper function to singularize stat words
@@ -164,34 +163,104 @@ export function parseAchievementLabel(label: string, sport?: string): ParsedAchi
  * Generate a new achievement label with a different numerical threshold
  */
 export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: number | undefined, operator?: '≥' | '≤'): string {
+  // console.log('[DEBUG generateUpdatedLabel] Input parsed:', parsed, 'newNumber:', newNumber, 'operator:', operator);
   if (!parsed.isEditable) {
     return parsed.originalLabel;
   }
 
+  // Use parsed.number as a fallback if newNumber is undefined
   const numberToFormat = newNumber !== undefined ? newNumber : parsed.number;
+
+  // Format the number part of the label
   let formattedNumber: string;
   if (newNumber !== undefined) {
     formattedNumber = newNumber.toLocaleString(undefined, {
       maximumFractionDigits: 1,
     });
   } else {
-    formattedNumber = '';
+    formattedNumber = ''; // If newNumber is undefined, display an empty string
   }
+  // console.log('[DEBUG generateUpdatedLabel] formattedNumber:', formattedNumber);
 
+  const cleanSuffix = parsed.suffix.replace(/^\+\s*/, '').trim();
   const cleanPrefix = parsed.prefix.trim();
-  // Clean up suffix to get the stat name, removing context like (Season) or (Career)
-  const statName = parsed.suffix.replace(/\s*\((Season|Career)\)/gi, '').replace(/^\+\s*/, '').trim();
 
-  if (operator === '≤') {
-    let statPart = statName;
-    if (formattedNumber === '1') {
-        statPart = singularizeStatWord(statPart);
-    }
-    return `${formattedNumber} ${cleanPrefix} ${statPart} or fewer`.replace(/\s+/g, ' ').trim();
+  // Determine if the original achievement was season-specific
+  const isOriginalSeasonSpecific = parsed.originalLabel.toLowerCase().includes('(season)');
+  let finalSeasonSuffix = '';
+  if (isOriginalSeasonSpecific && !cleanSuffix.toLowerCase().includes('(season)')) {
+    finalSeasonSuffix = ' (Season)';
   }
 
-  // Default is '≥'
-  return `${cleanPrefix} ${formattedNumber}+ ${statName}`.replace(/\s+/g, ' ').trim();
+  // Handle 'less than or equal to' cases
+  if (operator === '≤') {
+    if (parsed.originalLabel.toLowerCase().includes('age')) {
+      const result = `Played at Age ${formattedNumber} or younger`;
+      // console.log('[DEBUG generateUpdatedLabel] Result (age <=):', result);
+      return result;
+    }
+    // Handle percentage achievements (e.g., "FG%", "3PT", "eFG")
+    if (parsed.operatorPart === '%+' || parsed.operatorPart === '%') {
+      const statPart = parsed.statUnit || '';
+      const result = `${formattedNumber}% or less ${statPart}${finalSeasonSuffix}`.trim();
+      // console.log('[DEBUG generateUpdatedLabel] Result (percentage <=):', result);
+      return result;
+    } else {
+      // For counting stats, rephrase to "[number] [prefix] [stat] or fewer (Context)"
+      let contextWord = '';
+      let mainSuffix = cleanSuffix;
+
+      if (cleanSuffix.toLowerCase().includes('(season)')) {
+        contextWord = 'Season';
+        mainSuffix = cleanSuffix.replace(/\(season\)/gi, '').trim();
+      } else if (cleanSuffix.toLowerCase().includes('(career)')) {
+        contextWord = 'Career';
+        mainSuffix = cleanSuffix.replace(/\(career\)/gi, '').trim();
+      }
+
+      let statPartToSingularize = '';
+      if (parsed.statUnit?.trim()) {
+        statPartToSingularize = parsed.statUnit.trim();
+      } else {
+        // Fallback to mainSuffix if no specific stat unit was parsed
+        // This handles cases like "Rebounds" where "Rebounds" is in suffix
+        statPartToSingularize = mainSuffix.replace(/^\+\s*/, '').trim(); // Remove leading '+'
+      }
+
+      // Singularize if the number is 1
+      if (formattedNumber === '1') {
+        statPartToSingularize = singularizeStatWord(statPartToSingularize);
+      }
+
+      let result = `${formattedNumber} ${cleanPrefix} ${statPartToSingularize} or fewer`;
+      if (contextWord) {
+        result += ` (${contextWord})`;
+      }
+      // console.log('[DEBUG generateUpdatedLabel] Result (counting <=):', result.trim());
+      return result.trim();
+    }
+  }
+
+  // Handle 'greater than or equal to' cases (default)
+  // This block is reached if operator is '≥'
+  if (parsed.operatorPart === '%+' || parsed.operatorPart === '%') {
+    const statPart = parsed.statUnit || '';
+    const operatorSymbol = parsed.operatorPart === '%+' ? '%+' : '%';
+    const result = `${formattedNumber}${operatorSymbol} ${statPart}${finalSeasonSuffix}`.trim();
+    // console.log('[DEBUG generateUpdatedLabel] Result (percentage >=):', result);
+    return result;
+  }
+  
+  // For labels that don't originally have a "+", like "30 PPG (Season)"
+  if (!parsed.originalLabel.includes('+')) {
+      const result = `${cleanPrefix} ${formattedNumber} ${cleanSuffix}${finalSeasonSuffix}`;
+      // console.log('[DEBUG generateUpdatedLabel] Result (no plus >=):', result);
+      return result;
+  }
+
+  const result = `${cleanPrefix} ${formattedNumber}+ ${cleanSuffix}${finalSeasonSuffix}`;
+  // console.log('[DEBUG generateUpdatedLabel] Result (default >=):', result);
+  return result;
 }
 
 /**
@@ -536,17 +605,9 @@ function generateTestFunction(
         : decadesPlayedCount >= newThreshold;
     };
   }
-  if (baseAchievement.id === 'played5PlusFranchises') {
-    return (player: Player) => {
-      const franchiseCount = getPlayerFranchiseCount(player);
-      return operator === '≤'
-        ? franchiseCount <= newThreshold
-        : franchiseCount >= newThreshold;
-    };
-  }
   if (baseAchievement.id === 'played15PlusSeasons') {
     return (player: Player) => {
-      const seasonsPlayedCount = new Set(player.stats?.filter(s => !s.playoffs && (s.gp || 0) > 0).map(s => s.season)).size;
+      const seasonsPlayedCount = player.stats?.filter(s => !s.playoffs).length || 0;
       return operator === '≤'
         ? seasonsPlayedCount <= newThreshold
         : seasonsPlayedCount >= newThreshold;
@@ -626,19 +687,20 @@ function checkCareerTotal(player: Player, statField: string | string[], newThres
   }
 }
 
-function checkSeasonTotal(player: Player, statField: string | string[], newThreshold: number, operator: '≥' | '≤', minGames: number = 1, teamId?: number): boolean {
+function checkSeasonTotal(player: Player, statField: string | string[], newThreshold: number, operator: '≥' | '≤', minGames: number = 1): boolean {
   if (!player.stats) return false;
-  const statsToCheck = teamId === undefined ? player.stats : player.stats.filter(s => s.tid === teamId);
 
-  for (const stat of statsToCheck) {
+
+  for (const stat of player.stats) {
     if (!stat.playoffs && (stat.gp || 0) >= minGames) {
       let value = 0;
       if (Array.isArray(statField)) {
         for (const field of statField) {
-          value += (stat as any)[field] || 0;
+          if ((stat as any)[field] !== undefined) {
+            value = (stat as any)[field];
+            break; // Use the first valid field found
+          }
         }
-      } else if (statField === 'trb') {
-        value = (stat as any).trb ?? ((stat as any).orb || 0) + ((stat as any).drb || 0);
       } else {
         value = (stat as any)[statField] || 0;
       }
@@ -655,6 +717,8 @@ function checkSeasonTotal(player: Player, statField: string | string[], newThres
 
 function checkSeasonAverage(player: Player, statField: string, newThreshold: number, operator: '≥' | '≤', minGames: number = 1, sport: string): boolean {
   if (!player.stats) return false;
+
+
 
   if (sport === 'hockey' && player.achievements?.seasonStatsComputed) {
     for (const seasonYearStr in player.achievements.seasonStatsComputed) {
@@ -677,12 +741,7 @@ function checkSeasonAverage(player: Player, statField: string, newThreshold: num
   } else {
     for (const stat of player.stats) {
       if (!stat.playoffs && (stat.gp || 0) >= minGames) {
-        let total = 0;
-        if (statField === 'trb') {
-            total = (stat as any).trb ?? ((stat as any).orb || 0) + ((stat as any).drb || 0);
-        } else {
-            total = (stat as any)[statField] || 0;
-        }
+        const total = (stat as any)[statField] || 0;
         const games = stat.gp || 1;
         const average = games > 0 ? total / games : 0;
         if (operator === '≤' && average <= newThreshold) {
