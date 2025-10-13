@@ -6,12 +6,9 @@ import { AlertCircle } from "lucide-react";
 import { useMemo } from 'react';
 import type { Player, Team, CatTeam } from '@/types/bbgm';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
-import { generateFeedbackMessage } from '@/lib/feedback';
-import { generateReasonBullets, getSeasonsForSeasonStatAchievement, formatBulletSeasonList } from '@/lib/reason-bullets';
+import { generateReasonBullets } from '@/lib/reason-bullets';
 import { getAllAchievements, getCachedSportDetection, getCachedLeagueYears } from '@/lib/achievements';
 import { getCachedSeasonIndex } from '@/lib/season-index-cache';
-import { parseAchievementLabel, parseCustomAchievementId } from '@/lib/editable-achievements';
-import { rarityBadgeStyles } from '@/components/RarityChip';
 import { CareerTeamLogo, checkAllTeamsHaveLogos } from '@/components/CareerTeamLogo';
 
 // Helper to determine rarity tier based on playerCount
@@ -86,8 +83,6 @@ type Props = {
 };
 
 // Helper function to get team name at a specific season
-
-// Helper function to get team name at a specific season
 function teamNameAtSeason(teamsByTid: Map<number, Team>, tid: number, season: number): string {
   const team = teamsByTid.get(tid);
   if (!team) {
@@ -111,7 +106,6 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
 
   const currentSport = sport || getCachedSportDetection() || 'basketball';
   const leagueYears = getCachedLeagueYears();
-  const allAchievements = useMemo(() => getAllAchievements(currentSport as ('basketball' | 'football' | 'hockey' | 'baseball'), undefined, leagueYears), [currentSport, leagueYears]);
   const seasonIndex = useMemo(() => getCachedSeasonIndex(eligiblePlayers as Player[], currentSport as ('basketball' | 'football' | 'hockey' | 'baseball')), [eligiblePlayers, currentSport]);
 
   // Create team lookup map for efficient lookups - defensive check for teams array
@@ -147,129 +141,51 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
 
       const isCorrectGuess = eligiblePlayers.some(p => p.pid === player.pid);
       
-      if (isCorrectGuess) {
-      // Calculate rarity for correct guesses
-      const eligiblePool = eligiblePlayers.map(p => playerToEligibleLite(p));
-      if (eligiblePool.length > 0) {
-        const guessedPlayer = playerToEligibleLite(player);
-        const rarity = computeRarityForGuess({
-          guessed: guessedPlayer,
-          eligiblePool: eligiblePool,
-          puzzleSeed: puzzleSeed,
-          cellContext: {
-            rowConstraint: rowConstraint,
-            colConstraint: colConstraint
-          },
-          fullPlayers: eligiblePlayers,
-          teams: new Map(Array.isArray(teams) ? teams.map(t => [t.tid, t]) : [])
-        });
-        
-        // Generate reason bullets for correct guess
-        const reasonBullets = generateReasonBullets(
-          player,
-          rowConstraint,
-          colConstraint,
-          Array.isArray(teams) ? teams : [],
-          currentSport
-        );
-
-        return {
-          type: 'correct' as const,
-          rarity,
-          reasonBullets
-        };
-      }
-    } else {
-      // Generate feedback for wrong guesses
-      const feedbackMessage = generateFeedbackMessage(
+      const reasonBullets = generateReasonBullets(
         player,
         rowConstraint,
         colConstraint,
         Array.isArray(teams) ? teams : [],
-        currentSport as "basketball" | "football" | "hockey" | "baseball",
-        allAchievements,
+        currentSport,
         seasonIndex
       );
+      
+      if (isCorrectGuess) {
+        // Calculate rarity for correct guesses
+        const eligiblePool = eligiblePlayers.map(p => playerToEligibleLite(p));
+        if (eligiblePool.length > 0) {
+          const guessedPlayer = playerToEligibleLite(player);
+          const rarity = computeRarityForGuess({
+            guessed: guessedPlayer,
+            eligiblePool: eligiblePool,
+            puzzleSeed: puzzleSeed,
+            cellContext: {
+              rowConstraint: rowConstraint,
+              colConstraint: colConstraint
+            },
+            fullPlayers: eligiblePlayers,
+            teams: new Map(Array.isArray(teams) ? teams.map(t => [t.tid, t]) : [])
+          });
+          
+          return {
+            type: 'correct' as const,
+            rarity,
+            reasonBullets
+          };
+        }
+      } else {
+        return {
+          type: 'wrong' as const,
+          reasonBullets
+        };
+      }
 
-      return {
-        type: 'wrong' as const,
-        feedbackMessage
-      };
-    }
-
-    return null;
+      return null;
     } catch (error) {
       console.error('Error in PlayerModal modalData calculation:', error);
       return null;
     }
-  }, [player.pid, currentCellKey, eligiblePlayers, puzzleSeed, rows, cols, teams, sport, currentSport, allAchievements]);
-
-  // Get feedback message and color for score
-  const getScoreFeedback = (score: number): { message: string; colorClass: string } => {
-    const feedbackOptions = {
-      "10-20": [
-        "Classic choice",
-        "Reliable pick",
-        "Can't go wrong",
-        "Staple answer",
-        "Trusted name"
-      ],
-      "21-40": [
-        "Good call",
-        "Solid choice",
-        "Steady pick",
-        "Well played",
-        "Strong answer"
-      ],
-      "41-60": [
-        "Nice find",
-        "Quality pick",
-        "Smart call",
-        "Good eye",
-        "Well spotted"
-      ],
-      "61-80": [
-        "Great pull",
-        "Sharp choice",
-        "Underrated find",
-        "Well done",
-        "Strong grab"
-      ],
-      "81-100": [
-        "Rare gem",
-        "Brilliant find",
-        "Elite choice",
-        "Outstanding",
-        "Legendary pick"
-      ]
-    };
-
-    let options: string[] = [];
-    let colorClass = "";
-
-    if (score >= 10 && score <= 20) {
-      options = feedbackOptions["10-20"];
-      colorClass = "text-red-600";
-    } else if (score >= 21 && score <= 40) {
-      options = feedbackOptions["21-40"];
-      colorClass = "text-orange-500";
-    } else if (score >= 41 && score <= 60) {
-      options = feedbackOptions["41-60"];
-      colorClass = "text-yellow-600";
-    } else if (score >= 61 && score <= 80) {
-      options = feedbackOptions["61-80"];
-      colorClass = "text-green-500";
-    } else if (score >= 81 && score <= 100) {
-      options = feedbackOptions["81-100"];
-      colorClass = "text-indigo-600";
-    }
-
-    // Use player pid as seed for consistent random selection
-    const randomIndex = Math.abs(player.pid) % options.length;
-    const message = options[randomIndex] || "Nice pick";
-
-    return { message, colorClass };
-  };
+  }, [player.pid, currentCellKey, eligiblePlayers, puzzleSeed, rows, cols, teams, sport, currentSport]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -297,22 +213,29 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                 Player details including career statistics, achievements, and team history.
               </DialogDescription>
               
-              {/* Score feedback for correct guesses OR feedback message for wrong guesses */}
-              {modalData && modalData.type === 'correct' && (
+              {modalData && (
                 <div className="mt-2">
-                  {(() => {
-                    const rarityTier = getRarityTier(modalData.rarity);
-                    const styles = rarityStyles[rarityTier];
-                
-                    return (
-                      <span className={`text-lg font-bold`} style={{ color: styles.textColor }}>
-                        Score: {modalData.rarity}
-                      </span>
-                    );
-                  })()}
+                  {modalData.type === 'correct' && modalData.rarity !== undefined && (
+                    (() => {
+                      const rarityTier = getRarityTier(modalData.rarity);
+                      const styles = rarityStyles[rarityTier];
                   
-                  {/* Reason bullets for correct guesses */}
-                  {modalData.reasonBullets.length > 0 && (
+                      return (
+                        <span className={`text-lg font-bold`} style={{ color: styles.textColor }}>
+                          Score: {modalData.rarity}
+                        </span>
+                      );
+                    })()
+                  )}
+                  
+                  {modalData.type === 'wrong' && (
+                     <div className="flex items-center gap-2 text-sm text-red-700 dark:text-red-300 leading-5 font-semibold">
+                        <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
+                        <span>Incorrect Guess</span>
+                    </div>
+                  )}
+
+                  {modalData.reasonBullets && modalData.reasonBullets.length > 0 && (
                     <div className="mt-2 space-y-1 text-sm text-muted-foreground">
                       {modalData.reasonBullets.map((bullet, index) => (
                         <div key={index} className="flex items-start gap-2">
@@ -322,17 +245,6 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                       ))}
                     </div>
                   )}
-                </div>
-              )}
-
-              {modalData && modalData.type === 'wrong' && (
-                <div className="mt-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
-                    <span className="text-sm text-red-700 dark:text-red-300 leading-5">
-                      {modalData.feedbackMessage}
-                    </span>
-                  </div>
                 </div>
               )}
             </div>

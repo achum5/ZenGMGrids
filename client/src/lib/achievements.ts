@@ -1,7 +1,25 @@
 import type { Player } from "@/types/bbgm";
 import { SEASON_ACHIEVEMENTS, type SeasonAchievement, type SeasonIndex, type SeasonAchievementId, getSeasonEligiblePlayers } from './season-achievements';
 import { SeededRandom } from './seeded';
-import { createCustomNumericalAchievement, parseAchievementLabel, parseCustomAchievementId } from './editable-achievements';
+import { createCustomNumericalAchievement, parseAchievementLabel, parseCustomAchievementId, checkSeasonTotal, checkSeasonAverage } from './editable-achievements';
+import { getPlayerFranchiseCount } from './player-utils';
+
+const ACHIEVEMENT_TO_STAT_KEY: Record<string, { key: string | string[], type: 'total' | 'average' }> = {
+    'Season30PPG': { key: 'pts', type: 'average' },
+    'Season2000Points': { key: 'pts', type: 'total' },
+    'Season200_3PM': { key: ['tpm', 'tp'], type: 'total' },
+    'Season12RPG': { key: 'trb', type: 'average' },
+    'Season10APG': { key: 'ast', type: 'average' },
+    'Season800Rebounds': { key: 'trb', type: 'total' },
+    'Season700Assists': { key: 'ast', type: 'total' },
+    'Season2SPG': { key: 'stl', type: 'average' },
+    'Season2_5BPG': { key: 'blk', type: 'average' },
+    'Season150Steals': { key: 'stl', type: 'total' },
+    'Season150Blocks': { key: 'blk', type: 'total' },
+    'Season200Stocks': { key: ['stl', 'blk'], type: 'total' },
+    'Season70Games': { key: 'gp', type: 'total' },
+    'Season36MPG': { key: 'min', type: 'average' },
+};
 
 import { Achv } from "./types";
 
@@ -71,6 +89,18 @@ export const COMMON_ACHIEVEMENTS: Achievement[] = [
 
 // Basketball-specific achievements  
 export const BASKETBALL_ACHIEVEMENTS: Achievement[] = [
+  // Season-specific awards
+  { id: 'MVP', label: 'MVP', test: () => false, minPlayers: 1, isSeasonSpecific: true },
+  { id: 'FinalsMVP', label: 'Finals MVP', test: () => false, minPlayers: 1, isSeasonSpecific: true },
+  { id: 'DPOY', label: 'DPOY', test: () => false, minPlayers: 1, isSeasonSpecific: true },
+  { id: 'ROY', label: 'ROY', test: () => false, minPlayers: 1, isSeasonSpecific: true },
+  { id: 'SMOY', label: 'Sixth Man of the Year', test: () => false, minPlayers: 1, isSeasonSpecific: true },
+  { id: 'MIP', label: 'Most Improved Player', test: () => false, minPlayers: 1, isSeasonSpecific: true },
+  { id: 'AllStar', label: 'All-Star', test: () => false, minPlayers: 1, isSeasonSpecific: true },
+  { id: 'AllLeagueAny', label: 'All-League', test: () => false, minPlayers: 1, isSeasonSpecific: true },
+  { id: 'AllDefAny', label: 'All-Defensive', test: () => false, minPlayers: 1, isSeasonSpecific: true },
+  { id: 'AllRookieAny', label: 'All-Rookie', test: () => false, minPlayers: 1, isSeasonSpecific: true },
+  { id: 'Champion', label: 'Champion', test: () => false, minPlayers: 1, isSeasonSpecific: true },
   // Draft achievements
   {
     id: 'isSecondRoundPick',
@@ -148,7 +178,7 @@ export const BASKETBALL_ACHIEVEMENTS: Achievement[] = [
   {
     id: 'played5PlusFranchises',
     label: 'Played for 5+ Franchises',
-    test: (p: Player) => p.achievements?.played5PlusFranchises || false,
+    test: (p: Player) => getPlayerFranchiseCount(p) >= 5,
     minPlayers: 5
   },
   // Note: Single-season awards removed from career achievements
@@ -162,16 +192,12 @@ function createSeasonAchievementTests(seasonIndex?: SeasonIndex, sport: 'basketb
   // Filter achievements by sport
   const sportFilteredAchievements = SEASON_ACHIEVEMENTS.filter(seasonAch => {
     if (sport === 'basketball') {
-      // Basketball: exclude FB*, HK*, BB* prefixed achievements
       return !seasonAch.id.startsWith('FB') && !seasonAch.id.startsWith('HK') && !seasonAch.id.startsWith('BB');
     } else if (sport === 'football') {
-      // Football: only FB* prefixed achievements, exclude basketball-specific ones
       return seasonAch.id.startsWith('FB');
     } else if (sport === 'hockey') {
-      // Hockey: only HK* prefixed achievements, exclude basketball-specific ones
       return seasonAch.id.startsWith('HK');
     } else if (sport === 'baseball') {
-      // Baseball: only BB* prefixed achievements, exclude basketball-specific ones
       return seasonAch.id.startsWith('BB');
     }
     return false;
@@ -182,38 +208,41 @@ function createSeasonAchievementTests(seasonIndex?: SeasonIndex, sport: 'basketb
     label: seasonAch.label,
     isSeasonSpecific: true,
     minPlayers: seasonAch.minPlayers,
-    test: (player: Player) => {
-      // For statistical leader achievements (PointsLeader, BlocksLeader, etc.), check seasonIndex
-      const statisticalLeaders = ['PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader', 'Season30PPG', 'Season2000Points', 'Season200_3PM', 'Season12RPG', 'Season10APG', 'Season800Rebounds', 'Season700Assists', 'Season2SPG', 'Season2_5BPG', 'Season150Steals', 'Season150Blocks', 'Season200Stocks', 'Season50_40_90', 'Season70Games', 'Season36MPG', 'Season25_10', 'Season25_5_5', 'Season20_10_5', 'Season1_1_1', 'FBSeason4kPassYds', 'FBSeason1200RushYds', 'FBSeason100Receptions', 'FBSeason15Sacks', 'FBSeason140Tackles', 'FBSeason5Interceptions', 'FBSeason30PassTD', 'FBSeason1300RecYds', 'FBSeason10RecTD', 'FBSeason12RushTD', 'FBSeason1600Scrimmage', 'FBSeason2000AllPurpose', 'FBSeason15TFL', 'HKSeason40Goals', 'HKSeason60Assists', 'HKSeason90Points', 'HKSeason25Plus', 'HKSeason250Shots', 'HKSeason150Hits', 'HKSeason100Blocks', 'HKSeason60Takeaways', 'HKSeason20PowerPlay', 'HKSeason3SHGoals', 'HKSeason7GWGoals', 'HKSeason55FaceoffPct', 'HKSeason22TOI', 'HKSeason70PIM', 'HKSeason920SavePct', 'HKSeason260GAA', 'HKSeason6Shutouts', 'HKSeason2000Saves', 'HKSeason60Starts'];
-      if (statisticalLeaders.includes(seasonAch.id)) {
-        // For statistical leaders, check if player appears in any season/team for this achievement
-        if (!seasonIndex) return false;
-        
-        for (const seasonStr of Object.keys(seasonIndex)) {
-          const seasonData = seasonIndex[parseInt(seasonStr)];
-          for (const teamData of Object.values(seasonData)) {
-            if (teamData[seasonAch.id as keyof typeof teamData]?.has(player.pid)) {
-              return true;
-            }
-          }
+    test: (player: Player, teamId?: number) => {
+      const parsed = parseAchievementLabel(seasonAch.label, sport);
+      if (!parsed.isEditable) {
+        let awards = player.awards || [];
+        if (teamId !== undefined) {
+          const teamSeasons = new Set(player.stats?.filter(s => s.tid === teamId).map(s => s.season));
+          awards = awards.filter(award => teamSeasons.has(award.season));
         }
-        return false;
+        
+        return awards.some(award => {
+          const normalizedType = award.type.toLowerCase().trim();
+          return (seasonAch.id === 'AllStar' && normalizedType.includes('all-star')) ||
+                 (seasonAch.id === 'MVP' && normalizedType.includes('most valuable player')) ||
+                 (seasonAch.id === 'DPOY' && normalizedType.includes('defensive player')) ||
+                 (seasonAch.id === 'ROY' && normalizedType.includes('rookie of the year')) ||
+                 (seasonAch.id === 'SMOY' && normalizedType.includes('sixth man')) ||
+                 (seasonAch.id === 'MIP' && normalizedType.includes('most improved')) ||
+                 (seasonAch.id === 'FinalsMVP' && normalizedType.includes('finals mvp')) ||
+                 (seasonAch.id === 'AllLeagueAny' && (normalizedType.includes('all-league') || normalizedType.includes('allleague'))) ||
+                 (seasonAch.id === 'AllDefAny' && normalizedType.includes('all-defensive')) ||
+                 (seasonAch.id === 'AllRookieAny' && normalizedType.includes('all-rookie'));
+        });
       }
-      
-      // For traditional award-based achievements, check player awards
-      return player.awards?.some(award => {
-        const normalizedType = award.type.toLowerCase().trim();
-        return seasonAch.id === 'AllStar' && normalizedType.includes('all-star') ||
-               seasonAch.id === 'MVP' && normalizedType.includes('most valuable player') ||
-               seasonAch.id === 'DPOY' && normalizedType.includes('defensive player') ||
-               seasonAch.id === 'ROY' && normalizedType.includes('rookie of the year') ||
-               seasonAch.id === 'SMOY' && normalizedType.includes('sixth man') ||
-               seasonAch.id === 'MIP' && normalizedType.includes('most improved') ||
-               seasonAch.id === 'FinalsMVP' && normalizedType.includes('finals mvp') ||
-               seasonAch.id === 'AllLeagueAny' && (normalizedType.includes('all-league') || normalizedType.includes('allleague')) ||
-               seasonAch.id === 'AllDefAny' && normalizedType.includes('all-defensive') ||
-               seasonAch.id === 'AllRookieAny' && normalizedType.includes('all-rookie');
-      }) || false;
+
+      const threshold = parsed.number;
+      const statKey = ACHIEVEMENT_TO_STAT_KEY[seasonAch.id];
+
+      if (!statKey) return false;
+
+      if (statKey.type === 'total') {
+        return checkSeasonTotal(player, statKey.key, threshold, '≥', 1, teamId);
+      } else if (statKey.type === 'average') {
+        return checkSeasonAverage(player, statKey.key, threshold, '≥', 1, sport, teamId);
+      }
+      return false;
     }
   }));
 }
@@ -1213,16 +1242,7 @@ export const SEASON_ALIGNED_ACHIEVEMENTS = new Set([
   'HKSeason6Shutouts', 'HKSeason2000Saves', 'HKSeason60Starts',
 ]);
 
-function getPlayerFranchiseCount(player: Player): number {
-  if (!player.stats) return 0;
-  const franchiseIds = new Set<number>();
-  for (const stat of player.stats) {
-    if (stat.tid !== undefined && stat.tid !== -1 && !stat.playoffs && (stat.gp || 0) > 0) {
-      franchiseIds.add(stat.tid);
-    }
-  }
-  return franchiseIds.size;
-}
+
 
 export function getPlayerCareerAttemptsTotal(player: Player, percentageType: string): number {
   if (!player.stats) return 0;
@@ -1340,230 +1360,37 @@ export function playerMeetsAchievement(
     console.log(`🐛 [playerMeetsAchievement] Player: ${player.name}, Achievement: ${achievementId}, SeasonIndex: ${!!seasonIndex}, Operator: ${operator}, TeamId: ${teamId}, Season: ${season}`);
   }
 
-  // Check if it's a dynamic decade achievement first
-  if (achievementId.includes('playedIn') && achievementId.endsWith('s')) {
-    // Extract decade from achievement ID (e.g., "playedIn1990s" -> 1990)
-    const decadeMatch = achievementId.match(/playedIn(\d{4})s/);
-    if (decadeMatch) {
-      const decade = parseInt(decadeMatch[1]);
-      return player.decadesPlayed?.has(decade) || false;
-    }
-  }
-  
-  if (achievementId.includes('debutedIn') && achievementId.endsWith('s')) {
-    // Extract decade from achievement ID (e.g., "debutedIn1990s" -> 1990)
-    const decadeMatch = achievementId.match(/debutedIn(\d{4})s/);
-    if (decadeMatch) {
-      const decade = parseInt(decadeMatch[1]);
-      return player.debutDecade === decade;
-    }
-  }
-  
-  
+  const allAchievementsList = getAllAchievements(getCachedSportDetection(), seasonIndex, getCachedLeagueYears());
+  const baseAchievementId = achievementId.split('_custom_')[0];
+  const achievement = allAchievementsList.find(a => a.id === baseAchievementId);
+  const isSeasonSpecific = achievement?.isSeasonSpecific || SEASON_ACHIEVEMENTS.some(sa => sa.id === baseAchievementId);
 
-
-  // First, check if it's ANY achievement that needs season index (statistical leaders AND season achievements)
-  const statisticalLeaders = ['PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader', 'Season30PPG', 'Season2000Points', 'Season200_3PM', 'Season12RPG', 'Season10APG', 'Season800Rebounds', 'Season700Assists', 'Season2SPG', 'Season2_5BPG', 'Season150Steals', 'Season150Blocks', 'Season200Stocks', 'Season50_40_90', 'Season70Games', 'Season36MPG', 'Season25_10', 'Season25_5_5', 'Season20_10_5', 'Season1_1_1', 'FBSeason4kPassYds', 'FBSeason1200RushYds', 'FBSeason100Receptions', 'FBSeason15Sacks', 'FBSeason140Tackles', 'FBSeason5Interceptions', 'FBSeason30PassTD', 'FBSeason1300RecYds', 'FBSeason10RecTD', 'FBSeason12RushTD', 'FBSeason1600Scrimmage', 'FBSeason2000AllPurpose', 'FBSeason15TFL'];
-  const hockeyStatisticalLeaders = ['HKSeason40Goals', 'HKSeason60Assists', 'HKSeason90Points', 'HKSeason25Plus', 'HKSeason250Shots', 'HKSeason150Hits', 'HKSeason100Blocks', 'HKSeason60Takeaways', 'HKSeason20PowerPlay', 'HKSeason3SHGoals', 'HKSeason7GWGoals', 'HKSeason55FaceoffPct', 'HKSeason22TOI', 'HKSeason70PIM', 'HKSeason920SavePct', 'HKSeason260GAA', 'HKSeason6Shutouts', 'HKSeason2000Saves', 'HKSeason60Starts'];
-
-  if (hockeyStatisticalLeaders.includes(achievementId)) {
-    const seasonStats = player.achievements?.seasonStatsComputed;
-    if (!seasonStats) return false;
-
-    const threshold = parseFloat(achievementId.match(/(\d+(\.\d+)?)/)?.[0] || '0');
-    const statField = achievementId.replace(/HKSeason(\d+)/, '').charAt(0).toLowerCase() + achievementId.replace(/HKSeason(\d+)/, '').slice(1);
-    
-    for (const year in seasonStats) {
-      const data = (seasonStats as any)[year];
-      let value;
-      switch (achievementId) {
-        case 'HKSeason40Goals': value = data.goals; break;
-        case 'HKSeason60Assists': value = data.assists; break;
-        case 'HKSeason90Points': value = data.points; break;
-        case 'HKSeason25Plus': value = data.pm; break;
-        case 'HKSeason250Shots': value = data.s; break;
-        case 'HKSeason150Hits': value = data.hit; break;
-        case 'HKSeason100Blocks': value = data.blk; break;
-        case 'HKSeason60Takeaways': value = data.tk; break;
-        case 'HKSeason20PowerPlay': value = data.powerPlayPoints; break;
-        case 'HKSeason3SHGoals': value = data.shG; break;
-        case 'HKSeason7GWGoals': value = data.gwG; break;
-        case 'HKSeason55FaceoffPct': value = data.faceoffPct; break;
-        case 'HKSeason22TOI': value = data.toiPerGame; break;
-        case 'HKSeason70PIM': value = data.pim; break;
-        case 'HKSeason920SavePct': value = data.savePct; break;
-        case 'HKSeason260GAA': value = data.gaaRate; break;
-        case 'HKSeason6Shutouts': value = data.so; break;
-        case 'HKSeason2000Saves': value = data.sv; break;
-        case 'HKSeason60Starts': value = data.gs; break;
-        default: continue;
-      }
-      
-      if (achievementId === 'HKSeason260GAA') {
-        if (value <= threshold) return true;
-      } else {
-        if (value >= threshold) return true;
-      }
-    }
-    return false;
+  let playerForCheck = player;
+  if (teamId !== undefined && isSeasonSpecific) {
+      const teamSeasons = new Set(player.stats?.filter(s => s.tid === teamId).map(s => s.season));
+      playerForCheck = {
+          ...player,
+          stats: player.stats?.filter(s => s.tid === teamId) || [],
+          awards: player.awards?.filter(award => teamSeasons.has(award.season)) || [],
+      };
   }
 
-  if (statisticalLeaders.includes(achievementId)) {
-    if (!seasonIndex) {
-      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] No seasonIndex provided for statistical achievement ${achievementId}`);
-      return false;
-    }
-
-    if (season !== undefined && teamId !== undefined) {
-      // Specific season and team provided (Team x Achievement intersection)
-      const seasonData = seasonIndex[season];
-      if (seasonData) {
-        const teamData = seasonData[teamId];
-        if (teamData) {
-          const result = teamData[achievementId as keyof typeof teamData]?.has(player.pid) || false;
-          if (DEBUG) console.log(`🐛 [playerMeetsAchievement] Specific season/team check for ${achievementId}, Season: ${season}, Team: ${teamId}, Result: ${result}`);
-          return result;
-        }
-      }
-      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] No seasonData or teamData for specific season/team check for ${achievementId}, Season: ${season}, Team: ${teamId}`);
-      return false;
-    } else if (teamId !== undefined) {
-      // Only teamId provided (e.g., checking if player ever led a stat for a specific team)
-      for (const seasonStr of Object.keys(seasonIndex)) {
-        const seasonData = seasonIndex[parseInt(seasonStr)];
-        const teamData = seasonData[teamId];
-        if (teamData && teamData[achievementId as keyof typeof teamData]?.has(player.pid)) {
-          if (DEBUG) console.log(`🐛 [playerMeetsAchievement] Team-only check for ${achievementId}, Team: ${teamId}, Found in season: ${seasonStr}, Result: true`);
-          return true;
-        }
-      }
-      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] Team-only check for ${achievementId}, Team: ${teamId}, Result: false`);
-      return false;
-    } else {
-      // No specific team or season provided (Achievement x Achievement intersection or general check)
-      for (const seasonStr of Object.keys(seasonIndex)) {
-        const seasonData = seasonIndex[parseInt(seasonStr)];
-        for (const teamData of Object.values(seasonData)) {
-          if (teamData[achievementId as keyof typeof teamData]?.has(player.pid)) {
-            if (DEBUG) console.log(`🐛 [playerMeetsAchievement] General statistical check for ${achievementId}, Found in season: ${seasonStr}, Result: true`);
-            return true;
-          }
-        }
-      }
-      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] General statistical check for ${achievementId}, Result: false`);
-      return false;
-    }
-  }
-  
-  // Check if it's a season-specific achievement (like SMOY, MVP, etc.)
-  const seasonAchievement = SEASON_ACHIEVEMENTS.find(sa => sa.id === achievementId);
-  if (seasonAchievement) {
-    let filteredAwards = player.awards;
-
-    if (season !== undefined) {
-      filteredAwards = filteredAwards?.filter(award => award.season === season);
-      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] Filtering awards by season: ${season}, Count: ${filteredAwards?.length}`);
-    }
-
-    // If this is a season-aligned achievement and teamId is provided, we need to check team presence
-    if (SEASON_ALIGNED_ACHIEVEMENTS.has(achievementId) && teamId !== undefined) {
-      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] Season-aligned achievement with teamId: ${achievementId}, TeamId: ${teamId}`);
-      // Further filter awards to ensure the player was on the team during that season
-      filteredAwards = filteredAwards?.filter(award => {
-        // Check if player played for teamId in the award's season
-        return player.stats?.some(s => s.season === award.season && s.tid === teamId && !s.playoffs && (s.gp || 0) > 0);
-      });
-      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] After team alignment filter, awards count: ${filteredAwards?.length}`);
-    }
-
-    if (achievementId === 'MVP' && teamId === undefined) {
-      console.log(`DEBUG: playerMeetsAchievement - Checking MVP globally for ${player.name}`);
-      console.log(`DEBUG: playerMeetsAchievement - Player awards:`, player.awards?.map(a => a.type));
-      console.log(`DEBUG: playerMeetsAchievement - Filtered awards for MVP:`, filteredAwards?.map(a => a.type));
-    }
-
-    return filteredAwards?.some(award => {
-      const normalizedType = award.type.toLowerCase().trim();
-      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] Checking award: ${award.type} for achievement: ${achievementId}`);
-      
-      // Basketball achievements
-      if (achievementId === 'AllStar' && normalizedType.includes('all-star')) return true;
-      if (achievementId === 'MVP' && normalizedType.includes('most valuable player')) return true;
-      if (achievementId === 'DPOY' && normalizedType.includes('defensive player')) return true;
-      if (achievementId === 'ROY' && normalizedType.includes('rookie of the year')) return true;
-      if (achievementId === 'SMOY' && normalizedType.includes('sixth man')) return true;
-      if (achievementId === 'MIP' && normalizedType.includes('most improved')) return true;
-      if (achievementId === 'FinalsMVP' && normalizedType.includes('finals mvp')) return true;
-      if (achievementId === 'AllLeagueAny' && (normalizedType.includes('all-league') || normalizedType.includes('allleague'))) return true;
-      if (achievementId === 'AllDefAny' && normalizedType.includes('all-defensive')) return true;
-      if (achievementId === 'AllRookieAny' && normalizedType.includes('all-rookie')) return true;
-      
-      // Football achievements (case-sensitive exact matches)
-      if (achievementId === 'FBAllStar' && award.type === 'All-Star') return true;
-      if (achievementId === 'FBMVP' && award.type === 'Most Valuable Player') return true;
-      if (achievementId === 'FBDPOY' && award.type === 'Defensive Player of the Year') return true;
-      if (achievementId === 'FBOffROY' && award.type === 'Offensive Rookie of the Year') return true;
-      if (achievementId === 'FBDefROY' && award.type === 'Defensive Rookie of the Year') return true;
-      if (achievementId === 'FBChampion' && award.type === 'Won Championship') return true;
-      if (achievementId === 'FBAllRookie' && award.type === 'All-Rookie Team') return true;
-      if (achievementId === 'FBAllLeague' && (award.type === 'First Team All-League' || award.type === 'Second Team All-League')) return true;
-      if (achievementId === 'FBFinalsMVP' && award.type === 'Finals MVP') return true;
-      
-      // Hockey achievements (case-sensitive exact matches)
-      if (achievementId === 'HKAllStar' && award.type === 'All-Star') return true;
-      if (achievementId === 'HKMVP' && award.type === 'Most Valuable Player') return true;
-      if (achievementId === 'HKDefenseman' && award.type === 'Best Defenseman') return true;
-      if (achievementId === 'HKROY' && award.type === 'Rookie of the Year') return true;
-      if (achievementId === 'HKChampion' && award.type === 'Won Championship') return true;
-      if (achievementId === 'HKPlayoffsMVP' && award.type === 'Playoffs MVP') return true;
-      if (achievementId === 'HKFinalsMVP' && award.type === 'Finals MVP') return true;
-      if (achievementId === 'HKAllRookie' && award.type === 'All-Rookie Team') return true;
-      if (achievementId === 'HKAllLeague' && (award.type === 'First Team All-League' || award.type === 'Second Team All-League' || award.type === 'Third Team All-League')) return true;
-      if (achievementId === 'HKAllStarMVP' && award.type === 'All-Star MVP') return true;
-      if (achievementId === 'HKAssistsLeader' && award.type === 'League Assists Leader') return true;
-      
-      // Baseball achievements
-      if (achievementId === 'BBAllStar' && award.type === 'All-Star') return true;
-      if (achievementId === 'BBMVP' && award.type === 'Most Valuable Player') return true;
-      if (achievementId === 'BBROY' && award.type === 'Rookie of the Year') return true;
-      if (achievementId === 'BBChampion' && award.type === 'Won Championship') return true;
-      if (achievementId === 'BBAllRookie' && award.type === 'All-Rookie Team') return true;
-      if (achievementId === 'BBAllLeague' && (award.type === 'First Team All-League' || award.type === 'Second Team All-League' || award.type === 'All-League Team')) return true;
-      if (achievementId === 'BBPlayoffsMVP' && (award.type === 'Playoffs MVP' || award.type === 'Finals MVP')) return true;
-      
-      return false;
-    }) || false;
-  }
-  
-  // For regular career achievements, use the static achievement arrays
-  const allAchievements = [...COMMON_ACHIEVEMENTS, ...BASKETBALL_ACHIEVEMENTS, ...FOOTBALL_ACHIEVEMENTS, ...HOCKEY_ACHIEVEMENTS, ...BASEBALL_ACHIEVEMENTS];
-  const achievement = allAchievements.find(a => a.id === achievementId);
-  
   if (achievementId.includes('_custom_')) {
     const parsedCustom = parseCustomAchievementId(achievementId);
     if (parsedCustom) {
-      const allAchievements = getAllAchievements(getCachedSportDetection(), seasonIndex, getCachedLeagueYears());
-      const baseAchievement = allAchievements.find(a => a.id === parsedCustom.baseId);
-
+      const baseAchievement = allAchievementsList.find(a => a.id === parsedCustom.baseId);
       if (baseAchievement) {
         const sport = getCachedSportDetection();
         if (sport) {
           const customAchievement = createCustomNumericalAchievement(baseAchievement, parsedCustom.threshold, sport, parsedCustom.operator);
-          return customAchievement.test(player);
+          return customAchievement.test(playerForCheck);
         }
       }
     }
   }
 
   if (achievement) {
-    const achievementTestResult = achievement.test(player);
-    // If the test result is a boolean, return it directly.
-    if (typeof achievementTestResult === 'boolean') {
-      return achievementTestResult;
-    }
-    // Otherwise, assume it's a numerical value to be compared with a threshold.
-    const threshold = parseFloat(achievement.label.match(/(\d+[,\d.]*)/)?.[0].replace(/,/g, '') || '0');
-    return operator === '>=' ? achievementTestResult >= threshold : achievementTestResult <= threshold;
+    return achievement.test(playerForCheck);
   }
   
   return false;
