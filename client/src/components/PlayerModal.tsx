@@ -6,7 +6,6 @@ import { AlertCircle } from "lucide-react";
 import { useMemo } from 'react';
 import type { Player, Team, CatTeam } from '@/types/bbgm';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
-import { generateFeedbackMessage } from '@/lib/feedback';
 import { generatePlayerGuessFeedback, getSeasonsForSeasonStatAchievement, formatBulletSeasonList } from '@/lib/reason-bullets';
 import { getAllAchievements, getCachedSportDetection, getCachedLeagueYears } from '@/lib/achievements';
 import { getCachedSeasonIndex } from '@/lib/season-index-cache';
@@ -147,58 +146,49 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
 
       const isCorrectGuess = eligiblePlayers.some(p => p.pid === player.pid);
       
-      if (isCorrectGuess) {
-      // Calculate rarity for correct guesses
-      const eligiblePool = eligiblePlayers.map(p => playerToEligibleLite(p));
-      if (eligiblePool.length > 0) {
-        const guessedPlayer = playerToEligibleLite(player);
-        const rarity = computeRarityForGuess({
-          guessed: guessedPlayer,
-          eligiblePool: eligiblePool,
-          puzzleSeed: puzzleSeed,
-          cellContext: {
-            rowConstraint: rowConstraint,
-            colConstraint: colConstraint
-          },
-          fullPlayers: eligiblePlayers,
-          teams: new Map(Array.isArray(teams) ? teams.map(t => [t.tid, t]) : [])
-        });
-        
-        // Generate reason bullets for correct guess
-        const reasonBullets = generatePlayerGuessFeedback(
-          player,
-          rowConstraint,
-          colConstraint,
-          Array.isArray(teams) ? teams : [],
-          currentSport,
-          seasonIndex
-        );
-
-        return {
-          type: 'correct' as const,
-          rarity,
-          reasonBullets
-        };
-      }
-    } else {
-      // Generate feedback for wrong guesses
-      const feedbackMessage = generateFeedbackMessage(
+      // Generate reason bullets for all guesses (correct and incorrect)
+      const reasonBullets = generatePlayerGuessFeedback(
         player,
         rowConstraint,
         colConstraint,
         Array.isArray(teams) ? teams : [],
-        currentSport as "basketball" | "football" | "hockey" | "baseball",
-        allAchievements,
-        seasonIndex
+        currentSport,
+        seasonIndex,
+        isCorrectGuess
       );
 
-      return {
-        type: 'wrong' as const,
-        feedbackMessage
-      };
-    }
+      if (isCorrectGuess) {
+        // Calculate rarity for correct guesses
+        const eligiblePool = eligiblePlayers.map(p => playerToEligibleLite(p));
+        if (eligiblePool.length > 0) {
+          const guessedPlayer = playerToEligibleLite(player);
+          const rarity = computeRarityForGuess({
+            guessed: guessedPlayer,
+            eligiblePool: eligiblePool,
+            puzzleSeed: puzzleSeed,
+            cellContext: {
+              rowConstraint: rowConstraint,
+              colConstraint: colConstraint
+            },
+            fullPlayers: eligiblePlayers,
+            teams: new Map(Array.isArray(teams) ? teams.map(t => [t.tid, t]) : [])
+          });
 
-    return null;
+          return {
+            type: 'correct' as const,
+            rarity,
+            reasonBullets
+          };
+        }
+      } else {
+        // Return bullets for incorrect guesses
+        return {
+          type: 'wrong' as const,
+          reasonBullets
+        };
+      }
+
+      return null;
     } catch (error) {
       console.error('Error in PlayerModal modalData calculation:', error);
       return null;
@@ -326,13 +316,19 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
               )}
 
               {modalData && modalData.type === 'wrong' && (
-                <div className="mt-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
-                    <span className="text-sm text-red-700 dark:text-red-300 leading-5">
-                      {modalData.feedbackMessage}
-                    </span>
-                  </div>
+                <div className="mt-2">
+                  <span className="text-lg font-bold text-red-600 dark:text-red-400">Incorrect</span>
+                  
+                  {/* Reason bullets for incorrect guesses */}
+                  {modalData.reasonBullets && modalData.reasonBullets.length > 0 && (
+                    <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                      {modalData.reasonBullets.map((bullet, index) => (
+                        <div key={index} className="flex items-start gap-2">
+                          <span className="leading-5">{bullet}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

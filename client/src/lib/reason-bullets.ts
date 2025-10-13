@@ -442,7 +442,7 @@ export function getTeamYearRange(player: Player, teamId: number): string {
   return `${seasons[0]}–${seasons[seasons.length - 1]}`;
 }
 
-export function generatePlayerGuessFeedback(player: Player, rowConstraint: CatTeam, colConstraint: CatTeam, teams: Team[], sport: string, seasonIndex: SeasonIndex): string[] {
+export function generatePlayerGuessFeedback(player: Player, rowConstraint: CatTeam, colConstraint: CatTeam, teams: Team[], sport: string, seasonIndex: SeasonIndex, isCorrectGuess: boolean = true): string[] {
   const bullets: string[] = [];
 
   // --- Row (Team) Bullet ---
@@ -471,31 +471,105 @@ export function generatePlayerGuessFeedback(player: Player, rowConstraint: CatTe
     const achievementId = colConstraint.achievementId!;
     const achievementLabel = colConstraint.label;
 
-    const achieved = playerMeetsAchievement(player, achievementId, seasonIndex, '>=', rowConstraint.tid, undefined);
+    // For both correct and incorrect, check if player achieved it (without team requirement for incorrect)
+    const achievedWithTeam = playerMeetsAchievement(player, achievementId, seasonIndex, '>=', rowConstraint.tid, undefined);
+    const achievedGlobally = playerMeetsAchievement(player, achievementId, seasonIndex, '>=', undefined, undefined);
 
-    if (achieved) {
-      const achievementYears = getSeasonAchievementSeasons(player, achievementId as SeasonAchievementId, teams, rowConstraint.tid, sport);
-      let finalAchievementLabel = achievementLabel;
+    // Get achievement years/count for display
+    const achievementYears = getSeasonAchievementSeasons(player, achievementId as SeasonAchievementId, teams, undefined, sport);
+    let finalAchievementLabel = achievementLabel;
 
-      // Handle custom numerical achievements for label formatting
-      const parsedCustom = parseCustomAchievementId(achievementId);
-      if (parsedCustom) {
-        const parsedOriginalLabel = parseAchievementLabel(achievementLabel, sport);
-        finalAchievementLabel = generateUpdatedLabel(parsedOriginalLabel, parsedCustom.threshold, parsedCustom.operator);
-      } else {
-        // For standard season achievements, remove "(Season)" suffix if present
-        finalAchievementLabel = finalAchievementLabel.replace(/\s*\(Season\)/gi, '').trim();
-      }
+    // Handle custom numerical achievements for label formatting
+    const parsedCustom = parseCustomAchievementId(achievementId);
+    if (parsedCustom) {
+      const parsedOriginalLabel = parseAchievementLabel(achievementLabel, sport);
+      finalAchievementLabel = generateUpdatedLabel(parsedOriginalLabel, parsedCustom.threshold, parsedCustom.operator);
+    } else {
+      // For standard season achievements, remove "(Season)" suffix if present
+      finalAchievementLabel = finalAchievementLabel.replace(/\s*\(Season\)/gi, '').trim();
+    }
 
+    // Check if it's a career counting stat achievement
+    const isCareerStat = achievementId.startsWith('career');
+
+    if (achievedWithTeam && isCorrectGuess) {
+      // Correct guess - show achievement with seasons/years
       if (achievementYears.length > 0) {
+        const count = achievementYears.length;
         const formattedYears = formatBulletSeasonList(achievementYears, false);
-        bullets.push(`• ${finalAchievementLabel} (${formattedYears})`);
+        
+        // Format awards with count like "4x MVP (2010, 2012, 2014, 2016)"
+        if (count > 1 && !isCareerStat && !achievementId.startsWith('Season')) {
+          bullets.push(`• ${count}x ${finalAchievementLabel} (${formattedYears})`);
+        } else {
+          bullets.push(`• ${finalAchievementLabel} (${formattedYears})`);
+        }
+      } else if (isCareerStat) {
+        // Career stat - show the actual value
+        const statValue = getCareerStatValue(player, achievementId);
+        bullets.push(`• ${finalAchievementLabel}${statValue ? `: ${statValue}` : ''}`);
       } else {
-        // This case might happen for career achievements that don't have specific "seasons"
         bullets.push(`• ${finalAchievementLabel}`);
+      }
+    } else if (!isCorrectGuess) {
+      // Incorrect guess - show what they had globally
+      if (achievedGlobally) {
+        if (achievementYears.length > 0) {
+          const count = achievementYears.length;
+          const formattedYears = formatBulletSeasonList(achievementYears, false);
+          
+          // Format awards with count like "4x MVP (2010, 2012, 2014, 2016)"
+          if (count > 1 && !isCareerStat && !achievementId.startsWith('Season')) {
+            bullets.push(`• ${count}x ${finalAchievementLabel} (${formattedYears})`);
+          } else {
+            bullets.push(`• ${finalAchievementLabel} (${formattedYears})`);
+          }
+        } else if (isCareerStat) {
+          // Career stat - show the actual value
+          const statValue = getCareerStatValue(player, achievementId);
+          bullets.push(`• ${finalAchievementLabel}${statValue ? `: ${statValue}` : ''}`);
+        } else {
+          bullets.push(`• ${finalAchievementLabel}`);
+        }
+      } else {
+        // Didn't achieve it at all
+        if (isCareerStat) {
+          // Show what they actually had
+          const statValue = getCareerStatValue(player, achievementId);
+          if (statValue !== null) {
+            bullets.push(`• ${finalAchievementLabel}: ${statValue}`);
+          } else {
+            bullets.push(`• ${finalAchievementLabel}: 0`);
+          }
+        } else {
+          bullets.push(`• Did not achieve: ${finalAchievementLabel}`);
+        }
       }
     }
   }
 
   return bullets;
+}
+
+// Helper function to get career stat value from player
+function getCareerStatValue(player: Player, achievementId: string): number | null {
+  const statMap: Record<string, string> = {
+    'careerPoints': 'pts',
+    'career20000Points': 'pts',
+    'careerRebounds': 'trb',
+    'career10000Rebounds': 'trb',
+    'careerAssists': 'ast',
+    'career5000Assists': 'ast',
+    'careerSteals': 'stl',
+    'career2000Steals': 'stl',
+    'careerBlocks': 'blk',
+    'career1500Blocks': 'blk',
+    'career3PM': 'tpm',
+    'career2000ThreeMade': 'tpm',
+  };
+
+  const statField = statMap[achievementId];
+  if (!statField || !player.stats) return null;
+
+  return getPlayerCareerTotal(player, statField as any);
 }

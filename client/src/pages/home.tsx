@@ -261,21 +261,7 @@ export default function Home() {
 
     // Add to used players (regardless of correctness to prevent reuse)
     setUsedPids(prev => new Set([...Array.from(prev), player.pid]));
-
-    // Show toast for incorrect guesses
-    if (!isCorrect) {
-      // Provide a more descriptive reason for the incorrect guess
-      const reason = rowConstraint && colConstraint 
-        ? `Player must meet criteria for both "${rowConstraint.label}" and "${colConstraint.label}".`
-        : 'Player does not meet the required criteria for this cell.';
-      
-      toast({
-        title: 'Incorrect Guess',
-        description: `${player.name} is not a valid answer. ${reason}`,
-        variant: 'destructive',
-      });
-    }
-  }, [intersections, usedPids, leagueData, rows, cols, toast]);
+  }, [intersections, usedPids, leagueData, rows, cols]);
 
   // Handle search modal player selection
   const handleSelectPlayer = useCallback((player: Player) => {
