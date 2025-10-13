@@ -2525,6 +2525,7 @@ export function generateCustomStatAchievements(
     
     // Generate threshold options based on the original threshold
     const thresholds = generateThresholdOptions(parsed.number, achievement.id);
+    console.log(`  Testing ${achievement.label} with thresholds:`, thresholds);
     
     // Test each threshold with both >= and <= operators
     for (const threshold of thresholds) {
@@ -2535,7 +2536,9 @@ export function generateCustomStatAchievements(
       // Add if it has 3-15 qualifying players (viable range)
       if (gteCount >= 3 && gteCount <= 15) {
         customAchievements.push(gteCustom);
-        console.log(`✅ Added custom: ${gteCustom.label} (${gteCount} players)`);
+        console.log(`✅ Added >= custom: ${gteCustom.label} (${gteCount} players)`);
+      } else {
+        console.log(`  ✗ Skipped >= ${threshold}: ${gteCount} players (need 3-15)`);
       }
       
       // Try <= operator (for "role player" challenges)
@@ -2545,7 +2548,9 @@ export function generateCustomStatAchievements(
       // Add if it has 3-15 qualifying players
       if (lteCount >= 3 && lteCount <= 15) {
         customAchievements.push(lteCustom);
-        console.log(`✅ Added custom: ${lteCustom.label} (${lteCount} players)`);
+        console.log(`✅ Added <= custom: ${lteCustom.label} (${lteCount} players)`);
+      } else {
+        console.log(`  ✗ Skipped <= ${threshold}: ${lteCount} players (need 3-15)`);
       }
     }
   }
