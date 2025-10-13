@@ -1,7 +1,8 @@
 import type { Player } from "@/types/bbgm";
 import { SEASON_ACHIEVEMENTS, type SeasonAchievement, type SeasonIndex, type SeasonAchievementId, getSeasonEligiblePlayers } from './season-achievements';
 import { SeededRandom } from './seeded';
-import { createCustomNumericalAchievement, parseAchievementLabel, parseCustomAchievementId, checkSeasonTotal, checkSeasonAverage } from './editable-achievements';
+import { createCustomNumericalAchievement, parseAchievementLabel, parseCustomAchievementId } from './editable-achievements';
+export { parseCustomAchievementId } from './editable-achievements';
 import { getPlayerFranchiseCount } from './player-utils';
 
 const ACHIEVEMENT_TO_STAT_KEY: Record<string, { key: string | string[], type: 'total' | 'average' }> = {
@@ -237,8 +238,80 @@ function createSeasonAchievementTests(seasonIndex?: SeasonIndex, sport: 'basketb
 
       if (!statKey) return false;
 
+function checkSeasonTotal(player: Player, statField: string | string[], newThreshold: number, operator: '≥' | '≤', minGames: number = 1, teamId?: number): boolean {
+  if (!player.stats) return false;
+  const statsToCheck = teamId === undefined ? player.stats : player.stats.filter(s => s.tid === teamId);
+
+  for (const stat of statsToCheck) {
+    if (!stat.playoffs && (stat.gp || 0) >= minGames) {
+      let value = 0;
+      if (Array.isArray(statField)) {
+        for (const field of statField) {
+          value += (stat as any)[field] || 0;
+        }
+      } else if (statField === 'trb') {
+        value = (stat as any).trb ?? ((stat as any).orb || 0) + ((stat as any).drb || 0);
+      } else {
+        value = (stat as any)[statField] || 0;
+      }
+
+      if (operator === '≤' && value <= newThreshold) {
+        return true;
+      } else if (operator === '≥' && value >= newThreshold) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
       if (statKey.type === 'total') {
         return checkSeasonTotal(player, statKey.key, threshold, '≥', 1, teamId);
+function checkSeasonAverage(player: Player, statField: string, newThreshold: number, operator: '≥' | '≤', minGames: number = 1, sport: string, teamId?: number): boolean {
+  if (!player.stats) return false;
+
+  const statsToCheck = teamId === undefined ? player.stats : player.stats.filter(s => s.tid === teamId);
+
+  if (sport === 'hockey' && player.achievements?.seasonStatsComputed) {
+    for (const seasonYearStr in player.achievements.seasonStatsComputed) {
+      const seasonYear = parseInt(seasonYearStr);
+      const computedStats = player.achievements.seasonStatsComputed[seasonYear];
+
+      // Find the raw stat for this season to get gp
+      const rawStat = statsToCheck.find(s => s.season === seasonYear && !s.playoffs);
+      const gp = rawStat?.gp || 0;
+      
+      if (gp >= minGames) {
+        const average = (computedStats as any)[statField] || 0;
+        if (operator === '≤' && average <= newThreshold) {
+          return true;
+        } else if (operator === '≥' && average >= newThreshold) {
+          return true;
+        }
+      }
+    }
+  } else {
+    for (const stat of statsToCheck) {
+      if (!stat.playoffs && (stat.gp || 0) >= minGames) {
+        let total = 0;
+        if (statField === 'trb') {
+            total = (stat as any).trb ?? ((stat as any).orb || 0) + ((stat as any).drb || 0);
+        } else {
+            total = (stat as any)[statField] || 0;
+        }
+        const games = stat.gp || 1;
+        const average = games > 0 ? total / games : 0;
+        if (operator === '≤' && average <= newThreshold) {
+          return true;
+        } else if (operator === '≥' && average >= newThreshold) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
       } else if (statKey.type === 'average') {
         return checkSeasonAverage(player, statKey.key, threshold, '≥', 1, sport, teamId);
       }

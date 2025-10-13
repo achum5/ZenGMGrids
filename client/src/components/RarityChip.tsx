@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 
 // Helper to determine rarity tier based on playerCount
-const getRarityTier = (count: number) => {
+export const getRarityTier = (count: number) => {
   if (count >= 90) return 'mythic';
   if (count >= 75) return 'legendary';
   if (count >= 60) return 'epic';
