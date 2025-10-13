@@ -2514,49 +2514,8 @@ export function generateCustomStatAchievements(
   const customAchievements: Achievement[] = [];
   const allAchievements = getAllAchievements(sport, seasonIndex, leagueYears);
   
-  // Define stat achievements that can be customized (CAREER ONLY for now)
-  const statAchievements = allAchievements.filter(a => a.id.startsWith('career'));
-  
-  console.log(`🎯 [CUSTOM STATS] Found ${statAchievements.length} career stat achievements to customize for ${sport}`);
-  
-  for (const achievement of statAchievements) {
-    const parsed = parseAchievementLabel(achievement.label, sport);
-    if (!parsed.isEditable) continue;
-    
-    // Generate threshold options based on the original threshold
-    const thresholds = generateThresholdOptions(parsed.number, achievement.id);
-    console.log(`  Testing ${achievement.label} with thresholds:`, thresholds);
-    
-    // Test each threshold with both >= and <= operators
-    for (const threshold of thresholds) {
-      // Try >= operator
-      const gteCustom = createCustomNumericalAchievement(achievement, threshold, sport, '≥');
-      const gteCount = players.filter(p => gteCustom.test(p)).length;
-      
-      // Add if it has 3-15 qualifying players (viable range)
-      if (gteCount >= 3 && gteCount <= 15) {
-        customAchievements.push(gteCustom);
-        console.log(`✅ Added >= custom: ${gteCustom.label} (${gteCount} players)`);
-      } else {
-        console.log(`  ✗ Skipped >= ${threshold}: ${gteCount} players (need 3-15)`);
-      }
-      
-      // Try <= operator (for "role player" challenges)
-      const lteCustom = createCustomNumericalAchievement(achievement, threshold, sport, '≤');
-      const lteCount = players.filter(p => lteCustom.test(p)).length;
-      
-      // Add if it has 3-15 qualifying players
-      if (lteCount >= 3 && lteCount <= 15) {
-        customAchievements.push(lteCustom);
-        console.log(`✅ Added <= custom: ${lteCustom.label} (${lteCount} players)`);
-      } else {
-        console.log(`  ✗ Skipped <= ${threshold}: ${lteCount} players (need 3-15)`);
-      }
-    }
-  }
-  
-  console.log(`🎯 [CUSTOM STATS] Generated ${customAchievements.length} total custom achievements`);
-  return customAchievements;
+  // This function is now deprecated - dynamic customization is done at selection time
+  return [];
 }
 
 // Generate threshold options based on original value (optimized for performance)

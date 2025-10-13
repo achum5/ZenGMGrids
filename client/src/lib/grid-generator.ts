@@ -1,5 +1,6 @@
 import type { LeagueData, CatTeam, Player, Team } from '@/types/bbgm';
 import { getViableAchievements, playerMeetsAchievement, getAllAchievements, type Achievement, debugIndividualAchievements, generateCustomStatAchievements } from '@/lib/achievements';
+import { parseAchievementLabel, createCustomNumericalAchievement } from '@/lib/editable-achievements';
 import { getSeasonEligiblePlayers, type SeasonAchievementId, type SeasonIndex, SEASON_ACHIEVEMENTS } from './season-achievements';
 import { calculateOptimizedIntersection, type IntersectionConstraint } from '@/lib/intersection-cache';
 import { mapAchievementToAchv } from './achv-mappers';
@@ -135,14 +136,8 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
   const minPlayersRequired = sport === 'hockey' ? 3 : 5; // Lower requirement for hockey due to fewer players
   const allAchievements = getViableAchievements(players, minPlayersRequired, sport, seasonIndex, leagueYears);
   
-  // Generate custom stat achievements with different thresholds
-  const customStatAchievements = generateCustomStatAchievements(players, sport, seasonIndex, leagueYears);
-  
-  // Combine viable achievements with custom stat achievements
-  const combinedAchievements = [...allAchievements, ...customStatAchievements];
-  
   // Filter out season-specific achievements for old builder
-  const viableAchievements = combinedAchievements.filter(achievement => 
+  const viableAchievements = allAchievements.filter(achievement => 
     !SEASON_ACHIEVEMENTS.some(sa => sa.id === achievement.id)
   );
   
@@ -173,14 +168,18 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
 
   const achievementConstraints: CatTeam[] = viableAchievements
     .filter(achievement => achievement.id !== 'bornOutsideUS50DC') // Temporarily remove born outside US achievement
-    .map(achievement => ({
-      key: `achievement-${achievement.id}`,
-      label: achievement.label,
-      achievementId: achievement.id,
-      achv: mapAchievementToAchv(achievement),
-      type: 'achievement',
-      test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex),
-    }));
+    .map((achievement, index) => {
+      // Dynamically customize career stat achievements with a seed based on index
+      const customized = sport ? maybeCustomizeAchievement(achievement, sport, `oldrandom_${index}`) : achievement;
+      return {
+        key: `achievement-${customized.id}`,
+        label: customized.label,
+        achievementId: customized.id,
+        achv: mapAchievementToAchv(customized),
+        type: 'achievement',
+        test: (p: Player) => playerMeetsAchievement(p, customized.id, seasonIndex),
+      };
+    });
 
   if (teamConstraints.length < 3) {
     throw new Error(`Need at least 3 teams to generate grid (found ${teamConstraints.length})`);
@@ -767,6 +766,112 @@ export function legacyCellKey(rowTid: number, colTid: number): string {
   return `${rowTid}|${colTid}`;
 }
 
+// Dynamically customize a career stat achievement with random threshold and operator
+function maybeCustomizeAchievement(
+  achievement: Achievement,
+  sport: 'basketball' | 'football' | 'hockey' | 'baseball',
+  seed: string
+): Achievement {
+  // Only customize career stat achievements
+  if (!achievement.id.startsWith('career')) {
+    return achievement;
+  }
+  
+  const parsed = parseAchievementLabel(achievement.label, sport);
+  if (!parsed.isEditable) {
+    return achievement;
+  }
+  
+  // Use seeded random to pick threshold and operator
+  const hashValue = simpleHash(seed + achievement.id);
+  const shouldCustomize = (hashValue % 3) === 0; // 33% chance to customize
+  
+  if (!shouldCustomize) {
+    return achievement;
+  }
+  
+  // Get available thresholds for this stat
+  const thresholds = generateThresholdOptions(parsed.number, achievement.id);
+  const thresholdIndex = Math.abs(simpleHash(seed + achievement.id + '_thresh')) % thresholds.length;
+  const selectedThreshold = thresholds[thresholdIndex];
+  
+  // Randomly pick operator (50/50)
+  const operatorHash = simpleHash(seed + achievement.id + '_op');
+  const operator = (operatorHash % 2) === 0 ? '≥' : '≤';
+  
+  const customized = createCustomNumericalAchievement(achievement, selectedThreshold, sport, operator);
+  console.log(`🎲 Dynamically customized: ${achievement.label} → ${customized.label}`);
+  
+  return customized;
+}
+
+// Generate threshold options for dynamic customization
+function generateThresholdOptions(originalThreshold: number, achievementId: string): number[] {
+  const thresholds: number[] = [];
+  
+  // Basketball points/rebounds/assists
+  if (achievementId.includes('Points') || achievementId.includes('pts') || 
+      achievementId.includes('Rebounds') || achievementId.includes('trb') ||
+      achievementId.includes('Assists') || achievementId.includes('ast')) {
+    thresholds.push(20000, 10000, 5000, 2000, 1000, 500, 100);
+  }
+  // Basketball steals/blocks/3PM
+  else if (achievementId.includes('Steals') || achievementId.includes('Blocks') || 
+           achievementId.includes('3') || achievementId.includes('tpm')) {
+    thresholds.push(2000, 1000, 500, 250, 100, 50);
+  }
+  // Football passing yards
+  else if (achievementId.includes('Pass') && achievementId.includes('Yds')) {
+    thresholds.push(60000, 40000, 20000, 10000, 5000, 1000);
+  }
+  // Football rushing/receiving yards
+  else if (achievementId.includes('Rush') || achievementId.includes('Rec')) {
+    thresholds.push(15000, 10000, 5000, 2500, 1000, 500);
+  }
+  // TDs/Sacks/Interceptions
+  else if (achievementId.includes('TD') || achievementId.includes('Sack') || 
+           achievementId.includes('Int')) {
+    thresholds.push(300, 200, 100, 50, 25, 10);
+  }
+  // Hockey goals/points/assists
+  else if (achievementId.includes('Goals') || achievementId.includes('Points') || 
+           achievementId.includes('Assists')) {
+    thresholds.push(1500, 1000, 500, 300, 100, 50);
+  }
+  // Hockey wins/shutouts (goalies)
+  else if (achievementId.includes('Wins') || achievementId.includes('Shutouts')) {
+    thresholds.push(400, 200, 100, 50, 25);
+  }
+  // Baseball hits
+  else if (achievementId.includes('Hits')) {
+    thresholds.push(3000, 2000, 1500, 1000, 500, 250);
+  }
+  // Baseball home runs
+  else if (achievementId.includes('HR')) {
+    thresholds.push(600, 400, 300, 200, 100, 50);
+  }
+  // Baseball RBIs/Runs
+  else if (achievementId.includes('RBI') || achievementId.includes('Runs')) {
+    thresholds.push(2000, 1500, 1000, 500, 250);
+  }
+  // Baseball stolen bases
+  else if (achievementId.includes('SB') || achievementId.includes('Stolen')) {
+    thresholds.push(600, 400, 200, 100, 50);
+  }
+  // Baseball pitching (wins/strikeouts/saves)
+  else if (achievementId.includes('Wins') || achievementId.includes('Strikeouts') || 
+           achievementId.includes('Saves')) {
+    thresholds.push(350, 250, 150, 100, 50);
+  }
+  // Default fallback: scale from original value
+  else {
+    const scales = [2, 1, 0.5, 0.25, 0.1];
+    thresholds.push(...scales.map(s => Math.round(originalThreshold * s)));
+  }
+  
+  return [...new Set(thresholds)].sort((a, b) => b - a);
+}
+
 // New simplified seeded grid builder (for basketball with >= 12 seasons)
 function generateGridSeeded(leagueData: LeagueData): {
   rows: CatTeam[];
@@ -779,8 +884,7 @@ function generateGridSeeded(leagueData: LeagueData): {
     throw new Error('Season index required for seeded builder');
   }
   
-  // Generate custom stat achievements ONCE at the beginning for performance
-  const customStatAchievements = generateCustomStatAchievements(players, sport, seasonIndex, leagueData.leagueYears);
+  // Note: Custom stat achievements are now generated dynamically when selected, not pre-generated
   
   
   
@@ -942,14 +1046,11 @@ function generateGridSeeded(leagueData: LeagueData): {
       // Only try career achievements with decade weighting applied
       const rawAchievements = getAllAchievements(sport, seasonIndex, leagueData.leagueYears);
       
-      // Use pre-generated custom stat achievements for performance
-      const combinedAchievements = [...rawAchievements, ...customStatAchievements];
-      
       // Apply decade weighting for achievement selection 
       const currentYear = leagueData.leagueYears?.maxSeason || new Date().getFullYear();
       const weightedAchievements: Achievement[] = [];
       
-      for (const ach of combinedAchievements) {
+      for (const ach of rawAchievements) {
         if (ach.isSeasonSpecific) continue;
         if (ach.id === 'bornOutsideUS50DC') continue;
         
@@ -957,7 +1058,6 @@ function generateGridSeeded(leagueData: LeagueData): {
         
         // Apply decade skewing for decade achievements
         const isDecadeAchievement = ach.id.includes('playedIn') || ach.id.includes('debutedIn');
-        const isCustomStat = ach.id.includes('custom_');
         
         if (isDecadeAchievement) {
           const decadeMatch = ach.id.match(/(\d{4})s/);
@@ -973,9 +1073,6 @@ function generateGridSeeded(leagueData: LeagueData): {
               weight = 1.5 - ((yearsDiff - 20) / 40); // Moderate for 20-40 years ago
             }
           }
-        } else if (isCustomStat) {
-          // Give custom stat achievements high weight to ensure they appear frequently
-          weight = 3;
         }
         
         // Create weighted array (duplicate items based on weight)
@@ -1015,7 +1112,12 @@ function generateGridSeeded(leagueData: LeagueData): {
       }
       
       const achIndex = simpleHash(gridId + '_oppach' + i) % viableAchievements.length;
-      const selectedAch = viableAchievements[achIndex];
+      let selectedAch = viableAchievements[achIndex] as Achievement;
+      
+      // Dynamically customize career stat achievements
+      if (sport) {
+        selectedAch = maybeCustomizeAchievement(selectedAch, sport, gridId + '_oppach' + i);
+      }
       
       // Track this achievement as used to prevent duplicates
       usedAchievementIds.add(selectedAch.id);
@@ -1046,19 +1148,15 @@ function generateGridSeeded(leagueData: LeagueData): {
     .filter(ach => !ach.isSeasonSpecific)
     .filter(ach => ach.id !== 'bornOutsideUS50DC');
   
-  // Use pre-generated custom stat achievements for performance
-  const combinedRawAchievements = [...rawAllAchievements, ...customStatAchievements];
-  
   // Apply decade weighting to create final achievement list
   const currentYear = leagueData.leagueYears?.maxSeason || new Date().getFullYear();
   const allAchievements: Achievement[] = [];
   
-  for (const ach of combinedRawAchievements) {
+  for (const ach of rawAllAchievements) {
     let weight = 1;
     
     // Apply decade skewing for decade achievements
     const isDecadeAchievement = ach.id.includes('playedIn') || ach.id.includes('debutedIn');
-    const isCustomStat = ach.id.includes('custom_');
     
     if (isDecadeAchievement) {
       const decadeMatch = ach.id.match(/(\d{4})s/);
@@ -1074,9 +1172,6 @@ function generateGridSeeded(leagueData: LeagueData): {
           weight = 1.5 - ((yearsDiff - 20) / 40); // Moderate for 20-40 years ago
         }
       }
-    } else if (isCustomStat) {
-      // Give custom stat achievements high weight to ensure they appear frequently
-      weight = 3;
     }
     
     // Create weighted array (duplicate items based on weight)
@@ -1143,7 +1238,12 @@ function generateGridSeeded(leagueData: LeagueData): {
         let found = false;
         for (let attempt = 0; attempt < 100; attempt++) {
           const achIndex = simpleHash(gridId + '_rowach' + i + '_' + attempt) % allAchievements.length;
-          const ach = allAchievements[achIndex];
+          let ach = allAchievements[achIndex];
+          
+          // Dynamically customize career stat achievements
+          if (sport) {
+            ach = maybeCustomizeAchievement(ach, sport, gridId + '_rowach' + i + '_' + attempt);
+          }
           
           // Check if this achievement is already used in the grid
           const achAlreadyUsed = 
@@ -1280,7 +1380,12 @@ function generateGridSeeded(leagueData: LeagueData): {
         let found = false;
         for (let attempt = 0; attempt < 100; attempt++) {
           const achIndex = simpleHash(gridId + '_colach' + i + '_' + attempt) % allAchievements.length;
-          const ach = allAchievements[achIndex];
+          let ach = allAchievements[achIndex];
+          
+          // Dynamically customize career stat achievements
+          if (sport) {
+            ach = maybeCustomizeAchievement(ach, sport, gridId + '_colach' + i + '_' + attempt);
+          }
           
           // Check if this achievement is already used in the grid
           const achAlreadyUsed = 
