@@ -123,7 +123,7 @@ const SEASON_ACHIEVEMENT_LABELS: Partial<Record<SeasonAchievementId, string>> = 
 };
 
 // Helper function to calculate seasons where player achieved Season* statistical thresholds
-export function getSeasonsForSeasonStatAchievement(player: Player, achievementId: SeasonAchievementId, customThreshold?: number, customOperator?: '≥' | '≤', minGames: number = 1): string[] {
+export function getSeasonsForSeasonStatAchievement(player: Player, achievementId: SeasonAchievementId, seasonIndex: SeasonIndex, teamId?: number, customThreshold?: number, customOperator?: '≥' | '≤', minGames: number = 1): string[] {
   if (!player.stats || player.stats.length === 0) return [];
   
   const qualifyingSeasons: number[] = [];
@@ -146,6 +146,10 @@ export function getSeasonsForSeasonStatAchievement(player: Player, achievementId
   
   for (const stat of regularSeasonStats) {
     const season = stat.season;
+    // Filter by teamId if provided
+    if (teamId !== undefined && player.teams[season]?.tid !== teamId) {
+      continue;
+    }
     const gp = stat.gp || 0;
     const min = stat.min || 0;
     const pts = stat.pts || 0;
@@ -277,7 +281,7 @@ export function getSeasonsForSeasonStatAchievement(player: Player, achievementId
 }
 
 // Helper function to extract season achievement data from player
-export function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchievementId, teams: Team[], teamId?: number, sport?: string): string[] {
+export function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchievementId, teams: Team[], seasonIndex: SeasonIndex, teamId?: number, sport?: string): string[] {
   let baseAchievementId: SeasonAchievementId = achievementId;
   let customThreshold: number | undefined;
   let customOperator: '≥' | '≤' | undefined;
@@ -291,6 +295,22 @@ export function getSeasonAchievementSeasons(player: Player, achievementId: Seaso
     customOperator = customParts[1] === 'lte' ? '≤' : '≥';
   }
 
+  // Handle championship achievements specifically
+  if (baseAchievementId.includes('Champion')) {
+    if (player.achievementSeasons?.champion && player.achievementSeasons.champion.size > 0) {
+      return Array.from(player.achievementSeasons.champion).sort((a, b) => a - b).map(s => s.toString());
+    }
+    // Fallback to player.awards if achievementSeasons.champion is not available or empty
+    if (!player.awards) return [];
+
+    const championshipAwards = player.awards
+      .filter(award => award.type.includes('Won Championship') || award.type.includes('Championship'))
+      .map(award => award.season);
+
+    const uniqueChampionshipYears = [...new Set(championshipAwards)].sort((a, b) => a - b);
+    return uniqueChampionshipYears.map(s => s.toString());
+  }
+
   // Handle Season* statistical achievements by calculating from stats
   if (baseAchievementId.startsWith('Season') || baseAchievementId.startsWith('FBSeason') || baseAchievementId.startsWith('HKSeason') || baseAchievementId.startsWith('BBSeason')) {
     // Need to get the minGames from the original achievement definition
@@ -298,10 +318,10 @@ export function getSeasonAchievementSeasons(player: Player, achievementId: Seaso
     const baseAchievement = allAchievements.find(ach => ach.id === baseAchievementId);
     const minGamesForAchievement = baseAchievement?.minPlayers || 1; // Default to 1 game if not specified
 
-    return getSeasonsForSeasonStatAchievement(player, baseAchievementId, customThreshold, customOperator, minGamesForAchievement);
+    return getSeasonsForSeasonStatAchievement(player, baseAchievementId, seasonIndex, teamId, customThreshold, customOperator, minGamesForAchievement);
   }
 
-  // Handle award-based achievements
+  // Handle other award-based achievements
   if (!player.awards) return [];
 
   const awardMap: Record<string, string[]> = {
@@ -352,12 +372,39 @@ export function getSeasonAchievementSeasons(player: Player, achievementId: Seaso
     return [];
   }
 
-  const seasons = player.awards
-    .filter(award => awardTypesToLookFor.some(type => award.type.includes(type)))
-    .map(award => award.season);
+  const seasonsWithTeams: { season: number; teamAbbrev?: string }[] = [];
 
-  const uniqueSeasons = [...new Set(seasons)].sort((a, b) => a - b);
-  return uniqueSeasons.map(s => s.toString());
+  player.awards
+    .filter(award => awardTypesToLookFor.some(type => award.type.includes(type)))
+    .forEach(award => {
+      let teamAbbrev: string | undefined;
+      // For Finals MVP, try to find the team abbreviation for that season
+      if (baseAchievementId === 'FinalsMVP' || baseAchievementId === 'FBFinalsMVP' || baseAchievementId === 'HKFinalsMVP') {
+        const teamSeason = player.seasons?.find(s => s.season === award.season && s.tid !== undefined);
+        if (teamSeason) {
+          const team = teams.find(t => t.tid === teamSeason.tid);
+          if (team) {
+            teamAbbrev = team.abbrev;
+          }
+        }
+      }
+      seasonsWithTeams.push({ season: award.season, teamAbbrev });
+    });
+
+  // Sort by season and then filter unique seasons (if teamAbbrev is the same for a season)
+  const uniqueSeasonsMap = new Map<string, { season: number; teamAbbrev?: string }>();
+  seasonsWithTeams.forEach(item => {
+    const key = item.season.toString() + (item.teamAbbrev ? `-${item.teamAbbrev}` : '');
+    if (!uniqueSeasonsMap.has(key)) {
+      uniqueSeasonsMap.set(key, item);
+    }
+  });
+
+  const sortedUniqueSeasons = Array.from(uniqueSeasonsMap.values())
+    .sort((a, b) => a.season - b.season)
+    .map(item => item.teamAbbrev ? `${item.season} ${item.teamAbbrev}` : item.season.toString());
+
+  return sortedUniqueSeasons;
 }
 
 // Helper function to group consecutive years into ranges
@@ -403,22 +450,28 @@ export function formatBulletSeasonList(seasons: string[], isFinalsOrCFMVP: boole
   
   // For Finals MVP/CFMVP with team abbreviations, use semicolon separator
   if (isFinalsOrCFMVP) {
-    // Group by consecutive years while preserving team abbreviations
-    const yearsWithTeams = seasons.map(s => {
+    const teamYears: Record<string, number[]> = {};
+
+    seasons.forEach(s => {
       const parts = s.split(' ');
-      return { year: parseInt(parts[0]), team: parts[1] || '', original: s };
+      const year = parseInt(parts[0], 10);
+      const teamAbbrev = parts[1];
+
+      if (teamAbbrev) {
+        if (!teamYears[teamAbbrev]) {
+          teamYears[teamAbbrev] = [];
+        }
+        teamYears[teamAbbrev].push(year);
+      }
     });
-    
-    // If all seasons have the same team, group years and append team
-    const uniqueTeams = Array.from(new Set(yearsWithTeams.map(y => y.team)));
-    if (uniqueTeams.length === 1 && uniqueTeams[0]) {
-      const years = uniqueTeams[0] ? yearsWithTeams.filter(y => y.team === uniqueTeams[0]).map(y => y.year) : [];
+
+    const formattedTeamAwards: string[] = [];
+    for (const teamAbbrev in teamYears) {
+      const years = teamYears[teamAbbrev].sort((a, b) => a - b);
       const yearRanges = groupConsecutiveYears(years);
-      return yearRanges.map(range => `${range} ${uniqueTeams[0]}`).join('; ');
-    } else {
-      // Different teams or no teams, just use original format
-      return seasons.join('; ');
+      formattedTeamAwards.push(`${teamAbbrev} (${yearRanges.join(', ')})`);
     }
+    return formattedTeamAwards.join('; ');
   }
   
   // For other awards, group consecutive years: "2023-2028, 2030"
@@ -443,116 +496,411 @@ export function getTeamYearRange(player: Player, teamId: number): string {
 }
 
 export function generatePlayerGuessFeedback(player: Player, rowConstraint: CatTeam, colConstraint: CatTeam, teams: Team[], sport: string, seasonIndex: SeasonIndex, isCorrectGuess: boolean = true): string[] {
+
   const bullets: string[] = [];
 
-  // --- Row (Team) Bullet ---
-  const team = teams.find(t => t.tid === rowConstraint.tid);
-  const teamName = rowConstraint.label || (team ? `${team.region} ${team.name}` : `Team ${rowConstraint.tid}`);
-  const teamYearRange = getTeamYearRange(player, rowConstraint.tid!);
 
-  if (teamYearRange === '') {
-    bullets.push(`• Never played for the ${teamName}.`);
-  } else {
-    bullets.push(`• ${teamName} (${teamYearRange})`);
+
+  // --- Row Bullet ---
+
+  if (rowConstraint.type === 'team') {
+
+    const team = teams.find(t => t.tid === rowConstraint.tid);
+
+    const teamName = rowConstraint.label || (team ? `${team.region} ${team.name}` : `Team ${rowConstraint.tid}`);
+
+    const teamYearRange = getTeamYearRange(player, rowConstraint.tid!);
+
+
+
+    if (teamYearRange === '') {
+
+      bullets.push(`• Never played for the ${teamName}`);
+
+    } else {
+
+      bullets.push(`• ${teamName} (${teamYearRange})`);
+
+    }
+
+  } else if (rowConstraint.type === 'achievement') {
+
+    const achievementId = rowConstraint.achievementId!;
+
+    const achievementLabel = rowConstraint.label;
+
+
+
+    const achievementYears = getSeasonAchievementSeasons(player, achievementId as SeasonAchievementId, teams, seasonIndex, rowConstraint.tid, sport);
+
+        const achievedGlobally = playerMeetsAchievement(player, achievementId, seasonIndex, '>=', undefined, undefined);
+
+        const achievedWithTeam = playerMeetsAchievement(player, achievementId, seasonIndex, '>=', rowConstraint.tid, undefined);
+
+    
+
+        let finalAchievementLabel = achievementLabel;
+
+    
+
+        const parsedCustom = parseCustomAchievementId(achievementId);
+
+        if (parsedCustom) {
+
+          const parsedOriginalLabel = parseAchievementLabel(achievementLabel, sport);
+
+          finalAchievementLabel = generateUpdatedLabel(parsedOriginalLabel, parsedCustom.threshold, parsedCustom.operator);
+
+        } else {
+
+          finalAchievementLabel = finalAchievementLabel.replace(/\s*\(Season\)/gi, '').trim();
+
+        }
+
+    
+
+        const isCareerStat = achievementId.startsWith('career');
+
+        const isFinalsOrCFMVP = achievementId === 'FinalsMVP' || achievementId === 'SFMVP' || achievementId === 'FBFinalsMVP' || achievementId === 'HKFinalsMVP';
+
+    
+
+        if (achievedWithTeam) {
+
+          if (finalAchievementLabel.includes('Champion')) {
+
+            const count = achievementYears.length;
+
+            const formattedYears = formatBulletSeasonList(achievementYears, isFinalsOrCFMVP);
+
+            const championshipText = count > 1 ? `${count} Championships` : `a Championship`;
+
+            bullets.push(`• Won ${championshipText} with the ${rowConstraint.label} (${formattedYears})`);
+
+          } else if (isFinalsOrCFMVP) {
+
+            const formattedYears = formatBulletSeasonList(achievementYears, isFinalsOrCFMVP);
+
+            bullets.push(`• ${finalAchievementLabel} with the ${rowConstraint.label} (${formattedYears})`);
+
+          } else if (achievementYears.length > 0) {
+
+            const count = achievementYears.length;
+
+            const formattedYears = formatBulletSeasonList(achievementYears, isFinalsOrCFMVP);
+
+            if (count > 1 && !isCareerStat && !achievementId.startsWith('Season')) {
+
+              bullets.push(`• ${count}x ${finalAchievementLabel} with the ${rowConstraint.label} (${formattedYears})`);
+
+            } else {
+
+              bullets.push(`• ${finalAchievementLabel} with the ${rowConstraint.label} (${formattedYears})`);
+
+            }
+
+          } else if (isCareerStat) {
+
+            const statInfo = getCareerStatInfo(player, achievementId);
+
+            if (statInfo) {
+
+              bullets.push(`• Achieved ${statInfo.value.toLocaleString()} ${statInfo.label} with the ${rowConstraint.label}`);
+
+            } else {
+
+              bullets.push(`• 0 career points with the ${rowConstraint.label}`);
+
+            }
+
+          } else {
+
+            bullets.push(`• Achieved: ${finalAchievementLabel} with the ${rowConstraint.label}`);
+
+          }
+
+        } else if (achievedGlobally) {
+
+          if (finalAchievementLabel.includes('Champion')) {
+
+            const count = achievementYears.length;
+
+            const formattedYears = formatBulletSeasonList(achievementYears, false);
+
+            const championshipText = count > 1 ? `${count} Championships` : `a Championship`;
+
+            bullets.push(`• Won ${championshipText} (globally)`);
+
+          } else if (achievementYears.length > 0) {
+
+            const count = achievementYears.length;
+
+            const formattedYears = formatBulletSeasonList(achievementYears, false);
+
+            if (count > 1 && !isCareerStat && !achievementId.startsWith('Season')) {
+
+              bullets.push(`• ${count}x ${finalAchievementLabel} (globally)`);
+
+            } else {
+
+              bullets.push(`• ${finalAchievementLabel} (globally)`);
+
+            }
+
+          } else if (isCareerStat) {
+
+            const statInfo = getCareerStatInfo(player, achievementId);
+
+            if (statInfo) {
+
+              bullets.push(`• Achieved ${statInfo.value.toLocaleString()} ${statInfo.label} (globally)`);
+
+            } else {
+
+              bullets.push(`• 0 career points (globally)`);
+
+            }
+
+          } else {
+
+            bullets.push(`• Achieved: ${finalAchievementLabel} (globally)`);
+
+          }
+
+        } else {
+
+          if (isCareerStat) {
+
+            const statInfo = getCareerStatInfo(player, achievementId);
+
+            if (statInfo) {
+
+              bullets.push(`• Only ${statInfo.value.toLocaleString()} ${statInfo.label}`);
+
+            }
+
+          } else if (finalAchievementLabel.includes('Champion')) {
+
+            bullets.push(`• Never won a championship`);
+
+          } else if (achievementId.startsWith('Season') || achievementId.startsWith('FBSeason') || achievementId.startsWith('HKSeason') || achievementId.startsWith('BBSeason')) {
+
+            bullets.push(`• Never achieved: ${finalAchievementLabel}`);
+
+          } else {
+
+            bullets.push(`• Never achieved: ${finalAchievementLabel}`);
+
+          }
+
+        }
+
   }
+
+
 
   // --- Column Bullet ---
+
   if (colConstraint.type === 'team') {
+
     const colTeam = teams.find(t => t.tid === colConstraint.tid);
+
     const colTeamName = colConstraint.label || (colTeam ? `${colTeam.region} ${colTeam.name}` : `Team ${colConstraint.tid}`);
+
     const colTeamYearRange = getTeamYearRange(player, colConstraint.tid!);
 
+
+
     if (colTeamYearRange === '') {
-      bullets.push(`• Never played for the ${colTeamName}.`);
+
+      bullets.push(`• Never played for the ${colTeamName}`);
+
     } else {
+
       bullets.push(`• ${colTeamName} (${colTeamYearRange})`);
+
     }
+
   } else if (colConstraint.type === 'achievement') {
+
     const achievementId = colConstraint.achievementId!;
+
     const achievementLabel = colConstraint.label;
 
-    // For both correct and incorrect, check if player achieved it (without team requirement for incorrect)
-    const achievedWithTeam = playerMeetsAchievement(player, achievementId, seasonIndex, '>=', rowConstraint.tid, undefined);
+
+
+    const teamIdForAchievementCheck = rowConstraint.type === 'team' ? rowConstraint.tid : undefined;
+
+    const achievedWithTeam = playerMeetsAchievement(player, achievementId, seasonIndex, '>=', teamIdForAchievementCheck, undefined);
+
     const achievedGlobally = playerMeetsAchievement(player, achievementId, seasonIndex, '>=', undefined, undefined);
 
-    // Get achievement years/count for display
-    const achievementYears = getSeasonAchievementSeasons(player, achievementId as SeasonAchievementId, teams, undefined, sport);
+
+
+    const achievementYears = getSeasonAchievementSeasons(player, achievementId as SeasonAchievementId, teams, seasonIndex, teamIdForAchievementCheck, sport);
+
     let finalAchievementLabel = achievementLabel;
 
-    // Handle custom numerical achievements for label formatting
+
+
     const parsedCustom = parseCustomAchievementId(achievementId);
+
     if (parsedCustom) {
+
       const parsedOriginalLabel = parseAchievementLabel(achievementLabel, sport);
+
       finalAchievementLabel = generateUpdatedLabel(parsedOriginalLabel, parsedCustom.threshold, parsedCustom.operator);
+
     } else {
-      // For standard season achievements, remove "(Season)" suffix if present
+
       finalAchievementLabel = finalAchievementLabel.replace(/\s*\(Season\)/gi, '').trim();
+
     }
 
-    // Check if it's a career counting stat achievement
+
+
     const isCareerStat = achievementId.startsWith('career');
 
-    if (achievedWithTeam && isCorrectGuess) {
-      // Correct guess - show achievement with seasons/years
-      if (achievementYears.length > 0) {
+    const isFinalsOrCFMVP = achievementId === 'FinalsMVP' || achievementId === 'SFMVP' || achievementId === 'FBFinalsMVP' || achievementId === 'HKFinalsMVP';
+
+
+
+    if (achievedWithTeam) {
+
+      if (finalAchievementLabel.includes('Champion')) {
+
         const count = achievementYears.length;
-        const formattedYears = formatBulletSeasonList(achievementYears, false);
-        
-        // Format awards with count like "4x MVP (2010, 2012, 2014, 2016)"
+
+        const formattedYears = formatBulletSeasonList(achievementYears, isFinalsOrCFMVP);
+
+        const championshipText = count > 1 ? `${count} Championships` : `a Championship`;
+
+        bullets.push(`• Won ${championshipText} with the ${rowConstraint.label} (${formattedYears})`);
+
+      } else if (isFinalsOrCFMVP) {
+
+        const formattedYears = formatBulletSeasonList(achievementYears, isFinalsOrCFMVP);
+
+        bullets.push(`• ${finalAchievementLabel} with the ${rowConstraint.label} (${formattedYears})`);
+
+      } else if (achievementYears.length > 0) {
+
+        const count = achievementYears.length;
+
+        const formattedYears = formatBulletSeasonList(achievementYears, isFinalsOrCFMVP);
+
         if (count > 1 && !isCareerStat && !achievementId.startsWith('Season')) {
-          bullets.push(`• ${count}x ${finalAchievementLabel} (${formattedYears})`);
+
+          bullets.push(`• ${count}x ${finalAchievementLabel} with the ${rowConstraint.label} (${formattedYears})`);
+
         } else {
-          bullets.push(`• ${finalAchievementLabel} (${formattedYears})`);
+
+          bullets.push(`• ${finalAchievementLabel} with the ${rowConstraint.label} (${formattedYears})`);
+
         }
+
       } else if (isCareerStat) {
-        // Career stat - show the actual value in simple format
+
         const statInfo = getCareerStatInfo(player, achievementId);
+
         if (statInfo) {
-          bullets.push(`• ${statInfo.value.toLocaleString()} ${statInfo.label}`);
-        }
-      } else {
-        bullets.push(`• ${finalAchievementLabel}`);
-      }
-    } else if (!isCorrectGuess) {
-      // Incorrect guess - show what they had globally
-      if (achievedGlobally) {
-        if (achievementYears.length > 0) {
-          const count = achievementYears.length;
-          const formattedYears = formatBulletSeasonList(achievementYears, false);
-          
-          // Format awards with count like "4x MVP (2010, 2012, 2014, 2016)"
-          if (count > 1 && !isCareerStat && !achievementId.startsWith('Season')) {
-            bullets.push(`• ${count}x ${finalAchievementLabel} (${formattedYears})`);
-          } else {
-            bullets.push(`• ${finalAchievementLabel} (${formattedYears})`);
-          }
-        } else if (isCareerStat) {
-          // Career stat - show the actual value in simple format
-          const statInfo = getCareerStatInfo(player, achievementId);
-          if (statInfo) {
-            bullets.push(`• ${statInfo.value.toLocaleString()} ${statInfo.label}`);
-          }
+
+          bullets.push(`• Achieved ${statInfo.value.toLocaleString()} ${statInfo.label} with the ${rowConstraint.label}`);
+
         } else {
-          bullets.push(`• ${finalAchievementLabel}`);
+
+          bullets.push(`• 0 career points with the ${rowConstraint.label}`);
+
         }
+
       } else {
-        // Didn't achieve it at all
-        if (isCareerStat) {
-          // Show what they actually had in simple format
-          const statInfo = getCareerStatInfo(player, achievementId);
-          if (statInfo) {
-            bullets.push(`• ${statInfo.value.toLocaleString()} ${statInfo.label}`);
-          } else {
-            bullets.push(`• 0 career points`);
-          }
-        } else {
-          bullets.push(`• Did not achieve: ${finalAchievementLabel}`);
-        }
+
+        bullets.push(`• Achieved: ${finalAchievementLabel} with the ${rowConstraint.label}`);
+
       }
+
+    } else if (achievedGlobally) {
+
+      if (finalAchievementLabel.includes('Champion')) {
+
+        const count = achievementYears.length;
+
+        const formattedYears = formatBulletSeasonList(achievementYears, false);
+
+        const championshipText = count > 1 ? `${count} Championships` : `a Championship`;
+
+        bullets.push(`• Won ${championshipText} (globally)`);
+
+      } else if (achievementYears.length > 0) {
+
+        const count = achievementYears.length;
+
+        const formattedYears = formatBulletSeasonList(achievementYears, false);
+
+        if (count > 1 && !isCareerStat && !achievementId.startsWith('Season')) {
+
+          bullets.push(`• ${count}x ${finalAchievementLabel} (globally)`);
+
+        } else {
+
+          bullets.push(`• ${finalAchievementLabel} (globally)`);
+
+        }
+
+      } else if (isCareerStat) {
+
+        const statInfo = getCareerStatInfo(player, achievementId);
+
+        if (statInfo) {
+
+          bullets.push(`• Achieved ${statInfo.value.toLocaleString()} ${statInfo.label} (globally)`);
+
+        } else {
+
+          bullets.push(`• 0 career points (globally)`);
+
+        }
+
+      } else {
+
+        bullets.push(`• Achieved: ${finalAchievementLabel} (globally)`);
+
+      }
+
+    } else {
+
+      if (isCareerStat) {
+
+        const statInfo = getCareerStatInfo(player, achievementId);
+
+        if (statInfo) {
+
+          bullets.push(`• Only ${statInfo.value.toLocaleString()} ${statInfo.label}`);
+
+        }
+
+      } else if (finalAchievementLabel.includes('Champion')) {
+
+        bullets.push(`• Never won a championship`);
+
+      } else if (achievementId.startsWith('Season') || achievementId.startsWith('FBSeason') || achievementId.startsWith('HKSeason') || achievementId.startsWith('BBSeason')) {
+
+        bullets.push(`• Never achieved: ${finalAchievementLabel}`);
+
+      } else {
+
+        bullets.push(`• Never achieved: ${finalAchievementLabel}`);
+
+      }
+
     }
+
   }
 
+
+
   return bullets;
+
 }
 
 // Helper function to get career stat value and name from player

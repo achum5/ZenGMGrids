@@ -1211,6 +1211,7 @@ export const SEASON_ALIGNED_ACHIEVEMENTS = new Set([
   'HKSeason20PowerPlay', 'HKSeason3SHGoals', 'HKSeason7GWGoals', 'HKSeason55FaceoffPct',
   'HKSeason22TOI', 'HKSeason70PIM', 'HKSeason920SavePct', 'HKSeason260GAA',
   'HKSeason6Shutouts', 'HKSeason2000Saves', 'HKSeason60Starts',
+  'Champion', 'FBChampion', 'HKChampion', 'BBChampion',
 ]);
 
 function getPlayerFranchiseCount(player: Player): number {
@@ -1476,6 +1477,11 @@ export function playerMeetsAchievement(
       if (DEBUG) console.log(`🐛 [playerMeetsAchievement] After team alignment filter, awards count: ${filteredAwards?.length}`);
     }
 
+    // For championship achievements, directly check player.achievementSeasons.champion if teamId is undefined
+    if (achievementId.includes('Champion') && teamId === undefined) {
+      return (player.achievementSeasons?.champion?.size || 0) > 0;
+    }
+
     if (achievementId === 'MVP' && teamId === undefined) {
       console.log(`DEBUG: playerMeetsAchievement - Checking MVP globally for ${player.name}`);
       console.log(`DEBUG: playerMeetsAchievement - Player awards:`, player.awards?.map(a => a.type));
@@ -1498,6 +1504,9 @@ export function playerMeetsAchievement(
       if (achievementId === 'AllDefAny' && normalizedType.includes('all-defensive')) return true;
       if (achievementId === 'AllRookieAny' && normalizedType.includes('all-rookie')) return true;
       
+      // Generic Champion achievement
+      if (achievementId === 'Champion' && award.type === 'Won Championship') return true;
+
       // Football achievements (case-sensitive exact matches)
       if (achievementId === 'FBAllStar' && award.type === 'All-Star') return true;
       if (achievementId === 'FBMVP' && award.type === 'Most Valuable Player') return true;

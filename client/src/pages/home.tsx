@@ -153,9 +153,6 @@ export default function Home() {
       return;
     }
     
-    // Validate eligibility using EXACT SAME LOGIC as eligible players list
-    let isCorrect = false;
-    
     // Get row and column constraints
     let rowConstraint: CatTeam | undefined;
     let colConstraint: CatTeam | undefined;
@@ -174,47 +171,59 @@ export default function Home() {
       colConstraint = cols[colIndex];
     }
     
-    if (rowConstraint && colConstraint) {
-      // Use EXACT SAME LOGIC as eligible players list in handleCellClick
-      const hasCustomAchievements = rowConstraint.key.includes('custom') || colConstraint.key.includes('custom');
-      
-      if (hasCustomAchievements) {
-        // Direct test function evaluation (same as eligible players list)
-        isCorrect = rowConstraint.test(player) && colConstraint.test(player);
-    
-      } else {
-        // Use pre-calculated intersections for regular achievements
-        const eligiblePids = intersections[cellKey] || [];
-        isCorrect = eligiblePids.includes(player.pid);
-    
-      }
-    } else {
-      // Fallback to pre-calculated intersections if constraints not found
-      const eligiblePids = intersections[cellKey] || [];
-      isCorrect = eligiblePids.includes(player.pid);
+    if (!rowConstraint || !colConstraint || !leagueData) {
+      toast({
+        title: 'Error',
+        description: 'Could not determine cell constraints.',
+        variant: 'destructive',
+      });
+      return;
     }
+
+    // Recalculate eligible players for this cell using the same logic as handleCellClick
+    // This ensures consistency between the modal's eligibility and the cell's correctness
+    let currentCellEligiblePlayers: Player[] = [];
+    const hasCustomAchievements = rowConstraint.key.includes('custom') || colConstraint.key.includes('custom');
+
+    if (hasCustomAchievements) {
+      currentCellEligiblePlayers = leagueData.players.filter(p => 
+        rowConstraint!.test(p) && colConstraint!.test(p)
+      );
+    } else {
+      const rowIntersectionConstraint: IntersectionConstraint = {
+        type: rowConstraint.type,
+        id: rowConstraint.type === 'team' ? rowConstraint.tid! : rowConstraint.achievementId!,
+        label: rowConstraint.label
+      };
+      
+      const colIntersectionConstraint: IntersectionConstraint = {
+        type: colConstraint.type,
+        id: colConstraint.type === 'team' ? colConstraint.tid! : colConstraint.achievementId!,
+        label: colConstraint.label
+      };
+      
+      const eligiblePidsSet = calculateOptimizedIntersection(
+        rowIntersectionConstraint,
+        colIntersectionConstraint,
+        leagueData.players,
+        leagueData.teams,
+        leagueData.seasonIndex,
+        false // returnCount = false to get the Set of player IDs
+      ) as Set<number>;
+      
+      const eligiblePids = Array.from(eligiblePidsSet);
+      currentCellEligiblePlayers = eligiblePids
+        .map(pid => byPid[pid])
+        .filter(p => p);
+    }
+
+    const isCorrect = currentCellEligiblePlayers.some(p => Number(p.pid) === Number(player.pid));
     
     // Compute rarity if correct
     let rarity = 0;
     let points = 0;
-    if (isCorrect && leagueData && rowConstraint && colConstraint) {
-      // Get eligible players using EXACT SAME LOGIC as eligible players list
-      let eligiblePlayers: Player[];
-      
-      const hasCustomAchievements = rowConstraint.key.includes('custom') || colConstraint.key.includes('custom');
-      
-      if (hasCustomAchievements) {
-        // Direct test function evaluation (same as eligible players list)
-        eligiblePlayers = leagueData.players.filter(player => 
-          rowConstraint.test(player) && colConstraint.test(player)
-        );
-      } else {
-        // Use pre-calculated intersections for regular achievements
-        const eligiblePids = intersections[cellKey] || [];
-        eligiblePlayers = leagueData.players.filter(p => eligiblePids.includes(p.pid));
-      }
-      
-      const eligiblePool = eligiblePlayers.map(p => playerToEligibleLite(p));
+    if (isCorrect) {
+      const eligiblePool = currentCellEligiblePlayers.map(p => playerToEligibleLite(p));
       const guessedPlayer = playerToEligibleLite(player);
       const puzzleSeed = `${rows.map(r => r.key).join('-')}_${cols.map(c => c.key).join('-')}`;
       const teamsMap = new Map(leagueData.teams.map(t => [t.tid, t]));
@@ -227,7 +236,7 @@ export default function Home() {
           rowConstraint: rowConstraint,
           colConstraint: colConstraint
         },
-        fullPlayers: eligiblePlayers,
+        fullPlayers: currentCellEligiblePlayers,
         teams: teamsMap,
         seasonIndex: leagueData.seasonIndex
       });
@@ -261,7 +270,7 @@ export default function Home() {
 
     // Add to used players (regardless of correctness to prevent reuse)
     setUsedPids(prev => new Set([...Array.from(prev), player.pid]));
-  }, [intersections, usedPids, leagueData, rows, cols]);
+  }, [leagueData, rows, cols, intersections, usedPids, byPid, toast]);
 
   // Handle search modal player selection
   const handleSelectPlayer = useCallback((player: Player) => {
@@ -607,6 +616,11 @@ export default function Home() {
     setByPid(indices.byPid);
     setSearchablePlayers(indices.searchablePlayers);
     setTeamsByTid(indices.teamsByTid);
+
+    // Calculate team seasons and achievement seasons for each player
+    data.players.forEach(player => {
+      calculateTeamSeasonsAndAchievementSeasons(player, data.teamOverlaps, data.gameAttributes);
+    });
     
     // Direct intersection test (bypass grid generation)
 

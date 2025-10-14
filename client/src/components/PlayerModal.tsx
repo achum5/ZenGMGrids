@@ -144,7 +144,7 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
         return null;
       }
 
-      const isCorrectGuess = eligiblePlayers.some(p => p.pid === player.pid);
+      const isCorrectGuess = eligiblePlayers.some(p => Number(p.pid) === Number(player.pid));
       
       // Generate reason bullets for all guesses (correct and incorrect)
       const reasonBullets = generatePlayerGuessFeedback(
