@@ -147,7 +147,7 @@ export function getSeasonsForSeasonStatAchievement(player: Player, achievementId
   for (const stat of regularSeasonStats) {
     const season = stat.season;
     // Filter by teamId if provided
-    if (teamId !== undefined && player.teams[season]?.tid !== teamId) {
+    if (teamId !== undefined && (!player.teams || player.teams[season]?.tid !== teamId)) {
       continue;
     }
     const gp = stat.gp || 0;
@@ -281,7 +281,7 @@ export function getSeasonsForSeasonStatAchievement(player: Player, achievementId
 }
 
 // Helper function to extract season achievement data from player
-export function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchievementId, teams: Team[], seasonIndex: SeasonIndex, teamId?: number, sport?: string): string[] {
+export function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchievementId, teams: Team[], seasonIndex: SeasonIndex, teamId?: number, sport?: string): Array<{ season: number; teamAbbrev?: string }> {
   let baseAchievementId: SeasonAchievementId = achievementId;
   let customThreshold: number | undefined;
   let customOperator: '≥' | '≤' | undefined;
@@ -299,20 +299,28 @@ export function getSeasonAchievementSeasons(player: Player, achievementId: Seaso
   if (baseAchievementId.includes('Champion')) {
     if (player.achievementSeasons?.champion && player.achievementSeasons.champion.size > 0) {
       const filteredSeasons = teamId !== undefined
-        ? Array.from(player.achievementSeasons.champion).filter(s => player.teams[s]?.tid === teamId)
+        ? Array.from(player.achievementSeasons.champion).filter(s => player.teams && player.teams[s]?.tid === teamId)
         : Array.from(player.achievementSeasons.champion);
-      return filteredSeasons.sort((a, b) => a - b).map(s => s.toString());
+      return filteredSeasons.sort((a, b) => a - b).map(s => {
+        const teamSeason = player.seasons?.find(ps => ps.season === s && ps.tid !== undefined);
+        const team = teamSeason ? teams.find(t => t.tid === teamSeason.tid) : undefined;
+        return { season: s, teamAbbrev: team?.abbrev || '' };
+      });
     }
     // Fallback to player.awards if achievementSeasons.champion is not available or empty
     if (!player.awards) return [];
 
     const championshipAwards = player.awards
       .filter(award => award.type.includes('Won Championship') || award.type.includes('Championship'))
-      .filter(award => teamId === undefined || player.teams[award.season]?.tid === teamId) // Add teamId filter here
+      .filter(award => teamId === undefined || (player.teams && player.teams[award.season]?.tid === teamId)) // Add teamId filter here
       .map(award => award.season);
 
     const uniqueChampionshipYears = [...new Set(championshipAwards)].sort((a, b) => a - b);
-    return uniqueChampionshipYears.map(s => s.toString());
+    return uniqueChampionshipYears.map(s => {
+      const teamSeason = player.seasons?.find(ps => ps.season === s && ps.tid !== undefined);
+      const team = teamSeason ? teams.find(t => t.tid === teamSeason.tid) : undefined;
+      return { season: s, teamAbbrev: team?.abbrev || '' };
+    });
   }
 
   // Handle Season* statistical achievements by calculating from stats
@@ -322,7 +330,13 @@ export function getSeasonAchievementSeasons(player: Player, achievementId: Seaso
     const baseAchievement = allAchievements.find(ach => ach.id === baseAchievementId);
     const minGamesForAchievement = baseAchievement?.minPlayers || 1; // Default to 1 game if not specified
 
-    return getSeasonsForSeasonStatAchievement(player, baseAchievementId, seasonIndex, teamId, customThreshold, customOperator, minGamesForAchievement);
+    const seasons = getSeasonsForSeasonStatAchievement(player, baseAchievementId, seasonIndex, teamId, customThreshold, customOperator, minGamesForAchievement);
+    return seasons.map(s => {
+      const seasonNum = parseInt(s, 10);
+      const teamSeason = player.seasons?.find(ps => ps.season === seasonNum && ps.tid !== undefined);
+      const team = teamSeason ? teams.find(t => t.tid === teamSeason.tid) : undefined;
+      return { season: seasonNum, teamAbbrev: team?.abbrev || '' };
+    });
   }
 
   // Handle other award-based achievements
@@ -380,17 +394,17 @@ export function getSeasonAchievementSeasons(player: Player, achievementId: Seaso
 
   player.awards
     .filter(award => awardTypesToLookFor.some(type => award.type.includes(type)))
-    .filter(award => teamId === undefined || player.teams[award.season]?.tid === teamId) // Add teamId filter here
+    .filter(award => teamId === undefined || (player.teams && player.teams[award.season]?.tid === teamId)) // Re-add teamId filter here with optional chaining
     .forEach(award => {
       let teamAbbrev: string | undefined;
-      // For Finals MVP, try to find the team abbreviation for that season
-      if (baseAchievementId === 'FinalsMVP' || baseAchievementId === 'FBFinalsMVP' || baseAchievementId === 'HKFinalsMVP') {
-        const teamSeason = player.seasons?.find(s => s.season === award.season && s.tid !== undefined);
-        if (teamSeason) {
-          const team = teams.find(t => t.tid === teamSeason.tid);
-          if (team) {
-            teamAbbrev = team.abbrev;
-          }
+      // Always try to find the team abbreviation for that season
+      const teamSeason = player.seasons?.find(s => s.season === award.season && s.tid !== undefined);
+      console.log(`Award Season: ${award.season}, Player Seasons: ${JSON.stringify(player.seasons)}`);
+      if (teamSeason) {
+        const team = teams.find(t => t.tid === teamSeason.tid);
+        console.log(`Team Season: ${JSON.stringify(teamSeason)}, Found Team: ${JSON.stringify(team)}`);
+        if (team) {
+          teamAbbrev = team.abbrev;
         }
       }
       seasonsWithTeams.push({ season: award.season, teamAbbrev });
@@ -406,8 +420,7 @@ export function getSeasonAchievementSeasons(player: Player, achievementId: Seaso
   });
 
   const sortedUniqueSeasons = Array.from(uniqueSeasonsMap.values())
-    .sort((a, b) => a.season - b.season)
-    .map(item => item.teamAbbrev ? `${item.season} ${item.teamAbbrev}` : item.season.toString());
+    .sort((a, b) => a.season - b.season);
 
   return sortedUniqueSeasons;
 }
@@ -431,7 +444,7 @@ export function groupConsecutiveYears(years: number[]): string[] {
       if (start === end) {
         groups.push(start.toString());
       } else {
-        groups.push(`${start}-${end}`);
+        groups.push(`${start}–${end}`);
       }
       start = sortedYears[i];
       end = sortedYears[i];
@@ -442,51 +455,71 @@ export function groupConsecutiveYears(years: number[]): string[] {
   if (start === end) {
     groups.push(start.toString());
   } else {
-    groups.push(`${start}-${end}`);
+    groups.push(`${start}–${end}`);
   }
   
   return groups;
 }
 
 // Helper function to format season list for bullets
-export function formatBulletSeasonList(seasons: string[], isFinalsOrCFMVP: boolean = false): string {
-  if (seasons.length === 0) return '';
-  if (seasons.length === 1) return seasons[0];
-  
-  // For Finals MVP/CFMVP with team abbreviations, use semicolon separator
-  if (isFinalsOrCFMVP) {
-    const teamYears: Record<string, number[]> = {};
+export function formatBulletSeasonList(seasonsWithTeams: Array<{ season: number; teamAbbrev?: string }>): string {
+  if (seasonsWithTeams.length === 0) return '';
 
-    seasons.forEach(s => {
-      const parts = s.split(' ');
-      const year = parseInt(parts[0], 10);
-      const teamAbbrev = parts[1];
-
-      if (teamAbbrev) {
-        if (!teamYears[teamAbbrev]) {
-          teamYears[teamAbbrev] = [];
-        }
-        teamYears[teamAbbrev].push(year);
-      }
-    });
-
-    const formattedTeamAwards: string[] = [];
-    for (const teamAbbrev in teamYears) {
-      const years = teamYears[teamAbbrev].sort((a, b) => a - b);
-      const yearRanges = groupConsecutiveYears(years);
-      formattedTeamAwards.push(`${teamAbbrev} (${yearRanges.join(', ')})`);
+  // Group seasons by team abbreviation
+  const teamSeasonMap = new Map<string, number[]>();
+  seasonsWithTeams.forEach(item => {
+    const teamKey = item.teamAbbrev || ''; // Use empty string for no team
+    if (!teamSeasonMap.has(teamKey)) {
+      teamSeasonMap.set(teamKey, []);
     }
-    return formattedTeamAwards.join('; ');
-  }
-  
-  // For other awards, group consecutive years: "2023-2028, 2030"
-  const years = seasons.map(s => parseInt(s)).filter(y => !isNaN(y));
-  const yearRanges = groupConsecutiveYears(years);
-  return yearRanges.join(', ');
+    teamSeasonMap.get(teamKey)!.push(item.season);
+  });
+
+  const formattedEntries: string[] = [];
+
+  // Process each team's seasons
+  teamSeasonMap.forEach((years, teamAbbrev) => {
+    const sortedYears = [...years].sort((a, b) => a - b);
+    const yearRanges: string[] = [];
+    let start = sortedYears[0];
+    let end = sortedYears[0];
+
+    for (let i = 1; i < sortedYears.length; i++) {
+      if (sortedYears[i] === end + 1) {
+        end = sortedYears[i];
+      } else {
+        if (start === end) {
+          yearRanges.push(start.toString());
+        } else {
+          yearRanges.push(`${start}–${end}`);
+        }
+        start = sortedYears[i];
+        end = sortedYears[i];
+      }
+    }
+    // Add the last range
+    if (start === end) {
+      yearRanges.push(start.toString());
+    } else {
+      yearRanges.push(`${start}–${end}`);
+    }
+
+    const teamSuffix = teamAbbrev ? ` – ${teamAbbrev}` : '';
+    formattedEntries.push(...yearRanges.map(range => `${range}${teamSuffix}`));
+  });
+
+  // Sort entries by year (first year in range) to maintain chronological order
+  formattedEntries.sort((a, b) => {
+    const yearA = parseInt(a.split('–')[0], 10);
+    const yearB = parseInt(b.split('–')[0], 10);
+    return yearA - yearB;
+  });
+
+  return `(${formattedEntries.join('; ')})`;
 }
 
 // Helper function to get team year range from stats
-export function getTeamYearRange(player: Player, teamId: number): string {
+export function getTeamYearRange(player: Player, teamId: number, sport: string): string {
   if (!player.stats) return '';
   
   const seasons = player.stats
@@ -495,9 +528,203 @@ export function getTeamYearRange(player: Player, teamId: number): string {
     .sort((a, b) => a - b);
   
   if (seasons.length === 0) return '';
-  if (seasons.length === 1) return seasons[0].toString();
+  if (seasons.length === 1) {
+    if (sport === 'basketball' || sport === 'hockey') {
+      return `${seasons[0]}–${seasons[0]}`;
+    } else {
+      return seasons[0].toString();
+    }
+  }
   
   return `${seasons[0]}–${seasons[seasons.length - 1]}`;
+}
+
+interface ParsedSeasonAchievement {
+  threshold: number;
+  operator: '>=' | '≤' | '<';
+  statName: string;
+  isRateStat: boolean;
+  originalLabel: string;
+}
+
+function parseSeasonAchievementDetails(achievementId: string, achievementLabel: string, sport: string): ParsedSeasonAchievement | null {
+  // Handle 50/40/90 separately as it's a composite
+  if (achievementId === 'Season50_40_90') {
+    return {
+      threshold: 0, // Not a single numerical threshold
+      operator: '>=',
+      statName: '50/40/90',
+      isRateStat: true,
+      originalLabel: achievementLabel,
+    };
+  }
+
+  // Regex to capture threshold, operator, and stat name
+  // Examples:
+  // "30+ PPG (Season)" -> 30, +, PPG
+  // "2,000+ Points (Season)" -> 2000, +, Points
+  // "≤2.60 GAA (Season)" -> 2.60, ≤, GAA
+  // "55%+ Faceoff Win Rate (Season)" -> 55, %, Faceoff Win Rate
+  // "Under 2,000 Points in a Season" -> 2000, <, Points
+
+  let match;
+
+  // Pattern for "Under N StatName"
+  match = achievementLabel.match(/Under\s+([\d,.]+)\s+(.+)(?:\s+\(Season\))?/i);
+  if (match) {
+    return {
+      threshold: parseFloat(match[1].replace(/,/g, '')),
+      operator: '<',
+      statName: match[2].trim(),
+      isRateStat: achievementLabel.includes('%') || achievementLabel.includes('GAA') || achievementLabel.includes('TOI'),
+      originalLabel: achievementLabel,
+    };
+  }
+
+  // Pattern for "N+ StatName" or "N StatName or fewer"
+  match = achievementLabel.match(/([\d,.]+)(?:\+|%|\s+or\s+fewer)?\s*(.+)(?:\s+\(Season\))?/i);
+  if (match) {
+    const threshold = parseFloat(match[1].replace(/,/g, ''));
+    let operator: '>=' | '≤' | '<' = '>=';
+    if (achievementLabel.includes('or fewer') || achievementLabel.includes('≤')) {
+      operator = '≤';
+    } else if (achievementLabel.includes('+') || achievementLabel.includes('%')) {
+      operator = '>=';
+    }
+
+    let statName = match[2].trim();
+    // Clean up statName from common suffixes like "(Season)"
+    statName = statName.replace(/\s*\(Season\)/i, '').trim();
+    
+    // Normalize specific stat names
+    if (statName === 'Save Percentage') {
+      statName = 'Save%';
+    } else if (statName === 'Faceoff Win Rate') {
+      statName = 'Faceoff%';
+    } else if (statName === 'TOI per Game') {
+      statName = 'TOI/G';
+    }
+
+    const isRateStat = achievementLabel.includes('%') || achievementLabel.includes('GAA') || achievementLabel.includes('TOI');
+
+    return {
+      threshold,
+      operator,
+      statName,
+      isRateStat,
+      originalLabel: achievementLabel,
+    };
+  }
+
+  // Fallback for cases like "2.60 or less GAA in a Season" where the operator is at the start
+  match = achievementLabel.match(/(?:≤|>=)\s*([\d,.]+)\s*(.+)(?:\s+\(Season\))?/i);
+  if (match) {
+    const threshold = parseFloat(match[1].replace(/,/g, ''));
+    let operator: '>=' | '≤' | '<' = '>=';
+    if (achievementLabel.includes('≤')) {
+      operator = '≤';
+    } else if (achievementLabel.includes('>=')) {
+      operator = '>=';
+    }
+    let statName = match[2].trim();
+    statName = statName.replace(/\s*\(Season\)/i, '').trim();
+    const isRateStat = achievementLabel.includes('%') || achievementLabel.includes('GAA') || achievementLabel.includes('TOI');
+
+    return {
+      threshold,
+      operator,
+      statName,
+      isRateStat,
+      originalLabel: achievementLabel,
+    };
+  }
+
+  return null;
+}
+
+export function formatAwardYears(seasonsWithTeams: Array<{ season: number; teamAbbrev?: string }>): string {
+  if (seasonsWithTeams.length === 0) return '';
+
+  const formattedEntries: string[] = [];
+
+  seasonsWithTeams.forEach(item => {
+    const teamSuffix = item.teamAbbrev ? ` – ${item.teamAbbrev}` : '';
+    formattedEntries.push(`${item.season}${teamSuffix}`);
+  });
+
+  return `(${formattedEntries.join('; ')})`;
+}
+
+function getPlayerRoyMvpYears(player: Player): { royYear?: number; mvpYear?: number } | null {
+  if (!player.awards) return null;
+
+  const royAwards = player.awards.filter(a => a.type === 'Rookie of the Year');
+  const mvpAwards = player.awards.filter(a => a.type === 'Most Valuable Player');
+
+  for (const roy of royAwards) {
+    for (const mvp of mvpAwards) {
+      if (mvp.season > roy.season) {
+        return { royYear: roy.season, mvpYear: mvp.season };
+      }
+    }
+  }
+  return null;
+}
+
+function getPlayerMaxAge(player: Player): number | null {
+  if (!player.stats || !player.born?.year) return null;
+  let maxAge = 0;
+  player.stats.forEach(s => {
+    if (!s.playoffs && (s.gp || 0) > 0) {
+      const age = s.season - player.born!.year;
+      if (age > maxAge) {
+        maxAge = age;
+      }
+    }
+  });
+  return maxAge > 0 ? maxAge : null;
+}
+
+function getPlayerDebutAge(player: Player): number | null {
+  if (!player.stats || !player.born?.year) return null;
+  let debutSeason: number | null = null;
+  player.stats.forEach(s => {
+    if (!s.playoffs && (s.gp || 0) > 0) {
+      if (debutSeason === null || s.season < debutSeason) {
+        debutSeason = s.season;
+      }
+    }
+  });
+  if (debutSeason !== null) {
+    return debutSeason - player.born.year;
+  }
+  return null;
+}
+
+function getPlayerSeasonsPlayed(player: Player): number {
+  if (!player.stats) return 0;
+  const seasonsPlayed = new Set<number>();
+  player.stats.forEach((s: any) => {
+    if (!s.playoffs && (s.gp || 0) > 0) {
+      seasonsPlayed.add(s.season);
+    }
+  });
+  return seasonsPlayed.size;
+}
+
+function getPlayerFranchisesPlayed(player: Player): number {
+  if (!player.stats) return 0;
+  const uniqueTids = new Set(player.stats.filter(s => !s.playoffs && (s.gp || 0) > 0).map(s => s.tid));
+  return uniqueTids.size;
+}
+
+function getPlayerHallOfFameStatus(player: Player): { isHoF: boolean; year?: number } {
+  if (!player.awards) return { isHoF: false };
+  const hofAward = player.awards.find((a: any) => a.type === 'Inducted into the Hall of Fame');
+  if (hofAward) {
+    return { isHoF: true, year: hofAward.season };
+  }
+  return { isHoF: false };
 }
 
 export function generatePlayerGuessFeedback(player: Player, rowConstraint: CatTeam, colConstraint: CatTeam, teams: Team[], sport: string, seasonIndex: SeasonIndex, isCorrectGuess: boolean = true): string[] {
@@ -508,39 +735,246 @@ export function generatePlayerGuessFeedback(player: Player, rowConstraint: CatTe
 
   // --- Row Bullet ---
 
-  if (rowConstraint.type === 'team') {
+    if (rowConstraint.type === 'team') {
 
-    const team = teams.find(t => t.tid === rowConstraint.tid);
+      const team = teams.find(t => t.tid === rowConstraint.tid);
 
-    const teamName = rowConstraint.label || (team ? `${team.region} ${team.name}` : `Team ${rowConstraint.tid}`);
+          const teamName = rowConstraint.label || (team ? `${team.region} ${team.name}` : `Team ${rowConstraint.tid}`);
 
-    const teamYearRange = getTeamYearRange(player, rowConstraint.tid!);
+          const teamYearRange = getTeamYearRange(player, rowConstraint.tid!, sport);
 
+  
 
+      if (teamYearRange === '') {
 
-    if (teamYearRange === '') {
+        bullets.push(`• Never played for the ${teamName}`);
 
-      bullets.push(`• Never played for the ${teamName}`);
+      } else {
 
-    } else {
+        bullets.push(`• Played for ${teamName} (${teamYearRange})`);
 
-      bullets.push(`• ${teamName} (${teamYearRange})`);
-
-    }
-
-  } else if (rowConstraint.type === 'achievement') {
-
+      }
+    } else if (rowConstraint.type === 'achievement') {
     const achievementId = rowConstraint.achievementId!;
-
     const achievementLabel = rowConstraint.label;
-
-
 
     const achievementYears = getSeasonAchievementSeasons(player, achievementId as SeasonAchievementId, teams, seasonIndex, rowConstraint.tid, sport);
 
-        const achievedGlobally = playerMeetsAchievement(player, achievementId, seasonIndex, '>=', undefined, undefined);
+    let finalAchievementLabel = achievementLabel;
 
-        const achievedWithTeam = playerMeetsAchievement(player, achievementId, seasonIndex, '>=', rowConstraint.tid, undefined);
+    // Handle draft achievements
+    if (player.draft) {
+      if (achievementId === 'isPick1Overall' || achievementId === 'isFirstRoundPick') {
+        if (player.draft.round && player.draft.pick && player.draft.year) {
+          finalAchievementLabel = `Round ${player.draft.round} Pick ${player.draft.pick} (${player.draft.year})`;
+        }
+      } else if (achievementId === 'isUndrafted') {
+        if (player.draft.year) {
+          finalAchievementLabel = `Undrafted (${player.draft.year})`;
+        }
+      }
+    }
+
+    // Handle career counting achievements
+    if (achievementId.startsWith('career')) {
+      const careerStats = getCareerStatDetails(player, achievementId, sport);
+      if (careerStats) {
+        finalAchievementLabel = `${careerStats.value.toLocaleString()} Career ${careerStats.statName}`;
+      }
+    }
+
+    // Handle seasons played achievement
+    if (achievementId === 'played15PlusSeasons') {
+      const seasons = getPlayerSeasonsPlayed(player);
+      finalAchievementLabel = `Played ${seasons} seasons`;
+    }
+
+    // Handle franchises played achievement
+    if (achievementId === 'played5PlusFranchises') {
+      const franchises = getPlayerFranchisesPlayed(player);
+      finalAchievementLabel = `Played for ${franchises} franchises`;
+    }
+
+    // Handle Hall of Fame achievement
+    if (achievementId === 'isHallOfFamer') {
+      const hofStatus = getPlayerHallOfFameStatus(player);
+      if (hofStatus.isHoF) {
+        finalAchievementLabel = `Hall of Fame inductee${hofStatus.year ? ` (${hofStatus.year})` : ''}`;
+      } else {
+        finalAchievementLabel = `Not in the Hall of Fame`;
+      }
+    }
+
+    // Handle "Played in the YYYYs" achievements
+    if (achievementId.startsWith('playedIn') && achievementId.endsWith('s')) {
+      if (player.decadesPlayed && player.decadesPlayed.size > 0) {
+        const decades = Array.from(player.decadesPlayed).sort((a, b) => a - b);
+        const minDecade = decades[0];
+        const maxDecade = decades[decades.length - 1];
+        finalAchievementLabel = `Played from ${minDecade}–${maxDecade}`;
+      }
+    }
+
+    // Handle "Debuted in the YYYYs" achievements
+    if (achievementId.startsWith('debutedIn') && achievementId.endsWith('s')) {
+      if (player.debutDecade) {
+        finalAchievementLabel = `Debuted in ${player.debutDecade}`;
+      }
+    }
+
+    // Handle "Played at age N+" achievement (e.g., playedAtAge40Plus)
+    if (achievementId === 'playedAtAge40Plus') {
+      const maxAge = getPlayerMaxAge(player);
+      if (maxAge !== null) {
+        finalAchievementLabel = `Played until age ${maxAge}`;
+      }
+    }
+
+    // Handle Awards, Honors, and Leader achievements
+            const isAwardOrLeader = Object.keys(SEASON_ACHIEVEMENT_LABELS).includes(achievementId);
+            if (isAwardOrLeader) {
+              const awardName = SEASON_ACHIEVEMENT_LABELS[achievementId as SeasonAchievementId] || finalAchievementLabel.replace(/\s*\(Season\)/gi, '').trim();
+              const achievementYearsFormatted = formatAwardYears(achievementYears);
+              const count = achievementYears.length;
+    
+              if (playerAchieved) {
+                const countPrefix = count > 1 ? `${count}x ` : '';
+                bullets.push(`• ${countPrefix}${awardName}${achievementYearsFormatted ? ` ${achievementYearsFormatted}` : ''}`);
+              } else {
+                if (awardName.includes('Leader')) {
+                  bullets.push(`• Never was League ${awardName}`);
+                } else {
+                  bullets.push(`• Never won ${awardName}`);
+                }
+              }
+            } else if (achievementId === 'royLaterMVP') {
+              if (playerAchieved) {
+                const royMvpYears = getPlayerRoyMvpYears(player);
+                if (royMvpYears?.royYear && royMvpYears.mvpYear) {
+                  bullets.push(`• ROY (${royMvpYears.royYear}) → MVP (${royMvpYears.mvpYear})`);
+                }
+              } else {
+                bullets.push(`• Never both ROY and MVP`);
+              }
+            } else if (achievementId.startsWith('Season') || achievementId.startsWith('FBSeason') || achievementId.startsWith('HKSeason') || achievementId.startsWith('BBSeason')) {
+              const parsedDetails = parseSeasonAchievementDetails(achievementId, achievementLabel, sport);
+              const achievementYearsFormatted = formatAwardYears(achievementYears);
+    
+              if (parsedDetails) {
+                if (achievementId === 'Season50_40_90') {
+                  if (playerAchieved) {
+                    bullets.push(`• 50/40/90${achievementYearsFormatted ? ` ${achievementYearsFormatted}` : ''}`);
+                  } else {
+                    bullets.push(`• Never had a 50/40/90 season`);
+                  }
+                } else if (parsedDetails.isRateStat) {
+                  // Rate stat thresholds
+                  const formattedThreshold = parsedDetails.isRateStat && parsedDetails.statName.includes('%')
+                    ? `${(parsedDetails.threshold * 100).toFixed(parsedDetails.threshold % 1 !== 0 ? 1 : 0)}`
+                    : parsedDetails.threshold.toLocaleString(undefined, { minimumFractionDigits: parsedDetails.threshold % 1 !== 0 ? 1 : 0 });
+                  const label = parsedDetails.statName;
+                  const percentSuffix = parsedDetails.isRateStat && parsedDetails.statName.includes('%') ? '%' : '';
+    
+                  if (playerAchieved) {
+                    if (parsedDetails.operator === '>=') {
+                      bullets.push(`• ${formattedThreshold}+ ${label}${percentSuffix}${achievementYearsFormatted ? ` ${achievementYearsFormatted}` : ''}`);
+                    } else if (parsedDetails.operator === '≤') {
+                      bullets.push(`• ${formattedThreshold} ${label} or lower${percentSuffix}${achievementYearsFormatted ? ` ${achievementYearsFormatted}` : ''}`);
+                    }
+                  } else {
+                    if (parsedDetails.operator === '>=') {
+                      bullets.push(`• Never had ${formattedThreshold}+ ${label}${percentSuffix} in a season`);
+                    } else if (parsedDetails.operator === '≤') {
+                      bullets.push(`• Never had ${formattedThreshold} or lower ${label}${percentSuffix} in a season`);
+                    }
+                  }
+                } else {
+                  // Counting stat thresholds
+                  const formattedThreshold = parsedDetails.threshold.toLocaleString();
+                  const label = parsedDetails.statName;
+    
+                  if (playerAchieved) {
+                    if (parsedDetails.operator === '>=') {
+                      bullets.push(`• ${formattedThreshold}+ ${label}${achievementYearsFormatted ? ` ${achievementYearsFormatted}` : ''}`);
+                    } else if (parsedDetails.operator === '≤') {
+                      bullets.push(`• ${formattedThreshold} ${label} or fewer${achievementYearsFormatted ? ` ${achievementYearsFormatted}` : ''}`);
+                    } else if (parsedDetails.operator === '<') {
+                      bullets.push(`• Under ${formattedThreshold} ${label}${achievementYearsFormatted ? ` ${achievementYearsFormatted}` : ''}`);
+                    }
+                  } else {
+                    if (parsedDetails.operator === '>=') {
+                      bullets.push(`• Never had ${formattedThreshold}+ ${label} in a season`);
+                    } else if (parsedDetails.operator === '≤') {
+                      bullets.push(`• Never had ${formattedThreshold} or fewer ${label} in a season`);
+                    } else if (parsedDetails.operator === '<') {
+                      bullets.push(`• Never had under ${formattedThreshold} ${label} in a season`);
+                    }
+                  }
+                }
+              } else {
+                // Fallback if parsing fails for a season achievement
+                if (playerAchieved) {
+                  bullets.push(`• ${finalAchievementLabel}`);
+                }
+                else {
+                  bullets.push(`• Never achieved: ${finalAchievementLabel}`);
+                }
+              }
+            } else {
+              // Generic fallback for achievements not covered by specific handlers
+              if (playerAchieved) {
+                if (isChampionship) {
+                  const formattedYears = formatBulletSeasonList(achievementYears);
+                  const count = achievementYears.length;
+                  const championshipText = count > 1 ? `${count} Championships` : `a Championship`;
+                  bullets.push(`• Won ${championshipText}${formattedYears ? ` ${formattedYears}` : ''}`);
+                } else {
+                  bullets.push(`• ${finalAchievementLabel}`);
+                }
+              } else {
+                if (isChampionship) {
+                  bullets.push(`• Never won a Championship`);
+                } else {
+                  bullets.push(`• Never achieved: ${finalAchievementLabel}`);
+                }
+              }
+            }
+            const parsedCustom = parseCustomAchievementId(achievementId);
+
+
+  // --- Column Bullet ---
+
+    if (colConstraint.type === 'team') {
+
+      const colTeam = teams.find(t => t.tid === colConstraint.tid);
+
+          const colTeamName = colConstraint.label || (colTeam ? `${colTeam.region} ${colTeam.name}` : `Team ${colConstraint.tid}`);
+
+          const colTeamYearRange = getTeamYearRange(player, colConstraint.tid!, sport);
+
+  
+
+      if (colTeamYearRange === '') {
+
+        bullets.push(`• Never played for the ${colTeamName}`);
+
+      } else {
+
+        bullets.push(`• Played for ${colTeamName} (${colTeamYearRange})`);
+
+      }
+
+      } else if (colConstraint.type === 'achievement') {
+
+        const achievementId = colConstraint.achievementId!;
+
+        const achievementLabel = colConstraint.label;
+
+    
+
+        const teamIdForAchievementCheck = rowConstraint.type === 'team' ? rowConstraint.tid : undefined;
+
+        const achievementYears = getSeasonAchievementSeasons(player, achievementId as SeasonAchievementId, teams, seasonIndex, teamIdForAchievementCheck, sport);
 
     
 
@@ -548,359 +982,8507 @@ export function generatePlayerGuessFeedback(player: Player, rowConstraint: CatTe
 
     
 
-        const parsedCustom = parseCustomAchievementId(achievementId);
-
-        if (parsedCustom) {
-
-          const parsedOriginalLabel = parseAchievementLabel(achievementLabel, sport);
-
-          finalAchievementLabel = generateUpdatedLabel(parsedOriginalLabel, parsedCustom.threshold, parsedCustom.operator);
-
-        } else {
-
-          finalAchievementLabel = finalAchievementLabel.replace(/\s*\(Season\)/gi, '').trim();
-
-        }
+                // Handle draft achievements
 
     
 
-        const isCareerStat = achievementId.startsWith('career');
-
-        const isFinalsOrCFMVP = achievementId === 'FinalsMVP' || achievementId === 'SFMVP' || achievementId === 'FBFinalsMVP' || achievementId === 'HKFinalsMVP';
+                if (player.draft) {
 
     
 
-        if (achievedWithTeam) {
+                  if (achievementId === 'isPick1Overall' || achievementId === 'isFirstRoundPick') {
 
-          if (finalAchievementLabel.includes('Champion')) {
+    
 
-            const count = achievementYears.length;
+                    if (player.draft.round && player.draft.pick && player.draft.year) {
 
-            const formattedYears = formatBulletSeasonList(achievementYears, isFinalsOrCFMVP);
+    
 
-            const championshipText = count > 1 ? `${count} Championships` : `a Championship`;
+                      finalAchievementLabel = `Round ${player.draft.round} Pick ${player.draft.pick} (${player.draft.year})`;
 
-            bullets.push(`• Won ${championshipText} with the ${rowConstraint.label} (${formattedYears})`);
+    
 
-          } else if (isFinalsOrCFMVP) {
+                    }
 
-            const formattedYears = formatBulletSeasonList(achievementYears, isFinalsOrCFMVP);
+    
 
-            bullets.push(`• ${finalAchievementLabel} with the ${rowConstraint.label} (${formattedYears})`);
+                  } else if (achievementId === 'isUndrafted') {
 
-          } else if (achievementYears.length > 0) {
+    
 
-            const count = achievementYears.length;
+                    if (player.draft.year) {
 
-            const formattedYears = formatBulletSeasonList(achievementYears, isFinalsOrCFMVP);
+    
 
-            if (count > 1 && !isCareerStat && !achievementId.startsWith('Season')) {
+                      finalAchievementLabel = `Undrafted (${player.draft.year})`;
 
-              bullets.push(`• ${count}x ${finalAchievementLabel} with the ${rowConstraint.label} (${formattedYears})`);
+    
 
-            } else {
+                    }
 
-              bullets.push(`• ${finalAchievementLabel} with the ${rowConstraint.label} (${formattedYears})`);
+    
 
-            }
+                  }
 
-          } else if (isCareerStat) {
+    
 
-            const statInfo = getCareerStatInfo(player, achievementId);
+                }
 
-            if (statInfo) {
+    
 
-              bullets.push(`• Achieved ${statInfo.value.toLocaleString()} ${statInfo.label} with the ${rowConstraint.label}`);
+        
 
-            } else {
+    
 
-              bullets.push(`• 0 career points with the ${rowConstraint.label}`);
+                        // Handle career counting achievements
 
-            }
+    
 
-          } else {
+        
 
-            bullets.push(`• Achieved: ${finalAchievementLabel} with the ${rowConstraint.label}`);
+    
 
-          }
+                        if (achievementId.startsWith('career')) {
 
-        } else if (achievedGlobally) {
+    
 
-          if (finalAchievementLabel.includes('Champion')) {
+        
 
-            const count = achievementYears.length;
+    
 
-            const formattedYears = formatBulletSeasonList(achievementYears, false);
+                          const careerStats = getCareerStatDetails(player, achievementId, sport);
 
-            const championshipText = count > 1 ? `${count} Championships` : `a Championship`;
+    
 
-            bullets.push(`• Won ${championshipText} (globally)`);
+        
 
-          } else if (achievementYears.length > 0) {
+    
 
-            const count = achievementYears.length;
+                          if (careerStats) {
 
-            const formattedYears = formatBulletSeasonList(achievementYears, false);
+    
 
-            if (count > 1 && !isCareerStat && !achievementId.startsWith('Season')) {
+        
 
-              bullets.push(`• ${count}x ${finalAchievementLabel} (globally)`);
+    
 
-            } else {
+                            finalAchievementLabel = `${careerStats.value.toLocaleString()} Career ${careerStats.statName}`;
 
-              bullets.push(`• ${finalAchievementLabel} (globally)`);
+    
 
-            }
+        
 
-          } else if (isCareerStat) {
+    
 
-            const statInfo = getCareerStatInfo(player, achievementId);
+                          }
 
-            if (statInfo) {
+    
 
-              bullets.push(`• Achieved ${statInfo.value.toLocaleString()} ${statInfo.label} (globally)`);
+        
 
-            } else {
+    
 
-              bullets.push(`• 0 career points (globally)`);
+                        }
 
-            }
+    
 
-          } else {
+        
 
-            bullets.push(`• Achieved: ${finalAchievementLabel} (globally)`);
+    
 
-          }
+                
 
-        } else {
+    
 
-          if (isCareerStat) {
+        
 
-            const statInfo = getCareerStatInfo(player, achievementId);
+    
 
-            if (statInfo) {
+                        // Handle seasons played achievement
 
-              bullets.push(`• Only ${statInfo.value.toLocaleString()} ${statInfo.label}`);
+    
 
-            }
+        
 
-          } else if (finalAchievementLabel.includes('Champion')) {
+    
 
-            bullets.push(`• Never won a championship`);
+                        if (achievementId === 'played15PlusSeasons') {
 
-          } else if (achievementId.startsWith('Season') || achievementId.startsWith('FBSeason') || achievementId.startsWith('HKSeason') || achievementId.startsWith('BBSeason')) {
+    
 
-            bullets.push(`• Never achieved: ${finalAchievementLabel}`);
+        
 
-          } else {
+    
 
-            bullets.push(`• Never achieved: ${finalAchievementLabel}`);
+                          const seasons = getPlayerSeasonsPlayed(player);
 
-          }
+    
 
-        }
+        
 
-  }
+    
 
+                          finalAchievementLabel = `Played ${seasons} seasons`;
 
+    
 
-  // --- Column Bullet ---
+        
 
-  if (colConstraint.type === 'team') {
+    
 
-    const colTeam = teams.find(t => t.tid === colConstraint.tid);
+                        }
 
-    const colTeamName = colConstraint.label || (colTeam ? `${colTeam.region} ${colTeam.name}` : `Team ${colConstraint.tid}`);
+    
 
-    const colTeamYearRange = getTeamYearRange(player, colConstraint.tid!);
+        
 
+    
 
+                
 
-    if (colTeamYearRange === '') {
+    
 
-      bullets.push(`• Never played for the ${colTeamName}`);
+        
 
-    } else {
+    
 
-      bullets.push(`• ${colTeamName} (${colTeamYearRange})`);
+                        // Handle franchises played achievement
 
-    }
+    
 
-  } else if (colConstraint.type === 'achievement') {
+        
 
-    const achievementId = colConstraint.achievementId!;
+    
 
-    const achievementLabel = colConstraint.label;
+                        if (achievementId === 'played5PlusFranchises') {
 
+    
 
+        
 
-    const teamIdForAchievementCheck = rowConstraint.type === 'team' ? rowConstraint.tid : undefined;
+    
 
-    const achievedWithTeam = playerMeetsAchievement(player, achievementId, seasonIndex, '>=', teamIdForAchievementCheck, undefined);
+                          const franchises = getPlayerFranchisesPlayed(player);
 
-    const achievedGlobally = playerMeetsAchievement(player, achievementId, seasonIndex, '>=', undefined, undefined);
+    
 
+        
 
+    
 
-    const achievementYears = getSeasonAchievementSeasons(player, achievementId as SeasonAchievementId, teams, seasonIndex, teamIdForAchievementCheck, sport);
+                          finalAchievementLabel = `Played for ${franchises} franchises`;
 
-    let finalAchievementLabel = achievementLabel;
+    
 
+        
 
+    
 
-    const parsedCustom = parseCustomAchievementId(achievementId);
+                        }
 
-    if (parsedCustom) {
+    
 
-      const parsedOriginalLabel = parseAchievementLabel(achievementLabel, sport);
+        
 
-      finalAchievementLabel = generateUpdatedLabel(parsedOriginalLabel, parsedCustom.threshold, parsedCustom.operator);
+    
 
-    } else {
+                
 
-      finalAchievementLabel = finalAchievementLabel.replace(/\s*\(Season\)/gi, '').trim();
+    
 
-    }
+        
 
+    
 
+                                // Handle Hall of Fame achievement
 
-    const isCareerStat = achievementId.startsWith('career');
+    
 
-    const isFinalsOrCFMVP = achievementId === 'FinalsMVP' || achievementId === 'SFMVP' || achievementId === 'FBFinalsMVP' || achievementId === 'HKFinalsMVP';
+        
 
+    
 
+                
 
-    if (achievedWithTeam) {
+    
 
-      if (finalAchievementLabel.includes('Champion')) {
+        
 
-        const count = achievementYears.length;
+    
 
-        const formattedYears = formatBulletSeasonList(achievementYears, isFinalsOrCFMVP);
+                                if (achievementId === 'isHallOfFamer') {
 
-        const championshipText = count > 1 ? `${count} Championships` : `a Championship`;
+    
 
-        bullets.push(`• Won ${championshipText} with the ${rowConstraint.label} (${formattedYears})`);
+        
 
-      } else if (isFinalsOrCFMVP) {
+    
 
-        const formattedYears = formatBulletSeasonList(achievementYears, isFinalsOrCFMVP);
+                
 
-        bullets.push(`• ${finalAchievementLabel} with the ${rowConstraint.label} (${formattedYears})`);
+    
 
-      } else if (achievementYears.length > 0) {
+        
 
-        const count = achievementYears.length;
+    
 
-        const formattedYears = formatBulletSeasonList(achievementYears, isFinalsOrCFMVP);
+                                  const hofStatus = getPlayerHallOfFameStatus(player);
 
-        if (count > 1 && !isCareerStat && !achievementId.startsWith('Season')) {
+    
 
-          bullets.push(`• ${count}x ${finalAchievementLabel} with the ${rowConstraint.label} (${formattedYears})`);
+        
 
-        } else {
+    
 
-          bullets.push(`• ${finalAchievementLabel} with the ${rowConstraint.label} (${formattedYears})`);
+                
 
-        }
+    
 
-      } else if (isCareerStat) {
+        
 
-        const statInfo = getCareerStatInfo(player, achievementId);
+    
 
-        if (statInfo) {
+                                  if (hofStatus.isHoF) {
 
-          bullets.push(`• Achieved ${statInfo.value.toLocaleString()} ${statInfo.label} with the ${rowConstraint.label}`);
+    
 
-        } else {
+        
 
-          bullets.push(`• 0 career points with the ${rowConstraint.label}`);
+    
 
-        }
+                
 
-      } else {
+    
 
-        bullets.push(`• Achieved: ${finalAchievementLabel} with the ${rowConstraint.label}`);
+        
 
-      }
+    
 
-    } else if (achievedGlobally) {
+                                    finalAchievementLabel = `Hall of Fame inductee${hofStatus.year ? ` (${hofStatus.year})` : ''}`;
 
-      if (finalAchievementLabel.includes('Champion')) {
+    
 
-        const count = achievementYears.length;
+        
 
-        const formattedYears = formatBulletSeasonList(achievementYears, false);
+    
 
-        const championshipText = count > 1 ? `${count} Championships` : `a Championship`;
+                
 
-        bullets.push(`• Won ${championshipText} (globally)`);
+    
 
-      } else if (achievementYears.length > 0) {
+        
 
-        const count = achievementYears.length;
+    
 
-        const formattedYears = formatBulletSeasonList(achievementYears, false);
+                                  } else {
 
-        if (count > 1 && !isCareerStat && !achievementId.startsWith('Season')) {
+    
 
-          bullets.push(`• ${count}x ${finalAchievementLabel} (globally)`);
+        
 
-        } else {
+    
 
-          bullets.push(`• ${finalAchievementLabel} (globally)`);
+                
 
-        }
+    
 
-      } else if (isCareerStat) {
+        
 
-        const statInfo = getCareerStatInfo(player, achievementId);
+    
 
-        if (statInfo) {
+                                    finalAchievementLabel = `Not in the Hall of Fame`;
 
-          bullets.push(`• Achieved ${statInfo.value.toLocaleString()} ${statInfo.label} (globally)`);
+    
 
-        } else {
+        
 
-          bullets.push(`• 0 career points (globally)`);
+    
 
-        }
+                
 
-      } else {
+    
 
-        bullets.push(`• Achieved: ${finalAchievementLabel} (globally)`);
+        
 
-      }
+    
 
-    } else {
+                                  }
 
-      if (isCareerStat) {
+    
 
-        const statInfo = getCareerStatInfo(player, achievementId);
+        
 
-        if (statInfo) {
+    
 
-          bullets.push(`• Only ${statInfo.value.toLocaleString()} ${statInfo.label}`);
+                
 
-        }
+    
 
-      } else if (finalAchievementLabel.includes('Champion')) {
+        
 
-        bullets.push(`• Never won a championship`);
+    
 
-      } else if (achievementId.startsWith('Season') || achievementId.startsWith('FBSeason') || achievementId.startsWith('HKSeason') || achievementId.startsWith('BBSeason')) {
+                                }
 
-        bullets.push(`• Never achieved: ${finalAchievementLabel}`);
+    
 
-      } else {
+        
 
-        bullets.push(`• Never achieved: ${finalAchievementLabel}`);
+    
 
-      }
+                
 
-    }
+    
 
-  }
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                // Handle "Played in the YYYYs" achievements
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                if (achievementId.startsWith('playedIn') && achievementId.endsWith('s')) {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                  if (player.decadesPlayed && player.decadesPlayed.size > 0) {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                    const decades = Array.from(player.decadesPlayed).sort((a, b) => a - b);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                    const minDecade = decades[0];
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                    const maxDecade = decades[decades.length - 1];
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                    finalAchievementLabel = `Played from ${minDecade}–${maxDecade}`;
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                  }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                        // Handle "Debuted in the YYYYs" achievements
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                        if (achievementId.startsWith('debutedIn') && achievementId.endsWith('s')) {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                          if (player.debutDecade) {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                            finalAchievementLabel = `Debuted in ${player.debutDecade}`;
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                          }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                        }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                // Handle "Played at age N+" achievement (e.g., playedAtAge40Plus)
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                if (achievementId === 'playedAtAge40Plus') {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                  const maxAge = getPlayerMaxAge(player);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                  if (maxAge !== null) {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                    finalAchievementLabel = `Played until age ${maxAge}`;
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                  }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                // Handle Awards, Honors, and Leader achievements
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                const isAwardOrLeader = Object.keys(SEASON_ACHIEVEMENT_LABELS).includes(achievementId);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                if (isAwardOrLeader) {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                  const awardName = SEASON_ACHIEVEMENT_LABELS[achievementId as SeasonAchievementId] || finalAchievementLabel.replace(/\s*\(Season\)/gi, '').trim();
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                  const achievementYearsFormatted = formatAwardYears(achievementYears);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                  const count = achievementYears.length;
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                  if (playerAchieved) {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                    const countPrefix = count > 1 ? `${count}x ` : '';
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                    bullets.push(`• ${countPrefix}${awardName}${achievementYearsFormatted ? ` ${achievementYearsFormatted}` : ''}`);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                  } else {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                    if (awardName.includes('Leader')) {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                      bullets.push(`• Never was League ${awardName}`);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                    } else {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                      bullets.push(`• Never won ${awardName}`);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                    }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                  }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                } else {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                  // Fallback for other achievements (e.g., custom numerical, combined awards)
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                  if (achievementId === 'royLaterMVP') {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                    if (playerAchieved) {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                      const royMvpYears = getPlayerRoyMvpYears(player);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                      if (royMvpYears?.royYear && royMvpYears.mvpYear) {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                        bullets.push(`• ROY (${royMvpYears.royYear}) → MVP (${royMvpYears.mvpYear})`);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                      }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                    } else {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                      bullets.push(`• Never both ROY and MVP`);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                    }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                            } else {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                              if (playerAchieved) {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                if (isChampionship) {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                  const formattedYears = formatBulletSeasonList(achievementYears);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                  const count = achievementYears.length;
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                  const championshipText = count > 1 ? `${count} Championships` : `a Championship`;
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                  bullets.push(`• Won ${championshipText}${formattedYears ? ` ${formattedYears}` : ''}`);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                } else {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                  bullets.push(`• ${finalAchievementLabel}`);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                              } else {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                if (isChampionship) {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                  bullets.push(`• Never won a Championship`);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                } else {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                  bullets.push(`• Never achieved: ${finalAchievementLabel}`);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                              }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                            }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                          }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                        } else if (achievementId.startsWith('Season') || achievementId.startsWith('FBSeason') || achievementId.startsWith('HKSeason') || achievementId.startsWith('BBSeason')) {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                          const parsedDetails = parseSeasonAchievementDetails(achievementId, achievementLabel, sport);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                          const achievementYearsFormatted = formatAwardYears(achievementYears);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                  
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                          if (parsedDetails) {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                            if (achievementId === 'Season50_40_90') {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                              if (playerAchieved) {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                bullets.push(`• 50/40/90${achievementYearsFormatted ? ` ${achievementYearsFormatted}` : ''}`);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                              } else {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                bullets.push(`• Never had a 50/40/90 season`);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                              }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                            } else if (parsedDetails.isRateStat) {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                              // Rate stat thresholds
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                          const formattedThreshold = parsedDetails.isRateStat && parsedDetails.statName.includes('%')
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                            ? `${(parsedDetails.threshold * 100).toFixed(parsedDetails.threshold % 1 !== 0 ? 1 : 0)}`
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                            : parsedDetails.threshold.toLocaleString(undefined, { minimumFractionDigits: parsedDetails.threshold % 1 !== 0 ? 1 : 0 });
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                          const label = parsedDetails.statName;
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                          const percentSuffix = parsedDetails.isRateStat && parsedDetails.statName.includes('%') ? '%' : '';
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                              
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                          if (playerAchieved) {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                            if (parsedDetails.operator === '>=') {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                              bullets.push(`• ${formattedThreshold}+ ${label}${percentSuffix}${achievementYearsFormatted ? ` ${achievementYearsFormatted}` : ''}`);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                            } else if (parsedDetails.operator === '≤') {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                              bullets.push(`• ${formattedThreshold} ${label} or lower${percentSuffix}${achievementYearsFormatted ? ` ${achievementYearsFormatted}` : ''}`);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                            }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                          } else {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                            if (parsedDetails.operator === '>=') {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                              bullets.push(`• Never had ${formattedThreshold}+ ${label}${percentSuffix} in a season`);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                            } else if (parsedDetails.operator === '≤') {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                              bullets.push(`• Never had ${formattedThreshold} or lower ${label}${percentSuffix} in a season`);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                            }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                          }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                        } else {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                          // Counting stat thresholds
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                          const formattedThreshold = parsedDetails.threshold.toLocaleString();
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                          const label = parsedDetails.statName;
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                            
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                          if (playerAchieved) {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                            if (parsedDetails.operator === '>=') {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                              bullets.push(`• ${formattedThreshold}+ ${label}${achievementYearsFormatted ? ` ${achievementYearsFormatted}` : ''}`);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                            } else if (parsedDetails.operator === '≤') {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                              bullets.push(`• ${formattedThreshold} ${label} or fewer${achievementYearsFormatted ? ` ${achievementYearsFormatted}` : ''}`);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                            } else if (parsedDetails.operator === '<') {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                              bullets.push(`• Under ${formattedThreshold} ${label}${achievementYearsFormatted ? ` ${achievementYearsFormatted}` : ''}`);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                            }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                          } else {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                            if (parsedDetails.operator === '>=') {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                              bullets.push(`• Never had ${formattedThreshold}+ ${label} in a season`);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                            } else if (parsedDetails.operator === '≤') {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                              bullets.push(`• Never had ${formattedThreshold} or fewer ${label} in a season`);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                            } else if (parsedDetails.operator === '<') {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                              bullets.push(`• Never had under ${formattedThreshold} ${label} in a season`);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                            }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                          }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                                        }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                          } else {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                            // Fallback if parsing fails for a season achievement
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                            if (playerAchieved) {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                              bullets.push(`• ${finalAchievementLabel}`);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                            } else {
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                              bullets.push(`• Never achieved: ${finalAchievementLabel}`);
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                            }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                          }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                        }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                      }
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                  
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                
+
+    
+
+        
+
+    
+
+                                                          const parsedCustom = parseCustomAchievementId(achievementId);
 
 
 
@@ -909,53 +9491,42 @@ export function generatePlayerGuessFeedback(player: Player, rowConstraint: CatTe
 }
 
 // Helper function to get career stat value and name from player
-function getCareerStatInfo(player: Player, achievementId: string): { value: number; label: string } | null {
-  const statMap: Record<string, { field: string; label: string }> = {
+function getCareerStatDetails(player: Player, achievementId: string): { value: number; statName: string } | null {
+  const statMap: Record<string, { field: string; statName: string }> = {
     // Basketball
-    'careerPoints': { field: 'pts', label: 'career points' },
-    'career20kPoints': { field: 'pts', label: 'career points' },
-    'career20000Points': { field: 'pts', label: 'career points' },
-    'careerRebounds': { field: 'trb', label: 'career rebounds' },
-    'career10kRebounds': { field: 'trb', label: 'career rebounds' },
-    'career10000Rebounds': { field: 'trb', label: 'career rebounds' },
-    'careerAssists': { field: 'ast', label: 'career assists' },
-    'career5kAssists': { field: 'ast', label: 'career assists' },
-    'career5000Assists': { field: 'ast', label: 'career assists' },
-    'careerSteals': { field: 'stl', label: 'career steals' },
-    'career2kSteals': { field: 'stl', label: 'career steals' },
-    'career2000Steals': { field: 'stl', label: 'career steals' },
-    'careerBlocks': { field: 'blk', label: 'career blocks' },
-    'career1500Blocks': { field: 'blk', label: 'career blocks' },
-    'career3PM': { field: 'tpm', label: 'career threes made' },
-    'career2kThrees': { field: 'tpm', label: 'career threes made' },
-    'career2000ThreeMade': { field: 'tpm', label: 'career threes made' },
+    'career20kPoints': { field: 'pts', statName: 'Points' },
+    'career10kRebounds': { field: 'trb', statName: 'Rebounds' },
+    'career5kAssists': { field: 'ast', statName: 'Assists' },
+    'career2kSteals': { field: 'stl', statName: 'Steals' },
+    'career1500Blocks': { field: 'blk', statName: 'Blocks' },
+    'career2kThrees': { field: 'tpm', statName: '3PM' },
     
     // Baseball
-    'career3000Hits': { field: 'h', label: 'career hits' },
-    'career500HRs': { field: 'hr', label: 'career home runs' },
-    'career1500RBIs': { field: 'rbi', label: 'career RBIs' },
-    'career400SBs': { field: 'sb', label: 'career stolen bases' },
-    'career1800Runs': { field: 'r', label: 'career runs' },
-    'career300Wins': { field: 'w', label: 'career wins (pitcher)' },
-    'career3000Ks': { field: 'so', label: 'career strikeouts' },
-    'career300Saves': { field: 'sv', label: 'career saves' },
+    'career3000Hits': { field: 'h', statName: 'Hits' },
+    'career500HRs': { field: 'hr', statName: 'Home Runs' },
+    'career1500RBIs': { field: 'rbi', statName: 'RBIs' },
+    'career400SBs': { field: 'sb', statName: 'Stolen Bases' },
+    'career1800Runs': { field: 'r', statName: 'Runs' },
+    'career300Wins': { field: 'w', statName: 'Wins (P)' },
+    'career3000Ks': { field: 'soPit', statName: 'Strikeouts' },
+    'career300Saves': { field: 'sv', statName: 'Saves' },
     
     // Hockey
-    'career500Goals': { field: 'g', label: 'career goals' },
-    'career1000Points': { field: 'pts', label: 'career points' },
-    'career500Assists': { field: 'a', label: 'career assists' },
-    'career200Wins': { field: 'gw', label: 'career wins (goalie)' },
-    'career50Shutouts': { field: 'so', label: 'career shutouts' },
+    'career500Goals': { field: 'goals', statName: 'Goals' }, // Custom computed field
+    'career1000Points': { field: 'points', statName: 'Points' }, // Custom computed field
+    'career500Assists': { field: 'assists', statName: 'Assists' }, // Custom computed field
+    'career200Wins': { field: 'wins', statName: 'Wins (G)' }, // Custom computed field
+    'career50Shutouts': { field: 'shutouts', statName: 'Shutouts (G)' }, // Custom computed field
     
     // Football
-    'career300PassTDs': { field: 'pssTD', label: 'career passing TDs' },
-    'career50kPassYds': { field: 'pssYds', label: 'career passing yards' },
-    'career12kRushYds': { field: 'rusYds', label: 'career rushing yards' },
-    'career100RushTDs': { field: 'rusTD', label: 'career rushing TDs' },
-    'career100RecTDs': { field: 'recTD', label: 'career receiving TDs' },
-    'career12kRecYds': { field: 'recYds', label: 'career receiving yards' },
-    'career100Sacks': { field: 'defSck', label: 'career sacks' },
-    'career30Ints': { field: 'defInt', label: 'career interceptions' },
+    'career300PassTDs': { field: 'pssTD', statName: 'Passing TDs' },
+    'career50kPassYds': { field: 'pssYds', statName: 'Passing Yards' },
+    'career12kRushYds': { field: 'rusYds', statName: 'Rushing Yards' },
+    'career100RushTDs': { field: 'rusTD', statName: 'Rushing TDs' },
+    'career100RecTDs': { field: 'recTD', statName: 'Receiving TDs' },
+    'career12kRecYds': { field: 'recYds', statName: 'Receiving Yards' },
+    'career100Sacks': { field: 'sks', statName: 'Sacks' }, // Using 'sks' from FBGM stats
+    'career20Ints': { field: 'defInt', statName: 'Interceptions' },
   };
 
   // Handle custom achievements (e.g., "career20000Points_custom_15000_gte")
@@ -967,6 +9538,17 @@ function getCareerStatInfo(player: Player, achievementId: string): { value: numb
   const statInfo = statMap[baseAchievementId];
   if (!statInfo || !player.stats) return null;
 
+  // Special handling for hockey computed fields
+  if (sport === 'hockey') {
+    if (!player.achievements?.seasonStatsComputed) return null;
+
+    let totalValue = 0;
+    for (const seasonData of Object.values(player.achievements.seasonStatsComputed)) {
+      totalValue += (seasonData as any)[statInfo.field] || 0;
+    }
+    return { value: totalValue, statName: statInfo.statName };
+  }
+
   const value = getPlayerCareerTotal(player, statInfo.field as any);
-  return { value, label: statInfo.label };
+  return { value, statName: statInfo.statName };
 }
