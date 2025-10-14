@@ -298,13 +298,17 @@ export function getSeasonAchievementSeasons(player: Player, achievementId: Seaso
   // Handle championship achievements specifically
   if (baseAchievementId.includes('Champion')) {
     if (player.achievementSeasons?.champion && player.achievementSeasons.champion.size > 0) {
-      return Array.from(player.achievementSeasons.champion).sort((a, b) => a - b).map(s => s.toString());
+      const filteredSeasons = teamId !== undefined
+        ? Array.from(player.achievementSeasons.champion).filter(s => player.teams[s]?.tid === teamId)
+        : Array.from(player.achievementSeasons.champion);
+      return filteredSeasons.sort((a, b) => a - b).map(s => s.toString());
     }
     // Fallback to player.awards if achievementSeasons.champion is not available or empty
     if (!player.awards) return [];
 
     const championshipAwards = player.awards
       .filter(award => award.type.includes('Won Championship') || award.type.includes('Championship'))
+      .filter(award => teamId === undefined || player.teams[award.season]?.tid === teamId) // Add teamId filter here
       .map(award => award.season);
 
     const uniqueChampionshipYears = [...new Set(championshipAwards)].sort((a, b) => a - b);
@@ -376,6 +380,7 @@ export function getSeasonAchievementSeasons(player: Player, achievementId: Seaso
 
   player.awards
     .filter(award => awardTypesToLookFor.some(type => award.type.includes(type)))
+    .filter(award => teamId === undefined || player.teams[award.season]?.tid === teamId) // Add teamId filter here
     .forEach(award => {
       let teamAbbrev: string | undefined;
       // For Finals MVP, try to find the team abbreviation for that season
