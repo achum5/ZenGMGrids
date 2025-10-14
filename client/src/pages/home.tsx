@@ -23,7 +23,7 @@ import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
 import { calculateCustomCellIntersection, headerConfigToCatTeam, getCustomCellEligiblePlayersAsync } from '@/lib/custom-grid-utils';
 import { calculateOptimizedIntersection, type IntersectionConstraint, clearIntersectionCachesForPlayers } from '@/lib/intersection-cache';
 import { getSeasonEligiblePlayers, SEASON_ACHIEVEMENTS } from '@/lib/season-achievements';
-import { debugIndividualAchievements, playerMeetsAchievement, setCachedLeagueYears } from '@/lib/achievements';
+import { debugIndividualAchievements, playerMeetsAchievement, setCachedLeagueYears, calculateTeamSeasonsAndAchievementSeasons } from '@/lib/achievements';
 import { clearHintCache } from '@/lib/hint-generation';
 import { useToast } from '@/lib/hooks/use-toast';
 import type { LeagueData, CatTeam, CellState, Player, SearchablePlayer } from '@/types/bbgm';

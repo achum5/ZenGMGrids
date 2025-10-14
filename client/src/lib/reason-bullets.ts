@@ -747,6 +747,62 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
   };
 }
 
+// Generate career achievement bullet
+function generateCareerAchievementBullet(player: Player, achievementId: string, teams: Team[], constraintLabel?: string, sport?: string): ReasonBullet | null {
+  let baseAchievementId = achievementId;
+  let customThreshold: number | undefined;
+  let customOperator: '≥' | '≤' | undefined;
+
+  if (achievementId.includes('_custom_')) {
+    const parsedCustom = parseCustomAchievementId(achievementId);
+    if (parsedCustom) {
+      baseAchievementId = parsedCustom.baseId;
+      customThreshold = parsedCustom.threshold;
+      customOperator = parsedCustom.operator;
+    }
+  }
+
+  const statField = getStatFieldForAchievement(baseAchievementId as SeasonAchievementId);
+
+  if (achievementId === 'isPick1Overall') {
+    const draftYear = player.draft?.year;
+    return {
+      text: draftYear ? `#1 Overall Pick (Draft Year: ${draftYear})` : `#1 Overall Pick`,
+      type: 'draft'
+    };
+  } else if (statField) {
+    const playerCareerTotal = getPlayerCareerTotal(player, statField);
+    const originalLabel = constraintLabel || achievementId;
+    const parsedOriginal = parseAchievementLabel(originalLabel);
+
+    let statName = parsedOriginal.statUnit?.trim();
+    if (!statName && parsedOriginal.suffix.trim()) {
+      statName = parsedOriginal.suffix.trim().replace(/^\+/, '');
+    }
+    if (!statName && parsedOriginal.prefix.trim()) {
+      statName = parsedOriginal.prefix.trim();
+    }
+
+    statName = (statName || '').replace(/^(career|season)\s*/i, '').trim();
+    statName = (statName || '').replace(/\s*\(career\)|\s*\(season\)/gi, '').trim();
+
+    if (playerCareerTotal === 1) {
+      statName = singularizeStatWord(statName);
+    }
+
+    return {
+      text: `${formatNumber(playerCareerTotal)} Career ${statName}`.trim(),
+      type: 'award'
+    };
+  } else {
+    const label = constraintLabel || achievementId;
+    return {
+      text: label,
+      type: 'award'
+    };
+  }
+}
+
 export function generatePlayerGuessFeedback(player: Player, rowConstraint: CatTeam, colConstraint: CatTeam, teams: Team[], sport: string, seasonIndex: SeasonIndex, isCorrectGuess: boolean = true): string[] {
   const bullets: string[] = [];
 
@@ -888,34 +944,4 @@ function getCareerStatInfo(player: Player, achievementId: string): { value: numb
 
   const value = getPlayerCareerTotal(player, statInfo.field as any);
   return { value, label: statInfo.label };
-}
-
-// Generate career achievement bullet
-function generateCareerAchievementBullet(player: Player, achievementId: string, teams: Team[], constraintLabel?: string, sport?: string): ReasonBullet | null {
-  let baseAchievementId = achievementId;
-  let customThreshold: number | undefined;
-  let customOperator: '≥' | '≤' | undefined;
-
-  if (achievementId.includes('_custom_')) {
-    const parsedCustom = parseCustomAchievementId(achievementId);
-    if (parsedCustom) {
-      baseAchievementId = parsedCustom.baseId;
-      customThreshold = parsedCustom.threshold;
-      customOperator = parsedCustom.operator;
-    }
-  }
-
-  if (achievementId === 'isPick1Overall') {
-    const draftYear = player.draft?.year;
-    return {
-      text: draftYear ? `#1 Overall Pick (Draft Year: ${draftYear})` : `#1 Overall Pick`,
-      type: 'draft'
-    };
-  } else {
-    const label = constraintLabel || achievementId;
-    return {
-      text: label,
-      type: 'award'
-    };
-  }
 }
