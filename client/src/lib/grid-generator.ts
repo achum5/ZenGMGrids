@@ -1,6 +1,5 @@
 import type { LeagueData, CatTeam, Player, Team } from '@/types/bbgm';
-import { getViableAchievements, playerMeetsAchievement, getAllAchievements, type Achievement, debugIndividualAchievements, generateCustomStatAchievements } from '@/lib/achievements';
-import { parseAchievementLabel, createCustomNumericalAchievement } from '@/lib/editable-achievements';
+import { getViableAchievements, playerMeetsAchievement, getAllAchievements, type Achievement, debugIndividualAchievements } from '@/lib/achievements';
 import { getSeasonEligiblePlayers, type SeasonAchievementId, type SeasonIndex, SEASON_ACHIEVEMENTS } from './season-achievements';
 import { calculateOptimizedIntersection, type IntersectionConstraint } from '@/lib/intersection-cache';
 import { mapAchievementToAchv } from './achv-mappers';
@@ -168,18 +167,14 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
 
   const achievementConstraints: CatTeam[] = viableAchievements
     .filter(achievement => achievement.id !== 'bornOutsideUS50DC') // Temporarily remove born outside US achievement
-    .map((achievement, index) => {
-      // Dynamically customize career stat achievements with a seed based on index
-      const customized = sport ? maybeCustomizeAchievement(achievement, sport, `oldrandom_${index}`) : achievement;
-      return {
-        key: `achievement-${customized.id}`,
-        label: customized.label,
-        achievementId: customized.id,
-        achv: mapAchievementToAchv(customized),
-        type: 'achievement',
-        test: (p: Player) => playerMeetsAchievement(p, customized.id, seasonIndex),
-      };
-    });
+    .map(achievement => ({
+      key: `achievement-${achievement.id}`,
+      label: achievement.label,
+      achievementId: achievement.id,
+      achv: mapAchievementToAchv(achievement),
+      type: 'achievement',
+      test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex),
+    }));
 
   if (teamConstraints.length < 3) {
     throw new Error(`Need at least 3 teams to generate grid (found ${teamConstraints.length})`);
@@ -766,222 +761,6 @@ export function legacyCellKey(rowTid: number, colTid: number): string {
   return `${rowTid}|${colTid}`;
 }
 
-// Dynamically customize a career stat achievement with random threshold and operator
-
-
-// Define dynamic ranges for stat thresholds
-const STAT_RANGES: Record<string, { min: number; max: number; step: number }> = {
-  // Basketball Career
-  'pts': { min: 50, max: 40000, step: 50 },
-  'trb': { min: 50, max: 15000, step: 50 },
-  'ast': { min: 50, max: 10000, step: 50 },
-  'stl': { min: 10, max: 2000, step: 10 },
-  'blk': { min: 10, max: 2000, step: 10 },
-  'tpm': { min: 10, max: 3000, step: 10 },
-  // Basketball Season
-  'ppg': { min: 5, max: 35, step: 1 },
-  'rpg': { min: 3, max: 18, step: 1 },
-  'apg': { min: 3, max: 15, step: 1 },
-  'seasonPts': { min: 100, max: 3000, step: 50 },
-  'seasonTpm': { min: 20, max: 400, step: 10 },
-  'fgPct': { min: 0.3, max: 0.7, step: 0.01 },
-  'tpPct': { min: 0.2, max: 0.5, step: 0.01 },
-  'ftPct': { min: 0.7, max: 0.95, step: 0.01 },
-  'efg': { min: 0.4, max: 0.7, step: 0.01 },
-  'ts': { min: 0.4, max: 0.7, step: 0.01 },
-  'min': { min: 10, max: 40, step: 1 }, // MPG
-  'gp': { min: 20, max: 82, step: 1 }, // Games Played in a Season
-  // Football Career
-  'pssYds': { min: 1000, max: 80000, step: 1000 },
-  'pssTD': { min: 10, max: 500, step: 5 },
-  'rusYds': { min: 500, max: 20000, step: 100 },
-  'rusTD': { min: 5, max: 200, step: 5 },
-  'recYds': { min: 500, max: 20000, step: 100 },
-  'recTD': { min: 5, max: 200, step: 5 },
-  'sks': { min: 5, max: 200, step: 5 },
-  'defInt': { min: 5, max: 50, step: 1 },
-  // Football Season
-  'seasonPssYds': { min: 1000, max: 6000, step: 100 },
-  'seasonPssTD': { min: 10, max: 50, step: 1 },
-  'seasonRusYds': { min: 500, max: 2000, step: 50 },
-  'seasonRusTD': { min: 5, max: 20, step: 1 },
-  'seasonRecYds': { min: 500, max: 2000, step: 50 },
-  'seasonRec': { min: 30, max: 150, step: 5 },
-  'seasonRecTD': { min: 5, max: 20, step: 1 },
-  'seasonSks': { min: 3, max: 20, step: 1 },
-  'seasonDefTck': { min: 50, max: 180, step: 5 },
-  'seasonDefInt': { min: 2, max: 10, step: 1 },
-  'seasonScrimmageYds': { min: 800, max: 2500, step: 50 },
-  'seasonAllPurposeYds': { min: 1000, max: 3000, step: 50 },
-  'seasonDefTckLoss': { min: 5, max: 25, step: 1 },
-  // Hockey Career
-  'goals': { min: 50, max: 1000, step: 10 },
-  'assists': { min: 50, max: 1500, step: 10 },
-  'points': { min: 100, max: 2500, step: 25 },
-  'wins': { min: 20, max: 500, step: 5 }, // Goalie wins
-  'shutouts': { min: 5, max: 100, step: 1 }, // Goalie shutouts
-  // Hockey Season
-  'seasonGoals': { min: 10, max: 90, step: 1 },
-  'seasonAssists': { min: 20, max: 120, step: 1 },
-  'seasonPoints': { min: 30, max: 150, step: 1 },
-  'seasonPm': { min: 5, max: 50, step: 1 }, // Plus/Minus
-  'seasonS': { min: 100, max: 400, step: 10 }, // Shots
-  'seasonHit': { min: 50, max: 300, step: 10 }, // Hits
-  'seasonBlk': { min: 30, max: 200, step: 5 }, // Blocks
-  'seasonTk': { min: 20, max: 100, step: 5 }, // Takeaways
-  'seasonPpPoints': { min: 5, max: 40, step: 1 }, // Power Play Points
-  'seasonShG': { min: 1, max: 10, step: 1 }, // Short Handed Goals
-  'seasonGwG': { min: 2, max: 12, step: 1 }, // Game Winning Goals
-  'seasonFaceoffPct': { min: 0.45, max: 0.65, step: 0.01 },
-  'seasonToiPerGame': { min: 10, max: 30, step: 0.5 },
-  'seasonPim': { min: 30, max: 150, step: 5 },
-  'seasonSavePct': { min: 0.88, max: 0.94, step: 0.001 },
-  'seasonGaaRate': { min: 1.5, max: 3.5, step: 0.1 },
-  'seasonSo': { min: 1, max: 15, step: 1 }, // Goalie Shutouts
-  'seasonSv': { min: 500, max: 3000, step: 100 }, // Goalie Saves
-  'seasonGs': { min: 20, max: 80, step: 1 }, // Goalie Starts
-  // Baseball Career
-  'h': { min: 200, max: 4000, step: 100 }, // Hits
-  'hr': { min: 20, max: 800, step: 10 }, // Home Runs
-  'rbi': { min: 100, max: 2500, step: 50 }, // RBIs
-  'sb': { min: 20, max: 800, step: 10 }, // Stolen Bases
-  'r': { min: 100, max: 2500, step: 50 }, // Runs
-  'w': { min: 10, max: 400, step: 5 }, // Pitcher Wins
-  'soPit': { min: 100, max: 5000, step: 100 }, // Pitcher Strikeouts
-  'sv': { min: 10, max: 600, step: 5 }, // Pitcher Saves
-  // Baseball Season (less common for dynamic, but include some)
-  'seasonH': { min: 50, max: 250, step: 5 },
-  'seasonHr': { min: 5, max: 70, step: 1 },
-  'seasonRbi': { min: 20, max: 180, step: 5 },
-  'seasonSb': { min: 5, max: 100, step: 1 },
-  'seasonW': { min: 5, max: 30, step: 1 },
-  'seasonSoPit': { min: 50, max: 350, step: 10 },
-  'seasonSv': { min: 10, max: 60, step: 1 },
-};
-
-// Generate a random threshold for dynamic customization
-function generateRandomThreshold(
-  statField: string,
-  isSeason: boolean,
-  rng: SeededRandom
-): number {
-  const key = isSeason ? `season${statField.charAt(0).toUpperCase() + statField.slice(1)}` : statField;
-  const range = STAT_RANGES[key];
-
-  if (!range) {
-    console.warn(`⚠️ No stat range defined for ${key}. Falling back to default.`);
-    return Math.round(rng.next() * 1000); // Default random if no range
-  }
-
-  const numSteps = (range.max - range.min) / range.step;
-  const randomStep = Math.floor(rng.next() * (numSteps + 1));
-  let threshold = range.min + randomStep * range.step;
-
-  // Round to appropriate decimal places for percentages
-  if (statField.includes('Pct') || statField.includes('efg') || statField.includes('ts') || statField.includes('gaaRate') || statField.includes('toiPerGame')) {
-    threshold = parseFloat(threshold.toFixed(3));
-  } else {
-    threshold = Math.round(threshold);
-  }
-
-  return threshold;
-}
-
-// Dynamically customize a numerical stat achievement with random threshold and operator
-function maybeCustomizeAchievement(
-  achievement: Achievement,
-  sport: 'basketball' | 'football' | 'hockey' | 'baseball',
-  seed: string
-): Achievement {
-  // Only customize numerical stat achievements
-  const parsed = parseAchievementLabel(achievement.label, sport);
-  if (!parsed.isEditable || !parsed.number) {
-    return achievement;
-  }
-
-  // Use a seeded random number generator for consistent results per grid
-  const rng = new SeededRandom(simpleHash(seed + achievement.id));
-
-  // Determine if it's a season or career stat based on label or ID
-  const isSeasonStat = achievement.id.includes('Season') || parsed.originalLabel.toLowerCase().includes('(season)');
-  
-  // Extract the base stat field from the achievement ID or label
-  let statField = '';
-  // Basketball
-  if (achievement.id.includes('Points') || achievement.id.includes('pts')) statField = 'pts';
-  else if (achievement.id.includes('Rebounds') || achievement.id.includes('trb')) statField = 'trb';
-  else if (achievement.id.includes('Assists') || achievement.id.includes('ast')) statField = 'ast';
-  else if (achievement.id.includes('Steals') || achievement.id.includes('stl')) statField = 'stl';
-  else if (achievement.id.includes('Blocks') || achievement.id.includes('blk')) statField = 'blk';
-  else if (achievement.id.includes('3PM') || achievement.id.includes('tpm')) statField = 'tpm';
-  // Football
-  else if (achievement.id.includes('PassYds') || achievement.id.includes('pssYds')) statField = 'pssYds';
-  else if (achievement.id.includes('PassTDs') || achievement.id.includes('pssTD')) statField = 'pssTD';
-  else if (achievement.id.includes('RushYds') || achievement.id.includes('rusYds')) statField = 'rusYds';
-  else if (achievement.id.includes('RushTDs') || achievement.id.includes('rusTD')) statField = 'rusTD';
-  else if (achievement.id.includes('RecYds') || achievement.id.includes('recYds')) statField = 'recYds';
-  else if (achievement.id.includes('RecTDs') || achievement.id.includes('recTD')) statField = 'recTD';
-  else if (achievement.id.includes('Sacks') || achievement.id.includes('sks')) statField = 'sks';
-  else if (achievement.id.includes('Ints') || achievement.id.includes('defInt')) statField = 'defInt';
-  // Hockey
-  else if (achievement.id.includes('Goals') && !achievement.id.includes('SHGoals') && !achievement.id.includes('GWGoals')) statField = 'goals';
-  else if (achievement.id.includes('Assists') && !achievement.id.includes('PowerPlay')) statField = 'assists';
-  else if (achievement.id.includes('Points') && !achievement.id.includes('PowerPlay')) statField = 'points';
-  else if (achievement.id.includes('Wins') && achievement.id.includes('(G)')) statField = 'wins';
-  else if (achievement.id.includes('Shutouts') && achievement.id.includes('(G)')) statField = 'shutouts';
-  else if (achievement.id.includes('Plus')) statField = 'pm'; // Plus/Minus
-  else if (achievement.id.includes('Shots')) statField = 's';
-  else if (achievement.id.includes('Hits')) statField = 'hit';
-  else if (achievement.id.includes('Blocks')) statField = 'blk';
-  else if (achievement.id.includes('Takeaways')) statField = 'tk';
-  else if (achievement.id.includes('PowerPlay')) statField = 'ppPoints'; // Custom field for power play points
-  else if (achievement.id.includes('SHGoals')) statField = 'shG';
-  else if (achievement.id.includes('GWGoals')) statField = 'gwG';
-  else if (achievement.id.includes('FaceoffPct')) statField = 'faceoffPct';
-  else if (achievement.id.includes('TOI')) statField = 'toiPerGame';
-  else if (achievement.id.includes('PIM')) statField = 'pim';
-  else if (achievement.id.includes('SavePct')) statField = 'savePct';
-  else if (achievement.id.includes('GAA')) statField = 'gaaRate';
-  else if (achievement.id.includes('Saves')) statField = 'sv';
-  else if (achievement.id.includes('Starts')) statField = 'gs';
-  // Baseball
-  else if (achievement.id.includes('Hits')) statField = 'h';
-  else if (achievement.id.includes('HRs')) statField = 'hr';
-  else if (achievement.id.includes('RBIs')) statField = 'rbi';
-  else if (achievement.id.includes('StolenBases')) statField = 'sb';
-  else if (achievement.id.includes('Runs')) statField = 'r';
-  else if (achievement.id.includes('Wins') && achievement.id.includes('(P)')) statField = 'w';
-  else if (achievement.id.includes('Strikeouts')) statField = 'soPit';
-  else if (achievement.id.includes('Saves') && achievement.id.includes('(P)')) statField = 'sv';
-  // Generic season averages (PPG, RPG, APG)
-  else if (parsed.statUnit?.includes('PPG')) statField = 'ppg';
-  else if (parsed.statUnit?.includes('RPG')) statField = 'rpg';
-  else if (parsed.statUnit?.includes('APG')) statField = 'apg';
-  else if (parsed.statUnit?.includes('FG%')) statField = 'fgPct';
-  else if (parsed.statUnit?.includes('3P%')) statField = 'tpPct';
-  else if (parsed.statUnit?.includes('FT%')) statField = 'ftPct';
-  else if (parsed.statUnit?.includes('eFG')) statField = 'efg';
-  else if (parsed.statUnit?.includes('TS')) statField = 'ts';
-  else if (parsed.statUnit?.includes('Games')) statField = 'gp';
-  else if (parsed.statUnit?.includes('Minutes')) statField = 'min';
-
-
-  if (!statField) {
-    console.warn(`⚠️ Could not determine statField for achievement: ${achievement.label} (${achievement.id}). Skipping customization.`);
-    return achievement;
-  }
-
-  const selectedThreshold = generateRandomThreshold(statField, isSeasonStat, rng);
-  
-  // Randomly pick operator (50/50)
-  const operator = (rng.next() * 2) < 1 ? '≥' : '≤';
-  
-  const customized = createCustomNumericalAchievement(achievement, selectedThreshold, sport, operator);
-  console.log(`🎲 Dynamically customized: ${achievement.label} → ${customized.label} (Stat: ${statField}, Season: ${isSeasonStat})`);
-  
-  return customized;
-}
-
 // New simplified seeded grid builder (for basketball with >= 12 seasons)
 function generateGridSeeded(leagueData: LeagueData): {
   rows: CatTeam[];
@@ -993,8 +772,6 @@ function generateGridSeeded(leagueData: LeagueData): {
   if (!seasonIndex) {
     throw new Error('Season index required for seeded builder');
   }
-  
-  // Note: Custom stat achievements are now generated dynamically when selected, not pre-generated
   
   
   
@@ -1222,12 +999,7 @@ function generateGridSeeded(leagueData: LeagueData): {
       }
       
       const achIndex = simpleHash(gridId + '_oppach' + i) % viableAchievements.length;
-      let selectedAch = viableAchievements[achIndex] as Achievement;
-      
-      // Dynamically customize career stat achievements
-      if (sport) {
-        selectedAch = maybeCustomizeAchievement(selectedAch, sport, gridId + '_oppach' + i);
-      }
+      const selectedAch = viableAchievements[achIndex];
       
       // Track this achievement as used to prevent duplicates
       usedAchievementIds.add(selectedAch.id);
@@ -1348,12 +1120,7 @@ function generateGridSeeded(leagueData: LeagueData): {
         let found = false;
         for (let attempt = 0; attempt < 100; attempt++) {
           const achIndex = simpleHash(gridId + '_rowach' + i + '_' + attempt) % allAchievements.length;
-          let ach = allAchievements[achIndex];
-          
-          // Dynamically customize career stat achievements
-          if (sport) {
-            ach = maybeCustomizeAchievement(ach, sport, gridId + '_rowach' + i + '_' + attempt);
-          }
+          const ach = allAchievements[achIndex];
           
           // Check if this achievement is already used in the grid
           const achAlreadyUsed = 
@@ -1490,12 +1257,7 @@ function generateGridSeeded(leagueData: LeagueData): {
         let found = false;
         for (let attempt = 0; attempt < 100; attempt++) {
           const achIndex = simpleHash(gridId + '_colach' + i + '_' + attempt) % allAchievements.length;
-          let ach = allAchievements[achIndex];
-          
-          // Dynamically customize career stat achievements
-          if (sport) {
-            ach = maybeCustomizeAchievement(ach, sport, gridId + '_colach' + i + '_' + attempt);
-          }
+          const ach = allAchievements[achIndex];
           
           // Check if this achievement is already used in the grid
           const achAlreadyUsed = 
@@ -1591,6 +1353,477 @@ function generateGridSeeded(leagueData: LeagueData): {
   }
   
   console.log('✅ Simplified seeded grid generated successfully');
+  
+  return { rows, cols, intersections };
+}
+
+// Simple hash function for seeded randomness
+function simpleHash(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash);
+}
+
+// Extract decade from achievement ID (e.g., "playedIn2040s" -> 2040)
+function extractDecadeFromAchievement(achievementId: string): number | null {
+  const isDecadeAchievement = achievementId.includes('playedIn') || 
+                              achievementId.includes('debutedIn');
+  
+  if (!isDecadeAchievement) return null;
+  
+  const decadeMatch = achievementId.match(/(\d{4})s/);
+  return decadeMatch ? parseInt(decadeMatch[1]) : null;
+}
+
+// Check if adding this achievement would create a decade conflict
+function hasDecadeConflict(achievementId: string, existingSlots: (CatTeam | null)[]): boolean {
+  const decade = extractDecadeFromAchievement(achievementId);
+  if (!decade) return false; // Not a decade achievement, no conflict
+  
+  for (const slot of existingSlots) {
+    if (slot && slot.type === 'achievement' && slot.achievementId) {
+      const existingDecade = extractDecadeFromAchievement(slot.achievementId);
+      if (existingDecade === decade) {
+        return true; // Same decade already exists
+      }
+    }
+  }
+  
+  return false;
+}
+
+// Get teams that have players for a specific achievement (only active teams)
+function getTeamsForAchievement(seasonIndex: SeasonIndex, achievementId: SeasonAchievementId, allTeams: Team[]): Set<number> {
+  const teams = new Set<number>();
+  const activeTeamIds = new Set(allTeams.filter(t => !t.disabled).map(t => t.tid));
+  
+  for (const season of Object.values(seasonIndex)) {
+    for (const [teamId, teamData] of Object.entries(season)) {
+      const tid = parseInt(teamId);
+      // Only include if team is currently active and has players for this achievement
+      if (activeTeamIds.has(tid) && teamData[achievementId] && teamData[achievementId].size > 0) {
+        teams.add(tid);
+      }
+    }
+  }
+  
+  return teams;
+}
+
+// Helper function to validate achievement × achievement intersection has sufficient players 
+function validateAchievementIntersection(
+  achievement1: string,
+  achievement2: string,
+  players: Player[],
+  seasonIndex?: SeasonIndex,
+  minPlayers: number = 3
+): boolean {
+  if (achievement1 === achievement2) {
+    // Same achievement - just check if enough players have it
+    return players.filter(p => playerMeetsAchievement(p, achievement1, seasonIndex)).length >= minPlayers;
+  }
+  
+  // Different achievements - check for players who have both
+  const eligiblePlayers = players.filter(p => 
+    playerMeetsAchievement(p, achievement1, seasonIndex) && 
+    playerMeetsAchievement(p, achievement2, seasonIndex)
+  );
+  
+  return eligiblePlayers.length >= minPlayers;
+}
+
+// Helper function to calculate intersection between two constraints (optimized version)
+function calculateIntersectionSimple(
+  rowConstraint: any,
+  colConstraint: any,
+  players: Player[],
+  seasonIndex?: SeasonIndex,
+  teams?: Team[]
+): Player[] {
+  // Use optimized intersection calculation
+  const rowIntersectionConstraint: IntersectionConstraint = {
+    type: rowConstraint.type,
+    id: rowConstraint.type === 'team' ? rowConstraint.tid : rowConstraint.achievementId,
+    label: rowConstraint.label
+  };
+  
+  const colIntersectionConstraint: IntersectionConstraint = {
+    type: colConstraint.type,
+    id: colConstraint.type === 'team' ? colConstraint.tid : colConstraint.achievementId,
+    label: colConstraint.label
+  };
+  
+  // Get the Set of eligible player IDs
+  const eligiblePids = calculateOptimizedIntersection(
+    rowIntersectionConstraint,
+    colIntersectionConstraint,
+    players,
+    teams || [], // Use teams parameter if available
+    seasonIndex,
+    false // Return Set, not count
+  ) as Set<number>;
+  
+  // Convert Set to Player array
+  return players.filter(p => eligiblePids.has(p.pid));
+}
+
+// Build opposite axis to ensure seed has 3/3 coverage (simplified implementation)
+function buildOppositeAxisForSeed(
+  layout: { name: string; rows: readonly string[]; cols: readonly string[] },
+  seedSlot: { axis: 'row' | 'col'; index: number },
+  seedAchievement: { id: SeasonAchievementId; name: string },
+  eligibleTeams: number[],
+  teams: Team[],
+  players: Player[],
+  seasonIndex: SeasonIndex,
+  sport?: 'basketball' | 'football' | 'hockey' | 'baseball'
+): { rows: CatTeam[]; cols: CatTeam[]; intersections: Record<string, number[]> } {
+  
+  // Create arrays for the final result
+  const rows: CatTeam[] = new Array(3);
+  const cols: CatTeam[] = new Array(3);
+  
+  // Fill in the seed achievement first
+  const seedConstraint: CatTeam = {
+    key: `achievement-${seedAchievement.id}`,
+    label: seedAchievement.name,
+    achievementId: seedAchievement.id,
+    type: 'achievement',
+    test: (p: Player) => playerMeetsAchievement(p, seedAchievement.id, seasonIndex),
+  };
+  
+  if (seedSlot.axis === 'row') {
+    rows[seedSlot.index] = seedConstraint;
+  } else {
+    cols[seedSlot.index] = seedConstraint;
+  }
+  
+  // Count total team slots needed across both axes
+  const totalTeamSlotsNeeded = layout.rows.filter(r => r === 'T').length + layout.cols.filter(c => c === 'T').length;
+  console.log(`Total team slots needed: ${totalTeamSlotsNeeded} (${layout.rows.filter(r => r === 'T').length} in rows + ${layout.cols.filter(c => c === 'T').length} in cols)`);
+  
+  // Choose DISTINCT teams from eligible teams for ALL team slots
+  const selectedTeamIds = new Set<number>();
+  const selectedTeams: CatTeam[] = [];
+  
+  for (const tid of eligibleTeams) {
+    if (selectedTeams.length >= totalTeamSlotsNeeded) break;
+    if (selectedTeamIds.has(tid)) continue; // Skip duplicates
+    
+    const team = teams.find(t => t.tid === tid);
+    if (!team || team.disabled) continue;
+    
+    selectedTeamIds.add(tid);
+    selectedTeams.push({
+      key: `team-${tid}`,
+      label: `${team.region || team.abbrev} ${team.name}`,
+      tid,
+      type: 'team' as const,
+      test: (p: Player) => p.teamsPlayed.has(tid),
+    });
+  }
+  
+  if (selectedTeams.length < totalTeamSlotsNeeded) {
+    throw new Error(`Need at least ${totalTeamSlotsNeeded} different teams for this layout, only found ${selectedTeams.length}`);
+  }
+  
+  console.log(`Selected ${selectedTeams.length} teams: ${selectedTeams.map(t => t.label).join(', ')}`);
+  
+  // Fill BOTH axes completely according to their layouts
+  console.log(`Layout: ${layout.name} - Rows: [${layout.rows.join(', ')}], Cols: [${layout.cols.join(', ')}]`);
+  console.log(`Seed: ${seedAchievement.name} at ${seedSlot.axis} ${seedSlot.index}`);
+  
+  // Fill all team slots first
+  let teamIndex = 0;
+  
+  // Fill column team slots
+  for (let i = 0; i < 3; i++) {
+    if (layout.cols[i] === 'T') {
+      if (teamIndex < selectedTeams.length) {
+        cols[i] = selectedTeams[teamIndex];
+        console.log(`Filled col ${i} with team: ${selectedTeams[teamIndex].label}`);
+        teamIndex++;
+      }
+    }
+  }
+  
+  // Fill row team slots  
+  for (let i = 0; i < 3; i++) {
+    if (layout.rows[i] === 'T') {
+      if (teamIndex < selectedTeams.length) {
+        rows[i] = selectedTeams[teamIndex];
+        console.log(`Filled row ${i} with team: ${selectedTeams[teamIndex].label}`);
+        teamIndex++;
+      } else {
+        console.log(`ERROR: No more teams available for row ${i}, teamIndex=${teamIndex}, selectedTeams.length=${selectedTeams.length}`);
+      }
+    }
+  }
+  
+  console.log(`After team filling - teamIndex: ${teamIndex}, rows filled: ${rows.filter(r => r).length}, cols filled: ${cols.filter(c => c).length}`);
+  
+  // Fill remaining slots with safe achievements/teams
+  // For layouts with season achievements, use other season achievements to avoid mixing career/season
+  // But don't reuse the seed achievement (and use sport-filtered achievements)
+  const sportFilteredAchievements = getAllAchievements(sport, seasonIndex, undefined)
+    .filter(ach => ach.isSeasonSpecific);
+  
+  const availableSeasonAchievements = sportFilteredAchievements.map(ach => 
+    SEASON_ACHIEVEMENTS.find(sa => sa.id === ach.id)
+  ).filter((sa): sa is NonNullable<typeof sa> => sa !== undefined && sa.id !== seedAchievement.id);
+  
+  // Helper function to find an unused fallback achievement
+  const findUnusedFallbackAchievement = (usedIds: Set<string>): CatTeam => {
+    // First try remaining season achievements
+    for (const sa of availableSeasonAchievements) {
+      if (!usedIds.has(sa.id)) {
+        return {
+          key: `achievement-${sa.id}`,
+          label: sa.label || sa.id,
+          achievementId: sa.id,
+          type: 'achievement',
+          test: (p: Player) => playerMeetsAchievement(p, sa.id, seasonIndex),
+        };
+      }
+    }
+    
+    // If no season achievements available, fall back to common career achievements
+    const fallbackCareerAchievements = [
+      { id: 'AllStar', label: 'All-Star' },
+      { id: 'played15PlusSeasons', label: 'Played 15+ Seasons' },
+      { id: 'isHallOfFamer', label: 'Hall of Fame' },
+      { id: 'isPick1Overall', label: '#1 Overall Pick' },
+    ];
+    
+    for (const ca of fallbackCareerAchievements) {
+      if (!usedIds.has(ca.id)) {
+        return {
+          key: `achievement-${ca.id}`,
+          label: ca.label,
+          achievementId: ca.id,
+          type: 'achievement',
+          test: (p: Player) => playerMeetsAchievement(p, ca.id, seasonIndex),
+        };
+      }
+    }
+    
+    // Final fallback - should never reach here in practice
+    throw new Error('No unused achievements available for grid generation');
+  };
+  
+
+  
+  // Now fill all achievement slots
+  console.log(`Filling achievement slots. Seed already placed: ${seedAchievement.name} at ${seedSlot.axis} ${seedSlot.index}`);
+  
+  // Track already used achievements
+  const usedAchievementIds = new Set<string>();
+  usedAchievementIds.add(seedAchievement.id); // Seed is already used
+  
+  let availableAchievementIndex = 0;
+  
+  // Fill row achievement slots
+  for (let i = 0; i < 3; i++) {
+    if (layout.rows[i] === 'A' && !rows[i]) {
+      while (availableAchievementIndex < availableSeasonAchievements.length &&
+             usedAchievementIds.has(availableSeasonAchievements[availableAchievementIndex]!.id)) {
+        availableAchievementIndex++;
+      }
+      if (availableAchievementIndex < availableSeasonAchievements.length) {
+        const achievement = availableSeasonAchievements[availableAchievementIndex]!;
+        rows[i] = {
+          key: `achievement-${achievement.id}`,
+          label: achievement.label || achievement.id,
+          achievementId: achievement.id,
+          type: 'achievement',
+          test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex),
+        };
+        usedAchievementIds.add(achievement.id);
+        console.log(`Filled row ${i} with achievement: ${achievement.label || achievement.id}`);
+        availableAchievementIndex++;
+      } else {
+        // Find a fallback achievement that hasn't been used yet
+        const fallbackAchievement = findUnusedFallbackAchievement(usedAchievementIds);
+        rows[i] = fallbackAchievement;
+        usedAchievementIds.add(fallbackAchievement.achievementId!);
+        console.log(`Filled row ${i} with fallback achievement: ${fallbackAchievement.label}`);
+      }
+    }
+  }
+  
+  // Fill col achievement slots
+  for (let i = 0; i < 3; i++) {
+    if (layout.cols[i] === 'A' && !cols[i]) {
+      while (availableAchievementIndex < availableSeasonAchievements.length &&
+             usedAchievementIds.has(availableSeasonAchievements[availableAchievementIndex]!.id)) {
+        availableAchievementIndex++;
+      }
+      if (availableAchievementIndex < availableSeasonAchievements.length) {
+        const achievement = availableSeasonAchievements[availableAchievementIndex]!;
+        cols[i] = {
+          key: `achievement-${achievement.id}`,
+          label: achievement.label || achievement.id,
+          achievementId: achievement.id,
+          type: 'achievement',
+          test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex),
+        };
+        usedAchievementIds.add(achievement.id);
+        console.log(`Filled col ${i} with achievement: ${achievement.label || achievement.id}`);
+        availableAchievementIndex++;
+      } else {
+        // Find a fallback achievement that hasn't been used yet
+        const fallbackAchievement = findUnusedFallbackAchievement(usedAchievementIds);
+        cols[i] = fallbackAchievement;
+        usedAchievementIds.add(fallbackAchievement.achievementId!);
+        console.log(`Filled col ${i} with fallback achievement: ${fallbackAchievement.label}`);
+      }
+    }
+  }
+  
+  // Validate that we have exactly 3 rows and 3 columns
+  if (rows.length !== 3 || cols.length !== 3) {
+    throw new Error(`Invalid grid dimensions: ${rows.length} rows, ${cols.length} cols (expected 3x3)`);
+  }
+  
+  // Ensure all slots are filled
+  for (let i = 0; i < 3; i++) {
+    if (!rows[i] || !cols[i]) {
+      throw new Error(`Grid has empty slots: row ${i} = ${!!rows[i]}, col ${i} = ${!!cols[i]}`);
+    }
+  }
+  
+
+  
+  // Ensure all slots are filled before proceeding to intersection calculation
+  for (let i = 0; i < 3; i++) {
+    if (!rows[i]) {
+      throw new Error(`Internal Error: Row slot ${i} is undefined after filling process.`);
+    }
+    if (!cols[i]) {
+      throw new Error(`Internal Error: Column slot ${i} is undefined after filling process.`);
+    }
+  }
+
+  console.log(`Grid structure verified: 3x3 with unique constraints`);
+  console.log(`Rows: ${rows.map(r => r.label).join(', ')}`);
+  console.log(`Cols: ${cols.map(c => c.label).join(', ')}`);
+  
+  // Calculate intersections using the evaluation system
+  const intersections: Record<string, number[]> = {};
+  
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 3; col++) {
+      const key = `${row}-${col}`;
+      const rowConstraint: CatTeam = {
+        type: rows[row].type,
+        tid: rows[row].tid,
+        achievementId: rows[row].achievementId,
+        label: rows[row].label,
+        key: rows[row].key,
+        test: rows[row].test,
+      };
+      const colConstraint: CatTeam = {
+        type: cols[col].type,
+        tid: cols[col].tid,
+        achievementId: cols[col].achievementId,
+        label: cols[col].label,
+        key: cols[col].key,
+        test: cols[col].test,
+      };
+      
+      // Handle different constraint combinations
+      let eligiblePlayers: Player[] = [];
+      
+      const rowIsSeasonAchievement = rowConstraint.type === 'achievement' && SEASON_ACHIEVEMENTS.some(sa => sa.id === rowConstraint.achievementId);
+      const colIsSeasonAchievement = colConstraint.type === 'achievement' && SEASON_ACHIEVEMENTS.some(sa => sa.id === colConstraint.achievementId);
+      
+      if (rowIsSeasonAchievement && colConstraint.type === 'team') {
+        // Season achievement × team
+        const eligiblePids = getSeasonEligiblePlayers(seasonIndex, colConstraint.tid!, rowConstraint.achievementId as SeasonAchievementId);
+        eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
+      } else if (colIsSeasonAchievement && rowConstraint.type === 'team') {
+        // Team × season achievement  
+        const eligiblePids = getSeasonEligiblePlayers(seasonIndex, rowConstraint.tid!, colConstraint.achievementId as SeasonAchievementId);
+        eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
+      } else if (rowIsSeasonAchievement && colIsSeasonAchievement) {
+        // Season achievement × season achievement
+        if (rowConstraint.achievementId === colConstraint.achievementId) {
+          // Same achievement - just find all players who have it
+          const eligiblePids = new Set<number>();
+          for (const seasonStr of Object.keys(seasonIndex)) {
+            const season = parseInt(seasonStr);
+            const seasonData = seasonIndex[season];
+            for (const teamStr of Object.keys(seasonData)) {
+              const teamId = parseInt(teamStr);
+              const teamData = seasonData[teamId];
+              if (teamData[rowConstraint.achievementId as SeasonAchievementId]) {
+                const achievementPids = teamData[rowConstraint.achievementId as SeasonAchievementId];
+                achievementPids.forEach(pid => eligiblePids.add(pid));
+              }
+            }
+          }
+          eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
+        } else {
+          // Different achievements - find players who have both in the same season
+          const eligiblePids = new Set<number>();
+          for (const seasonStr of Object.keys(seasonIndex)) {
+            const season = parseInt(seasonStr);
+            const seasonData = seasonIndex[season];
+            for (const teamStr of Object.keys(seasonData)) {
+              const teamId = parseInt(teamStr);
+              const teamData = seasonData[teamId];
+              const rowAchievementPids = teamData[rowConstraint.achievementId as SeasonAchievementId] || new Set();
+              const colAchievementPids = teamData[colConstraint.achievementId as SeasonAchievementId] || new Set();
+              
+              // Find intersection of players who had both achievements in this season/team
+              rowAchievementPids.forEach(pid => {
+                if (colAchievementPids.has(pid)) {
+                  eligiblePids.add(pid);
+                }
+              });
+            }
+          }
+          eligiblePlayers = players.filter(p => eligiblePids.has(p.pid));
+        }
+      } else {
+        // Standard evaluation for career achievements or mixed career/season
+        // USE THE SAME LOGIC AS FIXED MAIN GRID (calculateOptimizedIntersection)
+        const rowIntersectionConstraint: IntersectionConstraint = {
+          type: rowConstraint.type,
+          id: rowConstraint.type === 'team' ? rowConstraint.tid! : rowConstraint.achievementId!,
+          label: rows[row].label
+        };
+        
+        const colIntersectionConstraint: IntersectionConstraint = {
+          type: colConstraint.type,
+          id: colConstraint.type === 'team' ? colConstraint.tid! : colConstraint.achievementId!,
+          label: cols[col].label
+        };
+        
+        const eligiblePidsSet = calculateOptimizedIntersection(
+          rowIntersectionConstraint,
+          colIntersectionConstraint,
+          players,
+          teams,
+          seasonIndex,
+          false // Return Set, not count
+        ) as Set<number>;
+        
+        eligiblePlayers = players.filter(p => eligiblePidsSet.has(p.pid));
+      }
+      
+      intersections[key] = eligiblePlayers.map(p => p.pid);
+      console.log(`Intersection ${rows[row].label} × ${cols[col].label}: ${eligiblePlayers.length} eligible players`);
+      
+      if (eligiblePlayers.length === 0) {
+        throw new Error(`No eligible players for intersection ${rows[row].label} × ${cols[col].label}`);
+      }
+    }
+  }
   
   return { rows, cols, intersections };
 }

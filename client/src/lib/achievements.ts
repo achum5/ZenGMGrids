@@ -1,7 +1,7 @@
 import type { Player } from "@/types/bbgm";
 import { SEASON_ACHIEVEMENTS, type SeasonAchievement, type SeasonIndex, type SeasonAchievementId, getSeasonEligiblePlayers } from './season-achievements';
 import { SeededRandom } from './seeded';
-import { createCustomNumericalAchievement, parseAchievementLabel, parseCustomAchievementId, getPlayerCareerTotal } from './editable-achievements';
+import { createCustomNumericalAchievement, parseAchievementLabel, parseCustomAchievementId } from './editable-achievements';
 
 import { Achv } from "./types";
 
@@ -78,41 +78,42 @@ export const BASKETBALL_ACHIEVEMENTS: Achievement[] = [
     test: (p: Player) => p.achievements?.isSecondRoundPick || false,
     minPlayers: 5
   },
-  // Career achievements - computed dynamically
+  // Career achievements
   {
     id: 'career20kPoints',
     label: '20,000+ Career Points',
-    test: (p: Player) => getPlayerCareerTotal(p, 'pts') >= 20000,
+    test: (p: Player) => p.achievements?.career20kPoints || false,
     minPlayers: 5
   },
+
   {
     id: 'career5kAssists',
     label: '5,000+ Career Assists',
-    test: (p: Player) => getPlayerCareerTotal(p, 'ast') >= 5000,
+    test: (p: Player) => p.achievements?.career5kAssists || false,
     minPlayers: 5
   },
   {
     id: 'career2kSteals',
     label: '2,000+ Career Steals',
-    test: (p: Player) => getPlayerCareerTotal(p, 'stl') >= 2000,
+    test: (p: Player) => p.achievements?.career2kSteals || false,
     minPlayers: 5
   },
   {
     id: 'career1500Blocks',
     label: '1,500+ Career Blocks',
-    test: (p: Player) => getPlayerCareerTotal(p, 'blk') >= 1500,
+    test: (p: Player) => p.achievements?.career1500Blocks || false,
     minPlayers: 5
   },
   {
     id: 'career10kRebounds',
     label: '10,000+ Career Rebounds',
-    test: (p: Player) => getPlayerCareerTotal(p, 'trb') >= 10000,
+    test: (p: Player) => p.achievements?.career10kRebounds || false,
     minPlayers: 5
   },
   {
     id: 'career2kThrees',
     label: '2,000+ Career 3PM',
-    test: (p: Player) => getPlayerCareerTotal(p, 'tpm') >= 2000,
+    test: (p: Player) => p.achievements?.career2kThrees || false,
     minPlayers: 5
   },
 
@@ -617,11 +618,6 @@ const NUMERICAL_ACHIEVEMENT_CONFIGS: Record<string, { career?: Record<string, St
         thresholds: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
         label: (n: number) => `${n.toLocaleString()}+ Career Interceptions`,
         testField: 'defInt'
-      },
-      tackles: {
-        thresholds: [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000],
-        label: (n: number) => `${n.toLocaleString()}+ Career Tackles`,
-        testField: 'defTck' // Combined solo and ast
       }
     },
     season: {
@@ -894,72 +890,8 @@ const NUMERICAL_ACHIEVEMENT_CONFIGS: Record<string, { career?: Record<string, St
       }
     },
     season: {
-      hits: {
-        thresholds: [50, 100, 150, 200, 250],
-        label: (n: number) => `${n.toLocaleString()}+ Hits in a Season`,
-        testType: 'total' as const,
-        testField: 'h'
-      },
-      homeRuns: {
-        thresholds: [5, 10, 20, 30, 40, 50, 60, 70],
-        label: (n: number) => `${n.toLocaleString()}+ Home Runs in a Season`,
-        testType: 'total' as const,
-        testField: 'hr'
-      },
-      rbis: {
-        thresholds: [20, 40, 60, 80, 100, 120, 140, 160, 180],
-        label: (n: number) => `${n.toLocaleString()}+ RBIs in a Season`,
-        testType: 'total' as const,
-        testField: 'rbi'
-      },
-      stolenBases: {
-        thresholds: [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
-        label: (n: number) => `${n.toLocaleString()}+ Stolen Bases in a Season`,
-        testType: 'total' as const,
-        testField: 'sb'
-      },
-      runs: {
-        thresholds: [20, 40, 60, 80, 100, 120, 140, 160, 180],
-        label: (n: number) => `${n.toLocaleString()}+ Runs in a Season`,
-        testType: 'total' as const,
-        testField: 'r'
-      },
-      wins: { // Pitching
-        thresholds: [5, 10, 15, 20, 25, 30],
-        label: (n: number) => `${n.toLocaleString()}+ Wins (P) in a Season`,
-        testType: 'total' as const,
-        testField: 'w'
-      },
-      strikeouts: { // Pitching
-        thresholds: [50, 100, 150, 200, 250, 300, 350],
-        label: (n: number) => `${n.toLocaleString()}+ Strikeouts (P) in a Season`,
-        testType: 'total' as const,
-        testField: 'soPit'
-      },
-      saves: { // Pitching
-        thresholds: [10, 20, 30, 40, 50, 60],
-        label: (n: number) => `${n.toLocaleString()}+ Saves (P) in a Season`,
-        testType: 'total' as const,
-        testField: 'sv'
-      },
-      era: { // Pitching
-        thresholds: [4.00, 3.50, 3.00, 2.50, 2.00, 1.50],
-        label: (n: number) => `${n.toFixed(2)} or less ERA in a Season`,
-        testType: 'average' as const,
-        testField: 'era'
-      },
-      whip: { // Pitching
-        thresholds: [1.50, 1.40, 1.30, 1.20, 1.10, 1.00, 0.90],
-        label: (n: number) => `${n.toFixed(2)} or less WHIP in a Season`,
-        testType: 'average' as const,
-        testField: 'whip'
-      },
-      baOpp: { // Pitching
-        thresholds: [0.280, 0.260, 0.240, 0.220, 0.200, 0.180],
-        label: (n: number) => `${n.toFixed(3)} or less BA Opp in a Season`,
-        testType: 'average' as const,
-        testField: 'baOpp'
-      }
+      // Baseball GM doesn't have many season stats that are easily numerical and editable
+      // Focusing on career for now.
     }
   }
 };
@@ -970,7 +902,8 @@ const NUMERICAL_ACHIEVEMENT_CONFIGS: Record<string, { career?: Record<string, St
 function buildRandomNumericalAchievements(
   sport: 'basketball' | 'football' | 'hockey' | 'baseball',
   seed?: string,
-  count: number = 8
+  count: number = 8,
+  operator: '>=' | '<=' = '>='
 ): Achievement[] {
   const achievements: Achievement[] = [];
   const config = NUMERICAL_ACHIEVEMENT_CONFIGS[sport];
@@ -981,36 +914,41 @@ function buildRandomNumericalAchievements(
   const seedValue = seed ? hashString(seed) : Date.now();
   const rng = new SeededRandom(seedValue);
   
-  // Collect all possible achievement types (e.g., 'career.points', 'season.ppg')
-  const possibleAchievementTypes: Array<{ type: 'career' | 'season'; stat: string; config: StatConfig }> = [];
+  // Collect all possible achievements
+  const possibleAchievements: Array<{
+    type: 'career' | 'season';
+    stat: string;
+    threshold: number;
+    config: StatConfig;
+  }> = [];
   
+  // Career achievements
   if (config.career) {
     for (const [stat, statConfig] of Object.entries(config.career)) {
-      possibleAchievementTypes.push({ type: 'career', stat, config: statConfig });
+      for (const threshold of statConfig.thresholds) {
+        possibleAchievements.push({ type: 'career', stat, threshold, config: statConfig });
+      }
     }
   }
   
+  // Season achievements  
   if (config.season) {
     for (const [stat, statConfig] of Object.entries(config.season)) {
-      possibleAchievementTypes.push({ type: 'season', stat, config: statConfig });
+      for (const threshold of statConfig.thresholds) {
+        possibleAchievements.push({ type: 'season', stat, threshold, config: statConfig });
+      }
     }
   }
   
-  // Randomly select achievement types to generate
-  const selectedAchievementTypes = rng.sample(possibleAchievementTypes, Math.min(count, possibleAchievementTypes.length));
+  // Randomly select achievements
+  const selectedAchievements = rng.sample(possibleAchievements, Math.min(count, possibleAchievements.length));
   
-  for (const selected of selectedAchievementTypes) {
-    const { type, stat, config: statConfig } = selected;
-    
-    // Generate a random threshold within the defined range for this stat
-    const thresholds = statConfig.thresholds;
-    if (thresholds.length === 0) continue;
-    
-    const threshold = rng.pick(thresholds);
+  for (const selected of selectedAchievements) {
+    const { type, stat, threshold, config: statConfig } = selected;
     
     // CRITICAL FIX: Generate safe achievement IDs that don't conflict with static season achievements
     // Use "Random" prefix to clearly distinguish from static achievements
-    const safeId = `Random${type}${stat}${threshold}`;
+    const safeId = `Random${type}${threshold}${stat}`;
     
     const achievement: Achievement = {
       id: safeId,
@@ -1019,15 +957,12 @@ function buildRandomNumericalAchievements(
       test: (player: Player) => {
         if (!player.stats || player.stats.length === 0) return false;
         
-        // The operator is now determined dynamically in maybeCustomizeAchievement
-        // For the base test, we'll default to >=, but this will be overridden
-        // when the achievement is actually selected and customized.
         if (type === 'career') {
-          const value = getPlayerCareerTotal(player, statConfig.testField);
-          return value >= threshold;
+          const value = getCareerStatTotal(player, statConfig.testField);
+          return operator === '>=' ? value >= threshold : value <= threshold;
         } else {
           const value = getBestSeasonStat(player, statConfig.testField, statConfig.testType || 'total');
-          return value >= threshold;
+          return operator === '>=' ? value >= threshold : value <= threshold;
         }
       }
     };
@@ -1087,63 +1022,6 @@ function buildCustomizablePercentageAchievements(
       isSeasonSpecific: true,
     };
     achievements.push(createCustomNumericalAchievement(efgAchievement, 60, sport, '≥'));
-  } else if (sport === 'football') {
-    // Example Football percentage achievements
-    const compPctAchievement: Achievement = {
-      id: 'Season60CompPct',
-      label: '60%+ Comp Pct (Season)',
-      test: (player: Player) => false,
-      minPlayers: 5,
-      isSeasonSpecific: true,
-    };
-    achievements.push(createCustomNumericalAchievement(compPctAchievement, 60, sport, '≥'));
-
-    const rushYdsPerAttAchievement: Achievement = {
-      id: 'Season4RushYdsPerAtt',
-      label: '4.0+ Rush Yds/Att (Season)',
-      test: (player: Player) => false,
-      minPlayers: 5,
-      isSeasonSpecific: true,
-    };
-    achievements.push(createCustomNumericalAchievement(rushYdsPerAttAchievement, 4.0, sport, '≥'));
-  } else if (sport === 'hockey') {
-    // Example Hockey percentage achievements
-    const faceoffPctAchievement: Achievement = {
-      id: 'Season55FaceoffPct',
-      label: '55%+ Faceoff Win Rate (Season)',
-      test: (player: Player) => false,
-      minPlayers: 5,
-      isSeasonSpecific: true,
-    };
-    achievements.push(createCustomNumericalAchievement(faceoffPctAchievement, 55, sport, '≥'));
-
-    const savePctAchievement: Achievement = {
-      id: 'Season920SavePct',
-      label: '92.0%+ Save Percentage (Season)',
-      test: (player: Player) => false,
-      minPlayers: 5,
-      isSeasonSpecific: true,
-    };
-    achievements.push(createCustomNumericalAchievement(savePctAchievement, 92.0, sport, '≥'));
-  } else if (sport === 'baseball') {
-    // Example Baseball percentage achievements
-    const obpAchievement: Achievement = {
-      id: 'Season350OBP',
-      label: '.350+ OBP (Season)',
-      test: (player: Player) => false,
-      minPlayers: 5,
-      isSeasonSpecific: true,
-    };
-    achievements.push(createCustomNumericalAchievement(obpAchievement, 0.350, sport, '≥'));
-
-    const eraAchievement: Achievement = {
-      id: 'Season250ERA',
-      label: '2.50 or less ERA (Season)',
-      test: (player: Player) => false,
-      minPlayers: 5,
-      isSeasonSpecific: true,
-    };
-    achievements.push(createCustomNumericalAchievement(eraAchievement, 2.50, sport, '≤'));
   }
 
   return achievements;
@@ -1262,24 +1140,17 @@ export function getAllAchievements(
     achievements.push(...seasonAchievements);
   }
   
-    // Add random numerical achievements for variety (all sports)
-    if (sport && leagueYears) {
-      const gridSeed = `${leagueYears.minSeason}-${leagueYears.maxSeason}`; // Use league years for consistent seeding
-      const numericalAchievements = buildRandomNumericalAchievements(sport, gridSeed, 6); // Generate 6 random numerical achievements
+  // Add random numerical achievements for variety (basketball only for now)
+    if (sport === 'basketball' && leagueYears) {
+      const gridSeed = `${leagueYears.minSeason}-${leagueYears.maxSeason}`;
+      const numericalAchievements = buildRandomNumericalAchievements(sport, gridSeed, 6);
       achievements.push(...numericalAchievements);
-      if (import.meta.env.VITE_DEBUG === 'true') {
-        console.log(`🎲 [getAllAchievements] Generated ${numericalAchievements.length} random numerical achievements for ${sport}.`);
-      }
-    }
-    
-    // Add customizable percentage-based achievements (all sports where applicable)
-    if (sport && leagueYears) {
+  
       const percentageAchievements = buildCustomizablePercentageAchievements(sport, leagueYears);
       achievements.push(...percentageAchievements);
     }
-  
-    return achievements;
-  }
+      return achievements;}
+
 // Get achievements based on sport (legacy function for backward compatibility)
 // For new code, prefer getAllAchievements with leagueYears parameter
 export function getAchievements(sport?: 'basketball' | 'football' | 'hockey' | 'baseball', seasonIndex?: SeasonIndex): Achievement[] {
@@ -2617,11 +2488,6 @@ export function getViableAchievements(
     });
     const hasEnough = qualifyingPlayers.length >= Math.max(minCount, achievement.minPlayers);
     
-    // DEBUG CAREER ACHIEVEMENTS
-    if (achievement.id.startsWith('career')) {
-      console.log(`🔍 CAREER: ${achievement.id} - ${qualifyingPlayers.length} players (need ${Math.max(minCount, achievement.minPlayers)}) - ${hasEnough ? 'VIABLE' : 'FILTERED OUT'}`);
-    }
-    
     // Debug logging removed for performance - was causing logs for every achievement evaluation
     const DEBUG = import.meta.env.VITE_DEBUG === 'true';
     if (DEBUG) {
@@ -2634,102 +2500,4 @@ export function getViableAchievements(
     
     return hasEnough;
   });
-}
-
-// Generate custom stat achievement variations with different thresholds
-export function generateCustomStatAchievements(
-  players: Player[],
-  sport?: 'basketball' | 'football' | 'hockey' | 'baseball',
-  seasonIndex?: any,
-  leagueYears?: { minSeason: number; maxSeason: number }
-): Achievement[] {
-  if (!sport) return [];
-  
-  const customAchievements: Achievement[] = [];
-  const allAchievements = getAllAchievements(sport, seasonIndex, leagueYears);
-  
-  // This function is now deprecated - dynamic customization is done at selection time
-  return [];
-}
-
-// Generate threshold options based on original value (optimized for performance)
-function generateThresholdOptions(originalThreshold: number, achievementId: string): number[] {
-  const thresholds: number[] = [];
-  
-  // Reduced threshold counts for better performance (5-7 key values instead of 10-15)
-  
-  // Basketball points/rebounds/assists
-  if (achievementId.includes('Points') || achievementId.includes('pts') || 
-      achievementId.includes('Rebounds') || achievementId.includes('trb') ||
-      achievementId.includes('Assists') || achievementId.includes('ast')) {
-    thresholds.push(20000, 10000, 5000, 2000, 1000, 500, 100);
-  }
-  
-  // Basketball steals/blocks/3PM
-  else if (achievementId.includes('Steals') || achievementId.includes('Blocks') || 
-           achievementId.includes('3') || achievementId.includes('tpm')) {
-    thresholds.push(2000, 1000, 500, 250, 100, 50);
-  }
-  
-  // Football passing yards
-  else if (achievementId.includes('Pass') && achievementId.includes('Yds')) {
-    thresholds.push(60000, 40000, 20000, 10000, 5000, 1000);
-  }
-  
-  // Football rushing/receiving yards
-  else if (achievementId.includes('Rush') || achievementId.includes('Rec')) {
-    thresholds.push(15000, 10000, 5000, 2500, 1000, 500);
-  }
-  
-  // TDs/Sacks/Interceptions
-  else if (achievementId.includes('TD') || achievementId.includes('Sack') || 
-           achievementId.includes('Int')) {
-    thresholds.push(300, 200, 100, 50, 25, 10);
-  }
-  
-  // Hockey goals/points/assists
-  else if (achievementId.includes('Goals') || achievementId.includes('Points') || 
-           achievementId.includes('Assists')) {
-    thresholds.push(1500, 1000, 500, 300, 100, 50);
-  }
-  
-  // Hockey wins/shutouts (goalies)
-  else if (achievementId.includes('Wins') || achievementId.includes('Shutouts')) {
-    thresholds.push(400, 200, 100, 50, 25);
-  }
-  
-  // Baseball hits
-  else if (achievementId.includes('Hits')) {
-    thresholds.push(3000, 2000, 1500, 1000, 500, 250);
-  }
-  
-  // Baseball home runs
-  else if (achievementId.includes('HR')) {
-    thresholds.push(600, 400, 300, 200, 100, 50);
-  }
-  
-  // Baseball RBIs/Runs
-  else if (achievementId.includes('RBI') || achievementId.includes('Runs')) {
-    thresholds.push(2000, 1500, 1000, 500, 250);
-  }
-  
-  // Baseball stolen bases
-  else if (achievementId.includes('SB') || achievementId.includes('Stolen')) {
-    thresholds.push(600, 400, 200, 100, 50);
-  }
-  
-  // Baseball pitching (wins/strikeouts/saves)
-  else if (achievementId.includes('Wins') || achievementId.includes('Strikeouts') || 
-           achievementId.includes('Saves')) {
-    thresholds.push(350, 250, 150, 100, 50);
-  }
-  
-  // Default fallback: scale from original value
-  else {
-    const scales = [2, 1, 0.5, 0.25, 0.1];
-    thresholds.push(...scales.map(s => Math.round(originalThreshold * s)));
-  }
-  
-  // Remove duplicates and sort descending
-  return [...new Set(thresholds)].sort((a, b) => b - a);
 }
