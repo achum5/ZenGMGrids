@@ -99,9 +99,9 @@ const sportSpecificRules = {
       rules: [
         "Each correct guess earns 10–100 points.",
         "Points are a percentile rarity score based on a composite of:",
-        "- Player popularity/usage",
-        "- Achievement fit/strength for that specific square",
-        "- Team relevance/fit for that player",
+        "   - Player popularity/usage",
+        "   - Achievement fit/strength for that specific square",
+        "   - Team relevance/fit for that player",
         "Rarer, less obvious matches score closer to 100; common, obvious answers score closer to 10."
       ],
       note: "Looking for the full list of achievements? See the Create Custom Grid modal."
@@ -141,9 +141,9 @@ const sportSpecificRules = {
       rules: [
         "Each correct guess earns 10–100 points.",
         "Points are a percentile rarity score based on a composite of:",
-        "- Player popularity/usage",
-        "- Achievement fit/strength for that specific square",
-        "- Team relevance/fit for that player",
+        "   - Player popularity/usage",
+        "   - Achievement fit/strength for that specific square",
+        "   - Team relevance/fit for that player",
         "Rarer, less obvious matches score closer to 100; common, obvious answers score closer to 10."
       ],
       note: "Looking for the full list of achievements? See the Create Custom Grid modal."
@@ -184,9 +184,9 @@ const sportSpecificRules = {
       rules: [
         "Each correct guess earns 10–100 points.",
         "Points are a percentile rarity score based on a composite of:",
-        "- Player popularity/usage",
-        "- Achievement fit/strength for that specific square",
-        "- Team relevance/fit for that player",
+        "   - Player popularity/usage",
+        "   - Achievement fit/strength for that specific square",
+        "   - Team relevance/fit for that player",
         "Rarer, less obvious matches score closer to 100; common, obvious answers score closer to 10."
       ],
       note: "Looking for the full list of achievements? See the Create Custom Grid modal."
@@ -293,7 +293,7 @@ export function RulesModal({ sport }: RulesModalProps) {
                     <ul className="space-y-2">
                       {(sportRules as any).scoring.rules.map((rule: string, index: number) => (
                         <li key={index} className="flex items-start gap-2">
-                          {rule.startsWith('-') ? null : <span className="text-primary">•</span>}
+                          {rule.trimStart() !== rule ? null : <span className="text-primary">•</span>}
                           <span>{rule}</span>
                         </li>
                       ))}
@@ -344,9 +344,9 @@ export function RulesModal({ sport }: RulesModalProps) {
                     <div>
                       <h3 className="font-semibold mb-3 text-base">Scoring</h3>
                       <ul className="space-y-2">
-                        {(sportRules as any).scoring.map((rule: string, index: number) => (
+                        {(sportRules as any).scoring.rules.map((rule: string, index: number) => (
                           <li key={index} className="flex items-start gap-2">
-                            <span className="text-primary">•</span>
+                            {rule.trimStart() !== rule ? null : <span className="text-primary">•</span>}
                             <span>{rule}</span>
                           </li>
                         ))}
