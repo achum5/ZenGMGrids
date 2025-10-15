@@ -1144,7 +1144,7 @@ export function getAllAchievements(
     // Add random numerical achievements for variety (now for all sports)
     if (sport && leagueYears) { // Ensure sport and leagueYears are defined
       const gridSeed = `${leagueYears.minSeason}-${leagueYears.maxSeason}-${sport}`; // Add sport to seed for more variety
-      const randomOperator: '≥' | '≤' = Math.random() < 0.6 ? '≥' : '≤'; // 60% ≥, 40% ≤
+      const randomOperator = Math.random() < 0.6 ? '≥' : '≤'; // 60% >=, 40% <=
       const numericalAchievements = buildRandomNumericalAchievements(sport, gridSeed, 6, randomOperator); // Generate 6 random numerical achievements with weighted operator
       achievements.push(...numericalAchievements);
   
@@ -1578,7 +1578,7 @@ export function playerMeetsAchievement(
     }
     // Otherwise, assume it's a numerical value to be compared with a threshold.
     const threshold = parseFloat(achievement.label.match(/(\d+[,\d.]*)/)?.[0].replace(/,/g, '') || '0');
-    return operator === '≥' ? achievementTestResult >= threshold : achievementTestResult <= threshold;
+    return operator === '>=' ? achievementTestResult >= threshold : achievementTestResult <= threshold;
   }
   
   return false;
