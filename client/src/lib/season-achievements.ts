@@ -113,6 +113,15 @@ export type SeasonAchievementId =
   | 'BBAllRookie'
   | 'BBAllLeague'
   | 'BBPlayoffsMVP'
+  // Baseball GM season statistical achievements
+  | 'BBSeason50HRs'
+  | 'BBSeason130RBIs'
+  | 'BBSeason200Hits'
+  | 'BBSeason50SBs'
+  | 'BBSeason20Wins'
+  | 'BBSeason40Saves'
+  | 'BBSeason300Ks'
+  | 'BBSeason200ERA'
   // Special handling achievements
   | 'SFMVP'; // Requires special team resolution logic
 

@@ -219,6 +219,15 @@ const DID_NOT_WIN_MESSAGES: Partial<Record<SeasonAchievementId, string>> = {
   HKSeason6Shutouts: 'Never recorded 6+ Shutouts in a season',
   HKSeason2000Saves: 'Never made 2000+ Saves in a season',
   HKSeason60Starts: 'Never had 60+ Starts in a season',
+  // Baseball Season Stats
+  BBSeason50HRs: 'Never hit 50+ Home Runs in a season',
+  BBSeason130RBIs: 'Never drove in 130+ RBIs in a season',
+  BBSeason200Hits: 'Never had 200+ Hits in a season',
+  BBSeason50SBs: 'Never stole 50+ Bases in a season',
+  BBSeason20Wins: 'Never won 20+ Games in a season',
+  BBSeason40Saves: 'Never recorded 40+ Saves in a season',
+  BBSeason300Ks: 'Never recorded 300+ Strikeouts in a season',
+  BBSeason200ERA: 'Never achieved a ≤2.00 ERA in a season',
 };
 
 export interface ReasonBullet {
@@ -718,7 +727,7 @@ export function formatBulletSeasonList(seasons: string[], isFinalsOrCFMVP: boole
     // Group by consecutive years while preserving team abbreviations
     const yearsWithTeams = seasons.map(s => {
       const parts = s.split(' ');
-      return { year: parseInt(parts[0]), team: parts[1] || '', original: s };
+      return { year: parseInt(parts[0] || '0'), team: parts[1] || '', original: s };
     });
     
     // If all seasons have the same team, group years and append team
@@ -923,7 +932,7 @@ function generateAchievementBullet(player: Player, achievementId: string, teams:
   if (isSeasonAchievement(achievementId)) {
     return generateSeasonAchievementBullet(player, achievementId as SeasonAchievementId, teams, constraintLabel, sport);
   } else {
-    return generateCareerAchievementBullet(player, achievementId, teams, constraintLabel, sport);
+    return generateAchievementBullet(player, achievementId, teams, constraintLabel, sport);
   }
 }
 

@@ -1338,7 +1338,7 @@ export function playerMeetsAchievement(
   player: Player, 
   achievementId: string, 
   seasonIndex?: SeasonIndex,
-  operator: '>=' | '<=' = '>=',
+  operator: '≥' | '≤' = '≥',
   teamId?: number,
   season?: number,
 ): boolean {
@@ -1346,6 +1346,9 @@ export function playerMeetsAchievement(
   if (DEBUG) {
     console.log(`🐛 [playerMeetsAchievement] Player: ${player.name}, Achievement: ${achievementId}, SeasonIndex: ${!!seasonIndex}, Operator: ${operator}, TeamId: ${teamId}, Season: ${season}`);
   }
+
+  // Convert Unicode operators to ASCII for internal comparison
+  const asciiOperator = operator === '≥' ? '>=' : '<=';
 
   // Check if it's a dynamic decade achievement first
   if (achievementId.includes('playedIn') && achievementId.endsWith('s')) {
@@ -1578,7 +1581,7 @@ export function playerMeetsAchievement(
     }
     // Otherwise, assume it's a numerical value to be compared with a threshold.
     const threshold = parseFloat(achievement.label.match(/(\d+[,\d.]*)/)?.[0].replace(/,/g, '') || '0');
-    return operator === '>=' ? achievementTestResult >= threshold : achievementTestResult <= threshold;
+    return asciiOperator === '>=' ? achievementTestResult >= threshold : achievementTestResult <= threshold;
   }
   
   return false;
