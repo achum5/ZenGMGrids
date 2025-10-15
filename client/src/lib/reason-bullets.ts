@@ -442,24 +442,7 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
   }
 
   const seasons = player.awards
-    .filter(award => {
-      const isChampionAward = ['Champion', 'FBChampion', 'HKChampion', 'BBChampion'].includes(baseAchievementId);
-      const matchesType = awardTypesToLookFor.some(type => award.type.includes(type));
-      
-      if (isChampionAward && teamId !== undefined) {
-        // For Champion awards, cross-reference with player.achievementSeasons.champion and player.stats
-        const championshipSeasons = player.achievementSeasons?.champion || new Set<number>();
-        if (championshipSeasons.has(award.season)) {
-          // Check if the player played for the specified team in that championship season
-          const playedForTeamInSeason = player.stats?.some(s => 
-            s.season === award.season && s.tid === teamId && !s.playoffs && (s.gp || 0) > 0
-          );
-          return matchesType && playedForTeamInSeason;
-        }
-        return false; // Not a championship season for this player or not with this team
-      }
-      return matchesType;
-    })
+    .filter(award => awardTypesToLookFor.some(type => award.type.includes(type)))
     .map(award => award.season);
 
   const uniqueSeasons = [...new Set(seasons)].sort((a, b) => a - b);
@@ -729,23 +712,23 @@ function generateTeamBullet(player: Player, teamTid: number, teams: Team[], cons
 }
 
 // Generate achievement bullet: "Achievement Label (years)" or "N Career Stat"
-function generateAchievementBullet(player: Player, achievementId: string, teams: Team[], constraintLabel?: string, sport?: string, teamId?: number): ReasonBullet | null {
+function generateAchievementBullet(player: Player, achievementId: string, teams: Team[], constraintLabel?: string, sport?: string): ReasonBullet | null {
   if (isSeasonAchievement(achievementId)) {
-    return generateSeasonAchievementBullet(player, achievementId as SeasonAchievementId, teams, constraintLabel, sport, teamId);
+    return generateSeasonAchievementBullet(player, achievementId as SeasonAchievementId, teams, constraintLabel, sport);
   } else {
-    return generateCareerAchievementBullet(player, achievementId, teams, constraintLabel, sport, teamId);
+    return generateCareerAchievementBullet(player, achievementId, teams, constraintLabel, sport);
   }
 }
 
 // Generate season achievement bullet
-function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAchievementId, teams: Team[], constraintLabel?: string, sport?: string, teamId?: number): ReasonBullet | null {
+function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAchievementId, teams: Team[], constraintLabel?: string, sport?: string): ReasonBullet | null {
 
   let achLabel = constraintLabel || SEASON_ACHIEVEMENT_LABELS[achievementId] || achievementId;
   
   // Consistently remove " (Season)" suffix using regex, as the years in parentheses already imply it's season-specific
   achLabel = achLabel.replace(/\s*\(Season\)/gi, '').trim();
   
-  const seasons = getSeasonAchievementSeasons(player, achievementId, teams, teamId, sport);
+  const seasons = getSeasonAchievementSeasons(player, achievementId, teams, undefined, sport);
 
   
   // Special handling for "1/1/1 Season" when the player does not meet the criteria for the team
@@ -860,8 +843,7 @@ export function generatePlayerGuessFeedback(player: Player, rowConstraint: CatTe
   } else if (rowConstraint.type === 'achievement') {
     const achievementId = rowConstraint.achievementId!;
     const achievementLabel = rowConstraint.label;
-    const teamIdForAchievement = colConstraint.type === 'team' ? colConstraint.tid : undefined;
-    const achievementBullet = generateAchievementBullet(player, achievementId, teams, achievementLabel, sport, teamIdForAchievement);
+    const achievementBullet = generateAchievementBullet(player, achievementId, teams, achievementLabel, sport);
     if (achievementBullet) {
       bullets.push(`• ${achievementBullet.text}`);
     }
@@ -881,8 +863,7 @@ export function generatePlayerGuessFeedback(player: Player, rowConstraint: CatTe
   } else if (colConstraint.type === 'achievement') {
     const achievementId = colConstraint.achievementId!;
     const achievementLabel = colConstraint.label;
-    const teamIdForAchievement = rowConstraint.type === 'team' ? rowConstraint.tid : undefined;
-    const achievementBullet = generateAchievementBullet(player, achievementId, teams, achievementLabel, sport, teamIdForAchievement);
+    const achievementBullet = generateAchievementBullet(player, achievementId, teams, achievementLabel, sport);
     if (achievementBullet) {
       bullets.push(`• ${achievementBullet.text}`);
     }
