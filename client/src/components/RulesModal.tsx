@@ -23,191 +23,173 @@ const generalRules = {
 
 const sportSpecificRules = {
   basketball: {
-    title: "BBGM Grids",
+    title: "Quick Rules — Basketball",
     eligibility: {
-      title: "How eligibility works",
+      title: "Eligibility",
       rules: [
-        "Season-aligned achievements only need to match a team when the square is Team × Achievement. The player must have earned it in that same season with that team.",
-        "Finals MVP: must be with the team from that title run.",
-        "League Leaders: count with any team the player played for during that leader season.",
-        "Achievement × Achievement squares do not require the same season.",
-        "Non-season (career/draft) achievements: count if the player ever played for the team (any season) and meets the career/draft condition."
+        "Team × Award (All-Star, MVP, DPOY, ROY, SMOY, MIP, All-League, All-Defense, All-Rookie, Finals MVP, League Leaders): Must match the same team in that award/leader season. (Season-aligned.)",
+
+        "Team × Season Stat (“X in a season”): Not season-aligned. If a player ever hit that season stat in any year and has ever played for the team, it counts.",
+        "Team × Career/Draft items (career totals, Hall of Fame, Played X+ seasons, #1 pick / first-round / undrafted, etc.): Not season-aligned. Any year in the career + any team they played for.",
+        "Achievement × Achievement: Never requires the same season. Each achievement can come from different seasons.",
+        "League Leaders: If present, count the leader with any team the player appeared for during that leader season."
       ]
     },
     seasonAchievements: {
       title: "Season-aligned achievements",
       items: [
-        "All-Star",
-        "MVP (Most Valuable Player)",
-        "DPOY (Defensive Player of the Year)",
-        "ROY (Rookie of the Year)",
-        "SMOY (Sixth Man of the Year)",
-        "MIP (Most Improved Player)",
-        "Finals MVP",
-        "All-League Team (any tier)",
-        "All-Defensive Team (any tier)",
-        "All-Rookie Team (any tier)",
-        "Points Leader • Rebounds Leader • Assists Leader • Steals Leader • Blocks Leader"
+        "All-Star • MVP • Defensive Player of the Year • Rookie of the Year",
+        "Sixth Man of the Year • Most Improved Player",
+        "Champion • All-Rookie Team • All-League Team • All-Defense Team",
+        "Finals MVP • League Leaders (if enabled)"
       ],
-      note: "Note for small leagues: If your league has fewer than 20 seasons, the generator uses a simplified mode to keep puzzles solvable — single-season achievements won't be used in generation."
+      note: "Note: In smaller leagues (< 20 seasons), generation may simplify single-season items."
     },
     careerAchievements: {
       title: "Non-season (career/draft) achievements",
       items: [
-        "#1 Overall Pick • First Round Pick • Went Undrafted",
+        "#1 Overall Pick • First Round Pick • Second Round Pick • Went Undrafted",
         "Hall of Fame • Played 15+ Seasons • Played 10+ Seasons",
-        "20,000+ Career Points • 10,000+ Career Rebounds • 5,000+ Career Assists",
-        "2,000+ Career Steals • 1,500+ Career Blocks • 2,000+ Made Threes"
-      ],
-      basketballNote: "Basketball-specific draft note: Second Round Pick"
+        "Career milestone categories (examples): points, rebounds, assists, steals, blocks, 3-pointers made."
+      ]
     },
     scoring: {
       title: "Scoring",
       rules: [
-        "Each correct guess = its rarity score (10–100 points).",
-        "Base rarity: we rank all eligible players for that cell from rarest → most common using a popularity model (awards & career volume). Rarest ≈ 100, most common ≈ 10, others scale in between.",
-        "Small-pool bonus: harder cells with few eligible players get extra points (more bonus for smaller pools).",
-        "Cell-aware tweaks: when available, the model also considers team fit and category fit to reward creative picks."
+        "Each correct guess earns 10–100 points.",
+        "Points are a percentile rarity score based on a composite of:",
+        "- Player popularity/usage",
+        "- Achievement fit/strength for that specific square",
+        "- Team relevance/fit for that player"
       ]
     }
   },
   football: {
-    title: "FBGM Grids",
+    title: "Quick Rules — Football",
     eligibility: {
-      title: "How eligibility works",
+      title: "Eligibility",
       rules: [
-        "Season-aligned achievements only need to match a team for Team × Achievement squares (same season, same team).",
-        "Finals MVP / Champion: must be with the team from that playoff run.",
-        "League Leaders: if present, count with any team the player played for during that leader season.",
-        "Achievement × Achievement squares do not require the same season.",
-        "Non-season (career/draft) achievements: player must have ever played for the team (any season) and meet the career/draft condition."
+        "Team × Award (All-Star, MVP, DPOY, ROY variants, All-League, All-Defense, All-Rookie, Finals/Playoff MVP, League Leaders): Must match the same team in that award/leader season. (Season-aligned.)",
+        "Team × Season Stat (“X in a season”): Not season-aligned. If a player ever hit that season stat in any year and has ever played for the team, it counts.",
+        "Team × Career/Draft items (career totals, Hall of Fame, Played X+ seasons, #1 pick / first-round / undrafted, etc.): Not season-aligned. Any year in the career + any team they played for.",
+        "Achievement × Achievement: Never requires the same season. Each achievement can come from different seasons.",
+        "League Leaders: If present, count the leader with any team the player appeared for during that leader season."
       ]
     },
     seasonAchievements: {
       title: "Season-aligned achievements",
       items: [
-        "All-Star",
-        "MVP",
-        "Defensive Player of the Year",
-        "Offensive Rookie of the Year",
-        "Defensive Rookie of the Year",
-        "Champion",
-        "All-Rookie Team",
-        "All-League Team",
-        "Finals MVP"
+        "All-Star • MVP • Defensive Player of the Year",
+        "Rookie of the Year (including offensive/defensive variants)",
+        "Champion • All-Rookie Team • All-League Team • All-Defense Team",
+        "Finals/Playoff MVP • League Leaders (if enabled)"
       ],
-      note: "Note for small leagues: If your league has fewer than 20 seasons, the generator uses a simplified mode — single-season achievements won't be used in generation."
+      note: "Note: In smaller leagues (< 20 seasons), generation may simplify single-season items."
     },
     careerAchievements: {
       title: "Non-season (career/draft) achievements",
       items: [
         "#1 Overall Pick • First Round Pick • Went Undrafted",
         "Hall of Fame • Played 15+ Seasons • Played 10+ Seasons",
-        "150+ Career Pass TDs • 8,000+ Career Rush Yards • 40+ Career Rush TDs",
-        "6,000+ Career Rec Yards • 40+ Career Rec TDs",
-        "60+ Career Sacks • 20+ Career Interceptions"
+        "Career milestone categories (examples): passing TDs, rushing yards/TDs, receiving yards/TDs, sacks, interceptions."
       ]
     },
     scoring: {
       title: "Scoring",
       rules: [
-        "Each correct guess = its rarity score (10–100 points).",
-        "Base rarity: we rank all eligible players for that cell from rarest → most common using a popularity model (awards & career volume). Rarest ≈ 100, most common ≈ 10, others scale in between.",
-        "Small-pool bonus: harder cells with few eligible players get extra points (more bonus for smaller pools).",
-        "Cell-aware tweaks: when available, the model also considers team fit and category fit to reward creative picks."
-      ]
+        "Each correct guess earns 10–100 points.",
+        "Points are a percentile rarity score based on a composite of:",
+        "- Player popularity/usage",
+        "- Achievement fit/strength for that specific square",
+        "- Team relevance/fit for that player",
+        "Rarer, less obvious matches score closer to 100; common, obvious answers score closer to 10."
+      ],
+      note: "Looking for the full list of achievements? See the Create Custom Grid modal."
     }
   },
   baseball: {
-    title: "ZGMB Grids",
+    title: "Quick Rules — Baseball",
     eligibility: {
-      title: "How eligibility works",
+      title: "Eligibility",
       rules: [
-        "Season-aligned achievements only need to match a team for Team × Achievement squares (same season, same team).",
-        "Playoffs MVP & Champion: must be with the team from that playoff run.",
-        "Achievement × Achievement squares do not require the same season.",
-        "Non-season (career/draft) achievements: player must have ever played for the team (any season) and meet the career/draft condition."
+        "Team × Award (All-Star, MVP, ROY, All-League, All-Defense, All-Rookie, Finals/Playoff MVP, League Leaders): Must match the same team in that award/leader season. (Season-aligned.)",
+        "Team × Season Stat (“X in a season”): Not season-aligned. If a player ever hit that season stat in any year and has ever played for the team, it counts.",
+        "Team × Career/Draft items (career totals, Hall of Fame, Played X+ seasons, #1 pick / first-round / undrafted, etc.): Not season-aligned. Any year in the career + any team they played for.",
+        "Achievement × Achievement: Never requires the same season. Each achievement can come from different seasons.",
+        "League Leaders: If present, count the leader with any team the player appeared for during that leader season."
       ]
     },
     seasonAchievements: {
       title: "Season-aligned achievements",
       items: [
-        "All-Star",
-        "MVP",
-        "Rookie of the Year",
-        "Champion",
-        "All-Rookie Team",
-        "All-League Team",
-        "Playoffs MVP"
+        "All-Star • MVP • Rookie of the Year",
+        "Champion • All-Rookie Team • All-League Team • All-Defense Team",
+        "Finals/Playoff MVP • League Leaders (if enabled)"
       ],
-      note: "Note for small leagues: If your league has fewer than 20 seasons, the generator uses a simplified mode — single-season achievements won't be used in generation."
+      note: "Note: In smaller leagues (< 20 seasons), generation may simplify single-season items."
     },
     careerAchievements: {
       title: "Non-season (career/draft) achievements",
       items: [
         "#1 Overall Pick • First Round Pick • Went Undrafted",
         "Hall of Fame • Played 15+ Seasons • Played 10+ Seasons",
-        "3,000+ Career Hits • 500+ Career Home Runs • 1,500+ Career RBIs",
-        "400+ Career Stolen Bases • 1,800+ Career Runs",
-        "300+ Career Wins (Pitcher) • 3,000+ Career Strikeouts • 300+ Career Saves"
+        "Career milestone categories (examples): hits, home runs, RBIs, stolen bases, runs, pitching wins/strikeouts/saves."
       ]
     },
     scoring: {
       title: "Scoring",
       rules: [
-        "Each correct guess = its rarity score (10–100 points).",
-        "Base rarity: we rank all eligible players for that cell from rarest → most common using a popularity model (awards & career volume). Rarest ≈ 100, most common ≈ 10, others scale in between.",
-        "Small-pool bonus: harder cells with few eligible players get extra points (more bonus for smaller pools).",
-        "Cell-aware tweaks: when available, the model also considers team fit and category fit to reward creative picks."
-      ]
+        "Each correct guess earns 10–100 points.",
+        "Points are a percentile rarity score based on a composite of:",
+        "- Player popularity/usage",
+        "- Achievement fit/strength for that specific square",
+        "- Team relevance/fit for that player",
+        "Rarer, less obvious matches score closer to 100; common, obvious answers score closer to 10."
+      ],
+      note: "Looking for the full list of achievements? See the Create Custom Grid modal."
     }
   },
   hockey: {
-    title: "ZGMH Grids",
+    title: "Quick Rules — Hockey",
     eligibility: {
-      title: "How eligibility works",
+      title: "Eligibility",
       rules: [
-        "Season-aligned achievements only need to match a team for Team × Achievement squares (same season, same team).",
-        "Playoffs/Finals MVP & Champion: must be with the team from that playoff run.",
-        "League Leaders (e.g., Assists Leader): count with any team the player played for during that leader season.",
-        "Achievement × Achievement squares do not require the same season.",
-        "Non-season (career/draft) achievements: player must have ever played for the team (any season) and meet the career/draft condition."
+        "Team × Award (All-Star, MVP, ROY, DPOY equivalent if used, All-League, All-Defense, All-Rookie, Finals/Playoff MVP, League Leaders): Must match the same team in that award/leader season. (Season-aligned.)",
+
+        "Team × Season Stat (“X in a season”): Not season-aligned. If a player ever hit that season stat in any year and has ever played for the team, it counts.",
+        "Team × Career/Draft items (career totals, Hall of Fame, Played X+ seasons, #1 pick / first-round / undrafted, etc.): Not season-aligned. Any year in the career + any team they played for.",
+        "Achievement × Achievement: Never requires the same season. Each achievement can come from different seasons.",
+        "League Leaders: If present, count the leader with any team the player appeared for during that leader season."
       ]
     },
     seasonAchievements: {
       title: "Season-aligned achievements",
       items: [
-        "All-Star",
-        "MVP",
-        "Best Defenseman",
-        "Rookie of the Year",
-        "Champion",
-        "Playoffs MVP",
-        "Finals MVP",
-        "All-Rookie Team",
-        "All-League Team",
-        "All-Star Game MVP",
-        "Assists Leader"
+        "All-Star • MVP • Rookie of the Year",
+        "Champion • All-Rookie Team • All-League Team • All-Defense Team",
+        "Finals/Playoff MVP • League Leaders (if enabled)"
       ],
-      note: "Note for small leagues: If your league has fewer than 20 seasons, the generator uses a simplified mode — single-season achievements won't be used in generation."
+      note: "Note: In smaller leagues (< 20 seasons), generation may simplify single-season items."
     },
     careerAchievements: {
       title: "Non-season (career/draft) achievements",
       items: [
         "#1 Overall Pick • First Round Pick • Went Undrafted",
         "Hall of Fame • Played 15+ Seasons • Played 10+ Seasons",
-        "500+ Career Goals • 1,000+ Career Points • 500+ Career Assists",
-        "200+ Career Wins (Goalie) • 50+ Career Shutouts (Goalie)"
+        "Career milestone categories (examples): goals, assists, points, goalie wins/shutouts, games played."
       ]
     },
     scoring: {
       title: "Scoring",
       rules: [
-        "Each correct guess = its rarity score (10–100 points).",
-        "Base rarity: we rank all eligible players for that cell from rarest → most common using a popularity model (awards & career volume). Rarest ≈ 100, most common ≈ 10, others scale in between.",
-        "Small-pool bonus: harder cells with few eligible players get extra points (more bonus for smaller pools).",
-        "Cell-aware tweaks: when available, the model also considers team fit and category fit to reward creative picks."
-      ]
+        "Each correct guess earns 10–100 points.",
+        "Points are a percentile rarity score based on a composite of:",
+        "- Player popularity/usage",
+        "- Achievement fit/strength for that specific square",
+        "- Team relevance/fit for that player",
+        "Rarer, less obvious matches score closer to 100; common, obvious answers score closer to 10."
+      ],
+      note: "Looking for the full list of achievements? See the Create Custom Grid modal."
     }
   }
 };
@@ -311,7 +293,7 @@ export function RulesModal({ sport }: RulesModalProps) {
                     <ul className="space-y-2">
                       {(sportRules as any).scoring.rules.map((rule: string, index: number) => (
                         <li key={index} className="flex items-start gap-2">
-                          <span className="text-primary">•</span>
+                          {rule.startsWith('-') ? null : <span className="text-primary">•</span>}
                           <span>{rule}</span>
                         </li>
                       ))}
