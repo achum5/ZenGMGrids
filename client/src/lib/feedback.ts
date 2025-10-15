@@ -1,21 +1,11 @@
 import type { Player, Team } from '@/types/bbgm';
-import { SEASON_ALIGNED_ACHIEVEMENTS, getAllAchievements, getCachedSportDetection, type Achievement } from '@/lib/achievements';
+import { SEASON_ALIGNED_ACHIEVEMENTS, getAllAchievements, getCachedSportDetection } from '@/lib/achievements';
 import { playerMeetsAchievement } from '@/lib/achievements';
-import { SEASON_ACHIEVEMENTS, type SeasonAchievementId, type SeasonIndex } from './season-achievements';
+import { SEASON_ACHIEVEMENTS, type SeasonAchievementId } from './season-achievements';
 import { parseAchievementLabel, generateUpdatedLabel, parseCustomAchievementId } from './editable-achievements';
 import {
   getSeasonsForSeasonStatAchievement,
   formatBulletSeasonList,
-  getBasketballCareerStats,
-  getBasketballSeasonBests,
-  getBasketball504090Season,
-  getBasketballAwardSeason,
-  getFootballCareerStats,
-  getFootballSeasonBests,
-  getHockeyCareerStats,
-  getHockeySeasonBests,
-  getBaseballCareerStats,
-  getBaseballSeasonBests,
 } from "./reason-bullets";
 
 export interface GridConstraint {
@@ -286,12 +276,6 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     short: '30+ PPG',
     verbTeam: 'averaged 30+ points per game in a season',
     verbGeneric: 'averaged 30+ points per game in a season'
-  },
-  SeasonPPG: {
-    label: 'PPG (Season)',
-    short: 'PPG',
-    verbTeam: 'averaged PPG in a season',
-    verbGeneric: 'averaged PPG in a season'
   },
   Season2000Points: {
     label: '2,000+ Points (Season)',
@@ -884,7 +868,6 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
 
     // All missing Season achievements from LSP errors
     Season30PPG: ['30+ PPG', '30 points per game'],
-    SeasonPPG: ['PPG', 'points per game'],
     Season2000Points: ['2000+ Points', '2000 points'],
     Season200_3PM: ['200+ 3PM', '200 three-pointers'],
     Season12RPG: ['12+ RPG', '12 rebounds per game'],
@@ -1418,17 +1401,17 @@ function getNegativeMessageForCustomAchievement(player: Player, achievementId: s
     if (!statInfo) return null;
 
     const sport = getCachedSportDetection() || 'basketball';
-    let actualValue: number = 0; // Initialize with a default number
+    let actualValue: number | undefined;
     let year: number | undefined;
 
     if (sport === 'basketball') {
-      const careerStats = getBasketballCareerStats(player);
+      const careerStats = getBaseballCareerStats(player);
       const seasonBests = getBasketballSeasonBests(player);
       if (statInfo.type === 'career') {
-        actualValue = careerStats[statInfo.key as keyof typeof careerStats] || 0;
+        actualValue = careerStats[statInfo.key as keyof typeof careerStats];
       } else if (statInfo.type === 'season_avg') {
         const best = seasonBests[statInfo.key as keyof typeof seasonBests];
-        actualValue = best.max || 0;
+        actualValue = best.max;
         year = best.year;
       } else if (statInfo.type === 'season') {
         // For season totals, we need to find the max total for that stat
@@ -1436,65 +1419,65 @@ function getNegativeMessageForCustomAchievement(player: Player, achievementId: s
           if (s.playoffs) return max;
           const statValue = (s as any)[statInfo.key] || 0;
           return Math.max(max, statValue);
-        }, 0) || 0;
+        }, 0);
         actualValue = maxSeasonTotal;
       }
     } else if (sport === 'football') {
       const careerStats = getFootballCareerStats(player);
       const seasonBests = getFootballSeasonBests(player);
       if (statInfo.type === 'career') {
-        actualValue = careerStats[statInfo.key as keyof typeof careerStats] || 0;
+        actualValue = careerStats[statInfo.key as keyof typeof careerStats];
       } else if (statInfo.type === 'season_avg') {
         // Football doesn't have season averages in this context, so handle as season total
         const best = seasonBests[statInfo.key as keyof typeof seasonBests];
-        actualValue = best.max || 0;
+        actualValue = best.max;
         year = best.year;
       } else if (statInfo.type === 'season') {
         const best = seasonBests[statInfo.key as keyof typeof seasonBests];
-        actualValue = best.max || 0;
+        actualValue = best.max;
         year = best.year;
       }
     } else if (sport === 'hockey') {
       const careerStats = getHockeyCareerStats(player);
       const seasonBests = getHockeySeasonBests(player);
       if (statInfo.type === 'career') {
-        actualValue = careerStats[statInfo.key as keyof typeof careerStats] || 0;
+        actualValue = careerStats[statInfo.key as keyof typeof careerStats];
       } else if (statInfo.type === 'season_avg') {
         const best = seasonBests[statInfo.key as keyof typeof seasonBests];
-        actualValue = best.max || 0;
+        actualValue = best.max;
         year = best.year;
       } else if (statInfo.type === 'season') {
         const maxSeasonTotal = player.stats?.reduce((max, s) => {
           if (s.playoffs) return max;
           const statValue = (s as any)[statInfo.key] || 0;
           return Math.max(max, statValue);
-        }, 0) || 0;
+        }, 0);
         actualValue = maxSeasonTotal;
       }
     } else if (sport === 'baseball') {
       const careerStats = getBaseballCareerStats(player);
       const seasonBests = getBaseballSeasonBests(player);
       if (statInfo.type === 'career') {
-        actualValue = careerStats[statInfo.key as keyof typeof careerStats] || 0;
+        actualValue = careerStats[statInfo.key as keyof typeof careerStats];
       } else if (statInfo.type === 'season_avg') {
         // For ERA, lower is better, so we need to get the min
         if (statInfo.key === 'era') {
-          actualValue = seasonBests.era.min || 0;
+          actualValue = seasonBests.era.min;
           year = seasonBests.era.year;
         } else {
           const best = seasonBests[statInfo.key as keyof typeof seasonBests];
-          actualValue = ('max' in best ? best.max : best.min) || 0;
+          actualValue = 'max' in best ? best.max : best.min;
           year = best.year;
         }
       } else if (statInfo.type === 'season') {
         const best = seasonBests[statInfo.key as keyof typeof seasonBests];
-        actualValue = ('max' in best ? best.max : best.min) || 0;
+        actualValue = 'max' in best ? best.max : best.min;
         year = best.year;
       }
     }
 
-    // Now actualValue is guaranteed to be a number
-    const valueString = actualValue % 1 !== 0 ? actualValue.toFixed(1) : actualValue.toLocaleString();
+    if (actualValue !== undefined) {
+      const valueString = actualValue % 1 !== 0 ? actualValue.toFixed(1) : actualValue.toLocaleString();
       const thresholdString = parsed.threshold.toLocaleString();
       const statName = statInfo.name;
 
@@ -1517,386 +1500,26 @@ function getNegativeMessageForCustomAchievement(player: Player, achievementId: s
 
     // Fallback if we can't calculate the stat
     const cleanLabel = getHumanReadableAchievementText(achievementId);
-
-    // Define a type for the negative message generator functions
-    type NegativeMessageGenerator = (player: Player, parsed: ParsedCustomAchievement, statInfo: StatInfo) => string;
-
-    // Map of baseId to their respective negative message generator functions
-    const negativeMessageGenerators: Record<string, NegativeMessageGenerator> = {
-      // Decade achievements
-      'playedInThreeDecades': (player, parsed) => {
-        const actualDecades = player.decadesPlayed?.size || 0;
-        const threshold = parsed.threshold;
-        const operator = parsed.operator;
-        return operator === '≤'
-          ? `played in ${actualDecades} decade${actualDecades === 1 ? '' : 's'} (more than ${threshold} required)`
-          : `played in ${actualDecades} decade${actualDecades === 1 ? '' : 's'} (fewer than ${threshold} required)`;
-      },
-      'playedIn': (player, parsed) => { // Generic handler for playedInXXXXs
-        const actualDecades = player.decadesPlayed?.size || 0;
-        const threshold = parsed.threshold;
-        const operator = parsed.operator;
-        return operator === '≤'
-          ? `played in ${actualDecades} decade${actualDecades === 1 ? '' : 's'} (more than ${threshold} required)`
-          : `played in ${actualDecades} decade${actualDecades === 1 ? '' : 's'} (fewer than ${threshold} required)`;
-      },
-      'debutedIn': (player, parsed) => { // Generic handler for debutedInXXXXs
-        const actualDecades = player.decadesPlayed?.size || 0; // Assuming decadesPlayed is relevant for debut
-        const threshold = parsed.threshold;
-        const operator = parsed.operator;
-        return operator === '≤'
-          ? `debuted in ${actualDecades} decade${actualDecades === 1 ? '' : 's'} (more than ${threshold} required)`
-          : `debuted in ${actualDecades} decade${actualDecades === 1 ? '' : 's'} (fewer than ${threshold} required)`;
-      },
-      // Franchise achievements
-      'played5PlusFranchises': (player, parsed) => {
-        const actualFranchises = getPlayerFranchiseCount(player);
-        const threshold = parsed.threshold;
-        const operator = parsed.operator;
-        return operator === '≤'
-          ? `played for ${actualFranchises} franchise${actualFranchises === 1 ? '' : 's'} (more than ${threshold} required)`
-          : `played for ${actualFranchises} franchise${actualFranchises === 1 ? '' : 's'} (fewer than ${threshold} required)`;
-      },
-      // Combo achievements
-      'Season25_10': (player, parsed) => {
-        return parsed.operator === '≤'
-          ? `never had under 25 PPG or under 10 RPG in a season`
-          : `never had 25+ PPG and 10+ RPG in a season`;
-      },
-      'Season25_5_5': (player, parsed) => {
-        return parsed.operator === '≤'
-          ? `never had under 25 PPG or under 5 RPG or under 5 APG in a season`
-          : `never had 25+ PPG, 5+ RPG, and 5+ APG in a season`;
-      },
-      'Season20_10_5': (player, parsed) => {
-        return parsed.operator === '≤'
-          ? `never had under 20 PPG or under 10 RPG or under 5 APG in a season`
-          : `never had 20+ PPG, 10+ RPG, and 5+ APG in a season`;
-      },
-      'Season1_1_1': (player, parsed) => {
-        return parsed.operator === '≤'
-          ? `never averaged under 1 SPG or under 1 BPG or under 1 3PM/G in a season`
-          : `never averaged 1+ SPG, 1+ BPG, and 1+ 3PM/G in a season`;
-      },
-      'Season50_40_90': (player, parsed) => {
-        return parsed.operator === '≤'
-          ? `never had under 50/40/90 splits in a season`
-          : `never had a 50/40/90 season`;
-      },
-      'Season200Stocks': (player, parsed) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} stocks in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ stocks in a season`;
-      },
-      // Generic season stat achievements (Basketball, Football, Hockey)
-      'Season30PPG': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never averaged under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never averaged ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'Season2000Points': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'Season200_3PM': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never hit under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never hit ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'Season12RPG': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never averaged under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never averaged ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'Season10APG': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never averaged under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never averaged ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'Season800Rebounds': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'Season700Assists': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'Season2SPG': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never averaged under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never averaged ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'Season2_5BPG': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never averaged under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never averaged ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'Season150Steals': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'Season150Blocks': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'Season60eFG500FGA': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never posted under ${parsed.threshold.toLocaleString()}% ${statInfo.name} in a season`
-          : `never posted ${parsed.threshold.toLocaleString()}%+ ${statInfo.name} in a season`;
-      },
-      'Season90FT250FTA': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never posted under ${parsed.threshold.toLocaleString()}% ${statInfo.name} in a season`
-          : `never posted ${parsed.threshold.toLocaleString()}%+ ${statInfo.name} in a season`;
-      },
-      'SeasonFGPercent': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never posted under ${parsed.threshold.toLocaleString()}% ${statInfo.name} in a season`
-          : `never posted ${parsed.threshold.toLocaleString()}%+ ${statInfo.name} in a season`;
-      },
-      'Season3PPercent': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never posted under ${parsed.threshold.toLocaleString()}% ${statInfo.name} in a season`
-          : `never posted ${parsed.threshold.toLocaleString()}%+ ${statInfo.name} in a season`;
-      },
-      'Season70Games': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never played under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never played ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'Season36MPG': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never averaged under ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`
-          : `never averaged ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      // Football Season Stats
-      'FBSeason4kPassYds': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'FBSeason1200RushYds': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'FBSeason100Receptions': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'FBSeason15Sacks': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'FBSeason140Tackles': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'FBSeason5Interceptions': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'FBSeason30PassTD': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'FBSeason1300RecYds': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'FBSeason10RecTD': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'FBSeason12RushTD': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'FBSeason1600Scrimmage': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'FBSeason2000AllPurpose': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'FBSeason15TFL': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      // Hockey Season Stats
-      'HKSeason40Goals': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'HKSeason60Assists': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'HKSeason90Points': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'HKSeason25Plus': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'HKSeason250Shots': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'HKSeason150Hits': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'HKSeason100Blocks': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'HKSeason60Takeaways': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'HKSeason20PowerPlay': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'HKSeason3SHGoals': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'HKSeason7GWGoals': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'HKSeason55FaceoffPct': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never posted under ${parsed.threshold.toLocaleString()}% ${statInfo.name} in a season`
-          : `never posted ${parsed.threshold.toLocaleString()}%+ ${statInfo.name} in a season`;
-      },
-      'HKSeason22TOI': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never averaged under ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`
-          : `never averaged ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'HKSeason70PIM': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'HKSeason920SavePct': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never posted under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never posted ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'HKSeason260GAA': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had over ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`;
-      },
-      'HKSeason6Shutouts': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'HKSeason2000Saves': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      'HKSeason60Starts': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `never had under ${parsed.threshold.toLocaleString()} ${statInfo.name} in a season`
-          : `never had ${parsed.threshold.toLocaleString()}+ ${statInfo.name} in a season`;
-      },
-      // Generic career stat achievements
-      'careerPoints': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `had more than ${parsed.threshold.toLocaleString()} ${statInfo.name}`
-          : `had fewer than ${parsed.threshold.toLocaleString()} ${statInfo.name}`;
-      },
-      'careerRebounds': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `had more than ${parsed.threshold.toLocaleString()} ${statInfo.name}`
-          : `had fewer than ${parsed.threshold.toLocaleString()} ${statInfo.name}`;
-      },
-      'careerAssists': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `had more than ${parsed.threshold.toLocaleString()} ${statInfo.name}`
-          : `had fewer than ${parsed.threshold.toLocaleString()} ${statInfo.name}`;
-      },
-      'careerWinsG': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `had more than ${parsed.threshold.toLocaleString()} ${statInfo.name}`
-          : `had fewer than ${parsed.threshold.toLocaleString()} ${statInfo.name}`;
-      },
-      'careerShutoutsG': (player, parsed, statInfo) => {
-        return parsed.operator === '≤'
-          ? `had more than ${parsed.threshold.toLocaleString()} ${statInfo.name}`
-          : `had fewer than ${parsed.threshold.toLocaleString()} ${statInfo.name}`;
-      },
-    };
-
-    // Check for specific generators first
-    if (negativeMessageGenerators[parsed.baseId]) {
-      // For generic 'playedIn' and 'debutedIn' achievements, use the specific handlers
-      if (parsed.baseId.includes('playedIn') && parsed.baseId.endsWith('s')) {
-        return negativeMessageGenerators['playedIn'](player, parsed, statInfo);
-      }
-      if (parsed.baseId.includes('debutedIn') && parsed.baseId.endsWith('s')) {
-        return negativeMessageGenerators['debutedIn'](player, parsed, statInfo);
-      }
-      return negativeMessageGenerators[parsed.baseId](player, parsed, statInfo);
-    }
-
-    // Fallback for generic stat achievements if no specific generator is found
-    if (statInfo) {
-      const valueString = actualValue !== undefined ? (actualValue % 1 !== 0 ? actualValue.toFixed(1) : actualValue.toLocaleString()) : 'N/A';
-      const thresholdString = parsed.threshold.toLocaleString();
-      const statName = statInfo.name;
-
-      let message: string;
+    if (cleanLabel.includes('(Season)')) {
+      const seasonStatLabel = cleanLabel.replace(' (Season)', '').toLowerCase();
+      const statName = seasonStatLabel.replace(/(\d+,?\d*\+?)/, '').trim();
+      
       if (parsed.operator === '≤') {
-        message = `had more than ${thresholdString} ${statName} (${valueString})`;
+        return `never achieved under ${parsed.threshold.toLocaleString()} ${statName} in a season`;
       } else {
-        message = `had fewer than ${thresholdString} ${statName} (${valueString})`;
+        return `never achieved ${seasonStatLabel} in a season`;
       }
-
-      if (year && year > 0) {
-        return `never ${message.replace(statName, statInfo.name)} (best was ${valueString} in ${year})`;
-      }
-
-      return message;
     }
-
-    // Final fallback if no specific or generic stat message can be generated
+    
+    if (cleanLabel.toLowerCase().includes('career')) {
+      const statName = cleanLabel.replace(/(\d+,?\d*\+?)\s*Career\s*/i, '').toLowerCase();
+      if (parsed.operator === '≤') {
+        return `had more than ${parsed.threshold.toLocaleString()} ${statName}`;
+      } else {
+        return `had fewer than ${parsed.threshold.toLocaleString()} ${statName}`;
+      }
+    }
+    
     return `never achieved ${cleanLabel.toLowerCase()}`;
   }
 
@@ -2033,8 +1656,7 @@ export function generateFeedbackMessage(
       const teamName = teams.find(t => t.tid === rowConstraint.tid)?.name || "this team";
       feedback.push(`${achievementLabel}${achievementDetails?.years ? ` (${achievementDetails.years})` : ""} (never with the ${teamName})`);
     } else {
-      const customMessage = getNegativeMessageForCustomAchievement(player, achievementId);
-      feedback.push(customMessage || `Did not achieve: ${achievementLabel}`);
+      feedback.push(`Did not achieve: ${achievementLabel}`);
     }
   } else {
     // Fallback for if col is a team (shouldn't happen based on grid structure, but for safety)
@@ -2136,10 +1758,10 @@ function getAchievementDetails(
         ?.filter((s) => !s.playoffs)
         .reduce((acc, s) => {
             let seasonRebounds = 0;
-            if ((s as any).trb !== undefined) {
-                seasonRebounds = (s as any).trb;
-            } else if ((s as any).orb !== undefined || (s as any).drb !== undefined) {
-                seasonRebounds = ((s as any).orb || 0) + ((s as any).drb || 0);
+            if (s.trb !== undefined) {
+                seasonRebounds = s.trb;
+            } else if (s.orb !== undefined || s.drb !== undefined) {
+                seasonRebounds = (s.orb || 0) + (s.drb || 0);
             } else if ((s as any).reb !== undefined) {
                 seasonRebounds = (s as any).reb;
             }
