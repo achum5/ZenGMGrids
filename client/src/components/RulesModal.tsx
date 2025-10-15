@@ -58,9 +58,9 @@ const sportSpecificRules = {
       rules: [
         "Each correct guess earns 10–100 points.",
         "Points are a percentile rarity score based on a composite of:",
-        "- Player popularity/usage",
-        "- Achievement fit/strength for that specific square",
-        "- Team relevance/fit for that player"
+        "   - Player popularity/usage",
+        "   - Achievement fit/strength for that specific square",
+        "   - Team relevance/fit for that player"
       ]
     }
   },
