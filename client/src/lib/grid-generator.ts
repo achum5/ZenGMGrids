@@ -1072,12 +1072,27 @@ function generateGridSeeded(leagueData: LeagueData): {
       
       
       if (layout.rows[i] === 'T') {
-        // Fill team slot - try up to 100 random teams
         let found = false;
-        for (let attempt = 0; attempt < 100; attempt++) {
-          const teamIndex = simpleHash(gridId + '_rowteam' + i + '_' + attempt) % activeTeams.length;
-          const team = activeTeams[teamIndex];
-          
+        const potentialTeams = activeTeams.map(team => {
+          let validIntersectionCount = 0;
+          for (let colIdx = 0; colIdx < 3; colIdx++) {
+            const colConstraint = cols[colIdx];
+            if (!colConstraint) continue; // Skip empty columns
+            const intersection = calculateIntersectionSimple(
+              { type: 'team', tid: team.tid, label: team.name || `Team ${team.tid}` },
+              colConstraint,
+              players,
+              seasonIndex,
+              teams
+            );
+            if (intersection.length > 0) {
+              validIntersectionCount++;
+            }
+          }
+          return { team, validIntersectionCount };
+        }).sort((a, b) => b.validIntersectionCount - a.validIntersectionCount); // Sort by most valid intersections first
+
+        for (const { team } of potentialTeams) {
           // Check if this team is already used in this grid
           const teamAlreadyUsed = 
             rows.some(r => r && r.type === 'team' && r.tid === team.tid) ||
@@ -1087,9 +1102,9 @@ function generateGridSeeded(leagueData: LeagueData): {
           
           // Check if this team creates valid intersections with all columns
           let validForAllCols = true;
-          
           for (let colIdx = 0; colIdx < 3; colIdx++) {
             const colConstraint = cols[colIdx];
+            if (!colConstraint) continue; // Skip empty columns
             const intersection = calculateIntersectionSimple(
               { type: 'team', tid: team.tid, label: team.name || `Team ${team.tid}` },
               colConstraint,
@@ -1097,7 +1112,6 @@ function generateGridSeeded(leagueData: LeagueData): {
               seasonIndex,
               teams
             );
-            
             if (intersection.length === 0) {
               validForAllCols = false;
               break;
@@ -1105,14 +1119,59 @@ function generateGridSeeded(leagueData: LeagueData): {
           }
           
           if (validForAllCols) {
-
+            rows[i] = {
+              type: 'team',
+              tid: team.tid,
+              label: team.name || `Team ${team.tid}`,
+              key: `team-${team.tid}`,
+              test: (p: Player) => p.teamsPlayed.has(team.tid),
+            };
             found = true;
             break;
           }
         }
+
+        if (!found) {
+          // Fallback: if no team satisfies all intersections, try to find one that satisfies at least one
+          for (const { team } of potentialTeams) {
+            const teamAlreadyUsed = 
+              rows.some(r => r && r.type === 'team' && r.tid === team.tid) ||
+              cols.some(c => c && c.type === 'team' && c.tid === team.tid);
+            
+            if (teamAlreadyUsed) continue;
+
+            let hasAnyValidIntersection = false;
+            for (let colIdx = 0; colIdx < 3; colIdx++) {
+              const colConstraint = cols[colIdx];
+              if (!colConstraint) continue;
+              const intersection = calculateIntersectionSimple(
+                { type: 'team', tid: team.tid, label: team.name || `Team ${team.tid}` },
+                colConstraint,
+                players,
+                seasonIndex,
+                teams
+              );
+              if (intersection.length > 0) {
+                hasAnyValidIntersection = true;
+                break;
+              }
+            }
+            if (hasAnyValidIntersection) {
+              rows[i] = {
+                type: 'team',
+                tid: team.tid,
+                label: team.name || `Team ${team.tid}`,
+                key: `team-${team.tid}`,
+                test: (p: Player) => p.teamsPlayed.has(team.tid),
+              };
+              found = true;
+              break;
+            }
+          }
+        }
         
         if (!found) {
-          throw new Error(`Could not find valid team for row ${i} after trying 500 candidates`);
+          throw new Error(`Could not find valid team for row ${i} after trying all candidates`);
         }
         
       } else if (layout.rows[i] === 'A') {
@@ -1202,12 +1261,27 @@ function generateGridSeeded(leagueData: LeagueData): {
       console.log(`   Filling empty col ${i} slot (type: ${layout.cols[i]})`);
       
       if (layout.cols[i] === 'T') {
-        // Fill team slot - try up to 100 random teams
         let found = false;
-        for (let attempt = 0; attempt < 100; attempt++) {
-          const teamIndex = simpleHash(gridId + '_colteam' + i + '_' + attempt) % activeTeams.length;
-          const team = activeTeams[teamIndex];
-          
+        const potentialTeams = activeTeams.map(team => {
+          let validIntersectionCount = 0;
+          for (let rowIdx = 0; rowIdx < 3; rowIdx++) {
+            const rowConstraint = rows[rowIdx];
+            if (!rowConstraint) continue; // Skip empty rows
+            const intersection = calculateIntersectionSimple(
+              rowConstraint,
+              { type: 'team', tid: team.tid, label: team.name || `Team ${team.tid}` },
+              players,
+              seasonIndex,
+              teams
+            );
+            if (intersection.length > 0) {
+              validIntersectionCount++;
+            }
+          }
+          return { team, validIntersectionCount };
+        }).sort((a, b) => b.validIntersectionCount - a.validIntersectionCount); // Sort by most valid intersections first
+
+        for (const { team } of potentialTeams) {
           // Check if this team is already used in this grid
           const teamAlreadyUsed = 
             rows.some(r => r && r.type === 'team' && r.tid === team.tid) ||
@@ -1217,9 +1291,9 @@ function generateGridSeeded(leagueData: LeagueData): {
           
           // Check if this team creates valid intersections with all rows
           let validForAllRows = true;
-          
           for (let rowIdx = 0; rowIdx < 3; rowIdx++) {
             const rowConstraint = rows[rowIdx];
+            if (!rowConstraint) continue; // Skip empty rows
             const intersection = calculateIntersectionSimple(
               rowConstraint,
               { type: 'team', tid: team.tid, label: team.name || `Team ${team.tid}` },
@@ -1227,7 +1301,6 @@ function generateGridSeeded(leagueData: LeagueData): {
               seasonIndex,
               teams
             );
-            
             if (intersection.length === 0) {
               validForAllRows = false;
               break;
@@ -1242,14 +1315,52 @@ function generateGridSeeded(leagueData: LeagueData): {
               key: `team-${team.tid}`,
               test: (p: Player) => p.teamsPlayed.has(team.tid),
             };
-            console.log(`     Selected team: ${team.name || `Team ${team.tid}`} (attempt ${attempt + 1})`);
             found = true;
             break;
           }
         }
+
+        if (!found) {
+          // Fallback: if no team satisfies all intersections, try to find one that satisfies at least one
+          for (const { team } of potentialTeams) {
+            const teamAlreadyUsed = 
+              rows.some(r => r && r.type === 'team' && r.tid === team.tid) ||
+              cols.some(c => c && c.type === 'team' && c.tid === team.tid);
+            
+            if (teamAlreadyUsed) continue;
+
+            let hasAnyValidIntersection = false;
+            for (let rowIdx = 0; rowIdx < 3; rowIdx++) {
+              const rowConstraint = rows[rowIdx];
+              if (!rowConstraint) continue;
+              const intersection = calculateIntersectionSimple(
+                rowConstraint,
+                { type: 'team', tid: team.tid, label: team.name || `Team ${team.tid}` },
+                players,
+                seasonIndex,
+                teams
+              );
+              if (intersection.length > 0) {
+                hasAnyValidIntersection = true;
+                break;
+              }
+            }
+            if (hasAnyValidIntersection) {
+              cols[i] = {
+                type: 'team',
+                tid: team.tid,
+                label: team.name || `Team ${team.tid}`,
+                key: `team-${team.tid}`,
+                test: (p: Player) => p.teamsPlayed.has(team.tid),
+              };
+              found = true;
+              break;
+            }
+          }
+        }
         
         if (!found) {
-          throw new Error(`Could not find valid team for col ${i} after trying 500 candidates`);
+          throw new Error(`Could not find valid team for col ${i} after trying all candidates`);
         }
         
       } else if (layout.cols[i] === 'A') {
