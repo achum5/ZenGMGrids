@@ -108,11 +108,13 @@ export async function parseLeagueFile(file: File): Promise<LeagueData & { sport:
     
     if (file.name.endsWith('.gz')) {
       console.log(`🔧 [FILE UPLOAD] Processing .gz file`);
+      // Handle .gz files
       const arrayBuffer = await file.arrayBuffer();
       const compressed = new Uint8Array(arrayBuffer);
       
       console.log(`🔧 [FILE UPLOAD] Compressed data length: ${compressed.length}`);
       if (compressed.length > 0) {
+        // Log first 16 bytes in hex for inspection
         const hexSnippet = Array.from(compressed.slice(0, Math.min(compressed.length, 16)))
           .map(b => b.toString(16).padStart(2, '0'))
           .join(' ');
@@ -122,15 +124,29 @@ export async function parseLeagueFile(file: File): Promise<LeagueData & { sport:
       }
 
       try {
-        const decompressedBytes = pako.inflate(compressed);
-        content = new TextDecoder('utf-8').decode(decompressedBytes);
+        const decompressed = pako.inflate(compressed, { to: 'string' });
+        content = decompressed;
         console.log(`🔧 [FILE UPLOAD] Successfully decompressed .gz file (${content.length} chars)`);
-      } catch (inflateError) {
-        console.error('Pako inflation error:', inflateError);
-        throw new Error('Failed to decompress .gz file. It might be corrupted or not a valid gzip archive.');
+      } catch (inflateError1) {
+        console.error('Pako inflation error (attempt 1):', inflateError1);
+        console.log(`🔧 [FILE UPLOAD] Trying decompression with fallback method...`);
+        try {
+          const decompressedBytes = pako.inflate(compressed);
+          try {
+            content = new TextDecoder('utf-8').decode(decompressedBytes);
+            console.log(`🔧 [FILE UPLOAD] Decompressed with fallback method (${content.length} chars)`);
+          } catch (decodeError) {
+            console.error('TextDecoder error after fallback decompression:', decodeError);
+            throw new Error('Failed to decode decompressed data. The file might be corrupted or use an unsupported encoding.');
+          }
+        } catch (inflateError2) {
+          console.error('Pako inflation error (attempt 2, fallback):', inflateError2);
+          throw new Error('Failed to decompress .gz file. It might be corrupted or not a valid gzip archive.');
+        }
       }
     } else {
       console.log(`🔧 [FILE UPLOAD] Processing .json file`);
+      // Handle .json files
       content = await file.text();
       console.log(`🔧 [FILE UPLOAD] Read JSON file (${content.length} chars)`);
     }
@@ -235,11 +251,9 @@ export async function parseLeagueUrl(url: string): Promise<LeagueData> {
           try {
             // Try to decompress as gzip
             const compressed = new Uint8Array(arrayBuffer);
-            const decompressedBytes = pako.inflate(compressed);
-            content = new TextDecoder('utf-8').decode(decompressedBytes);
-            console.log(`🔧 [FILE UPLOAD] Successfully decompressed .gz URL (${content.length} chars)`);
+            const decompressed = pako.inflate(compressed, { to: 'string' });
+            content = decompressed;
           } catch (decompressError) {
-            console.warn('Pako inflation error for URL, trying as plain text:', decompressError);
             // If decompression fails, try as plain text
             content = new TextDecoder().decode(arrayBuffer);
           }
