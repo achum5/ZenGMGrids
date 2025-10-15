@@ -2,40 +2,41 @@
 
 export type Comp = '>=' | '<=' | '=';
 
-export type StatKey =
-  | 'careerPoints' | 'careerRebounds' | 'careerAssists' | 'careerSteals' | 'careerBlocks' | 'careerGames' | 'careerMinutes'
-  | 'seasonPoints' | 'seasonRebounds' | 'seasonAssists' | 'seasonSteals' | 'seasonBlocks' | 'seasonGames' | 'seasonMinutes';
-
-export type ComparisonOperator = 'lessThan' | 'greaterThan' | 'equals' | 'between';
-
-export interface CustomAchievementTemplate {
-  id: string;
-  statKey: StatKey;
-  operator: ComparisonOperator;
-  value?: number;
-  valueMin?: number;
-  valueMax?: number;
-  isCareer: boolean;
-  label: string;
-  description?: string;
-}
-
-export interface Achievement {
-  id: string;
-  label: string;
-  description?: string;
-  test: (player: Player, seasonIndex?: SeasonIndex) => boolean;
-  isSeasonSpecific?: boolean;
-  isCustom?: boolean;
-  customTemplate?: CustomAchievementTemplate;
-}
-
-export interface CatTeam {
-  key: string;
-  label: string;
-  tid?: number;
-  achievementId?: string;
-  achv?: Achv;
-  type: 'team' | 'achievement';
-  test: (p: Player) => boolean;
-}
+export type Achv =
+  | {
+      type: 'boolean';
+      booleanNoun: string;
+    }
+  | {
+      type: 'draft';
+      draftMeta: {
+        overall?: number;
+        round?: number;
+      };
+      booleanNoun: string;
+    }
+  | {
+      type: 'award';
+      award: {
+        key: string;
+        nounPhrase: string;
+      };
+      booleanNoun: string;
+    }
+  | {
+      type: 'decade';
+      decadeType: 'played' | 'debuted';
+      decadeYear: number;
+      booleanNoun: string;
+    }
+  | {
+      type: 'stat';
+      scope: 'season' | 'career';
+      stat: {
+        key: string;
+        noun: string;
+      };
+      comp: Comp;
+      value: number;
+      booleanNoun: string;
+    };
