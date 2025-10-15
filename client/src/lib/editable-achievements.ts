@@ -251,6 +251,13 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
     return result;
   }
   
+  // Special handling for "Played N+ Seasons" to show exact number
+  if (cleanSuffix.toLowerCase().includes('seasons') && operator === '≥') {
+    const result = `${cleanPrefix} ${formattedNumber} ${cleanSuffix}${finalSeasonSuffix}`;
+    // console.log('[DEBUG generateUpdatedLabel] Result (exact seasons >=):', result);
+    return result;
+  }
+
   // For labels that don't originally have a "+", like "30 PPG (Season)"
   if (!parsed.originalLabel.includes('+')) {
       const result = `${cleanPrefix} ${formattedNumber} ${cleanSuffix}${finalSeasonSuffix}`;
