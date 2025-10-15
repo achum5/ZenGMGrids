@@ -656,27 +656,43 @@ export function getPlayerCareerTotal(player: Player, statField: string | string[
   for (const stat of player.stats) {
     if (stat.playoffs) continue; // Only regular season
 
-    if (Array.isArray(statField)) {
-      let valueFound = false;
-      for (const field of statField) {
-        if ((stat as any)[field] !== undefined) {
-          total += (stat as any)[field];
-          valueFound = true;
-          break; // Stop after finding the first valid field
-        }
-      }
-    } else {
-      // Single stat field
-      if (statField === 'trb') {
+    const fields = Array.isArray(statField) ? statField : [statField];
+
+    for (const field of fields) {
+      // Handle special cases for stat fields
+      if (field === 'fg3') {
+        const seasonThrees = (stat as any).tpm || (stat as any).tp || (stat as any).fg3 || 0;
+        total += seasonThrees;
+        break; // Break after finding a valid three-pointer field
+      } else if (field === 'a') {
+        // Hockey assists are the sum of even-strength, power-play, and short-handed assists
+        const evA = (stat as any).evA || 0;
+        const ppA = (stat as any).ppA || 0;
+        const shA = (stat as any).shA || 0;
+        const seasonAssists = evA + ppA + shA;
+        
+        // Fallback to direct field if components not available
+        const fallbackAssists = seasonAssists || (stat as any).a || (stat as any).ast || (stat as any).assists || 0;
+        total += fallbackAssists;
+        break; // Break after finding a valid assist field
+      } else if (field === 'ast') {
+        total += (stat as any).ast || 0;
+        break; // Break after finding a valid assist field
+      } else if (field === 'trb') {
+        // Handle different rebound field names in BBGM files
+        let seasonRebounds = 0;
         if ((stat as any).trb !== undefined) {
-          total += (stat as any).trb;
-        } else if ((stat as any).drb !== undefined || (stat as any).orb !== undefined) {
-          total += ((stat as any).drb || 0) + ((stat as any).orb || 0);
+          seasonRebounds = (stat as any).trb;
+        } else if ((stat as any).orb !== undefined || (stat as any).drb !== undefined) {
+          seasonRebounds = ((stat as any).orb || 0) + ((stat as any).drb || 0);
+        } else if ((stat as any).reb !== undefined) {
+          seasonRebounds = (stat as any).reb;
         }
-      } else {
-        if ((stat as any)[statField] !== undefined) {
-          total += (stat as any)[statField];
-        }
+        total += seasonRebounds;
+        break; // Break after finding a valid rebound field
+      } else if ((stat as any)[field] !== undefined) {
+        total += (stat as any)[field];
+        break; // Break after finding a valid generic field
       }
     }
   }

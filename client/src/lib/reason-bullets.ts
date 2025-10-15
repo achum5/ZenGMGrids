@@ -807,36 +807,22 @@ function generateCareerAchievementBullet(player: Player, achievementId: string, 
       text: `Played ${seasonsPlayedCount} Seasons`,
       type: 'longevity'
     };
-  } else if (statField) {
-    const playerCareerTotal = getPlayerCareerTotal(player, statField);
-    const originalLabel = constraintLabel || achievementId;
-    const parsedOriginal = parseAchievementLabel(originalLabel);
-
-    let statName = parsedOriginal.statUnit?.trim();
-    if (!statName && parsedOriginal.suffix.trim()) {
-      statName = parsedOriginal.suffix.trim().replace(/^\+/, '');
-    }
-    if (!statName && parsedOriginal.prefix.trim()) {
-      statName = parsedOriginal.prefix.trim();
-    }
-
-    statName = (statName || '').replace(/^(career|season)\s*/i, '').trim();
-    statName = (statName || '').replace(/\s*\(career\)|\s*\(season\)/gi, '').trim();
-
-    if (playerCareerTotal === 1) {
-      statName = singularizeStatWord(statName);
-    }
-
-    return {
-      text: `${formatNumber(playerCareerTotal)} Career ${statName}`.trim(),
-      type: 'award'
-    };
   } else {
-    const label = constraintLabel || achievementId;
-    return {
-      text: label,
-      type: 'award'
-    };
+    // For career statistical achievements, use getCareerStatInfo
+    const statInfo = getCareerStatInfo(player, achievementId); // Use original achievementId here to handle custom thresholds
+    if (statInfo) {
+      return {
+        text: `${formatNumber(statInfo.value)} Career ${statInfo.label}`.trim(),
+        type: 'award'
+      };
+    } else {
+      // Fallback if statInfo is null (e.g., non-statistical career achievement)
+      const label = constraintLabel || achievementId;
+      return {
+        text: label,
+        type: 'award'
+      };
+    }
   }
 }
 
@@ -888,52 +874,41 @@ export function generatePlayerGuessFeedback(player: Player, rowConstraint: CatTe
 
 // Helper function to get career stat value and name from player
 function getCareerStatInfo(player: Player, achievementId: string): { value: number; label: string } | null {
-  const statMap: Record<string, { field: string; label: string }> = {
+  const statMap: Record<string, { field: string | string[]; label: string }> = {
     // Basketball
-    'careerPoints': { field: 'pts', label: 'career points' },
-    'career20kPoints': { field: 'pts', label: 'career points' },
-    'career20000Points': { field: 'pts', label: 'career points' },
-    'careerRebounds': { field: 'trb', label: 'career rebounds' },
-    'career10kRebounds': { field: 'trb', label: 'career rebounds' },
-    'career10000Rebounds': { field: 'trb', label: 'career rebounds' },
-    'careerAssists': { field: 'ast', label: 'career assists' },
-    'career5kAssists': { field: 'ast', label: 'career assists' },
-    'career5000Assists': { field: 'ast', label: 'career assists' },
-    'careerSteals': { field: 'stl', label: 'career steals' },
-    'career2kSteals': { field: 'stl', label: 'career steals' },
-    'career2000Steals': { field: 'stl', label: 'career steals' },
-    'careerBlocks': { field: 'blk', label: 'career blocks' },
-    'career1500Blocks': { field: 'blk', label: 'career blocks' },
-    'career3PM': { field: 'tpm', label: 'career threes made' },
-    'career2kThrees': { field: 'tpm', label: 'career threes made' },
-    'career2000ThreeMade': { field: 'tpm', label: 'career threes made' },
+    'careerPoints': { field: 'pts', label: 'Points' },
+    'careerRebounds': { field: 'trb', label: 'Rebounds' },
+    'careerAssists': { field: 'ast', label: 'Assists' },
+    'careerSteals': { field: 'stl', label: 'Steals' },
+    'careerBlocks': { field: 'blk', label: 'Blocks' },
+    'careerThrees': { field: 'tpm', label: 'Threes Made' },
     
     // Baseball
-    'career3000Hits': { field: 'h', label: 'career hits' },
-    'career500HRs': { field: 'hr', label: 'career home runs' },
-    'career1500RBIs': { field: 'rbi', label: 'career RBIs' },
-    'career400SBs': { field: 'sb', label: 'career stolen bases' },
-    'career1800Runs': { field: 'r', label: 'career runs' },
-    'career300Wins': { field: 'w', label: 'career wins (pitcher)' },
-    'career3000Ks': { field: 'so', label: 'career strikeouts' },
-    'career300Saves': { field: 'sv', label: 'career saves' },
+    'careerHits': { field: 'h', label: 'Hits' },
+    'careerHomeRuns': { field: 'hr', label: 'Home Runs' },
+    'careerRBIs': { field: 'rbi', label: 'RBIs' },
+    'careerStolenBases': { field: 'sb', label: 'Stolen Bases' },
+    'careerRuns': { field: 'r', label: 'Runs' },
+    'careerWinsP': { field: 'w', label: 'Wins (P)' },
+    'careerStrikeouts': { field: 'soPit', label: 'Strikeouts' },
+    'careerSavesP': { field: 'sv', label: 'Saves' },
     
     // Hockey
-    'career500Goals': { field: 'g', label: 'career goals' },
-    'career1000Points': { field: 'pts', label: 'career points' },
-    'career500Assists': { field: 'a', label: 'career assists' },
-    'career200Wins': { field: 'gw', label: 'career wins (goalie)' },
-    'career50Shutouts': { field: 'so', label: 'career shutouts' },
+    'careerGoals': { field: 'g', label: 'Goals' },
+    'careerPoints': { field: 'points', label: 'Points' },
+    'careerAssists': { field: 'a', label: 'Assists' },
+    'careerWinsG': { field: 'gw', label: 'Wins (G)' },
+    'careerShutoutsG': { field: 'so', label: 'Shutouts (G)' },
     
     // Football
-    'career300PassTDs': { field: 'pssTD', label: 'career passing TDs' },
-    'career50kPassYds': { field: 'pssYds', label: 'career passing yards' },
-    'career12kRushYds': { field: 'rusYds', label: 'career rushing yards' },
-    'career100RushTDs': { field: 'rusTD', label: 'career rushing TDs' },
-    'career100RecTDs': { field: 'recTD', label: 'career receiving TDs' },
-    'career12kRecYds': { field: 'recYds', label: 'career receiving yards' },
-    'career100Sacks': { field: 'defSck', label: 'career sacks' },
-    'career30Ints': { field: 'defInt', label: 'career interceptions' },
+    'careerPassTDs': { field: 'pssTD', label: 'Passing TDs' },
+    'careerPassYds': { field: 'pssYds', label: 'Passing Yards' },
+    'careerRushYds': { field: 'rusYds', label: 'Rushing Yards' },
+    'careerRushTDs': { field: 'rusTD', label: 'Rushing TDs' },
+    'careerRecTDs': { field: 'recTD', label: 'Receiving TDs' },
+    'careerRecYds': { field: 'recYds', label: 'Receiving Yards' },
+    'careerSacks': { field: ['sks', 'defSk'], label: 'Sacks' },
+    'careerInterceptions': { field: 'defInt', label: 'Interceptions' },
   };
 
   // Handle custom achievements (e.g., "career20000Points_custom_15000_gte")
@@ -942,7 +917,45 @@ function getCareerStatInfo(player: Player, achievementId: string): { value: numb
     baseAchievementId = achievementId.split('_custom_')[0];
   }
 
-  const statInfo = statMap[baseAchievementId];
+  // Map specific career achievement IDs to generic stat IDs
+  const careerAchievementIdToGenericStatIdMap: Record<string, string> = {
+    'career20kPoints': 'careerPoints',
+    'career20000Points': 'careerPoints',
+    'career10kRebounds': 'careerRebounds',
+    'career10000Rebounds': 'careerRebounds',
+    'career5kAssists': 'careerAssists',
+    'career5000Assists': 'careerAssists',
+    'career2kSteals': 'careerSteals',
+    'career2000Steals': 'careerSteals',
+    'career1500Blocks': 'careerBlocks',
+    'career2kThrees': 'careerThrees',
+    'career2000ThreeMade': 'careerThrees',
+    'career3000Hits': 'careerHits',
+    'career500HRs': 'careerHomeRuns',
+    'career1500RBIs': 'careerRBIs',
+    'career400SBs': 'careerStolenBases',
+    'career1800Runs': 'careerRuns',
+    'career300Wins': 'careerWinsP',
+    'career3000Ks': 'careerStrikeouts',
+    'career300Saves': 'careerSavesP',
+    'career500Goals': 'careerGoals',
+    'career1000Points': 'careerPoints',
+    'career500Assists': 'careerAssists',
+    'career200Wins': 'careerWinsG',
+    'career50Shutouts': 'careerShutoutsG',
+    'career300PassTDs': 'careerPassTDs',
+    'career50kPassYds': 'careerPassYds',
+    'career12kRushYds': 'careerRushYds',
+    'career100RushTDs': 'careerRushTDs',
+    'career100RecTDs': 'careerRecTDs',
+    'career12kRecYds': 'careerRecYds',
+    'career100Sacks': 'careerSacks',
+    'career30Ints': 'careerInterceptions',
+  };
+
+  const genericStatId = careerAchievementIdToGenericStatIdMap[baseAchievementId] || baseAchievementId;
+
+  const statInfo = statMap[genericStatId];
   if (!statInfo || !player.stats) return null;
 
   const value = getPlayerCareerTotal(player, statInfo.field as any);
