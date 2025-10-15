@@ -174,7 +174,7 @@ function getStatFieldForAchievement(achievementId: SeasonAchievementId): string 
 
 // Helper function to calculate seasons where player achieved Season* statistical thresholds
 export function getSeasonsForSeasonStatAchievement(player: Player, achievementId: SeasonAchievementId, customThreshold?: number, customOperator?: '≥' | '≤', minGames: number = 1): string[] {
-  console.log(`[DEBUG] getSeasonsForSeasonStatAchievement: achievementId=${achievementId}, customThreshold=${customThreshold}, customOperator=${customOperator}, minGames=${minGames}`);
+
   if (!player.stats || player.stats.length === 0) return [];
   
   const qualifyingSeasons: number[] = [];
@@ -325,7 +325,7 @@ export function getSeasonsForSeasonStatAchievement(player: Player, achievementId
   
   // Remove duplicates and sort
   const uniqueSeasons = qualifyingSeasons.filter((value, index, self) => self.indexOf(value) === index).sort();
-  console.log(`[DEBUG] getSeasonsForSeasonStatAchievement: qualifyingSeasons.length=${uniqueSeasons.length}, seasons=${JSON.stringify(uniqueSeasons)}`);
+
   return uniqueSeasons.map(s => s.toString());
 }
 
@@ -365,7 +365,7 @@ function getStatFieldForCareerAchievement(achievementId: string): string | strin
 
 // Helper function to extract season achievement data from player
 function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchievementId, teams: Team[], teamId?: number, sport?: string): string[] {
-  console.log(`[DEBUG] getSeasonAchievementSeasons: achievementId=${achievementId}`);
+
   let baseAchievementId: SeasonAchievementId = achievementId;
   let customThreshold: number | undefined;
   let customOperator: '≥' | '≤' | undefined;
@@ -377,7 +377,7 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
     const customParts = parts[1].split('_');
     customThreshold = parseFloat(customParts[0]);
     customOperator = customParts[1] === 'lte' ? '≤' : '≥';
-    console.log(`[DEBUG] getSeasonAchievementSeasons: Parsed custom - baseId=${baseAchievementId}, threshold=${customThreshold}, operator=${customOperator}`);
+
   }
 
   // Handle Season* statistical achievements by calculating from stats
@@ -722,14 +722,14 @@ function generateAchievementBullet(player: Player, achievementId: string, teams:
 
 // Generate season achievement bullet
 function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAchievementId, teams: Team[], constraintLabel?: string, sport?: string): ReasonBullet | null {
-  console.log(`[DEBUG] generateSeasonAchievementBullet: achievementId=${achievementId}, constraintLabel=${constraintLabel}`);
+
   let achLabel = constraintLabel || SEASON_ACHIEVEMENT_LABELS[achievementId] || achievementId;
   
   // Consistently remove " (Season)" suffix using regex, as the years in parentheses already imply it's season-specific
   achLabel = achLabel.replace(/\s*\(Season\)/gi, '').trim();
   
   const seasons = getSeasonAchievementSeasons(player, achievementId, teams, undefined, sport);
-  console.log(`[DEBUG] generateSeasonAchievementBullet: seasons.length=${seasons.length}, seasons=${JSON.stringify(seasons)}`);
+
   
   // Special handling for "1/1/1 Season" when the player does not meet the criteria for the team
   if (achievementId === 'Season1_1_1' && seasons.length === 0) {
@@ -756,6 +756,31 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
   };
 }
 
+function getDraftInfoBullet(player: Player): ReasonBullet {
+  const draft = player.draft;
+  if (draft && draft.round && draft.pick && draft.year) {
+    return {
+      text: `Round ${draft.round} Pick ${draft.pick} (${draft.year})`,
+      type: 'draft'
+    };
+  } else if (draft && draft.year) {
+    // Player was drafted, but round/pick info might be missing (e.g., older data)
+    return {
+      text: `Drafted (${draft.year})`,
+      type: 'draft'
+    };
+  } else {
+    // Assume undrafted if no draft info, or if explicitly marked as undrafted
+    // We can't reliably tell if they were undrafted from player.draft alone if it's null
+    // For now, if player.draft is null/undefined, assume undrafted for display purposes
+    // The actual achievement test will determine if they *qualify* as undrafted
+    return {
+      text: `Undrafted`,
+      type: 'draft'
+    };
+  }
+}
+
 // Generate career achievement bullet
 function generateCareerAchievementBullet(player: Player, achievementId: string, teams: Team[], constraintLabel?: string, sport?: string): ReasonBullet | null {
   let baseAchievementId = achievementId;
@@ -773,11 +798,14 @@ function generateCareerAchievementBullet(player: Player, achievementId: string, 
 
   const statField = getStatFieldForAchievement(baseAchievementId as SeasonAchievementId);
 
-  if (achievementId === 'isPick1Overall') {
-    const draftYear = player.draft?.year;
+  const draftAchievementIds = ['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen'];
+  if (draftAchievementIds.includes(baseAchievementId)) {
+    return getDraftInfoBullet(player);
+  } else if (baseAchievementId === 'played15PlusSeasons') {
+    const seasonsPlayedCount = player.stats?.filter(s => !s.playoffs).length || 0;
     return {
-      text: draftYear ? `#1 Overall Pick (Draft Year: ${draftYear})` : `#1 Overall Pick`,
-      type: 'draft'
+      text: `Played ${seasonsPlayedCount} Seasons`,
+      type: 'longevity'
     };
   } else if (statField) {
     const playerCareerTotal = getPlayerCareerTotal(player, statField);
