@@ -1,5 +1,3 @@
-// This file contains shared types that were previously causing circular dependencies.
-
 export type Comp = '>=' | '<=' | '=';
 
 export type Achv =
@@ -40,3 +38,34 @@ export type Achv =
       value: number;
       booleanNoun: string;
     };
+
+export interface Award {
+  awardType: string;
+  season: string;
+  teamAbbrev?: string;
+}
+
+export interface SeasonRecord {
+  season: string;
+  team: string;
+  games: number;
+  minutes: number;
+  pts: number;
+  trb: number;
+  ast: number;
+  stl: number;
+  blk: number;
+  tpm: number; // 3-pointers made
+  fgp: number; // Field goal percentage
+  tpp: number; // 3-point percentage
+  ftp: number; // Free throw percentage
+  g: number; // Games played
+  mp: number; // Minutes played
+  // Add other relevant stats as needed for thresholds
+}
+
+export interface Player {
+  awards?: Award[];
+  seasonRecords: SeasonRecord[];
+  // Add other player properties as needed
+}
