@@ -27,6 +27,7 @@ export type SeasonAchievementId =
   | 'Champion'
   // Basketball GM season statistical achievements (24 new achievements)
   | 'Season30PPG'
+  | 'SeasonPPG'
   | 'Season2000Points'
   | 'Season200_3PM'
   | 'Season12RPG'
@@ -1569,6 +1570,12 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
   {
     id: 'Season30PPG',
     label: '30+ PPG (Season)',
+    isSeasonSpecific: true,
+    minPlayers: 1
+  },
+  {
+    id: 'SeasonPPG',
+    label: 'PPG (Season)',
     isSeasonSpecific: true,
     minPlayers: 1
   },
