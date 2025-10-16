@@ -12,7 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from '@/components/ui/button';
 import { Home as HomeIcon } from 'lucide-react';
 // Import sport icon images
-import sportsCombinedIcon from '@/assets/sports-combined.png';
+import zengmGridsLogo from '@assets/zengm-grids-logo-mark_1760637269025.png';
 import basketballIcon from '@/assets/basketball.png';
 import footballIcon from '@/assets/football.png';
 import hockeyIcon from '@/assets/hockey.png';
@@ -1249,8 +1249,8 @@ export default function Home() {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <img 
-                  src={sportsCombinedIcon}
-                  alt="Basketball, Football, Hockey, and Baseball icons" 
+                  src={zengmGridsLogo}
+                  alt="ZenGM Grids logo with Basketball, Football, Hockey, and Baseball icons" 
                   className="w-12 h-12 object-contain"
                 />
                 <h1 className="text-2xl font-bold text-foreground">ZenGM Grids</h1>
@@ -1293,7 +1293,7 @@ export default function Home() {
                   leagueData?.sport === 'football' ? footballIcon :
                   leagueData?.sport === 'hockey' ? hockeyIcon :
                   leagueData?.sport === 'baseball' ? baseballIcon :
-                  sportsCombinedIcon
+                  zengmGridsLogo
                 }
                 alt={`${leagueData?.sport || 'Sports'} icon`} 
                 className="w-10 h-10 object-contain"
