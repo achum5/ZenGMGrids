@@ -2198,7 +2198,7 @@ function calculateCommonAchievements(player: Player, achievements: any): void {
   
   // DEBUG: Log for the first few players with 15+ seasons
   if (seasonCount >= 15 && Math.random() < 0.01) {
-    console.log(`🐛 [calculateCommonAchievements] Player ${player.name} has ${seasonCount} seasons, played15PlusSeasons: ${achievements.played15PlusSeasons}`);
+
   }
   
   
@@ -2231,7 +2231,7 @@ function isBornOutsideUS50DC(born: any): boolean {
   
   // Debug logging specifically for hockey to help diagnose issues
   if (location.includes('Hockey') || Math.random() < 0.001) {
-    console.log(`🏒 HOCKEY BIRTH DEBUG: "${location}" -> normalized: "${normalized}" -> isUSBorn: ${isUSBorn} -> qualifies: ${!isUSBorn}`);
+
   }
   
   return !isUSBorn;
