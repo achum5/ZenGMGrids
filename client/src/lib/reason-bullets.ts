@@ -736,8 +736,10 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
     customOperator = customParts[1] === 'lte' ? '≤' : '≥';
   }
 
+  let achLabel = constraintLabel || SEASON_ACHIEVEMENT_LABELS[baseAchievementId] || baseAchievementId;
+  
   // Consistently remove " (Season)" suffix using regex, as the years in parentheses already imply it's season-specific
-  const achLabel = constraintLabel ? constraintLabel.replace(/\s*\(Season\)/gi, '').trim() : '';
+  achLabel = achLabel.replace(/\s*\(Season\)/gi, '').trim();
   
   const seasons = getSeasonAchievementSeasons(player, achievementId, teams, undefined, sport);
 
@@ -759,11 +761,51 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
     }
   }
   
-  // Default return if no other condition matched
+  if (seasons.length === 0) {
+    // Handle specific messages for statistical season achievements when not met
+    if (baseAchievementId.startsWith('Season') && (baseAchievementId.includes('PPG') || baseAchievementId.includes('RPG') || baseAchievementId.includes('APG') || baseAchievementId.includes('SPG') || baseAchievementId.includes('BPG') || baseAchievementId.includes('MPG') || baseAchievementId.includes('Points'))) {
+      const threshold = customThreshold !== undefined ? customThreshold : parseFloat(achLabel.match(/\d+\.?\d*/)?.[0] || '0');
+      const formattedThreshold = formatNumber(threshold); // Format the number with commas
+      const operator = customOperator || '≥';
+      // Extract only the stat abbreviation (e.g., "PPG", "SPG", "GAA", "Points")
+      let statName = '';
+      const statNameMatch = achLabel.match(/([A-Z]{2,4}|Points)(?:\s*\(Season\))?/i);
+      if (statNameMatch) {
+        statName = statNameMatch[1];
+        // Special handling for "Poin" to "Points"
+        if (statName === 'Poin') {
+          statName = 'Points';
+        }
+        statName = statName.toLowerCase(); // Convert to lowercase
+      }
+
+      // Determine if it's a per-game average or a total
+      const isPerGame = baseAchievementId.includes('PPG') || baseAchievementId.includes('RPG') || baseAchievementId.includes('APG') || baseAchievementId.includes('SPG') || baseAchievementId.includes('BPG') || baseAchievementId.includes('MPG');
+      const verb = isPerGame ? 'averaged' : 'had';
+
+      if (operator === '≥') {
+        return {
+          text: `Never ${verb} ${formattedThreshold}+ ${statName} in a season`,
+          type: 'award'
+        };
+      } else if (operator === '≤') {
+        return {
+          text: `Never ${verb} under ${formattedThreshold} ${statName} in a season`,
+          type: 'award'
+        };
+      }
+    }
+    // Fallback for other season achievements not met
+    return {
+      text: `Did not achieve ${achLabel}`,
+      type: 'award'
+    };
+  }
+  
   const seasonStr = formatBulletSeasonList(seasons, false);
-  const label = achLabel || constraintLabel || achievementId;
+  
   return {
-    text: seasons.length > 0 ? `${label} (${seasonStr})` : label,
+    text: `${achLabel} (${seasonStr})`,
     type: 'award'
   };
 }
