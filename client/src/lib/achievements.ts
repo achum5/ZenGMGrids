@@ -1141,19 +1141,13 @@ export function getAllAchievements(
   }
   
   // Add random numerical achievements for variety (basketball only for now)
-    // Add random numerical achievements for variety (now for all sports)
-    if (sport && leagueYears) { // Ensure sport and leagueYears are defined
-      const gridSeed = `${leagueYears.minSeason}-${leagueYears.maxSeason}-${sport}`; // Add sport to seed for more variety
-      const randomOperator = Math.random() < 0.6 ? '≥' : '≤'; // 60% >=, 40% <=
-      const numericalAchievements = buildRandomNumericalAchievements(sport, gridSeed, 6, randomOperator); // Generate 6 random numerical achievements with weighted operator
+    if (sport === 'basketball' && leagueYears) {
+      const gridSeed = `${leagueYears.minSeason}-${leagueYears.maxSeason}`;
+      const numericalAchievements = buildRandomNumericalAchievements(sport, gridSeed, 6);
       achievements.push(...numericalAchievements);
   
-      // Add customizable percentage-based achievements (basketball only for now, but can be expanded)
-      // For now, keep percentage achievements basketball-specific as per current implementation
-      if (sport === 'basketball') {
-        const percentageAchievements = buildCustomizablePercentageAchievements(sport, leagueYears);
-        achievements.push(...percentageAchievements);
-      }
+      const percentageAchievements = buildCustomizablePercentageAchievements(sport, leagueYears);
+      achievements.push(...percentageAchievements);
     }
       return achievements;}
 
@@ -2504,13 +2498,12 @@ export function getViableAchievements(
     const hasEnough = qualifyingPlayers.length >= Math.max(minCount, achievement.minPlayers);
     
     // Debug logging removed for performance - was causing logs for every achievement evaluation
-    const DEBUG = true; // Temporarily force DEBUG to true for testing
+    const DEBUG = import.meta.env.VITE_DEBUG === 'true';
     if (DEBUG) {
-      const operator = achievement.id.includes('_custom_') ? parseCustomAchievementId(achievement.id)?.operator : '>=';
       if (hasEnough) {
-        console.log(`✓ [VIABLE ACHV] ${achievement.label} (ID: ${achievement.id}, Operator: ${operator || 'N/A'}): ${qualifyingPlayers.length} players`);
+        console.log(`✓ ${achievement.id}: ${qualifyingPlayers.length} players`);
       } else {
-        console.log(`✗ [VIABLE ACHV] ${achievement.label} (ID: ${achievement.id}, Operator: ${operator || 'N/A'}): only ${qualifyingPlayers.length} players (need ${Math.max(minCount, achievement.minPlayers)})`);
+        console.log(`✗ ${achievement.id}: only ${qualifyingPlayers.length} players (need ${Math.max(minCount, achievement.minPlayers)})`);
       }
     }
     

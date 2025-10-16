@@ -1,7 +1,7 @@
 import type { Player, Team, CatTeam } from '@/types/bbgm';
 import type { SeasonAchievementId, SeasonIndex } from './season-achievements';
 import { getPlayerCareerTotal, parseAchievementLabel, singularizeStatWord, parseCustomAchievementId, generateUpdatedLabel } from './editable-achievements';
-import { getCachedLeagueYears, getCachedSportDetection, getAllAchievements, playerMeetsAchievement } from './achievements';
+import { getCachedLeagueYears, getCachedSportDetection, getAllAchievements } from './achievements';
 import { getCachedSeasonIndex } from './season-index-cache';
 // Season achievement labels for bullet display
 const SEASON_ACHIEVEMENT_LABELS: Partial<Record<SeasonAchievementId, string>> = {
@@ -120,105 +120,6 @@ const SEASON_ACHIEVEMENT_LABELS: Partial<Record<SeasonAchievementId, string>> = 
   // Additional missing achievements
   Champion: 'Won Championship',
   HKFinalsMVP: 'Finals MVP'
-};
-
-const DID_NOT_WIN_MESSAGES: Partial<Record<SeasonAchievementId, string>> = {
-  MVP: 'Never won MVP',
-  DPOY: 'Never won DPOY',
-  SMOY: 'Never won Sixth Man of the Year',
-  MIP: 'Never won Most Improved Player',
-  FinalsMVP: 'Never won Finals MVP',
-  SFMVP: 'Never won Conference Finals MVP',
-  AllStar: 'Never made All-Star',
-  AllLeagueAny: 'Never made All-League Team',
-  AllDefAny: 'Never made All-Defensive Team',
-  AllRookieAny: 'Never made All-Rookie Team',
-  Champion: 'Never won Championship',
-  // Football
-  FBMVP: 'Never won MVP',
-  FBDPOY: 'Never won DPOY',
-  FBOffROY: 'Never won Offensive Rookie of the Year',
-  FBDefROY: 'Never won Defensive Rookie of the Year',
-  FBFinalsMVP: 'Never won Finals MVP',
-  FBAllStar: 'Never made All-Star',
-  FBAllLeague: 'Never made All-League Team',
-  FBAllRookie: 'Never made All-Rookie Team',
-  FBChampion: 'Never won Championship',
-  // Hockey
-  HKMVP: 'Never won MVP',
-  HKDefenseman: 'Never won Best Defenseman',
-  HKPlayoffsMVP: 'Never won Playoffs MVP',
-  HKFinalsMVP: 'Never won Finals MVP',
-  HKAllStar: 'Never made All-Star',
-  HKAllLeague: 'Never made All-League Team',
-  HKAllRookie: 'Never made All-Rookie Team',
-  HKChampion: 'Never won Championship',
-  // Baseball
-  BBMVP: 'Never won MVP',
-  BBPlayoffsMVP: 'Never won Playoffs MVP',
-  BBAllStar: 'Never made All-Star',
-  BBAllLeague: 'Never made All-League Team',
-  BBAllRookie: 'Never made All-Rookie Team',
-  BBChampion: 'Never won Championship',
-  // Basketball Season Stats
-  Season30PPG: 'Never averaged 30+ PPG in a season',
-  SeasonPPG: 'Never averaged the required PPG in a season',
-  Season2000Points: 'Never scored 2,000+ Points in a season',
-  Season200_3PM: 'Never made 200+ 3PM in a season',
-  Season12RPG: 'Never averaged 12+ RPG in a season',
-  Season10APG: 'Never averaged 10+ APG in a season',
-  Season800Rebounds: 'Never grabbed 800+ Rebounds in a season',
-  Season700Assists: 'Never dished out 700+ Assists in a season',
-  Season2SPG: 'Never averaged 2.0+ SPG in a season',
-  Season2_5BPG: 'Never averaged 2.5+ BPG in a season',
-  Season150Steals: 'Never stole 150+ Steals in a season',
-  Season150Blocks: 'Never blocked 150+ Shots in a season',
-  Season200Stocks: 'Never accumulated 200+ Stocks in a season',
-  Season50_40_90: 'Never achieved 50/40/90 shooting splits in a season',
-  Season60eFG500FGA: 'Never achieved 60%+ eFG (500+ FGA) in a season',
-  Season90FT250FTA: 'Never achieved 90%+ FT (250+ FTA) in a season',
-  SeasonFGPercent: 'Never achieved 40%+ FG (Season) in a season',
-  Season3PPercent: 'Never achieved 40%+ 3PT (Season) in a season',
-  Season70Games: 'Never played 70+ Games in a season',
-  Season36MPG: 'Never averaged 36.0+ MPG in a season',
-  Season25_10: 'Never had a 25/10 Season (PPG/RPG)',
-  Season25_5_5: 'Never had a 25/5/5 Season (PPG/RPG/APG)',
-  Season20_10_5: 'Never had a 20/10/5 Season (PPG/RPG/APG)',
-  Season1_1_1: 'Never had a 1/1/1 Season (SPG/BPG/3PM/G)',
-  // Football Season Stats
-  FBSeason4kPassYds: 'Never threw for 4,000+ Passing Yards in a season',
-  FBSeason1200RushYds: 'Never rushed for 1,200+ Rushing Yards in a season',
-  FBSeason100Receptions: 'Never caught 100+ Receptions in a season',
-  FBSeason15Sacks: 'Never recorded 15+ Sacks in a season',
-  FBSeason140Tackles: 'Never made 140+ Tackles in a season',
-  FBSeason5Interceptions: 'Never intercepted 5+ Passes in a season',
-  FBSeason30PassTD: 'Never threw for 30+ Passing TDs in a season',
-  FBSeason1300RecYds: 'Never gained 1,300+ Receiving Yards in a season',
-  FBSeason10RecTD: 'Never caught 10+ Receiving TDs in a season',
-  FBSeason12RushTD: 'Never rushed for 12+ Rushing TDs in a season',
-  FBSeason1600Scrimmage: 'Never gained 1,600+ Yards from Scrimmage in a season',
-  FBSeason2000AllPurpose: 'Never gained 2,000+ All-Purpose Yards in a season',
-  FBSeason15TFL: 'Never recorded 15+ Tackles for Loss in a season',
-  // Hockey Season Stats
-  HKSeason40Goals: 'Never scored 40+ Goals in a season',
-  HKSeason60Assists: 'Never dished out 60+ Assists in a season',
-  HKSeason90Points: 'Never accumulated 90+ Points in a season',
-  HKSeason25Plus: 'Never achieved +25 Plus/Minus in a season',
-  HKSeason250Shots: 'Never took 250+ Shots in a season',
-  HKSeason150Hits: 'Never recorded 150+ Hits in a season',
-  HKSeason100Blocks: 'Never blocked 100+ Shots in a season',
-  HKSeason60Takeaways: 'Never had 60+ Takeaways in a season',
-  HKSeason20PowerPlay: 'Never recorded 20+ Power-Play Points in a season',
-  HKSeason3SHGoals: 'Never scored 3+ Short-Handed Goals in a season',
-  HKSeason7GWGoals: 'Never scored 7+ Game-Winning Goals in a season',
-  HKSeason55FaceoffPct: 'Never achieved 55%+ Faceoff Win Rate in a season',
-  HKSeason22TOI: 'Never averaged 22:00+ TOI per Game in a season',
-  HKSeason70PIM: 'Never accumulated 70+ PIM in a season',
-  HKSeason920SavePct: 'Never achieved .920+ Save Percentage in a season',
-  HKSeason260GAA: 'Never achieved ≤2.60 GAA in a season',
-  HKSeason6Shutouts: 'Never recorded 6+ Shutouts in a season',
-  HKSeason2000Saves: 'Never made 2000+ Saves in a season',
-  HKSeason60Starts: 'Never had 60+ Starts in a season',
 };
 
 export interface ReasonBullet {
@@ -426,114 +327,6 @@ export function getSeasonsForSeasonStatAchievement(player: Player, achievementId
   const uniqueSeasons = qualifyingSeasons.filter((value, index, self) => self.indexOf(value) === index).sort();
 
   return uniqueSeasons.map(s => s.toString());
-}
-
-// Helper function to get the appropriate verb for a stat
-export function getStatVerb(stat: string, isAverage: boolean, operator: '≥' | '≤'): string {
-  const lowerStat = stat.toLowerCase();
-
-  if (isAverage) {
-    return operator === '≥' ? 'averaged' : 'averaged under';
-  }
-
-  // For total stats
-  if (operator === '≤') {
-    switch (lowerStat) {
-      case 'points':
-      case 'rebounds':
-      case 'assists':
-      case 'steals':
-      case 'blocks':
-      case 'stocks':
-      case 'games':
-      case 'tackles':
-      case 'tfl':
-      case 'goals':
-      case 'hits':
-      case 'takeaways':
-      case 'pim':
-      case 'shutouts':
-      case 'saves':
-      case 'starts':
-      case 'wins':
-      case 'runs':
-        return 'had under';
-      case '3pm':
-        return 'hit under';
-      case 'sacks':
-        return 'recorded under';
-      case 'interceptions':
-        return 'intercepted under';
-      case 'passyds':
-      case 'rushyds':
-      case 'recyrds':
-      case 'scrimmageyds':
-      case 'allpurposeyds':
-        return 'gained under';
-      case 'passtd':
-      case 'rushtd':
-      case 'rectd':
-        return 'scored under';
-      case 'receptions':
-        return 'caught under';
-      case 'homeruns':
-        return 'hit under';
-      case 'rbis':
-        return 'drove in under';
-      case 'stolenbases':
-        return 'stole under';
-      default:
-        return 'achieved less than'; // Keep this as a final fallback for unlisted stats
-    }
-  } else { // operator === '≥'
-    switch (lowerStat) {
-      case 'points':
-      case 'rebounds':
-      case 'assists':
-      case 'steals':
-      case 'blocks':
-      case 'stocks':
-      case 'games':
-      case 'tackles':
-      case 'tfl':
-      case 'goals':
-      case 'hits':
-      case 'takeaways':
-      case 'pim':
-      case 'shutouts':
-      case 'saves':
-      case 'starts':
-      case 'wins':
-      case 'runs':
-        return 'had';
-      case '3pm':
-        return 'hit';
-      case 'sacks':
-        return 'recorded';
-      case 'interceptions':
-        return 'intercepted';
-      case 'passyds':
-      case 'rushyds':
-      case 'recyrds':
-      case 'scrimmageyds':
-      case 'allpurposeyds':
-        return 'gained';
-      case 'passtd':
-      case 'rushtd':
-      case 'rectd':
-        return 'scored';
-      case 'receptions':
-        return 'caught';
-      case 'homeruns':
-        return 'hit';
-      case 'rbis':
-        return 'drove in';
-      case 'stolenbases':
-        return 'stole';
-      default:
-        return 'achieved'; // Keep this as a final fallback for unlisted stats
-    }
-  }
 }
 
 // Helper function to map a career statistical achievement ID to its stat field
@@ -930,20 +723,7 @@ function generateAchievementBullet(player: Player, achievementId: string, teams:
 // Generate season achievement bullet
 function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAchievementId, teams: Team[], constraintLabel?: string, sport?: string): ReasonBullet | null {
 
-  let baseAchievementId: SeasonAchievementId = achievementId;
-  let customThreshold: number | undefined;
-  let customOperator: '≥' | '≤' | undefined;
-
-  // Check if it's a custom numerical achievement
-  if (achievementId.includes('_custom_')) {
-    const parts = achievementId.split('_custom_');
-    baseAchievementId = parts[0] as SeasonAchievementId;
-    const customParts = parts[1].split('_');
-    customThreshold = parseFloat(customParts[0]);
-    customOperator = customParts[1] === 'lte' ? '≤' : '≥';
-  }
-
-  let achLabel = constraintLabel || SEASON_ACHIEVEMENT_LABELS[baseAchievementId] || baseAchievementId;
+  let achLabel = constraintLabel || SEASON_ACHIEVEMENT_LABELS[achievementId] || achievementId;
   
   // Consistently remove " (Season)" suffix using regex, as the years in parentheses already imply it's season-specific
   achLabel = achLabel.replace(/\s*\(Season\)/gi, '').trim();
@@ -968,57 +748,13 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
     }
   }
   
-  if (achievementId === 'ROY') {
-    if (seasons.length > 0) {
-      const firstRoySeason = seasons[0];
-      return {
-        text: `Rookie of the Year (${firstRoySeason})`,
-        type: 'award'
-      };
-    } else {
-      return {
-        text: 'Didn\'t win Rookie of the Year',
-        type: 'award'
-      };
-    }
-  }
-  
   const seasonStr = formatBulletSeasonList(seasons, false);
-
-  if (seasons.length > 0) {
-    return {
-      text: `${achLabel} (${seasonStr})`,
-      type: 'award'
-    };
-  } else {
-    let message: string | undefined;
-
-    if (achievementId.includes('_custom_')) {
-      const parsedCustom = parseCustomAchievementId(achievementId);
-      if (parsedCustom) {
-        const statLabel = singularizeStatWord(parsedCustom.stat);
-        const isAverageStat = ['ppg', 'rpg', 'apg', 'spg', 'bpg', 'mpg', 'toi', 'gaa', 'faceoffpct', 'savepct'].includes(parsedCustom.stat.toLowerCase());
-        const verb = getStatVerb(parsedCustom.stat, isAverageStat, parsedCustom.operator);
-        
-        let finalThresholdText = parsedCustom.threshold.toString().includes('.') ? parsedCustom.threshold.toFixed(1) : parsedCustom.threshold.toLocaleString();
-
-        if (parsedCustom.operator === '≥') {
-          finalThresholdText += '+';
-        }
-        
-        message = `Never ${verb} ${finalThresholdText} ${statLabel} in a season`;
-      }
-    }
-    
-    if (!message) {
-      message = DID_NOT_WIN_MESSAGES[baseAchievementId];
-    }
-
-    return {
-      text: message || `Didn't achieve ${achLabel}`,
-      type: 'award'
-    };
-  }
+  
+  return {
+    text: seasons.length > 0 ? `${achLabel} (${seasonStr})` : achLabel,
+    type: 'award'
+  };
+}
 
 function getDraftInfoBullet(player: Player): ReasonBullet {
   const draft = player.draft;
@@ -1071,30 +807,6 @@ function generateCareerAchievementBullet(player: Player, achievementId: string, 
       text: `Played ${seasonsPlayedCount} Seasons`,
       type: 'longevity'
     };
-  } else if (baseAchievementId === 'isHallOfFamer') {
-    const currentSport = sport || getCachedSportDetection();
-    const leagueYears = getCachedLeagueYears();
-    const seasonIndex = getCachedSeasonIndex(player ? [player] : [], currentSport as any);
-
-    if (playerMeetsAchievement(player, 'isHallOfFamer', seasonIndex, undefined, undefined, currentSport)) {
-      const hofAward = player.awards?.find(a => a.type === "Inducted into the Hall of Fame");
-      if (hofAward && typeof hofAward.season === 'number' && hofAward.season > 0) {
-        return {
-          text: `Hall of Fame (inducted in ${hofAward.season})`,
-          type: 'award'
-        };
-      } else {
-        return {
-          text: 'Hall of Fame',
-          type: 'award'
-        };
-      }
-    } else {
-      return {
-        text: 'Not in the Hall of Fame',
-        type: 'award'
-      };
-    }
   } else {
     // For career statistical achievements, use getCareerStatInfo
     const statInfo = getCareerStatInfo(player, achievementId); // Use original achievementId here to handle custom thresholds
@@ -1112,7 +824,6 @@ function generateCareerAchievementBullet(player: Player, achievementId: string, 
       };
     }
   }
-}
 }
 
 export function generatePlayerGuessFeedback(player: Player, rowConstraint: CatTeam, colConstraint: CatTeam, teams: Team[], sport: string, seasonIndex: SeasonIndex, isCorrectGuess: boolean = true): string[] {

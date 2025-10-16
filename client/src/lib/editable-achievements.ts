@@ -1,7 +1,6 @@
 import type { Achievement } from './achievements';
 import { getPlayerCareerAttemptsTotal } from './achievements';
 import type { Player } from '@/types/bbgm';
-import { getStatVerb } from './reason-bullets'; // Import getStatVerb
 
 // Helper function to singularize stat words
 export function singularizeStatWord(word: string): string {
@@ -30,15 +29,10 @@ export function singularizeStatWord(word: string): string {
     'yds': 'yd', // For Pass Yds, Rush Yds, Rec Yds
     'home runs': 'home run',
     'stolen bases': 'stolen base',
-    '3pm': '3-pointers',
   };
 
   const lowerCaseWord = word.toLowerCase();
   if (pluralToSingular[lowerCaseWord]) {
-    // Special handling for '3pm' to always return '3-pointers'
-    if (lowerCaseWord === '3pm') {
-      return '3-pointers';
-    }
     // Preserve original casing for the first letter if it was capitalized
     if (word[0] === word[0].toUpperCase()) {
       return pluralToSingular[lowerCaseWord].charAt(0).toUpperCase() + pluralToSingular[lowerCaseWord].slice(1);
@@ -239,17 +233,6 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
       }
 
       let result = `${formattedNumber} ${cleanPrefix} ${statPartToSingularize} or fewer`;
-      if (contextWord) {
-        result += ` (${contextWord})`;
-      }
-      // console.log('[DEBUG generateUpdatedLabel] Result (counting <=):', result.trim());
-      
-      // Custom phrasing for "under" achievements
-      const isAverageStat = ['ppg', 'rpg', 'apg', 'spg', 'bpg', 'mpg', 'toi', 'gaa', 'faceoffpct', 'savepct'].includes((parsed.statUnit || mainSuffix).toLowerCase());
-      const verb = getStatVerb((parsed.statUnit || mainSuffix), isAverageStat, operator);
-      const finalStatLabel = singularizeStatWord(parsed.statUnit || mainSuffix);
-      
-      result = `${formattedNumber} ${cleanPrefix} ${statPartToSingularize} or fewer`;
       if (contextWord) {
         result += ` (${contextWord})`;
       }
@@ -983,34 +966,14 @@ function checkSeason60TS20PPG(player: Player, newThreshold: number, operator: '�
   return false;
 }
 
-export function parseCustomAchievementId(achievementId: string): { baseId: string; threshold: number; operator: '≥' | '≤'; stat: string } | null {
-  const match = achievementId.match(/_custom_(\d+(?:\.\d+)?)_(\w+)$/);
+export function parseCustomAchievementId(achievementId: string): { baseId: string; threshold: number; operator: '≥' | '≤' } | null {
+  const match = achievementId.match(/_custom_(\d+)_(\w+)$/);
   if (!match) return null;
 
   const [, thresholdStr, operatorStr] = match;
-  const threshold = parseFloat(thresholdStr);
+  const threshold = parseInt(thresholdStr, 10);
   const operator = operatorStr === 'lte' ? '≤' : '≥';
   const baseId = achievementId.split('_custom_')[0];
 
-  // Extract the stat from the baseId
-  let stat = '';
-  if (baseId.startsWith('Season')) {
-    stat = baseId.replace('Season', '');
-  } else if (baseId.startsWith('FBSeason')) {
-    stat = baseId.replace('FBSeason', '');
-  } else if (baseId.startsWith('HKSeason')) {
-    stat = baseId.replace('HKSeason', '');
-  } else if (baseId.startsWith('BBSeason')) {
-    stat = baseId.replace('BBSeason', '');
-  }
-  
-  // Special handling for '3PM' to ensure it's not stripped of numbers
-  if (stat.toLowerCase().includes('3pm')) {
-    stat = '3pm'; // Normalize to '3pm' for consistent singularization
-  } else {
-    // Remove any numbers from other stats (e.g., "30PPG" -> "PPG", "2000Points" -> "Points")
-    stat = stat.replace(/\d+/g, '');
-  }
-
-  return { baseId, threshold, operator, stat };
+  return { baseId, threshold, operator };
 }
