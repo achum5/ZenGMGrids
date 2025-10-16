@@ -30,35 +30,37 @@ async function parseFileTraditional(file: File): Promise<any> {
   return JSON.parse(content);
 }
 
-// Large file method - use native DecompressionStream then JSON.parse (ZenGM approach)
+// ZenGM's exact approach: DecompressionStream -> Response.text() -> JSON.parse
 async function parseFileStreaming(file: File): Promise<any> {
   const isCompressed = file.name.endsWith('.gz');
   
   if (isCompressed) {
-    // Check for DecompressionStream support
     if (typeof DecompressionStream === 'undefined') {
       throw new Error(
-        'Your browser does not support DecompressionStream. Please use Chrome/Edge 80+, Firefox 113+, or Safari 16.4+'
+        'DecompressionStream not supported. Please use Chrome 80+, Firefox 113+, or Safari 16.4+'
       );
     }
 
-    postProgress('Decompressing...', 30, 100);
-    
-    // Use native browser decompression - this handles large files efficiently
-    const stream = file.stream();
-    const decompressedStream = stream.pipeThrough(new DecompressionStream('gzip'));
-    
-    postProgress('Reading data...', 60, 100);
-    
-    // Let the browser handle converting stream to text
-    const text = await new Response(decompressedStream).text();
-    
-    postProgress('Parsing JSON...', 90, 100);
-    
-    // Standard JSON.parse
-    return JSON.parse(text);
+    try {
+      postProgress('Decompressing large file...', 30, 100);
+      
+      const stream = file.stream();
+      const decompressedStream = stream.pipeThrough(new DecompressionStream('gzip'));
+      
+      postProgress('Converting to text...', 60, 100);
+      
+      // This is exactly what ZenGM does
+      const text = await new Response(decompressedStream).text();
+      
+      postProgress('Parsing JSON...', 90, 100);
+      
+      return JSON.parse(text);
+    } catch (error) {
+      // Log detailed error for debugging
+      console.error('[WORKER] DecompressionStream approach failed:', error);
+      throw error;
+    }
   } else {
-    // Uncompressed files
     postProgress('Reading file...', 50, 100);
     const text = await file.text();
     
