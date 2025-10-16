@@ -344,9 +344,18 @@
       #46a6ff,
       #29ffc6
     );
-    background-size: 200% 100%;
-    animation: pan-gradient 18s linear infinite;
+    background-size: 300% 100%;
+    animation: pan-gradient-slow 35s linear infinite;
     border-radius: 1rem;
+  }
+  
+  @keyframes pan-gradient-slow {
+    0% {
+      background-position: 0% 50%;
+    }
+    100% {
+      background-position: 300% 50%;
+    }
   }
   
   .rainbow-border-dashed {
