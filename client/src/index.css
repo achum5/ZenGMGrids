@@ -349,15 +349,6 @@
     border-radius: 1rem;
   }
   
-  @keyframes pan-gradient-slow {
-    0% {
-      background-position: 0% 50%;
-    }
-    100% {
-      background-position: 300% 50%;
-    }
-  }
-  
   .rainbow-border-dashed {
     position: relative;
   }
@@ -659,6 +650,15 @@
   }
   100% {
     background-position: 200% 50%;
+  }
+}
+
+@keyframes pan-gradient-slow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 300% 50%;
   }
 }
 
