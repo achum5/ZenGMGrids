@@ -48,6 +48,8 @@ export interface Player {
     playoffs?: boolean;
     gp?: number;
     min?: number;
+    orb?: number; // offensive rebounds
+    drb?: number; // defensive rebounds
     pts?: number;
     trb?: number; // rebounds
     ast?: number; // assists
@@ -97,7 +99,6 @@ export interface Player {
     // Hockey-specific stats
     fow?: number; // Faceoffs won
     fol?: number; // Faceoffs lost
-    min?: number; // Minutes played
     pim?: number; // Penalty minutes
     ga?: number; // Goals against
     gs?: number; // Goalie starts
@@ -195,6 +196,7 @@ export interface LeagueData {
   seasonIndex?: any; // SeasonIndex from season-achievements
   // League year bounds for dynamic decade achievements
   leagueYears?: { minSeason: number; maxSeason: number };
+  gameAttributes?: any; // Add gameAttributes here
 }
 
 import type { Achv } from '@/lib/types';
