@@ -311,9 +311,9 @@ export function GridSection({
       borderColor = '#B91C1C';
       className = 'incorrect-answer font-medium transition-all duration-100 motion-reduce:transition-none cursor-pointer hover:brightness-110 hover:contrast-110 hover:shadow-md focus:ring-2 focus:ring-inset focus:ring-red-400';
     } else if (cellState.autoFilled) {
-      background = '#FCD34D'; // Yellow for auto-filled
-      color = '#92400E';
-      borderColor = '#D97706';
+      background = giveUpPressed ? '#D4A520' : '#FCD34D'; // Mustard yellow for give up, bright yellow otherwise
+      color = giveUpPressed ? '#5A4A00' : '#92400E';
+      borderColor = giveUpPressed ? '#B8941C' : '#D97706';
       className = 'revealed-answer font-medium transition-all duration-100 motion-reduce:transition-none cursor-pointer hover:brightness-110 hover:contrast-110 hover:shadow-md focus:ring-2 focus:ring-inset focus:ring-yellow-400';
     }
 
@@ -413,13 +413,13 @@ export function GridSection({
           )}
         </Button>
       </div>
-      <Card>
+      <Card className="border-0 shadow-none bg-transparent">
         <CardContent className="p-3 md:p-6">
           {/* Grid Container with expanded max-width */}
           <div className="max-w-4xl mx-auto">
             {/* Complete 4x4 Grid - Board with Thin Separators */}
             <div className="rainbow-border rounded-2xl p-[2px] md:p-[3px] overflow-hidden grid-container-glow grid-divider">
-              <div className="grid grid-cols-4 gap-[2px] md:gap-[3px] w-full relative z-10">
+              <div className="grid grid-cols-4 gap-[1px] md:gap-[1px] w-full relative z-10">
               {/* Score in top-left corner */}
               <div className={cn("relative aspect-square flex flex-col items-center justify-center bg-secondary dark:bg-slate-700 rounded-tl-2xl overflow-hidden score-tile", isFlaring && "score-tile-flare")}>
                 <div className="score-tile-ring"></div>
