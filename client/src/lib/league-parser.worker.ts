@@ -2,10 +2,10 @@ import pako from 'pako';
 import { normalizeLeague, type Sport } from './league-normalizer';
 import type { LeagueData } from '@/types/bbgm';
 
-// File size threshold for streaming (50MB compressed)
-// Files under this use fast traditional method
-// Files over this use streaming (slower but handles larger files)
-const STREAMING_THRESHOLD = 50 * 1024 * 1024;
+// File size threshold for attempting large file handling (100MB compressed)
+// Note: Due to JavaScript string length limits (~500MB-1GB), files that decompress 
+// to more than this will fail regardless of method used
+const STREAMING_THRESHOLD = 100 * 1024 * 1024;
 
 // Helper to post progress messages
 const postProgress = (message: string, loaded?: number, total?: number) => {
@@ -36,18 +36,45 @@ async function parseFileStreaming(file: File): Promise<any> {
   const isCompressed = file.name.endsWith('.gz');
   
   if (isCompressed) {
-    // Use native browser DecompressionStream API (Chrome/Edge/Firefox 113+)
-    // This is much more memory-efficient than Pako for large files
-    postProgress('Decompressing...', 20, 100);
+    // Check if DecompressionStream is available (Chrome/Edge/Firefox 113+)
+    if (typeof DecompressionStream !== 'undefined') {
+      try {
+        postProgress('Decompressing...', 20, 100);
+        
+        const stream = file.stream();
+        const decompressedStream = stream.pipeThrough(new DecompressionStream('gzip'));
+        
+        postProgress('Reading decompressed data...', 50, 100);
+        const decompressed = await new Response(decompressedStream).text();
+        
+        postProgress('Parsing JSON...', 80, 100);
+        return JSON.parse(decompressed);
+      } catch (error) {
+        console.warn('DecompressionStream failed, falling back to chunked approach:', error);
+        // Fall through to chunked approach below
+      }
+    }
     
-    const stream = file.stream();
-    const decompressedStream = stream.pipeThrough(new DecompressionStream('gzip'));
-    
-    postProgress('Reading decompressed data...', 50, 100);
-    const decompressed = await new Response(decompressedStream).text();
-    
-    postProgress('Parsing JSON...', 80, 100);
-    return JSON.parse(decompressed);
+    // Fallback: Try with Pako, but this may still fail for very large files
+    postProgress('Decompressing (fallback method)...', 20, 100);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const compressed = new Uint8Array(arrayBuffer);
+      
+      postProgress('Parsing compressed data...', 50, 100);
+      const decompressed = pako.inflate(compressed, { to: 'string' });
+      
+      postProgress('Parsing JSON...', 80, 100);
+      return JSON.parse(decompressed);
+    } catch (error) {
+      if (error instanceof RangeError && error.message.includes('string length')) {
+        throw new Error(
+          `File is too large to process. The decompressed file exceeds JavaScript's string size limit (~500MB-1GB). ` +
+          `Try exporting your league without game logs or historical data to reduce file size.`
+        );
+      }
+      throw error;
+    }
   } else {
     // For uncompressed files, just read and parse
     postProgress('Reading file...', 50, 100);
