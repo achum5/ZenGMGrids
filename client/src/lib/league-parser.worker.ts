@@ -30,7 +30,7 @@ async function parseFileTraditional(file: File): Promise<any> {
   return JSON.parse(content);
 }
 
-// ZenGM's exact approach: DecompressionStream -> Response.text() -> JSON.parse
+// TRUE streaming method - process data incrementally like ZenGM
 async function parseFileStreaming(file: File): Promise<any> {
   const isCompressed = file.name.endsWith('.gz');
   
@@ -41,31 +41,86 @@ async function parseFileStreaming(file: File): Promise<any> {
       );
     }
 
+    postProgress('Starting streaming decompression...', 5, 100);
+    
+    // Stream: File -> Decompress -> JSON Parser
+    const stream = file.stream();
+    const decompressedStream = stream.pipeThrough(new DecompressionStream('gzip'));
+    
+    // Use streaming JSON parser to parse incrementally
+    const jsonParser = new JSONParser({ paths: ['$'], keepStack: false });
+    const jsonStream = decompressedStream.pipeThrough(jsonParser);
+    
+    const reader = jsonStream.getReader();
+    let result: any = null;
+    let chunkCount = 0;
+    
+    postProgress('Streaming and parsing large file...', 10, 100);
+    
     try {
-      postProgress('Decompressing large file...', 30, 100);
-      
-      const stream = file.stream();
-      const decompressedStream = stream.pipeThrough(new DecompressionStream('gzip'));
-      
-      postProgress('Converting to text...', 60, 100);
-      
-      // This is exactly what ZenGM does
-      const text = await new Response(decompressedStream).text();
-      
-      postProgress('Parsing JSON...', 90, 100);
-      
-      return JSON.parse(text);
-    } catch (error) {
-      // Log detailed error for debugging
-      console.error('[WORKER] DecompressionStream approach failed:', error);
-      throw error;
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          if (!result) {
+            throw new Error('No data found in file');
+          }
+          postProgress('Processing complete', 100, 100);
+          return result;
+        }
+        
+        // Store the parsed result (JSONParser emits the complete object when done)
+        if (value?.value) {
+          result = value.value;
+        }
+        
+        chunkCount++;
+        
+        // Update progress every 2000 chunks
+        if (chunkCount % 2000 === 0) {
+          const progress = Math.min(10 + (chunkCount / 1000), 95);
+          postProgress('Processing large file...', progress, 100);
+        }
+      }
+    } finally {
+      reader.releaseLock();
     }
   } else {
-    postProgress('Reading file...', 50, 100);
-    const text = await file.text();
+    // For uncompressed large files, use streaming parser
+    postProgress('Streaming file...', 10, 100);
     
-    postProgress('Parsing JSON...', 90, 100);
-    return JSON.parse(text);
+    const jsonParser = new JSONParser({ paths: ['$'], keepStack: false });
+    const jsonStream = file.stream().pipeThrough(jsonParser);
+    
+    const reader = jsonStream.getReader();
+    let result: any = null;
+    let chunkCount = 0;
+    
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          if (!result) {
+            throw new Error('No data found in file');
+          }
+          return result;
+        }
+        
+        if (value?.value) {
+          result = value.value;
+        }
+        
+        chunkCount++;
+        
+        if (chunkCount % 2000 === 0) {
+          const progress = Math.min(10 + (chunkCount / 1000), 95);
+          postProgress('Processing file...', progress, 100);
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
   }
 }
 
