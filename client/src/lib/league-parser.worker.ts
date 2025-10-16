@@ -40,97 +40,103 @@ async function parseFileStreaming(file: File): Promise<any> {
   const isCompressed = file.name.endsWith('.gz');
   
   if (isCompressed) {
-    // For large compressed files: stream decompress, accumulate text, parse once
-    const reader = stream.getReader();
-    const decompressedChunks: string[] = [];
-    const inflator = new pako.Inflate();
-    let decompressedSize = 0;
+    // For large compressed files: use streaming to avoid memory limits
+    // Create decompression transform stream
+    let inflator: any;
     
-    // Override onData to collect decompressed chunks and track size
-    inflator.onData = (chunk: Uint8Array) => {
-      const text = new TextDecoder('utf-8').decode(chunk);
-      decompressedChunks.push(text);
-      decompressedSize += text.length;
-    };
-    
-    // Disable automatic result accumulation
-    inflator.onEnd = () => {};
-    
-    try {
-      // Phase 1: Read and decompress (0-80% of progress)
-      while (true) {
-        const { done, value } = await reader.read();
+    const decompressStream = new TransformStream({
+      start(controller) {
+        inflator = new pako.Inflate();
         
-        if (done) break;
+        inflator.onData = (chunk: Uint8Array) => {
+          const text = new TextDecoder('utf-8').decode(chunk);
+          controller.enqueue(text);
+        };
         
-        bytesRead += value.byteLength;
-        const readProgress = (bytesRead / totalBytes) * 0.8; // 0-80%
-        postProgress('Decompressing...', readProgress * 100, 100);
-        
-        // Decompress chunk
-        inflator.push(value, false);
+        inflator.onEnd = () => {};
+      },
+      
+      transform(chunk) {
+        inflator.push(chunk, false);
         
         if (inflator.err) {
           throw new Error(`Decompression error: ${inflator.msg || 'Unknown error'}`);
         }
+      },
+      
+      flush(controller) {
+        inflator.push(new Uint8Array(0), true);
+        
+        if (inflator.err) {
+          throw new Error(`Decompression error: ${inflator.msg || 'Unknown error'}`);
+        }
+        
+        controller.close();
       }
-      
-      // Finalize decompression
-      inflator.push(new Uint8Array(0), true);
-      
-      if (inflator.err) {
-        throw new Error(`Decompression error: ${inflator.msg || 'Unknown error'}`);
+    });
+    
+    // Pipe: File stream -> Decompress -> JSON Parser
+    const decompressedStream = stream.pipeThrough(decompressStream);
+    const jsonStream = decompressedStream.pipeThrough(new JSONParser());
+    
+    const reader = jsonStream.getReader();
+    let parsedData: any = null;
+    let lastProgress = 0;
+    
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          if (parsedData === null) {
+            throw new Error('No JSON data found in decompressed file');
+          }
+          postProgress('Complete', 100, 100);
+          return parsedData;
+        }
+        
+        // The parser emits parsed JSON chunks
+        parsedData = value.value;
+        
+        // Update progress less frequently to avoid slowdown
+        const newProgress = Math.min(lastProgress + 0.1, 99);
+        if (newProgress >= lastProgress + 1) {
+          postProgress('Processing large file...', newProgress, 100);
+          lastProgress = newProgress;
+        }
       }
-      
-      // Phase 2: Join strings (80-90%)
-      postProgress('Assembling data...', 85, 100);
-      const decompressedText = decompressedChunks.join('');
-      
-      // Phase 3: Parse JSON (90-100%)
-      postProgress('Parsing JSON...', 95, 100);
-      const result = JSON.parse(decompressedText);
-      
-      postProgress('Complete', 100, 100);
-      return result;
-      
     } finally {
       reader.releaseLock();
     }
   } else {
-    // For large uncompressed files, stream read and accumulate
-    const reader = stream.getReader();
-    const textChunks: string[] = [];
-    const decoder = new TextDecoder('utf-8');
+    // For large uncompressed files, use streaming JSON parser
+    const jsonStream = stream.pipeThrough(new JSONParser());
+    const reader = jsonStream.getReader();
+    let parsedData: any = null;
+    let lastProgress = 0;
     
     try {
-      // Phase 1: Read file (0-80%)
       while (true) {
         const { done, value } = await reader.read();
         
-        if (done) break;
+        if (done) {
+          if (parsedData === null) {
+            throw new Error('No JSON data found in file');
+          }
+          postProgress('Complete', 100, 100);
+          return parsedData;
+        }
         
-        bytesRead += value.byteLength;
-        const readProgress = (bytesRead / totalBytes) * 0.8; // 0-80%
-        postProgress('Reading file...', readProgress * 100, 100);
+        // The parser emits parsed JSON chunks
+        parsedData = value.value;
         
-        const text = decoder.decode(value, { stream: true });
-        textChunks.push(text);
+        // Update progress less frequently to avoid slowdown
+        const newProgress = Math.min(lastProgress + 0.1, 99);
+        if (newProgress >= lastProgress + 1) {
+          postProgress('Processing large file...', newProgress, 100);
+          lastProgress = newProgress;
+        }
       }
-      
-      // Final decode
-      textChunks.push(decoder.decode());
-      
-      // Phase 2: Join strings (80-90%)
-      postProgress('Assembling data...', 85, 100);
-      const fullText = textChunks.join('');
-      
-      // Phase 3: Parse JSON (90-100%)
-      postProgress('Parsing JSON...', 95, 100);
-      const result = JSON.parse(fullText);
-      
-      postProgress('Complete', 100, 100);
-      return result;
-      
     } finally {
       reader.releaseLock();
     }
