@@ -769,25 +769,117 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
   
   if (seasons.length === 0) {
     // Handle specific messages for statistical season achievements when not met
-    if (baseAchievementId.startsWith('Season') && (baseAchievementId.includes('PPG') || baseAchievementId.includes('RPG') || baseAchievementId.includes('APG') || baseAchievementId.includes('SPG') || baseAchievementId.includes('BPG') || baseAchievementId.includes('MPG') || baseAchievementId.includes('Points'))) {
+    if (baseAchievementId.startsWith('Season') && (baseAchievementId.includes('PPG') || baseAchievementId.includes('RPG') || baseAchievementId.includes('APG') || baseAchievementId.includes('SPG') || baseAchievementId.includes('BPG') || baseAchievementId.includes('MPG') || baseAchievementId.includes('Points') || baseAchievementId.includes('3PM') || baseAchievementId.includes('Assists') || baseAchievementId.includes('Steals') || baseAchievementId.includes('Blocks') || baseAchievementId.includes('Stocks') || baseAchievementId.includes('PPGRPG') || baseAchievementId.includes('PPGRPGAPG') || baseAchievementId.includes('SPGBPG3PMG'))) {
       const threshold = customThreshold !== undefined ? customThreshold : parseFloat(achLabel.match(/\d+\.?\d*/)?.[0] || '0');
       const formattedThreshold = formatNumber(threshold); // Format the number with commas
       const operator = customOperator || '≥';
-      // Extract only the stat abbreviation (e.g., "PPG", "SPG", "GAA", "Points")
       let statName = '';
-      const statNameMatch = achLabel.match(/([A-Z]{2,4}|Points)(?:\s*\(Season\))?/i);
-      if (statNameMatch) {
-        statName = statNameMatch[1];
-        // Special handling for "Poin" to "Points"
-        if (statName === 'Poin') {
-          statName = 'Points';
-        }
-        statName = statName.toLowerCase(); // Convert to lowercase
-      }
-
-      // Determine if it's a per-game average or a total
+      let verb = 'had';
       const isPerGame = baseAchievementId.includes('PPG') || baseAchievementId.includes('RPG') || baseAchievementId.includes('APG') || baseAchievementId.includes('SPG') || baseAchievementId.includes('BPG') || baseAchievementId.includes('MPG');
-      const verb = isPerGame ? 'averaged' : 'had';
+
+      if (baseAchievementId.includes('PPG')) {
+        statName = 'ppg';
+        verb = 'averaged';
+      } else if (baseAchievementId.includes('RPG')) {
+        statName = 'rpg';
+        verb = 'averaged';
+      } else if (baseAchievementId.includes('APG')) {
+        statName = 'apg';
+        verb = 'averaged';
+      } else if (baseAchievementId.includes('SPG')) {
+        statName = 'spg';
+        verb = 'averaged';
+      } else if (baseAchievementId.includes('BPG')) {
+        statName = 'bpg';
+        verb = 'averaged';
+      } else if (baseAchievementId.includes('MPG')) {
+        statName = 'mpg';
+        verb = 'averaged';
+      } else if (baseAchievementId.includes('Points')) {
+        statName = 'points';
+        verb = 'had';
+      } else if (baseAchievementId.includes('Steals')) {
+        statName = 'steals';
+        verb = 'had';
+      } else if (baseAchievementId.includes('Blocks')) {
+        statName = 'blocks';
+        verb = 'had';
+      } else if (baseAchievementId.includes('Stocks')) {
+        statName = 'stocks';
+        verb = 'had';
+      } else if (baseAchievementId.includes('PPGRPG')) {
+        const ppgMatch = achLabel.match(/(\d+\.?\d*)\s*PPG/i);
+        const rpgMatch = achLabel.match(/(\d+\.?\d*)\s*RPG/i);
+        const ppgThreshold = ppgMatch ? parseFloat(ppgMatch[1]) : 0;
+        const rpgThreshold = rpgMatch ? parseFloat(rpgMatch[1]) : 0;
+        const formattedPpgThreshold = formatNumber(ppgThreshold);
+        const formattedRpgThreshold = formatNumber(rpgThreshold);
+        
+        if (operator === '≥') {
+          return {
+            text: `Never had ${formattedPpgThreshold}+ ppg and ${formattedRpgThreshold}+ rpg in a season`,
+            type: 'award'
+          };
+        } else if (operator === '≤') {
+          return {
+            text: `Never had under ${formattedPpgThreshold} ppg or under ${formattedRpgThreshold} rpg in a season`,
+            type: 'award'
+          };
+        }
+      } else if (baseAchievementId.includes('PPGRPGAPG')) {
+        const ppgMatch = achLabel.match(/(\d+\.?\d*)\s*PPG/i);
+        const rpgMatch = achLabel.match(/(\d+\.?\d*)\s*RPG/i);
+        const apgMatch = achLabel.match(/(\d+\.?\d*)\s*APG/i);
+        const ppgThreshold = ppgMatch ? parseFloat(ppgMatch[1]) : 0;
+        const rpgThreshold = rpgMatch ? parseFloat(rpgMatch[1]) : 0;
+        const apgThreshold = apgMatch ? parseFloat(apgMatch[1]) : 0;
+        const formattedPpgThreshold = formatNumber(ppgThreshold);
+        const formattedRpgThreshold = formatNumber(rpgThreshold);
+        const formattedApgThreshold = formatNumber(apgThreshold);
+        
+        if (operator === '≥') {
+          return {
+            text: `Never had ${formattedPpgThreshold}+ ppg, ${formattedRpgThreshold}+ rpg, and ${formattedApgThreshold}+ apg in a season`,
+            type: 'award'
+          };
+        } else if (operator === '≤') {
+          return {
+            text: `Never had under ${formattedPpgThreshold} ppg or under ${formattedRpgThreshold} rpg or under ${formattedApgThreshold} apg in a season`,
+            type: 'award'
+          };
+        }
+      } else if (baseAchievementId.includes('SPGBPG3PMG')) {
+        const spgMatch = achLabel.match(/(\d+\.?\d*)\s*SPG/i);
+        const bpgMatch = achLabel.match(/(\d+\.?\d*)\s*BPG/i);
+        const tpmgMatch = achLabel.match(/(\d+\.?\d*)\s*3PM\/G/i);
+        const spgThreshold = spgMatch ? parseFloat(spgMatch[1]) : 0;
+        const bpgThreshold = bpgMatch ? parseFloat(bpgMatch[1]) : 0;
+        const tpmgThreshold = tpmgMatch ? parseFloat(tpmgMatch[1]) : 0;
+        const formattedSpgThreshold = formatNumber(spgThreshold);
+        const formattedBpgThreshold = formatNumber(bpgThreshold);
+        const formattedTpmgThreshold = formatNumber(tpmgThreshold);
+        
+        if (operator === '≥') {
+          return {
+            text: `Never averaged ${formattedSpgThreshold}+ spg, ${formattedBpgThreshold}+ bpg, and ${formattedTpmgThreshold}+ 3pm/g in a season`,
+            type: 'award'
+          };
+        } else if (operator === '≤') {
+          return {
+            text: `Never averaged under ${formattedSpgThreshold} spg or under ${formattedBpgThreshold} bpg or under ${formattedTpmgThreshold} 3pm/g in a season`,
+            type: 'award'
+          };
+        }
+      } else if (baseAchievementId.includes('3PM')) {
+        statName = '3-pointers';
+        verb = 'hit';
+      } else if (baseAchievementId.includes('Assists')) {
+        statName = 'assists';
+        verb = 'had';
+      } else {
+        // Fallback for other statistical achievements if needed
+        statName = achLabel.toLowerCase();
+      }
 
       if (operator === '≥') {
         return {
