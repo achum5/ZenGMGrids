@@ -348,10 +348,10 @@ export function GridSection({
 
   return (
     <div className="space-y-6">
-      {/* Main grid layout with side buttons */}
-      <div className="flex items-start justify-center gap-4">
-        {/* Left button - aligned with top of grid */}
-        <div className="flex items-start pt-3 md:pt-6">
+      {/* Top buttons container - aligned with grid width */}
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center justify-between">
+          {/* Left button: Give Up or Retry This Grid */}
           {isGridComplete || giveUpPressed ? (
             <Button
               onClick={onRetryGrid}
@@ -391,13 +391,36 @@ export function GridSection({
               </AlertDialogContent>
             </AlertDialog>
           )}
-        </div>
 
-        {/* Center - Grid */}
-        <Card className="border-0 shadow-none bg-transparent flex-1 max-w-6xl">
-          <CardContent className="p-3 md:p-6">
-          {/* Grid Container */}
-          <div className="mx-auto">
+          {/* Generate New Grid button on the right */}
+          <Button
+            onClick={onGenerateNewGrid}
+            disabled={isGenerating}
+            variant="secondary"
+            className="neon-button dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner text-xs sm:text-sm h-8 px-2 sm:h-10 sm:px-4"
+            data-testid="button-generate-grid"
+          >
+            {isGenerating ? (
+              <>
+                <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+                <span className="hidden xs:inline">Generating...</span>
+                <span className="xs:hidden">...</span>
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Generate New Grid</span>
+                <span className="xs:hidden">New</span>
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+      
+      <Card className="border-0 shadow-none bg-transparent">
+        <CardContent className="p-3 md:p-6">
+          {/* Grid Container with expanded max-width */}
+          <div className="max-w-6xl mx-auto">
             {/* Complete 4x4 Grid - Board with Thin Separators */}
             <div className="rainbow-border rounded-2xl p-[2px] md:p-[3px] overflow-hidden grid-container-glow grid-divider">
               <div className="grid grid-cols-4 gap-[2px] md:gap-[2px] w-full relative z-10">
@@ -763,35 +786,10 @@ export function GridSection({
           </div>
         </CardContent>
       </Card>
-
-        {/* Right button - aligned with top of grid */}
-        <div className="flex items-start pt-3 md:pt-6">
-          <Button
-            onClick={onGenerateNewGrid}
-            disabled={isGenerating}
-            variant="secondary"
-            className="neon-button dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner text-xs sm:text-sm h-8 px-2 sm:h-10 sm:px-4"
-            data-testid="button-generate-grid"
-          >
-            {isGenerating ? (
-              <>
-                <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
-                <span className="hidden xs:inline">Generating...</span>
-                <span className="xs:hidden">...</span>
-              </>
-            ) : (
-              <>
-                <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden xs:inline">Generate New Grid</span>
-                <span className="xs:hidden">New</span>
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
       
-      {/* Three-column layout: Share - Hint Mode - Custom */}
-      <div className="grid grid-cols-3 items-center mt-4">
+      {/* Bottom buttons container - aligned with grid width */}
+      <div className="max-w-6xl mx-auto">
+        <div className="grid grid-cols-3 items-center">
         {/* Share/Import Grid button (left) */}
         <div className="flex justify-start">
           {onShareGrid && rows.length > 0 && cols.length > 0 ? (
@@ -842,6 +840,7 @@ export function GridSection({
             (<div />) // Empty div to maintain grid structure
           )}
         </div>
+      </div>
       </div>
     </div>
   );
