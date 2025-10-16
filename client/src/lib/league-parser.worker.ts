@@ -39,84 +39,51 @@ async function parseFileStreaming(file: File): Promise<any> {
   const isCompressed = file.name.endsWith('.gz');
   
   if (isCompressed) {
-    // For compressed files, we need a different approach to avoid memory issues
-    // Create a custom TransformStream for decompression
-    let inflator: any;
+    // For large compressed files: stream decompress, accumulate text, parse once
+    // This avoids the slow streaming JSON parser while handling memory efficiently
+    const reader = stream.getReader();
+    const decompressedChunks: string[] = [];
+    const inflator = new pako.Inflate();
     
-    const decompressStream = new TransformStream({
-      start(controller) {
-        // Create inflator without accumulating results
-        inflator = new pako.Inflate();
-        
-        // Override onData to emit chunks without accumulation
-        inflator.onData = (chunk: Uint8Array) => {
-          // Decode and enqueue immediately, don't accumulate
-          const text = new TextDecoder('utf-8').decode(chunk);
-          controller.enqueue(text);
-        };
-        
-        // Disable result accumulation
-        inflator.onEnd = () => {
-          // Do nothing - prevents pako from trying to join chunks
-        };
-      },
-      
-      transform(chunk) {
-        // Push compressed chunk to inflator
-        inflator.push(chunk, false);
-        
-        if (inflator.err) {
-          throw new Error(`Decompression error: ${inflator.msg || 'Unknown error'}`);
-        }
-      },
-      
-      flush(controller) {
-        // Finalize decompression
-        inflator.push(new Uint8Array(0), true);
-        
-        if (inflator.err) {
-          throw new Error(`Decompression error: ${inflator.msg || 'Unknown error'}`);
-        }
-        
-        // Properly close the stream
-        controller.close();
-      }
-    });
+    // Override onData to collect decompressed chunks
+    inflator.onData = (chunk: Uint8Array) => {
+      const text = new TextDecoder('utf-8').decode(chunk);
+      decompressedChunks.push(text);
+    };
     
-    // Pipe: File stream -> Decompress -> JSON Parser
-    console.log('[WORKER] Setting up stream pipeline...');
-    const decompressedStream = stream.pipeThrough(decompressStream);
-    const jsonStream = decompressedStream.pipeThrough(new JSONParser());
-    
-    const reader = jsonStream.getReader();
-    let parsedData: any = null;
-    let chunkCount = 0;
+    // Disable automatic result accumulation
+    inflator.onEnd = () => {};
     
     try {
-      console.log('[WORKER] Starting to read JSON stream...');
+      // Read and decompress file in chunks
       while (true) {
         const { done, value } = await reader.read();
-        chunkCount++;
         
-        if (chunkCount % 100 === 0) {
-          console.log(`[WORKER] Read ${chunkCount} chunks from JSON parser`);
+        if (done) break;
+        
+        bytesRead += value.byteLength;
+        postProgress('Decompressing...', bytesRead, totalBytes);
+        
+        // Decompress chunk
+        inflator.push(value, false);
+        
+        if (inflator.err) {
+          throw new Error(`Decompression error: ${inflator.msg || 'Unknown error'}`);
         }
-        
-        if (done) {
-          console.log('[WORKER] Stream done, chunks read:', chunkCount);
-          if (parsedData === null) {
-            throw new Error('No JSON data found in decompressed file');
-          }
-          return parsedData;
-        }
-        
-        // The parser emits parsed JSON chunks
-        parsedData = value.value;
-        
-        // Update progress (approximate based on compressed size)
-        bytesRead = Math.min(bytesRead + 8192, totalBytes);
-        postProgress('Decompressing and parsing...', bytesRead, totalBytes);
       }
+      
+      // Finalize decompression
+      inflator.push(new Uint8Array(0), true);
+      
+      if (inflator.err) {
+        throw new Error(`Decompression error: ${inflator.msg || 'Unknown error'}`);
+      }
+      
+      // Join all decompressed chunks and parse JSON once
+      postProgress('Parsing JSON...', totalBytes, totalBytes);
+      const decompressedText = decompressedChunks.join('');
+      return JSON.parse(decompressedText);
+      
     } finally {
       reader.releaseLock();
     }
