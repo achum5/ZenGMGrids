@@ -197,6 +197,12 @@ export function getSeasonsForSeasonStatAchievement(player: Player, achievementId
     const season = stat.season;
     const gp = stat.gp || 0;
     const min = stat.min || 0;
+
+    // For 'less than or equal to' achievements, player must have played in the season
+    if (customOperator === '≤' && gp === 0 && min === 0) {
+      continue; // Skip this season if player didn't play
+    }
+
     const pts = stat.pts || 0;
     const trb = stat.trb || 0;
     const ast = stat.ast || 0;
