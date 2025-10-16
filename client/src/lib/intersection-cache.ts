@@ -126,7 +126,7 @@ function buildPlayersByAchievement(
       achievements: p.achievements ? Object.keys(p.achievements).filter(k => (p.achievements as any)[k]) : 'NO_ACHIEVEMENTS'
     })));
   } else {
-    console.log(`🐛 [buildPlayersByAchievement] played15PlusSeasons has ${played15Count} players`);
+    // console.log(`🐛 [buildPlayersByAchievement] played15PlusSeasons has ${played15Count} players`);
   }
   
   // Cache the result keyed by playersHash

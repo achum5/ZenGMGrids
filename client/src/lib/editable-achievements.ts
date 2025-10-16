@@ -660,8 +660,8 @@ export function getPlayerCareerTotal(player: Player, statField: string | string[
 
     for (const field of fields) {
       // Handle special cases for stat fields
-      if (field === 'fg3') {
-        const seasonThrees = (stat as any).tpm || (stat as any).tp || (stat as any).fg3 || 0;
+      if (field === 'tpm') {
+        const seasonThrees = (stat as any).tpm || (stat as any).tp || 0; // Prefer tpm, then tp
         total += seasonThrees;
         break; // Break after finding a valid three-pointer field
       } else if (field === 'a') {
@@ -678,6 +678,12 @@ export function getPlayerCareerTotal(player: Player, statField: string | string[
       } else if (field === 'ast') {
         total += (stat as any).ast || 0;
         break; // Break after finding a valid assist field
+      } else if (field === 'pts') {
+        total += (stat as any).pts || 0;
+        break; // Break after finding a valid points field
+      } else if (field === 'points') {
+        total += (stat as any).points || 0;
+        break; // Break after finding a valid hockey points field
       } else if (field === 'trb') {
         // Handle different rebound field names in BBGM files
         let seasonRebounds = 0;

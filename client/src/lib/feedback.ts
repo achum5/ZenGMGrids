@@ -1200,22 +1200,131 @@ function getHumanReadableAchievementText(achievementId: string): string {
 
 
 
-// Basketball-specific helper functions
+// Helper function to get basketball season bests
+function getBasketballSeasonBests(player: Player) {
+  const seasonBests = {
+    ppg: { max: 0, year: 0 },
+    rpg: { max: 0, year: 0 },
+    apg: { max: 0, year: 0 },
+    spg: { max: 0, year: 0 },
+    bpg: { max: 0, year: 0 },
+    fg3: { max: 0, year: 0 }, // Max made threes in a season
+  };
 
+  if (!player.stats) {
+    return seasonBests;
+  }
 
+  player.stats.forEach((season) => {
+    if (season.playoffs || !season.gp || season.gp < 1) return; // Only regular season with games played
 
+    const year = season.season;
+
+    const ppg = (season.pts || 0) / season.gp;
+    if (ppg > seasonBests.ppg.max) { seasonBests.ppg = { max: ppg, year }; }
+
+    const rpg = (season.trb || (season.orb || 0) + (season.drb || 0) || (season as any).reb || 0) / season.gp;
+    if (rpg > seasonBests.rpg.max) { seasonBests.rpg = { max: rpg, year }; }
+
+    const apg = (season.ast || 0) / season.gp;
+    if (apg > seasonBests.apg.max) { seasonBests.apg = { max: apg, year }; }
+
+    const spg = (season.stl || 0) / season.gp;
+    if (spg > seasonBests.spg.max) { seasonBests.spg = { max: spg, year }; }
+
+    const bpg = (season.blk || 0) / season.gp;
+    if (bpg > seasonBests.bpg.max) { seasonBests.bpg = { max: bpg, year }; }
+
+    const fg3 = (season.tpm || season.tp || (season as any).fg3 || 0);
+    if (fg3 > seasonBests.fg3.max) { seasonBests.fg3 = { max: fg3, year }; }
+  });
+
+  return seasonBests;
+}
 
 // Helper function to get 50/40/90 season data for basketball
+function getBasketball504090Season(player: Player) {
+  if (!player.stats) return null;
 
+  for (const season of player.stats) {
+    if (season.playoffs || !season.gp || season.gp < 1) continue;
+
+    const fg = season.fg || 0;
+    const fga = season.fga || 0;
+    const tp = season.tpm || season.tp || 0;
+    const tpa = season.tpa || 0;
+    const ft = season.ft || 0;
+    const fta = season.fta || 0;
+
+    // Minimum attempts for 50/40/90
+    if (fga < 300 || tpa < 82 || fta < 125) continue;
+
+    const fgPct = fga > 0 ? fg / fga : 0;
+    const tpPct = tpa > 0 ? tp / tpa : 0;
+    const ftPct = fta > 0 ? ft / fta : 0;
+
+    if (fgPct >= 0.50 && tpPct >= 0.40 && ftPct >= 0.90) {
+      return {
+        year: season.season,
+        fg: (fgPct * 100).toFixed(1),
+        fg3: (tpPct * 100).toFixed(1),
+        ft: (ftPct * 100).toFixed(1),
+      };
+    }
+  }
+  return null;
+}
 
 // Helper function to get award seasons for basketball
+function getBasketballAwardSeason(player: Player, awardType: string): string {
+  if (!player.awards) return 'unknown';
 
+  const matchingAwards = player.awards.filter(award => {
+    const normalizedType = award.type.toLowerCase();
+    if (awardType === 'mvp' && normalizedType.includes('most valuable player')) return true;
+    if (awardType === 'dpoy' && normalizedType.includes('defensive player')) return true;
+    if (awardType === 'roy' && normalizedType.includes('rookie of the year')) return true;
+    if (awardType === 'smoy' && normalizedType.includes('sixth man')) return true;
+    if (awardType === 'fmvp' && normalizedType.includes('finals mvp')) return true;
+    if (awardType === 'allStar' && normalizedType.includes('all-star')) return true;
+    if (awardType === 'champion' && normalizedType.includes('won championship')) return true;
+    return false;
+  }).map(award => award.season).sort((a, b) => a - b);
 
-// Helper function to get award seasons for baseball
+  if (matchingAwards.length > 0) {
+    return formatYearsWithRanges(matchingAwards);
+  }
+  return 'unknown';
+}
 
+// Helper function to get basketball career stats
+function getBasketballCareerStats(player: Player) {
+  const careerStats = {
+    pts: 0,
+    trb: 0,
+    ast: 0,
+    stl: 0,
+    blk: 0,
+    fg3: 0, // Career made threes
+  };
 
-// Helper function to get award seasons for hockey
+  if (!player.stats) {
+    return careerStats;
+  }
 
+  player.stats.forEach((season) => {
+    if (season.playoffs) return; // Only regular season stats
+
+    careerStats.pts += season.pts || 0;
+    careerStats.trb += season.trb || (season.orb || 0) + (season.drb || 0) || (season as any).reb || 0;
+    careerStats.ast += season.ast || 0;
+    careerStats.stl += season.stl || 0;
+    careerStats.blk += season.blk || 0;
+    careerStats.fg3 += (season as any).tpm || (season as any).tp || (season as any).fg3 || 0;
+  });
+
+  return careerStats;
+}
 
 // Basketball-specific message generation following specification
 function getBasketballPositiveMessage(achievementId: string, player?: Player): string {
@@ -1784,10 +1893,7 @@ function getAchievementDetails(
         .reduce((acc, s) => acc + (s.blk || 0), 0)
         ?.toLocaleString();
     } else if (baseAchievementId.includes("Threes")) {
-      value = player.stats
-        ?.filter((s) => !s.playoffs)
-        .reduce((acc, s) => acc + ((s as any).tpm || (s as any).tp || (s as any).fg3 || 0), 0)
-        ?.toLocaleString();
+      value = getBasketballCareerStats(player).fg3?.toLocaleString();
     } else if (baseAchievementId.includes("PassTDs")) {
       value = player.stats
         ?.filter((s) => !s.playoffs)

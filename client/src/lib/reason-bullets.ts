@@ -895,7 +895,7 @@ function getCareerStatInfo(player: Player, achievementId: string): { value: numb
     
     // Hockey
     'careerGoals': { field: 'g', label: 'Goals' },
-    'careerPoints': { field: 'points', label: 'Points' },
+    'careerHockeyPoints': { field: 'points', label: 'Points' },
     'careerAssists': { field: 'a', label: 'Assists' },
     'careerWinsG': { field: 'gw', label: 'Wins (G)' },
     'careerShutoutsG': { field: 'so', label: 'Shutouts (G)' },
@@ -939,7 +939,7 @@ function getCareerStatInfo(player: Player, achievementId: string): { value: numb
     'career3000Ks': 'careerStrikeouts',
     'career300Saves': 'careerSavesP',
     'career500Goals': 'careerGoals',
-    'career1000Points': 'careerPoints',
+    'career1000Points': 'careerHockeyPoints',
     'career500Assists': 'careerAssists',
     'career200Wins': 'careerWinsG',
     'career50Shutouts': 'careerShutoutsG',
