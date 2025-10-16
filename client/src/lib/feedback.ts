@@ -1479,6 +1479,26 @@ function getNegativeMessageForCustomAchievement(player: Player, achievementId: s
   if (customAchievementDetails) {
     const parsed = customAchievementDetails as ParsedCustomAchievement;
 
+    // Explicitly handle Season* achievements first
+    if (parsed.baseId.startsWith('Season')) {
+      const statInfo = getStatInfoForAchievement(parsed.baseId);
+      if (statInfo && statInfo.type === 'season_avg') {
+        const statNameWithoutSeason = statInfo.name.replace(' in a season', '').trim();
+        if (parsed.operator === '≤') {
+          return `Never averaged under ${parsed.threshold.toLocaleString()} ${statNameWithoutSeason} in a season`;
+        } else {
+          return `Never averaged ${parsed.threshold.toLocaleString()}+ ${statNameWithoutSeason} in a season`;
+        }
+      } else if (statInfo && statInfo.type === 'season') {
+        const statNameWithoutSeason = statInfo.name.replace(' in a season', '').trim();
+        if (parsed.operator === '≤') {
+          return `Never had under ${parsed.threshold.toLocaleString()} ${statNameWithoutSeason} in a season`;
+        } else {
+          return `Never had ${parsed.threshold.toLocaleString()}+ ${statNameWithoutSeason} in a season`;
+        }
+      }
+    }
+
     if (parsed.baseId === 'playedInThreeDecades' || parsed.baseId.includes('playedIn') && parsed.baseId.endsWith('s') || parsed.baseId.includes('debutedIn') && parsed.baseId.endsWith('s')) {
       const actualDecades = player.decadesPlayed?.size || 0;
       const threshold = parsed.threshold;
@@ -1765,7 +1785,12 @@ export function generateFeedbackMessage(
       const teamName = teams.find(t => t.tid === rowConstraint.tid)?.name || "this team";
       feedback.push(`${achievementLabel}${achievementDetails?.years ? ` (${achievementDetails.years})` : ""} (never with the ${teamName})`);
     } else {
-      feedback.push(`Did not achieve: ${achievementLabel}`);
+      const negativeMessage = getNegativeMessageForCustomAchievement(player, achievementId);
+      if (negativeMessage) {
+        feedback.push(negativeMessage);
+      } else {
+        feedback.push(`Did not achieve: ${achievementLabel}`);
+      }
     }
   } else {
     // Fallback for if col is a team (shouldn't happen based on grid structure, but for safety)
