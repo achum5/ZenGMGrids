@@ -348,75 +348,56 @@ export function GridSection({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        {/* Left button: Give Up or Retry This Grid */}
-        {isGridComplete || giveUpPressed ? (
-          <Button
-            onClick={onRetryGrid}
-            variant="default"
-            className="neon-button-green bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white transition-all duration-150 active:scale-95 active:shadow-inner focus:ring-2 focus:ring-green-500 focus:ring-offset-2 text-xs sm:text-sm h-8 px-2 sm:h-10 sm:px-4"
-            data-testid="button-retry-grid"
-          >
-            <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden xs:inline">Retry This Grid</span>
-            <span className="xs:hidden">Retry</span>
-          </Button>
-        ) : (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="ghost"
-                disabled={isGenerating || !hasEmptyCells}
-                className="neon-button dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner text-xs sm:text-sm h-8 px-2 sm:h-10 sm:px-4"
-                data-testid="button-give-up"
-              >
-                <Flag className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden xs:inline">Give Up</span>
-                <span className="xs:hidden">Give Up</span>
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Reveal remaining answers?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Your score won't change.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={onGiveUp}>Reveal</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
-
-        {/* Generate New Grid button on the right */}
-        <Button
-          onClick={onGenerateNewGrid}
-          disabled={isGenerating}
-          variant="secondary"
-          className="neon-button dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner text-xs sm:text-sm h-8 px-2 sm:h-10 sm:px-4"
-          data-testid="button-generate-grid"
-        >
-          {isGenerating ? (
-            <>
-              <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
-              <span className="hidden xs:inline">Generating...</span>
-              <span className="xs:hidden">...</span>
-            </>
-          ) : (
-            <>
+      {/* Main grid layout with side buttons */}
+      <div className="flex items-start justify-center gap-4">
+        {/* Left button - aligned with top of grid */}
+        <div className="flex items-start pt-3 md:pt-6">
+          {isGridComplete || giveUpPressed ? (
+            <Button
+              onClick={onRetryGrid}
+              variant="default"
+              className="neon-button-green bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white transition-all duration-150 active:scale-95 active:shadow-inner focus:ring-2 focus:ring-green-500 focus:ring-offset-2 text-xs sm:text-sm h-8 px-2 sm:h-10 sm:px-4"
+              data-testid="button-retry-grid"
+            >
               <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden xs:inline">Generate New Grid</span>
-              <span className="xs:hidden">New</span>
-            </>
+              <span className="hidden xs:inline">Retry This Grid</span>
+              <span className="xs:hidden">Retry</span>
+            </Button>
+          ) : (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  disabled={isGenerating || !hasEmptyCells}
+                  className="neon-button dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner text-xs sm:text-sm h-8 px-2 sm:h-10 sm:px-4"
+                  data-testid="button-give-up"
+                >
+                  <Flag className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Give Up</span>
+                  <span className="xs:hidden">Give Up</span>
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Reveal remaining answers?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Your score won't change.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={onGiveUp}>Reveal</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
-        </Button>
-      </div>
-      <Card className="border-0 shadow-none bg-transparent">
-        <CardContent className="p-3 md:p-6">
-          {/* Grid Container with expanded max-width */}
-          <div className="max-w-6xl mx-auto">
+        </div>
+
+        {/* Center - Grid */}
+        <Card className="border-0 shadow-none bg-transparent flex-1 max-w-6xl">
+          <CardContent className="p-3 md:p-6">
+          {/* Grid Container */}
+          <div className="mx-auto">
             {/* Complete 4x4 Grid - Board with Thin Separators */}
             <div className="rainbow-border rounded-2xl p-[2px] md:p-[3px] overflow-hidden grid-container-glow grid-divider">
               <div className="grid grid-cols-4 gap-[2px] md:gap-[2px] w-full relative z-10">
@@ -782,6 +763,33 @@ export function GridSection({
           </div>
         </CardContent>
       </Card>
+
+        {/* Right button - aligned with top of grid */}
+        <div className="flex items-start pt-3 md:pt-6">
+          <Button
+            onClick={onGenerateNewGrid}
+            disabled={isGenerating}
+            variant="secondary"
+            className="neon-button dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner text-xs sm:text-sm h-8 px-2 sm:h-10 sm:px-4"
+            data-testid="button-generate-grid"
+          >
+            {isGenerating ? (
+              <>
+                <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+                <span className="hidden xs:inline">Generating...</span>
+                <span className="xs:hidden">...</span>
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Generate New Grid</span>
+                <span className="xs:hidden">New</span>
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+      
       {/* Three-column layout: Share - Hint Mode - Custom */}
       <div className="grid grid-cols-3 items-center mt-4">
         {/* Share/Import Grid button (left) */}
