@@ -416,7 +416,7 @@ export function GridSection({
       <Card className="border-0 shadow-none bg-transparent">
         <CardContent className="p-3 md:p-6">
           {/* Grid Container with expanded max-width */}
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-6xl mx-auto">
             {/* Complete 4x4 Grid - Board with Thin Separators */}
             <div className="rainbow-border rounded-2xl p-[2px] md:p-[3px] overflow-hidden grid-container-glow grid-divider">
               <div className="grid grid-cols-4 gap-[1.5px] md:gap-[1.5px] w-full relative z-10">
