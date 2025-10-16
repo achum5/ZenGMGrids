@@ -13,10 +13,10 @@ import { Button } from '@/components/ui/button';
 import { Home as HomeIcon } from 'lucide-react';
 // Import sport icon images
 import zengmGridsLogo from '@assets/zengm-grids-logo-mark_1760637269025.png';
-import basketballIcon from '@/assets/basketball.png';
-import footballIcon from '@/assets/football.png';
-import hockeyIcon from '@/assets/hockey.png';
-import baseballIcon from '@/assets/baseball.png';
+import basketballIcon from '@assets/zengm-grids-logo-basketball_1760637854822.png';
+import footballIcon from '@assets/zengm-grids-logo-football-transparent-v2_1760637854823.png';
+import hockeyIcon from '@assets/zengm-grids-logo-hockey_1760637854823.png';
+import baseballIcon from '@assets/zengm-grids-logo-baseball-transparent - Copy_1760637854821.png';
 import { parseLeagueFile, parseLeagueUrl, buildSearchIndex } from '@/lib/bbgm-parser';
 import { generateTeamsGrid, cellKey } from '@/lib/grid-generator';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
