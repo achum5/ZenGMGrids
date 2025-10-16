@@ -61,7 +61,7 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing }: Uploa
 
   return (
     <div className="text-center">
-      <Card className="mb-8">
+      <Card className="mb-8 border-0 shadow-none bg-transparent">
         <CardContent className="p-8">
           <Tabs defaultValue="file" className="w-full">
             <TabsList className="grid w-full grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-6 bg-transparent p-0 h-auto">
@@ -106,7 +106,7 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing }: Uploa
             
             <TabsContent value="file">
               <div 
-                className="upload-dropzone rainbow-border-dashed rounded-lg p-12 mb-6 mt-12 hover:bg-primary/5 dark:hover:bg-primary/10 transition-all"
+                className="upload-dropzone border-2 border-dashed border-border rounded-lg p-12 mb-6 mt-12 hover:border-primary hover:bg-primary/5 dark:hover:bg-primary/10 transition-all"
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
                 data-testid="upload-dropzone"
