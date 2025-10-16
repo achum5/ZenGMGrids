@@ -40,42 +40,45 @@ async function parseFileStreaming(file: File): Promise<any> {
   if (isCompressed) {
     // For compressed files, we need a different approach to avoid memory issues
     // Create a custom TransformStream for decompression
+    let inflator: any;
+    
     const decompressStream = new TransformStream({
       start(controller) {
         // Create inflator without accumulating results
-        this.inflator = new pako.Inflate();
+        inflator = new pako.Inflate();
         
         // Override onData to emit chunks without accumulation
-        this.inflator.onData = (chunk: Uint8Array) => {
+        inflator.onData = (chunk: Uint8Array) => {
           // Decode and enqueue immediately, don't accumulate
           const text = new TextDecoder('utf-8').decode(chunk);
           controller.enqueue(text);
         };
         
         // Disable result accumulation
-        this.inflator.onEnd = () => {
+        inflator.onEnd = () => {
           // Do nothing - prevents pako from trying to join chunks
         };
       },
       
       transform(chunk) {
         // Push compressed chunk to inflator
-        this.inflator.push(chunk, false);
+        inflator.push(chunk, false);
         
-        if (this.inflator.err) {
-          throw new Error(`Decompression error: ${this.inflator.msg || 'Unknown error'}`);
+        if (inflator.err) {
+          throw new Error(`Decompression error: ${inflator.msg || 'Unknown error'}`);
         }
       },
       
       flush(controller) {
         // Finalize decompression
-        this.inflator.push(new Uint8Array(0), true);
+        inflator.push(new Uint8Array(0), true);
         
-        if (this.inflator.err) {
-          throw new Error(`Decompression error: ${this.inflator.msg || 'Unknown error'}`);
+        if (inflator.err) {
+          throw new Error(`Decompression error: ${inflator.msg || 'Unknown error'}`);
         }
         
-        controller.terminate();
+        // Properly close the stream
+        controller.close();
       }
     });
     
