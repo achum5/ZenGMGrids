@@ -4,40 +4,169 @@ import { calculatePlayerAchievements, clearSeasonLengthCache, calculateLeagueLea
 import { type SeasonIndex } from './season-achievements';
 import { getCachedSeasonIndex } from './season-index-cache';
 
-import { normalizeLeague } from './league-normalizer';
+export type Sport = 'basketball' | 'football' | 'hockey' | 'baseball';
 
-export function parseLeagueFile(file: File): Promise<LeagueData & { sport: Sport }> {
-  return new Promise((resolve, reject) => {
-    console.log(`[MAIN] Creating worker for file: ${file.name}`);
-    
-    // Vite-specific worker instantiation
-    const worker = new Worker(new URL('./league-parser.worker.ts', import.meta.url), {
-      type: 'module'
-    });
+// Sport detection based on league data characteristics
+function detectSport(raw: any): Sport {
+  if (!raw.players || raw.players.length === 0) {
+    return 'basketball'; // Default fallback
+  }
 
-    worker.onmessage = (event) => {
-      const { type, leagueData, error } = event.data;
+  // Check multiple players for better detection
+  const samplePlayers = raw.players.slice(0, Math.min(10, raw.players.length));
+  
+  // Check for baseball first - most distinctive
+  for (const player of samplePlayers) {
+    const ratings = player.ratings?.[0];
+    if (ratings) {
+      const ovrs = ratings.ovrs || {};
       
-      if (type === 'complete') {
-        console.log('[MAIN] Worker finished successfully.');
-        worker.terminate();
-        resolve(leagueData);
-      } else if (type === 'error') {
-        console.error('[MAIN] Worker reported an error:', error);
-        worker.terminate();
-        reject(new Error(error));
+      // Baseball has positions: SP, RP, C, 1B, 2B, 3B, SS, LF, CF, RF, DH
+      const hasBaseballPositions = Object.keys(ovrs).some(pos => 
+        ['SP', 'RP', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'DH'].includes(pos)
+      );
+      if (hasBaseballPositions) {
+        return 'baseball';
       }
-    };
+      
+      // Check for baseball stats (hits, home runs, RBIs, saves)
+      const stats = player.stats?.[0];
+      if (stats && (stats.h !== undefined || stats.hr !== undefined || stats.rbi !== undefined)) {
+        return 'baseball';
+      }
+      
+      // Check for baseball awards
+      const awards = player.awards || [];
+      if (awards.some((a: any) => 
+        a.type?.includes('League HR Leader') || 
+        a.type?.includes('League RBI Leader') ||
+        a.type?.includes('All-Defensive Team') ||
+        a.type?.includes('All-Offensive Team')
+      )) {
+        return 'baseball';
+      }
+    }
+  }
+  
+  // Check for hockey second - also distinctive
+  for (const player of samplePlayers) {
+    const ratings = player.ratings?.[0];
+    if (ratings) {
+      const ovrs = ratings.ovrs || {};
+      
+      // Hockey has positions: C, W, D, G and stats like evG, ppG, sv
+      const hasHockeyPositions = Object.keys(ovrs).some(pos => ['C', 'W', 'D', 'G'].includes(pos));
+      if (hasHockeyPositions) {
+        return 'hockey';
+      }
+      
+      // Check for hockey stats
+      const stats = player.stats?.[0];
+      if (stats && (stats.evG !== undefined || stats.sv !== undefined || stats.gW !== undefined)) {
+        return 'hockey';
+      }
+      
+      // Check for hockey awards
+      const awards = player.awards || [];
+      if (awards.some((a: any) => a.type?.includes('Goalie of the Year') || a.type?.includes('Hart Trophy'))) {
+        return 'hockey';
+      }
+    }
+  }
+  
+  // Check for football third
+  for (const player of samplePlayers) {
+    const ratings = player.ratings?.[0];
+    if (ratings) {
+      const ovrs = ratings.ovrs || {};
+      
+      // Football has positions: QB, RB, WR, TE, OL, DL, LB, CB, S, K, P
+      const hasFootballPositions = Object.keys(ovrs).some(pos => 
+        ['QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S', 'K', 'P'].includes(pos)
+      );
+      if (hasFootballPositions) {
+        return 'football';
+      }
+      
+      // Check for football stats (rushing, passing, receiving)
+      const stats = player.stats?.[0];
+      if (stats && (stats.rusYds !== undefined || stats.pasYds !== undefined || stats.recYds !== undefined)) {
+        return 'football';
+      }
+    }
+  }
+  
+  // Default to basketball
+  return 'basketball';
+}
 
-    worker.onerror = (error) => {
-      console.error('[MAIN] An error occurred in the worker:', error);
-      worker.terminate();
-      reject(new Error('An unexpected error occurred in the league parser.'));
-    };
+export async function parseLeagueFile(file: File): Promise<LeagueData & { sport: Sport }> {
+  console.log(`🔧 [FILE UPLOAD] Starting upload for file: ${file.name} (${(file.size / 1024 / 1024).toFixed(1)}MB, type: ${file.type})`);
+  
+  try {
+    let content: string;
+    
+    if (file.name.endsWith('.gz')) {
+      console.log(`🔧 [FILE UPLOAD] Processing .gz file`);
+      // Handle .gz files
+      const arrayBuffer = await file.arrayBuffer();
+      const compressed = new Uint8Array(arrayBuffer);
+      
+      console.log(`🔧 [FILE UPLOAD] Compressed data length: ${compressed.length}`);
+      if (compressed.length > 0) {
+        // Log first 16 bytes in hex for inspection
+        const hexSnippet = Array.from(compressed.slice(0, Math.min(compressed.length, 16)))
+          .map(b => b.toString(16).padStart(2, '0'))
+          .join(' ');
+        console.log(`🔧 [FILE UPLOAD] Compressed data snippet (first 16 bytes): ${hexSnippet}`);
+      } else {
+        console.log(`🔧 [FILE UPLOAD] Compressed data is empty.`);
+      }
 
-    // Start the worker
-    worker.postMessage({ file });
-  });
+      try {
+        const decompressed = pako.inflate(compressed, { to: 'string' });
+        content = decompressed;
+        console.log(`🔧 [FILE UPLOAD] Successfully decompressed .gz file (${content.length} chars)`);
+      } catch (inflateError1) {
+        console.error('Pako inflation error (attempt 1):', inflateError1);
+        console.log(`🔧 [FILE UPLOAD] Trying decompression with fallback method...`);
+        try {
+          const decompressedBytes = pako.inflate(compressed);
+          try {
+            content = new TextDecoder('utf-8').decode(decompressedBytes);
+            console.log(`🔧 [FILE UPLOAD] Decompressed with fallback method (${content.length} chars)`);
+          } catch (decodeError) {
+            console.error('TextDecoder error after fallback decompression:', decodeError);
+            throw new Error('Failed to decode decompressed data. The file might be corrupted or use an unsupported encoding.');
+          }
+        } catch (inflateError2) {
+          console.error('Pako inflation error (attempt 2, fallback):', inflateError2);
+          throw new Error('Failed to decompress .gz file. It might be corrupted or not a valid gzip archive.');
+        }
+      }
+    } else {
+      console.log(`🔧 [FILE UPLOAD] Processing .json file`);
+      // Handle .json files
+      content = await file.text();
+      console.log(`🔧 [FILE UPLOAD] Read JSON file (${content.length} chars)`);
+    }
+    
+    if (!content || content.length === 0) {
+      throw new Error('Decompressed file content is empty. The .gz file might be corrupted or empty.');
+    }
+    
+    console.log(`🔧 [FILE UPLOAD] Parsing JSON...`);
+    const rawData = JSON.parse(content);
+    console.log(`🔧 [FILE UPLOAD] JSON parsed successfully, calling normalizeLeague...`);
+    
+    const result = normalizeLeague(rawData);
+    console.log(`🔧 [FILE UPLOAD] File processed successfully as ${result.sport}`);
+    return result;
+  } catch (error) {
+    console.error('🔧 [FILE UPLOAD] Error parsing league file:', error);
+    console.error('🔧 [FILE UPLOAD] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    throw new Error(`Failed to parse league file: ${error instanceof Error ? error.message : 'Unknown error'}. Please ensure it's a valid BBGM league file.`);
+  }
 }
 
 function normalizeDownloadUrl(url: string): string {
