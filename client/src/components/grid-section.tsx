@@ -809,7 +809,7 @@ export function GridSection({
         </div>
 
         {/* Hint mode toggle (center) */}
-        <div className="flex items-center justify-center gap-2" data-testid="hint-mode-toggle" style={{ marginLeft: '-1px' }}>
+        <div className="flex items-center justify-center gap-1 sm:gap-2" data-testid="hint-mode-toggle" style={{ marginLeft: '-1px' }}>
           <Switch
             id="hint-mode"
             checked={hintMode}
@@ -818,9 +818,13 @@ export function GridSection({
           />
           <Label 
             htmlFor="hint-mode" 
-            className="text-sm font-medium cursor-pointer"
+            className="text-xs sm:text-sm font-medium cursor-pointer whitespace-nowrap"
             data-testid="label-hint-mode"
-          > Hint Mode💡</Label>
+          >
+            <span className="hidden xs:inline">Hint Mode</span>
+            <span className="xs:hidden">Hint</span>
+            <span>💡</span>
+          </Label>
         </div>
 
         {/* Create Custom Grid button (right) */}
