@@ -632,8 +632,28 @@ export default function Home() {
 
     debugIndividualAchievements(data.players, data.seasonIndex);
     
-    // Generate initial grid
-    const gridResult = generateTeamsGrid(data);
+    // Generate initial grid with automatic retry on error
+    let gridResult: { rows: any[], cols: any[], intersections: any } = { rows: [], cols: [], intersections: {} };
+    let attempt = 0;
+    const MAX_AUTO_RETRIES = 50;
+    
+    while (attempt < MAX_AUTO_RETRIES) {
+      try {
+        gridResult = generateTeamsGrid(data);
+        break; // Success! Exit the retry loop
+      } catch (error) {
+        attempt++;
+        // Silently retry - user will never see the error
+        if (attempt >= MAX_AUTO_RETRIES) {
+          // Only log if we've exhausted all retries (very rare)
+          console.error('Error generating initial grid after maximum retries:', error);
+          // Still set empty grid rather than crashing
+          gridResult = { rows: [], cols: [], intersections: {} };
+          break;
+        }
+      }
+    }
+    
     setRows(gridResult.rows);
     setCols(gridResult.cols);
     setIntersections(gridResult.intersections);
