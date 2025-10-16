@@ -964,14 +964,39 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
         statName = achLabel.toLowerCase();
       }
 
+      // Handle singular vs plural based on threshold
+      const getSingular = (plural: string): string => {
+        if (plural === 'passing yards') return 'passing yard';
+        if (plural === 'rushing yards') return 'rushing yard';
+        if (plural === 'receiving yards') return 'receiving yard';
+        if (plural === 'yards from scrimmage') return 'yard from scrimmage';
+        if (plural === 'all-purpose yards') return 'all-purpose yard';
+        if (plural === 'tackles for loss') return 'tackle for loss';
+        if (plural === 'tackles') return 'tackle';
+        if (plural === 'sacks') return 'sack';
+        if (plural === 'interceptions') return 'interception';
+        if (plural === 'receptions') return 'reception';
+        if (plural === 'assists') return 'assist';
+        if (plural === '3-pointers') return '3-pointer';
+        if (plural === 'points') return 'point';
+        if (plural === 'steals') return 'steal';
+        if (plural === 'blocks') return 'block';
+        if (plural === 'stocks') return 'stock';
+        if (plural.endsWith('TDs') || plural.endsWith('TD')) return plural.replace(/TDs?$/, 'TD');
+        if (plural.endsWith('s') && !plural.endsWith('ss')) return plural.slice(0, -1);
+        return plural;
+      };
+      
+      const displayStatName = threshold === 1 ? getSingular(statName) : statName;
+
       if (operator === '≥') {
         return {
-          text: `Never ${verb} ${formattedThreshold}+ ${statName} in a season`,
+          text: `Never ${verb} ${formattedThreshold}+ ${displayStatName} in a season`,
           type: 'award'
         };
       } else if (operator === '≤') {
         return {
-          text: `Never ${verb} under ${formattedThreshold} ${statName} in a season`,
+          text: `Never ${verb} under ${formattedThreshold} ${displayStatName} in a season`,
           type: 'award'
         };
       }
