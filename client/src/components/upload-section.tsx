@@ -1,7 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Progress } from '@/components/ui/progress';
 import { Upload, FileUp, Link, AlertCircle, Clipboard } from 'lucide-react';
 import { useState } from 'react';
 
@@ -9,10 +8,9 @@ interface UploadSectionProps {
   onFileUpload: (file: File) => void;
   onUrlUpload: (url: string) => void;
   isProcessing: boolean;
-  processingProgress: { message: string; percentage: number };
 }
 
-export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, processingProgress }: UploadSectionProps) {
+export function UploadSection({ onFileUpload, onUrlUpload, isProcessing }: UploadSectionProps) {
   const [urlInput, setUrlInput] = useState('');
   const [urlError, setUrlError] = useState('');
 
@@ -23,6 +21,7 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, process
       setUrlError('');
     } catch (error) {
       // Fallback or ignore if clipboard access fails
+  
     }
   };
 
@@ -40,7 +39,6 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, process
       setUrlError('Please enter a valid URL');
     }
   };
-
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -64,92 +62,98 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, process
     <div className="text-center">
       <Card className="mb-8 border-0 shadow-none bg-transparent">
         <CardContent className="p-8">
-          {isProcessing ? (
-            <div className="flex flex-col items-center justify-center space-y-4 p-8">
-              <h3 className="text-lg font-semibold text-foreground">{processingProgress.message}</h3>
-              <Progress value={processingProgress.percentage} className="w-full max-w-md" />
-              <p className="text-sm text-muted-foreground">{`${Math.round(processingProgress.percentage)}%`}</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* File Upload Section */}
-              <div 
-                className="upload-dropzone border-2 border-dashed border-border rounded-lg p-8 hover:border-primary hover:bg-primary/5 dark:hover:bg-primary/10 transition-all"
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                data-testid="upload-dropzone"
-              >
-                <div className="flex flex-col items-center space-y-4">
-                  <FileUp className="h-12 w-12 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold text-foreground">Upload a ZenGM League</h3>
-                  <input
-                    type="file"
-                    id="file-input"
-                    accept=".json,.gz,.bbgm,.fbgm,.hgm,.bgm,.zgmh,.zgmb"
-                    className="hidden"
-                    onChange={handleFileSelect}
-                    disabled={isProcessing}
-                    data-testid="input-file"
-                  />
-                  <Button
-                    onClick={() => document.getElementById('file-input')?.click()}
-                    disabled={isProcessing}
-                    className="bg-primary hover:bg-primary/90 dark:bg-primary dark:hover:bg-primary/90 text-primary-foreground ml-[1px]"
-                    data-testid="button-upload"
-                  >
-                    Choose League File
-                  </Button>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* File Upload Section */}
+            <div 
+              className="upload-dropzone border-2 border-dashed border-border rounded-lg p-8 hover:border-primary hover:bg-primary/5 dark:hover:bg-primary/10 transition-all"
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              data-testid="upload-dropzone"
+            >
+              <div className="flex flex-col items-center space-y-4">
+                <FileUp className="h-12 w-12 text-muted-foreground" />
+                <h3 className="text-lg font-semibold text-foreground">Upload a ZenGM League</h3>
+                <input
+                  type="file"
+                  id="file-input"
+                  accept=".json,.gz,.bbgm,.fbgm,.hgm,.bgm,.zgmh,.zgmb"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                  disabled={isProcessing}
+                  data-testid="input-file"
+                />
+                <Button
+                  onClick={() => document.getElementById('file-input')?.click()}
+                  disabled={isProcessing}
+                  className="bg-primary hover:bg-primary/90 dark:bg-primary dark:hover:bg-primary/90 text-primary-foreground ml-[1px]"
+                  data-testid="button-upload"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Upload className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    'Choose League File'
+                  )}
+                </Button>
               </div>
-              
-              {/* URL Upload Section */}
-              <div className="border-2 border-dashed border-border rounded-lg p-8">
-                <div className="flex flex-col items-center space-y-4">
-                  <Link className="h-12 w-12 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold text-foreground">Load a ZenGM League from URL</h3>
-                  <div className="w-full space-y-2">
-                    <div className="flex gap-2">
-                      <Input
-                        type="url"
-                        placeholder=""
-                        value={urlInput}
-                        onChange={(e) => setUrlInput(e.target.value)}
-                        disabled={isProcessing}
-                        data-testid="input-url"
-                        onKeyDown={(e) => e.key === 'Enter' && !isProcessing && handleUrlSubmit()}
-                        className="flex-1"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={handlePaste}
-                        disabled={isProcessing}
-                        data-testid="button-paste"
-                        title="Paste from clipboard"
-                      >
-                        <Clipboard className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    {urlError && (
-                      <div className="flex items-center text-sm text-destructive">
-                        <AlertCircle className="h-4 w-4 mr-1" />
-                        {urlError}
-                      </div>
-                    )}
+            </div>
+            
+            {/* URL Upload Section */}
+            <div className="border-2 border-dashed border-border rounded-lg p-8">
+              <div className="flex flex-col items-center space-y-4">
+                <Link className="h-12 w-12 text-muted-foreground" />
+                <h3 className="text-lg font-semibold text-foreground">Load a ZenGM League from URL</h3>
+                <div className="w-full space-y-2">
+                  <div className="flex gap-2">
+                    <Input
+                      type="url"
+                      placeholder=""
+                      value={urlInput}
+                      onChange={(e) => setUrlInput(e.target.value)}
+                      disabled={isProcessing}
+                      data-testid="input-url"
+                      onKeyDown={(e) => e.key === 'Enter' && !isProcessing && handleUrlSubmit()}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={handlePaste}
+                      disabled={isProcessing}
+                      data-testid="button-paste"
+                      title="Paste from clipboard"
+                    >
+                      <Clipboard className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <Button
-                    onClick={handleUrlSubmit}
-                    disabled={isProcessing || !urlInput.trim()}
-                    className="bg-primary hover:bg-primary/90 dark:bg-primary dark:hover:bg-primary/90 text-primary-foreground"
-                    data-testid="button-load-url"
-                  >
-                    Load League
-                  </Button>
+                  {urlError && (
+                    <div className="flex items-center text-sm text-destructive">
+                      <AlertCircle className="h-4 w-4 mr-1" />
+                      {urlError}
+                    </div>
+                  )}
                 </div>
+                <Button
+                  onClick={handleUrlSubmit}
+                  disabled={isProcessing || !urlInput.trim()}
+                  className="bg-primary hover:bg-primary/90 dark:bg-primary dark:hover:bg-primary/90 text-primary-foreground"
+                  data-testid="button-load-url"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Upload className="mr-2 h-4 w-4 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    'Load League'
+                  )}
+                </Button>
               </div>
             </div>
-          )}
+          </div>
         </CardContent>
       </Card>
     </div>

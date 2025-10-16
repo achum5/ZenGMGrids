@@ -94,8 +94,6 @@ export default function Home() {
   
   // UI state
   const [isProcessing, setIsProcessing] = useState(false);
-  const [processingProgress, setProcessingProgress] = useState({ message: '', percentage: 0 });
-
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoadingCustomIntersection, setIsLoadingCustomIntersection] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
@@ -438,35 +436,12 @@ export default function Home() {
 
   const handleFileUpload = useCallback(async (file: File) => {
     setIsProcessing(true);
+    
     try {
+      // Parse the league file
       const data = await parseLeagueFile(file);
-      setLeagueData(data);
-      setGridData(null);
-      setCurrentSport(data.sport);
+      await processLeagueData(data);
       
-      const searchIndex = buildSearchIndex(data.players, data.teams);
-      setSearchIndex(searchIndex);
-      
-      const byPidTemp: Record<number, Player> = {};
-      data.players.forEach(p => {
-        byPidTemp[p.pid] = p;
-      });
-      setByPid(byPidTemp);
-      
-      const grid = generateTeamsGrid(data.teams, data.players, data.seasonIndex);
-      setGridData(grid);
-      
-      setGuesses({});
-      setGuessedPlayers(new Set());
-      setScore(0);
-      setUsedPids(new Set());
-      setHints({});
-      setStartTime(Date.now());
-      
-      toast({
-        title: 'League file loaded successfully',
-        description: `Loaded ${data.players.length} players and ${data.teams.length} teams`,
-      });
     } catch (error) {
       console.error('Error processing file:', error);
       toast({
@@ -481,35 +456,12 @@ export default function Home() {
 
   const handleUrlUpload = useCallback(async (url: string) => {
     setIsProcessing(true);
+    
     try {
+      // Parse the league URL
       const data = await parseLeagueUrl(url);
-      setLeagueData(data);
-      setGridData(null);
-      setCurrentSport(data.sport);
+      await processLeagueData(data);
       
-      const searchIndex = buildSearchIndex(data.players, data.teams);
-      setSearchIndex(searchIndex);
-      
-      const byPidTemp: Record<number, Player> = {};
-      data.players.forEach(p => {
-        byPidTemp[p.pid] = p;
-      });
-      setByPid(byPidTemp);
-      
-      const grid = generateTeamsGrid(data.teams, data.players, data.seasonIndex);
-      setGridData(grid);
-      
-      setGuesses({});
-      setGuessedPlayers(new Set());
-      setScore(0);
-      setUsedPids(new Set());
-      setHints({});
-      setStartTime(Date.now());
-      
-      toast({
-        title: 'League loaded from URL',
-        description: `Loaded ${data.players.length} players and ${data.teams.length} teams`,
-      });
     } catch (error) {
       console.error('Error processing URL:', error);
       toast({
@@ -1337,7 +1289,6 @@ export default function Home() {
             onFileUpload={handleFileUpload}
             onUrlUpload={handleUrlUpload}
             isProcessing={isProcessing}
-            processingProgress={processingProgress}
           />
         </main>
       </div>
