@@ -1070,7 +1070,14 @@ function getHumanReadableAchievementText(achievementId: string): string {
       if (parsedLabel.isEditable) {
         // Generate the clean label like "fewer than 100 steals"
         return generateUpdatedLabel(parsedLabel, parsedCustom.threshold, parsedCustom.operator)
-          .replace(/\s*\([^)]*\)/, '') // Remove parenthetical content like (Season)
+          .replace(/(\d+,?\d*\+?)/, '') // Remove numerical threshold
+          .replace(/\s*\(Season\)/gi, '') // Remove parenthetical content like (Season)
+          .trim();
+      } else {
+        // For non-editable labels, just remove " (Season)" and numerical thresholds
+        return originalAchievement.label
+          .replace(/(\d+,?\d*\+?)/, '') // Remove numerical threshold
+          .replace(/\s*\(Season\)/gi, '') // Remove parenthetical content like (Season)
           .trim();
       }
     }
@@ -1083,7 +1090,7 @@ function getHumanReadableAchievementText(achievementId: string): string {
       .replace(/^BB\s*/, '')
       .toLowerCase()
       .trim();
-    return `${parsedCustom.operator === '≤' ? 'fewer than' : ''} ${parsedCustom.threshold.toLocaleString()} ${fallbackStatName}`;
+    return `${fallbackStatName}`;
   }
   
   // Handle dynamic decade achievements
@@ -1133,36 +1140,11 @@ function getHumanReadableAchievementText(achievementId: string): string {
   }
   
   // Handle Season* achievements
-  if (achievementId.startsWith('Season')) {
-    // Map common Season* achievement patterns
-    const seasonMappings: Record<string, string> = {
-      'Season30PPG': 'averaged 30+ PPG in a season',
-      'Season2000Points': 'scored 2,000+ points in a season',
-      'Season200_3PM': 'made 200+ threes in a season',
-      'Season12RPG': 'averaged 12+ RPG in a season',
-      'Season10APG': 'averaged 10+ APG in a season',
-      'Season800Rebounds': 'grabbed 800+ rebounds in a season',
-      'Season700Assists': 'recorded 700+ assists in a season',
-      'Season2SPG': 'averaged 2.0+ SPG in a season',
-      'Season2_5BPG': 'averaged 2.5+ BPG in a season',
-      'Season150Steals': 'recorded 150+ steals in a season',
-      'Season150Blocks': 'recorded 150+ blocks in a season',
-      'Season200Stocks': 'recorded 200+ stocks in a season',
-      'Season50_40_90': 'achieved 50/40/90 shooting in a season',
-
-      'Season60eFG500FGA': 'shot 60%+ eFG on 500+ FGA in a season',
-        'Season90FT250FTA': 'shot 90%+ FT on 250+ FTA in a season',
-  'SeasonFGPercent': 'shot 40%+ FG on 300+ FGA in a season',
-  'Season3PPercent': 'shot 40%+ 3PT on 100+ 3PA in a season',      'Season70Games': 'played 70+ games in a season',
-      'Season36MPG': 'averaged 36.0+ MPG in a season',
-      'Season25_10': 'achieved 25/10 season (PPG/RPG)',
-      'Season25_5_5': 'achieved 25/5/5 season (PPG/RPG/APG)',
-      'Season20_10_5': 'achieved 20/10/5 season (PPG/RPG/APG)',
-      'Season1_1_1': 'achieved 1/1/1 season (SPG/BPG/3PM/G)'
-    };
-    
-    if (seasonMappings[achievementId]) {
-      return seasonMappings[achievementId];
+  if (achievementId.startsWith('Season') || achievementId.startsWith('FBSeason') || achievementId.startsWith('HKSeason') || achievementId.startsWith('BBSeason')) {
+    const achievement = SEASON_ACHIEVEMENTS.find(ach => ach.id === achievementId);
+    if (achievement) {
+      // Remove numerical threshold and " (Season)" from the label
+      return achievement.label.replace(/(\d+,?\d*\+?)/, '').replace(/\s*\(Season\)/gi, '').trim().toLowerCase();
     }
   }
   
@@ -1436,11 +1418,22 @@ interface StatInfo {
 function getNegativeSeasonStatMessage(player: Player, achievementId: string): string | null {
   const parsedCustom = parseCustomAchievementId(achievementId);
   const baseAchievementId = parsedCustom ? parsedCustom.baseId : achievementId;
-  const threshold = parsedCustom?.threshold;
-  const operator = parsedCustom?.operator;
+  let threshold = parsedCustom?.threshold;
+  let operator = parsedCustom?.operator;
 
-  // Only apply this logic to Season* statistical achievements
-  if (!baseAchievementId.startsWith('Season') || threshold === undefined) {
+  if (!parsedCustom) {
+    const achievement = SEASON_ACHIEVEMENTS.find(ach => ach.id === baseAchievementId);
+    if (achievement && achievement.label.match(/(\d+,?\d*)\+/)) {
+      threshold = parseFloat(achievement.label.match(/(\d+,?\d*)\+/)?.[1].replace(/,/g, '') || '0');
+      operator = '≥';
+    } else if (achievement && achievement.label.match(/≤(\d+\.?\d*)/)) {
+      threshold = parseFloat(achievement.label.match(/≤(\d+\.?\d*)/)?.[1] || '0');
+      operator = '≤';
+    }
+  }
+
+  // Only apply this logic to Season* statistical achievements if a threshold is found
+  if (!baseAchievementId.startsWith('Season') && !baseAchievementId.startsWith('FBSeason') && !baseAchievementId.startsWith('HKSeason') && !baseAchievementId.startsWith('BBSeason') || threshold === undefined) {
     return null;
   }
 
@@ -1449,19 +1442,19 @@ function getNegativeSeasonStatMessage(player: Player, achievementId: string): st
     return null;
   }
 
-  let statName = statInfo.name;
-  // For PPG, RPG, APG, SPG, BPG, MPG, remove "in a season" for conciseness in negative feedback
-  if (['PPG', 'RPG', 'APG', 'SPG', 'BPG', 'MPG'].some(s => statName.includes(s))) {
-    statName = statName.replace(' in a season', '');
-  }
+  let statName = statInfo.name.replace(' in a season', '');
 
   let message: string;
   if (operator === '≤') {
     // If the rule was "less than or equal to X", and player failed, they had MORE than X.
-    message = `Never achieved under ${threshold.toLocaleString()} ${statName} in a season`;
+    message = `Never achieved under ${threshold.toLocaleString()} ${statName}`;
   } else {
-    // If the rule was "greater than or equal to X", and player failed, they had FEWER than ${threshold.toLocaleString()} ${statName} in a season.
-    message = `Never achieved ${threshold.toLocaleString()}+ ${statName} in a season`;
+    // If the rule was "greater than or equal to X", and player failed, they had FEWER than ${threshold.toLocaleString()} ${statName}`;
+    message = `Never achieved ${threshold.toLocaleString()}${operator === '≥' ? '+' : ''} ${statName}`;
+  }
+
+  if (statInfo.type === 'season' || statInfo.type === 'season_avg') {
+    message += ' in a season';
   }
 
   return message;
@@ -1686,7 +1679,20 @@ function getStatInfoForAchievement(baseId: string): StatInfo | null {
         BBSeason40Saves: { key: 'sv', name: 'saves in a season', type: 'season' },
         BBSeason300Ks: { key: 'so', name: 'strikeouts in a season', type: 'season' },
         // Baseball Season (Averages/Percentages)
-        BBSeason200ERA: { key: 'era', name: 'ERA in a season', type: 'season_avg' }, // ERA is an average, lower is better
+        // Football Season (Totals)
+        FBSeason4kPassYds: { key: 'pssYds', name: 'passing yards', type: 'season' },
+        FBSeason1200RushYds: { key: 'rusYds', name: 'rushing yards', type: 'season' },
+        FBSeason100Receptions: { key: 'rec', name: 'receptions', type: 'season' },
+        FBSeason15Sacks: { key: 'defSk', name: 'sacks', type: 'season' },
+        FBSeason140Tackles: { key: 'defTckSolo', name: 'tackles', type: 'season' }, // Note: This will need aggregation for solo + ast
+        FBSeason5Interceptions: { key: 'defInt', name: 'interceptions', type: 'season' },
+        FBSeason30PassTD: { key: 'pssTD', name: 'passing touchdowns', type: 'season' },
+        FBSeason1300RecYds: { key: 'recYds', name: 'receiving yards', type: 'season' },
+        FBSeason10RecTD: { key: 'recTD', name: 'receiving touchdowns', type: 'season' },
+        FBSeason12RushTD: { key: 'rusTD', name: 'rushing touchdowns', type: 'season' },
+        FBSeason1600Scrimmage: { key: 'rusYds', name: 'yards from scrimmage', type: 'season' }, // Note: This will need aggregation
+        FBSeason2000AllPurpose: { key: 'rusYds', name: 'all-purpose yards', type: 'season' }, // Note: This will need aggregation
+        FBSeason15TFL: { key: 'defTckLoss', name: 'tackles for loss', type: 'season' }
     };
     return statMap[baseId] || null;
 }
@@ -1817,9 +1823,12 @@ function getNegativeMessageForCustomAchievement(player: Player, achievementId: s
         message = `had fewer than ${thresholdString} ${statName} (${valueString})`;
       }
       
+      if (statInfo.type === 'season' || statInfo.type === 'season_avg') {
+          message += ' in a season';
+      }
+
       if (year && year > 0) {
-          // For season bests, the stat name already includes "in a season"
-          return `never ${message.replace(statName, statInfo.name)} (best was ${valueString} in ${year})`;
+          return `never ${message} (best was ${valueString} in ${year})`;
       }
 
       return message;
@@ -1827,26 +1836,6 @@ function getNegativeMessageForCustomAchievement(player: Player, achievementId: s
 
     // Fallback if we can't calculate the stat
     const cleanLabel = getHumanReadableAchievementText(achievementId);
-    if (cleanLabel.includes('(Season)')) {
-      const seasonStatLabel = cleanLabel.replace(' (Season)', '').toLowerCase();
-      const statName = seasonStatLabel.replace(/(\d+,?\d*\+?)/, '').trim();
-      
-      if (parsed.operator === '≤') {
-        return `never achieved under ${parsed.threshold.toLocaleString()} ${statName} in a season`;
-      } else {
-        return `never achieved ${seasonStatLabel} in a season`;
-      }
-    }
-    
-    if (cleanLabel.toLowerCase().includes('career')) {
-      const statName = cleanLabel.replace(/(\d+,?\d*\+?)\s*Career\s*/i, '').toLowerCase();
-      if (parsed.operator === '≤') {
-        return `had more than ${parsed.threshold.toLocaleString()} ${statName}`;
-      } else {
-        return `had fewer than ${parsed.threshold.toLocaleString()} ${statName}`;
-      }
-    }
-    
     return `never achieved ${cleanLabel.toLowerCase()}`;
   }
 

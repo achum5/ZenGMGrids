@@ -769,7 +769,7 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
   
   if (seasons.length === 0) {
     // Handle specific messages for statistical season achievements when not met
-    if (baseAchievementId.startsWith('Season') && (baseAchievementId.includes('PPG') || baseAchievementId.includes('RPG') || baseAchievementId.includes('APG') || baseAchievementId.includes('SPG') || baseAchievementId.includes('BPG') || baseAchievementId.includes('MPG') || baseAchievementId.includes('Points') || baseAchievementId.includes('3PM') || baseAchievementId.includes('Assists') || baseAchievementId.includes('Steals') || baseAchievementId.includes('Blocks') || baseAchievementId.includes('Stocks') || baseAchievementId.includes('PPGRPG') || baseAchievementId.includes('PPGRPGAPG') || baseAchievementId.includes('SPGBPG3PMG') || baseAchievementId.includes('PassYds'))) {
+    if ((baseAchievementId.startsWith('Season') || baseAchievementId.startsWith('FBSeason')) && (baseAchievementId.includes('PPG') || baseAchievementId.includes('RPG') || baseAchievementId.includes('APG') || baseAchievementId.includes('SPG') || baseAchievementId.includes('BPG') || baseAchievementId.includes('MPG') || baseAchievementId.includes('Points') || baseAchievementId.includes('3PM') || baseAchievementId.includes('Assists') || baseAchievementId.includes('Steals') || baseAchievementId.includes('Blocks') || baseAchievementId.includes('Stocks') || baseAchievementId.includes('PPGRPG') || baseAchievementId.includes('PPGRPGAPG') || baseAchievementId.includes('SPGBPG3PMG') || baseAchievementId.includes('PassYds') || baseAchievementId.includes('RushYds') || baseAchievementId.includes('RecYds') || baseAchievementId.includes('Receptions') || baseAchievementId.includes('Sacks') || baseAchievementId.includes('Tackles') || baseAchievementId.includes('Interceptions') || baseAchievementId.includes('PassTD') || baseAchievementId.includes('RecTD') || baseAchievementId.includes('RushTD') || baseAchievementId.includes('Scrimmage') || baseAchievementId.includes('AllPurpose') || baseAchievementId.includes('TFL'))) {
       const threshold = customThreshold !== undefined ? customThreshold : parseFloat(achLabel.match(/\d+\.?\d*/)?.[0] || '0');
       const formattedThreshold = formatNumber(threshold); // Format the number with commas
       const operator = customOperator || '≥';
@@ -875,6 +875,36 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
         verb = 'hit';
       } else if (baseAchievementId.includes('PassYds')) {
         statName = 'passing yards';
+        verb = 'had';
+      } else if (baseAchievementId.includes('RushYds')) {
+        statName = 'rushing yards';
+        verb = 'had';
+      } else if (baseAchievementId.includes('RecYds')) {
+        statName = 'receiving yards';
+        verb = 'had';
+      } else if (baseAchievementId.includes('Receptions')) {
+        statName = 'receptions';
+        verb = 'had';
+      } else if (baseAchievementId.includes('PassTD')) {
+        statName = 'passing TDs';
+        verb = 'threw';
+      } else if (baseAchievementId.includes('RushTD')) {
+        statName = 'rushing TDs';
+        verb = 'had';
+      } else if (baseAchievementId.includes('RecTD')) {
+        statName = 'receiving TDs';
+        verb = 'had';
+      } else if (baseAchievementId.includes('Sacks')) {
+        statName = 'sacks';
+        verb = 'had';
+      } else if (baseAchievementId.includes('Tackles')) {
+        statName = 'tackles';
+        verb = 'had';
+      } else if (baseAchievementId.includes('Interceptions')) {
+        statName = 'interceptions';
+        verb = 'had';
+      } else if (baseAchievementId.includes('Assists')) {
+        statName = 'assists';
         verb = 'had';
       } else {
         // Fallback for other statistical achievements if needed
