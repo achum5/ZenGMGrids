@@ -418,7 +418,7 @@ export function GridSection({
           {/* Grid Container with expanded max-width */}
           <div className="max-w-4xl mx-auto">
             {/* Complete 4x4 Grid - Board with Thin Separators */}
-            <div className="bg-border/60 dark:bg-slate-600/90 rounded-2xl p-[2px] md:p-[3px] overflow-hidden grid-container-glow grid-divider">
+            <div className="rainbow-border rounded-2xl p-[2px] md:p-[3px] overflow-hidden grid-container-glow grid-divider">
               <div className="grid grid-cols-4 gap-[2px] md:gap-[3px] w-full relative z-10">
               {/* Score in top-left corner */}
               <div className={cn("relative aspect-square flex flex-col items-center justify-center bg-secondary dark:bg-slate-700 rounded-tl-2xl overflow-hidden score-tile", isFlaring && "score-tile-flare")}>

@@ -332,6 +332,57 @@
       filter: drop-shadow(0 0 8px rgba(70, 166, 255, 0.5));
     }
   }
+  
+  /* Animated rainbow borders for upload and grid containers */
+  .rainbow-border {
+    position: relative;
+    background: linear-gradient(
+      90deg,
+      #29ffc6,
+      #46a6ff,
+      #b721ff,
+      #46a6ff,
+      #29ffc6
+    );
+    background-size: 200% 100%;
+    animation: pan-gradient 18s linear infinite;
+    border-radius: 1rem;
+  }
+  
+  .rainbow-border-dashed {
+    position: relative;
+  }
+  
+  .rainbow-border-dashed::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 0.5rem;
+    padding: 2px;
+    background: linear-gradient(
+      90deg,
+      #29ffc6,
+      #46a6ff,
+      #b721ff,
+      #46a6ff,
+      #29ffc6
+    );
+    background-size: 200% 100%;
+    -webkit-mask: 
+      linear-gradient(#fff 0 0) content-box, 
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: pan-gradient 18s linear infinite;
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+    .rainbow-border,
+    .rainbow-border-dashed::before {
+      animation: none;
+      background: linear-gradient(90deg, #46a6ff, #46a6ff);
+    }
+  }
 }
 
 @keyframes popIn {
