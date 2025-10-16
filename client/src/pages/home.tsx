@@ -1253,7 +1253,7 @@ export default function Home() {
                   alt="ZenGM Grids logo with Basketball, Football, Hockey, and Baseball icons" 
                   className="w-12 h-12 object-contain"
                 />
-                <h1 className="text-2xl font-bold text-foreground">ZenGM Grids</h1>
+                <h1 className="text-2xl header-title">ZenGM Grids</h1>
               </div>
               <div className="absolute right-0 flex items-center space-x-3">
                 <div>
@@ -1298,7 +1298,7 @@ export default function Home() {
                 alt={`${leagueData?.sport || 'Sports'} icon`} 
                 className="w-10 h-10 object-contain"
               />
-              <h1 className="text-2xl font-bold text-foreground">
+              <h1 className="text-2xl header-title">
                 {leagueData?.sport === 'basketball' && 'Basketball GM Grids'}
                 {leagueData?.sport === 'football' && 'Football GM Grids'}
                 {leagueData?.sport === 'hockey' && 'ZenGM Hockey Grids'}
