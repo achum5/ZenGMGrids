@@ -83,17 +83,26 @@ async function parseFileStreaming(file: File): Promise<any> {
     });
     
     // Pipe: File stream -> Decompress -> JSON Parser
+    console.log('[WORKER] Setting up stream pipeline...');
     const decompressedStream = stream.pipeThrough(decompressStream);
     const jsonStream = decompressedStream.pipeThrough(new JSONParser());
     
     const reader = jsonStream.getReader();
     let parsedData: any = null;
+    let chunkCount = 0;
     
     try {
+      console.log('[WORKER] Starting to read JSON stream...');
       while (true) {
         const { done, value } = await reader.read();
+        chunkCount++;
+        
+        if (chunkCount % 100 === 0) {
+          console.log(`[WORKER] Read ${chunkCount} chunks from JSON parser`);
+        }
         
         if (done) {
+          console.log('[WORKER] Stream done, chunks read:', chunkCount);
           if (parsedData === null) {
             throw new Error('No JSON data found in decompressed file');
           }
