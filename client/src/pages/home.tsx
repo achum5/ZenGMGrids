@@ -1332,7 +1332,7 @@ export default function Home() {
               {hasGuesses ? (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="sm" data-testid="button-home">
+                    <Button variant="ghost" size="sm" className="neon-button" data-testid="button-home">
                       <HomeIcon className="h-[1.2rem] w-[1.2rem]" />
                       <span className="sr-only">Go home</span>
                     </Button>
@@ -1351,7 +1351,7 @@ export default function Home() {
                   </AlertDialogContent>
                 </AlertDialog>
               ) : (
-                <Button variant="ghost" size="sm" onClick={handleGoHome} data-testid="button-home">
+                <Button variant="ghost" size="sm" onClick={handleGoHome} className="neon-button" data-testid="button-home">
                   <HomeIcon className="h-[1.2rem] w-[1.2rem]" />
                   <span className="sr-only">Go home</span>
                 </Button>
