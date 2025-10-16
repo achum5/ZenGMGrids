@@ -1318,7 +1318,7 @@ export default function Home() {
                 alt={`${leagueData?.sport || 'Sports'} icon`} 
                 className="w-10 h-10 object-contain header-logo"
               />
-              <h1 className="text-2xl header-title">
+              <h1 className="text-base sm:text-lg md:text-2xl header-title">
                 {leagueData?.sport === 'basketball' && 'Basketball GM Grids'}
                 {leagueData?.sport === 'football' && 'Football GM Grids'}
                 {leagueData?.sport === 'hockey' && 'ZenGM Hockey Grids'}
