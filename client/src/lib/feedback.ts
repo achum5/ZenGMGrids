@@ -1,9 +1,7 @@
 import type { Player, Team } from '@/types/bbgm';
 import { SEASON_ALIGNED_ACHIEVEMENTS, getAllAchievements, getCachedSportDetection } from '@/lib/achievements';
 import { playerMeetsAchievement } from '@/lib/achievements';
-import type { Achievement } from '@/lib/achievements';
-import type { SeasonIndex } from './season-achievements';
-import { SEASON_ACHIEVEMENTS, SeasonAchievementId } from './season-achievements';
+import { SEASON_ACHIEVEMENTS, type SeasonAchievementId } from './season-achievements';
 import { parseAchievementLabel, generateUpdatedLabel, parseCustomAchievementId } from './editable-achievements';
 import {
   getSeasonsForSeasonStatAchievement,
@@ -278,12 +276,6 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     short: '30+ PPG',
     verbTeam: 'averaged 30+ points per game in a season',
     verbGeneric: 'averaged 30+ points per game in a season'
-  },
-  SeasonPPG: {
-    label: 'PPG (Season)',
-    short: 'PPG',
-    verbTeam: 'averaged PPG in a season',
-    verbGeneric: 'averaged PPG in a season'
   },
   Season2000Points: {
     label: '2,000+ Points (Season)',
@@ -876,7 +868,6 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
 
     // All missing Season achievements from LSP errors
     Season30PPG: ['30+ PPG', '30 points per game'],
-    SeasonPPG: ['PPG', 'points per game'],
     Season2000Points: ['2000+ Points', '2000 points'],
     Season200_3PM: ['200+ 3PM', '200 three-pointers'],
     Season12RPG: ['12+ RPG', '12 rebounds per game'],
@@ -1433,216 +1424,6 @@ interface StatInfo {
   type: 'career' | 'season' | 'season_avg';
 }
 
-function getNegativeSeasonStatMessage(player: Player, achievementId: string): string | null {
-  const parsedCustom = parseCustomAchievementId(achievementId);
-  const baseAchievementId = parsedCustom ? parsedCustom.baseId : achievementId;
-  const threshold = parsedCustom?.threshold;
-  const operator = parsedCustom?.operator;
-
-  // Only apply this logic to Season* statistical achievements
-  if (!baseAchievementId.startsWith('Season') || threshold === undefined) {
-    return null;
-  }
-
-  const statInfo = getStatInfoForAchievement(baseAchievementId);
-  if (!statInfo) {
-    return null;
-  }
-
-  let statName = statInfo.name;
-  // For PPG, RPG, APG, SPG, BPG, MPG, remove "in a season" for conciseness in negative feedback
-  if (['PPG', 'RPG', 'APG', 'SPG', 'BPG', 'MPG'].some(s => statName.includes(s))) {
-    statName = statName.replace(' in a season', '');
-  }
-
-  let message: string;
-  if (operator === '≤') {
-    // If the rule was "less than or equal to X", and player failed, they had MORE than X.
-    message = `Never achieved under ${threshold.toLocaleString()} ${statName} in a season`;
-  } else {
-    // If the rule was "greater than or equal to X", and player failed, they had FEWER than ${threshold.toLocaleString()} ${statName} in a season.
-    message = `Never achieved ${threshold.toLocaleString()}+ ${statName} in a season`;
-  }
-
-  return message;
-}
-
-// Helper function to get baseball career stats
-function getBaseballCareerStats(player: Player) {
-  const careerStats = {
-    h: 0, hr: 0, rbi: 0, sb: 0, r: 0, w: 0, soPit: 0, sv: 0,
-  };
-  if (!player.stats) return careerStats;
-  player.stats.forEach((season) => {
-    if (season.playoffs) return;
-    careerStats.h += (season as any).h || 0;
-    careerStats.hr += (season as any).hr || 0;
-    careerStats.rbi += (season as any).rbi || 0;
-    careerStats.sb += (season as any).sb || 0;
-    careerStats.r += (season as any).r || 0;
-    careerStats.w += (season as any).w || 0;
-    careerStats.soPit += (season as any).soPit || 0;
-    careerStats.sv += (season as any).sv || 0;
-  });
-  return careerStats;
-}
-
-// Helper function to get baseball season bests
-function getBaseballSeasonBests(player: Player) {
-  const seasonBests = {
-    hr: { max: 0, year: 0 },
-    rbi: { max: 0, year: 0 },
-    h: { max: 0, year: 0 },
-    sb: { max: 0, year: 0 },
-    w: { max: 0, year: 0 },
-    sv: { max: 0, year: 0 },
-    so: { max: 0, year: 0 },
-    era: { min: Infinity, year: 0 }, // ERA, lower is better
-  };
-  if (!player.stats) return seasonBests;
-  player.stats.forEach((season) => {
-    if (season.playoffs || !season.gp || season.gp < 1) return;
-    const year = season.season;
-    const hr = (season as any).hr || 0;
-    if (hr > seasonBests.hr.max) { seasonBests.hr = { max: hr, year }; }
-    const rbi = (season as any).rbi || 0;
-    if (rbi > seasonBests.rbi.max) { seasonBests.rbi = { max: rbi, year }; }
-    const h = (season as any).h || 0;
-    if (h > seasonBests.h.max) { seasonBests.h = { max: h, year }; }
-    const sb = (season as any).sb || 0;
-    if (sb > seasonBests.sb.max) { seasonBests.sb = { max: sb, year }; }
-    const w = (season as any).w || 0;
-    if (w > seasonBests.w.max) { seasonBests.w = { max: w, year }; }
-    const sv = (season as any).sv || 0;
-    if (sv > seasonBests.sv.max) { seasonBests.sv = { max: sv, year }; }
-    const so = (season as any).soPit || 0;
-    if (so > seasonBests.so.max) { seasonBests.so = { max: so, year }; }
-    const era = (season as any).era || Infinity;
-    if (era < seasonBests.era.min) { seasonBests.era = { min: era, year }; }
-  });
-  return seasonBests;
-}
-
-// Helper function to get football career stats
-function getFootballCareerStats(player: Player) {
-  const careerStats = {
-    pssYds: 0, pssTD: 0, rusYds: 0, rusTD: 0, recYds: 0, recTD: 0, sks: 0, defInt: 0,
-  };
-  if (!player.stats) return careerStats;
-  player.stats.forEach((season) => {
-    if (season.playoffs) return;
-    careerStats.pssYds += (season as any).pssYds || 0;
-    careerStats.pssTD += (season as any).pssTD || 0;
-    careerStats.rusYds += (season as any).rusYds || 0;
-    careerStats.rusTD += (season as any).rusTD || 0;
-    careerStats.recYds += (season as any).recYds || 0;
-    careerStats.recTD += (season as any).recTD || 0;
-    careerStats.sks += (season as any).sks || (season as any).defSk || 0;
-    careerStats.defInt += (season as any).defInt || 0;
-  });
-  return careerStats;
-}
-
-// Helper function to get football season bests
-function getFootballSeasonBests(player: Player) {
-  const seasonBests = {
-    pssYds: { max: 0, year: 0 }, pssTD: { max: 0, year: 0 }, rusYds: { max: 0, year: 0 },
-    rusTD: { max: 0, year: 0 }, recYds: { max: 0, year: 0 }, recTD: { max: 0, year: 0 },
-    sks: { max: 0, year: 0 }, defInt: { max: 0, year: 0 },
-  };
-  if (!player.stats) return seasonBests;
-  player.stats.forEach((season) => {
-    if (season.playoffs || !season.gp || season.gp < 1) return;
-    const year = season.season;
-    const pssYds = (season as any).pssYds || 0;
-    if (pssYds > seasonBests.pssYds.max) { seasonBests.pssYds = { max: pssYds, year }; }
-    const pssTD = (season as any).pssTD || 0;
-    if (pssTD > seasonBests.pssTD.max) { seasonBests.pssTD = { max: pssTD, year }; }
-    const rusYds = (season as any).rusYds || 0;
-    if (rusYds > seasonBests.rusYds.max) { seasonBests.rusYds = { max: rusYds, year }; }
-    const rusTD = (season as any).rusTD || 0;
-    if (rusTD > seasonBests.rusTD.max) { seasonBests.rusTD = { max: rusTD, year }; }
-    const recYds = (season as any).recYds || 0;
-    if (recYds > seasonBests.recYds.max) { seasonBests.recYds = { max: recYds, year }; }
-    const recTD = (season as any).recTD || 0;
-    if (recTD > seasonBests.recTD.max) { seasonBests.recTD = { max: recTD, year }; }
-    const sks = (season as any).sks || (season as any).defSk || 0;
-    if (sks > seasonBests.sks.max) { seasonBests.sks = { max: sks, year }; }
-    const defInt = (season as any).defInt || 0;
-    if (defInt > seasonBests.defInt.max) { seasonBests.defInt = { max: defInt, year }; }
-  });
-  return seasonBests;
-}
-
-// Helper function to get hockey career stats
-function getHockeyCareerStats(player: Player) {
-  const careerStats = {
-    g: 0, a: 0, pts: 0, w: 0, so: 0,
-  };
-  if (!player.stats) return careerStats;
-  player.stats.forEach((season) => {
-    if (season.playoffs) return;
-    careerStats.g += (season as any).g || 0;
-    careerStats.a += (season as any).a || 0;
-    careerStats.pts += (season as any).pts || 0;
-    careerStats.w += (season as any).gW || 0; // Goalie wins
-    careerStats.so += (season as any).so || 0; // Shutouts
-  });
-  return careerStats;
-}
-
-// Helper function to get hockey season bests
-function getHockeySeasonBests(player: Player) {
-  const seasonBests = {
-    g: { max: 0, year: 0 }, a: { max: 0, year: 0 }, pts: { max: 0, year: 0 },
-    pm: { max: 0, year: 0 }, s: { max: 0, year: 0 }, hit: { max: 0, year: 0 },
-    blk: { max: 0, year: 0 }, tk: { max: 0, year: 0 }, powerPlayPoints: { max: 0, year: 0 },
-    shG: { max: 0, year: 0 }, gwG: { max: 0, year: 0 }, faceoffPct: { max: 0, year: 0 },
-    toiPerGame: { max: 0, year: 0 }, pim: { max: 0, year: 0 }, savePct: { max: 0, year: 0 },
-    gaaRate: { min: Infinity, year: 0 }, gs: { max: 0, year: 0 },
-  };
-  if (!player.stats) return seasonBests;
-  player.stats.forEach((season) => {
-    if (season.playoffs || !season.gp || season.gp < 1) return;
-    const year = season.season;
-    const g = (season as any).g || 0;
-    if (g > seasonBests.g.max) { seasonBests.g = { max: g, year }; }
-    const a = (season as any).a || 0;
-    if (a > seasonBests.a.max) { seasonBests.a = { max: a, year }; }
-    const pts = (season as any).pts || 0;
-    if (pts > seasonBests.pts.max) { seasonBests.pts = { max: pts, year }; }
-    const pm = (season as any).pm || 0;
-    if (pm > seasonBests.pm.max) { seasonBests.pm = { max: pm, year }; }
-    const s = (season as any).s || 0;
-    if (s > seasonBests.s.max) { seasonBests.s = { max: s, year }; }
-    const hit = (season as any).hit || 0;
-    if (hit > seasonBests.hit.max) { seasonBests.hit = { max: hit, year }; }
-    const blk = (season as any).blk || 0;
-    if (blk > seasonBests.blk.max) { seasonBests.blk = { max: blk, year }; }
-    const tk = (season as any).tk || 0;
-    if (tk > seasonBests.tk.max) { seasonBests.tk = { max: tk, year }; }
-    const powerPlayPoints = ((season as any).ppG || 0) + ((season as any).ppA || 0);
-    if (powerPlayPoints > seasonBests.powerPlayPoints.max) { seasonBests.powerPlayPoints = { max: powerPlayPoints, year }; }
-    const shG = (season as any).shG || 0;
-    if (shG > seasonBests.shG.max) { seasonBests.shG = { max: shG, year }; }
-    const gwG = (season as any).gwG || 0;
-    if (gwG > seasonBests.gwG.max) { seasonBests.gwG = { max: gwG, year }; }
-    const faceoffPct = ((season as any).fow || 0) / (((season as any).fow || 0) + ((season as any).fol || 0)) || 0;
-    if (faceoffPct > seasonBests.faceoffPct.max) { seasonBests.faceoffPct = { max: faceoffPct, year }; }
-    const toiPerGame = (season as any).min / season.gp || 0;
-    if (toiPerGame > seasonBests.toiPerGame.max) { seasonBests.toiPerGame = { max: toiPerGame, year }; }
-    const pim = (season as any).pim || 0;
-    if (pim > seasonBests.pim.max) { seasonBests.pim = { max: pim, year }; }
-    const savePct = ((season as any).sv || 0) / ((season as any).sa || 1) || 0;
-    if (savePct > seasonBests.savePct.max) { seasonBests.savePct = { max: savePct, year }; }
-    const gaaRate = ((season as any).ga || 0) / season.gp * 60 || Infinity; // Goals against average per 60 minutes
-    if (gaaRate < seasonBests.gaaRate.min) { seasonBests.gaaRate = { min: gaaRate, year }; }
-    const gs = (season as any).gs || 0;
-    if (gs > seasonBests.gs.max) { seasonBests.gs = { max: gs, year }; }
-  });
-  return seasonBests;
-}
-
 function getStatInfoForAchievement(baseId: string): StatInfo | null {
     console.log('getStatInfoForAchievement called with:', baseId);
     const statMap: Record<string, StatInfo> = {
@@ -1787,20 +1568,21 @@ function getNegativeMessageForCustomAchievement(player: Player, achievementId: s
       const seasonBests = getBaseballSeasonBests(player);
       if (statInfo.type === 'career') {
         actualValue = careerStats[statInfo.key as keyof typeof careerStats];
-              } else if (statInfo.type === 'season_avg') {
-                // For ERA, lower is better, so we need to get the min
-                if (statInfo.key === 'era') {
-                  actualValue = seasonBests.era.min;
-                  year = seasonBests.era.year;
-          } else {
-            const best = (seasonBests as any)[statInfo.key];
-            actualValue = best && 'max' in best ? best.max : best?.min;
-            year = best?.year;
-          }
-        } else if (statInfo.type === 'season') {
-          const best = (seasonBests as any)[statInfo.key];
-          actualValue = best && 'max' in best ? best.max : best?.min;
-          year = best?.year;
+      } else if (statInfo.type === 'season_avg') {
+        // For ERA, lower is better, so we need to get the min
+        if (statInfo.key === 'era') {
+          actualValue = seasonBests.era.min;
+          year = seasonBests.era.year;
+        } else {
+          const best = seasonBests[statInfo.key as keyof typeof seasonBests];
+          actualValue = 'max' in best ? best.max : best.min;
+          year = best.year;
+        }
+      } else if (statInfo.type === 'season') {
+        const best = seasonBests[statInfo.key as keyof typeof seasonBests];
+        actualValue = 'max' in best ? best.max : best.min;
+        year = best.year;
+      }
     }
 
     if (actualValue !== undefined) {
@@ -1983,12 +1765,7 @@ export function generateFeedbackMessage(
       const teamName = teams.find(t => t.tid === rowConstraint.tid)?.name || "this team";
       feedback.push(`${achievementLabel}${achievementDetails?.years ? ` (${achievementDetails.years})` : ""} (never with the ${teamName})`);
     } else {
-      const negativeSeasonStatMessage = getNegativeSeasonStatMessage(player, achievementId);
-      if (negativeSeasonStatMessage) {
-        feedback.push(negativeSeasonStatMessage);
-      } else {
-        feedback.push(`Did not achieve: ${achievementLabel}`);
-      }
+      feedback.push(`Did not achieve: ${achievementLabel}`);
     }
   } else {
     // Fallback for if col is a team (shouldn't happen based on grid structure, but for safety)
@@ -2384,7 +2161,6 @@ function getAchievementDetails(
   }
 
   return { value, years, label: baseLabel, isPlural, isAverage };
-}
 }
 
 // Helper to generate a natural language phrase for a single constraint

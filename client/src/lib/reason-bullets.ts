@@ -896,6 +896,7 @@ function getCareerStatInfo(player: Player, achievementId: string): { value: numb
     // Hockey
     'careerGoals': { field: 'g', label: 'Goals' },
     'careerHockeyPoints': { field: 'points', label: 'Points' },
+    'careerAssists': { field: 'a', label: 'Assists' },
     'careerWinsG': { field: 'gw', label: 'Wins (G)' },
     'careerShutoutsG': { field: 'so', label: 'Shutouts (G)' },
     
