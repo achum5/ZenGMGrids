@@ -6,7 +6,10 @@ import { getCachedSeasonIndex } from './season-index-cache';
 
 import { normalizeLeague, type Sport } from './league-normalizer';
 
-export function parseLeagueFile(file: File): Promise<LeagueData & { sport: Sport }> {
+export function parseLeagueFile(
+  file: File,
+  onProgress?: (message: string, loaded?: number, total?: number) => void
+): Promise<LeagueData & { sport: Sport }> {
   return new Promise((resolve, reject) => {
     console.log(`[MAIN] Creating worker for file: ${file.name}`);
     
@@ -16,9 +19,11 @@ export function parseLeagueFile(file: File): Promise<LeagueData & { sport: Sport
     });
 
     worker.onmessage = (event) => {
-      const { type, leagueData, error } = event.data;
+      const { type, leagueData, error, message, loaded, total } = event.data;
       
-      if (type === 'complete') {
+      if (type === 'progress') {
+        onProgress?.(message, loaded, total);
+      } else if (type === 'complete') {
         console.log('[MAIN] Worker finished successfully.');
         worker.terminate();
         resolve(leagueData);

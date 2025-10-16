@@ -8,9 +8,14 @@ interface UploadSectionProps {
   onFileUpload: (file: File) => void;
   onUrlUpload: (url: string) => void;
   isProcessing: boolean;
+  uploadProgress?: {
+    message: string;
+    loaded?: number;
+    total?: number;
+  } | null;
 }
 
-export function UploadSection({ onFileUpload, onUrlUpload, isProcessing }: UploadSectionProps) {
+export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadProgress }: UploadSectionProps) {
   const [urlInput, setUrlInput] = useState('');
   const [urlError, setUrlError] = useState('');
 
@@ -154,6 +159,30 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing }: Uploa
               </div>
             </div>
           </div>
+          
+          {/* Progress Bar */}
+          {uploadProgress && (
+            <div className="mt-6 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">{uploadProgress.message}</span>
+                {uploadProgress.loaded !== undefined && uploadProgress.total !== undefined && (
+                  <span className="text-muted-foreground">
+                    {((uploadProgress.loaded / uploadProgress.total) * 100).toFixed(0)}%
+                  </span>
+                )}
+              </div>
+              {uploadProgress.loaded !== undefined && uploadProgress.total !== undefined && (
+                <div className="w-full bg-secondary rounded-full h-2.5 overflow-hidden">
+                  <div
+                    className="bg-primary h-2.5 rounded-full transition-all duration-300"
+                    style={{
+                      width: `${(uploadProgress.loaded / uploadProgress.total) * 100}%`
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

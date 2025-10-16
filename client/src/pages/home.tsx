@@ -96,6 +96,13 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoadingCustomIntersection, setIsLoadingCustomIntersection] = useState(false);
+  
+  // Progress tracking for file uploads
+  const [uploadProgress, setUploadProgress] = useState<{
+    message: string;
+    loaded?: number;
+    total?: number;
+  } | null>(null);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [currentCellKey, setCurrentCellKey] = useState<string | null>(null);
   const [playerModalOpen, setPlayerModalOpen] = useState(false);
@@ -436,10 +443,13 @@ export default function Home() {
 
   const handleFileUpload = useCallback(async (file: File) => {
     setIsProcessing(true);
+    setUploadProgress({ message: 'Starting...', loaded: 0, total: file.size });
     
     try {
-      // Parse the league file
-      const data = await parseLeagueFile(file);
+      // Parse the league file with progress tracking
+      const data = await parseLeagueFile(file, (message, loaded, total) => {
+        setUploadProgress({ message, loaded, total });
+      });
       await processLeagueData(data);
       
     } catch (error) {
@@ -451,6 +461,7 @@ export default function Home() {
       });
     } finally {
       setIsProcessing(false);
+      setUploadProgress(null);
     }
   }, [toast]);
 
@@ -1289,6 +1300,7 @@ export default function Home() {
             onFileUpload={handleFileUpload}
             onUrlUpload={handleUrlUpload}
             isProcessing={isProcessing}
+            uploadProgress={uploadProgress}
           />
         </main>
       </div>
