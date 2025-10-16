@@ -3,8 +3,9 @@ import { JSONParser } from '@streamparser/json-whatwg';
 import { normalizeLeague, type Sport } from './league-normalizer';
 import type { LeagueData } from '@/types/bbgm';
 
-// File size threshold for streaming (10MB)
-const STREAMING_THRESHOLD = 10 * 1024 * 1024;
+// File size threshold for streaming - only for truly massive files (100MB compressed)
+// Most files will use the fast traditional method
+const STREAMING_THRESHOLD = 100 * 1024 * 1024;
 
 // Helper to post progress messages
 const postProgress = (message: string, loaded?: number, total?: number) => {
