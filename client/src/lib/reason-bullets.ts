@@ -160,7 +160,6 @@ function getStatFieldForAchievement(achievementId: SeasonAchievementId): string 
     Season10APG: 'ast',
     Season800Rebounds: 'trb',
     Season700Assists: 'ast',
-    SeasonPassingYards: 'passY',
     Season2SPG: 'stl',
     Season2_5BPG: 'blk',
     Season150Steals: 'stl',
@@ -215,7 +214,6 @@ export function getSeasonsForSeasonStatAchievement(player: Player, achievementId
     const fta = stat.fta || 0;
     const ft = stat.ft || 0;
     const fg = stat.fg || 0;
-    const passY = stat.passY || 0; // Passing Yards
     
     // Helper for dynamic comparison
     const check = (value: number, threshold: number, operator: '≥' | '≤') => {
@@ -249,9 +247,6 @@ export function getSeasonsForSeasonStatAchievement(player: Player, achievementId
         break;
       case 'Season700Assists':
         if (check(ast, customThreshold !== undefined ? customThreshold : 700, customOperator || '≥')) qualifyingSeasons.push(season);
-        break;
-      case 'SeasonPassingYards':
-        if (gp >= minGames && check(passY, customThreshold !== undefined ? customThreshold : parseFloat((achLabel.replace(/,/g, '')).match(/\d+\.?\d*/)?.[0] || '0'), customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'Season2SPG':
         if (gp >= minGames && check(stl / gp, customThreshold !== undefined ? customThreshold : 2.0, customOperator || '≥')) qualifyingSeasons.push(season);
@@ -774,8 +769,8 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
   
   if (seasons.length === 0) {
     // Handle specific messages for statistical season achievements when not met
-    if (baseAchievementId.startsWith('Season') && (baseAchievementId.includes('PPG') || baseAchievementId.includes('RPG') || baseAchievementId.includes('APG') || baseAchievementId.includes('SPG') || baseAchievementId.includes('BPG') || baseAchievementId.includes('MPG') || baseAchievementId.includes('Points') || baseAchievementId.includes('3PM') || baseAchievementId.includes('Assists') || baseAchievementId.includes('Steals') || baseAchievementId.includes('Blocks') || baseAchievementId.includes('Stocks') || baseAchievementId.includes('PPGRPG') || baseAchievementId.includes('PPGRPGAPG') || baseAchievementId.includes('SPGBPG3PMG') || baseAchievementId.includes('PassingYards'))) {
-      const threshold = customThreshold !== undefined ? customThreshold : parseFloat((achLabel.replace(/,/g, '')).match(/\d+\.?\d*/)?.[0] || '0');
+    if (baseAchievementId.startsWith('Season') && (baseAchievementId.includes('PPG') || baseAchievementId.includes('RPG') || baseAchievementId.includes('APG') || baseAchievementId.includes('SPG') || baseAchievementId.includes('BPG') || baseAchievementId.includes('MPG') || baseAchievementId.includes('Points') || baseAchievementId.includes('3PM') || baseAchievementId.includes('Assists') || baseAchievementId.includes('Steals') || baseAchievementId.includes('Blocks') || baseAchievementId.includes('Stocks') || baseAchievementId.includes('PPGRPG') || baseAchievementId.includes('PPGRPGAPG') || baseAchievementId.includes('SPGBPG3PMG'))) {
+      const threshold = customThreshold !== undefined ? customThreshold : parseFloat(achLabel.match(/\d+\.?\d*/)?.[0] || '0');
       const formattedThreshold = formatNumber(threshold); // Format the number with commas
       const operator = customOperator || '≥';
       let statName = '';
@@ -802,9 +797,6 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
         verb = 'averaged';
       } else if (baseAchievementId.includes('Points')) {
         statName = 'points';
-        verb = 'had';
-      } else if (baseAchievementId.includes('PassingYards')) {
-        statName = 'passing yards';
         verb = 'had';
       } else if (baseAchievementId.includes('Steals')) {
         statName = 'steals';
@@ -878,9 +870,6 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
             type: 'award'
           };
         }
-      } else if (baseAchievementId.includes('PassingYards')) {
-        statName = 'passing yards';
-        verb = 'had';
       } else if (baseAchievementId.includes('3PM')) {
         statName = '3-pointers';
         verb = 'hit';
