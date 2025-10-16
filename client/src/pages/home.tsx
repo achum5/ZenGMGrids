@@ -1246,7 +1246,7 @@ export default function Home() {
           style={{ position: 'relative' }}
         >
           <div className="max-w-6xl mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
+            <div className="relative flex items-center justify-start md:justify-center">
               <div className="flex items-center space-x-3">
                 <img 
                   src={zengmGridsLogo}
@@ -1255,7 +1255,7 @@ export default function Home() {
                 />
                 <h1 className="text-2xl font-bold text-foreground">ZenGM Grids</h1>
               </div>
-              <div className="flex items-center space-x-3">
+              <div className="absolute right-0 flex items-center space-x-3">
                 <div>
                   <RulesModal />
                 </div>
@@ -1285,7 +1285,7 @@ export default function Home() {
         style={{ position: 'relative' }}
       >
         <div className="max-w-6xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+          <div className="relative flex items-center justify-start md:justify-center">
             <div className="flex items-center space-x-3">
               <img 
                 src={
@@ -1305,7 +1305,7 @@ export default function Home() {
                 {leagueData?.sport === 'baseball' && 'ZenGM Baseball Grids'}
               </h1>
             </div>
-            <div className="flex items-center space-x-1">
+            <div className="absolute right-0 flex items-center space-x-1">
               <div>
                 <RulesModal sport={leagueData?.sport} />
               </div>
