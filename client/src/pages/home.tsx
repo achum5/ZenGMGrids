@@ -1251,7 +1251,7 @@ export default function Home() {
                 <img 
                   src={zengmGridsLogo}
                   alt="ZenGM Grids logo with Basketball, Football, Hockey, and Baseball icons" 
-                  className="w-12 h-12 object-contain"
+                  className="w-12 h-12 object-contain header-logo"
                 />
                 <h1 className="text-2xl header-title">ZenGM Grids</h1>
               </div>
@@ -1296,7 +1296,7 @@ export default function Home() {
                   zengmGridsLogo
                 }
                 alt={`${leagueData?.sport || 'Sports'} icon`} 
-                className="w-10 h-10 object-contain"
+                className="w-10 h-10 object-contain header-logo"
               />
               <h1 className="text-2xl header-title">
                 {leagueData?.sport === 'basketball' && 'Basketball GM Grids'}

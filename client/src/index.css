@@ -280,6 +280,58 @@
       filter: drop-shadow(0 0 12px rgba(70, 166, 255, 0.5)) drop-shadow(0 2px 4px rgba(15, 23, 42, 0.8));
     }
   }
+  
+  /* Header logo styling - animated neon glow matching the text */
+  .header-logo {
+    animation: logo-neon-glow 18s linear infinite;
+  }
+  
+  @keyframes logo-neon-glow {
+    0%, 100% {
+      filter: 
+        drop-shadow(0 0 8px rgba(41, 255, 198, 0.6))
+        drop-shadow(0 0 16px rgba(41, 255, 198, 0.3));
+    }
+    33% {
+      filter: 
+        drop-shadow(0 0 8px rgba(70, 166, 255, 0.6))
+        drop-shadow(0 0 16px rgba(70, 166, 255, 0.3));
+    }
+    66% {
+      filter: 
+        drop-shadow(0 0 8px rgba(183, 33, 255, 0.6))
+        drop-shadow(0 0 16px rgba(183, 33, 255, 0.3));
+    }
+  }
+  
+  .dark .header-logo {
+    animation: logo-neon-glow-dark 18s linear infinite;
+  }
+  
+  @keyframes logo-neon-glow-dark {
+    0%, 100% {
+      filter: 
+        drop-shadow(0 0 12px rgba(41, 255, 198, 0.7))
+        drop-shadow(0 0 20px rgba(41, 255, 198, 0.4));
+    }
+    33% {
+      filter: 
+        drop-shadow(0 0 12px rgba(70, 166, 255, 0.7))
+        drop-shadow(0 0 20px rgba(70, 166, 255, 0.4));
+    }
+    66% {
+      filter: 
+        drop-shadow(0 0 12px rgba(183, 33, 255, 0.7))
+        drop-shadow(0 0 20px rgba(183, 33, 255, 0.4));
+    }
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+    .header-logo {
+      animation: none;
+      filter: drop-shadow(0 0 8px rgba(70, 166, 255, 0.5));
+    }
+  }
 }
 
 @keyframes popIn {
