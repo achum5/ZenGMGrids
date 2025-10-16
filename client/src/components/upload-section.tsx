@@ -62,10 +62,10 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing }: Uploa
     <div className="text-center">
       <Card className="mb-8 border-0 shadow-none bg-transparent">
         <CardContent className="p-8">
-          <div className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* File Upload Section */}
             <div 
-              className="upload-dropzone border-2 border-dashed border-border rounded-lg p-12 hover:border-primary hover:bg-primary/5 dark:hover:bg-primary/10 transition-all"
+              className="upload-dropzone border-2 border-dashed border-border rounded-lg p-8 hover:border-primary hover:bg-primary/5 dark:hover:bg-primary/10 transition-all"
               onDrop={handleDrop}
               onDragOver={handleDragOver}
               data-testid="upload-dropzone"
@@ -101,11 +101,11 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing }: Uploa
             </div>
             
             {/* URL Upload Section */}
-            <div className="border-2 border-dashed border-border rounded-lg p-12">
+            <div className="border-2 border-dashed border-border rounded-lg p-8">
               <div className="flex flex-col items-center space-y-4">
                 <Link className="h-12 w-12 text-muted-foreground" />
                 <h3 className="text-lg font-semibold text-foreground">Load a ZenGM League from URL</h3>
-                <div className="w-full max-w-md space-y-2">
+                <div className="w-full space-y-2">
                   <div className="flex gap-2">
                     <Input
                       type="url"
