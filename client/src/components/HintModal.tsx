@@ -343,23 +343,14 @@ export function HintModal({
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent 
-        className="max-w-4xl w-full h-[80vh] flex flex-col p-0 gap-0 bg-card [&>button]:hidden"
+        className="max-w-4xl w-full h-[80vh] flex flex-col p-0 gap-0 bg-card"
       >
         <DialogTitle className="sr-only">Hint Mode</DialogTitle>
         <DialogDescription className="sr-only">Select a player that matches both constraints</DialogDescription>
         {/* Header */}
-        <div className="flex-none p-4 border-b border-border/20">
+        <div className="flex-none p-4">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-3xl font-bold text-foreground text-center w-full">Hint Mode</h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="text-muted-foreground hover:text-foreground hover:bg-muted"
-              data-testid="button-close-hint"
-            >
-              <X className="w-4 h-4" />
-            </Button>
           </div>
           
           {/* Constraints side by side - compact but prominent */}
@@ -372,6 +363,9 @@ export function HintModal({
             </div>
           </div>
         </div>
+        
+        {/* Animated rainbow border separator */}
+        <div className="rainbow-border h-[2px] mx-4" />
 
         {/* Main content */}
         <div className="flex-1 p-6 overflow-y-auto bg-background">
