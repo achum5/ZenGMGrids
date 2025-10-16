@@ -41,29 +41,31 @@ async function parseFileStreaming(file: File): Promise<any> {
   
   if (isCompressed) {
     // For large compressed files: stream decompress, accumulate text, parse once
-    // This avoids the slow streaming JSON parser while handling memory efficiently
     const reader = stream.getReader();
     const decompressedChunks: string[] = [];
     const inflator = new pako.Inflate();
+    let decompressedSize = 0;
     
-    // Override onData to collect decompressed chunks
+    // Override onData to collect decompressed chunks and track size
     inflator.onData = (chunk: Uint8Array) => {
       const text = new TextDecoder('utf-8').decode(chunk);
       decompressedChunks.push(text);
+      decompressedSize += text.length;
     };
     
     // Disable automatic result accumulation
     inflator.onEnd = () => {};
     
     try {
-      // Read and decompress file in chunks
+      // Phase 1: Read and decompress (0-80% of progress)
       while (true) {
         const { done, value } = await reader.read();
         
         if (done) break;
         
         bytesRead += value.byteLength;
-        postProgress('Decompressing...', bytesRead, totalBytes);
+        const readProgress = (bytesRead / totalBytes) * 0.8; // 0-80%
+        postProgress('Decompressing...', readProgress * 100, 100);
         
         // Decompress chunk
         inflator.push(value, false);
@@ -80,10 +82,16 @@ async function parseFileStreaming(file: File): Promise<any> {
         throw new Error(`Decompression error: ${inflator.msg || 'Unknown error'}`);
       }
       
-      // Join all decompressed chunks and parse JSON once
-      postProgress('Parsing JSON...', totalBytes, totalBytes);
+      // Phase 2: Join strings (80-90%)
+      postProgress('Assembling data...', 85, 100);
       const decompressedText = decompressedChunks.join('');
-      return JSON.parse(decompressedText);
+      
+      // Phase 3: Parse JSON (90-100%)
+      postProgress('Parsing JSON...', 95, 100);
+      const result = JSON.parse(decompressedText);
+      
+      postProgress('Complete', 100, 100);
+      return result;
       
     } finally {
       reader.releaseLock();
@@ -95,13 +103,15 @@ async function parseFileStreaming(file: File): Promise<any> {
     const decoder = new TextDecoder('utf-8');
     
     try {
+      // Phase 1: Read file (0-80%)
       while (true) {
         const { done, value } = await reader.read();
         
         if (done) break;
         
         bytesRead += value.byteLength;
-        postProgress('Reading file...', bytesRead, totalBytes);
+        const readProgress = (bytesRead / totalBytes) * 0.8; // 0-80%
+        postProgress('Reading file...', readProgress * 100, 100);
         
         const text = decoder.decode(value, { stream: true });
         textChunks.push(text);
@@ -110,10 +120,16 @@ async function parseFileStreaming(file: File): Promise<any> {
       // Final decode
       textChunks.push(decoder.decode());
       
-      // Parse JSON
-      postProgress('Parsing JSON...', totalBytes, totalBytes);
+      // Phase 2: Join strings (80-90%)
+      postProgress('Assembling data...', 85, 100);
       const fullText = textChunks.join('');
-      return JSON.parse(fullText);
+      
+      // Phase 3: Parse JSON (90-100%)
+      postProgress('Parsing JSON...', 95, 100);
+      const result = JSON.parse(fullText);
+      
+      postProgress('Complete', 100, 100);
+      return result;
       
     } finally {
       reader.releaseLock();
