@@ -89,28 +89,32 @@ async function parseFileStreaming(file: File): Promise<any> {
       reader.releaseLock();
     }
   } else {
-    // For uncompressed files, use streaming JSON parser
-    const jsonStream = stream.pipeThrough(new JSONParser());
-    const reader = jsonStream.getReader();
+    // For large uncompressed files, stream read and accumulate
+    const reader = stream.getReader();
+    const textChunks: string[] = [];
+    const decoder = new TextDecoder('utf-8');
     
     try {
-      let parsedData: any = null;
-      
       while (true) {
         const { done, value } = await reader.read();
         
-        if (done) {
-          if (parsedData === null) {
-            throw new Error('No JSON data found in file');
-          }
-          return parsedData;
-        }
+        if (done) break;
         
-        // The parser emits parsed JSON chunks
-        parsedData = value.value;
-        bytesRead += JSON.stringify(value).length; // Approximate
-        postProgress('Parsing JSON...', bytesRead, totalBytes);
+        bytesRead += value.byteLength;
+        postProgress('Reading file...', bytesRead, totalBytes);
+        
+        const text = decoder.decode(value, { stream: true });
+        textChunks.push(text);
       }
+      
+      // Final decode
+      textChunks.push(decoder.decode());
+      
+      // Parse JSON
+      postProgress('Parsing JSON...', totalBytes, totalBytes);
+      const fullText = textChunks.join('');
+      return JSON.parse(fullText);
+      
     } finally {
       reader.releaseLock();
     }
