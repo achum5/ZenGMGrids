@@ -769,7 +769,7 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
   
   if (seasons.length === 0) {
     // Handle specific messages for statistical season achievements when not met
-    if (baseAchievementId.startsWith('Season') && (baseAchievementId.includes('PPG') || baseAchievementId.includes('RPG') || baseAchievementId.includes('APG') || baseAchievementId.includes('SPG') || baseAchievementId.includes('BPG') || baseAchievementId.includes('MPG') || baseAchievementId.includes('Points') || baseAchievementId.includes('3PM') || baseAchievementId.includes('Assists') || baseAchievementId.includes('Steals') || baseAchievementId.includes('Blocks') || baseAchievementId.includes('Stocks') || baseAchievementId.includes('PPGRPG') || baseAchievementId.includes('PPGRPGAPG') || baseAchievementId.includes('SPGBPG3PMG'))) {
+    if (baseAchievementId.startsWith('Season') && (baseAchievementId.includes('PPG') || baseAchievementId.includes('RPG') || baseAchievementId.includes('APG') || baseAchievementId.includes('SPG') || baseAchievementId.includes('BPG') || baseAchievementId.includes('MPG') || baseAchievementId.includes('Points') || baseAchievementId.includes('3PM') || baseAchievementId.includes('Assists') || baseAchievementId.includes('Steals') || baseAchievementId.includes('Blocks') || baseAchievementId.includes('Stocks') || baseAchievementId.includes('PPGRPG') || baseAchievementId.includes('PPGRPGAPG') || baseAchievementId.includes('SPGBPG3PMG') || baseAchievementId.includes('PassYds'))) {
       const threshold = customThreshold !== undefined ? customThreshold : parseFloat(achLabel.match(/\d+\.?\d*/)?.[0] || '0');
       const formattedThreshold = formatNumber(threshold); // Format the number with commas
       const operator = customOperator || '≥';
@@ -873,8 +873,8 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
       } else if (baseAchievementId.includes('3PM')) {
         statName = '3-pointers';
         verb = 'hit';
-      } else if (baseAchievementId.includes('Assists')) {
-        statName = 'assists';
+      } else if (baseAchievementId.includes('PassYds')) {
+        statName = 'passing yards';
         verb = 'had';
       } else {
         // Fallback for other statistical achievements if needed
