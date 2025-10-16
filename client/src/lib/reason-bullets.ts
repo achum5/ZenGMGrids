@@ -930,13 +930,22 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
         statName = 'receptions';
         verb = 'had';
       } else if (baseAchievementId.includes('PassTD')) {
-        statName = 'passing TDs';
-        verb = 'threw';
+        statName = 'passing TD';
+        verb = 'had';
       } else if (baseAchievementId.includes('RushTD')) {
-        statName = 'rushing TDs';
+        statName = 'rushing TD';
         verb = 'had';
       } else if (baseAchievementId.includes('RecTD')) {
-        statName = 'receiving TDs';
+        statName = 'receiving TD';
+        verb = 'had';
+      } else if (baseAchievementId.includes('Scrimmage')) {
+        statName = 'yards from scrimmage';
+        verb = 'had';
+      } else if (baseAchievementId.includes('AllPurpose')) {
+        statName = 'all-purpose yards';
+        verb = 'had';
+      } else if (baseAchievementId.includes('TFL')) {
+        statName = 'tackles for loss';
         verb = 'had';
       } else if (baseAchievementId.includes('Sacks')) {
         statName = 'sacks';
