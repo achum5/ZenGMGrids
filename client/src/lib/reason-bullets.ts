@@ -167,7 +167,19 @@ function getStatFieldForAchievement(achievementId: SeasonAchievementId): string 
     Season200Stocks: ['stl', 'blk'], // Combined
     Season70Games: 'gp',
     Season36MPG: 'min',
-    // Note: Combo and percentage achievements are not simple fields and are excluded here
+    
+    // Football GM Season achievements
+    FBSeason4kPassYds: 'pssYds',
+    FBSeason1200RushYds: 'rusYds',
+    FBSeason100Receptions: 'rec',
+    FBSeason15Sacks: 'defSk',
+    FBSeason5Interceptions: 'defInt',
+    FBSeason30PassTD: 'pssTD',
+    FBSeason1300RecYds: 'recYds',
+    FBSeason10RecTD: 'recTD',
+    FBSeason12RushTD: 'rusTD',
+    FBSeason15TFL: 'defTckLoss',
+    // Note: Combo achievements like Scrimmage and AllPurpose are excluded as they're not simple fields
   };
   return map[achievementId] || null;
 }
@@ -311,14 +323,46 @@ export function getSeasonsForSeasonStatAchievement(player: Player, achievementId
         if (gp >= minGames && check(stl / gp, customThreshold !== undefined ? customThreshold : 1, customOperator || '≥') && check(blk / gp, customThreshold !== undefined ? customThreshold : 1, customOperator || '≥') && check(tp / gp, customThreshold !== undefined ? customThreshold : 1, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
         
-      // Football GM Season achievements would go here
+      // Football GM Season achievements
       case 'FBSeason4kPassYds':
         if (check((stat as any).pssYds, customThreshold !== undefined ? customThreshold : 4000, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       case 'FBSeason1200RushYds':
-        if (check((stat as any).rushYds, customThreshold !== undefined ? customThreshold : 1200, customOperator || '≥')) qualifyingSeasons.push(season);
+        if (check((stat as any).rusYds, customThreshold !== undefined ? customThreshold : 1200, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
-      // Add more FB achievements as needed...
+      case 'FBSeason100Receptions':
+        if (check((stat as any).rec, customThreshold !== undefined ? customThreshold : 100, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      case 'FBSeason15Sacks':
+        if (check((stat as any).defSk, customThreshold !== undefined ? customThreshold : 15, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      case 'FBSeason140Tackles':
+        if (check(((stat as any).defTckSolo || 0) + ((stat as any).defTckAst || 0), customThreshold !== undefined ? customThreshold : 140, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      case 'FBSeason5Interceptions':
+        if (check((stat as any).defInt, customThreshold !== undefined ? customThreshold : 5, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      case 'FBSeason30PassTD':
+        if (check((stat as any).pssTD, customThreshold !== undefined ? customThreshold : 30, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      case 'FBSeason1300RecYds':
+        if (check((stat as any).recYds, customThreshold !== undefined ? customThreshold : 1300, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      case 'FBSeason10RecTD':
+        if (check((stat as any).recTD, customThreshold !== undefined ? customThreshold : 10, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      case 'FBSeason12RushTD':
+        if (check((stat as any).rusTD, customThreshold !== undefined ? customThreshold : 12, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      case 'FBSeason1600Scrimmage':
+        if (check(((stat as any).rusYds || 0) + ((stat as any).recYds || 0), customThreshold !== undefined ? customThreshold : 1600, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      case 'FBSeason2000AllPurpose':
+        if (check(((stat as any).rusYds || 0) + ((stat as any).recYds || 0) + ((stat as any).prYds || 0) + ((stat as any).krYds || 0), customThreshold !== undefined ? customThreshold : 2000, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      case 'FBSeason15TFL':
+        if (check((stat as any).defTckLoss, customThreshold !== undefined ? customThreshold : 15, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
         
       // Hockey GM Season achievements would go here  
       // Add HK achievements as needed...
@@ -386,8 +430,8 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
 
   }
 
-  // Handle Season* statistical achievements by calculating from stats
-  if (baseAchievementId.startsWith('Season')) {
+  // Handle Season* and FBSeason* statistical achievements by calculating from stats
+  if (baseAchievementId.startsWith('Season') || baseAchievementId.startsWith('FBSeason')) {
     // Need to get the minGames from the original achievement definition
     const allAchievements = getAllAchievements(sport as any);
     const baseAchievement = allAchievements.find(ach => ach.id === baseAchievementId);
