@@ -349,7 +349,7 @@ export function GridSection({
   return (
     <div className="space-y-6">
       {/* Top buttons container - aligned with grid width */}
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto px-3 md:px-6">
         <div className="flex items-center justify-between">
           {/* Left button: Give Up or Retry This Grid */}
           {isGridComplete || giveUpPressed ? (
@@ -788,7 +788,7 @@ export function GridSection({
       </Card>
       
       {/* Bottom buttons container - aligned with grid width */}
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto px-3 md:px-6">
         <div className="grid grid-cols-3 items-center">
         {/* Share/Import Grid button (left) */}
         <div className="flex justify-start">
