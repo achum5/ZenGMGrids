@@ -81,7 +81,7 @@ async function parseFileStreaming(file: File): Promise<any> {
     
     const reader = jsonStream.getReader();
     let parsedData: any = null;
-    let lastProgress = 0;
+    let chunkCount = 0;
     
     try {
       while (true) {
@@ -97,12 +97,12 @@ async function parseFileStreaming(file: File): Promise<any> {
         
         // The parser emits parsed JSON chunks
         parsedData = value.value;
+        chunkCount++;
         
-        // Update progress less frequently to avoid slowdown
-        const newProgress = Math.min(lastProgress + 0.1, 99);
-        if (newProgress >= lastProgress + 1) {
-          postProgress('Processing large file...', newProgress, 100);
-          lastProgress = newProgress;
+        // Update progress every 1000 chunks to avoid slowdown
+        if (chunkCount % 1000 === 0) {
+          const progress = Math.min(10 + (chunkCount / 500), 99);
+          postProgress('Processing large file...', progress, 100);
         }
       }
     } finally {
@@ -113,7 +113,7 @@ async function parseFileStreaming(file: File): Promise<any> {
     const jsonStream = stream.pipeThrough(new JSONParser());
     const reader = jsonStream.getReader();
     let parsedData: any = null;
-    let lastProgress = 0;
+    let chunkCount = 0;
     
     try {
       while (true) {
@@ -129,12 +129,12 @@ async function parseFileStreaming(file: File): Promise<any> {
         
         // The parser emits parsed JSON chunks
         parsedData = value.value;
+        chunkCount++;
         
-        // Update progress less frequently to avoid slowdown
-        const newProgress = Math.min(lastProgress + 0.1, 99);
-        if (newProgress >= lastProgress + 1) {
-          postProgress('Processing large file...', newProgress, 100);
-          lastProgress = newProgress;
+        // Update progress every 1000 chunks to avoid slowdown
+        if (chunkCount % 1000 === 0) {
+          const progress = Math.min(10 + (chunkCount / 500), 99);
+          postProgress('Processing large file...', progress, 100);
         }
       }
     } finally {
