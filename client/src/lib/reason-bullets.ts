@@ -179,7 +179,20 @@ function getStatFieldForAchievement(achievementId: SeasonAchievementId): string 
     FBSeason10RecTD: 'recTD',
     FBSeason12RushTD: 'rusTD',
     FBSeason15TFL: 'defTckLoss',
-    // Note: Combo achievements like Scrimmage and AllPurpose are excluded as they're not simple fields
+    
+    // Hockey GM Season achievements
+    HKSeason250Shots: 's',
+    HKSeason150Hits: 'hit',
+    HKSeason100Blocks: 'blk',
+    HKSeason60Takeaways: 'tk',
+    HKSeason3SHGoals: 'shG',
+    HKSeason7GWGoals: 'gwG',
+    HKSeason70PIM: 'pim',
+    HKSeason6Shutouts: 'so',
+    HKSeason2000Saves: 'sv',
+    HKSeason60Starts: 'gs',
+    HKSeason25Plus: 'pm',
+    // Note: Combo achievements like Goals, Assists, Points, PowerPlay, FaceoffPct, TOI, SavePct, GAA are excluded as they're computed
   };
   return map[achievementId] || null;
 }
@@ -364,8 +377,89 @@ export function getSeasonsForSeasonStatAchievement(player: Player, achievementId
         if (check((stat as any).defTckLoss, customThreshold !== undefined ? customThreshold : 15, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
         
-      // Hockey GM Season achievements would go here  
-      // Add HK achievements as needed...
+      // Hockey GM Season achievements
+      case 'HKSeason40Goals': {
+        const goals = ((stat as any).evG || 0) + ((stat as any).ppG || 0) + ((stat as any).shG || 0);
+        if (check(goals, customThreshold !== undefined ? customThreshold : 40, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      }
+      case 'HKSeason60Assists': {
+        const assists = ((stat as any).evA || 0) + ((stat as any).ppA || 0) + ((stat as any).shA || 0);
+        if (check(assists, customThreshold !== undefined ? customThreshold : 60, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      }
+      case 'HKSeason90Points': {
+        const goals = ((stat as any).evG || 0) + ((stat as any).ppG || 0) + ((stat as any).shG || 0);
+        const assists = ((stat as any).evA || 0) + ((stat as any).ppA || 0) + ((stat as any).shA || 0);
+        const points = goals + assists;
+        if (check(points, customThreshold !== undefined ? customThreshold : 90, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      }
+      case 'HKSeason25Plus':
+        if (check((stat as any).pm, customThreshold !== undefined ? customThreshold : 25, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      case 'HKSeason250Shots':
+        if (check((stat as any).s, customThreshold !== undefined ? customThreshold : 250, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      case 'HKSeason150Hits':
+        if (check((stat as any).hit, customThreshold !== undefined ? customThreshold : 150, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      case 'HKSeason100Blocks':
+        if (check((stat as any).blk, customThreshold !== undefined ? customThreshold : 100, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      case 'HKSeason60Takeaways':
+        if (check((stat as any).tk, customThreshold !== undefined ? customThreshold : 60, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      case 'HKSeason20PowerPlay': {
+        const powerPlayPoints = ((stat as any).ppG || 0) + ((stat as any).ppA || 0);
+        if (check(powerPlayPoints, customThreshold !== undefined ? customThreshold : 20, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      }
+      case 'HKSeason3SHGoals':
+        if (check((stat as any).shG, customThreshold !== undefined ? customThreshold : 3, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      case 'HKSeason7GWGoals':
+        if (check((stat as any).gwG, customThreshold !== undefined ? customThreshold : 7, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      case 'HKSeason55FaceoffPct': {
+        const fow = (stat as any).fow || 0;
+        const fol = (stat as any).fol || 0;
+        const faceoffTotal = fow + fol;
+        const faceoffPct = faceoffTotal > 0 ? fow / faceoffTotal : 0;
+        if (faceoffTotal >= 600 && check(faceoffPct, customThreshold !== undefined ? customThreshold / 100 : 0.55, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      }
+      case 'HKSeason22TOI': {
+        const toiPerGame = gp > 0 ? min / gp : 0;
+        if (check(toiPerGame, customThreshold !== undefined ? customThreshold : 22, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      }
+      case 'HKSeason70PIM':
+        if (check((stat as any).pim, customThreshold !== undefined ? customThreshold : 70, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      case 'HKSeason920SavePct': {
+        const sv = (stat as any).sv || 0;
+        const ga = (stat as any).ga || 0;
+        const savesTotal = sv + ga;
+        const savePct = savesTotal > 0 ? sv / savesTotal : 0;
+        if (min >= 1500 && check(savePct, customThreshold !== undefined ? customThreshold / 1000 : 0.920, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      }
+      case 'HKSeason260GAA': {
+        const ga = (stat as any).ga || 0;
+        const gaaRate = min > 0 ? (ga / (min / 60)) : 0;
+        if (min >= 1500 && check(gaaRate, customThreshold !== undefined ? customThreshold : 2.60, customOperator || '≤')) qualifyingSeasons.push(season);
+        break;
+      }
+      case 'HKSeason6Shutouts':
+        if (check((stat as any).so, customThreshold !== undefined ? customThreshold : 6, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      case 'HKSeason2000Saves':
+        if (check((stat as any).sv, customThreshold !== undefined ? customThreshold : 2000, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
+      case 'HKSeason60Starts':
+        if (check((stat as any).gs, customThreshold !== undefined ? customThreshold : 60, customOperator || '≥')) qualifyingSeasons.push(season);
+        break;
         
       // Baseball GM Season achievements would go here
       // Add BB achievements as needed...
@@ -430,8 +524,8 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
 
   }
 
-  // Handle Season* and FBSeason* statistical achievements by calculating from stats
-  if (baseAchievementId.startsWith('Season') || baseAchievementId.startsWith('FBSeason')) {
+  // Handle Season*, FBSeason*, and HKSeason* statistical achievements by calculating from stats
+  if (baseAchievementId.startsWith('Season') || baseAchievementId.startsWith('FBSeason') || baseAchievementId.startsWith('HKSeason')) {
     // Need to get the minGames from the original achievement definition
     const allAchievements = getAllAchievements(sport as any);
     const baseAchievement = allAchievements.find(ach => ach.id === baseAchievementId);
@@ -956,8 +1050,62 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
       } else if (baseAchievementId.includes('Interceptions')) {
         statName = 'interceptions';
         verb = 'had';
-      } else if (baseAchievementId.includes('Assists')) {
+      } else if (baseAchievementId.includes('Assists') && !baseAchievementId.includes('HKSeason')) {
         statName = 'assists';
+        verb = 'had';
+      } else if (baseAchievementId.includes('Goals') && !baseAchievementId.includes('GWGoals') && !baseAchievementId.includes('SHGoals')) {
+        statName = 'goals';
+        verb = 'scored';
+      } else if (baseAchievementId.includes('HKSeason60Assists')) {
+        statName = 'assists';
+        verb = 'had';
+      } else if (baseAchievementId.includes('HKSeason90Points') || baseAchievementId.includes('Points')) {
+        statName = 'points';
+        verb = 'had';
+      } else if (baseAchievementId.includes('Plus')) {
+        statName = 'plus/minus';
+        verb = 'had';
+      } else if (baseAchievementId.includes('Shots')) {
+        statName = 'shots';
+        verb = 'had';
+      } else if (baseAchievementId.includes('Hits')) {
+        statName = 'hits';
+        verb = 'had';
+      } else if (baseAchievementId.includes('Takeaways')) {
+        statName = 'takeaways';
+        verb = 'had';
+      } else if (baseAchievementId.includes('PowerPlay')) {
+        statName = 'power-play points';
+        verb = 'had';
+      } else if (baseAchievementId.includes('SHGoals')) {
+        statName = 'short-handed goals';
+        verb = 'scored';
+      } else if (baseAchievementId.includes('GWGoals')) {
+        statName = 'game-winning goals';
+        verb = 'scored';
+      } else if (baseAchievementId.includes('FaceoffPct')) {
+        statName = 'faceoff win rate';
+        verb = 'posted';
+      } else if (baseAchievementId.includes('TOI')) {
+        statName = 'TOI/G';
+        verb = 'averaged';
+      } else if (baseAchievementId.includes('PIM')) {
+        statName = 'PIM';
+        verb = 'had';
+      } else if (baseAchievementId.includes('SavePct')) {
+        statName = 'save percentage';
+        verb = 'posted';
+      } else if (baseAchievementId.includes('GAA')) {
+        statName = 'GAA';
+        verb = 'had';
+      } else if (baseAchievementId.includes('Shutouts')) {
+        statName = 'shutouts';
+        verb = 'had';
+      } else if (baseAchievementId.includes('Saves')) {
+        statName = 'saves';
+        verb = 'had';
+      } else if (baseAchievementId.includes('Starts')) {
+        statName = 'starts';
         verb = 'had';
       } else {
         // Fallback for other statistical achievements if needed
@@ -966,6 +1114,7 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
 
       // Handle singular vs plural based on threshold
       const getSingular = (plural: string): string => {
+        // Football
         if (plural === 'passing yards') return 'passing yard';
         if (plural === 'rushing yards') return 'rushing yard';
         if (plural === 'receiving yards') return 'receiving yard';
@@ -976,18 +1125,108 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
         if (plural === 'sacks') return 'sack';
         if (plural === 'interceptions') return 'interception';
         if (plural === 'receptions') return 'reception';
+        
+        // Basketball
         if (plural === 'assists') return 'assist';
         if (plural === '3-pointers') return '3-pointer';
         if (plural === 'points') return 'point';
         if (plural === 'steals') return 'steal';
         if (plural === 'blocks') return 'block';
         if (plural === 'stocks') return 'stock';
+        
+        // Hockey
+        if (plural === 'goals') return 'goal';
+        if (plural === 'shots') return 'shot';
+        if (plural === 'hits') return 'hit';
+        if (plural === 'takeaways') return 'takeaway';
+        if (plural === 'power-play points') return 'power-play point';
+        if (plural === 'short-handed goals') return 'short-handed goal';
+        if (plural === 'game-winning goals') return 'game-winning goal';
+        if (plural === 'shutouts') return 'shutout';
+        if (plural === 'saves') return 'save';
+        if (plural === 'starts') return 'start';
+        
+        // Generic
         if (plural.endsWith('TDs') || plural.endsWith('TD')) return plural.replace(/TDs?$/, 'TD');
         if (plural.endsWith('s') && !plural.endsWith('ss')) return plural.slice(0, -1);
         return plural;
       };
       
       const displayStatName = threshold === 1 ? getSingular(statName) : statName;
+
+      // Special handling for GAA (Goals Against Average) - reverse logic
+      if (baseAchievementId.includes('GAA')) {
+        if (operator === '≤') {
+          return {
+            text: `Never had ≤ ${formattedThreshold} GAA in a season`,
+            type: 'award'
+          };
+        } else {
+          return {
+            text: `Never had over ${formattedThreshold} GAA in a season`,
+            type: 'award'
+          };
+        }
+      }
+      
+      // Special handling for percentage-based achievements
+      if (baseAchievementId.includes('FaceoffPct')) {
+        if (operator === '≥') {
+          return {
+            text: `Never posted ${formattedThreshold}%+ faceoff win rate in a season`,
+            type: 'award'
+          };
+        } else {
+          return {
+            text: `Never posted under ${formattedThreshold}% faceoff win rate in a season`,
+            type: 'award'
+          };
+        }
+      }
+      
+      if (baseAchievementId.includes('SavePct')) {
+        if (operator === '≥') {
+          return {
+            text: `Never posted ${formattedThreshold}+ save percentage in a season`,
+            type: 'award'
+          };
+        } else {
+          return {
+            text: `Never posted under ${formattedThreshold} save percentage in a season`,
+            type: 'award'
+          };
+        }
+      }
+      
+      // Special handling for Plus/Minus (uses "or better" instead of "+")
+      if (baseAchievementId.includes('Plus')) {
+        if (operator === '≥') {
+          return {
+            text: `Never had ${formattedThreshold} or better plus/minus in a season`,
+            type: 'award'
+          };
+        } else {
+          return {
+            text: `Never had under ${formattedThreshold} plus/minus in a season`,
+            type: 'award'
+          };
+        }
+      }
+      
+      // Special handling for TOI (time format)
+      if (baseAchievementId.includes('TOI')) {
+        if (operator === '≥') {
+          return {
+            text: `Never averaged ${formattedThreshold}+ TOI/G in a season`,
+            type: 'award'
+          };
+        } else {
+          return {
+            text: `Never averaged under ${formattedThreshold} TOI/G in a season`,
+            type: 'award'
+          };
+        }
+      }
 
       if (operator === '≥') {
         return {
