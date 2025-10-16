@@ -723,10 +723,21 @@ function generateAchievementBullet(player: Player, achievementId: string, teams:
 // Generate season achievement bullet
 function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAchievementId, teams: Team[], constraintLabel?: string, sport?: string): ReasonBullet | null {
 
-  let achLabel = constraintLabel || SEASON_ACHIEVEMENT_LABELS[achievementId] || achievementId;
-  
+  let baseAchievementId: SeasonAchievementId = achievementId;
+  let customThreshold: number | undefined;
+  let customOperator: '≥' | '≤' | undefined;
+
+  // Check if it's a custom numerical achievement
+  if (achievementId.includes('_custom_')) {
+    const parts = achievementId.split('_custom_');
+    baseAchievementId = parts[0] as SeasonAchievementId;
+    const customParts = parts[1].split('_');
+    customThreshold = parseFloat(customParts[0]);
+    customOperator = customParts[1] === 'lte' ? '≤' : '≥';
+  }
+
   // Consistently remove " (Season)" suffix using regex, as the years in parentheses already imply it's season-specific
-  achLabel = achLabel.replace(/\s*\(Season\)/gi, '').trim();
+  const achLabel = constraintLabel ? constraintLabel.replace(/\s*\(Season\)/gi, '').trim() : '';
   
   const seasons = getSeasonAchievementSeasons(player, achievementId, teams, undefined, sport);
 
@@ -748,10 +759,11 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
     }
   }
   
+  // Default return if no other condition matched
   const seasonStr = formatBulletSeasonList(seasons, false);
-  
+  const label = achLabel || constraintLabel || achievementId;
   return {
-    text: seasons.length > 0 ? `${achLabel} (${seasonStr})` : achLabel,
+    text: seasons.length > 0 ? `${label} (${seasonStr})` : label,
     type: 'award'
   };
 }
