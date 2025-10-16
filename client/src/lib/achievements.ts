@@ -1337,10 +1337,7 @@ export function playerMeetsAchievement(
   season?: number,
 ): boolean {
   const DEBUG = import.meta.env.VITE_DEBUG === 'true';
-  if (DEBUG) {
-    console.log(`🐛 [playerMeetsAchievement] Player: ${player.name}, Achievement: ${achievementId}, SeasonIndex: ${!!seasonIndex}, Operator: ${operator}, TeamId: ${teamId}, Season: ${season}`);
-  }
-
+  
   // Check if it's a dynamic decade achievement first
   if (achievementId.includes('playedIn') && achievementId.endsWith('s')) {
     // Extract decade from achievement ID (e.g., "playedIn1990s" -> 1990)
@@ -1411,7 +1408,6 @@ export function playerMeetsAchievement(
 
   if (statisticalLeaders.includes(achievementId)) {
     if (!seasonIndex) {
-      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] No seasonIndex provided for statistical achievement ${achievementId}`);
       return false;
     }
 
@@ -1426,7 +1422,6 @@ export function playerMeetsAchievement(
           return result;
         }
       }
-      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] No seasonData or teamData for specific season/team check for ${achievementId}, Season: ${season}, Team: ${teamId}`);
       return false;
     } else if (teamId !== undefined) {
       // Only teamId provided (e.g., checking if player ever led a stat for a specific team)
@@ -1438,7 +1433,6 @@ export function playerMeetsAchievement(
           return true;
         }
       }
-      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] Team-only check for ${achievementId}, Team: ${teamId}, Result: false`);
       return false;
     } else {
       // No specific team or season provided (Achievement x Achievement intersection or general check)
@@ -1451,7 +1445,6 @@ export function playerMeetsAchievement(
           }
         }
       }
-      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] General statistical check for ${achievementId}, Result: false`);
       return false;
     }
   }
@@ -1463,18 +1456,15 @@ export function playerMeetsAchievement(
 
     if (season !== undefined) {
       filteredAwards = filteredAwards?.filter(award => award.season === season);
-      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] Filtering awards by season: ${season}, Count: ${filteredAwards?.length}`);
     }
 
     // If this is a season-aligned achievement and teamId is provided, we need to check team presence
     if (SEASON_ALIGNED_ACHIEVEMENTS.has(achievementId) && teamId !== undefined) {
-      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] Season-aligned achievement with teamId: ${achievementId}, TeamId: ${teamId}`);
       // Further filter awards to ensure the player was on the team during that season
       filteredAwards = filteredAwards?.filter(award => {
         // Check if player played for teamId in the award's season
         return player.stats?.some(s => s.season === award.season && s.tid === teamId && !s.playoffs && (s.gp || 0) > 0);
       });
-      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] After team alignment filter, awards count: ${filteredAwards?.length}`);
     }
 
     // For championship achievements, directly check player.achievementSeasons.champion if teamId is undefined
@@ -1482,15 +1472,10 @@ export function playerMeetsAchievement(
       return (player.achievementSeasons?.champion?.size || 0) > 0;
     }
 
-    if (achievementId === 'MVP' && teamId === undefined) {
-      console.log(`DEBUG: playerMeetsAchievement - Checking MVP globally for ${player.name}`);
-      console.log(`DEBUG: playerMeetsAchievement - Player awards:`, player.awards?.map(a => a.type));
-      console.log(`DEBUG: playerMeetsAchievement - Filtered awards for MVP:`, filteredAwards?.map(a => a.type));
-    }
+
 
     return filteredAwards?.some(award => {
       const normalizedType = award.type.toLowerCase().trim();
-      if (DEBUG) console.log(`🐛 [playerMeetsAchievement] Checking award: ${award.type} for achievement: ${achievementId}`);
       
       // Basketball achievements
       if (achievementId === 'AllStar' && normalizedType.includes('all-star')) return true;
