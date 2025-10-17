@@ -122,70 +122,122 @@ async function parseFileStreaming(file: File): Promise<any> {
   }
 }
 
-// Mobile-optimized streaming: chunk-based reading with pako decompression
-// Avoids DecompressionStream which crashes on mobile Chrome
+// Mobile-optimized streaming: TRUE chunked decompression with pako.Inflate
+// Processes compressed data incrementally without holding full decompressed data in memory
 async function parseFileMobileStreaming(file: File): Promise<any> {
   const isCompressed = file.name.endsWith('.gz');
-  const CHUNK_SIZE = 1 * 1024 * 1024; // 1MB chunks for streaming
+  const READ_CHUNK_SIZE = 5 * 1024 * 1024; // Read 5MB at a time from file
+  const STREAM_CHUNK_SIZE = 512 * 1024; // Stream 512KB chunks to JSON parser
   
   postProgress('Starting mobile-optimized processing...', 5, 100);
   
-  // Step 1: Read and decompress file, creating a stream of bytes
-  let dataBytes: Uint8Array;
+  // Step 1: Create a stream that decompresses data incrementally
+  let dataStream: ReadableStream<Uint8Array>;
   
   if (isCompressed) {
-    // For .gz files: decompress with pako to Uint8Array (not string to avoid length limit)
-    postProgress('Reading compressed file...', 10, 100);
-    const arrayBuffer = await file.arrayBuffer();
+    // TRUE STREAMING DECOMPRESSION - process file in chunks
+    postProgress('Setting up streaming decompression...', 10, 100);
     
-    postProgress('Decompressing with pako...', 30, 100);
-    const compressed = new Uint8Array(arrayBuffer);
+    dataStream = new ReadableStream({
+      async start(controller) {
+        // Create pako inflator for streaming decompression
+        const inflator = new pako.Inflate();
+        let totalProcessed = 0;
+        
+        try {
+          // Read file in chunks to avoid loading all into memory
+          const fileSize = file.size;
+          let offset = 0;
+          
+          while (offset < fileSize) {
+            // Read a chunk from the file
+            const chunkSize = Math.min(READ_CHUNK_SIZE, fileSize - offset);
+            const blob = file.slice(offset, offset + chunkSize);
+            const arrayBuffer = await blob.arrayBuffer();
+            const chunk = new Uint8Array(arrayBuffer);
+            
+            // Push chunk to inflator - it will decompress incrementally
+            inflator.push(chunk, offset + chunkSize >= fileSize);
+            
+            // If inflator has output, stream it
+            if (inflator.result && inflator.result.length > 0) {
+              // Ensure result is Uint8Array (pako returns Uint8Array by default when no options given)
+              let decompressed: Uint8Array;
+              if (inflator.result instanceof Uint8Array) {
+                decompressed = inflator.result;
+              } else if (typeof inflator.result === 'string') {
+                // Convert string to Uint8Array if needed (shouldn't happen with default options)
+                decompressed = new TextEncoder().encode(inflator.result);
+              } else {
+                throw new Error('Unexpected inflator result type');
+              }
+              
+              // Stream the decompressed data in smaller chunks
+              for (let i = 0; i < decompressed.length; i += STREAM_CHUNK_SIZE) {
+                const streamChunk = decompressed.slice(i, Math.min(i + STREAM_CHUNK_SIZE, decompressed.length));
+                controller.enqueue(streamChunk);
+                totalProcessed += streamChunk.length;
+                
+                // Yield control every few chunks
+                if (i % (STREAM_CHUNK_SIZE * 4) === 0) {
+                  await new Promise(resolve => setTimeout(resolve, 0));
+                }
+              }
+              
+              // Clear the result to free memory
+              inflator.result = new Uint8Array(0);
+            }
+            
+            offset += chunkSize;
+            const progress = 10 + ((offset / fileSize) * 35);
+            postProgress(`Decompressing... ${Math.round(progress - 10)}%`, progress, 100);
+          }
+          
+          // Check for errors
+          if (inflator.err) {
+            throw new Error(`Decompression failed: ${inflator.msg || 'Unknown error'}`);
+          }
+          
+          postProgress('Decompression complete', 45, 100);
+          controller.close();
+          
+        } catch (err) {
+          controller.error(err);
+          throw new Error(`Decompression failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        }
+      }
+    });
     
-    // Decompress to Uint8Array instead of string to avoid "Invalid string length" error
-    try {
-      dataBytes = pako.inflate(compressed);
-      postProgress('Decompression complete', 45, 100);
-    } catch (err) {
-      throw new Error(`Decompression failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    }
   } else {
-    // For .json files: read as array buffer
-    postProgress('Reading JSON file...', 20, 100);
-    const arrayBuffer = await file.arrayBuffer();
-    dataBytes = new Uint8Array(arrayBuffer);
+    // For uncompressed JSON files, stream directly from file
+    postProgress('Streaming file...', 20, 100);
+    
+    dataStream = new ReadableStream({
+      async start(controller) {
+        const fileSize = file.size;
+        let offset = 0;
+        
+        while (offset < fileSize) {
+          const chunkSize = Math.min(STREAM_CHUNK_SIZE, fileSize - offset);
+          const blob = file.slice(offset, offset + chunkSize);
+          const arrayBuffer = await blob.arrayBuffer();
+          const chunk = new Uint8Array(arrayBuffer);
+          
+          controller.enqueue(chunk);
+          offset += chunkSize;
+          
+          // Yield control periodically
+          if (offset % (STREAM_CHUNK_SIZE * 10) === 0) {
+            await new Promise(resolve => setTimeout(resolve, 0));
+          }
+        }
+        
+        controller.close();
+      }
+    });
   }
   
-  postProgress('Streaming JSON parse...', 50, 100);
-  
-  // Step 2: Create a ReadableStream that yields the decompressed data in chunks
-  // This avoids creating a massive string all at once
-  const dataStream = new ReadableStream({
-    start(controller) {
-      let offset = 0;
-      
-      // Feed data in chunks to avoid blocking
-      const pushChunk = () => {
-        if (offset >= dataBytes.length) {
-          controller.close();
-          return;
-        }
-        
-        const chunkSize = Math.min(CHUNK_SIZE, dataBytes.length - offset);
-        const chunk = dataBytes.slice(offset, offset + chunkSize);
-        controller.enqueue(chunk);
-        offset += chunkSize;
-        
-        // Yield control to prevent freezing
-        if (offset < dataBytes.length) {
-          setTimeout(pushChunk, 0);
-        } else {
-          controller.close();
-        }
-      };
-      
-      pushChunk();
-    }
-  });
+  postProgress('Parsing JSON stream...', 50, 100);
   
   // Use streaming JSON parser to avoid loading entire object at once
   const jsonParser = new JSONParser({ 
