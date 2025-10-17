@@ -11,8 +11,8 @@ import { CustomGridModal } from '@/components/custom-grid-modal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Home as HomeIcon } from 'lucide-react';
-// Import sport icon images
-const zengmGridsLogo = '/icons/icon-192.png'; // Using new optimized app icon
+// Import sport icon images  
+import zengmGridsLogo from '@/assets/zengm-grids-logo-mark.png';
 import basketballIcon from '@/assets/zengm-grids-logo-basketball.png';
 import footballIcon from '@/assets/zengm-grids-logo-football.png';
 import hockeyIcon from '@/assets/zengm-grids-logo-hockey.png';
