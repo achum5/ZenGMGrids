@@ -69,10 +69,10 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadP
   return (
     <div className="text-center">
       <Card className="mb-8 border-0 shadow-none bg-transparent">
-        <CardContent className="p-8">
-          {/* Parsing Method Toggle */}
+        <CardContent className="p-4">
+          {/* Upload Method Toggle */}
           {onParsingMethodChange && (
-            <div className="mb-6 flex items-center justify-center gap-3">
+            <div className="mb-4 flex items-center justify-center gap-3">
               <Settings className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-medium text-muted-foreground">Upload Method:</span>
               <Select 
