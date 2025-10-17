@@ -121,12 +121,11 @@ async function parseFileStreaming(file: File): Promise<any> {
   }
 }
 
-// ZenGM's approach for URLs too: fetch → decompress stream → arrayBuffer → JSON.parse
+// Use EXACT same streaming approach as files - just with response.body as source
 async function parseUrlStreaming(url: string): Promise<any> {
-  console.log(`[WORKER] Fetching URL (ZenGM method):`, url);
-  
   postProgress('Fetching URL...', 5, 100);
   
+  // Try CORS fetch first
   const response = await fetch(url, { mode: 'cors' });
   
   if (!response.ok) {
@@ -137,39 +136,92 @@ async function parseUrlStreaming(url: string): Promise<any> {
     throw new Error('Response body not available');
   }
   
-  postProgress('Downloading...', 15, 100);
+  postProgress('Downloading...', 10, 100);
   
+  // Get the stream from response
+  let dataStream = response.body;
+  
+  // Check if compressed by URL
   const isCompressed = url.includes('.gz') || url.includes('.json.gz');
   
-  let textContent: string;
-  
   if (isCompressed) {
-    postProgress('Decompressing...', 40, 100);
-    
     if (typeof DecompressionStream === 'undefined') {
       throw new Error('DecompressionStream not supported. Please use Chrome 80+, Firefox 113+, or Safari 16.4+');
     }
-    
-    // Use response.body stream for decompression
-    const decompressedStream = response.body.pipeThrough(new DecompressionStream('gzip'));
-    const decompressedBuffer = await new Response(decompressedStream).arrayBuffer();
-    
-    postProgress('Decoding...', 60, 100);
-    textContent = new TextDecoder().decode(decompressedBuffer);
-    
-  } else {
-    postProgress('Decoding...', 50, 100);
-    const arrayBuffer = await response.arrayBuffer();
-    textContent = new TextDecoder().decode(arrayBuffer);
+    postProgress('Decompressing...', 15, 100);
+    dataStream = dataStream.pipeThrough(new DecompressionStream('gzip'));
   }
   
-  postProgress('Parsing JSON...', 80, 100);
+  postProgress('Streaming JSON parse...', 20, 100);
   
-  // Use browser's native JSON.parse - highly optimized!
-  const leagueData = JSON.parse(textContent);
+  // Use EXACT same streaming JSON parser as files
+  const jsonParser = new JSONParser({ 
+    paths: [
+      '$.version',
+      '$.startingSeason', 
+      '$.gameAttributes',
+      '$.players',
+      '$.teams',
+      '$.teamSeasons',
+      '$.teamStats',
+      '$.games',
+      '$.schedule',
+      '$.playoffSeries',
+      '$.draftPicks',
+      '$.draftOrder',
+      '$.negotiations',
+      '$.messages',
+      '$.events',
+      '$.playerFeats',
+      '$.allStars',
+      '$.awards',
+      '$.releasedPlayers',
+      '$.scheduledEvents',
+      '$.trade',
+      '$.meta'
+    ],
+    keepStack: false 
+  });
   
-  postProgress('Parse complete', 95, 100);
-  return leagueData;
+  const jsonStream = dataStream.pipeThrough(jsonParser);
+  const reader = jsonStream.getReader();
+  
+  // Build result object incrementally (same as files)
+  const result: any = {};
+  let itemCount = 0;
+  let currentSection = '';
+  
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      
+      if (done) {
+        postProgress('Streaming parse complete', 95, 100);
+        return result;
+      }
+      
+      // Process each emitted value from the parser
+      if (value && value.value !== undefined) {
+        const keyString = typeof value.key === 'string' ? value.key : String(value.key);
+        const pathArray = keyString ? keyString.split('.').filter(Boolean) : [];
+        const topLevelKey = pathArray[0];
+        
+        if (topLevelKey) {
+          // Track what section we're processing
+          if (currentSection !== topLevelKey) {
+            currentSection = topLevelKey;
+            postProgress(`Processing ${topLevelKey}...`, 20 + (itemCount / 10000) * 75, 100);
+          }
+          
+          // Store the value at the appropriate key
+          result[topLevelKey] = value.value;
+          itemCount++;
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
 }
 
 // Traditional URL fetch for small files
