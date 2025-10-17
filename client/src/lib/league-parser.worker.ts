@@ -204,18 +204,16 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
   
   postProgress('Parsing JSON stream...', 50, 100);
   
-  // MOBILE OPTIMIZATION: Only parse essential data needed for the grid game
-  // Skip large sections like messages, events, games, etc. to prevent mobile memory crashes
+  // MOBILE OPTIMIZATION: Parse arrays element-by-element using wildcard syntax
+  // This prevents loading massive arrays all at once
   const jsonParser = new JSONParser({ 
     paths: [
       '$.version',
       '$.startingSeason', 
       '$.gameAttributes',
-      '$.players',      // Essential: needed for grid
-      '$.teams',        // Essential: needed for grid
-      '$.meta'          // Essential: contains league metadata
-      // Skipped for mobile: teamSeasons, teamStats, games, schedule, messages, events, etc.
-      // These can be 100MB+ and aren't needed for the grid game
+      '$.players.*',    // Wildcard: emit each player individually
+      '$.teams.*',      // Wildcard: emit each team individually
+      '$.meta'
     ],
     keepStack: false 
   });
@@ -265,12 +263,22 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
               console.log(`[WORKER] Started processing ${topLevelKey} at item ${itemCount}`);
             }
             
-            // Store the value at the appropriate key (same as desktop streaming)
-            result[topLevelKey] = value.value;
+            // Handle wildcard paths - build arrays element-by-element
+            if (pathArray.length > 1 && /^\d+$/.test(pathArray[1])) {
+              // This is an array element from wildcard (e.g., players.0, teams.1)
+              if (!result[topLevelKey]) {
+                result[topLevelKey] = [];
+              }
+              result[topLevelKey].push(value.value);
+            } else {
+              // Simple value or object
+              result[topLevelKey] = value.value;
+            }
+            
             itemCount++;
             
-            // Yield control periodically on mobile to prevent UI freezing
-            if (itemCount % 500 === 0) {
+            // Yield control VERY frequently on mobile to prevent freezing
+            if (itemCount % 100 === 0) {
               await new Promise(resolve => setTimeout(resolve, 0));
             }
           }
