@@ -149,9 +149,10 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadP
                 {uploadProgress.loaded !== undefined && uploadProgress.total !== undefined && (
                   <div className="w-full bg-secondary/50 rounded-full h-3 overflow-hidden shadow-lg">
                     <div
-                      className="bg-gradient-to-r from-primary via-purple-500 to-primary h-3 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)] animate-pulse"
+                      className="h-3 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)] loading-bar-animated"
                       style={{
-                        width: `${(uploadProgress.loaded / uploadProgress.total) * 100}%`
+                        width: `${(uploadProgress.loaded / uploadProgress.total) * 100}%`,
+                        background: 'var(--neon-gradient)'
                       }}
                     />
                   </div>
@@ -228,9 +229,10 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadP
               {uploadProgress.loaded !== undefined && uploadProgress.total !== undefined && (
                 <div className="w-full bg-secondary/50 rounded-full h-3 overflow-hidden shadow-lg">
                   <div
-                    className="bg-gradient-to-r from-primary via-purple-500 to-primary h-3 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)] animate-pulse"
+                    className="h-3 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)] loading-bar-animated"
                     style={{
-                      width: `${(uploadProgress.loaded / uploadProgress.total) * 100}%`
+                      width: `${(uploadProgress.loaded / uploadProgress.total) * 100}%`,
+                      background: 'var(--neon-gradient)'
                     }}
                   />
                 </div>

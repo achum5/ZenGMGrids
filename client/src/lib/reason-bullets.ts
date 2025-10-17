@@ -1241,6 +1241,69 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
       }
     }
     // Fallback for other season achievements not met
+    // Generate proper negative messages for awards
+    const awardNegativeMessages: Record<string, string> = {
+      // Basketball
+      'AllStar': 'Was never an All-Star',
+      'MVP': 'Was never the MVP',
+      'DPOY': 'Was never the Defensive Player of the Year',
+      'ROY': 'Was never the Rookie of the Year',
+      'SMOY': 'Was never the Sixth Man of the Year',
+      'MIP': 'Was never the Most Improved Player',
+      'FinalsMVP': 'Was never the Finals MVP',
+      'SFMVP': 'Was never the Conference Finals MVP',
+      'AllLeagueAny': 'Never made an All-League Team',
+      'AllDefAny': 'Never made an All-Defensive Team',
+      'AllRookieAny': 'Never made an All-Rookie Team',
+      'PointsLeader': 'Was never the League Points Leader',
+      'ReboundsLeader': 'Was never the League Rebounds Leader',
+      'AssistsLeader': 'Was never the League Assists Leader',
+      'StealsLeader': 'Was never the League Steals Leader',
+      'BlocksLeader': 'Was never the League Blocks Leader',
+      'Champion': 'Never won a Championship',
+      
+      // Football
+      'FBAllStar': 'Was never an All-Star',
+      'FBMVP': 'Was never the MVP',
+      'FBDPOY': 'Was never the Defensive Player of the Year',
+      'FBOffROY': 'Was never the Offensive Rookie of the Year',
+      'FBDefROY': 'Was never the Defensive Rookie of the Year',
+      'FBAllRookie': 'Never made an All-Rookie Team',
+      'FBAllLeague': 'Never made an All-League Team',
+      'FBFinalsMVP': 'Was never the Finals MVP',
+      'FBChampion': 'Never won a Championship',
+      
+      // Hockey
+      'HKAllStar': 'Was never an All-Star',
+      'HKAllStarMVP': 'Was never the All-Star MVP',
+      'HKMVP': 'Was never the MVP',
+      'HKDefenseman': 'Was never the Best Defenseman',
+      'HKROY': 'Was never the Rookie of the Year',
+      'HKAllRookie': 'Never made an All-Rookie Team',
+      'HKAllLeague': 'Never made an All-League Team',
+      'HKAssistsLeader': 'Was never the League Assists Leader',
+      'HKPlayoffsMVP': 'Was never the Playoffs MVP',
+      'HKFinalsMVP': 'Was never the Finals MVP',
+      'HKChampion': 'Never won a Championship',
+      
+      // Baseball
+      'BBAllStar': 'Was never an All-Star',
+      'BBMVP': 'Was never the MVP',
+      'BBROY': 'Was never the Rookie of the Year',
+      'BBAllRookie': 'Never made an All-Rookie Team',
+      'BBAllLeague': 'Never made an All-League Team',
+      'BBPlayoffsMVP': 'Was never the Playoffs MVP',
+      'BBChampion': 'Never won a Championship',
+    };
+    
+    const negativeMessage = awardNegativeMessages[baseAchievementId];
+    if (negativeMessage) {
+      return {
+        text: negativeMessage,
+        type: 'award'
+      };
+    }
+    
     return {
       text: `Did not achieve ${achLabel}`,
       type: 'award'
@@ -1305,6 +1368,36 @@ function generateCareerAchievementBullet(player: Player, achievementId: string, 
     return {
       text: `Played ${seasonsPlayedCount} Seasons`,
       type: 'longevity'
+    };
+  } else if (baseAchievementId.startsWith('debutedIn') && baseAchievementId.endsWith('s')) {
+    // Handle "Debuted in the yyyys" - show actual debut year
+    const regularSeasonStats = player.stats?.filter(s => !s.playoffs && (s.gp || 0) > 0) || [];
+    if (regularSeasonStats.length > 0) {
+      const debutYear = Math.min(...regularSeasonStats.map(s => s.season));
+      return {
+        text: `Debuted in ${debutYear}`,
+        type: 'decade'
+      };
+    }
+    return {
+      text: constraintLabel || 'Debuted',
+      type: 'decade'
+    };
+  } else if (baseAchievementId.startsWith('playedIn') && baseAchievementId.endsWith('s')) {
+    // Handle "Played in the yyyys" - show actual year range
+    const regularSeasonStats = player.stats?.filter(s => !s.playoffs && (s.gp || 0) > 0) || [];
+    if (regularSeasonStats.length > 0) {
+      const years = regularSeasonStats.map(s => s.season).sort((a, b) => a - b);
+      const firstYear = years[0];
+      const lastYear = years[years.length - 1];
+      return {
+        text: `Played from ${firstYear}–${lastYear}`,
+        type: 'decade'
+      };
+    }
+    return {
+      text: constraintLabel || 'Played',
+      type: 'decade'
     };
   } else {
     // For career statistical achievements, use getCareerStatInfo
