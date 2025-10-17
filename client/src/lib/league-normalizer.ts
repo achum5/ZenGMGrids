@@ -191,9 +191,13 @@ export function analyzeTeamOverlaps(players: Player[], teams: Team[]): TeamOverl
   };
 }
 
-export function normalizeLeague(raw: any, postProgress: (message: string) => void): LeagueData & { sport: Sport } {
+export async function normalizeLeague(raw: any, postProgress: (message: string) => void): Promise<LeagueData & { sport: Sport }> {
   try {
     postProgress('Detecting sport...');
+    
+    // MOBILE FIX: Yield before accessing large arrays to prevent crash
+    await new Promise(resolve => setTimeout(resolve, 0));
+    
     const sport = detectSport(raw);
     
     setCachedSportDetection(sport);

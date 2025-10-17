@@ -492,7 +492,7 @@ self.onmessage = async (event: MessageEvent<{ file?: File; url?: string; method?
         throw new Error('File content is empty after reading/decompression.');
       }
 
-      const leagueData = normalizeLeague(rawData, (message) => {
+      const leagueData = await normalizeLeague(rawData, (message) => {
         postProgress(message, file.size * 0.95, file.size);
       });
 
@@ -515,7 +515,7 @@ self.onmessage = async (event: MessageEvent<{ file?: File; url?: string; method?
         throw new Error('URL content is empty after fetching.');
       }
 
-      const leagueData = normalizeLeague(rawData, (message) => {
+      const leagueData = await normalizeLeague(rawData, (message) => {
         postProgress(message, 95, 100);
       });
 
