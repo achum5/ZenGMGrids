@@ -31,8 +31,12 @@ async function parseFileTraditional(file: File): Promise<any> {
 }
 
 // TRUE streaming method - process data incrementally like ZenGM
+// Parse specific paths and build object piece-by-piece without creating full object in memory
 async function parseFileStreaming(file: File): Promise<any> {
   const isCompressed = file.name.endsWith('.gz');
+  
+  // Get the stream (compressed or not)
+  let dataStream = file.stream();
   
   if (isCompressed) {
     if (typeof DecompressionStream === 'undefined') {
@@ -40,87 +44,80 @@ async function parseFileStreaming(file: File): Promise<any> {
         'DecompressionStream not supported. Please use Chrome 80+, Firefox 113+, or Safari 16.4+'
       );
     }
-
     postProgress('Starting streaming decompression...', 5, 100);
-    
-    // Stream: File -> Decompress -> JSON Parser
-    const stream = file.stream();
-    const decompressedStream = stream.pipeThrough(new DecompressionStream('gzip'));
-    
-    // Use streaming JSON parser to parse incrementally
-    const jsonParser = new JSONParser({ paths: ['$'], keepStack: false });
-    const jsonStream = decompressedStream.pipeThrough(jsonParser);
-    
-    const reader = jsonStream.getReader();
-    let result: any = null;
-    let chunkCount = 0;
-    
-    postProgress('Streaming and parsing large file...', 10, 100);
-    
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
+    dataStream = dataStream.pipeThrough(new DecompressionStream('gzip'));
+  }
+  
+  postProgress('Streaming JSON parse...', 10, 100);
+  
+  // Parse all major sections incrementally using streaming JSON parser
+  // This captures metadata and large arrays at specific paths
+  const jsonParser = new JSONParser({ 
+    paths: [
+      '$.version',
+      '$.startingSeason', 
+      '$.gameAttributes',
+      '$.players',
+      '$.teams',
+      '$.teamSeasons',
+      '$.teamStats',
+      '$.games',
+      '$.schedule',
+      '$.playoffSeries',
+      '$.draftPicks',
+      '$.draftOrder',
+      '$.negotiations',
+      '$.messages',
+      '$.events',
+      '$.playerFeats',
+      '$.allStars',
+      '$.awards',
+      '$.releasedPlayers',
+      '$.scheduledEvents',
+      '$.trade',
+      '$.meta'
+    ],
+    keepStack: false 
+  });
+  
+  const jsonStream = dataStream.pipeThrough(jsonParser);
+  const reader = jsonStream.getReader();
+  
+  // Build result object incrementally
+  const result: any = {};
+  let itemCount = 0;
+  let currentSection = '';
+  
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      
+      if (done) {
+        postProgress('Streaming parse complete', 95, 100);
+        return result;
+      }
+      
+      // Process each emitted value from the parser
+      if (value && value.value !== undefined) {
+        const keyString = typeof value.key === 'string' ? value.key : String(value.key);
+        const pathArray = keyString ? keyString.split('.').filter(Boolean) : [];
+        const topLevelKey = pathArray[0];
         
-        if (done) {
-          if (!result) {
-            throw new Error('No data found in file');
+        if (topLevelKey) {
+          // Track what section we're processing
+          if (currentSection !== topLevelKey) {
+            currentSection = topLevelKey;
+            postProgress(`Processing ${topLevelKey}...`, 10 + (itemCount / 10000) * 85, 100);
           }
-          postProgress('Processing complete', 100, 100);
-          return result;
-        }
-        
-        // Store the parsed result (JSONParser emits the complete object when done)
-        if (value?.value) {
-          result = value.value;
-        }
-        
-        chunkCount++;
-        
-        // Update progress every 2000 chunks
-        if (chunkCount % 2000 === 0) {
-          const progress = Math.min(10 + (chunkCount / 1000), 95);
-          postProgress('Processing large file...', progress, 100);
+          
+          // Store the value at the appropriate key
+          result[topLevelKey] = value.value;
+          itemCount++;
         }
       }
-    } finally {
-      reader.releaseLock();
     }
-  } else {
-    // For uncompressed large files, use streaming parser
-    postProgress('Streaming file...', 10, 100);
-    
-    const jsonParser = new JSONParser({ paths: ['$'], keepStack: false });
-    const jsonStream = file.stream().pipeThrough(jsonParser);
-    
-    const reader = jsonStream.getReader();
-    let result: any = null;
-    let chunkCount = 0;
-    
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) {
-          if (!result) {
-            throw new Error('No data found in file');
-          }
-          return result;
-        }
-        
-        if (value?.value) {
-          result = value.value;
-        }
-        
-        chunkCount++;
-        
-        if (chunkCount % 2000 === 0) {
-          const progress = Math.min(10 + (chunkCount / 1000), 95);
-          postProgress('Processing file...', progress, 100);
-        }
-      }
-    } finally {
-      reader.releaseLock();
-    }
+  } finally {
+    reader.releaseLock();
   }
 }
 
