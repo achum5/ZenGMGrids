@@ -6,12 +6,15 @@ import { getCachedSeasonIndex } from './season-index-cache';
 
 import { normalizeLeague, type Sport } from './league-normalizer';
 
+export type ParsingMethod = 'traditional' | 'streaming';
+
 export function parseLeagueFile(
   file: File,
-  onProgress?: (message: string, loaded?: number, total?: number) => void
+  onProgress?: (message: string, loaded?: number, total?: number) => void,
+  method: ParsingMethod = 'streaming'
 ): Promise<LeagueData & { sport: Sport }> {
   return new Promise((resolve, reject) => {
-    console.log(`[MAIN] Creating worker for file: ${file.name}`);
+    console.log(`[MAIN] Creating worker for file: ${file.name} (method: ${method})`);
     
     // Vite-specific worker instantiation
     const worker = new Worker(new URL('./league-parser.worker.ts', import.meta.url), {
@@ -40,8 +43,8 @@ export function parseLeagueFile(
       reject(new Error('An unexpected error occurred in the league parser.'));
     };
 
-    // Start the worker
-    worker.postMessage({ file });
+    // Start the worker with method parameter
+    worker.postMessage({ file, method });
   });
 }
 
@@ -90,10 +93,11 @@ function normalizeDownloadUrl(url: string): string {
 
 export function parseLeagueUrl(
   url: string,
-  onProgress?: (message: string, loaded?: number, total?: number) => void
+  onProgress?: (message: string, loaded?: number, total?: number) => void,
+  method: ParsingMethod = 'streaming'
 ): Promise<LeagueData & { sport: Sport }> {
   return new Promise((resolve, reject) => {
-    console.log(`[MAIN] Creating worker for URL: ${url}`);
+    console.log(`[MAIN] Creating worker for URL: ${url} (method: ${method})`);
     
     // Normalize the URL for direct download
     const downloadUrl = normalizeDownloadUrl(url);
@@ -125,8 +129,8 @@ export function parseLeagueUrl(
       reject(new Error('An unexpected error occurred in the league parser.'));
     };
 
-    // Start the worker with URL
-    worker.postMessage({ url: downloadUrl });
+    // Start the worker with URL and method parameter
+    worker.postMessage({ url: downloadUrl, method });
   });
 }
 
