@@ -647,8 +647,8 @@ export default function Home() {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     
-    // Build search indices
-    const indices = buildSearchIndex(data.players, data.teams);
+    // Build search indices (async with yielding for mobile)
+    const indices = await buildSearchIndex(data.players, data.teams);
     setByName(indices.byName);
     setByPid(indices.byPid);
     setSearchablePlayers(indices.searchablePlayers);

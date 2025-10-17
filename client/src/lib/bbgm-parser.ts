@@ -144,7 +144,7 @@ const fold = (s: string): string => {
     .replace(/[-]/g, ' '); // Convert hyphens to spaces for flexible search
 };
 
-export function buildSearchIndex(players: Player[], teams: Team[]) {
+export async function buildSearchIndex(players: Player[], teams: Team[]) {
   const byName: Record<string, number> = {};
   const byPid: Record<number, Player> = {};
   const teamsByTid: Record<number, Team> = {};
@@ -154,15 +154,22 @@ export function buildSearchIndex(players: Player[], teams: Team[]) {
     teamsByTid[team.tid] = team;
   });
   
-  // Build player indices
-  players.forEach(player => {
+  // Build player indices with yielding for mobile
+  for (let i = 0; i < players.length; i++) {
+    const player = players[i];
     byPid[player.pid] = player;
     byName[player.name.toLowerCase()] = player.pid;
-  });
+    
+    // Yield every 1000 players to prevent mobile freeze
+    if (i % 1000 === 0 && i > 0) {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+  }
 
   // Calculate current season once for all players - avoid stack overflow
   let currentSeason = new Date().getFullYear();
-  for (const player of players) {
+  for (let i = 0; i < players.length; i++) {
+    const player = players[i];
     if (player.stats) {
       for (const stat of player.stats) {
         if (!stat.playoffs && stat.season > currentSeason) {
@@ -170,10 +177,17 @@ export function buildSearchIndex(players: Player[], teams: Team[]) {
         }
       }
     }
+    
+    // Yield every 1000 players to prevent mobile freeze
+    if (i % 1000 === 0 && i > 0) {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
   }
 
   // Build searchable player list with diacritic-insensitive folding
-  const searchablePlayers = players.map(player => {
+  const searchablePlayers = [];
+  for (let i = 0; i < players.length; i++) {
+    const player = players[i];
     const nameParts = player.name.split(' ');
     const teamAbbrevs = Array.from(player.teamsPlayed)
       .map(tid => teamsByTid[tid]?.abbrev)
@@ -182,7 +196,7 @@ export function buildSearchIndex(players: Player[], teams: Team[]) {
     // Pre-calculate career years
     const careerYears = getCareerYears(player, currentSeason);
     
-    return {
+    searchablePlayers.push({
       pid: player.pid,
       name: player.name,
       nameLower: player.name.toLowerCase(),
@@ -193,8 +207,13 @@ export function buildSearchIndex(players: Player[], teams: Team[]) {
       lastFolded: fold(nameParts[nameParts.length - 1] || ''),
       teamAbbrevs,
       careerYears,
-    };
-  });
+    });
+    
+    // Yield every 1000 players to prevent mobile freeze
+    if (i % 1000 === 0 && i > 0) {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+  }
 
   return { byName, byPid, searchablePlayers, teamsByTid };
 }
