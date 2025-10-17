@@ -138,7 +138,8 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
     // Create a TransformStream that decompresses using pako
     const decompressionTransform = new TransformStream({
       start(controller) {
-        const inflator = new pako.Inflate({ chunkSize: 128 * 1024 });
+        // MOBILE FIX: Use TINY chunk size (16KB) for mobile memory constraints
+        const inflator = new pako.Inflate({ chunkSize: 16 * 1024 });
         
         // Critical: Override onData BEFORE any push() calls
         // This ensures decompressed chunks flow immediately to the next stage
@@ -159,9 +160,10 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
         (controller as any).bytesProcessed = 0;
         (controller as any).fileSize = file.size;
         (controller as any).lastProgressUpdate = 0;
+        (controller as any).chunkCount = 0;
       },
       
-      transform(chunk, controller) {
+      async transform(chunk, controller) {
         try {
           const inflator = (controller as any).inflator;
           
@@ -170,12 +172,18 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
           
           // Update progress (throttle updates)
           (controller as any).bytesProcessed += chunk.length;
+          (controller as any).chunkCount++;
           const progress = 10 + (((controller as any).bytesProcessed / (controller as any).fileSize) * 35);
           const progressInt = Math.floor(progress);
           
           if (progressInt > (controller as any).lastProgressUpdate && progressInt % 5 === 0) {
             (controller as any).lastProgressUpdate = progressInt;
             postProgress(`Decompressing... ${Math.round(progress - 10)}%`, progress, 100);
+          }
+          
+          // CRITICAL MOBILE FIX: Yield control after EVERY 5 chunks to prevent freeze
+          if ((controller as any).chunkCount % 5 === 0) {
+            await new Promise(resolve => setTimeout(resolve, 0));
           }
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
