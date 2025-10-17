@@ -88,96 +88,46 @@ function normalizeDownloadUrl(url: string): string {
   }
 }
 
-export async function parseLeagueUrl(url: string): Promise<LeagueData> {
-  try {
+export function parseLeagueUrl(
+  url: string,
+  onProgress?: (message: string, loaded?: number, total?: number) => void
+): Promise<LeagueData & { sport: Sport }> {
+  return new Promise((resolve, reject) => {
+    console.log(`[MAIN] Creating worker for URL: ${url}`);
+    
     // Normalize the URL for direct download
     const downloadUrl = normalizeDownloadUrl(url);
     
-    // Try multiple fetch strategies
-    const fetchOptions = [
-      { mode: 'cors' as RequestMode },
-      { mode: 'no-cors' as RequestMode },
-      { mode: 'cors' as RequestMode, cache: 'no-cache' as RequestCache }
-    ];
-    
-    let lastError: Error | null = null;
-    
-    for (const options of fetchOptions) {
-      try {
-        const response = await fetch(downloadUrl, options);
-        
-        // For no-cors mode, we can't check response.ok
-        if (options.mode !== 'no-cors' && !response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const arrayBuffer = await response.arrayBuffer();
-        
-        // Skip empty responses
-        if (arrayBuffer.byteLength === 0) {
-          throw new Error('Empty response from server');
-        }
-        
-        let content: string;
-        
-        // Check if it's a compressed file by URL or content inspection
-        const isCompressed = downloadUrl.includes('.gz') || downloadUrl.includes('.json.gz');
-        
-        if (isCompressed) {
-          try {
-            // Try to decompress as gzip
-            const compressed = new Uint8Array(arrayBuffer);
-            const decompressed = pako.inflate(compressed, { to: 'string' });
-            content = decompressed;
-          } catch (decompressError) {
-            // If decompression fails, try as plain text
-            content = new TextDecoder().decode(arrayBuffer);
-          }
-        } else {
-          // Handle as plain JSON
-          content = new TextDecoder().decode(arrayBuffer);
-        }
-        
-        // Validate that we have JSON content
-        if (!content.trim().startsWith('{') && !content.trim().startsWith('[')) {
-          throw new Error('Response does not appear to be JSON data');
-        }
-        
-        const rawData = JSON.parse(content);
-        
-        // Basic validation that it's a BBGM file
-        if (!rawData.players && !rawData.teams) {
-          throw new Error('File does not appear to be a valid BBGM league file');
-        }
-        
-        return normalizeLeague(rawData, (message) => {
-          console.log('[URL Load]', message);
-        });
-        
-      } catch (error) {
-        console.warn(`Fetch strategy ${JSON.stringify(options)} failed:`, error);
-        lastError = error as Error;
-        continue; // Try next fetch strategy
+    // Vite-specific worker instantiation
+    const worker = new Worker(new URL('./league-parser.worker.ts', import.meta.url), {
+      type: 'module'
+    });
+
+    worker.onmessage = (event) => {
+      const { type, leagueData, error, message, loaded, total } = event.data;
+      
+      if (type === 'progress') {
+        onProgress?.(message, loaded, total);
+      } else if (type === 'complete') {
+        console.log('[MAIN] Worker finished successfully.');
+        worker.terminate();
+        resolve(leagueData);
+      } else if (type === 'error') {
+        console.error('[MAIN] Worker reported an error:', error);
+        worker.terminate();
+        reject(new Error(error));
       }
-    }
-    
-    // If all strategies failed, throw the last error
-    throw lastError || new Error('All fetch strategies failed');
-    
-  } catch (error) {
-    console.error('Error loading league from URL:', error);
-    
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new Error('Failed to load URL due to network or CORS issues. Try downloading the file and uploading it directly.');
-    }
-    
-    if (error instanceof SyntaxError) {
-      throw new Error('The downloaded file is not valid JSON. Please check the URL points to a BBGM league file.');
-    }
-    
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    throw new Error(`Failed to load league data: ${errorMessage}`);
-  }
+    };
+
+    worker.onerror = (error) => {
+      console.error('[MAIN] An error occurred in the worker:', error);
+      worker.terminate();
+      reject(new Error('An unexpected error occurred in the league parser.'));
+    };
+
+    // Start the worker with URL
+    worker.postMessage({ url: downloadUrl });
+  });
 }
 
 // Diacritic-insensitive text folding

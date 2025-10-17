@@ -467,10 +467,13 @@ export default function Home() {
 
   const handleUrlUpload = useCallback(async (url: string) => {
     setIsProcessing(true);
+    setUploadProgress({ message: 'Starting...', loaded: 0, total: 100 });
     
     try {
-      // Parse the league URL
-      const data = await parseLeagueUrl(url);
+      // Parse the league URL with progress tracking
+      const data = await parseLeagueUrl(url, (message, loaded, total) => {
+        setUploadProgress({ message, loaded, total });
+      });
       await processLeagueData(data);
       
     } catch (error) {
@@ -482,6 +485,7 @@ export default function Home() {
       });
     } finally {
       setIsProcessing(false);
+      setUploadProgress(null);
     }
   }, [toast]);
 
