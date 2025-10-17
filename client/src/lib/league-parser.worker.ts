@@ -205,12 +205,13 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
   postProgress('Parsing JSON stream...', 50, 100);
   
   // MOBILE OPTIMIZATION: Parse arrays element-by-element using wildcard syntax
-  // This prevents loading massive arrays all at once
+  // Skip gameAttributes entirely - it's a large object that crashes mobile
+  // The normalizer has fallbacks for any needed values
   const jsonParser = new JSONParser({ 
     paths: [
       '$.version',
       '$.startingSeason', 
-      '$.gameAttributes',
+      // SKIP gameAttributes - too large for mobile, not essential for grid game
       '$.players.*',    // Wildcard: emit each player individually
       '$.teams.*',      // Wildcard: emit each team individually
       '$.meta'
