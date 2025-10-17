@@ -372,7 +372,7 @@ export function GridSection({
                 <Button
                   variant="ghost"
                   disabled={isGenerating || !hasEmptyCells}
-                  className="neon-button dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner text-xs sm:text-sm h-8 px-2 sm:h-10 sm:px-4"
+                  className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner text-xs sm:text-sm h-8 px-2 sm:h-10 sm:px-4"
                   data-testid="button-give-up"
                 >
                   <Flag className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />

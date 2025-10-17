@@ -7,7 +7,7 @@ import type { LeagueData } from '@/types/bbgm';
 // Only used when method is 'auto'
 const STREAMING_THRESHOLD = 50 * 1024 * 1024;
 
-export type ParsingMethod = 'traditional' | 'streaming';
+export type ParsingMethod = 'traditional' | 'streaming' | 'mobile-streaming';
 
 // Helper to post progress messages
 const postProgress = (message: string, loaded?: number, total?: number) => {
@@ -114,6 +114,134 @@ async function parseFileStreaming(file: File): Promise<any> {
           // Store the value at the appropriate key
           result[topLevelKey] = value.value;
           itemCount++;
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+// Mobile-optimized streaming: chunk-based reading with pako decompression
+// Avoids DecompressionStream which crashes on mobile Chrome
+async function parseFileMobileStreaming(file: File): Promise<any> {
+  const isCompressed = file.name.endsWith('.gz');
+  const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB chunks to avoid memory spike
+  
+  postProgress('Starting mobile-optimized processing...', 5, 100);
+  
+  // Step 1: Read and decompress file in chunks if needed
+  let jsonText: string;
+  
+  if (isCompressed) {
+    // For .gz files: read all, then decompress with pako (more reliable than DecompressionStream on mobile)
+    postProgress('Reading compressed file...', 10, 100);
+    const arrayBuffer = await file.arrayBuffer();
+    
+    postProgress('Decompressing with pako...', 30, 100);
+    const compressed = new Uint8Array(arrayBuffer);
+    
+    // Use pako for decompression (more reliable on mobile than DecompressionStream)
+    try {
+      jsonText = pako.inflate(compressed, { to: 'string' });
+    } catch (err) {
+      throw new Error(`Decompression failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
+  } else {
+    // For .json files: read as text directly
+    postProgress('Reading JSON file...', 20, 100);
+    jsonText = await file.text();
+  }
+  
+  postProgress('Parsing JSON in chunks...', 50, 100);
+  
+  // Step 2: Parse JSON using streaming parser with chunked text feeding
+  // Create a ReadableStream from the text string to feed the JSONParser in chunks
+  const textEncoder = new TextEncoder();
+  const textBytes = textEncoder.encode(jsonText);
+  
+  // Create a stream that yields data in chunks
+  const textStream = new ReadableStream({
+    start(controller) {
+      let offset = 0;
+      const chunkSize = CHUNK_SIZE;
+      
+      while (offset < textBytes.length) {
+        const chunk = textBytes.slice(offset, offset + chunkSize);
+        controller.enqueue(chunk);
+        offset += chunkSize;
+      }
+      controller.close();
+    }
+  });
+  
+  // Use streaming JSON parser to avoid loading entire object at once
+  const jsonParser = new JSONParser({ 
+    paths: [
+      '$.version',
+      '$.startingSeason', 
+      '$.gameAttributes',
+      '$.players',
+      '$.teams',
+      '$.teamSeasons',
+      '$.teamStats',
+      '$.games',
+      '$.schedule',
+      '$.playoffSeries',
+      '$.draftPicks',
+      '$.draftOrder',
+      '$.negotiations',
+      '$.messages',
+      '$.events',
+      '$.playerFeats',
+      '$.allStars',
+      '$.awards',
+      '$.releasedPlayers',
+      '$.scheduledEvents',
+      '$.trade',
+      '$.meta'
+    ],
+    keepStack: false 
+  });
+  
+  const jsonStream = textStream.pipeThrough(jsonParser);
+  const reader = jsonStream.getReader();
+  
+  // Build result object incrementally
+  const result: any = {};
+  let itemCount = 0;
+  let currentSection = '';
+  
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      
+      if (done) {
+        postProgress('Mobile streaming parse complete', 95, 100);
+        return result;
+      }
+      
+      // Process each emitted value from the parser
+      if (value && value.value !== undefined) {
+        const keyString = typeof value.key === 'string' ? value.key : String(value.key);
+        const pathArray = keyString ? keyString.split('.').filter(Boolean) : [];
+        const topLevelKey = pathArray[0];
+        
+        if (topLevelKey) {
+          // Track what section we're processing
+          if (currentSection !== topLevelKey) {
+            currentSection = topLevelKey;
+            postProgress(`Processing ${topLevelKey}...`, 50 + (itemCount / 10000) * 45, 100);
+          }
+          
+          // Store the value at the appropriate key
+          result[topLevelKey] = value.value;
+          itemCount++;
+          
+          // Yield control periodically to prevent UI freeze on mobile
+          if (itemCount % 1000 === 0) {
+            await new Promise(resolve => setTimeout(resolve, 0));
+          }
         }
       }
     }
@@ -274,6 +402,9 @@ self.onmessage = async (event: MessageEvent<{ file?: File; url?: string; method?
       if (method === 'traditional') {
         postProgress('Reading file (traditional method)...', 0, file.size);
         rawData = await parseFileTraditional(file);
+      } else if (method === 'mobile-streaming') {
+        postProgress('Mobile streaming file...', 0, file.size);
+        rawData = await parseFileMobileStreaming(file);
       } else {
         // streaming method
         postProgress('Streaming file...', 0, file.size);

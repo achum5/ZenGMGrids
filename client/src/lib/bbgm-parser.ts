@@ -6,7 +6,7 @@ import { getCachedSeasonIndex } from './season-index-cache';
 
 import { normalizeLeague, type Sport } from './league-normalizer';
 
-export type ParsingMethod = 'traditional' | 'streaming';
+export type ParsingMethod = 'traditional' | 'streaming' | 'mobile-streaming';
 
 export function parseLeagueFile(
   file: File,

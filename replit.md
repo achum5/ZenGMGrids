@@ -19,10 +19,15 @@ Preferred communication style: Simple, everyday language.
 - **File Structure**: Organized into components, pages, hooks, lib utilities, and types
 
 ### Client-Side Processing
-- **File Parsing**: Handles both .json and .json.gz BBGM league files
-- **Compression**: Uses Pako library for decompressing .gz files
+- **File Parsing**: Handles both .json and .json.gz BBGM league files with multiple upload methods
+  - **Auto (Recommended)**: Intelligent method selection based on device detection
+  - **Traditional**: Universal compatibility, loads entire file into memory (may fail on very large files)
+  - **Streaming (Desktop)**: Uses DecompressionStream API for memory-efficient processing on desktop browsers
+  - **Mobile Streaming (Beta)**: Optimized for mobile with pako-based decompression, avoids DecompressionStream (which crashes on mobile Chrome)
+- **Compression**: Dual approach - DecompressionStream for desktop, Pako library for mobile compatibility
 - **Data Processing**: Normalizes BBGM data into searchable format with player/team indices
 - **Grid Generation**: Algorithmic generation of valid 3x3 team intersections with retry logic
+- **Mobile Optimization**: Special streaming implementation that uses chunked processing and periodic UI yielding to prevent browser freezes
 
 ### Data Architecture
 - **In-Memory Storage**: All game data stored client-side in React state

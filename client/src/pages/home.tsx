@@ -99,7 +99,7 @@ export default function Home() {
   const [isLoadingCustomIntersection, setIsLoadingCustomIntersection] = useState(false);
   
   // Parsing method state - load from localStorage or default to 'auto'
-  const [parsingMethodSetting, setParsingMethodSetting] = useState<'auto' | 'traditional' | 'streaming'>(() => 
+  const [parsingMethodSetting, setParsingMethodSetting] = useState<'auto' | 'traditional' | 'streaming' | 'mobile-streaming'>(() => 
     getStoredParsingMethod()
   );
   
@@ -146,7 +146,7 @@ export default function Home() {
   }, []);
 
   // Handle parsing method change
-  const handleParsingMethodChange = useCallback((method: 'auto' | 'traditional' | 'streaming') => {
+  const handleParsingMethodChange = useCallback((method: 'auto' | 'traditional' | 'streaming' | 'mobile-streaming') => {
     setParsingMethodSetting(method);
     storeParsingMethod(method);
   }, []);
@@ -1372,7 +1372,7 @@ export default function Home() {
               {hasGuesses ? (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="sm" className="neon-button" data-testid="button-home">
+                    <Button variant="ghost" size="sm" data-testid="button-home">
                       <HomeIcon className="h-[1.2rem] w-[1.2rem]" />
                       <span className="sr-only">Go home</span>
                     </Button>
@@ -1391,7 +1391,7 @@ export default function Home() {
                   </AlertDialogContent>
                 </AlertDialog>
               ) : (
-                <Button variant="ghost" size="sm" onClick={handleGoHome} className="neon-button" data-testid="button-home">
+                <Button variant="ghost" size="sm" onClick={handleGoHome} data-testid="button-home">
                   <HomeIcon className="h-[1.2rem] w-[1.2rem]" />
                   <span className="sr-only">Go home</span>
                 </Button>

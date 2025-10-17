@@ -14,8 +14,8 @@ interface UploadSectionProps {
     loaded?: number;
     total?: number;
   } | null;
-  parsingMethod?: 'auto' | 'traditional' | 'streaming';
-  onParsingMethodChange?: (method: 'auto' | 'traditional' | 'streaming') => void;
+  parsingMethod?: 'auto' | 'traditional' | 'streaming' | 'mobile-streaming';
+  onParsingMethodChange?: (method: 'auto' | 'traditional' | 'streaming' | 'mobile-streaming') => void;
 }
 
 export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadProgress, parsingMethod = 'auto', onParsingMethodChange }: UploadSectionProps) {
@@ -90,7 +90,10 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadP
                     Traditional
                   </SelectItem>
                   <SelectItem value="streaming" data-testid="option-streaming">
-                    Streaming (may break on mobile)
+                    Streaming (desktop only)
+                  </SelectItem>
+                  <SelectItem value="mobile-streaming" data-testid="option-mobile-streaming">
+                    Mobile Streaming (beta)
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -149,10 +152,9 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadP
                 {uploadProgress.loaded !== undefined && uploadProgress.total !== undefined && (
                   <div className="w-full bg-secondary/50 rounded-full h-3 overflow-hidden shadow-lg">
                     <div
-                      className="h-3 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)] loading-bar-animated"
+                      className="h-3 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)] loading-bar-solid-blue"
                       style={{
-                        width: `${(uploadProgress.loaded / uploadProgress.total) * 100}%`,
-                        background: 'var(--neon-gradient)'
+                        width: `${(uploadProgress.loaded / uploadProgress.total) * 100}%`
                       }}
                     />
                   </div>
@@ -229,10 +231,9 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadP
               {uploadProgress.loaded !== undefined && uploadProgress.total !== undefined && (
                 <div className="w-full bg-secondary/50 rounded-full h-3 overflow-hidden shadow-lg">
                   <div
-                    className="h-3 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)] loading-bar-animated"
+                    className="h-3 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)] loading-bar-solid-blue"
                     style={{
-                      width: `${(uploadProgress.loaded / uploadProgress.total) * 100}%`,
-                      background: 'var(--neon-gradient)'
+                      width: `${(uploadProgress.loaded / uploadProgress.total) * 100}%`
                     }}
                   />
                 </div>

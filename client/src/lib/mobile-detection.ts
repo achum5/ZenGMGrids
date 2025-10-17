@@ -15,17 +15,19 @@ export function isMobileDevice(): boolean {
   return isMobileUA || (isTouchDevice && isSmallScreen);
 }
 
-export type ParsingMethod = 'auto' | 'traditional' | 'streaming';
+export type ParsingMethod = 'auto' | 'traditional' | 'streaming' | 'mobile-streaming';
 
-export function getRecommendedMethod(): 'traditional' | 'streaming' {
-  return isMobileDevice() ? 'traditional' : 'streaming';
+export function getRecommendedMethod(): 'traditional' | 'streaming' | 'mobile-streaming' {
+  // On mobile: use mobile-streaming (optimized for mobile with pako instead of DecompressionStream)
+  // On desktop: use streaming (uses DecompressionStream which is faster but doesn't work on mobile)
+  return isMobileDevice() ? 'mobile-streaming' : 'streaming';
 }
 
 // Get stored preference or return 'auto' as default
 export function getStoredParsingMethod(): ParsingMethod {
   try {
     const stored = localStorage.getItem('parsingMethod');
-    if (stored === 'auto' || stored === 'traditional' || stored === 'streaming') {
+    if (stored === 'auto' || stored === 'traditional' || stored === 'streaming' || stored === 'mobile-streaming') {
       return stored;
     }
   } catch {

@@ -890,17 +890,11 @@ body::before {
 }
 
 .loading-bar-animated {
-  background-size: 200% 100%;
-  animation: loading-bar-flow 3s linear infinite;
+  /* This class is now just a placeholder for the width, no animation */
 }
 
-@keyframes loading-bar-flow {
-  0% {
-    background-position: 0% 0%;
-  }
-  100% {
-    background-position: 100% 0%;
-  }
+.loading-bar-solid-blue {
+  background-color: var(--blue);
 }
 
 .header-text-glow {
