@@ -136,52 +136,61 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
     postProgress('Setting up streaming decompression...', 10, 100);
     
     // Create a TransformStream that decompresses using pako
-    // This pipes data through without accumulating
     const decompressionTransform = new TransformStream({
       start(controller) {
-        // Create pako inflator with custom callbacks
         const inflator = new pako.Inflate({ chunkSize: 128 * 1024 });
-        let bytesProcessed = 0;
-        const fileSize = file.size;
         
-        // Override onData to stream chunks immediately
+        // Critical: Override onData BEFORE any push() calls
+        // This ensures decompressed chunks flow immediately to the next stage
         inflator.onData = function(chunk: Uint8Array) {
           controller.enqueue(chunk);
         };
         
-        // Override onEnd
+        // Handle errors
         inflator.onEnd = function(status: number) {
           if (status !== 0) {
-            controller.error(new Error(`Decompression failed: ${inflator.msg || 'Unknown error'}`));
+            const errorMsg = inflator.msg || 'Unknown decompression error';
+            controller.error(new Error(`Decompression failed: ${errorMsg}`));
           }
         };
         
-        // Store inflator on the controller for use in transform()
+        // Store for use in transform() and flush()
         (controller as any).inflator = inflator;
         (controller as any).bytesProcessed = 0;
-        (controller as any).fileSize = fileSize;
+        (controller as any).fileSize = file.size;
+        (controller as any).lastProgressUpdate = 0;
       },
       
       transform(chunk, controller) {
-        const inflator = (controller as any).inflator;
-        const fileSize = (controller as any).fileSize;
-        
-        // Push chunk to inflator - it will call onData for each decompressed chunk
-        inflator.push(chunk, false);
-        
-        // Update progress
-        (controller as any).bytesProcessed += chunk.length;
-        const progress = 10 + (((controller as any).bytesProcessed / fileSize) * 35);
-        if (Math.floor(progress) % 5 === 0) {
-          postProgress(`Decompressing... ${Math.round(progress - 10)}%`, progress, 100);
+        try {
+          const inflator = (controller as any).inflator;
+          
+          // Decompress this chunk - onData will enqueue result
+          inflator.push(chunk, false);
+          
+          // Update progress (throttle updates)
+          (controller as any).bytesProcessed += chunk.length;
+          const progress = 10 + (((controller as any).bytesProcessed / (controller as any).fileSize) * 35);
+          const progressInt = Math.floor(progress);
+          
+          if (progressInt > (controller as any).lastProgressUpdate && progressInt % 5 === 0) {
+            (controller as any).lastProgressUpdate = progressInt;
+            postProgress(`Decompressing... ${Math.round(progress - 10)}%`, progress, 100);
+          }
+        } catch (err) {
+          controller.error(err);
         }
       },
       
       flush(controller) {
-        const inflator = (controller as any).inflator;
-        // Signal end of stream
-        inflator.push(new Uint8Array(0), true);
-        postProgress('Decompression complete', 45, 100);
+        try {
+          const inflator = (controller as any).inflator;
+          // Finalize decompression
+          inflator.push(new Uint8Array(0), true);
+          postProgress('Decompression complete', 45, 100);
+        } catch (err) {
+          controller.error(err);
+        }
       }
     });
     
@@ -241,28 +250,36 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
       
       // Process each emitted value from the parser
       if (value && value.value !== undefined) {
-        const keyString = typeof value.key === 'string' ? value.key : String(value.key);
-        const pathArray = keyString ? keyString.split('.').filter(Boolean) : [];
-        const topLevelKey = pathArray[0];
-        
-        if (topLevelKey) {
-          // Track what section we're processing
-          if (currentSection !== topLevelKey) {
-            currentSection = topLevelKey;
-            postProgress(`Processing ${topLevelKey}...`, 50 + (itemCount / 10000) * 45, 100);
-          }
+        try {
+          const keyString = typeof value.key === 'string' ? value.key : String(value.key);
+          const pathArray = keyString ? keyString.split('.').filter(Boolean) : [];
+          const topLevelKey = pathArray[0];
           
-          // Store the value at the appropriate key
-          result[topLevelKey] = value.value;
-          itemCount++;
-          
-          // Yield control periodically to prevent UI freeze on mobile
-          if (itemCount % 1000 === 0) {
-            await new Promise(resolve => setTimeout(resolve, 0));
+          if (topLevelKey) {
+            // Track what section we're processing
+            if (currentSection !== topLevelKey) {
+              currentSection = topLevelKey;
+              postProgress(`Processing ${topLevelKey}...`, 50 + (itemCount / 10000) * 45, 100);
+            }
+            
+            // Store the value at the appropriate key
+            result[topLevelKey] = value.value;
+            itemCount++;
+            
+            // Yield control periodically to prevent UI freeze on mobile
+            if (itemCount % 1000 === 0) {
+              await new Promise(resolve => setTimeout(resolve, 0));
+            }
           }
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+          throw new Error(`Error processing ${currentSection || 'unknown section'}: ${errorMsg}`);
         }
       }
     }
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+    throw new Error(`Mobile streaming parse failed: ${errorMsg}`);
   } finally {
     reader.releaseLock();
   }
