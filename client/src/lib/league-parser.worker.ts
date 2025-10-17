@@ -30,198 +30,92 @@ async function parseFileTraditional(file: File): Promise<any> {
   return JSON.parse(content);
 }
 
-// TRUE streaming method - process data incrementally like ZenGM
-// Parse specific paths and build object piece-by-piece without creating full object in memory
+// ZenGM's approach: stream decompress → arrayBuffer → native JSON.parse
+// This is MORE memory-efficient than streaming JSON parser (especially on mobile!)
+// because browser's native JSON.parse is highly optimized C++ code
 async function parseFileStreaming(file: File): Promise<any> {
-  const isCompressed = file.name.endsWith('.gz');
+  console.log(`[WORKER] Parsing file (ZenGM method):`, file.name);
   
-  // Get the stream (compressed or not)
-  let dataStream = file.stream();
+  const arrayBuffer = await file.arrayBuffer();
+  const isCompressed = file.name.endsWith('.gz') || file.name.endsWith('.json.gz');
+  
+  let textContent: string;
   
   if (isCompressed) {
+    postProgress('Decompressing...', 20, 100);
+    
     if (typeof DecompressionStream === 'undefined') {
-      throw new Error(
-        'DecompressionStream not supported. Please use Chrome 80+, Firefox 113+, or Safari 16.4+'
-      );
+      throw new Error('DecompressionStream not supported. Please use Chrome 80+, Firefox 113+, or Safari 16.4+');
     }
-    postProgress('Starting streaming decompression...', 5, 100);
-    dataStream = dataStream.pipeThrough(new DecompressionStream('gzip'));
+    
+    // ZenGM's exact approach: stream decompress → arrayBuffer
+    const stream = new Response(arrayBuffer).body!.pipeThrough(new DecompressionStream('gzip'));
+    const decompressedBuffer = await new Response(stream).arrayBuffer();
+    
+    postProgress('Decoding...', 50, 100);
+    textContent = new TextDecoder().decode(decompressedBuffer);
+    
+  } else {
+    postProgress('Decoding...', 30, 100);
+    textContent = new TextDecoder().decode(arrayBuffer);
   }
   
-  postProgress('Streaming JSON parse...', 10, 100);
+  postProgress('Parsing JSON...', 70, 100);
   
-  // Parse all major sections incrementally using streaming JSON parser
-  // This captures metadata and large arrays at specific paths
-  const jsonParser = new JSONParser({ 
-    paths: [
-      '$.version',
-      '$.startingSeason', 
-      '$.gameAttributes',
-      '$.players',
-      '$.teams',
-      '$.teamSeasons',
-      '$.teamStats',
-      '$.games',
-      '$.schedule',
-      '$.playoffSeries',
-      '$.draftPicks',
-      '$.draftOrder',
-      '$.negotiations',
-      '$.messages',
-      '$.events',
-      '$.playerFeats',
-      '$.allStars',
-      '$.awards',
-      '$.releasedPlayers',
-      '$.scheduledEvents',
-      '$.trade',
-      '$.meta'
-    ],
-    keepStack: false 
-  });
+  // Use browser's native JSON.parse - highly optimized!
+  const leagueData = JSON.parse(textContent);
   
-  const jsonStream = dataStream.pipeThrough(jsonParser);
-  const reader = jsonStream.getReader();
-  
-  // Build result object incrementally
-  const result: any = {};
-  let itemCount = 0;
-  let currentSection = '';
-  
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      
-      if (done) {
-        postProgress('Streaming parse complete', 95, 100);
-        return result;
-      }
-      
-      // Process each emitted value from the parser
-      if (value && value.value !== undefined) {
-        const keyString = typeof value.key === 'string' ? value.key : String(value.key);
-        const pathArray = keyString ? keyString.split('.').filter(Boolean) : [];
-        const topLevelKey = pathArray[0];
-        
-        if (topLevelKey) {
-          // Track what section we're processing
-          if (currentSection !== topLevelKey) {
-            currentSection = topLevelKey;
-            postProgress(`Processing ${topLevelKey}...`, 10 + (itemCount / 10000) * 85, 100);
-          }
-          
-          // Store the value at the appropriate key
-          result[topLevelKey] = value.value;
-          itemCount++;
-        }
-      }
-    }
-  } finally {
-    reader.releaseLock();
-  }
+  postProgress('Parse complete', 95, 100);
+  return leagueData;
 }
 
-// Use EXACT same streaming approach as files - just with response.body as source
+// ZenGM's approach for URLs too: fetch → decompress stream → arrayBuffer → JSON.parse
 async function parseUrlStreaming(url: string): Promise<any> {
+  console.log(`[WORKER] Fetching URL (ZenGM method):`, url);
+  
   postProgress('Fetching URL...', 5, 100);
   
-  // Try CORS fetch first
   const response = await fetch(url, { mode: 'cors' });
   
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }
   
-  if (!response.body) {
-    throw new Error('Response body not available');
-  }
+  postProgress('Downloading...', 15, 100);
   
-  postProgress('Downloading...', 10, 100);
+  // Get arrayBuffer from response
+  const arrayBuffer = await response.arrayBuffer();
   
-  // Get the stream from response
-  let dataStream = response.body;
-  
-  // Check if compressed by URL
   const isCompressed = url.includes('.gz') || url.includes('.json.gz');
   
+  let textContent: string;
+  
   if (isCompressed) {
+    postProgress('Decompressing...', 40, 100);
+    
     if (typeof DecompressionStream === 'undefined') {
       throw new Error('DecompressionStream not supported. Please use Chrome 80+, Firefox 113+, or Safari 16.4+');
     }
-    postProgress('Decompressing...', 15, 100);
-    dataStream = dataStream.pipeThrough(new DecompressionStream('gzip'));
+    
+    // ZenGM's exact approach: stream decompress → arrayBuffer
+    const stream = new Response(arrayBuffer).body!.pipeThrough(new DecompressionStream('gzip'));
+    const decompressedBuffer = await new Response(stream).arrayBuffer();
+    
+    postProgress('Decoding...', 60, 100);
+    textContent = new TextDecoder().decode(decompressedBuffer);
+    
+  } else {
+    postProgress('Decoding...', 50, 100);
+    textContent = new TextDecoder().decode(arrayBuffer);
   }
   
-  postProgress('Streaming JSON parse...', 20, 100);
+  postProgress('Parsing JSON...', 80, 100);
   
-  // Use EXACT same streaming JSON parser as files
-  const jsonParser = new JSONParser({ 
-    paths: [
-      '$.version',
-      '$.startingSeason', 
-      '$.gameAttributes',
-      '$.players',
-      '$.teams',
-      '$.teamSeasons',
-      '$.teamStats',
-      '$.games',
-      '$.schedule',
-      '$.playoffSeries',
-      '$.draftPicks',
-      '$.draftOrder',
-      '$.negotiations',
-      '$.messages',
-      '$.events',
-      '$.playerFeats',
-      '$.allStars',
-      '$.awards',
-      '$.releasedPlayers',
-      '$.scheduledEvents',
-      '$.trade',
-      '$.meta'
-    ],
-    keepStack: false 
-  });
+  // Use browser's native JSON.parse - highly optimized!
+  const leagueData = JSON.parse(textContent);
   
-  const jsonStream = dataStream.pipeThrough(jsonParser);
-  const reader = jsonStream.getReader();
-  
-  // Build result object incrementally (same as files)
-  const result: any = {};
-  let itemCount = 0;
-  let currentSection = '';
-  
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      
-      if (done) {
-        postProgress('Streaming parse complete', 95, 100);
-        return result;
-      }
-      
-      // Process each emitted value from the parser
-      if (value && value.value !== undefined) {
-        const keyString = typeof value.key === 'string' ? value.key : String(value.key);
-        const pathArray = keyString ? keyString.split('.').filter(Boolean) : [];
-        const topLevelKey = pathArray[0];
-        
-        if (topLevelKey) {
-          // Track what section we're processing
-          if (currentSection !== topLevelKey) {
-            currentSection = topLevelKey;
-            postProgress(`Processing ${topLevelKey}...`, 20 + (itemCount / 10000) * 75, 100);
-          }
-          
-          // Store the value at the appropriate key
-          result[topLevelKey] = value.value;
-          itemCount++;
-        }
-      }
-    }
-  } finally {
-    reader.releaseLock();
-  }
+  postProgress('Parse complete', 95, 100);
+  return leagueData;
 }
 
 // Traditional URL fetch for small files
