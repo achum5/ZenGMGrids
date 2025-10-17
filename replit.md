@@ -47,6 +47,19 @@ Preferred communication style: Simple, everyday language.
 - **Build Process**: Custom build script handles output directory structure for Vercel
 - **Server Stub**: Express server included for Replit development only
 
+### Branding and Icons (v3)
+- **App Icons**: Complete icon set generated from zengm-grids-logo-mark.png
+  - Location: `public/icons/` directory
+  - Favicon: Multi-size favicon.ico (16x16, 32x32, 48x48)
+  - PNG Icons: 16, 32, 48, 192, 384, 512 pixel sizes
+  - Apple Touch Icon: 180x180 for iOS home screen
+  - Maskable Icons: 192x192 and 512x512 with safe zone padding for Android
+  - Social Share: 1200x630 OG image with logo on brand color background
+- **Brand Colors**: Theme color #0b2a5b (deep blue) used throughout
+- **PWA Support**: Web app manifest with standalone display mode
+- **In-App Logo**: Header uses optimized /icons/icon-192.png
+- **Cache Version**: v3 (bumped from v2 for icon refresh)
+
 ### External Dependencies
 
 - **UI Framework**: Radix UI primitives for accessible components

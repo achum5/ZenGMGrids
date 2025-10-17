@@ -12,7 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from '@/components/ui/button';
 import { Home as HomeIcon } from 'lucide-react';
 // Import sport icon images
-import zengmGridsLogo from '@/assets/zengm-grids-logo-mark.png';
+const zengmGridsLogo = '/icons/icon-192.png'; // Using new optimized app icon
 import basketballIcon from '@/assets/zengm-grids-logo-basketball.png';
 import footballIcon from '@/assets/zengm-grids-logo-football.png';
 import hockeyIcon from '@/assets/zengm-grids-logo-hockey.png';
