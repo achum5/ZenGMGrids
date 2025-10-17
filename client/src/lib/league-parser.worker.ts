@@ -204,34 +204,32 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
   
   postProgress('Parsing JSON stream...', 50, 100);
   
-  // CRITICAL MOBILE FIX: Parse ALL sections element-by-element, NEVER as complete arrays/objects
-  // This prevents loading huge data structures into memory at once
+  // Use SAME paths as desktop streaming - file.stream() already prevents memory crashes
+  // The [*] syntax doesn't work with this JSON parser library
   const jsonParser = new JSONParser({ 
     paths: [
       '$.version',
-      '$.startingSeason',
-      // Parse gameAttributes field-by-field
-      '$.gameAttributes.*',
-      // Parse ALL arrays element-by-element using [*] notation
-      '$.players[*]',         // Each player individually
-      '$.teams[*]',           // Each team individually
-      '$.teamSeasons[*]',     // Each teamSeason individually
-      '$.teamStats[*]',       // Each teamStat individually
-      '$.games[*]',           // Each game individually
-      '$.schedule[*]',        // Each schedule entry individually
-      '$.playoffSeries[*]',   // Each playoff series individually
-      '$.draftPicks[*]',      // Each draft pick individually
-      '$.draftOrder[*]',      // Each draft order individually
-      '$.negotiations[*]',    // Each negotiation individually
-      '$.messages[*]',        // Each message individually
-      '$.events[*]',          // Each event individually
-      '$.playerFeats[*]',     // Each feat individually
-      '$.allStars[*]',        // Each all-star individually
-      '$.awards[*]',          // Each award individually
-      '$.releasedPlayers[*]', // Each released player individually
-      '$.scheduledEvents[*]', // Each scheduled event individually
-      '$.trade[*]',           // Each trade individually
-      '$.meta.*'              // Meta fields
+      '$.startingSeason', 
+      '$.gameAttributes',
+      '$.players',
+      '$.teams',
+      '$.teamSeasons',
+      '$.teamStats',
+      '$.games',
+      '$.schedule',
+      '$.playoffSeries',
+      '$.draftPicks',
+      '$.draftOrder',
+      '$.negotiations',
+      '$.messages',
+      '$.events',
+      '$.playerFeats',
+      '$.allStars',
+      '$.awards',
+      '$.releasedPlayers',
+      '$.scheduledEvents',
+      '$.trade',
+      '$.meta'
     ],
     keepStack: false 
   });
@@ -281,38 +279,13 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
               console.log(`[WORKER] Started processing ${topLevelKey} at item ${itemCount}`);
             }
             
-            // Handle gameAttributes and meta - field-by-field assembly
-            if ((topLevelKey === 'gameAttributes' || topLevelKey === 'meta') && pathArray.length > 1) {
-              const fieldName = pathArray[1];
-              if (!result[topLevelKey]) {
-                result[topLevelKey] = {};
-              }
-              result[topLevelKey][fieldName] = value.value;
-            }
-            // Handle arrays - build element-by-element
-            else if (pathArray.length > 1 && /^\d+$/.test(pathArray[1])) {
-              // This is an array element (e.g., players[0], teams[1])
-              if (!result[topLevelKey]) {
-                result[topLevelKey] = [];
-              }
-              result[topLevelKey].push(value.value);
-            }
-            // Handle simple top-level values
-            else {
-              result[topLevelKey] = value.value;
-            }
-            
+            // Store the value at the appropriate key (same as desktop streaming)
+            result[topLevelKey] = value.value;
             itemCount++;
             
-            // Yield control MORE frequently on mobile to prevent freezing
-            // Also log progress for debugging
-            if (itemCount % 200 === 0) {
+            // Yield control periodically on mobile to prevent UI freezing
+            if (itemCount % 500 === 0) {
               await new Promise(resolve => setTimeout(resolve, 0));
-            }
-            
-            // Extra safety: Log every 2000 items to track progress
-            if (itemCount % 2000 === 0) {
-              console.log(`[WORKER] Processed ${itemCount} items, currently in ${currentSection}`);
             }
           }
         } catch (err) {
