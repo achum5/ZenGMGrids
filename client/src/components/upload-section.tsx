@@ -1,8 +1,9 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Upload, FileUp, Link, AlertCircle, Clipboard } from 'lucide-react';
+import { Upload, FileUp, Link, AlertCircle, Clipboard, Settings } from 'lucide-react';
 import { useState } from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface UploadSectionProps {
   onFileUpload: (file: File) => void;
@@ -13,9 +14,11 @@ interface UploadSectionProps {
     loaded?: number;
     total?: number;
   } | null;
+  parsingMethod?: 'auto' | 'traditional' | 'streaming';
+  onParsingMethodChange?: (method: 'auto' | 'traditional' | 'streaming') => void;
 }
 
-export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadProgress }: UploadSectionProps) {
+export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadProgress, parsingMethod = 'auto', onParsingMethodChange }: UploadSectionProps) {
   const [urlInput, setUrlInput] = useState('');
   const [urlError, setUrlError] = useState('');
 
@@ -67,6 +70,34 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadP
     <div className="text-center">
       <Card className="mb-8 border-0 shadow-none bg-transparent">
         <CardContent className="p-8">
+          {/* Parsing Method Toggle */}
+          {onParsingMethodChange && (
+            <div className="mb-6 flex items-center justify-center gap-3">
+              <Settings className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-muted-foreground">Parsing Method:</span>
+              <Select 
+                value={parsingMethod} 
+                onValueChange={onParsingMethodChange}
+                disabled={isProcessing}
+              >
+                <SelectTrigger className="w-[180px]" data-testid="select-parsing-method">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto" data-testid="option-auto">
+                    Auto (Recommended)
+                  </SelectItem>
+                  <SelectItem value="traditional" data-testid="option-traditional">
+                    Traditional
+                  </SelectItem>
+                  <SelectItem value="streaming" data-testid="option-streaming">
+                    Streaming (Desktop)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* File Upload Section */}
             <div 

@@ -17,7 +17,8 @@ import basketballIcon from '@/assets/zengm-grids-logo-basketball.png';
 import footballIcon from '@/assets/zengm-grids-logo-football.png';
 import hockeyIcon from '@/assets/zengm-grids-logo-hockey.png';
 import baseballIcon from '@/assets/zengm-grids-logo-baseball.png';
-import { parseLeagueFile, parseLeagueUrl, buildSearchIndex } from '@/lib/bbgm-parser';
+import { parseLeagueFile, parseLeagueUrl, buildSearchIndex, type ParsingMethod } from '@/lib/bbgm-parser';
+import { getStoredParsingMethod, storeParsingMethod, getRecommendedMethod, type ParsingMethod as ParsingMethodType } from '@/lib/mobile-detection';
 import { generateTeamsGrid, cellKey } from '@/lib/grid-generator';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
 import { calculateCustomCellIntersection, headerConfigToCatTeam, getCustomCellEligiblePlayersAsync } from '@/lib/custom-grid-utils';
@@ -97,6 +98,11 @@ export default function Home() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoadingCustomIntersection, setIsLoadingCustomIntersection] = useState(false);
   
+  // Parsing method state - load from localStorage or default to 'auto'
+  const [parsingMethodSetting, setParsingMethodSetting] = useState<'auto' | 'traditional' | 'streaming'>(() => 
+    getStoredParsingMethod()
+  );
+  
   // Progress tracking for file uploads
   const [uploadProgress, setUploadProgress] = useState<{
     message: string;
@@ -137,6 +143,12 @@ export default function Home() {
   // Handle hint mode toggle
   const handleHintModeChange = useCallback((enabled: boolean) => {
     setHintMode(enabled);
+  }, []);
+
+  // Handle parsing method change
+  const handleParsingMethodChange = useCallback((method: 'auto' | 'traditional' | 'streaming') => {
+    setParsingMethodSetting(method);
+    storeParsingMethod(method);
   }, []);
 
   // Handle hint modal close
@@ -446,10 +458,15 @@ export default function Home() {
     setUploadProgress({ message: 'Starting...', loaded: 0, total: file.size });
     
     try {
-      // Parse the league file with progress tracking
+      // Determine which method to use based on setting
+      const method: ParsingMethod = parsingMethodSetting === 'auto' 
+        ? getRecommendedMethod() 
+        : parsingMethodSetting;
+      
+      // Parse the league file with progress tracking and selected method
       const data = await parseLeagueFile(file, (message, loaded, total) => {
         setUploadProgress({ message, loaded, total });
-      });
+      }, method);
       await processLeagueData(data);
       
     } catch (error) {
@@ -463,17 +480,22 @@ export default function Home() {
       setIsProcessing(false);
       setUploadProgress(null);
     }
-  }, [toast]);
+  }, [toast, parsingMethodSetting]);
 
   const handleUrlUpload = useCallback(async (url: string) => {
     setIsProcessing(true);
     setUploadProgress({ message: 'Starting...', loaded: 0, total: 100 });
     
     try {
-      // Parse the league URL with progress tracking
+      // Determine which method to use based on setting
+      const method: ParsingMethod = parsingMethodSetting === 'auto' 
+        ? getRecommendedMethod() 
+        : parsingMethodSetting;
+      
+      // Parse the league URL with progress tracking and selected method
       const data = await parseLeagueUrl(url, (message, loaded, total) => {
         setUploadProgress({ message, loaded, total });
-      });
+      }, method);
       await processLeagueData(data);
       
     } catch (error) {
@@ -487,7 +509,7 @@ export default function Home() {
       setIsProcessing(false);
       setUploadProgress(null);
     }
-  }, [toast]);
+  }, [toast, parsingMethodSetting]);
 
   // Create minimal test data for debugging
   const createTestData = useCallback((): LeagueData => {
@@ -1305,6 +1327,8 @@ export default function Home() {
             onUrlUpload={handleUrlUpload}
             isProcessing={isProcessing}
             uploadProgress={uploadProgress}
+            parsingMethod={parsingMethodSetting}
+            onParsingMethodChange={handleParsingMethodChange}
           />
         </main>
       </div>
