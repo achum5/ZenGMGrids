@@ -311,10 +311,13 @@ export function GridSection({
       borderColor = '#B91C1C';
       className = 'incorrect-answer font-medium transition-all duration-100 motion-reduce:transition-none cursor-pointer hover:brightness-110 hover:contrast-110 hover:shadow-md focus:ring-2 focus:ring-inset focus:ring-red-400';
     } else if (cellState.autoFilled) {
-      background = giveUpPressed ? '#D4A520' : '#FCD34D'; // Mustard yellow for give up, bright yellow otherwise
-      color = giveUpPressed ? '#5A4A00' : '#92400E';
-      borderColor = giveUpPressed ? '#B8941C' : '#D97706';
-      className = 'revealed-answer font-medium transition-all duration-100 motion-reduce:transition-none cursor-pointer hover:brightness-110 hover:contrast-110 hover:shadow-md focus:ring-2 focus:ring-inset focus:ring-yellow-400';
+      // Muted, "dead" appearance for given up cells
+      background = 'repeating-linear-gradient(45deg, #2a2e35, #2a2e35 10px, #32363f 10px, #32363f 20px)'; // Subtle diagonal hatch
+      color = '#9ca3af'; // Desaturated gray text
+      borderColor = '#5b6270'; // Neutral gray border
+      borderWidth = '1px';
+      borderStyle = 'dashed'; // Dashed border for "final" feel
+      className = 'revealed-answer font-medium transition-all duration-100 motion-reduce:transition-none cursor-pointer grayscale opacity-80 blur-[0.5px] focus:ring-2 focus:ring-inset focus:ring-gray-500';
     }
 
     return {
