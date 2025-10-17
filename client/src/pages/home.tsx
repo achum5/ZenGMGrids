@@ -655,9 +655,15 @@ export default function Home() {
     setTeamsByTid(indices.teamsByTid);
 
     // Calculate team seasons and achievement seasons for each player
-    data.players.forEach(player => {
-      calculateTeamSeasonsAndAchievementSeasons(player, data.teamOverlaps, data.gameAttributes);
-    });
+    // MOBILE FIX: Yield control periodically to prevent UI freezing/crashes
+    for (let i = 0; i < data.players.length; i++) {
+      calculateTeamSeasonsAndAchievementSeasons(data.players[i], data.teamOverlaps, data.gameAttributes);
+      
+      // Yield control every 500 players to prevent mobile freeze
+      if (i % 500 === 0 && i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+    }
     
     // Direct intersection test (bypass grid generation)
 
