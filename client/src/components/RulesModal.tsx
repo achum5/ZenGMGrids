@@ -202,7 +202,7 @@ export function RulesModal({ sport }: RulesModalProps) {
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm" className="neon-button" data-testid="button-rules">
-          <HelpCircle className="h-[1.2rem] w-[1.2rem] ml-[2px]" />
+          <HelpCircle className="h-[1.2rem] w-[1.2rem] ml-[3px]" />
           <span className="sr-only">Rules</span>
         </Button>
       </DialogTrigger>

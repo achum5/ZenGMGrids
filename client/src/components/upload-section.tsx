@@ -68,19 +68,18 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadP
 
   return (
     <div className="text-center">
-      <Card className="mb-8 border-0 shadow-none bg-transparent">
-        <CardContent className="p-4">
+      <Card className="border-0 shadow-none bg-transparent">
+        <CardContent className="">
           {/* Upload Method Toggle */}
           {onParsingMethodChange && (
-            <div className="mb-4 flex items-center justify-center gap-3">
-              <Settings className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center justify-center gap-3 translate-y-[-1rem]">
               <span className="text-sm font-medium text-muted-foreground">Upload Method:</span>
               <Select 
                 value={parsingMethod} 
                 onValueChange={onParsingMethodChange}
                 disabled={isProcessing}
               >
-                <SelectTrigger className="w-[180px]" data-testid="select-parsing-method">
+                <SelectTrigger className="w-[220px]" data-testid="select-parsing-method">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -91,7 +90,7 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadP
                     Traditional
                   </SelectItem>
                   <SelectItem value="streaming" data-testid="option-streaming">
-                    Streaming (Desktop)
+                    Streaming (may break on mobile)
                   </SelectItem>
                 </SelectContent>
               </Select>
