@@ -74,7 +74,7 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadP
           {onParsingMethodChange && (
             <div className="mb-6 flex items-center justify-center gap-3">
               <Settings className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-muted-foreground">Parsing Method:</span>
+              <span className="text-sm font-medium text-muted-foreground">Upload Method:</span>
               <Select 
                 value={parsingMethod} 
                 onValueChange={onParsingMethodChange}
