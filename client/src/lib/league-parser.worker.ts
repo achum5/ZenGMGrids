@@ -178,7 +178,9 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
             postProgress(`Decompressing... ${Math.round(progress - 10)}%`, progress, 100);
           }
         } catch (err) {
-          controller.error(err);
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          console.error('[WORKER] Decompression transform error:', errorMsg);
+          controller.error(new Error(`Decompression failed: ${errorMsg}`));
         }
       },
       
@@ -202,48 +204,34 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
   
   postProgress('Parsing JSON stream...', 50, 100);
   
-  // Use streaming JSON parser to avoid loading entire object at once
-  // MOBILE FIX: Parse gameAttributes fields individually, not as one object
+  // CRITICAL MOBILE FIX: Parse ALL sections element-by-element, NEVER as complete arrays/objects
+  // This prevents loading huge data structures into memory at once
   const jsonParser = new JSONParser({ 
     paths: [
       '$.version',
       '$.startingSeason',
-      // Parse gameAttributes field-by-field to avoid loading huge object at once
-      '$.gameAttributes.season',
-      '$.gameAttributes.phase',
-      '$.gameAttributes.teamInfoCache',
-      '$.gameAttributes.startingSeason',
-      '$.gameAttributes.gracePeriodEnd',
-      '$.gameAttributes.numGames',
-      '$.gameAttributes.quarterLength',
-      '$.gameAttributes.maxRosterSize',
-      '$.gameAttributes.minRosterSize',
-      '$.gameAttributes.salaryCap',
-      '$.gameAttributes.minPayroll',
-      '$.gameAttributes.luxuryPayroll',
-      '$.gameAttributes.luxuryTax',
-      '$.gameAttributes.minContract',
-      '$.gameAttributes.maxContract',
-      '$.gameAttributes.*', // Catch any other gameAttributes fields
-      '$.players',
-      '$.teams',
-      '$.teamSeasons',
-      '$.teamStats',
-      '$.games',
-      '$.schedule',
-      '$.playoffSeries',
-      '$.draftPicks',
-      '$.draftOrder',
-      '$.negotiations',
-      '$.messages',
-      '$.events',
-      '$.playerFeats',
-      '$.allStars',
-      '$.awards',
-      '$.releasedPlayers',
-      '$.scheduledEvents',
-      '$.trade',
-      '$.meta'
+      // Parse gameAttributes field-by-field
+      '$.gameAttributes.*',
+      // Parse ALL arrays element-by-element using [*] notation
+      '$.players[*]',         // Each player individually
+      '$.teams[*]',           // Each team individually
+      '$.teamSeasons[*]',     // Each teamSeason individually
+      '$.teamStats[*]',       // Each teamStat individually
+      '$.games[*]',           // Each game individually
+      '$.schedule[*]',        // Each schedule entry individually
+      '$.playoffSeries[*]',   // Each playoff series individually
+      '$.draftPicks[*]',      // Each draft pick individually
+      '$.draftOrder[*]',      // Each draft order individually
+      '$.negotiations[*]',    // Each negotiation individually
+      '$.messages[*]',        // Each message individually
+      '$.events[*]',          // Each event individually
+      '$.playerFeats[*]',     // Each feat individually
+      '$.allStars[*]',        // Each all-star individually
+      '$.awards[*]',          // Each award individually
+      '$.releasedPlayers[*]', // Each released player individually
+      '$.scheduledEvents[*]', // Each scheduled event individually
+      '$.trade[*]',           // Each trade individually
+      '$.meta.*'              // Meta fields
     ],
     keepStack: false 
   });
@@ -251,7 +239,7 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
   const jsonStream = dataStream.pipeThrough(jsonParser);
   const reader = jsonStream.getReader();
   
-  // Build result object incrementally
+  // Build result object incrementally - assemble arrays item-by-item
   const result: any = {};
   let itemCount = 0;
   let currentSection = '';
@@ -276,26 +264,43 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
             // Track what section we're processing
             if (currentSection !== topLevelKey) {
               currentSection = topLevelKey;
-              postProgress(`Processing ${topLevelKey}...`, 50 + (itemCount / 10000) * 45, 100);
+              const progressPercent = 50 + (itemCount / 10000) * 45;
+              postProgress(`Processing ${topLevelKey}...`, progressPercent, 100);
+              console.log(`[WORKER] Started processing ${topLevelKey} at item ${itemCount}`);
             }
             
-            // Handle gameAttributes field-by-field assembly
-            if (topLevelKey === 'gameAttributes' && pathArray.length > 1) {
+            // Handle gameAttributes and meta - field-by-field assembly
+            if ((topLevelKey === 'gameAttributes' || topLevelKey === 'meta') && pathArray.length > 1) {
               const fieldName = pathArray[1];
-              if (!result.gameAttributes) {
-                result.gameAttributes = {};
+              if (!result[topLevelKey]) {
+                result[topLevelKey] = {};
               }
-              result.gameAttributes[fieldName] = value.value;
-            } else {
-              // Store the value at the appropriate top-level key
+              result[topLevelKey][fieldName] = value.value;
+            }
+            // Handle arrays - build element-by-element
+            else if (pathArray.length > 1 && /^\d+$/.test(pathArray[1])) {
+              // This is an array element (e.g., players[0], teams[1])
+              if (!result[topLevelKey]) {
+                result[topLevelKey] = [];
+              }
+              result[topLevelKey].push(value.value);
+            }
+            // Handle simple top-level values
+            else {
               result[topLevelKey] = value.value;
             }
             
             itemCount++;
             
-            // Yield control periodically to prevent UI freeze on mobile
-            if (itemCount % 500 === 0) {
+            // Yield control MORE frequently on mobile to prevent freezing
+            // Also log progress for debugging
+            if (itemCount % 200 === 0) {
               await new Promise(resolve => setTimeout(resolve, 0));
+            }
+            
+            // Extra safety: Log every 2000 items to track progress
+            if (itemCount % 2000 === 0) {
+              console.log(`[WORKER] Processed ${itemCount} items, currently in ${currentSection}`);
             }
           }
         } catch (err) {
