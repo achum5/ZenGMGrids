@@ -3,10 +3,11 @@ import { JSONParser } from '@streamparser/json-whatwg';
 import { normalizeLeague, type Sport } from './league-normalizer';
 import type { LeagueData } from '@/types/bbgm';
 
-// File size threshold for streaming (50MB compressed)
-// Files under this use fast traditional method (seconds)
-// Files over this use DecompressionStream + JSONParser streaming (handles unlimited size)
+// File size threshold for automatic method selection (50MB compressed)
+// Only used when method is 'auto'
 const STREAMING_THRESHOLD = 50 * 1024 * 1024;
+
+export type ParsingMethod = 'traditional' | 'streaming';
 
 // Helper to post progress messages
 const postProgress = (message: string, loaded?: number, total?: number) => {
@@ -254,8 +255,8 @@ async function parseUrlTraditional(url: string): Promise<any> {
   return JSON.parse(content);
 }
 
-self.onmessage = async (event: MessageEvent<{ file?: File; url?: string }>) => {
-  const { file, url } = event.data;
+self.onmessage = async (event: MessageEvent<{ file?: File; url?: string; method?: ParsingMethod }>) => {
+  const { file, url, method = 'streaming' } = event.data; // Default to streaming if not specified
 
   if (!file && !url) {
     self.postMessage({ type: 'error', error: 'No file or URL provided to worker.' });
@@ -266,13 +267,15 @@ self.onmessage = async (event: MessageEvent<{ file?: File; url?: string }>) => {
     let rawData: any;
     
     if (file) {
-      // File upload path
+      // File upload path - use specified method
       postProgress('Starting file processing...', 0, file.size);
       
-      if (file.size < STREAMING_THRESHOLD) {
-        postProgress('Reading file...', 0, file.size);
+      // Choose parsing method based on parameter
+      if (method === 'traditional') {
+        postProgress('Reading file (traditional method)...', 0, file.size);
         rawData = await parseFileTraditional(file);
       } else {
+        // streaming method
         postProgress('Streaming file...', 0, file.size);
         rawData = await parseFileStreaming(file);
       }
@@ -289,11 +292,16 @@ self.onmessage = async (event: MessageEvent<{ file?: File; url?: string }>) => {
       self.postMessage({ type: 'complete', leagueData });
       
     } else if (url) {
-      // URL fetch path
+      // URL fetch path - use specified method
       postProgress('Starting URL processing...', 0, 100);
       
-      // Always use streaming for URLs (we don't know size upfront)
-      rawData = await parseUrlStreaming(url);
+      // Choose parsing method based on parameter
+      if (method === 'traditional') {
+        rawData = await parseUrlTraditional(url);
+      } else {
+        // streaming method
+        rawData = await parseUrlStreaming(url);
+      }
       
       if (!rawData) {
         throw new Error('URL content is empty after fetching.');
