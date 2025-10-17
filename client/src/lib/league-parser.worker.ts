@@ -138,8 +138,8 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
     // Create a TransformStream that decompresses using pako
     const decompressionTransform = new TransformStream({
       start(controller) {
-        // MOBILE FIX: Use TINY chunk size (16KB) for mobile memory constraints
-        const inflator = new pako.Inflate({ chunkSize: 16 * 1024 });
+        // ULTRA-AGGRESSIVE MOBILE FIX: Use ULTRA-TINY chunk size (8KB) for extreme mobile memory constraints
+        const inflator = new pako.Inflate({ chunkSize: 8 * 1024 });
         
         // Critical: Override onData BEFORE any push() calls
         // This ensures decompressed chunks flow immediately to the next stage
@@ -181,10 +181,9 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
             postProgress(`Decompressing... ${Math.round(progress - 10)}%`, progress, 100);
           }
           
-          // CRITICAL MOBILE FIX: Yield control after EVERY 5 chunks to prevent freeze
-          if ((controller as any).chunkCount % 5 === 0) {
-            await new Promise(resolve => setTimeout(resolve, 0));
-          }
+          // ULTRA-AGGRESSIVE MOBILE FIX: Yield control after EVERY SINGLE CHUNK to prevent freeze
+          // This will be slower but maximally prevents memory buildup
+          await new Promise(resolve => setTimeout(resolve, 0));
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
           console.error('[WORKER] Decompression transform error:', errorMsg);
