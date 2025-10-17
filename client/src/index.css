@@ -344,8 +344,8 @@
       #46a6ff,
       #29ffc6
     );
-    background-size: 300% 100%;
-    animation: pan-gradient-slow 35s linear infinite;
+    background-size: 400% 400%; /* Larger size for multi-directional movement */
+    animation: pan-gradient-slow 60s linear infinite; /* Apply new animation */
     border-radius: 1rem;
   }
   
@@ -691,16 +691,16 @@
     background-position: 0% 50%;
   }
   100% {
-    background-position: 200% 50%;
+    background-position: 400% 50%;
   }
 }
 
 @keyframes pan-gradient-slow {
   0% {
-    background-position: 0% 50%;
+    background-position: 0% 0%;
   }
   100% {
-    background-position: 300% 50%;
+    background-position: 400% 400%;
   }
 }
 
@@ -786,6 +786,22 @@ body::before {
   animation: breathe-glow 12s ease-in-out infinite;
 }
 
+.grid-container-glow::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--neon-gradient);
+  background-size: 400% 400%; /* Larger size for multi-directional movement */
+  animation: pan-gradient-slow 90s linear infinite reverse; /* Apply new animation, reversed */
+  opacity: 0.1;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
 .grid-divider {
   position: relative;
 }
@@ -798,9 +814,9 @@ body::before {
   right: 0;
   bottom: 0;
   background: var(--neon-gradient);
-  background-size: 200% 100%;
-  animation: pan-gradient 18s linear infinite;
-  opacity: 0.06;
+  background-size: 400% 100%; /* Keep horizontal size, extended for full cycle */
+  animation: pan-gradient 45s linear infinite; /* Longer, distinct horizontal animation */
+  opacity: 0.3; /* Maintain opacity */
   z-index: 0;
   pointer-events: none;
 }

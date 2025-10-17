@@ -79,7 +79,7 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadP
                 onValueChange={onParsingMethodChange}
                 disabled={isProcessing}
               >
-                <SelectTrigger className="w-[220px]" data-testid="select-parsing-method">
+                <SelectTrigger className="w-auto max-w-full" data-testid="select-parsing-method">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -134,6 +134,30 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadP
                 </Button>
               </div>
             </div>
+            
+            {/* Progress Bar - Mobile Only (between sections) */}
+            {uploadProgress && (
+              <div className="md:hidden space-y-2 px-4">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground font-medium">{uploadProgress.message}</span>
+                  {uploadProgress.loaded !== undefined && uploadProgress.total !== undefined && (
+                    <span className="text-primary font-bold">
+                      {((uploadProgress.loaded / uploadProgress.total) * 100).toFixed(0)}%
+                    </span>
+                  )}
+                </div>
+                {uploadProgress.loaded !== undefined && uploadProgress.total !== undefined && (
+                  <div className="w-full bg-secondary/50 rounded-full h-3 overflow-hidden shadow-lg">
+                    <div
+                      className="bg-gradient-to-r from-primary via-purple-500 to-primary h-3 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)] animate-pulse"
+                      style={{
+                        width: `${(uploadProgress.loaded / uploadProgress.total) * 100}%`
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
             
             {/* URL Upload Section */}
             <div className="border-2 border-dashed border-border rounded-lg p-8">
@@ -190,21 +214,21 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadP
             </div>
           </div>
           
-          {/* Progress Bar */}
+          {/* Progress Bar - Desktop Only (below sections) */}
           {uploadProgress && (
-            <div className="mt-6 space-y-2">
+            <div className="hidden md:block mt-6 space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">{uploadProgress.message}</span>
+                <span className="text-muted-foreground font-medium">{uploadProgress.message}</span>
                 {uploadProgress.loaded !== undefined && uploadProgress.total !== undefined && (
-                  <span className="text-muted-foreground">
+                  <span className="text-primary font-bold">
                     {((uploadProgress.loaded / uploadProgress.total) * 100).toFixed(0)}%
                   </span>
                 )}
               </div>
               {uploadProgress.loaded !== undefined && uploadProgress.total !== undefined && (
-                <div className="w-full bg-secondary rounded-full h-2.5 overflow-hidden">
+                <div className="w-full bg-secondary/50 rounded-full h-3 overflow-hidden shadow-lg">
                   <div
-                    className="bg-primary h-2.5 rounded-full transition-all duration-300"
+                    className="bg-gradient-to-r from-primary via-purple-500 to-primary h-3 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)] animate-pulse"
                     style={{
                       width: `${(uploadProgress.loaded / uploadProgress.total) * 100}%`
                     }}

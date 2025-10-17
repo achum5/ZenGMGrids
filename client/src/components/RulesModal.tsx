@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { HelpCircle, X } from "lucide-react";
-import { Sport } from "@/lib/bbgm-parser";
+import { type Sport } from "@/lib/league-normalizer";
 
 interface RulesModalProps {
   sport?: Sport;
