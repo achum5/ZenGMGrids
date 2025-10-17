@@ -170,20 +170,32 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
           // Decompress this chunk - onData will enqueue result
           inflator.push(chunk, false);
           
-          // Update progress (throttle updates)
+          // Update progress
           (controller as any).bytesProcessed += chunk.length;
           (controller as any).chunkCount++;
           const progress = 10 + (((controller as any).bytesProcessed / (controller as any).fileSize) * 35);
           const progressInt = Math.floor(progress);
           
-          if (progressInt > (controller as any).lastProgressUpdate && progressInt % 5 === 0) {
+          // Update progress MORE frequently on mobile so user knows it's working
+          if (progressInt > (controller as any).lastProgressUpdate) {
             (controller as any).lastProgressUpdate = progressInt;
-            postProgress(`Decompressing... ${Math.round(progress - 10)}%`, progress, 100);
+            postProgress(`Decompressing... ${progressInt}% (slow but safe)`, 10 + progressInt, 100);
           }
           
-          // ULTRA-AGGRESSIVE MOBILE FIX: Yield control after EVERY SINGLE CHUNK to prevent freeze
-          // This will be slower but maximally prevents memory buildup
-          await new Promise(resolve => setTimeout(resolve, 0));
+          // NUCLEAR MOBILE FIX: Add REAL TIME DELAYS to allow garbage collection
+          // Every 3 chunks = yield immediately
+          // Every 10 chunks = add 20ms delay for GC
+          // Every 50 chunks = add 50ms delay for deep GC
+          if ((controller as any).chunkCount % 50 === 0) {
+            // Long pause for garbage collection every 50 chunks
+            await new Promise(resolve => setTimeout(resolve, 50));
+          } else if ((controller as any).chunkCount % 10 === 0) {
+            // Medium pause every 10 chunks
+            await new Promise(resolve => setTimeout(resolve, 20));
+          } else if ((controller as any).chunkCount % 3 === 0) {
+            // Quick yield every 3 chunks
+            await new Promise(resolve => setTimeout(resolve, 0));
+          }
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
           console.error('[WORKER] Decompression transform error:', errorMsg);
