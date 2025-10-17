@@ -203,11 +203,28 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
   postProgress('Parsing JSON stream...', 50, 100);
   
   // Use streaming JSON parser to avoid loading entire object at once
+  // MOBILE FIX: Parse gameAttributes fields individually, not as one object
   const jsonParser = new JSONParser({ 
     paths: [
       '$.version',
-      '$.startingSeason', 
-      '$.gameAttributes',
+      '$.startingSeason',
+      // Parse gameAttributes field-by-field to avoid loading huge object at once
+      '$.gameAttributes.season',
+      '$.gameAttributes.phase',
+      '$.gameAttributes.teamInfoCache',
+      '$.gameAttributes.startingSeason',
+      '$.gameAttributes.gracePeriodEnd',
+      '$.gameAttributes.numGames',
+      '$.gameAttributes.quarterLength',
+      '$.gameAttributes.maxRosterSize',
+      '$.gameAttributes.minRosterSize',
+      '$.gameAttributes.salaryCap',
+      '$.gameAttributes.minPayroll',
+      '$.gameAttributes.luxuryPayroll',
+      '$.gameAttributes.luxuryTax',
+      '$.gameAttributes.minContract',
+      '$.gameAttributes.maxContract',
+      '$.gameAttributes.*', // Catch any other gameAttributes fields
       '$.players',
       '$.teams',
       '$.teamSeasons',
@@ -262,12 +279,22 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
               postProgress(`Processing ${topLevelKey}...`, 50 + (itemCount / 10000) * 45, 100);
             }
             
-            // Store the value at the appropriate key
-            result[topLevelKey] = value.value;
+            // Handle gameAttributes field-by-field assembly
+            if (topLevelKey === 'gameAttributes' && pathArray.length > 1) {
+              const fieldName = pathArray[1];
+              if (!result.gameAttributes) {
+                result.gameAttributes = {};
+              }
+              result.gameAttributes[fieldName] = value.value;
+            } else {
+              // Store the value at the appropriate top-level key
+              result[topLevelKey] = value.value;
+            }
+            
             itemCount++;
             
             // Yield control periodically to prevent UI freeze on mobile
-            if (itemCount % 1000 === 0) {
+            if (itemCount % 500 === 0) {
               await new Promise(resolve => setTimeout(resolve, 0));
             }
           }
