@@ -122,116 +122,73 @@ async function parseFileStreaming(file: File): Promise<any> {
   }
 }
 
-// Mobile-optimized streaming: TRUE chunked decompression with pako.Inflate
-// Processes compressed data incrementally without holding full decompressed data in memory
+// Mobile-optimized streaming: Use file.stream() directly - NO arrayBuffer() calls!
+// This avoids "I/O read operation failed" errors on mobile
 async function parseFileMobileStreaming(file: File): Promise<any> {
   const isCompressed = file.name.endsWith('.gz');
-  const READ_CHUNK_SIZE = 1 * 1024 * 1024; // Read 1MB at a time (smaller = less memory)
-  const STREAM_CHUNK_SIZE = 256 * 1024; // Stream 256KB chunks (smaller = more frequent cleanup)
   
   postProgress('Starting mobile-optimized processing...', 5, 100);
   
-  // Step 1: Create a stream that decompresses data incrementally
-  let dataStream: ReadableStream<Uint8Array>;
+  // Get the native file stream - works on ALL browsers including mobile
+  let dataStream = file.stream();
   
   if (isCompressed) {
-    // SOLUTION: Override pako's onData to prevent memory accumulation!
-    // By default, pako stores ALL chunks and concatenates at end - this causes OOM
     postProgress('Setting up streaming decompression...', 10, 100);
     
-    dataStream = new ReadableStream({
-      async start(controller) {
-        const inflator = new pako.Inflate({ chunkSize: 256 * 1024 });
+    // Create a TransformStream that decompresses using pako
+    // This pipes data through without accumulating
+    const decompressionTransform = new TransformStream({
+      start(controller) {
+        // Create pako inflator with custom callbacks
+        const inflator = new pako.Inflate({ chunkSize: 128 * 1024 });
+        let bytesProcessed = 0;
+        const fileSize = file.size;
         
-        // CRITICAL: Override onData to process chunks immediately
-        // This prevents pako from accumulating chunks in memory
+        // Override onData to stream chunks immediately
         inflator.onData = function(chunk: Uint8Array) {
-          // Stream this chunk immediately - don't store it!
           controller.enqueue(chunk);
         };
         
-        // Override onEnd to handle completion
-        let decompressError: string | null = null;
+        // Override onEnd
         inflator.onEnd = function(status: number) {
           if (status !== 0) {
-            decompressError = inflator.msg || 'Unknown decompression error';
+            controller.error(new Error(`Decompression failed: ${inflator.msg || 'Unknown error'}`));
           }
         };
         
-        try {
-          const fileSize = file.size;
-          let offset = 0;
-          let chunkCount = 0;
-          
-          // Read and decompress file in chunks
-          while (offset < fileSize) {
-            const chunkSize = Math.min(READ_CHUNK_SIZE, fileSize - offset);
-            const blob = file.slice(offset, offset + chunkSize);
-            const arrayBuffer = await blob.arrayBuffer();
-            const chunk = new Uint8Array(arrayBuffer);
-            
-            const isFinal = offset + chunkSize >= fileSize;
-            
-            // Push chunk to inflator - onData callback will handle output
-            inflator.push(chunk, isFinal);
-            
-            // Check for errors after each push
-            if (decompressError) {
-              throw new Error(`Decompression failed: ${decompressError}`);
-            }
-            
-            offset += chunkSize;
-            chunkCount++;
-            
-            // Update progress
-            const progress = 10 + ((offset / fileSize) * 35);
-            if (chunkCount % 5 === 0) {
-              postProgress(`Decompressing... ${Math.round(progress - 10)}%`, progress, 100);
-            }
-            
-            // Yield control to prevent freezing
-            if (chunkCount % 3 === 0) {
-              await new Promise(resolve => setTimeout(resolve, 1));
-            }
-          }
-          
-          postProgress('Decompression complete', 45, 100);
-          controller.close();
-          
-        } catch (err) {
-          controller.error(err);
-          throw new Error(`Decompression failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        // Store inflator on the controller for use in transform()
+        (controller as any).inflator = inflator;
+        (controller as any).bytesProcessed = 0;
+        (controller as any).fileSize = fileSize;
+      },
+      
+      transform(chunk, controller) {
+        const inflator = (controller as any).inflator;
+        const fileSize = (controller as any).fileSize;
+        
+        // Push chunk to inflator - it will call onData for each decompressed chunk
+        inflator.push(chunk, false);
+        
+        // Update progress
+        (controller as any).bytesProcessed += chunk.length;
+        const progress = 10 + (((controller as any).bytesProcessed / fileSize) * 35);
+        if (Math.floor(progress) % 5 === 0) {
+          postProgress(`Decompressing... ${Math.round(progress - 10)}%`, progress, 100);
         }
+      },
+      
+      flush(controller) {
+        const inflator = (controller as any).inflator;
+        // Signal end of stream
+        inflator.push(new Uint8Array(0), true);
+        postProgress('Decompression complete', 45, 100);
       }
     });
     
+    // Pipe file stream through decompression
+    dataStream = dataStream.pipeThrough(decompressionTransform);
   } else {
-    // For uncompressed JSON files, stream directly from file
     postProgress('Streaming file...', 20, 100);
-    
-    dataStream = new ReadableStream({
-      async start(controller) {
-        const fileSize = file.size;
-        let offset = 0;
-        
-        while (offset < fileSize) {
-          const chunkSize = Math.min(STREAM_CHUNK_SIZE, fileSize - offset);
-          const blob = file.slice(offset, offset + chunkSize);
-          const arrayBuffer = await blob.arrayBuffer();
-          const chunk = new Uint8Array(arrayBuffer);
-          
-          controller.enqueue(chunk);
-          offset += chunkSize;
-          
-          // Yield control periodically
-          if (offset % (STREAM_CHUNK_SIZE * 10) === 0) {
-            await new Promise(resolve => setTimeout(resolve, 0));
-          }
-        }
-        
-        controller.close();
-      }
-    });
   }
   
   postProgress('Parsing JSON stream...', 50, 100);
