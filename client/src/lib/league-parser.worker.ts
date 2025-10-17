@@ -121,132 +121,107 @@ async function parseFileStreaming(file: File): Promise<any> {
   }
 }
 
-// Streaming URL fetch with same approach as files
+// Use EXACT same streaming approach as files - just with response.body as source
 async function parseUrlStreaming(url: string): Promise<any> {
   postProgress('Fetching URL...', 5, 100);
   
-  // Try multiple fetch strategies
-  const fetchOptions = [
-    { mode: 'cors' as RequestMode },
-    { mode: 'no-cors' as RequestMode },
-    { mode: 'cors' as RequestMode, cache: 'no-cache' as RequestCache }
-  ];
+  // Try CORS fetch first
+  const response = await fetch(url, { mode: 'cors' });
   
-  let lastError: Error | null = null;
-  
-  for (const options of fetchOptions) {
-    try {
-      const response = await fetch(url, options);
-      
-      // For no-cors mode, we can't check response.ok
-      if (options.mode !== 'no-cors' && !response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      if (!response.body) {
-        throw new Error('Response body is not available for streaming');
-      }
-      
-      // Get content length if available
-      const contentLength = response.headers.get('content-length');
-      const totalBytes = contentLength ? parseInt(contentLength, 10) : undefined;
-      
-      postProgress('Downloading...', 10, 100);
-      
-      // Check if compressed by URL
-      const isCompressed = url.includes('.gz') || url.includes('.json.gz');
-      
-      let dataStream = response.body;
-      
-      // Decompress if needed
-      if (isCompressed) {
-        if (typeof DecompressionStream === 'undefined') {
-          throw new Error('DecompressionStream not supported. Please use Chrome 80+, Firefox 113+, or Safari 16.4+');
-        }
-        postProgress('Decompressing...', 15, 100);
-        dataStream = dataStream.pipeThrough(new DecompressionStream('gzip'));
-      }
-      
-      postProgress('Streaming JSON parse...', 20, 100);
-      
-      // Use streaming JSON parser
-      const jsonParser = new JSONParser({ 
-        paths: [
-          '$.version',
-          '$.startingSeason', 
-          '$.gameAttributes',
-          '$.players',
-          '$.teams',
-          '$.teamSeasons',
-          '$.teamStats',
-          '$.games',
-          '$.schedule',
-          '$.playoffSeries',
-          '$.draftPicks',
-          '$.draftOrder',
-          '$.negotiations',
-          '$.messages',
-          '$.events',
-          '$.playerFeats',
-          '$.allStars',
-          '$.awards',
-          '$.releasedPlayers',
-          '$.scheduledEvents',
-          '$.trade',
-          '$.meta'
-        ],
-        keepStack: false 
-      });
-      
-      const jsonStream = dataStream.pipeThrough(jsonParser);
-      const reader = jsonStream.getReader();
-      
-      // Build result object incrementally
-      const result: any = {};
-      let itemCount = 0;
-      let currentSection = '';
-      
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          
-          if (done) {
-            postProgress('Streaming parse complete', 95, 100);
-            return result;
-          }
-          
-          // Process each emitted value from the parser
-          if (value && value.value !== undefined) {
-            const keyString = typeof value.key === 'string' ? value.key : String(value.key);
-            const pathArray = keyString ? keyString.split('.').filter(Boolean) : [];
-            const topLevelKey = pathArray[0];
-            
-            if (topLevelKey) {
-              // Track what section we're processing
-              if (currentSection !== topLevelKey) {
-                currentSection = topLevelKey;
-                postProgress(`Processing ${topLevelKey}...`, 20 + (itemCount / 10000) * 75, 100);
-              }
-              
-              // Store the value at the appropriate key
-              result[topLevelKey] = value.value;
-              itemCount++;
-            }
-          }
-        }
-      } finally {
-        reader.releaseLock();
-      }
-      
-    } catch (error) {
-      console.warn(`Fetch strategy ${JSON.stringify(options)} failed:`, error);
-      lastError = error as Error;
-      continue; // Try next fetch strategy
-    }
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }
   
-  // If all strategies failed, throw the last error
-  throw lastError || new Error('All fetch strategies failed');
+  if (!response.body) {
+    throw new Error('Response body not available');
+  }
+  
+  postProgress('Downloading...', 10, 100);
+  
+  // Get the stream from response
+  let dataStream = response.body;
+  
+  // Check if compressed by URL
+  const isCompressed = url.includes('.gz') || url.includes('.json.gz');
+  
+  if (isCompressed) {
+    if (typeof DecompressionStream === 'undefined') {
+      throw new Error('DecompressionStream not supported. Please use Chrome 80+, Firefox 113+, or Safari 16.4+');
+    }
+    postProgress('Decompressing...', 15, 100);
+    dataStream = dataStream.pipeThrough(new DecompressionStream('gzip'));
+  }
+  
+  postProgress('Streaming JSON parse...', 20, 100);
+  
+  // Use EXACT same streaming JSON parser as files
+  const jsonParser = new JSONParser({ 
+    paths: [
+      '$.version',
+      '$.startingSeason', 
+      '$.gameAttributes',
+      '$.players',
+      '$.teams',
+      '$.teamSeasons',
+      '$.teamStats',
+      '$.games',
+      '$.schedule',
+      '$.playoffSeries',
+      '$.draftPicks',
+      '$.draftOrder',
+      '$.negotiations',
+      '$.messages',
+      '$.events',
+      '$.playerFeats',
+      '$.allStars',
+      '$.awards',
+      '$.releasedPlayers',
+      '$.scheduledEvents',
+      '$.trade',
+      '$.meta'
+    ],
+    keepStack: false 
+  });
+  
+  const jsonStream = dataStream.pipeThrough(jsonParser);
+  const reader = jsonStream.getReader();
+  
+  // Build result object incrementally (same as files)
+  const result: any = {};
+  let itemCount = 0;
+  let currentSection = '';
+  
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      
+      if (done) {
+        postProgress('Streaming parse complete', 95, 100);
+        return result;
+      }
+      
+      // Process each emitted value from the parser
+      if (value && value.value !== undefined) {
+        const keyString = typeof value.key === 'string' ? value.key : String(value.key);
+        const pathArray = keyString ? keyString.split('.').filter(Boolean) : [];
+        const topLevelKey = pathArray[0];
+        
+        if (topLevelKey) {
+          // Track what section we're processing
+          if (currentSection !== topLevelKey) {
+            currentSection = topLevelKey;
+            postProgress(`Processing ${topLevelKey}...`, 20 + (itemCount / 10000) * 75, 100);
+          }
+          
+          // Store the value at the appropriate key
+          result[topLevelKey] = value.value;
+          itemCount++;
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
 }
 
 // Traditional URL fetch for small files
