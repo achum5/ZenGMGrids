@@ -135,58 +135,49 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
   let dataStream: ReadableStream<Uint8Array>;
   
   if (isCompressed) {
-    // ULTRA-AGGRESSIVE STREAMING DECOMPRESSION for mobile
-    // Key: minimize memory footprint at every step
+    // SOLUTION: Override pako's onData to prevent memory accumulation!
+    // By default, pako stores ALL chunks and concatenates at end - this causes OOM
     postProgress('Setting up streaming decompression...', 10, 100);
     
     dataStream = new ReadableStream({
       async start(controller) {
-        // Create pako inflator for streaming decompression
-        const inflator = new pako.Inflate({ chunkSize: 256 * 1024 }); // Small internal chunks
+        const inflator = new pako.Inflate({ chunkSize: 256 * 1024 });
+        
+        // CRITICAL: Override onData to process chunks immediately
+        // This prevents pako from accumulating chunks in memory
+        inflator.onData = function(chunk: Uint8Array) {
+          // Stream this chunk immediately - don't store it!
+          controller.enqueue(chunk);
+        };
+        
+        // Override onEnd to handle completion
+        let decompressError: string | null = null;
+        inflator.onEnd = function(status: number) {
+          if (status !== 0) {
+            decompressError = inflator.msg || 'Unknown decompression error';
+          }
+        };
         
         try {
-          // Read file in very small chunks
           const fileSize = file.size;
           let offset = 0;
           let chunkCount = 0;
           
+          // Read and decompress file in chunks
           while (offset < fileSize) {
-            // Read a small chunk from the compressed file
             const chunkSize = Math.min(READ_CHUNK_SIZE, fileSize - offset);
             const blob = file.slice(offset, offset + chunkSize);
             const arrayBuffer = await blob.arrayBuffer();
             const chunk = new Uint8Array(arrayBuffer);
             
-            // Push chunk to inflator - false means "not final chunk"
             const isFinal = offset + chunkSize >= fileSize;
+            
+            // Push chunk to inflator - onData callback will handle output
             inflator.push(chunk, isFinal);
             
-            // IMMEDIATELY extract and stream decompressed data
-            if (inflator.result && inflator.result.length > 0) {
-              // Get the decompressed data
-              let decompressed: Uint8Array;
-              if (inflator.result instanceof Uint8Array) {
-                decompressed = inflator.result;
-              } else if (typeof inflator.result === 'string') {
-                decompressed = new TextEncoder().encode(inflator.result);
-              } else {
-                throw new Error('Unexpected inflator result type');
-              }
-              
-              // Stream it in tiny chunks and clear ASAP
-              for (let i = 0; i < decompressed.length; i += STREAM_CHUNK_SIZE) {
-                const streamChunk = decompressed.slice(i, Math.min(i + STREAM_CHUNK_SIZE, decompressed.length));
-                controller.enqueue(streamChunk);
-                
-                // Yield control VERY frequently on mobile (every chunk)
-                await new Promise(resolve => setTimeout(resolve, 0));
-              }
-              
-              // CRITICAL: Clear the inflator's result buffer immediately
-              inflator.result = new Uint8Array(0);
-              
-              // Null out local reference to help GC
-              decompressed = null as any;
+            // Check for errors after each push
+            if (decompressError) {
+              throw new Error(`Decompression failed: ${decompressError}`);
             }
             
             offset += chunkSize;
@@ -194,19 +185,14 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
             
             // Update progress
             const progress = 10 + ((offset / fileSize) * 35);
-            if (chunkCount % 5 === 0) { // Update every 5 chunks to avoid UI spam
+            if (chunkCount % 5 === 0) {
               postProgress(`Decompressing... ${Math.round(progress - 10)}%`, progress, 100);
             }
             
-            // Extra yield every few chunks to let browser breathe
+            // Yield control to prevent freezing
             if (chunkCount % 3 === 0) {
               await new Promise(resolve => setTimeout(resolve, 1));
             }
-          }
-          
-          // Check for errors
-          if (inflator.err) {
-            throw new Error(`Decompression failed: ${inflator.msg || 'Unknown error'}`);
           }
           
           postProgress('Decompression complete', 45, 100);
