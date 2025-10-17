@@ -204,32 +204,18 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
   
   postProgress('Parsing JSON stream...', 50, 100);
   
-  // Use SAME paths as desktop streaming - file.stream() already prevents memory crashes
-  // The [*] syntax doesn't work with this JSON parser library
+  // MOBILE OPTIMIZATION: Only parse essential data needed for the grid game
+  // Skip large sections like messages, events, games, etc. to prevent mobile memory crashes
   const jsonParser = new JSONParser({ 
     paths: [
       '$.version',
       '$.startingSeason', 
       '$.gameAttributes',
-      '$.players',
-      '$.teams',
-      '$.teamSeasons',
-      '$.teamStats',
-      '$.games',
-      '$.schedule',
-      '$.playoffSeries',
-      '$.draftPicks',
-      '$.draftOrder',
-      '$.negotiations',
-      '$.messages',
-      '$.events',
-      '$.playerFeats',
-      '$.allStars',
-      '$.awards',
-      '$.releasedPlayers',
-      '$.scheduledEvents',
-      '$.trade',
-      '$.meta'
+      '$.players',      // Essential: needed for grid
+      '$.teams',        // Essential: needed for grid
+      '$.meta'          // Essential: contains league metadata
+      // Skipped for mobile: teamSeasons, teamStats, games, schedule, messages, events, etc.
+      // These can be 100MB+ and aren't needed for the grid game
     ],
     keepStack: false 
   });
