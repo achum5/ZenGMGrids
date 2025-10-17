@@ -250,6 +250,13 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
       
       if (done) {
         postProgress('Mobile streaming parse complete', 95, 100);
+        
+        // Debug: Log what we actually parsed
+        console.log('[WORKER] Parse complete. Keys found:', Object.keys(result));
+        console.log('[WORKER] Players array length:', result.players?.length || 0);
+        console.log('[WORKER] Teams array length:', result.teams?.length || 0);
+        console.log('[WORKER] First player sample:', result.players?.[0] ? 'exists' : 'missing');
+        
         return result;
       }
       
@@ -259,6 +266,11 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
           const keyString = typeof value.key === 'string' ? value.key : String(value.key);
           const pathArray = keyString ? keyString.split('.').filter(Boolean) : [];
           const topLevelKey = pathArray[0];
+          
+          // Debug: Log first few keys to understand structure
+          if (itemCount < 5) {
+            console.log(`[WORKER] Item ${itemCount} - Key:`, keyString, 'PathArray:', pathArray);
+          }
           
           if (topLevelKey) {
             // Track what section we're processing
