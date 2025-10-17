@@ -90,11 +90,13 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadP
                     Traditional
                   </SelectItem>
                   <SelectItem value="streaming" data-testid="option-streaming">
-                    Streaming (desktop only)
+                    Streaming (iffy on mobile)
                   </SelectItem>
+                  {/* TEMPORARILY DISABLED - Mobile streaming needs more optimization
                   <SelectItem value="mobile-streaming" data-testid="option-mobile-streaming">
                     Mobile Streaming (beta)
                   </SelectItem>
+                  */}
                 </SelectContent>
               </Select>
             </div>
