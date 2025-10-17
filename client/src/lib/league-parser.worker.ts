@@ -225,6 +225,7 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
   const result: any = {};
   let itemCount = 0;
   let currentSection = '';
+  let currentArraySection: 'players' | 'teams' | null = null;
   
   try {
     while (true) {
@@ -255,24 +256,45 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
           }
           
           if (topLevelKey) {
-            // Track what section we're processing
-            if (currentSection !== topLevelKey) {
-              currentSection = topLevelKey;
-              const progressPercent = 50 + (itemCount / 10000) * 45;
-              postProgress(`Processing ${topLevelKey}...`, progressPercent, 100);
-              console.log(`[WORKER] Started processing ${topLevelKey} at item ${itemCount}`);
-            }
+            // Wildcard paths emit just numbers - determine which array based on order
+            const isArrayIndex = /^\d+$/.test(topLevelKey);
             
-            // Handle wildcard paths - build arrays element-by-element
-            if (pathArray.length > 1 && /^\d+$/.test(pathArray[1])) {
-              // This is an array element from wildcard (e.g., players.0, teams.1)
-              if (!result[topLevelKey]) {
-                result[topLevelKey] = [];
+            if (isArrayIndex) {
+              // First time we see "0", determine which array section this is
+              if (topLevelKey === '0') {
+                if (!currentArraySection) {
+                  // First array is players
+                  currentArraySection = 'players';
+                  currentSection = 'players';
+                  postProgress('Processing players...', 55, 100);
+                  console.log(`[WORKER] Started processing players at item ${itemCount}`);
+                } else if (currentArraySection === 'players') {
+                  // Seeing "0" again means we moved to teams
+                  currentArraySection = 'teams';
+                  currentSection = 'teams';
+                  postProgress('Processing teams...', 75, 100);
+                  console.log(`[WORKER] Started processing teams at item ${itemCount}`);
+                }
               }
-              result[topLevelKey].push(value.value);
+              
+              // Add to current array section
+              if (currentArraySection) {
+                if (!result[currentArraySection]) {
+                  result[currentArraySection] = [];
+                }
+                result[currentArraySection].push(value.value);
+              }
             } else {
-              // Simple value or object
+              // Non-array value (version, gameAttributes, meta, etc.)
+              if (currentSection !== topLevelKey) {
+                currentSection = topLevelKey;
+                const progressPercent = 50 + (itemCount / 10000) * 45;
+                postProgress(`Processing ${topLevelKey}...`, progressPercent, 100);
+                console.log(`[WORKER] Started processing ${topLevelKey} at item ${itemCount}`);
+              }
+              
               result[topLevelKey] = value.value;
+              currentArraySection = null; // Reset when we hit non-array data
             }
             
             itemCount++;
