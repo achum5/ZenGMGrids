@@ -36,7 +36,6 @@ async function parseFileTraditional(file: File): Promise<any> {
 async function parseFileStreaming(file: File): Promise<any> {
   console.log(`[WORKER] Parsing file (ZenGM method):`, file.name);
   
-  const arrayBuffer = await file.arrayBuffer();
   const isCompressed = file.name.endsWith('.gz') || file.name.endsWith('.json.gz');
   
   let textContent: string;
@@ -48,15 +47,16 @@ async function parseFileStreaming(file: File): Promise<any> {
       throw new Error('DecompressionStream not supported. Please use Chrome 80+, Firefox 113+, or Safari 16.4+');
     }
     
-    // ZenGM's exact approach: stream decompress → arrayBuffer
-    const stream = new Response(arrayBuffer).body!.pipeThrough(new DecompressionStream('gzip'));
-    const decompressedBuffer = await new Response(stream).arrayBuffer();
+    // Use file.stream() for compressed files, then decompress
+    const decompressedStream = file.stream().pipeThrough(new DecompressionStream('gzip'));
+    const decompressedBuffer = await new Response(decompressedStream).arrayBuffer();
     
     postProgress('Decoding...', 50, 100);
     textContent = new TextDecoder().decode(decompressedBuffer);
     
   } else {
     postProgress('Decoding...', 30, 100);
+    const arrayBuffer = await file.arrayBuffer();
     textContent = new TextDecoder().decode(arrayBuffer);
   }
   
@@ -81,10 +81,11 @@ async function parseUrlStreaming(url: string): Promise<any> {
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }
   
-  postProgress('Downloading...', 15, 100);
+  if (!response.body) {
+    throw new Error('Response body not available');
+  }
   
-  // Get arrayBuffer from response
-  const arrayBuffer = await response.arrayBuffer();
+  postProgress('Downloading...', 15, 100);
   
   const isCompressed = url.includes('.gz') || url.includes('.json.gz');
   
@@ -97,15 +98,16 @@ async function parseUrlStreaming(url: string): Promise<any> {
       throw new Error('DecompressionStream not supported. Please use Chrome 80+, Firefox 113+, or Safari 16.4+');
     }
     
-    // ZenGM's exact approach: stream decompress → arrayBuffer
-    const stream = new Response(arrayBuffer).body!.pipeThrough(new DecompressionStream('gzip'));
-    const decompressedBuffer = await new Response(stream).arrayBuffer();
+    // Use response.body stream for decompression
+    const decompressedStream = response.body.pipeThrough(new DecompressionStream('gzip'));
+    const decompressedBuffer = await new Response(decompressedStream).arrayBuffer();
     
     postProgress('Decoding...', 60, 100);
     textContent = new TextDecoder().decode(decompressedBuffer);
     
   } else {
     postProgress('Decoding...', 50, 100);
+    const arrayBuffer = await response.arrayBuffer();
     textContent = new TextDecoder().decode(arrayBuffer);
   }
   
