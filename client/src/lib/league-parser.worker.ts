@@ -126,52 +126,64 @@ async function parseFileStreaming(file: File): Promise<any> {
 // Avoids DecompressionStream which crashes on mobile Chrome
 async function parseFileMobileStreaming(file: File): Promise<any> {
   const isCompressed = file.name.endsWith('.gz');
-  const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB chunks to avoid memory spike
+  const CHUNK_SIZE = 1 * 1024 * 1024; // 1MB chunks for streaming
   
   postProgress('Starting mobile-optimized processing...', 5, 100);
   
-  // Step 1: Read and decompress file in chunks if needed
-  let jsonText: string;
+  // Step 1: Read and decompress file, creating a stream of bytes
+  let dataBytes: Uint8Array;
   
   if (isCompressed) {
-    // For .gz files: read all, then decompress with pako (more reliable than DecompressionStream on mobile)
+    // For .gz files: decompress with pako to Uint8Array (not string to avoid length limit)
     postProgress('Reading compressed file...', 10, 100);
     const arrayBuffer = await file.arrayBuffer();
     
     postProgress('Decompressing with pako...', 30, 100);
     const compressed = new Uint8Array(arrayBuffer);
     
-    // Use pako for decompression (more reliable on mobile than DecompressionStream)
+    // Decompress to Uint8Array instead of string to avoid "Invalid string length" error
     try {
-      jsonText = pako.inflate(compressed, { to: 'string' });
+      dataBytes = pako.inflate(compressed);
+      postProgress('Decompression complete', 45, 100);
     } catch (err) {
       throw new Error(`Decompression failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   } else {
-    // For .json files: read as text directly
+    // For .json files: read as array buffer
     postProgress('Reading JSON file...', 20, 100);
-    jsonText = await file.text();
+    const arrayBuffer = await file.arrayBuffer();
+    dataBytes = new Uint8Array(arrayBuffer);
   }
   
-  postProgress('Parsing JSON in chunks...', 50, 100);
+  postProgress('Streaming JSON parse...', 50, 100);
   
-  // Step 2: Parse JSON using streaming parser with chunked text feeding
-  // Create a ReadableStream from the text string to feed the JSONParser in chunks
-  const textEncoder = new TextEncoder();
-  const textBytes = textEncoder.encode(jsonText);
-  
-  // Create a stream that yields data in chunks
-  const textStream = new ReadableStream({
+  // Step 2: Create a ReadableStream that yields the decompressed data in chunks
+  // This avoids creating a massive string all at once
+  const dataStream = new ReadableStream({
     start(controller) {
       let offset = 0;
-      const chunkSize = CHUNK_SIZE;
       
-      while (offset < textBytes.length) {
-        const chunk = textBytes.slice(offset, offset + chunkSize);
+      // Feed data in chunks to avoid blocking
+      const pushChunk = () => {
+        if (offset >= dataBytes.length) {
+          controller.close();
+          return;
+        }
+        
+        const chunkSize = Math.min(CHUNK_SIZE, dataBytes.length - offset);
+        const chunk = dataBytes.slice(offset, offset + chunkSize);
         controller.enqueue(chunk);
         offset += chunkSize;
-      }
-      controller.close();
+        
+        // Yield control to prevent freezing
+        if (offset < dataBytes.length) {
+          setTimeout(pushChunk, 0);
+        } else {
+          controller.close();
+        }
+      };
+      
+      pushChunk();
     }
   });
   
@@ -204,7 +216,7 @@ async function parseFileMobileStreaming(file: File): Promise<any> {
     keepStack: false 
   });
   
-  const jsonStream = textStream.pipeThrough(jsonParser);
+  const jsonStream = dataStream.pipeThrough(jsonParser);
   const reader = jsonStream.getReader();
   
   // Build result object incrementally
