@@ -14,8 +14,8 @@ interface UploadSectionProps {
     loaded?: number;
     total?: number;
   } | null;
-  parsingMethod?: 'auto' | 'traditional' | 'streaming' | 'mobile-streaming' | 'mobile-idb';
-  onParsingMethodChange?: (method: 'auto' | 'traditional' | 'streaming' | 'mobile-streaming' | 'mobile-idb') => void;
+  parsingMethod?: 'auto' | 'traditional' | 'streaming' | 'mobile-idb';
+  onParsingMethodChange?: (method: 'auto' | 'traditional' | 'streaming' | 'mobile-idb') => void;
 }
 
 export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadProgress, parsingMethod = 'auto', onParsingMethodChange }: UploadSectionProps) {
@@ -95,11 +95,6 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadP
                   <SelectItem value="mobile-idb" data-testid="option-mobile-idb">
                     Mobile (IndexedDB)
                   </SelectItem>
-                  {/* TEMPORARILY DISABLED - Old mobile streaming had issues
-                  <SelectItem value="mobile-streaming" data-testid="option-mobile-streaming">
-                    Mobile Streaming (beta)
-                  </SelectItem>
-                  */}
                 </SelectContent>
               </Select>
             </div>

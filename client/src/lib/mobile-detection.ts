@@ -15,9 +15,9 @@ export function isMobileDevice(): boolean {
   return isMobileUA || (isTouchDevice && isSmallScreen);
 }
 
-export type ParsingMethod = 'auto' | 'traditional' | 'streaming' | 'mobile-streaming' | 'mobile-idb';
+export type ParsingMethod = 'auto' | 'traditional' | 'streaming' | 'mobile-idb';
 
-export function getRecommendedMethod(): 'traditional' | 'streaming' | 'mobile-streaming' | 'mobile-idb' {
+export function getRecommendedMethod(): 'traditional' | 'streaming' | 'mobile-idb' {
   // On mobile: use mobile-idb (IndexedDB-based streaming, handles any file size)
   // On desktop: use streaming (uses DecompressionStream which is faster)
   return isMobileDevice() ? 'mobile-idb' : 'streaming';
@@ -27,7 +27,7 @@ export function getRecommendedMethod(): 'traditional' | 'streaming' | 'mobile-st
 export function getStoredParsingMethod(): ParsingMethod {
   try {
     const stored = localStorage.getItem('parsingMethod');
-    if (stored === 'auto' || stored === 'traditional' || stored === 'streaming' || stored === 'mobile-streaming' || stored === 'mobile-idb') {
+    if (stored === 'auto' || stored === 'traditional' || stored === 'streaming' || stored === 'mobile-idb') {
       return stored;
     }
   } catch {

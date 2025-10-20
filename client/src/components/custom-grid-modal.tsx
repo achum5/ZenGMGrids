@@ -1459,7 +1459,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
           {/* Status and Actions */}
           <div className="space-y-2 sm:space-y-3">
             {allSelectorsComplete && (
-              <div className="text-center text-xs sm:text-sm">
+              <div className="text-center text-xs sm:text-sm flex items-center justify-center gap-2">
+                {calculating && <div className="spinner w-4 h-4 border-2"></div>}
                 {isGridSolvable ? (
                   <span className="text-green-600 dark:text-green-400">
                     ✅ Grid is solvable! All cells have at least 1 eligible player.

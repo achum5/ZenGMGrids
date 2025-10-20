@@ -23,13 +23,12 @@ Preferred communication style: Simple, everyday language.
   - **Auto (Recommended)**: Intelligent method selection based on device detection (mobile → IndexedDB, desktop → Streaming)
   - **Traditional**: Universal compatibility, loads entire file into memory (may fail on very large files)
   - **Streaming**: Uses DecompressionStream API for memory-efficient processing on desktop browsers (iffy on mobile)
-  - **Mobile (IndexedDB)**: NEW - Streams data directly to IndexedDB in tiny batches, never materializes giant arrays in memory
+  - **Mobile (IndexedDB)**: Streams data directly to IndexedDB in tiny batches, never materializes giant arrays in memory
     - Handles files of ANY size on mobile (tested with 120MB compressed / 1.6GB decompressed / 53k players)
     - Worker streams → IndexedDB with strict backpressure (max 400 items queued, 200 items per batch)
     - Main thread reads from IndexedDB in chunks, processes achievements incrementally
     - No cross-thread transfer of large objects (prevents structured clone crashes)
     - Real GC windows with setTimeout delays for stable mobile performance
-  - **Mobile Streaming (Disabled)**: Old pako-based approach, had memory issues with very large files
 - **Compression**: Dual approach - DecompressionStream for desktop, Pako library for mobile compatibility
 - **Data Processing**: Normalizes BBGM data into searchable format with player/team indices
 - **Grid Generation**: Algorithmic generation of valid 3x3 team intersections with retry logic
