@@ -264,79 +264,78 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg w-[92vw] max-h-[85vh] sm:max-h-[80vh] flex flex-col" data-testid="modal-player-details">
+      <DialogContent className="max-w-lg w-[92vw] max-h-[85vh] sm:max-h-[80vh] overflow-y-auto" data-testid="modal-player-details">
         <DialogHeader>
           <div className="flex items-center gap-4">
-            <div className="shrink-0 w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40">
-              <PlayerFace
-                pid={player.pid}
-                name={player.name}
-                imgURL={player.imgURL ?? undefined}
-                face={player.face}
-                size={160}
-                hideName={true}
-                player={player}
-                teams={teams}
-                sport={sport}
-              />
-            </div>
-            <div className="min-w-0 flex-1">
-              <DialogTitle className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight dark:text-white">
-                {player.name}
-              </DialogTitle>
-              <DialogDescription className="sr-only">
-                Player details including career statistics, achievements, and team history.
-              </DialogDescription>
-              
-              {/* Score feedback for correct guesses OR feedback message for wrong guesses */}
-              {modalData && modalData.type === 'correct' && (
-                <div className="mt-2">
-                  {(() => {
-                    const rarityTier = getRarityTier(modalData.rarity);
-                    const styles = rarityStyles[rarityTier];
-                
-                    return (
-                      <span className={`text-lg font-bold`} style={{ color: styles.textColor }}>
-                        Score: {modalData.rarity}
-                      </span>
-                    );
-                  })()}
+                <div className="shrink-0 w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40">
+                  <PlayerFace
+                    pid={player.pid}
+                    name={player.name}
+                    imgURL={player.imgURL ?? undefined}
+                    face={player.face}
+                    size={160}
+                    hideName={true}
+                    player={player}
+                    teams={teams}
+                    sport={sport}
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <DialogTitle className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight dark:text-white">
+                    {player.name}
+                  </DialogTitle>
+                  <DialogDescription className="sr-only">
+                    Player details including career statistics, achievements, and team history.
+                  </DialogDescription>
                   
-                  {/* Reason bullets for correct guesses */}
-                  {modalData.reasonBullets.length > 0 && (
-                    <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                      {modalData.reasonBullets.map((bullet, index) => (
-                        <div key={index} className="flex items-start gap-2">
-                          <span className="leading-5">{bullet}</span>
+                  {/* Score feedback for correct guesses OR feedback message for wrong guesses */}
+                  {modalData && modalData.type === 'correct' && (
+                    <div className="mt-2">
+                      {(() => {
+                        const rarityTier = getRarityTier(modalData.rarity);
+                        const styles = rarityStyles[rarityTier];
+                    
+                        return (
+                          <span className={`text-lg font-bold`} style={{ color: styles.textColor }}>
+                            Score: {modalData.rarity}
+                          </span>
+                        );
+                      })()}
+                      
+                      {/* Reason bullets for correct guesses */}
+                      {modalData.reasonBullets.length > 0 && (
+                        <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                          {modalData.reasonBullets.map((bullet, index) => (
+                            <div key={index} className="flex items-start gap-2">
+                              <span className="leading-5">{bullet}</span>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      )}
                     </div>
                   )}
-                </div>
-              )}
 
-              {modalData && modalData.type === 'wrong' && (
-                <div className="mt-2">
-                  <span className="text-lg font-bold text-red-600 dark:text-red-400">Incorrect</span>
-                  
-                  {/* Reason bullets for incorrect guesses */}
-                  {modalData.reasonBullets && modalData.reasonBullets.length > 0 && (
-                    <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                      {modalData.reasonBullets.map((bullet, index) => (
-                        <div key={index} className="flex items-start gap-2">
-                          <span className="leading-5">{bullet}</span>
+                  {modalData && modalData.type === 'wrong' && (
+                    <div className="mt-2">
+                      <span className="text-lg font-bold text-red-600 dark:text-red-400">Incorrect</span>
+                      
+                      {/* Reason bullets for incorrect guesses */}
+                      {modalData.reasonBullets && modalData.reasonBullets.length > 0 && (
+                        <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                          {modalData.reasonBullets.map((bullet, index) => (
+                            <div key={index} className="flex items-start gap-2">
+                              <span className="leading-5">{bullet}</span>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      )}
                     </div>
                   )}
                 </div>
-              )}
-            </div>
           </div>
         </DialogHeader>
 
-        <div className="mt-4 flex-1 overflow-y-auto min-h-0 space-y-4">
-          {/* Awards */}
+        {/* Awards */}
           {player.awards && player.awards.length > 0 && (
             <div>
               <h3 className="font-semibold text-base mb-2">Awards & Honors</h3>
@@ -664,7 +663,6 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
               </div>
             </div>
           )}
-        </div>
       </DialogContent>
     </Dialog>
   );
