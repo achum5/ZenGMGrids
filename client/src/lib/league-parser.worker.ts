@@ -2,6 +2,7 @@ import pako from 'pako';
 import { JSONParser } from '@streamparser/json-whatwg';
 import { normalizeLeague, type Sport } from './league-normalizer';
 import type { LeagueData } from '@/types/bbgm';
+import { openDB } from 'idb';
 
 // File size threshold for automatic method selection (50MB compressed)
 // Only used when method is 'auto'
@@ -285,7 +286,7 @@ async function parseUrlTraditional(url: string): Promise<any> {
 
 // Mobile-IDB: Stream directly to IndexedDB, never materialize giant arrays
 async function parseFileMobileIDB(file: File): Promise<'idb-stored'> {
-  const { openDB } = await import('idb');
+  // Using static import from top of file instead of dynamic import
   
   postProgress('Setting up database...', 5, 100);
   
