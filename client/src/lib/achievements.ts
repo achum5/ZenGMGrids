@@ -905,7 +905,7 @@ const NUMERICAL_ACHIEVEMENT_CONFIGS: Record<string, { career?: Record<string, St
  * @param statKey - The stat key from NUMERICAL_ACHIEVEMENT_CONFIGS
  * @param players - Array of players to test against
  * @param minPlayersRequired - Minimum number of eligible players (default: 5)
- * @param preferredOperator - Optional operator preference (67.5% > by default)
+ * @param preferredOperator - Optional operator preference (65% > by default)
  * @returns Achievement object or null if no valid threshold found
  */
 export function generateDynamicNumericalAchievement(
@@ -919,8 +919,8 @@ export function generateDynamicNumericalAchievement(
   const config = NUMERICAL_ACHIEVEMENT_CONFIGS[sport]?.[category]?.[statKey];
   if (!config) return null;
 
-  // Decide operator: 67.5% for '>', 32.5% for '<'
-  const operator = preferredOperator ?? (Math.random() < 0.675 ? '>' : '<');
+  // Decide operator: 65% for '>', 35% for '<'
+  const operator = preferredOperator ?? (Math.random() < 0.65 ? '>' : '<');
   
   // For '>', try from highest to lowest; for '<', try from lowest to highest
   const thresholds = operator === '>' 
@@ -1084,7 +1084,7 @@ function buildRandomNumericalAchievements(
   for (const category of selectedCategories) {
     const { type, stat } = category;
     
-    // Use the dynamic generation function with random operator weighting (67.5% > / 32.5% <)
+    // Use the dynamic generation function with random operator weighting (65% > / 35% <)
     const achievement = generateDynamicNumericalAchievement(
       sport,
       type,
