@@ -280,6 +280,12 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
     const weightedAchievements = viableAchievements.map(achievement => {
       let weight = 1;
       
+      // BOOST dynamic achievements to ensure they appear in grids
+      const isDynamic = achievement.achievementId!.startsWith('dynamic_');
+      if (isDynamic) {
+        weight = 8; // High weight to compete with decade achievements
+      }
+      
       // Apply decade skewing for decade achievements
       const isDecadeAchievement = achievement.achievementId!.includes('playedIn') || 
                                   achievement.achievementId!.includes('debutedIn');
@@ -373,6 +379,12 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
     const currentYear = leagueData.leagueYears?.maxSeason || new Date().getFullYear();
     const weightedFallbackAchievements = achievementConstraints.map(achievement => {
       let weight = 1;
+      
+      // BOOST dynamic achievements to ensure they appear in grids
+      const isDynamic = achievement.achievementId!.startsWith('dynamic_');
+      if (isDynamic) {
+        weight = 8; // High weight to compete with decade achievements
+      }
       
       const isDecadeAchievement = achievement.achievementId!.includes('playedIn') || 
                                   achievement.achievementId!.includes('debutedIn');
