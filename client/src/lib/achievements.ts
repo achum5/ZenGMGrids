@@ -1041,13 +1041,15 @@ export function getAvailableStatKeys(
 }
 
 /**
- * Generate random numerical achievements for variety in grid generation
+ * Generate dynamic numerical achievements with flexible thresholds for variety in grid generation.
+ * Uses the new generateDynamicNumericalAchievement to create achievements that automatically
+ * adapt to the available player data with intelligent fallback.
  */
 function buildRandomNumericalAchievements(
   sport: 'basketball' | 'football' | 'hockey' | 'baseball',
+  players: Player[],
   seed?: string,
-  count: number = 8,
-  operator: '>=' | '<=' = '>='
+  count: number = 8
 ): Achievement[] {
   const achievements: Achievement[] = [];
   const config = NUMERICAL_ACHIEVEMENT_CONFIGS[sport];
@@ -1058,60 +1060,43 @@ function buildRandomNumericalAchievements(
   const seedValue = seed ? hashString(seed) : Date.now();
   const rng = new SeededRandom(seedValue);
   
-  // Collect all possible achievements
-  const possibleAchievements: Array<{
-    type: 'career' | 'season';
-    stat: string;
-    threshold: number;
-    config: StatConfig;
-  }> = [];
+  // Collect all possible stat categories
+  const possibleCategories: Array<{ type: 'career' | 'season'; stat: string }> = [];
   
-  // Career achievements
+  // Career stat categories
   if (config.career) {
-    for (const [stat, statConfig] of Object.entries(config.career)) {
-      for (const threshold of statConfig.thresholds) {
-        possibleAchievements.push({ type: 'career', stat, threshold, config: statConfig });
-      }
+    for (const stat of Object.keys(config.career)) {
+      possibleCategories.push({ type: 'career', stat });
     }
   }
   
-  // Season achievements  
+  // Season stat categories
   if (config.season) {
-    for (const [stat, statConfig] of Object.entries(config.season)) {
-      for (const threshold of statConfig.thresholds) {
-        possibleAchievements.push({ type: 'season', stat, threshold, config: statConfig });
-      }
+    for (const stat of Object.keys(config.season)) {
+      possibleCategories.push({ type: 'season', stat });
     }
   }
   
-  // Randomly select achievements
-  const selectedAchievements = rng.sample(possibleAchievements, Math.min(count, possibleAchievements.length));
+  // Randomly select categories to generate achievements for
+  const selectedCategories = rng.sample(possibleCategories, Math.min(count, possibleCategories.length));
   
-  for (const selected of selectedAchievements) {
-    const { type, stat, threshold, config: statConfig } = selected;
+  // Generate a dynamic achievement for each selected category
+  for (const category of selectedCategories) {
+    const { type, stat } = category;
     
-    // CRITICAL FIX: Generate safe achievement IDs that don't conflict with static season achievements
-    // Use "Random" prefix to clearly distinguish from static achievements
-    const safeId = `Random${type}${threshold}${stat}`;
+    // Use the dynamic generation function with random operator weighting (67.5% > / 32.5% <)
+    const achievement = generateDynamicNumericalAchievement(
+      sport,
+      type,
+      stat,
+      players,
+      5  // minPlayersRequired
+      // No preferredOperator - let the function decide randomly
+    );
     
-    const achievement: Achievement = {
-      id: safeId,
-      label: statConfig.label(threshold),
-      minPlayers: 5,
-      test: (player: Player) => {
-        if (!player.stats || player.stats.length === 0) return false;
-        
-        if (type === 'career') {
-          const value = getCareerStatTotal(player, statConfig.testField);
-          return operator === '>=' ? value >= threshold : value <= threshold;
-        } else {
-          const value = getBestSeasonStat(player, statConfig.testField, statConfig.testType || 'total');
-          return operator === '>=' ? value >= threshold : value <= threshold;
-        }
-      }
-    };
-    
-    achievements.push(achievement);
+    if (achievement) {
+      achievements.push(achievement);
+    }
   }
   
   return achievements;
@@ -1233,7 +1218,8 @@ function getBestSeasonStat(player: Player, statField: string, testType: 'total' 
 export function getAllAchievements(
   sport?: 'basketball' | 'football' | 'hockey' | 'baseball', 
   seasonIndex?: SeasonIndex,
-  leagueYears?: { minSeason: number; maxSeason: number }
+  leagueYears?: { minSeason: number; maxSeason: number },
+  players?: Player[]
 ): Achievement[] {
   const common = COMMON_ACHIEVEMENTS;
   let achievements: Achievement[] = [];
@@ -1285,9 +1271,9 @@ export function getAllAchievements(
   }
   
   // Add random numerical achievements for variety (basketball only for now)
-    if (sport === 'basketball' && leagueYears) {
+    if (sport === 'basketball' && leagueYears && players) {
       const gridSeed = `${leagueYears.minSeason}-${leagueYears.maxSeason}`;
-      const numericalAchievements = buildRandomNumericalAchievements(sport, gridSeed, 6);
+      const numericalAchievements = buildRandomNumericalAchievements(sport, players, gridSeed, 6);
       achievements.push(...numericalAchievements);
   
       const percentageAchievements = buildCustomizablePercentageAchievements(sport, leagueYears);
@@ -2612,7 +2598,7 @@ export function getViableAchievements(
   seasonIndex?: any, // SeasonIndex from season-achievements
   leagueYears?: { minSeason: number; maxSeason: number }
 ): Achievement[] {
-  const achievements = getAllAchievements(sport, seasonIndex, leagueYears);
+  const achievements = getAllAchievements(sport, seasonIndex, leagueYears, players);
   
   return achievements.filter(achievement => {
     // For season-specific achievements, use playerMeetsAchievement which properly handles seasonIndex
