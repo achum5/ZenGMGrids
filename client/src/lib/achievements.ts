@@ -1261,6 +1261,7 @@ export function getAllAchievements(
     if (sport === 'basketball' && leagueYears && players) {
       const gridSeed = `${leagueYears.minSeason}-${leagueYears.maxSeason}`;
       const numericalAchievements = buildRandomNumericalAchievements(sport, players, gridSeed, 6);
+      console.log(`[DYNAMIC ACHIEVEMENTS] Generated ${numericalAchievements.length} for grids:`, numericalAchievements.map(a => a.label));
       achievements.push(...numericalAchievements);
   
       const percentageAchievements = buildCustomizablePercentageAchievements(sport, leagueYears);

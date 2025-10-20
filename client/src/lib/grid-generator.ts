@@ -122,6 +122,9 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
     !SEASON_ACHIEVEMENTS.some(sa => sa.id === achievement.id)
   );
   
+  const dynamicCount = viableAchievements.filter(a => a.id.startsWith('dynamic_')).length;
+  console.log(`[GRID GEN] Viable achievements: ${viableAchievements.length}, Dynamic: ${dynamicCount}`);
+  
   // Debug logging removed for performance - was causing verbose logs on every grid generation
   
   // Create constraint pool (only active teams + achievements)
