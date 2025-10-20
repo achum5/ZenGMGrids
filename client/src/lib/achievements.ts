@@ -493,7 +493,7 @@ function buildDecadeAchievements(
  */
 interface StatConfig {
   thresholds: number[];
-  label: (n: number, operator?: '>' | '<') => string;
+  label: (n: number) => string;
   testField: string;
   testType?: 'total' | 'average';
 }
@@ -503,75 +503,75 @@ const NUMERICAL_ACHIEVEMENT_CONFIGS: Record<string, { career?: Record<string, St
     career: {
       points: { 
         thresholds: [3000, 5000, 7500, 10000, 12500, 15000, 17500, 20000, 22500, 25000, 30000, 35000, 40000, 45000, 50000],
-        label: (n: number, op: '>' | '<' = '>') => `${op === '<' ? '<' : ''}${n.toLocaleString()}${op === '>' ? '+' : ''} Career Points`,
+        label: (n: number) => `${n.toLocaleString()}+ Career Points`,
         testField: 'pts'
       },
       rebounds: { 
         thresholds: [500, 1000, 1500, 2000, 3000, 4000, 5000, 6000, 7500, 10000, 12000, 15000],
-        label: (n: number, op: '>' | '<' = '>') => `${op === '<' ? '<' : ''}${n.toLocaleString()}${op === '>' ? '+' : ''} Career Rebounds`,
+        label: (n: number) => `${n.toLocaleString()}+ Career Rebounds`,
         testField: 'trb'
       },
       assists: { 
         thresholds: [500, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 7500, 10000],
-        label: (n: number, op: '>' | '<' = '>') => `${op === '<' ? '<' : ''}${n.toLocaleString()}${op === '>' ? '+' : ''} Career Assists`,
+        label: (n: number) => `${n.toLocaleString()}+ Career Assists`,
         testField: 'ast'
       },
       steals: { 
         thresholds: [200, 400, 600, 800, 1000, 1250, 1500, 2000, 2500],
-        label: (n: number, op: '>' | '<' = '>') => `${op === '<' ? '<' : ''}${n.toLocaleString()}${op === '>' ? '+' : ''} Career Steals`,
+        label: (n: number) => `${n.toLocaleString()}+ Career Steals`,
         testField: 'stl'
       },
       blocks: { 
         thresholds: [200, 400, 600, 800, 1000, 1250, 1500, 2000, 2500],
-        label: (n: number, op: '>' | '<' = '>') => `${op === '<' ? '<' : ''}${n.toLocaleString()}${op === '>' ? '+' : ''} Career Blocks`,
+        label: (n: number) => `${n.toLocaleString()}+ Career Blocks`,
         testField: 'blk'
       },
       threes: { 
         thresholds: [100, 200, 300, 500, 750, 1000, 1250, 1500, 2000, 2500, 3000],
-        label: (n: number, op: '>' | '<' = '>') => `${op === '<' ? '<' : ''}${n.toLocaleString()}${op === '>' ? '+' : ''} Career 3PM`,
+        label: (n: number) => `${n.toLocaleString()}+ Career 3PM`,
         testField: 'tpm'
       }
     },
     season: {
       ppg: { 
         thresholds: [10, 12, 15, 18, 20, 22, 24, 26, 28, 30, 32, 35],
-        label: (n: number, op: '>' | '<' = '>') => `${op === '<' ? '<' : ''}${n}${op === '>' ? '+' : ''} PPG (Season)`,
+        label: (n: number) => `${n}+ PPG in a Season`,
         testType: 'average' as const,
         testField: 'pts'
       },
       rpg: { 
         thresholds: [8, 10, 11, 12, 13, 14, 15, 16, 17, 18],
-        label: (n: number, op: '>' | '<' = '>') => `${op === '<' ? '<' : ''}${n}${op === '>' ? '+' : ''} RPG (Season)`,
+        label: (n: number) => `${n}+ RPG in a Season`,
         testType: 'average' as const,
         testField: 'trb'
       },
       apg: { 
         thresholds: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-        label: (n: number, op: '>' | '<' = '>') => `${op === '<' ? '<' : ''}${n}${op === '>' ? '+' : ''} APG (Season)`,
+        label: (n: number) => `${n}+ APG in a Season`,
         testType: 'average' as const,
         testField: 'ast'
       },
       points: { 
         thresholds: [1200, 1500, 1800, 2000, 2200, 2400, 2600, 2800, 3000],
-        label: (n: number, op: '>' | '<' = '>') => `${op === '<' ? '<' : ''}${n.toLocaleString()}${op === '>' ? '+' : ''} Points (Season)`,
+        label: (n: number) => `${n.toLocaleString()}+ Points in a Season`,
         testType: 'total' as const,
         testField: 'pts'
       },
       threes: { 
         thresholds: [100, 150, 200, 250, 300, 350, 400, 450],
-        label: (n: number, op: '>' | '<' = '>') => `${op === '<' ? '<' : ''}${n}${op === '>' ? '+' : ''} 3PM (Season)`,
+        label: (n: number) => `${n}+ 3PM in a Season`,
         testType: 'total' as const,
         testField: 'tpm'
       },
       fgPercent: {
         thresholds: [0.40, 0.45, 0.50, 0.55, 0.60, 0.65],
-        label: (n: number, op: '>' | '<' = '>') => `${op === '<' ? '<' : ''}${(n * 100).toFixed(0)}%${op === '>' ? '+' : ''} FG (Season)`,
+        label: (n: number) => `${(n * 100).toFixed(0)}%+ FG (Season)`,
         testType: 'average' as const,
         testField: 'fgPct'
       },
       threePointPercent: {
         thresholds: [0.30, 0.35, 0.40, 0.42, 0.45, 0.48, 0.50],
-        label: (n: number, op: '>' | '<' = '>') => `${op === '<' ? '<' : ''}${(n * 100).toFixed(0)}%${op === '>' ? '+' : ''} 3PT (Season)`,
+        label: (n: number) => `${(n * 100).toFixed(0)}%+ 3PT (Season)`,
         testType: 'average' as const,
         testField: 'tpPct'
       }
