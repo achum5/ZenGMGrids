@@ -897,159 +897,13 @@ const NUMERICAL_ACHIEVEMENT_CONFIGS: Record<string, { career?: Record<string, St
 };
 
 /**
- * Generate a dynamic numerical achievement with flexible thresholds and operators.
- * Tries different thresholds with fallback logic to ensure enough eligible players.
- * 
- * @param sport - The sport type
- * @param category - 'career' or 'season'
- * @param statKey - The stat key from NUMERICAL_ACHIEVEMENT_CONFIGS
- * @param players - Array of players to test against
- * @param minPlayersRequired - Minimum number of eligible players (default: 5)
- * @param preferredOperator - Optional operator preference (65% > by default)
- * @returns Achievement object or null if no valid threshold found
- */
-export function generateDynamicNumericalAchievement(
-  sport: 'basketball' | 'football' | 'hockey' | 'baseball',
-  category: 'career' | 'season',
-  statKey: string,
-  players: Player[],
-  minPlayersRequired: number = 5,
-  preferredOperator?: '>' | '<'
-): Achievement | null {
-  const config = NUMERICAL_ACHIEVEMENT_CONFIGS[sport]?.[category]?.[statKey];
-  if (!config) return null;
-
-  // Decide operator: 65% for '>', 35% for '<'
-  const operator = preferredOperator ?? (Math.random() < 0.65 ? '>' : '<');
-  
-  // For '>', try from highest to lowest; for '<', try from lowest to highest
-  const thresholds = operator === '>' 
-    ? [...config.thresholds].reverse() 
-    : [...config.thresholds];
-  
-  // Try each threshold with the selected operator
-  for (const threshold of thresholds) {
-    const eligibleCount = countEligiblePlayers(players, config, threshold, operator);
-    
-    if (eligibleCount >= minPlayersRequired) {
-      // Found a valid threshold!
-      return createAchievementFromConfig(config, threshold, operator, category, statKey, sport);
-    }
-  }
-  
-  // If all thresholds failed with the selected operator, try the opposite operator
-  const oppositeOperator = operator === '>' ? '<' : '>';
-  const oppositeThresholds = oppositeOperator === '>' 
-    ? [...config.thresholds].reverse() 
-    : [...config.thresholds];
-    
-  for (const threshold of oppositeThresholds) {
-    const eligibleCount = countEligiblePlayers(players, config, threshold, oppositeOperator);
-    
-    if (eligibleCount >= minPlayersRequired) {
-      return createAchievementFromConfig(config, threshold, oppositeOperator, category, statKey, sport);
-    }
-  }
-  
-  // No valid threshold found with either operator
-  return null;
-}
-
-/**
- * Count how many players meet the threshold requirement
- */
-function countEligiblePlayers(
-  players: Player[],
-  config: StatConfig,
-  threshold: number,
-  operator: '>' | '<'
-): number {
-  return players.filter(player => {
-    if (!player.stats || player.stats.length === 0) return false;
-    
-    if (config.testType === 'average') {
-      // Check if player has any season meeting the average requirement
-      return player.stats.some(stat => {
-        if (stat.playoffs || (stat.gp || 0) === 0) return false;
-        const value = (stat as any)[config.testField];
-        if (value === undefined || value === null) return false;
-        
-        const average = value / (stat.gp || 1);
-        return operator === '>' ? average >= threshold : average < threshold;
-      });
-    } else {
-      // Career total or season total
-      const total = player.stats
-        .filter(stat => !stat.playoffs)
-        .reduce((sum, stat) => sum + ((stat as any)[config.testField] || 0), 0);
-      
-      return operator === '>' ? total >= threshold : total < threshold;
-    }
-  }).length;
-}
-
-/**
- * Create an Achievement object from config and parameters
- */
-function createAchievementFromConfig(
-  config: StatConfig,
-  threshold: number,
-  operator: '>' | '<',
-  category: 'career' | 'season',
-  statKey: string,
-  sport: string
-): Achievement {
-  const id = `dynamic_${category}_${statKey}_${operator === '>' ? 'gte' : 'lt'}_${threshold}`;
-  const label = config.label(threshold, operator);
-  
-  return {
-    id,
-    label,
-    test: (player: Player) => {
-      if (!player.stats || player.stats.length === 0) return false;
-      
-      if (config.testType === 'average') {
-        return player.stats.some(stat => {
-          if (stat.playoffs || (stat.gp || 0) === 0) return false;
-          const value = (stat as any)[config.testField];
-          if (value === undefined || value === null) return false;
-          
-          const average = value / (stat.gp || 1);
-          return operator === '>' ? average >= threshold : average < threshold;
-        });
-      } else {
-        const total = player.stats
-          .filter(stat => !stat.playoffs)
-          .reduce((sum, stat) => sum + ((stat as any)[config.testField] || 0), 0);
-        
-        return operator === '>' ? total >= threshold : total < threshold;
-      }
-    },
-    minPlayers: 5
-  };
-}
-
-/**
- * Get all available stat keys for a sport/category combination
- */
-export function getAvailableStatKeys(
-  sport: 'basketball' | 'football' | 'hockey' | 'baseball',
-  category: 'career' | 'season'
-): string[] {
-  const config = NUMERICAL_ACHIEVEMENT_CONFIGS[sport]?.[category];
-  return config ? Object.keys(config) : [];
-}
-
-/**
- * Generate dynamic numerical achievements with flexible thresholds for variety in grid generation.
- * Uses the new generateDynamicNumericalAchievement to create achievements that automatically
- * adapt to the available player data with intelligent fallback.
+ * Generate random numerical achievements for variety in grid generation
  */
 function buildRandomNumericalAchievements(
   sport: 'basketball' | 'football' | 'hockey' | 'baseball',
-  players: Player[],
   seed?: string,
-  count: number = 8
+  count: number = 8,
+  operator: '>=' | '<=' = '>='
 ): Achievement[] {
   const achievements: Achievement[] = [];
   const config = NUMERICAL_ACHIEVEMENT_CONFIGS[sport];
@@ -1060,43 +914,60 @@ function buildRandomNumericalAchievements(
   const seedValue = seed ? hashString(seed) : Date.now();
   const rng = new SeededRandom(seedValue);
   
-  // Collect all possible stat categories
-  const possibleCategories: Array<{ type: 'career' | 'season'; stat: string }> = [];
+  // Collect all possible achievements
+  const possibleAchievements: Array<{
+    type: 'career' | 'season';
+    stat: string;
+    threshold: number;
+    config: StatConfig;
+  }> = [];
   
-  // Career stat categories
+  // Career achievements
   if (config.career) {
-    for (const stat of Object.keys(config.career)) {
-      possibleCategories.push({ type: 'career', stat });
+    for (const [stat, statConfig] of Object.entries(config.career)) {
+      for (const threshold of statConfig.thresholds) {
+        possibleAchievements.push({ type: 'career', stat, threshold, config: statConfig });
+      }
     }
   }
   
-  // Season stat categories
+  // Season achievements  
   if (config.season) {
-    for (const stat of Object.keys(config.season)) {
-      possibleCategories.push({ type: 'season', stat });
+    for (const [stat, statConfig] of Object.entries(config.season)) {
+      for (const threshold of statConfig.thresholds) {
+        possibleAchievements.push({ type: 'season', stat, threshold, config: statConfig });
+      }
     }
   }
   
-  // Randomly select categories to generate achievements for
-  const selectedCategories = rng.sample(possibleCategories, Math.min(count, possibleCategories.length));
+  // Randomly select achievements
+  const selectedAchievements = rng.sample(possibleAchievements, Math.min(count, possibleAchievements.length));
   
-  // Generate a dynamic achievement for each selected category
-  for (const category of selectedCategories) {
-    const { type, stat } = category;
+  for (const selected of selectedAchievements) {
+    const { type, stat, threshold, config: statConfig } = selected;
     
-    // Use the dynamic generation function with random operator weighting (65% > / 35% <)
-    const achievement = generateDynamicNumericalAchievement(
-      sport,
-      type,
-      stat,
-      players,
-      5  // minPlayersRequired
-      // No preferredOperator - let the function decide randomly
-    );
+    // CRITICAL FIX: Generate safe achievement IDs that don't conflict with static season achievements
+    // Use "Random" prefix to clearly distinguish from static achievements
+    const safeId = `Random${type}${threshold}${stat}`;
     
-    if (achievement) {
-      achievements.push(achievement);
-    }
+    const achievement: Achievement = {
+      id: safeId,
+      label: statConfig.label(threshold),
+      minPlayers: 5,
+      test: (player: Player) => {
+        if (!player.stats || player.stats.length === 0) return false;
+        
+        if (type === 'career') {
+          const value = getCareerStatTotal(player, statConfig.testField);
+          return operator === '>=' ? value >= threshold : value <= threshold;
+        } else {
+          const value = getBestSeasonStat(player, statConfig.testField, statConfig.testType || 'total');
+          return operator === '>=' ? value >= threshold : value <= threshold;
+        }
+      }
+    };
+    
+    achievements.push(achievement);
   }
   
   return achievements;
