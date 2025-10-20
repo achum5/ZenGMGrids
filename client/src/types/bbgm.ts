@@ -14,6 +14,10 @@ export interface Team {
     region?: string;
     name?: string;
     abbrev?: string;
+    colors?: string[]; // Season-specific colors
+    jersey?: string;   // Season-specific jersey style
+    imgURL?: string | null; // Season-specific logo
+    imgURLSmall?: string | null; // Season-specific small logo
   }>;
 }
 
