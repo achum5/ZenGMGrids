@@ -2588,7 +2588,7 @@ export function getViableAchievements(
 ): Achievement[] {
   const achievements = getAllAchievements(sport, seasonIndex, leagueYears, players);
   
-  return achievements.filter(achievement => {
+  const viable = achievements.filter(achievement => {
     // For season-specific achievements, use playerMeetsAchievement which properly handles seasonIndex
     // For career achievements, use the original test function
     const qualifyingPlayers = players.filter(player => {
@@ -2600,16 +2600,16 @@ export function getViableAchievements(
     });
     const hasEnough = qualifyingPlayers.length >= Math.max(minCount, achievement.minPlayers);
     
-    // Debug logging removed for performance - was causing logs for every achievement evaluation
-    const DEBUG = import.meta.env.VITE_DEBUG === 'true';
-    if (DEBUG) {
-      if (hasEnough) {
-        console.log(`✓ ${achievement.id}: ${qualifyingPlayers.length} players`);
-      } else {
-        console.log(`✗ ${achievement.id}: only ${qualifyingPlayers.length} players (need ${Math.max(minCount, achievement.minPlayers)})`);
-      }
+    // Debug dynamic achievements
+    if (achievement.id.startsWith('dynamic_')) {
+      console.log(`[VIABLE CHECK] ${achievement.label}: ${qualifyingPlayers.length} players (need ${Math.max(minCount, achievement.minPlayers)}) - ${hasEnough ? 'PASS' : 'FAIL'}`);
     }
     
     return hasEnough;
   });
+  
+  const dynamicViable = viable.filter(a => a.id.startsWith('dynamic_'));
+  console.log(`[VIABLE] Total: ${viable.length}, Dynamic viable: ${dynamicViable.length}`);
+  
+  return viable;
 }
