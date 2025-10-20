@@ -193,7 +193,7 @@ export function analyzeTeamOverlaps(players: Player[], teams: Team[]): TeamOverl
 
 export async function normalizeLeague(raw: any, postProgress: (message: string) => void): Promise<LeagueData & { sport: Sport }> {
   try {
-    postProgress('Detecting sport...');
+    postProgress('Detecting sport type...');
     
     // MOBILE FIX: Yield before accessing large arrays to prevent crash
     await new Promise(resolve => setTimeout(resolve, 0));
@@ -216,7 +216,7 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
     }
     currentSeason = currentSeason || 2023;
   
-    postProgress('Normalizing teams...');
+    postProgress('Processing teams...');
     const teams: Team[] = raw.teams?.map((team: any) => ({
       tid: team.tid,
       abbrev: team.abbrev || team.region || 'UNK',
@@ -246,7 +246,7 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
     }
     const leagueYears = { minSeason, maxSeason };
   
-    postProgress('Normalizing players...');
+    postProgress('Processing players...');
     const players: Player[] = [];
     if (raw.players) {
       for (const rawPlayer of raw.players) {

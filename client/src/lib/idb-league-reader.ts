@@ -57,7 +57,7 @@ export async function readAndNormalizePlayers(
     
     const gameAttributes = meta.gameAttributes || {};
     
-    onProgress?.('Reading players from database...');
+    onProgress?.('Loading players...');
     
     // Read all players (they're already in memory from IDB, but we process in chunks)
     const tx = db.transaction('players', 'readonly');
@@ -66,14 +66,14 @@ export async function readAndNormalizePlayers(
     await tx.done;
     
     // Detect sport using the robust detection function (same as traditional/streaming methods)
-    onProgress?.('Detecting sport...');
+    onProgress?.('Detecting sport type...');
     const { detectSport } = await import('./league-normalizer');
     const sport = detectSport({ players: allPlayers.slice(0, 10) });
     
     // Cache the detected sport for other parts of the app
     setCachedSportDetection(sport);
     
-    onProgress?.('Normalizing player data...');
+    onProgress?.('Processing player data...');
     
     // Transform raw players into normalized Player objects
     const players: Player[] = [];
@@ -220,7 +220,7 @@ export async function processLeagueFromIDB(
   onProgress?: (message: string) => void
 ): Promise<LeagueData & { sport: Sport }> {
   try {
-    onProgress?.('Loading data from database...');
+    onProgress?.('Reading from database...');
     
     // Read players and teams in parallel
     const [{ players, sport, gameAttributes }, teams] = await Promise.all([
@@ -243,7 +243,7 @@ export async function processLeagueFromIDB(
     }
     const leagueYears = { minSeason, maxSeason };
     
-    onProgress?.('Calculating achievements...');
+    onProgress?.('Calculating player achievements...');
     clearSeasonLengthCache();
     const leadershipMap = calculateLeagueLeadership(players, gameAttributes);
     const playerFeats: any[] = []; // We don't store feats in IDB yet
@@ -259,14 +259,14 @@ export async function processLeagueFromIDB(
       }
       
       if (i % 2000 === 0 && i > 0) {
-        onProgress?.(`Processed achievements for ${i.toLocaleString()} of ${players.length.toLocaleString()} players...`);
+        onProgress?.(`Processing achievements (${i.toLocaleString()} of ${players.length.toLocaleString()} players)...`);
       }
       
       // Yield to prevent UI freeze
       await new Promise(resolve => setTimeout(resolve, 0));
     }
     
-    onProgress?.('Analyzing team overlaps...');
+    onProgress?.('Building team overlaps...');
     const teamOverlaps = analyzeTeamOverlaps(players, teams);
     
     // Build season index if applicable
@@ -275,7 +275,7 @@ export async function processLeagueFromIDB(
     const seasonCount = uniqueSeasons.size;
     
     if (['basketball', 'football', 'hockey', 'baseball'].includes(sport) && seasonCount >= 20) {
-      onProgress?.('Building season index...');
+      onProgress?.('Finalizing season data...');
       seasonIndex = getCachedSeasonIndex(players, sport);
     }
     

@@ -16,18 +16,21 @@ const postProgress = (message: string, loaded?: number, total?: number) => {
 
 // Old non-streaming method for small files
 async function parseFileTraditional(file: File): Promise<any> {
+  postProgress('Reading file...', 5, 100);
   const arrayBuffer = await file.arrayBuffer();
   let content: string;
 
   if (file.name.endsWith('.gz')) {
-    postProgress('Decompressing file...', 50, 100);
+    postProgress('Decompressing file...', 15, 100);
     const compressed = new Uint8Array(arrayBuffer);
     content = pako.inflate(compressed, { to: 'string' });
+    postProgress('Decompression complete', 35, 100);
   } else {
+    postProgress('File loaded', 20, 100);
     content = new TextDecoder('utf-8').decode(arrayBuffer);
   }
 
-  postProgress('Parsing JSON data...', 75, 100);
+  postProgress('Parsing league data...', 40, 100);
   return JSON.parse(content);
 }
 
@@ -35,6 +38,8 @@ async function parseFileTraditional(file: File): Promise<any> {
 // Parse specific paths and build object piece-by-piece without creating full object in memory
 async function parseFileStreaming(file: File): Promise<any> {
   const isCompressed = file.name.endsWith('.gz');
+  
+  postProgress('Starting stream...', 5, 100);
   
   // Get the stream (compressed or not)
   let dataStream = file.stream();
@@ -45,11 +50,11 @@ async function parseFileStreaming(file: File): Promise<any> {
         'DecompressionStream not supported. Please use Chrome 80+, Firefox 113+, or Safari 16.4+'
       );
     }
-    postProgress('Starting streaming decompression...', 5, 100);
+    postProgress('Decompressing file...', 10, 100);
     dataStream = dataStream.pipeThrough(new DecompressionStream('gzip'));
   }
   
-  postProgress('Streaming JSON parse...', 10, 100);
+  postProgress('Parsing league data...', 20, 100);
   
   // Parse all major sections incrementally using streaming JSON parser
   // This captures metadata and large arrays at specific paths
@@ -88,13 +93,15 @@ async function parseFileStreaming(file: File): Promise<any> {
   const result: any = {};
   let itemCount = 0;
   let currentSection = '';
+  let playersProcessed = false;
+  let teamsProcessed = false;
   
   try {
     while (true) {
       const { done, value } = await reader.read();
       
       if (done) {
-        postProgress('Streaming parse complete', 95, 100);
+        postProgress('File parsing complete', 50, 100);
         return result;
       }
       
@@ -105,10 +112,20 @@ async function parseFileStreaming(file: File): Promise<any> {
         const topLevelKey = pathArray[0];
         
         if (topLevelKey) {
-          // Track what section we're processing
+          // Track what section we're processing and show user-friendly messages
           if (currentSection !== topLevelKey) {
             currentSection = topLevelKey;
-            postProgress(`Processing ${topLevelKey}...`, 10 + (itemCount / 10000) * 85, 100);
+            
+            // User-friendly progress messages
+            if (topLevelKey === 'players' && !playersProcessed) {
+              postProgress('Processing players...', 25, 100);
+              playersProcessed = true;
+            } else if (topLevelKey === 'teams' && !teamsProcessed) {
+              postProgress('Processing teams...', 40, 100);
+              teamsProcessed = true;
+            } else if (topLevelKey === 'gameAttributes') {
+              postProgress('Loading league settings...', 30, 100);
+            }
           }
           
           // Store the value at the appropriate key
@@ -124,7 +141,7 @@ async function parseFileStreaming(file: File): Promise<any> {
 
 // Use EXACT same streaming approach as files - just with response.body as source
 async function parseUrlStreaming(url: string): Promise<any> {
-  postProgress('Fetching URL...', 5, 100);
+  postProgress('Connecting to URL...', 5, 100);
   
   // Try CORS fetch first
   const response = await fetch(url, { mode: 'cors' });
@@ -137,7 +154,7 @@ async function parseUrlStreaming(url: string): Promise<any> {
     throw new Error('Response body not available');
   }
   
-  postProgress('Downloading...', 10, 100);
+  postProgress('Downloading file...', 10, 100);
   
   // Get the stream from response
   let dataStream = response.body;
@@ -149,11 +166,11 @@ async function parseUrlStreaming(url: string): Promise<any> {
     if (typeof DecompressionStream === 'undefined') {
       throw new Error('DecompressionStream not supported. Please use Chrome 80+, Firefox 113+, or Safari 16.4+');
     }
-    postProgress('Decompressing...', 15, 100);
+    postProgress('Decompressing file...', 15, 100);
     dataStream = dataStream.pipeThrough(new DecompressionStream('gzip'));
   }
   
-  postProgress('Streaming JSON parse...', 20, 100);
+  postProgress('Parsing league data...', 20, 100);
   
   // Use EXACT same streaming JSON parser as files
   const jsonParser = new JSONParser({ 
@@ -197,7 +214,7 @@ async function parseUrlStreaming(url: string): Promise<any> {
       const { done, value } = await reader.read();
       
       if (done) {
-        postProgress('Streaming parse complete', 95, 100);
+        postProgress('File parsing complete', 50, 100);
         return result;
       }
       
@@ -208,10 +225,18 @@ async function parseUrlStreaming(url: string): Promise<any> {
         const topLevelKey = pathArray[0];
         
         if (topLevelKey) {
-          // Track what section we're processing
+          // Track what section we're processing with user-friendly messages
           if (currentSection !== topLevelKey) {
             currentSection = topLevelKey;
-            postProgress(`Processing ${topLevelKey}...`, 20 + (itemCount / 10000) * 75, 100);
+            
+            // User-friendly progress messages
+            if (topLevelKey === 'players') {
+              postProgress('Processing players...', 25, 100);
+            } else if (topLevelKey === 'teams') {
+              postProgress('Processing teams...', 40, 100);
+            } else if (topLevelKey === 'gameAttributes') {
+              postProgress('Loading league settings...', 30, 100);
+            }
           }
           
           // Store the value at the appropriate key
@@ -227,13 +252,14 @@ async function parseUrlStreaming(url: string): Promise<any> {
 
 // Traditional URL fetch for small files
 async function parseUrlTraditional(url: string): Promise<any> {
-  postProgress('Fetching URL...', 10, 100);
+  postProgress('Connecting to URL...', 5, 100);
   
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }
   
+  postProgress('Downloading file...', 15, 100);
   const arrayBuffer = await response.arrayBuffer();
   
   if (arrayBuffer.byteLength === 0) {
@@ -244,14 +270,16 @@ async function parseUrlTraditional(url: string): Promise<any> {
   const isCompressed = url.includes('.gz') || url.includes('.json.gz');
   
   if (isCompressed) {
-    postProgress('Decompressing...', 50, 100);
+    postProgress('Decompressing file...', 25, 100);
     const compressed = new Uint8Array(arrayBuffer);
     content = pako.inflate(compressed, { to: 'string' });
+    postProgress('Decompression complete', 35, 100);
   } else {
+    postProgress('File downloaded', 30, 100);
     content = new TextDecoder('utf-8').decode(arrayBuffer);
   }
   
-  postProgress('Parsing JSON...', 75, 100);
+  postProgress('Parsing league data...', 40, 100);
   return JSON.parse(content);
 }
 
@@ -487,22 +515,19 @@ self.onmessage = async (event: MessageEvent<{ file?: File; url?: string; method?
     
     if (file) {
       // File upload path - use specified method
-      postProgress('Starting file processing...', 0, file.size);
+      postProgress('Starting...', 0, 100);
       
       // Choose parsing method based on parameter
       if (method === 'traditional') {
-        postProgress('Reading file (traditional method)...', 0, file.size);
         rawData = await parseFileTraditional(file);
       } else if (method === 'mobile-idb') {
         // NEW: IndexedDB streaming method - no normalization here!
-        postProgress('Starting IndexedDB streaming...', 0, file.size);
         await parseFileMobileIDB(file);
         // Signal main thread that data is in IDB
         self.postMessage({ type: 'complete-idb' });
         return; // Exit early - no leagueData to send
       } else {
         // streaming method
-        postProgress('Streaming file...', 0, file.size);
         rawData = await parseFileStreaming(file);
       }
       
@@ -510,16 +535,20 @@ self.onmessage = async (event: MessageEvent<{ file?: File; url?: string; method?
         throw new Error('File content is empty after reading/decompression.');
       }
 
+      // Normalize league data (50-95%)
+      let lastProgress = 50;
       const leagueData = await normalizeLeague(rawData, (message) => {
-        postProgress(message, file.size * 0.95, file.size);
+        // Map normalizeLeague messages to 50-95% range
+        lastProgress = Math.min(95, lastProgress + 5);
+        postProgress(message, lastProgress, 100);
       });
 
-      postProgress('Processing complete.', file.size, file.size);
+      postProgress('Complete!', 100, 100);
       self.postMessage({ type: 'complete', leagueData });
       
     } else if (url) {
       // URL fetch path - use specified method
-      postProgress('Starting URL processing...', 0, 100);
+      postProgress('Starting...', 0, 100);
       
       // Choose parsing method based on parameter
       if (method === 'traditional') {
@@ -533,11 +562,15 @@ self.onmessage = async (event: MessageEvent<{ file?: File; url?: string; method?
         throw new Error('URL content is empty after fetching.');
       }
 
+      // Normalize league data (50-95%)
+      let lastProgress = 50;
       const leagueData = await normalizeLeague(rawData, (message) => {
-        postProgress(message, 95, 100);
+        // Map normalizeLeague messages to 50-95% range
+        lastProgress = Math.min(95, lastProgress + 5);
+        postProgress(message, lastProgress, 100);
       });
 
-      postProgress('Processing complete.', 100, 100);
+      postProgress('Complete!', 100, 100);
       self.postMessage({ type: 'complete', leagueData });
     }
 

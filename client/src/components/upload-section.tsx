@@ -90,10 +90,10 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadP
                     Traditional
                   </SelectItem>
                   <SelectItem value="streaming" data-testid="option-streaming">
-                    Streaming (iffy on mobile)
+                    Desktop Streaming <i>(for large files)</i>
                   </SelectItem>
                   <SelectItem value="mobile-idb" data-testid="option-mobile-idb">
-                    Mobile (IndexedDB)
+                    Mobile Streaming <i>(slow but should work!)</i>
                   </SelectItem>
                 </SelectContent>
               </Select>
