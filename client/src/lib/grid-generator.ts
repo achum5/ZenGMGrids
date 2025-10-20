@@ -3,44 +3,37 @@ import { getViableAchievements, playerMeetsAchievement, getAllAchievements, type
 import { getSeasonEligiblePlayers, type SeasonAchievementId, type SeasonIndex, SEASON_ACHIEVEMENTS } from './season-achievements';
 import { calculateOptimizedIntersection, type IntersectionConstraint } from '@/lib/intersection-cache';
 import { mapAchievementToAchv } from './achv-mappers';
+import { parseAchievementLabel, generateUpdatedLabel } from './editable-achievements';
 
 // Define conflicting achievement sets at module level
 const draftAchievements = new Set(['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen']);
 const seasonLengthAchievements = new Set(['played15PlusSeasons']);
 
 /**
- * Helper to check if an achievement is customizable (has numerical stats)
- */
-function isCustomizableAchievement(label: string): boolean {
-  return /[\d,]+\+/.test(label);
-}
-
-/**
  * Randomly flip customizable achievement operators
- * 65% chance of staying >= (with +), 35% chance of flipping to < (less than)
+ * 65% chance of staying >= (with +), 35% chance of flipping to ≤ (less than or equal)
+ * Uses the same formatting logic as the custom grid modal
  */
 function maybeFlipAchievementOperator(achievement: Achievement): Achievement {
-  if (!isCustomizableAchievement(achievement.label)) {
+  // Parse the achievement label to check if it's customizable
+  const parsed = parseAchievementLabel(achievement.label, 'basketball');
+  
+  if (!parsed.isEditable) {
     return achievement; // Not customizable, return as-is
   }
 
-  // 35% chance to flip to <
+  // 35% chance to flip to ≤ (less than or equal)
   if (Math.random() < 0.35) {
-    // Parse the label to extract the number
-    const match = achievement.label.match(/([\d,]+)\+/);
-    if (match) {
-      const originalValue = match[1];
-      // Replace "X+" with "<X"
-      const flippedLabel = achievement.label.replace(`${originalValue}+`, `<${originalValue}`);
-      
-      return {
-        ...achievement,
-        label: flippedLabel
-      };
-    }
+    // Use the same label formatting as the custom grid modal
+    const flippedLabel = generateUpdatedLabel(parsed, parsed.number, '≤');
+    
+    return {
+      ...achievement,
+      label: flippedLabel
+    };
   }
   
-  // 65% chance: return as-is with + (>=)
+  // 65% chance: return as-is with ≥ (greater than or equal)
   return achievement;
 }
 
