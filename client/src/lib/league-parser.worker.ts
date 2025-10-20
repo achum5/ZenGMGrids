@@ -7,7 +7,7 @@ import type { LeagueData } from '@/types/bbgm';
 // Only used when method is 'auto'
 const STREAMING_THRESHOLD = 50 * 1024 * 1024;
 
-export type ParsingMethod = 'traditional' | 'streaming' | 'mobile-streaming';
+export type ParsingMethod = 'traditional' | 'streaming' | 'mobile-streaming' | 'mobile-idb';
 
 // Helper to post progress messages
 const postProgress = (message: string, loaded?: number, total?: number) => {
@@ -471,6 +471,225 @@ async function parseUrlTraditional(url: string): Promise<any> {
   return JSON.parse(content);
 }
 
+// Mobile-IDB: Stream directly to IndexedDB, never materialize giant arrays
+async function parseFileMobileIDB(file: File): Promise<'idb-stored'> {
+  const { openDB } = await import('idb');
+  
+  postProgress('Setting up database...', 5, 100);
+  
+  // Open/create IndexedDB
+  const db = await openDB('grids-league', 3, {
+    upgrade(db, oldVersion) {
+      // Create stores if they don't exist
+      if (!db.objectStoreNames.contains('players')) {
+        const playerStore = db.createObjectStore('players', { keyPath: 'pid' });
+        playerStore.createIndex('tid', 'tid', { multiEntry: true });
+      }
+      if (!db.objectStoreNames.contains('teams')) {
+        db.createObjectStore('teams', { keyPath: 'tid' });
+      }
+      if (!db.objectStoreNames.contains('meta')) {
+        db.createObjectStore('meta');
+      }
+    }
+  });
+  
+  // Clear old data
+  postProgress('Clearing previous data...', 10, 100);
+  await db.clear('players');
+  await db.clear('teams');
+  await db.clear('meta');
+  
+  const isCompressed = file.name.endsWith('.gz');
+  let dataStream = file.stream();
+  
+  if (isCompressed) {
+    postProgress('Setting up decompression...', 15, 100);
+    // Use pako for mobile compatibility
+    const decompressionTransform = new TransformStream({
+      start(controller) {
+        const inflator = new pako.Inflate({ chunkSize: 16 * 1024 });
+        inflator.onData = (chunk: Uint8Array) => controller.enqueue(chunk);
+        inflator.onEnd = (status: number) => {
+          if (status !== 0) {
+            controller.error(new Error(`Decompression failed: ${inflator.msg || 'Unknown error'}`));
+          }
+        };
+        (controller as any).inflator = inflator;
+      },
+      transform(chunk, controller) {
+        (controller as any).inflator.push(chunk, false);
+      },
+      flush(controller) {
+        (controller as any).inflator.push(new Uint8Array(0), true);
+      }
+    });
+    dataStream = dataStream.pipeThrough(decompressionTransform);
+  }
+  
+  postProgress('Streaming to database...', 20, 100);
+  
+  // Parse with wildcard paths to get individual items
+  const jsonParser = new JSONParser({ 
+    paths: [
+      '$.version',
+      '$.startingSeason',
+      '$.gameAttributes',
+      '$.players.*',
+      '$.teams.*',
+      '$.meta'
+    ],
+    keepStack: false 
+  });
+  
+  const jsonStream = dataStream.pipeThrough(jsonParser);
+  const reader = jsonStream.getReader();
+  
+  // Buffers for batching
+  const playerQueue: any[] = [];
+  const teamQueue: any[] = [];
+  const BATCH_SIZE = 200;
+  const MAX_QUEUE = 400;
+  
+  let itemCount = 0;
+  let playerCount = 0;
+  let teamCount = 0;
+  let sport: string | null = null;
+  let meta: any = null;
+  let version: any = null;
+  let startingSeason: any = null;
+  let gameAttributes: any = null;
+  let currentArraySection: 'players' | 'teams' | null = null;
+  
+  // Helper to detect sport from player
+  const detectSportFromPlayer = (player: any) => {
+    if (sport) return;
+    const stats = player.stats?.[0] || {};
+    if ('fga' in stats || 'trb' in stats) sport = 'basketball';
+    else if ('rushYds' in stats || 'passTD' in stats) sport = 'football';
+    else if ('ab' in stats || 'hr' in stats) sport = 'baseball';
+    else if (('g' in stats && 'a' in stats) || 'sv' in stats) sport = 'hockey';
+  };
+  
+  // Helper to flush buffers to IDB
+  const flushBuffers = async (force = false) => {
+    const shouldFlush = force || playerQueue.length >= BATCH_SIZE || teamQueue.length >= BATCH_SIZE;
+    if (!shouldFlush) return;
+    
+    if (playerQueue.length > 0) {
+      const tx = db.transaction('players', 'readwrite');
+      const store = tx.objectStore('players');
+      const batch = playerQueue.splice(0, Math.min(BATCH_SIZE, playerQueue.length));
+      for (const player of batch) {
+        await store.put(player);
+      }
+      await tx.done;
+    }
+    
+    if (teamQueue.length > 0) {
+      const tx = db.transaction('teams', 'readwrite');
+      const store = tx.objectStore('teams');
+      const batch = teamQueue.splice(0, Math.min(BATCH_SIZE, teamQueue.length));
+      for (const team of batch) {
+        await store.put(team);
+      }
+      await tx.done;
+    }
+  };
+  
+  try {
+    while (true) {
+      // Backpressure: pause if queue too large
+      while (playerQueue.length + teamQueue.length > MAX_QUEUE) {
+        await flushBuffers(true);
+        await new Promise(resolve => setTimeout(resolve, 20));
+      }
+      
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      if (value && value.value !== undefined) {
+        const keyString = typeof value.key === 'string' ? value.key : String(value.key);
+        const pathArray = keyString ? keyString.split('.').filter(Boolean) : [];
+        const topLevelKey = pathArray[0];
+        
+        if (!topLevelKey) continue;
+        
+        const isArrayIndex = /^\d+$/.test(topLevelKey);
+        
+        if (isArrayIndex) {
+          // Determine which array based on order
+          if (topLevelKey === '0') {
+            if (!currentArraySection) {
+              currentArraySection = 'players';
+              postProgress('Processing players...', 25, 100);
+            } else if (currentArraySection === 'players') {
+              currentArraySection = 'teams';
+              postProgress('Processing teams...', 70, 100);
+            }
+          }
+          
+          if (currentArraySection === 'players') {
+            detectSportFromPlayer(value.value);
+            playerQueue.push(value.value);
+            playerCount++;
+            
+            // Progress update every 1000 players
+            if (playerCount % 1000 === 0) {
+              const pct = Math.min(65, 25 + (playerCount / 1000) * 2);
+              postProgress(`Processed ${playerCount.toLocaleString()} players...`, pct, 100);
+              self.postMessage({ type: 'meta', sport, counts: { players: playerCount, teams: teamCount } });
+            }
+          } else if (currentArraySection === 'teams') {
+            teamQueue.push(value.value);
+            teamCount++;
+          }
+        } else {
+          // Non-array values
+          if (topLevelKey === 'version') version = value.value;
+          else if (topLevelKey === 'startingSeason') startingSeason = value.value;
+          else if (topLevelKey === 'gameAttributes') {
+            gameAttributes = value.value;
+            if (gameAttributes?.sport) sport = gameAttributes.sport;
+          }
+          else if (topLevelKey === 'meta') meta = value.value;
+          currentArraySection = null;
+        }
+        
+        itemCount++;
+        
+        // Yield frequently for GC
+        if (itemCount % 100 === 0) {
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+        
+        // Periodic flush
+        if (itemCount % 500 === 0) {
+          await flushBuffers(false);
+        }
+      }
+    }
+    
+    // Final flush
+    postProgress('Finalizing database...', 90, 100);
+    await flushBuffers(true);
+    
+    // Store metadata
+    await db.put('meta', { sport, playerCount, teamCount, version, startingSeason, gameAttributes, meta }, 'importMeta');
+    
+    postProgress('Import complete', 100, 100);
+    db.close();
+    
+    return 'idb-stored';
+    
+  } catch (err) {
+    db.close();
+    throw err;
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 self.onmessage = async (event: MessageEvent<{ file?: File; url?: string; method?: ParsingMethod }>) => {
   const { file, url, method = 'streaming' } = event.data; // Default to streaming if not specified
 
@@ -493,6 +712,13 @@ self.onmessage = async (event: MessageEvent<{ file?: File; url?: string; method?
       } else if (method === 'mobile-streaming') {
         postProgress('Mobile streaming file...', 0, file.size);
         rawData = await parseFileMobileStreaming(file);
+      } else if (method === 'mobile-idb') {
+        // NEW: IndexedDB streaming method - no normalization here!
+        postProgress('Starting IndexedDB streaming...', 0, file.size);
+        await parseFileMobileIDB(file);
+        // Signal main thread that data is in IDB
+        self.postMessage({ type: 'complete-idb' });
+        return; // Exit early - no leagueData to send
       } else {
         // streaming method
         postProgress('Streaming file...', 0, file.size);
