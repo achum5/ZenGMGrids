@@ -463,6 +463,11 @@ export default function Home() {
         ? getRecommendedMethod(file.size) 
         : parsingMethodSetting;
       
+      // If auto is selected, update the effective method for UI display IMMEDIATELY
+      if (parsingMethodSetting === 'auto') {
+        setEffectiveParsingMethod(method);
+      }
+
       // Parse the league file with progress tracking and selected method
       const data = await parseLeagueFile(file, (message, loaded, total) => {
         setUploadProgress({ message, loaded, total });
@@ -479,6 +484,7 @@ export default function Home() {
     } finally {
       setIsProcessing(false);
       setUploadProgress(null);
+      setEffectiveParsingMethod(null); // Reset effective method after processing
     }
   }, [toast, parsingMethodSetting]);
 
@@ -494,6 +500,11 @@ export default function Home() {
         ? getRecommendedMethod(null) 
         : parsingMethodSetting;
       
+      // If auto is selected, update the effective method for UI display IMMEDIATELY
+      if (parsingMethodSetting === 'auto') {
+        setEffectiveParsingMethod(method);
+      }
+
       // Parse the league URL with progress tracking and selected method
       const data = await parseLeagueUrl(url, (message, loaded, total) => {
         setUploadProgress({ message, loaded, total });
@@ -510,6 +521,7 @@ export default function Home() {
     } finally {
       setIsProcessing(false);
       setUploadProgress(null);
+      setEffectiveParsingMethod(null); // Reset effective method after processing
     }
   }, [toast, parsingMethodSetting]);
 
