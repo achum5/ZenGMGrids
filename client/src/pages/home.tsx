@@ -103,6 +103,11 @@ export default function Home() {
     getStoredParsingMethod()
   );
   
+  // Displayed method in UI - shows actual method when auto is selected and uploading
+  const [displayedMethod, setDisplayedMethod] = useState<'auto' | 'traditional' | 'streaming' | 'mobile-idb'>(() => 
+    getStoredParsingMethod()
+  );
+  
   // Progress tracking for file uploads
   const [uploadProgress, setUploadProgress] = useState<{
     message: string;
@@ -148,6 +153,7 @@ export default function Home() {
   // Handle parsing method change
   const handleParsingMethodChange = useCallback((method: 'auto' | 'traditional' | 'streaming' | 'mobile-idb') => {
     setParsingMethodSetting(method);
+    setDisplayedMethod(method); // Update display to match setting
     storeParsingMethod(method);
   }, []);
 
@@ -463,6 +469,9 @@ export default function Home() {
         ? getRecommendedMethod() 
         : parsingMethodSetting;
       
+      // Update displayed method to show actual method being used
+      setDisplayedMethod(method);
+      
       // Parse the league file with progress tracking and selected method
       const data = await parseLeagueFile(file, (message, loaded, total) => {
         setUploadProgress({ message, loaded, total });
@@ -476,6 +485,8 @@ export default function Home() {
         description: error instanceof Error ? error.message : 'Unknown error occurred',
         variant: 'destructive',
       });
+      // Reset displayed method on error
+      setDisplayedMethod(parsingMethodSetting);
     } finally {
       setIsProcessing(false);
       setUploadProgress(null);
@@ -492,6 +503,9 @@ export default function Home() {
         ? getRecommendedMethod() 
         : parsingMethodSetting;
       
+      // Update displayed method to show actual method being used
+      setDisplayedMethod(method);
+      
       // Parse the league URL with progress tracking and selected method
       const data = await parseLeagueUrl(url, (message, loaded, total) => {
         setUploadProgress({ message, loaded, total });
@@ -505,6 +519,8 @@ export default function Home() {
         description: error instanceof Error ? error.message : 'Unknown error occurred',
         variant: 'destructive',
       });
+      // Reset displayed method on error
+      setDisplayedMethod(parsingMethodSetting);
     } finally {
       setIsProcessing(false);
       setUploadProgress(null);
@@ -1092,6 +1108,8 @@ export default function Home() {
     setByName({});
     setByPid({});
     setSearchablePlayers([]);
+    // Reset displayed method back to the user's setting (e.g., "auto")
+    setDisplayedMethod(parsingMethodSetting);
     setTeamsByTid({});
     setCurrentCellKey(null);
     setSearchModalOpen(false);
@@ -1333,7 +1351,7 @@ export default function Home() {
             onUrlUpload={handleUrlUpload}
             isProcessing={isProcessing}
             uploadProgress={uploadProgress}
-            parsingMethod={parsingMethodSetting}
+            parsingMethod={displayedMethod}
             onParsingMethodChange={handleParsingMethodChange}
           />
         </main>
