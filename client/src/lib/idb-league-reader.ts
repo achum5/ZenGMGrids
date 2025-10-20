@@ -55,7 +55,6 @@ export async function readAndNormalizePlayers(
       throw new Error('No league data found in database');
     }
     
-    const sport = meta.sport || 'basketball';
     const gameAttributes = meta.gameAttributes || {};
     
     onProgress?.('Reading players from database...');
@@ -65,6 +64,14 @@ export async function readAndNormalizePlayers(
     const store = tx.objectStore('players');
     const allPlayers: any[] = await store.getAll();
     await tx.done;
+    
+    // Detect sport using the robust detection function (same as traditional/streaming methods)
+    onProgress?.('Detecting sport...');
+    const { detectSport } = await import('./league-normalizer');
+    const sport = detectSport({ players: allPlayers.slice(0, 10) });
+    
+    // Cache the detected sport for other parts of the app
+    setCachedSportDetection(sport);
     
     onProgress?.('Normalizing player data...');
     
