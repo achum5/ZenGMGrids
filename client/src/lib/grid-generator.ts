@@ -332,12 +332,19 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
     const freshAchievements = createWeightedArray(freshWeightedAchievements);
     const recentAchievements = createWeightedArray(recentWeightedAchievements);
     
+    const dynamicInFresh = new Set(freshAchievements.filter(a => a.achievementId?.startsWith('dynamic_')).map(a => a.label));
+    const dynamicInRecent = new Set(recentAchievements.filter(a => a.achievementId?.startsWith('dynamic_')).map(a => a.label));
+    console.log(`[WEIGHTED POOLS] Fresh: ${freshAchievements.length} (${dynamicInFresh.size} unique dynamic), Recent: ${recentAchievements.length} (${dynamicInRecent.size} unique dynamic)`);
+    console.log(`[WEIGHTED POOLS] Dynamic in fresh:`, Array.from(dynamicInFresh));
+    console.log(`[WEIGHTED POOLS] Dynamic in recent:`, Array.from(dynamicInRecent));
+    
     // Prefer fresh achievements, but use recent ones if needed
     if (freshAchievements.length >= numAchievements) {
       // We have enough fresh achievements, use only those
       selectedAchievements = freshAchievements
         .sort(() => Math.random() - 0.5)
         .slice(0, numAchievements);
+      console.log(`[SELECTION] Selected from fresh pool:`, selectedAchievements.map(a => a.label));
     } else if (viableAchievements.length >= numAchievements) {
       // Mix fresh and recent achievements
       const neededFresh = Math.min(freshAchievements.length, numAchievements);
@@ -347,6 +354,7 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
         ...freshAchievements.sort(() => Math.random() - 0.5).slice(0, neededFresh),
         ...recentAchievements.sort(() => Math.random() - 0.5).slice(0, neededRecent)
       ];
+      console.log(`[SELECTION] Mixed fresh (${neededFresh}) and recent (${neededRecent}):`, selectedAchievements.map(a => a.label));
     } else {
       // Not enough high-coverage achievements, include some with lower coverage
       const allByTeamCoverage = achievementConstraints
