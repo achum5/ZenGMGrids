@@ -5,8 +5,9 @@ import { type SeasonIndex } from './season-achievements';
 import { getCachedSeasonIndex } from './season-index-cache';
 
 import { normalizeLeague, type Sport } from './league-normalizer';
+import { processLeagueFromIDB } from './idb-league-reader';
 
-export type ParsingMethod = 'traditional' | 'streaming' | 'mobile-streaming';
+export type ParsingMethod = 'traditional' | 'streaming' | 'mobile-streaming' | 'mobile-idb';
 
 export function parseLeagueFile(
   file: File,
@@ -21,7 +22,7 @@ export function parseLeagueFile(
       type: 'module'
     });
 
-    worker.onmessage = (event) => {
+    worker.onmessage = async (event) => {
       const { type, leagueData, error, message, loaded, total } = event.data;
       
       if (type === 'progress') {
@@ -30,6 +31,25 @@ export function parseLeagueFile(
         console.log('[MAIN] Worker finished successfully.');
         worker.terminate();
         resolve(leagueData);
+      } else if (type === 'complete-idb') {
+        console.log('[MAIN] Worker finished IDB import. Reading from IndexedDB...');
+        worker.terminate();
+        
+        try {
+          // Process data from IndexedDB
+          const leagueData = await processLeagueFromIDB((msg) => {
+            onProgress?.(msg, file.size, file.size);
+          });
+          resolve(leagueData);
+        } catch (err) {
+          reject(err);
+        }
+      } else if (type === 'meta') {
+        // Progress metadata from worker (sport detection, counts)
+        const { sport, counts } = event.data;
+        if (sport && counts) {
+          onProgress?.(`Processing ${sport} league: ${counts.players?.toLocaleString() || 0} players, ${counts.teams || 0} teams`, loaded, total);
+        }
       } else if (type === 'error') {
         console.error('[MAIN] Worker reported an error:', error);
         worker.terminate();
