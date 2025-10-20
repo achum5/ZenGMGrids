@@ -272,6 +272,9 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
       return teamCoverage >= 3;
     });
     
+    const dynamicInViable = viableAchievements.filter(a => a.achievementId?.startsWith('dynamic_'));
+    console.log(`[SELECTION POOL] Viable: ${viableAchievements.length}, Dynamic in viable: ${dynamicInViable.length}`, dynamicInViable.map(a => a.label));
+    
     // Apply decade probability skewing - favor recent decades, phase out old ones (50+ years)
     const currentYear = leagueData.leagueYears?.maxSeason || new Date().getFullYear();
     const weightedAchievements = viableAchievements.map(achievement => {
