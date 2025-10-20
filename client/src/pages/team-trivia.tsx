@@ -521,29 +521,24 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     const normalizedGuess = normalizeName(guess);
     const unrevealedPlayers = roster.filter(rp => !rp.revealed);
     
-    let matchedPlayer: RosterPlayer | null = null;
-    const lastNameMatches: RosterPlayer[] = [];
+    // Find exact full name match
+    const matchedPlayer = unrevealedPlayers.find(rp => 
+      normalizeName(rp.player.name) === normalizedGuess
+    );
 
-    unrevealedPlayers.forEach(rp => {
-      const playerFullName = normalizeName(rp.player.name);
+    // Find all last name matches
+    const lastNameMatches = unrevealedPlayers.filter(rp => {
       const playerLastName = normalizeName(rp.player.name.split(' ').pop() || '');
-
-      if (playerFullName === normalizedGuess) {
-        matchedPlayer = rp;
-      }
-      
-      if (playerLastName === normalizedGuess) {
-        lastNameMatches.push(rp);
-      }
+      return playerLastName === normalizedGuess;
     });
 
     if (matchedPlayer) {
-      handleSelectPlayer(matchedPlayer);
+      handleSelectPlayer(matchedPlayer.player);
       return;
     }
 
     if (lastNameMatches.length === 1) {
-      handleSelectPlayer(lastNameMatches[0]);
+      handleSelectPlayer(lastNameMatches[0].player);
       return;
     }
 
@@ -578,6 +573,22 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       }
     }
   }, [activeIndex]);
+
+  // Progress to next round
+  const handleNextRound = useCallback(() => {
+    const currentIndex = ROUND_ORDER.indexOf(currentRound);
+    if (currentIndex < ROUND_ORDER.length - 1) {
+      const nextRound = ROUND_ORDER[currentIndex + 1];
+      setCurrentRound(nextRound);
+      setSelectedLeader(null);
+
+      // Auto-reveal all players when entering the 'revealed' round
+      if (nextRound === 'revealed') {
+        setRoster(prev => prev.map(rp => ({ ...rp, revealed: true })));
+        setFoundCount(roster.length);
+      }
+    }
+  }, [currentRound, roster.length]);
 
   // Give up - behavior changes based on round
   const handleGiveUp = useCallback(() => {
@@ -647,23 +658,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         variant: 'destructive',
       });
     }
-  }, [currentRound, statLeaders, toast, triggerConfetti]);
-
-  // Progress to next round
-  const handleNextRound = useCallback(() => {
-    const currentIndex = ROUND_ORDER.indexOf(currentRound);
-    if (currentIndex < ROUND_ORDER.length - 1) {
-      const nextRound = ROUND_ORDER[currentIndex + 1];
-      setCurrentRound(nextRound);
-      setSelectedLeader(null);
-
-      // Auto-reveal all players when entering the 'revealed' round
-      if (nextRound === 'revealed') {
-        setRoster(prev => prev.map(rp => ({ ...rp, revealed: true })));
-        setFoundCount(roster.length);
-      }
-    }
-  }, [currentRound, roster.length]);
+  }, [currentRound, statLeaders, toast, triggerConfetti, handleNextRound]);
 
   // New game
   const handleNew = useCallback(() => {
