@@ -12,7 +12,7 @@ import ChooseGameMode from '@/pages/choose-game-mode';
 import TeamTrivia from '@/pages/team-trivia';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Home as HomeIcon } from 'lucide-react';
+import { Home as HomeIcon, ArrowLeft } from 'lucide-react';
 // Import sport icon images  
 import zengmGridsLogo from '@/assets/zengm-grids-logo-mark.png';
 import basketballIcon from '@/assets/zengm-grids-logo-basketball.png';
@@ -1435,6 +1435,33 @@ export default function Home() {
               <div>
                 <RulesModal sport={leagueData?.sport} />
               </div>
+              {hasGuesses ? (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="sm" data-testid="button-back">
+                      <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
+                      <span className="sr-only">Go back</span>
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Go back to game selection?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        You have made guesses in this grid. Going back will lose your current progress. Are you sure?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleBackToModeSelect}>Go Back</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              ) : (
+                <Button variant="ghost" size="sm" onClick={handleBackToModeSelect} data-testid="button-back">
+                  <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
+                  <span className="sr-only">Go back</span>
+                </Button>
+              )}
               {hasGuesses ? (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>

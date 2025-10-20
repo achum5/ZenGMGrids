@@ -1793,20 +1793,21 @@ function getNegativeMessageForCustomAchievement(player: Player, achievementId: s
       const seasonBests = getBaseballSeasonBests(player);
       if (statInfo.type === 'career') {
         actualValue = careerStats[statInfo.key as keyof typeof careerStats];
-              } else if (statInfo.type === 'season_avg') {
-                // For ERA, lower is better, so we need to get the min
-                if (statInfo.key === 'era') {
-                  actualValue = seasonBests.era.min;
-                  year = seasonBests.era.year;
-          } else {
-            const best = (seasonBests as any)[statInfo.key];
-            actualValue = best && 'max' in best ? best.max : best?.min;
-            year = best?.year;
-          }
-        } else if (statInfo.type === 'season') {
+      } else if (statInfo.type === 'season_avg') {
+        // For ERA, lower is better, so we need to get the min
+        if (statInfo.key === 'era') {
+          actualValue = seasonBests.era.min;
+          year = seasonBests.era.year;
+        } else {
           const best = (seasonBests as any)[statInfo.key];
           actualValue = best && 'max' in best ? best.max : best?.min;
           year = best?.year;
+        }
+      } else if (statInfo.type === 'season') {
+        const best = (seasonBests as any)[statInfo.key];
+        actualValue = best && 'max' in best ? best.max : best?.min;
+        year = best?.year;
+      }
     }
 
     if (actualValue !== undefined) {

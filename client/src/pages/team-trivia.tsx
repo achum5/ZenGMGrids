@@ -5,6 +5,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { PlayerFace } from '@/components/PlayerFace';
 import { useToast } from '@/lib/hooks/use-toast';
 import { Shuffle, Flag, Home as HomeIcon, ArrowLeft, ChevronDown } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import confetti from 'canvas-confetti';
 import {
   AlertDialog,
@@ -46,6 +52,13 @@ interface RosterPlayer {
     ppg: number;
     rpg: number;
     apg: number;
+  };
+  advancedStats: {
+    fgp: number;
+    tpp: number;
+    ftp: number;
+    ts: number;
+    per: number;
   };
   position: string;
 }
@@ -96,10 +109,32 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     return Array.from(seasons).sort((a, b) => b - a); // Most recent first
   }, [leagueData.players]);
 
-  // Get all teams
+  // Get all teams (sorted alphabetically)
   const allTeams = useMemo(() => {
-    return leagueData.teams.filter(team => !team.disabled);
+    return leagueData.teams
+      .filter(team => !team.disabled)
+      .sort((a, b) => {
+        const nameA = a.region && a.name ? `${a.region} ${a.name}` : a.abbrev;
+        const nameB = b.region && b.name ? `${b.region} ${b.name}` : b.abbrev;
+        return nameA.localeCompare(nameB);
+      });
   }, [leagueData.teams]);
+
+  // Get teams that have players in the selected season (sorted alphabetically)
+  const teamsInSelectedSeason = useMemo(() => {
+    if (selectedSeason === null) return allTeams;
+
+    const teamsWithPlayers = new Set<number>();
+    leagueData.players.forEach(player => {
+      player.stats?.forEach(stat => {
+        if (!stat.playoffs && stat.season === selectedSeason && stat.gp && stat.gp > 0) {
+          teamsWithPlayers.add(stat.tid);
+        }
+      });
+    });
+
+    return allTeams.filter(team => teamsWithPlayers.has(team.tid));
+  }, [selectedSeason, allTeams, leagueData.players]);
 
   // Build roster for selected season/team
   const buildRoster = useCallback((season: number, team: Team) => {
@@ -114,8 +149,36 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         // Calculate per-game stats
         const gp = seasonStats.gp;
         const ppg = seasonStats.pts ? seasonStats.pts / gp : 0;
-        const rpg = seasonStats.trb ? seasonStats.trb / gp : 0;
+        // Use trb if available, otherwise sum orb and drb, fallback to 0
+        const totalReb = seasonStats.trb || ((seasonStats.orb || 0) + (seasonStats.drb || 0));
+        const rpg = totalReb / gp;
         const apg = seasonStats.ast ? seasonStats.ast / gp : 0;
+
+        // Calculate advanced stats
+        const fg = seasonStats.fg || 0;
+        const fga = seasonStats.fga || 0;
+        const fgp = fga > 0 ? (fg / fga) * 100 : 0;
+
+        const tp = seasonStats.tpm || seasonStats.tp || 0;
+        const tpa = seasonStats.tpa || 0;
+        const tpp = tpa > 0 ? (tp / tpa) * 100 : 0;
+
+        const ft = seasonStats.ft || 0;
+        const fta = seasonStats.fta || 0;
+        const ftp = fta > 0 ? (ft / fta) * 100 : 0;
+
+        // True Shooting % = PTS / (2 * (FGA + 0.44 * FTA))
+        const tsDenominator = 2 * (fga + 0.44 * fta);
+        const ts = tsDenominator > 0 ? ((seasonStats.pts || 0) / tsDenominator) * 100 : 0;
+
+        // Simplified PER calculation (actual PER is very complex)
+        // Using a basic approximation: (PTS + REB + AST + STL + BLK - Missed FG - Missed FT - TO) / GP
+        const stl = seasonStats.stl || 0;
+        const blk = seasonStats.blk || 0;
+        const missedFG = fga - fg;
+        const missedFT = fta - ft;
+        // Note: turnover data might not be in stats, so we'll use a simplified version
+        const per = ((seasonStats.pts || 0) + totalReb + (seasonStats.ast || 0) + stl + blk - missedFG - missedFT) / gp;
 
         // Get position for this season
         const rating = player.ratings?.find(r => r.season === season);
@@ -126,6 +189,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
           revealed: false,
           gamesPlayed: seasonStats.gp,
           stats: { ppg, rpg, apg },
+          advancedStats: { fgp, tpp, ftp, ts, per },
           position,
         });
       }
@@ -222,15 +286,19 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     }
 
     const normalizedGuess = normalizeName(guess);
-    
-    return roster
-      .filter(rp => !rp.revealed)
-      .filter(rp => {
-        const normalizedName = normalizeName(rp.player.name);
+    const revealedPids = new Set(roster.filter(rp => rp.revealed).map(rp => rp.player.pid));
+
+    // Search through ALL league players
+    return leagueData.players
+      .filter(player => {
+        // Exclude already-revealed players from current roster
+        if (revealedPids.has(player.pid)) return false;
+
+        const normalizedName = normalizeName(player.name);
         return normalizedName.includes(normalizedGuess);
       })
       .slice(0, 8);
-  }, [guess, roster]);
+  }, [guess, roster, leagueData.players]);
 
   // Open/close autocomplete
   useEffect(() => {
@@ -256,27 +324,39 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     });
   }, []);
 
-  // Handle selecting a player
-  const handleSelectPlayer = useCallback((rosterPlayer: RosterPlayer) => {
-    setRoster(prev => prev.map(rp =>
-      rp.player.pid === rosterPlayer.player.pid
-        ? { ...rp, revealed: true }
-        : rp
-    ));
-    setFoundCount(prev => prev + 1);
+  // Handle selecting a player (from autocomplete)
+  const handleSelectPlayer = useCallback((player: Player) => {
+    // Check if player is on the current roster
+    const rosterPlayer = roster.find(rp => rp.player.pid === player.pid);
+
+    if (rosterPlayer && !rosterPlayer.revealed) {
+      // Player is on roster - reveal them
+      setRoster(prev => prev.map(rp =>
+        rp.player.pid === player.pid
+          ? { ...rp, revealed: true }
+          : rp
+      ));
+      setFoundCount(prev => prev + 1);
+
+      // Trigger confetti
+      setTimeout(() => {
+        triggerConfetti(player.pid);
+      }, 50);
+    } else if (!rosterPlayer) {
+      // Player is not on roster - show feedback
+      toast({
+        description: `Not on ${selectedSeason} ${teamDisplayInfo.name}.`,
+      });
+    }
+
     setGuess('');
     setAutocompleteOpen(false);
     setActiveIndex(-1);
-    
-    // Trigger confetti
-    setTimeout(() => {
-      triggerConfetti(rosterPlayer.player.pid);
-    }, 50);
-    
+
     setTimeout(() => {
       inputRef.current?.focus();
     }, 100);
-  }, [triggerConfetti]);
+  }, [roster, triggerConfetti, toast, selectedSeason, teamDisplayInfo.name]);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -399,10 +479,10 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     basketballIcon;
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
       {/* Main Header */}
-      <header 
-        className="bg-card border-border"
+      <header
+        className="bg-card border-border shrink-0"
         onMouseEnter={() => setIsHeaderHovered(true)}
         onMouseLeave={() => setIsHeaderHovered(false)}
         style={{ position: 'relative' }}
@@ -461,87 +541,88 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       </header>
 
       {/* Game Info Header with Dropdowns */}
-      <div className="bg-card/50 border-b neon-border-subtle">
+      <div className="bg-card/50 border-b neon-border-subtle shrink-0">
         <div className="max-w-4xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-center gap-4 flex-wrap">
-            {/* Year Dropdown */}
-            <Popover open={yearDropdownOpen} onOpenChange={setYearDropdownOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={yearDropdownOpen}
-                  className="text-2xl sm:text-3xl font-bold neon-text px-4 py-6"
-                  data-testid="button-year-dropdown"
-                >
-                  <ChevronDown className="mr-2 h-5 w-5" />
-                  {selectedSeason}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[200px] p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Search year..." />
-                  <CommandList>
-                    <CommandEmpty>No year found.</CommandEmpty>
-                    <CommandGroup>
-                      {allSeasons.map((season) => (
-                        <CommandItem
-                          key={season}
-                          value={season.toString()}
-                          onSelect={() => {
-                            setSelectedSeason(season);
-                            setYearDropdownOpen(false);
-                          }}
-                          data-testid={`option-year-${season}`}
-                        >
-                          {season}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            {/* Left side: Year and Team */}
+            <div className="flex items-center gap-4 flex-wrap">
+              {/* Year Dropdown */}
+              <Popover open={yearDropdownOpen} onOpenChange={setYearDropdownOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={yearDropdownOpen}
+                    className="text-2xl sm:text-3xl font-bold neon-text px-4 py-6"
+                    data-testid="button-year-dropdown"
+                  >
+                    <ChevronDown className="mr-2 h-5 w-5" />
+                    {selectedSeason}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search year..." />
+                    <CommandList>
+                      <CommandEmpty>No year found.</CommandEmpty>
+                      <CommandGroup>
+                        {allSeasons.map((season) => (
+                          <CommandItem
+                            key={season}
+                            value={season.toString()}
+                            onSelect={() => {
+                              setSelectedSeason(season);
+                              setYearDropdownOpen(false);
+                            }}
+                            data-testid={`option-year-${season}`}
+                          >
+                            {season}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
 
-            {/* Team Logo/Name with Dropdown */}
-            <Popover open={teamDropdownOpen} onOpenChange={setTeamDropdownOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="ghost"
-                  role="combobox"
-                  aria-expanded={teamDropdownOpen}
-                  className="flex items-center gap-3 hover:bg-accent/50 px-4 py-6"
-                  data-testid="button-team-dropdown"
-                >
-                  {teamDisplayInfo.logo ? (
-                    <img 
-                      src={teamDisplayInfo.logo} 
-                      alt={teamDisplayInfo.name}
-                      className="h-12 w-12 object-contain"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                      }}
-                    />
-                  ) : null}
-                  <span className={`text-2xl sm:text-3xl font-bold neon-text ${teamDisplayInfo.logo ? 'hidden' : ''}`}>
-                    {teamDisplayInfo.name}
-                  </span>
-                  <ChevronDown className="h-5 w-5 ml-2" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[300px] p-0" align="center">
-                <Command>
-                  <CommandInput placeholder="Search team..." />
-                  <CommandList>
-                    <CommandEmpty>No team found.</CommandEmpty>
-                    <CommandGroup>
-                      <ScrollArea className="max-h-[300px]">
-                        {allTeams.map((team) => {
+              {/* Team Logo/Name with Dropdown */}
+              <Popover open={teamDropdownOpen} onOpenChange={setTeamDropdownOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    role="combobox"
+                    aria-expanded={teamDropdownOpen}
+                    className="flex items-center gap-3 hover:bg-accent/50 px-4 py-6"
+                    data-testid="button-team-dropdown"
+                  >
+                    {teamDisplayInfo.logo ? (
+                      <img
+                        src={teamDisplayInfo.logo}
+                        alt={teamDisplayInfo.name}
+                        className="h-12 w-12 object-contain"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <span className={`text-2xl sm:text-3xl font-bold neon-text ${teamDisplayInfo.logo ? 'hidden' : ''}`}>
+                      {teamDisplayInfo.name}
+                    </span>
+                    <ChevronDown className="h-5 w-5 ml-2" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px] p-0" align="center">
+                  <Command>
+                    <CommandInput placeholder="Search team..." />
+                    <CommandList className="max-h-[300px] overflow-y-auto">
+                      <CommandEmpty>No team found.</CommandEmpty>
+                      <CommandGroup>
+                        {teamsInSelectedSeason.map((team) => {
                           const teamName = team.region && team.name
                             ? `${team.region} ${team.name}`
                             : team.abbrev;
-                          
+
                           return (
                             <CommandItem
                               key={team.tid}
@@ -554,7 +635,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                               data-testid={`option-team-${team.tid}`}
                             >
                               {team.imgURLSmall && (
-                                <img 
+                                <img
                                   src={team.imgURLSmall}
                                   alt={teamName}
                                   className="h-6 w-6 object-contain"
@@ -564,18 +645,23 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                             </CommandItem>
                           );
                         })}
-                      </ScrollArea>
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Right side: Counter */}
+            <div className="text-base sm:text-lg font-semibold text-muted-foreground" data-testid="text-found-counter">
+              {foundCount} / {roster.length}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Search Section */}
-      <div className="bg-background border-b">
+      <div className="bg-background border-b shrink-0">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="relative">
             <Input
@@ -600,145 +686,171 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
               >
                 <ScrollArea className="max-h-[400px]">
                   <div className="py-2">
-                    {autocompleteSuggestions.map((rp, index) => (
-                      <div
-                        key={rp.player.pid}
-                        data-index={index}
-                        className={`flex items-center gap-4 px-4 py-3 cursor-pointer transition-all hover:bg-accent/50 ${
-                          index === activeIndex ? 'bg-accent neon-glow' : ''
-                        }`}
-                        onClick={() => handleSelectPlayer(rp)}
-                        data-testid={`autocomplete-option-${index}`}
-                      >
-                        <div className="shrink-0 w-16 h-16">
-                          <PlayerFace
-                            pid={rp.player.pid}
-                            name={rp.player.name}
-                            imgURL={rp.player.imgURL ?? undefined}
-                            face={rp.player.face}
-                            size={64}
-                            hideName={true}
-                            player={rp.player}
-                            teams={leagueData.teams}
-                            sport={leagueData.sport}
-                            season={selectedSeason || undefined}
-                          />
-                        </div>
+                    {autocompleteSuggestions.map((player, index) => {
+                      // Get player's position - check if they have season-specific position first
+                      const rating = player.ratings?.find(r => r.season === selectedSeason);
+                      const position = rating?.pos || player.pos || 'F';
 
-                        <div className="flex-1 min-w-0">
-                          <p className="text-lg font-medium truncate">
-                            {rp.player.name}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {rp.position}
-                          </p>
-                        </div>
-
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="shrink-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSelectPlayer(rp);
-                          }}
-                          data-testid={`button-select-${index}`}
+                      return (
+                        <div
+                          key={player.pid}
+                          data-index={index}
+                          className={`flex items-center gap-4 px-4 py-3 cursor-pointer transition-all hover:bg-accent/50 ${
+                            index === activeIndex ? 'bg-accent neon-glow' : ''
+                          }`}
+                          onClick={() => handleSelectPlayer(player)}
+                          data-testid={`autocomplete-option-${index}`}
                         >
-                          Select
-                        </Button>
-                      </div>
-                    ))}
+                          <div className="shrink-0 w-16 h-16">
+                            <PlayerFace
+                              pid={player.pid}
+                              name={player.name}
+                              imgURL={player.imgURL ?? undefined}
+                              face={player.face}
+                              size={64}
+                              hideName={true}
+                              player={player}
+                              teams={leagueData.teams}
+                              sport={leagueData.sport}
+                              season={selectedSeason || undefined}
+                            />
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <p className="text-lg font-medium truncate">
+                              {player.name}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {position}
+                            </p>
+                          </div>
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSelectPlayer(player);
+                            }}
+                            data-testid={`button-select-${index}`}
+                          >
+                            Select
+                          </Button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </ScrollArea>
               </div>
             )}
           </div>
-
-          {/* Counter */}
-          <div className="mt-4 text-center">
-            <div className="text-2xl font-bold neon-text" data-testid="text-found-counter">
-              Found {foundCount} / {roster.length}
-            </div>
-          </div>
         </div>
       </div>
 
       {/* Roster Grid */}
-      <div className="flex-1 overflow-auto">
-        <div className="max-w-6xl mx-auto px-6 py-6">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {roster.map((rp, index) => (
-              <div
-                key={rp.player.pid}
-                ref={(el) => {
-                  if (el) tileRefs.current.set(rp.player.pid, el);
-                }}
-                className={`relative flex flex-col items-center gap-2 p-4 rounded-lg border transition-all ${
-                  rp.revealed 
-                    ? 'bg-gradient-to-br from-green-500/20 to-cyan-500/20 neon-border-success neon-glow-success shadow-lg shadow-green-500/50' 
-                    : 'bg-card/50 border-border'
-                }`}
-                data-testid={`card-player-${index}`}
-              >
-                {/* Position Badge */}
-                {rp.revealed && (
-                  <div className="absolute top-2 left-2 bg-primary/90 text-primary-foreground text-xs font-bold px-2 py-1 rounded">
-                    {rp.position}
-                  </div>
-                )}
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="max-w-6xl mx-auto px-2 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6">
+          <TooltipProvider>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2 sm:gap-3 md:gap-4">
+              {roster.map((rp, index) => (
+                <Tooltip key={rp.player.pid} delayDuration={300}>
+                  <TooltipTrigger asChild>
+                    <div
+                      ref={(el) => {
+                        if (el) tileRefs.current.set(rp.player.pid, el);
+                      }}
+                      className={`relative flex flex-col items-center gap-1 p-1.5 sm:p-2 md:p-3 rounded-md sm:rounded-lg border transition-all cursor-help ${
+                        rp.revealed
+                          ? 'bg-gradient-to-br from-green-500/20 to-cyan-500/20 neon-border-success neon-glow-success shadow-lg shadow-green-500/50'
+                          : 'bg-card/50 border-border'
+                      }`}
+                      data-testid={`card-player-${index}`}
+                    >
+                      {/* Position Badge */}
+                      {rp.revealed && (
+                        <div className="absolute top-1 left-1 bg-primary/90 text-primary-foreground text-[0.6rem] sm:text-xs font-bold px-1 sm:px-1.5 py-0.5 rounded">
+                          {rp.position}
+                        </div>
+                      )}
 
-                {/* Headshot */}
-                <div className="w-full aspect-square">
-                  <PlayerFace
-                    pid={rp.player.pid}
-                    name={rp.player.name}
-                    imgURL={rp.player.imgURL ?? undefined}
-                    face={rp.player.face}
-                    size={128}
-                    hideName={true}
-                    player={rp.player}
-                    teams={leagueData.teams}
-                    sport={leagueData.sport}
-                    season={selectedSeason || undefined}
-                  />
-                </div>
+                      {/* Headshot - Takes up most of the tile */}
+                      <div className="w-full aspect-square mb-1">
+                        <PlayerFace
+                          pid={rp.player.pid}
+                          name={rp.player.name}
+                          imgURL={rp.player.imgURL ?? undefined}
+                          face={rp.player.face}
+                          size={96}
+                          hideName={true}
+                          player={rp.player}
+                          teams={leagueData.teams}
+                          sport={leagueData.sport}
+                          season={selectedSeason || undefined}
+                        />
+                      </div>
 
-                {/* Name */}
-                <div className="w-full text-center min-h-[2.5rem] flex items-center justify-center">
-                  {rp.revealed ? (
-                    <p className="text-sm font-bold line-clamp-2 neon-text-subtle">
-                      {rp.player.name}
-                    </p>
-                  ) : (
-                    <div className="w-full h-4 bg-muted rounded animate-pulse" />
-                  )}
-                </div>
+                      {/* Name - Compact */}
+                      <div className="w-full text-center min-h-[1.5rem] sm:min-h-[2rem] flex items-center justify-center px-0.5">
+                        {rp.revealed ? (
+                          <p className="text-[0.65rem] sm:text-xs md:text-sm font-bold line-clamp-2 neon-text-subtle leading-tight">
+                            {rp.player.name}
+                          </p>
+                        ) : (
+                          <div className="w-full h-2 sm:h-3 bg-muted rounded animate-pulse" />
+                        )}
+                      </div>
 
-                {/* Stats */}
-                {rp.revealed && (
-                  <div className="w-full text-center text-xs space-y-1">
-                    <div className="flex justify-between px-2">
-                      <span className="text-muted-foreground">PPG:</span>
-                      <span className="font-semibold">{rp.stats.ppg.toFixed(1)}</span>
+                      {/* Stats - Compact and only on larger screens */}
+                      {rp.revealed && (
+                        <div className="hidden sm:block w-full text-center text-[0.6rem] md:text-xs space-y-1 mt-1">
+                          {/* Basic Stats - Condensed */}
+                          <div className="space-y-0.5 pb-1 border-b border-border/30">
+                            <div className="flex justify-between px-1">
+                              <span className="text-muted-foreground">PPG</span>
+                              <span className="font-semibold">{rp.stats.ppg.toFixed(1)}</span>
+                            </div>
+                            <div className="flex justify-between px-1">
+                              <span className="text-muted-foreground">RPG</span>
+                              <span className="font-semibold">{rp.stats.rpg.toFixed(1)}</span>
+                            </div>
+                            <div className="flex justify-between px-1">
+                              <span className="text-muted-foreground">APG</span>
+                              <span className="font-semibold">{rp.stats.apg.toFixed(1)}</span>
+                            </div>
+                          </div>
+
+                          {/* Advanced Stats - Ultra compact, only on md+ */}
+                          <div className="hidden md:block space-y-0.5">
+                            <div className="flex justify-between px-1">
+                              <span className="text-muted-foreground">FG%</span>
+                              <span className="font-semibold">{rp.advancedStats.fgp > 0 ? rp.advancedStats.fgp.toFixed(1) : '-'}</span>
+                            </div>
+                            <div className="flex justify-between px-1">
+                              <span className="text-muted-foreground">3PT%</span>
+                              <span className="font-semibold">{rp.advancedStats.tpp > 0 ? rp.advancedStats.tpp.toFixed(1) : '-'}</span>
+                            </div>
+                            <div className="flex justify-between px-1">
+                              <span className="text-muted-foreground">FT%</span>
+                              <span className="font-semibold">{rp.advancedStats.ftp > 0 ? rp.advancedStats.ftp.toFixed(1) : '-'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex justify-between px-2">
-                      <span className="text-muted-foreground">RPG:</span>
-                      <span className="font-semibold">{rp.stats.rpg.toFixed(1)}</span>
-                    </div>
-                    <div className="flex justify-between px-2">
-                      <span className="text-muted-foreground">APG:</span>
-                      <span className="font-semibold">{rp.stats.apg.toFixed(1)}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="font-semibold">{rp.position}</p>
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+            </div>
+          </TooltipProvider>
         </div>
       </div>
 
       {/* Bottom Actions */}
-      <div className="sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t neon-border-subtle">
+      <div className="shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t neon-border-subtle">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex justify-center gap-3">
             <Button
