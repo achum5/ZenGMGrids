@@ -209,6 +209,7 @@ export interface CatTeam {
   achv?: Achv; // Full achievement definition for feedback
   type: 'team' | 'achievement';
   test(p: Player): boolean;
+  operator?: '≥' | '≤'; // Operator for customizable achievements
 }
 
 export interface CellState {
