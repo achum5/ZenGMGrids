@@ -10,6 +10,7 @@ export type PlayerLite = {
   imgURL?: string | null; 
   face?: any | null;
   jerseyInfo?: JerseyInfo;
+  season?: number; // Add season to PlayerLite
 }; 
 
 export function normalizeSvg(svg: string) {

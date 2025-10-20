@@ -14,9 +14,10 @@ type Props = {
   player?: Player;
   teams?: Team[];
   sport?: string;
+  season?: number; // Add season prop
 };
 
-export function PlayerFace({ pid, name, imgURL, face, size = 110, hideName = false, player, teams = [], sport }: Props) {
+export function PlayerFace({ pid, name, imgURL, face, size = 110, hideName = false, player, teams = [], sport, season }: Props) {
   const [kind, setKind] = React.useState<"url" | "svg" | "none">("none");
   const [data, setData] = React.useState("");
 
@@ -26,14 +27,14 @@ export function PlayerFace({ pid, name, imgURL, face, size = 110, hideName = fal
       // Get jersey info if player and teams are provided
       let jerseyInfo = undefined;
       if (player && teams.length > 0) {
-        jerseyInfo = getPlayerJerseyInfo(player, teams, sport);
+        jerseyInfo = getPlayerJerseyInfo(player, teams, sport, season); // Pass season
       }
       
       const res = await getPlayerImage({ pid, name, imgURL, face, jerseyInfo });
       if (ok) { setKind(res.type); setData(res.data); }
     })();
     return () => { ok = false; };
-  }, [pid, imgURL, face, player, teams]);
+  }, [pid, imgURL, face, player, teams, season]);
 
   return (
     <div className="flex h-full w-full flex-col items-center justify-center p-1 gap-1 pointer-events-none">
