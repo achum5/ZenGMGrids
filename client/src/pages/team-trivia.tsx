@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { PlayerFace } from '@/components/PlayerFace';
 import { useToast } from '@/lib/hooks/use-toast';
-import { Shuffle, Flag, Home as HomeIcon, ArrowLeft, ChevronDown } from 'lucide-react';
+import { Shuffle, Flag, Home as HomeIcon, ArrowLeft, ChevronDown, Lightbulb } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -47,6 +47,7 @@ import baseballIcon from '@/assets/zengm-grids-logo-baseball.png';
 interface RosterPlayer {
   player: Player;
   revealed: boolean;
+  hintShown: boolean;
   gamesPlayed: number;
   stats: {
     ppg: number;
@@ -82,6 +83,32 @@ function normalizeName(name: string): string {
     .replace(/[\u0300-\u036f]/g, '');
 }
 
+type RoundType = 'guess' | 'hint' | 'revealed' | 'points-leader' | 'rebounds-leader' | 'assists-leader' | 'steals-leader' | 'blocks-leader' | 'complete';
+
+const ROUND_ORDER: RoundType[] = [
+  'guess',
+  'hint',
+  'revealed',
+  'points-leader',
+  'rebounds-leader',
+  'assists-leader',
+  'steals-leader',
+  'blocks-leader',
+  'complete'
+];
+
+const ROUND_INSTRUCTIONS: Record<RoundType, string> = {
+  'guess': 'Guess the players on this team',
+  'hint': 'Hints revealed! Keep guessing',
+  'revealed': 'All players revealed',
+  'points-leader': 'Click on the team points leader',
+  'rebounds-leader': 'Click on the team rebounds leader',
+  'assists-leader': 'Click on the team assists leader',
+  'steals-leader': 'Click on the team steals leader',
+  'blocks-leader': 'Click on the team blocks leader',
+  'complete': 'Round complete!'
+};
+
 export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }: TeamTriviaProps) {
   const { toast } = useToast();
   const [guess, setGuess] = useState('');
@@ -89,6 +116,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [foundCount, setFoundCount] = useState(0);
+  const [currentRound, setCurrentRound] = useState<RoundType>('guess');
+  const [selectedLeader, setSelectedLeader] = useState<number | null>(null); // PID of selected leader
   const [isHeaderHovered, setIsHeaderHovered] = useState(false);
   const [autocompleteOpen, setAutocompleteOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -138,10 +167,76 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     return allTeams.filter(team => teamsWithPlayers.has(team.tid));
   }, [selectedSeason, allTeams, leagueData.players]);
 
+  // Calculate stat leaders from roster
+  const statLeaders = useMemo(() => {
+    if (roster.length === 0) {
+      return {
+        points: null,
+        rebounds: null,
+        assists: null,
+        steals: null,
+        blocks: null,
+      };
+    }
+
+    // Find player with highest PPG
+    const pointsLeader = roster.reduce((leader, rp) =>
+      rp.stats.ppg > leader.stats.ppg ? rp : leader
+    );
+
+    // Find player with highest RPG
+    const reboundsLeader = roster.reduce((leader, rp) =>
+      rp.stats.rpg > leader.stats.rpg ? rp : leader
+    );
+
+    // Find player with highest APG
+    const assistsLeader = roster.reduce((leader, rp) =>
+      rp.stats.apg > leader.stats.apg ? rp : leader
+    );
+
+    // Find player with highest steals
+    const stealsLeader = roster.reduce((leader, rp) => {
+      const leaderSeasonStats = leader.player.stats?.find(
+        s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+      );
+      const rpSeasonStats = rp.player.stats?.find(
+        s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+      );
+
+      const leaderStl = leaderSeasonStats?.stl || 0;
+      const rpStl = rpSeasonStats?.stl || 0;
+
+      return rpStl > leaderStl ? rp : leader;
+    });
+
+    // Find player with highest blocks
+    const blocksLeader = roster.reduce((leader, rp) => {
+      const leaderSeasonStats = leader.player.stats?.find(
+        s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+      );
+      const rpSeasonStats = rp.player.stats?.find(
+        s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+      );
+
+      const leaderBlk = leaderSeasonStats?.blk || 0;
+      const rpBlk = rpSeasonStats?.blk || 0;
+
+      return rpBlk > leaderBlk ? rp : leader;
+    });
+
+    return {
+      points: pointsLeader.player.pid,
+      rebounds: reboundsLeader.player.pid,
+      assists: assistsLeader.player.pid,
+      steals: stealsLeader.player.pid,
+      blocks: blocksLeader.player.pid,
+    };
+  }, [roster, selectedSeason, selectedTeam]);
+
   // Build roster for selected season/team
   const buildRoster = useCallback((season: number, team: Team) => {
     const rosterPlayers: RosterPlayer[] = [];
-    
+
     leagueData.players.forEach(player => {
       const seasonStats = player.stats?.find(
         s => !s.playoffs && s.season === season && s.tid === team.tid
@@ -196,6 +291,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         rosterPlayers.push({
           player,
           revealed: false,
+          hintShown: false,
           gamesPlayed: seasonStats.gp,
           stats: { ppg, rpg, apg },
           advancedStats: { fgp, tpp, ftp, ts, per },
@@ -483,15 +579,97 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     }
   }, [activeIndex]);
 
-  // Give up
+  // Give up - behavior changes based on round
   const handleGiveUp = useCallback(() => {
-    setRoster(prev => prev.map(rp => ({ ...rp, revealed: true })));
-    setFoundCount(roster.length);
-  }, [roster.length]);
+    if (currentRound === 'guess' || currentRound === 'hint') {
+      // Reveal all players and move to next round
+      setRoster(prev => prev.map(rp => ({ ...rp, revealed: true })));
+      setFoundCount(roster.length);
+      handleNextRound();
+    }
+  }, [roster.length, currentRound, handleNextRound]);
+
+  // Show hint - reveal first letter of first and last name
+  const handleHint = useCallback(() => {
+    if (currentRound === 'guess') {
+      // Reveal hints and move to hint round
+      setRoster(prev => prev.map(rp => {
+        if (!rp.revealed && !rp.hintShown) {
+          return { ...rp, hintShown: true };
+        }
+        return rp;
+      }));
+      setCurrentRound('hint');
+    }
+  }, [currentRound]);
+
+  // Handle tile click during leader selection rounds
+  const handleTileClick = useCallback((pid: number) => {
+    const isLeaderRound = currentRound.endsWith('-leader');
+    if (!isLeaderRound) return;
+
+    // Determine which leader we're looking for
+    let correctLeaderPid: number | null = null;
+    switch (currentRound) {
+      case 'points-leader':
+        correctLeaderPid = statLeaders.points;
+        break;
+      case 'rebounds-leader':
+        correctLeaderPid = statLeaders.rebounds;
+        break;
+      case 'assists-leader':
+        correctLeaderPid = statLeaders.assists;
+        break;
+      case 'steals-leader':
+        correctLeaderPid = statLeaders.steals;
+        break;
+      case 'blocks-leader':
+        correctLeaderPid = statLeaders.blocks;
+        break;
+    }
+
+    if (correctLeaderPid === null) return;
+
+    // Check if the clicked player is correct
+    if (pid === correctLeaderPid) {
+      // Correct! Show success feedback and move to next round
+      toast({
+        description: 'Correct! Moving to next round...',
+      });
+      triggerConfetti(pid);
+      setTimeout(() => {
+        handleNextRound();
+      }, 1000);
+    } else {
+      // Incorrect - show feedback
+      toast({
+        description: 'Incorrect. Try again!',
+        variant: 'destructive',
+      });
+    }
+  }, [currentRound, statLeaders, toast, triggerConfetti]);
+
+  // Progress to next round
+  const handleNextRound = useCallback(() => {
+    const currentIndex = ROUND_ORDER.indexOf(currentRound);
+    if (currentIndex < ROUND_ORDER.length - 1) {
+      const nextRound = ROUND_ORDER[currentIndex + 1];
+      setCurrentRound(nextRound);
+      setSelectedLeader(null);
+
+      // Auto-reveal all players when entering the 'revealed' round
+      if (nextRound === 'revealed') {
+        setRoster(prev => prev.map(rp => ({ ...rp, revealed: true })));
+        setFoundCount(roster.length);
+      }
+    }
+  }, [currentRound, roster.length]);
 
   // New game
   const handleNew = useCallback(() => {
     pickRandomTeamAndSeason();
+    setCurrentRound('guess');
+    setSelectedLeader(null);
   }, [pickRandomTeamAndSeason]);
 
   const hasProgress = foundCount > 0;
@@ -575,6 +753,13 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       {/* Game Info Header with Dropdowns */}
       <div className="bg-card/50 border-b neon-border-subtle shrink-0">
         <div className="max-w-4xl mx-auto px-6 py-6">
+          {/* Round Instructions */}
+          <div className="text-center mb-4">
+            <p className="text-lg sm:text-xl font-semibold text-primary">
+              {ROUND_INSTRUCTIONS[currentRound]}
+            </p>
+          </div>
+
           <div className="flex items-center justify-between gap-4 flex-wrap">
             {/* Left side: Year and Team */}
             <div className="flex items-center gap-4 flex-wrap">
@@ -692,22 +877,23 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         </div>
       </div>
 
-      {/* Search Section */}
-      <div className="bg-background border-b shrink-0">
-        <div className="max-w-4xl mx-auto px-6 py-4">
-          <div className="relative">
-            <Input
-              ref={inputRef}
-              type="text"
-              value={guess}
-              onChange={(e) => setGuess(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Type a player's name..."
-              className="text-lg py-6 neon-input"
-              autoFocus
-              autoComplete="off"
-              data-testid="input-player-guess"
-            />
+      {/* Search Section - Only show during guess/hint rounds */}
+      {(currentRound === 'guess' || currentRound === 'hint') && (
+        <div className="bg-background border-b shrink-0">
+          <div className="max-w-4xl mx-auto px-6 py-4">
+            <div className="relative">
+              <Input
+                ref={inputRef}
+                type="text"
+                value={guess}
+                onChange={(e) => setGuess(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Type a player's name..."
+                className="text-lg py-6 neon-input"
+                autoFocus
+                autoComplete="off"
+                data-testid="input-player-guess"
+              />
             
             {/* Autocomplete Dropdown */}
             {autocompleteOpen && (
@@ -774,27 +960,34 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                 </div>
               </div>
             )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Roster Grid */}
       <div className="flex-1 overflow-y-auto min-h-0">
-        <div className="max-w-6xl mx-auto px-2 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6">
+        <div className="max-w-6xl mx-auto px-1 sm:px-4 md:px-6 py-2 sm:py-4 md:py-6">
           <TooltipProvider>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2 sm:gap-3 md:gap-4">
-              {roster.map((rp, index) => (
-                <Tooltip key={rp.player.pid} delayDuration={300}>
-                  <TooltipTrigger asChild>
-                    <div
-                      ref={(el) => {
-                        if (el) tileRefs.current.set(rp.player.pid, el);
-                      }}
-                      className={`relative flex flex-col items-center gap-1 p-1.5 sm:p-2 md:p-3 rounded-md sm:rounded-lg transition-all cursor-help ${
-                        rp.revealed
-                          ? 'neon-glow-success shadow-lg shadow-green-500/50'
-                          : ''
-                      }`}
+            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 gap-1 sm:gap-3 md:gap-4">
+              {roster.map((rp, index) => {
+                const isLeaderRound = currentRound.endsWith('-leader');
+
+                return (
+                  <Tooltip key={rp.player.pid} delayDuration={300}>
+                    <TooltipTrigger asChild>
+                      <div
+                        ref={(el) => {
+                          if (el) tileRefs.current.set(rp.player.pid, el);
+                        }}
+                        onClick={() => isLeaderRound && handleTileClick(rp.player.pid)}
+                        className={`relative flex flex-col items-center gap-0.5 p-1 sm:p-2 md:p-3 rounded sm:rounded-md md:rounded-lg transition-all ${
+                          isLeaderRound ? 'cursor-pointer hover:scale-105 hover:shadow-xl' : 'cursor-help'
+                        } ${
+                          rp.revealed
+                            ? 'neon-glow-success shadow-lg shadow-green-500/50'
+                            : ''
+                        }`}
                       style={{
                         backgroundColor: rp.teamColors?.[1] || 'hsl(var(--card))',
                         borderWidth: '2px',
@@ -804,18 +997,18 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                       data-testid={`card-player-${index}`}
                     >
                       {/* Position Badge - Always visible */}
-                      <div className="absolute top-1 left-1 bg-primary/90 text-primary-foreground text-[0.6rem] sm:text-xs font-bold px-1 sm:px-1.5 py-0.5 rounded z-10">
+                      <div className="absolute top-0.5 left-0.5 bg-primary/90 text-primary-foreground text-[0.5rem] sm:text-xs font-bold px-0.5 sm:px-1.5 py-0.5 rounded z-10">
                         {rp.position}
                       </div>
 
                       {/* Jersey Number Badge - Always visible, ZenGM style */}
                       {rp.jerseyNumber && rp.teamColors && (
                         <div
-                          className="absolute top-1 right-1 text-[0.75rem] sm:text-[0.95rem] font-extrabold px-1.5 sm:px-2 py-0.5 sm:py-1 z-10 min-w-[1.75rem] sm:min-w-[2rem] aspect-square flex items-center justify-center"
+                          className="absolute top-0.5 right-0.5 text-[0.6rem] sm:text-[0.95rem] font-extrabold px-1 sm:px-2 py-0.5 sm:py-1 z-10 min-w-[1.25rem] sm:min-w-[2rem] aspect-square flex items-center justify-center"
                           style={{
                             backgroundColor: rp.teamColors[0] || '#000000',
                             color: rp.teamColors[1] || '#ffffff',
-                            border: `2px solid ${rp.teamColors[2] || rp.teamColors[0] || '#cccccc'}`,
+                            border: `1.5px solid ${rp.teamColors[2] || rp.teamColors[0] || '#cccccc'}`,
                             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)'
                           }}
                         >
@@ -824,13 +1017,13 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                       )}
 
                       {/* Headshot - Takes up most of the tile */}
-                      <div className="w-full aspect-square mb-1">
+                      <div className="w-full aspect-square mb-0.5">
                         <PlayerFace
                           pid={rp.player.pid}
                           name={rp.player.name}
                           imgURL={rp.player.imgURL ?? undefined}
                           face={rp.player.face}
-                          size={96}
+                          size={64}
                           hideName={true}
                           player={rp.player}
                           teams={leagueData.teams}
@@ -840,13 +1033,28 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                       </div>
 
                       {/* Name - Compact */}
-                      <div className="w-full text-center min-h-[1.5rem] sm:min-h-[2rem] flex items-center justify-center px-0.5">
+                      <div className="w-full text-center min-h-[1rem] sm:min-h-[2rem] flex items-center justify-center px-0.5">
                         {rp.revealed ? (
-                          <p className="text-[0.65rem] sm:text-xs md:text-sm font-bold line-clamp-2 neon-text-subtle leading-tight">
+                          <p
+                            className="text-[0.5rem] sm:text-xs md:text-sm font-bold line-clamp-2 leading-tight"
+                            style={{ color: rp.teamColors?.[0] || 'hsl(var(--foreground))' }}
+                          >
                             {rp.player.name}
                           </p>
+                        ) : rp.hintShown ? (
+                          <p
+                            className="text-[0.5rem] sm:text-xs md:text-sm font-bold leading-tight"
+                            style={{ color: rp.teamColors?.[0] || 'hsl(var(--foreground))' }}
+                          >
+                            {(() => {
+                              const nameParts = rp.player.name.trim().split(' ');
+                              const firstName = nameParts[0] || '';
+                              const lastName = nameParts[nameParts.length - 1] || '';
+                              return `${firstName.charAt(0)}. ${lastName.charAt(0)}.`;
+                            })()}
+                          </p>
                         ) : (
-                          <div className="w-full h-2 sm:h-3 bg-muted rounded animate-pulse" />
+                          <div className="w-full h-1.5 sm:h-3 bg-muted rounded animate-pulse" />
                         )}
                       </div>
 
@@ -892,7 +1100,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     <p className="font-semibold">{rp.position}</p>
                   </TooltipContent>
                 </Tooltip>
-              ))}
+                );
+              })}
             </div>
           </TooltipProvider>
         </div>
@@ -902,6 +1111,48 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       <div className="shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t neon-border-subtle">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex justify-center gap-3">
+            {/* Show Hint button only during 'guess' round */}
+            {currentRound === 'guess' && (
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={handleHint}
+                className="neon-button"
+                data-testid="button-hint"
+              >
+                <Lightbulb className="h-5 w-5 mr-2" />
+                Hint
+              </Button>
+            )}
+
+            {/* Show Give Up only during guess/hint rounds */}
+            {(currentRound === 'guess' || currentRound === 'hint') && (
+              <Button
+                variant="destructive"
+                size="lg"
+                onClick={handleGiveUp}
+                disabled={foundCount === roster.length}
+                data-testid="button-give-up"
+              >
+                <Flag className="h-5 w-5 mr-2" />
+                Give Up
+              </Button>
+            )}
+
+            {/* Show Skip button during revealed and leader rounds */}
+            {(currentRound === 'revealed' || currentRound.endsWith('-leader')) && currentRound !== 'complete' && (
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={handleNextRound}
+                className="neon-button"
+                data-testid="button-next-round"
+              >
+                Next Round
+              </Button>
+            )}
+
+            {/* Always show New Team button */}
             <Button
               variant="outline"
               size="lg"
@@ -911,16 +1162,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
             >
               <Shuffle className="h-5 w-5 mr-2" />
               New Team
-            </Button>
-            <Button
-              variant="destructive"
-              size="lg"
-              onClick={handleGiveUp}
-              disabled={foundCount === roster.length}
-              data-testid="button-give-up"
-            >
-              <Flag className="h-5 w-5 mr-2" />
-              Give Up
             </Button>
           </div>
         </div>
