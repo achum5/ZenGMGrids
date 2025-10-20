@@ -8,11 +8,13 @@ import { AccentLine } from '@/components/AccentLine';
 import { RulesModal } from '@/components/RulesModal';
 import { GridSharingModal } from '@/components/grid-sharing-modal';
 import { CustomGridModal } from '@/components/custom-grid-modal';
+import { SavedLeagues } from '@/components/SavedLeagues';
 import ChooseGameMode from '@/pages/choose-game-mode';
 import TeamTrivia from '@/pages/team-trivia';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Home as HomeIcon, ArrowLeft } from 'lucide-react';
+import { saveLeague, type StoredLeague } from '@/lib/league-storage';
 // Import sport icon images  
 import zengmGridsLogo from '@/assets/zengm-grids-logo-mark.png';
 import basketballIcon from '@/assets/zengm-grids-logo-basketball.png';
@@ -147,6 +149,10 @@ export default function Home() {
   
   // Reshuffle count tracking per cell
   const [reshuffleCounts, setReshuffleCounts] = useState<Record<string, number>>({});
+
+  // File metadata for saving
+  const [currentFileName, setCurrentFileName] = useState<string>('');
+  const [currentFileSize, setCurrentFileSize] = useState<number | undefined>(undefined);
 
   // Handle hint mode toggle
   const handleHintModeChange = useCallback((enabled: boolean) => {
@@ -467,6 +473,10 @@ export default function Home() {
     setUploadProgress({ message: 'Starting...', loaded: 0, total: file.size });
     
     try {
+      // Store file metadata for saving
+      setCurrentFileName(file.name);
+      setCurrentFileSize(file.size);
+      
       // Determine which method to use based on setting
       const method: ParsingMethod = parsingMethodSetting === 'auto' 
         ? getRecommendedMethod() 
@@ -479,7 +489,7 @@ export default function Home() {
       const data = await parseLeagueFile(file, (message, loaded, total) => {
         setUploadProgress({ message, loaded, total });
       }, method);
-      await processLeagueData(data);
+      await processLeagueData(data, file.name, file.size);
       
     } catch (error) {
       console.error('Error processing file:', error);
@@ -501,6 +511,11 @@ export default function Home() {
     setUploadProgress({ message: 'Starting...', loaded: 0, total: 100 });
     
     try {
+      // Extract file name from URL
+      const fileName = url.split('/').pop() || 'league-from-url.json';
+      setCurrentFileName(fileName);
+      setCurrentFileSize(undefined); // Unknown size for URLs
+      
       // Determine which method to use based on setting
       const method: ParsingMethod = parsingMethodSetting === 'auto' 
         ? getRecommendedMethod() 
@@ -513,7 +528,7 @@ export default function Home() {
       const data = await parseLeagueUrl(url, (message, loaded, total) => {
         setUploadProgress({ message, loaded, total });
       }, method);
-      await processLeagueData(data);
+      await processLeagueData(data, fileName, undefined);
       
     } catch (error) {
       console.error('Error processing URL:', error);
@@ -529,6 +544,34 @@ export default function Home() {
       setUploadProgress(null);
     }
   }, [toast, parsingMethodSetting]);
+
+  const handleLoadLeague = useCallback(async (storedLeague: StoredLeague) => {
+    setIsProcessing(true);
+    setUploadProgress({ message: 'Loading saved league...', loaded: 0, total: 100 });
+    
+    try {
+      setCurrentFileName(storedLeague.name);
+      setCurrentFileSize(storedLeague.fileSize);
+      
+      // Load the league data directly without saving again
+      await processLeagueData(storedLeague.leagueData);
+      
+      toast({
+        title: 'League loaded',
+        description: `${storedLeague.name} has been loaded successfully.`,
+      });
+    } catch (error) {
+      console.error('Error loading saved league:', error);
+      toast({
+        title: 'Error loading league',
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsProcessing(false);
+      setUploadProgress(null);
+    }
+  }, [toast]);
 
   // Create minimal test data for debugging
   const createTestData = useCallback((): LeagueData => {
@@ -645,7 +688,7 @@ export default function Home() {
     }
   }, [createTestData]);
 
-  const processLeagueData = useCallback(async (data: LeagueData) => {
+  const processLeagueData = useCallback(async (data: LeagueData, fileName?: string, fileSize?: number) => {
     // Clear caches for the new player dataset
     clearIntersectionCachesForPlayers(data.players);
     
@@ -694,9 +737,26 @@ export default function Home() {
 
     debugIndividualAchievements(data.players, data.seasonIndex);
     
+    // Automatically save the league to storage
+    if (fileName) {
+      try {
+        // Generate a clean name from the file name
+        const cleanName = fileName.replace(/\.(json|gz)$/gi, '').replace(/\./g, ' ');
+        await saveLeague(cleanName, data, data.sport, fileSize);
+        
+        toast({
+          title: 'League saved',
+          description: 'Your league has been saved and will be available the next time you visit.',
+        });
+      } catch (error) {
+        console.error('Error saving league:', error);
+        // Don't show error toast - saving is optional
+      }
+    }
+    
     // Show game mode selection interstitial instead of immediately generating grid
     setGameMode('choose');
-  }, []);
+  }, [toast]);
   
 
   const handleGenerateNewGrid = useCallback(() => {
@@ -1366,7 +1426,20 @@ export default function Home() {
           </div>
           <AccentLine isHovered={isHeaderHovered} />
         </header>
-        <main className="max-w-2xl mx-auto px-6 py-8">
+        <main className="max-w-2xl mx-auto px-6 py-8 space-y-8">
+          <SavedLeagues onLoadLeague={handleLoadLeague} />
+          
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                Or upload a new league
+              </span>
+            </div>
+          </div>
+          
           <UploadSection 
             onFileUpload={handleFileUpload}
             onUrlUpload={handleUrlUpload}

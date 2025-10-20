@@ -679,69 +679,67 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
             
             {/* Autocomplete Dropdown */}
             {autocompleteOpen && (
-              <div 
+              <div
                 ref={autocompleteRef}
-                className="absolute z-50 w-full mt-2 bg-card border neon-border rounded-lg shadow-lg overflow-hidden"
+                className="absolute z-50 w-full mt-2 bg-card border neon-border rounded-lg shadow-lg max-h-[400px] overflow-y-auto"
                 data-testid="autocomplete-dropdown"
               >
-                <ScrollArea className="max-h-[400px]">
-                  <div className="py-2">
-                    {autocompleteSuggestions.map((player, index) => {
-                      // Get player's position - check if they have season-specific position first
-                      const rating = player.ratings?.find(r => r.season === selectedSeason);
-                      const position = rating?.pos || player.pos || 'F';
+                <div className="py-2">
+                  {autocompleteSuggestions.map((player, index) => {
+                    // Get player's position - check if they have season-specific position first
+                    const rating = player.ratings?.find(r => r.season === selectedSeason);
+                    const position = rating?.pos || player.pos || 'F';
 
-                      return (
-                        <div
-                          key={player.pid}
-                          data-index={index}
-                          className={`flex items-center gap-4 px-4 py-3 cursor-pointer transition-all hover:bg-accent/50 ${
-                            index === activeIndex ? 'bg-accent neon-glow' : ''
-                          }`}
-                          onClick={() => handleSelectPlayer(player)}
-                          data-testid={`autocomplete-option-${index}`}
-                        >
-                          <div className="shrink-0 w-16 h-16">
-                            <PlayerFace
-                              pid={player.pid}
-                              name={player.name}
-                              imgURL={player.imgURL ?? undefined}
-                              face={player.face}
-                              size={64}
-                              hideName={true}
-                              player={player}
-                              teams={leagueData.teams}
-                              sport={leagueData.sport}
-                              season={selectedSeason || undefined}
-                            />
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <p className="text-lg font-medium truncate">
-                              {player.name}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {position}
-                            </p>
-                          </div>
-
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="shrink-0"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSelectPlayer(player);
-                            }}
-                            data-testid={`button-select-${index}`}
-                          >
-                            Select
-                          </Button>
+                    return (
+                      <div
+                        key={player.pid}
+                        data-index={index}
+                        className={`flex items-center gap-4 px-4 py-3 cursor-pointer transition-all hover:bg-accent/50 ${
+                          index === activeIndex ? 'bg-accent neon-glow' : ''
+                        }`}
+                        onClick={() => handleSelectPlayer(player)}
+                        data-testid={`autocomplete-option-${index}`}
+                      >
+                        <div className="shrink-0 w-16 h-16">
+                          <PlayerFace
+                            pid={player.pid}
+                            name={player.name}
+                            imgURL={player.imgURL ?? undefined}
+                            face={player.face}
+                            size={64}
+                            hideName={true}
+                            player={player}
+                            teams={leagueData.teams}
+                            sport={leagueData.sport}
+                            season={selectedSeason || undefined}
+                          />
                         </div>
-                      );
-                    })}
-                  </div>
-                </ScrollArea>
+
+                        <div className="flex-1 min-w-0">
+                          <p className="text-lg font-medium truncate">
+                            {player.name}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {position}
+                          </p>
+                        </div>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectPlayer(player);
+                          }}
+                          data-testid={`button-select-${index}`}
+                        >
+                          Select
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
