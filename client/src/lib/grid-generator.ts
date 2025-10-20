@@ -8,6 +8,42 @@ import { mapAchievementToAchv } from './achv-mappers';
 const draftAchievements = new Set(['isPick1Overall', 'isFirstRoundPick', 'isSecondRoundPick', 'isUndrafted', 'draftedTeen']);
 const seasonLengthAchievements = new Set(['played15PlusSeasons']);
 
+/**
+ * Helper to check if an achievement is customizable (has numerical stats)
+ */
+function isCustomizableAchievement(label: string): boolean {
+  return /[\d,]+\+/.test(label);
+}
+
+/**
+ * Randomly flip customizable achievement operators
+ * 65% chance of staying >= (with +), 35% chance of flipping to < (less than)
+ */
+function maybeFlipAchievementOperator(achievement: Achievement): Achievement {
+  if (!isCustomizableAchievement(achievement.label)) {
+    return achievement; // Not customizable, return as-is
+  }
+
+  // 35% chance to flip to <
+  if (Math.random() < 0.35) {
+    // Parse the label to extract the number
+    const match = achievement.label.match(/([\d,]+)\+/);
+    if (match) {
+      const originalValue = match[1];
+      // Replace "X+" with "<X"
+      const flippedLabel = achievement.label.replace(`${originalValue}+`, `<${originalValue}`);
+      
+      return {
+        ...achievement,
+        label: flippedLabel
+      };
+    }
+  }
+  
+  // 65% chance: return as-is with + (>=)
+  return achievement;
+}
+
 // Simple session-based memory to avoid immediate repetition
 const recentlyUsedTeams = new Set<number>();
 const recentlyUsedAchievements = new Set<string>();
@@ -135,14 +171,17 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
 
   const achievementConstraints: CatTeam[] = viableAchievements
     .filter(achievement => achievement.id !== 'bornOutsideUS50DC') // Temporarily remove born outside US achievement
-    .map(achievement => ({
-      key: `achievement-${achievement.id}`,
-      label: achievement.label,
-      achievementId: achievement.id,
-      achv: mapAchievementToAchv(achievement),
-      type: 'achievement',
-      test: (p: Player) => playerMeetsAchievement(p, achievement.id, seasonIndex),
-    }));
+    .map(achievement => {
+      const flippedAchievement = maybeFlipAchievementOperator(achievement);
+      return {
+        key: `achievement-${flippedAchievement.id}`,
+        label: flippedAchievement.label,
+        achievementId: flippedAchievement.id,
+        achv: mapAchievementToAchv(flippedAchievement),
+        type: 'achievement',
+        test: (p: Player) => playerMeetsAchievement(p, flippedAchievement.id, seasonIndex),
+      };
+    });
 
   if (teamConstraints.length < 3) {
     throw new Error(`Need at least 3 teams to generate grid (found ${teamConstraints.length})`);
@@ -750,13 +789,14 @@ function generateGridSeeded(leagueData: LeagueData): {
   const rows: CatTeam[] = new Array(3);
   const cols: CatTeam[] = new Array(3);
   
+  const flippedSeedAchievement = maybeFlipAchievementOperator(seedAchievement as Achievement);
   const seedConstraint: CatTeam = {
     type: 'achievement',
-    achievementId: seedAchievement.id,
-    label: seedAchievement.label,
-    key: `achievement-${seedAchievement.id}`,
-    achv: mapAchievementToAchv(seedAchievement as Achievement),
-    test: (p: Player) => playerMeetsAchievement(p, seedAchievement.id, seasonIndex),
+    achievementId: flippedSeedAchievement.id,
+    label: flippedSeedAchievement.label,
+    key: `achievement-${flippedSeedAchievement.id}`,
+    achv: mapAchievementToAchv(flippedSeedAchievement),
+    test: (p: Player) => playerMeetsAchievement(p, flippedSeedAchievement.id, seasonIndex),
   };
   
   if (seedSlot.axis === 'row') {
@@ -901,17 +941,18 @@ function generateGridSeeded(leagueData: LeagueData): {
       
       const achIndex = simpleHash(gridId + '_oppach' + i) % viableAchievements.length;
       const selectedAch = viableAchievements[achIndex];
+      const flippedSelectedAch = maybeFlipAchievementOperator(selectedAch as Achievement);
       
       // Track this achievement as used to prevent duplicates
-      usedAchievementIds.add(selectedAch.id);
+      usedAchievementIds.add(flippedSelectedAch.id);
       
       oppositeArray[i] = {
         type: 'achievement',
-        achievementId: selectedAch.id,
-        label: selectedAch.label,
-        key: `achievement-${selectedAch.id}`,
-        achv: mapAchievementToAchv(selectedAch as Achievement),
-        test: (p: Player) => playerMeetsAchievement(p, selectedAch.id, seasonIndex),
+        achievementId: flippedSelectedAch.id,
+        label: flippedSelectedAch.label,
+        key: `achievement-${flippedSelectedAch.id}`,
+        achv: mapAchievementToAchv(flippedSelectedAch),
+        test: (p: Player) => playerMeetsAchievement(p, flippedSelectedAch.id, seasonIndex),
       };
       
       // Mark season achievement as used
@@ -1078,16 +1119,17 @@ function generateGridSeeded(leagueData: LeagueData): {
           }
           
           if (validForAllCols) {
+            const flippedAch = maybeFlipAchievementOperator(ach);
             rows[i] = {
               type: 'achievement',
-              achievementId: ach.id,
-              label: ach.label,
-              key: `achievement-${ach.id}`,
-              achv: mapAchievementToAchv(ach),
-              test: (p: Player) => playerMeetsAchievement(p, ach.id, seasonIndex),
+              achievementId: flippedAch.id,
+              label: flippedAch.label,
+              key: `achievement-${flippedAch.id}`,
+              achv: mapAchievementToAchv(flippedAch),
+              test: (p: Player) => playerMeetsAchievement(p, flippedAch.id, seasonIndex),
             };
             
-            console.log(`     Selected achievement: ${ach.label} (attempt ${attempt + 1})`);
+            console.log(`     Selected achievement: ${flippedAch.label} (attempt ${attempt + 1})`);
             found = true;
             break;
           }
@@ -1215,16 +1257,17 @@ function generateGridSeeded(leagueData: LeagueData): {
           }
           
           if (validForAllRows) {
+            const flippedAch = maybeFlipAchievementOperator(ach);
             cols[i] = {
               type: 'achievement',
-              achievementId: ach.id,
-              label: ach.label,
-              key: `achievement-${ach.id}`,
-              achv: mapAchievementToAchv(ach),
-              test: (p: Player) => playerMeetsAchievement(p, ach.id, seasonIndex),
+              achievementId: flippedAch.id,
+              label: flippedAch.label,
+              key: `achievement-${flippedAch.id}`,
+              achv: mapAchievementToAchv(flippedAch),
+              test: (p: Player) => playerMeetsAchievement(p, flippedAch.id, seasonIndex),
             };
             
-            console.log(`     Selected achievement: ${ach.label} (attempt ${attempt + 1})`);
+            console.log(`     Selected achievement: ${flippedAch.label} (attempt ${attempt + 1})`);
             found = true;
             break;
           }
