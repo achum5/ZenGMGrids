@@ -1089,8 +1089,7 @@ function getBestSeasonStat(player: Player, statField: string, testType: 'total' 
 export function getAllAchievements(
   sport?: 'basketball' | 'football' | 'hockey' | 'baseball', 
   seasonIndex?: SeasonIndex,
-  leagueYears?: { minSeason: number; maxSeason: number },
-  players?: Player[]
+  leagueYears?: { minSeason: number; maxSeason: number }
 ): Achievement[] {
   const common = COMMON_ACHIEVEMENTS;
   let achievements: Achievement[] = [];
@@ -1142,9 +1141,9 @@ export function getAllAchievements(
   }
   
   // Add random numerical achievements for variety (basketball only for now)
-    if (sport === 'basketball' && leagueYears && players) {
+    if (sport === 'basketball' && leagueYears) {
       const gridSeed = `${leagueYears.minSeason}-${leagueYears.maxSeason}`;
-      const numericalAchievements = buildRandomNumericalAchievements(sport, players, gridSeed, 6);
+      const numericalAchievements = buildRandomNumericalAchievements(sport, gridSeed, 6);
       achievements.push(...numericalAchievements);
   
       const percentageAchievements = buildCustomizablePercentageAchievements(sport, leagueYears);
@@ -2469,7 +2468,7 @@ export function getViableAchievements(
   seasonIndex?: any, // SeasonIndex from season-achievements
   leagueYears?: { minSeason: number; maxSeason: number }
 ): Achievement[] {
-  const achievements = getAllAchievements(sport, seasonIndex, leagueYears, players);
+  const achievements = getAllAchievements(sport, seasonIndex, leagueYears);
   
   return achievements.filter(achievement => {
     // For season-specific achievements, use playerMeetsAchievement which properly handles seasonIndex
