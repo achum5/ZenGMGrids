@@ -241,8 +241,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
   
   const achievementOptions = useMemo<AchievementOption[]>(() => {
   
-    return leagueData ? getAchievementOptions(sport, seasonIndex, leagueData.leagueYears, leagueData.players) : [];
-  }, [sport, seasonIndex, leagueData?.leagueYears, leagueData?.players, achievementOptionsVersion, "v2"]); // Cache bust with version v2
+    return leagueData ? getAchievementOptions(sport, seasonIndex, leagueData.leagueYears) : [];
+  }, [sport, seasonIndex, leagueData?.leagueYears, achievementOptionsVersion, "v2"]); // Cache bust with version v2
 
   // Handler for when achievement numbers are edited
   const handleAchievementNumberChange = useCallback((
@@ -875,7 +875,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
 
     // Get all available achievements
     const seasonIndex = getCachedSeasonIndex(leagueData.players, sport);
-    const achievementOptions = getAchievementOptions(sport, seasonIndex, leagueData.leagueYears, leagueData.players);
+    const achievementOptions = getAchievementOptions(sport, seasonIndex, leagueData.leagueYears);
     
     // Create a map for quick lookup
     const achievementMap = new Map(achievementOptions.map(a => [a.id, a.label]));

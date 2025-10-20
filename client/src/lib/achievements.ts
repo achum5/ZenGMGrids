@@ -1,6 +1,6 @@
 import type { Player } from "@/types/bbgm";
 import { SEASON_ACHIEVEMENTS, type SeasonAchievement, type SeasonIndex, type SeasonAchievementId, getSeasonEligiblePlayers } from './season-achievements';
-import { SeededRandom, hashString } from './seeded';
+import { SeededRandom } from './seeded';
 import { createCustomNumericalAchievement, parseAchievementLabel, parseCustomAchievementId } from './editable-achievements';
 
 import { Achv } from "./types";
@@ -1157,6 +1157,19 @@ function buildCustomizablePercentageAchievements(
 }
 
 /**
+ * Hash string to number for seeding
+ */
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return Math.abs(hash);
+}
+
+/**
  * Get career total for a stat field
  */
 function getCareerStatTotal(player: Player, statField: string): number {
@@ -1261,7 +1274,6 @@ export function getAllAchievements(
     if (sport === 'basketball' && leagueYears && players) {
       const gridSeed = `${leagueYears.minSeason}-${leagueYears.maxSeason}`;
       const numericalAchievements = buildRandomNumericalAchievements(sport, players, gridSeed, 6);
-      console.log(`[DYNAMIC ACHIEVEMENTS] Generated ${numericalAchievements.length} for grids:`, numericalAchievements.map(a => a.label));
       achievements.push(...numericalAchievements);
   
       const percentageAchievements = buildCustomizablePercentageAchievements(sport, leagueYears);
@@ -2588,7 +2600,7 @@ export function getViableAchievements(
 ): Achievement[] {
   const achievements = getAllAchievements(sport, seasonIndex, leagueYears, players);
   
-  const viable = achievements.filter(achievement => {
+  return achievements.filter(achievement => {
     // For season-specific achievements, use playerMeetsAchievement which properly handles seasonIndex
     // For career achievements, use the original test function
     const qualifyingPlayers = players.filter(player => {
@@ -2600,16 +2612,16 @@ export function getViableAchievements(
     });
     const hasEnough = qualifyingPlayers.length >= Math.max(minCount, achievement.minPlayers);
     
-    // Debug dynamic achievements
-    if (achievement.id.startsWith('dynamic_')) {
-      console.log(`[VIABLE CHECK] ${achievement.label}: ${qualifyingPlayers.length} players (need ${Math.max(minCount, achievement.minPlayers)}) - ${hasEnough ? 'PASS' : 'FAIL'}`);
+    // Debug logging removed for performance - was causing logs for every achievement evaluation
+    const DEBUG = import.meta.env.VITE_DEBUG === 'true';
+    if (DEBUG) {
+      if (hasEnough) {
+        console.log(`✓ ${achievement.id}: ${qualifyingPlayers.length} players`);
+      } else {
+        console.log(`✗ ${achievement.id}: only ${qualifyingPlayers.length} players (need ${Math.max(minCount, achievement.minPlayers)})`);
+      }
     }
     
     return hasEnough;
   });
-  
-  const dynamicViable = viable.filter(a => a.id.startsWith('dynamic_'));
-  console.log(`[VIABLE] Total: ${viable.length}, Dynamic viable: ${dynamicViable.length}`);
-  
-  return viable;
 }

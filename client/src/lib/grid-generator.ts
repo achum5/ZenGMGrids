@@ -122,9 +122,6 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
     !SEASON_ACHIEVEMENTS.some(sa => sa.id === achievement.id)
   );
   
-  const dynamicCount = viableAchievements.filter(a => a.id.startsWith('dynamic_')).length;
-  console.log(`[GRID GEN] Viable achievements: ${viableAchievements.length}, Dynamic: ${dynamicCount}`);
-  
   // Debug logging removed for performance - was causing verbose logs on every grid generation
   
   // Create constraint pool (only active teams + achievements)
@@ -272,19 +269,10 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
       return teamCoverage >= 3;
     });
     
-    const dynamicInViable = viableAchievements.filter(a => a.achievementId?.startsWith('dynamic_'));
-    console.log(`[SELECTION POOL] Viable: ${viableAchievements.length}, Dynamic in viable: ${dynamicInViable.length}`, dynamicInViable.map(a => a.label));
-    
     // Apply decade probability skewing - favor recent decades, phase out old ones (50+ years)
     const currentYear = leagueData.leagueYears?.maxSeason || new Date().getFullYear();
     const weightedAchievements = viableAchievements.map(achievement => {
       let weight = 1;
-      
-      // BOOST dynamic achievements to ensure they appear in grids
-      const isDynamic = achievement.achievementId!.startsWith('dynamic_');
-      if (isDynamic) {
-        weight = 8; // High weight to compete with decade achievements
-      }
       
       // Apply decade skewing for decade achievements
       const isDecadeAchievement = achievement.achievementId!.includes('playedIn') || 
@@ -338,19 +326,12 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
     const freshAchievements = createWeightedArray(freshWeightedAchievements);
     const recentAchievements = createWeightedArray(recentWeightedAchievements);
     
-    const dynamicInFresh = new Set(freshAchievements.filter(a => a.achievementId?.startsWith('dynamic_')).map(a => a.label));
-    const dynamicInRecent = new Set(recentAchievements.filter(a => a.achievementId?.startsWith('dynamic_')).map(a => a.label));
-    console.log(`[WEIGHTED POOLS] Fresh: ${freshAchievements.length} (${dynamicInFresh.size} unique dynamic), Recent: ${recentAchievements.length} (${dynamicInRecent.size} unique dynamic)`);
-    console.log(`[WEIGHTED POOLS] Dynamic in fresh:`, Array.from(dynamicInFresh));
-    console.log(`[WEIGHTED POOLS] Dynamic in recent:`, Array.from(dynamicInRecent));
-    
     // Prefer fresh achievements, but use recent ones if needed
     if (freshAchievements.length >= numAchievements) {
       // We have enough fresh achievements, use only those
       selectedAchievements = freshAchievements
         .sort(() => Math.random() - 0.5)
         .slice(0, numAchievements);
-      console.log(`[SELECTION] Selected from fresh pool:`, selectedAchievements.map(a => a.label));
     } else if (viableAchievements.length >= numAchievements) {
       // Mix fresh and recent achievements
       const neededFresh = Math.min(freshAchievements.length, numAchievements);
@@ -360,7 +341,6 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
         ...freshAchievements.sort(() => Math.random() - 0.5).slice(0, neededFresh),
         ...recentAchievements.sort(() => Math.random() - 0.5).slice(0, neededRecent)
       ];
-      console.log(`[SELECTION] Mixed fresh (${neededFresh}) and recent (${neededRecent}):`, selectedAchievements.map(a => a.label));
     } else {
       // Not enough high-coverage achievements, include some with lower coverage
       const allByTeamCoverage = achievementConstraints
@@ -379,12 +359,6 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
     const currentYear = leagueData.leagueYears?.maxSeason || new Date().getFullYear();
     const weightedFallbackAchievements = achievementConstraints.map(achievement => {
       let weight = 1;
-      
-      // BOOST dynamic achievements to ensure they appear in grids
-      const isDynamic = achievement.achievementId!.startsWith('dynamic_');
-      if (isDynamic) {
-        weight = 8; // High weight to compete with decade achievements
-      }
       
       const isDecadeAchievement = achievement.achievementId!.includes('playedIn') || 
                                   achievement.achievementId!.includes('debutedIn');
@@ -720,7 +694,7 @@ function generateGridSeeded(leagueData: LeagueData): {
     }
     
     // Find viable season achievements that have >= 3 eligible teams (sport-filtered)
-    const sportFilteredAchievements = getAllAchievements(sport, seasonIndex, leagueData.leagueYears, players)
+    const sportFilteredAchievements = getAllAchievements(sport, seasonIndex, leagueData.leagueYears)
       .filter(ach => ach.isSeasonSpecific);
     
     const viableSeasonAchievements = sportFilteredAchievements.map(ach => 
@@ -858,7 +832,7 @@ function generateGridSeeded(leagueData: LeagueData): {
       // This prevents impossible season harmonization conflicts
       
       // Only try career achievements with decade weighting applied
-      const rawAchievements = getAllAchievements(sport, seasonIndex, leagueData.leagueYears, players);
+      const rawAchievements = getAllAchievements(sport, seasonIndex, leagueData.leagueYears);
       
       // Apply decade weighting for achievement selection 
       const currentYear = leagueData.leagueYears?.maxSeason || new Date().getFullYear();
@@ -953,7 +927,7 @@ function generateGridSeeded(leagueData: LeagueData): {
   
   
   // Only use career achievements for old-style fill with decade weighting
-  const rawAllAchievements = getAllAchievements(sport, seasonIndex, leagueData.leagueYears, players)
+  const rawAllAchievements = getAllAchievements(sport, seasonIndex, leagueData.leagueYears)
     .filter(ach => !ach.isSeasonSpecific)
     .filter(ach => ach.id !== 'bornOutsideUS50DC');
   
@@ -1488,7 +1462,7 @@ function buildOppositeAxisForSeed(
   // Fill remaining slots with safe achievements/teams
   // For layouts with season achievements, use other season achievements to avoid mixing career/season
   // But don't reuse the seed achievement (and use sport-filtered achievements)
-  const sportFilteredAchievements = getAllAchievements(sport, seasonIndex, undefined, players)
+  const sportFilteredAchievements = getAllAchievements(sport, seasonIndex, undefined)
     .filter(ach => ach.isSeasonSpecific);
   
   const availableSeasonAchievements = sportFilteredAchievements.map(ach => 

@@ -74,10 +74,10 @@ export function getTeamOptions(teams: Team[]): TeamOption[] {
 export function getAchievementOptions(
   sport: string, 
   seasonIndex?: SeasonIndex,
-  leagueYears?: { minSeason: number; maxSeason: number },
-  players?: Player[]
+  leagueYears?: { minSeason: number; maxSeason: number }
 ): AchievementOption[] {
-  const achievements = getAllAchievements(sport as any, seasonIndex, leagueYears, players);
+  console.log(`🔧 [ACHIEVEMENT OPTIONS] Called with sport: ${sport}, cache version: v2`);
+  const achievements = getAllAchievements(sport as any, seasonIndex, leagueYears);
   return achievements
     .filter(achievement => {
       if (achievement.id.includes('debutedIn')) {
