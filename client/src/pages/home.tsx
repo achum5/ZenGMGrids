@@ -8,6 +8,8 @@ import { AccentLine } from '@/components/AccentLine';
 import { RulesModal } from '@/components/RulesModal';
 import { GridSharingModal } from '@/components/grid-sharing-modal';
 import { CustomGridModal } from '@/components/custom-grid-modal';
+import ChooseGameMode from '@/pages/choose-game-mode';
+import TeamTrivia from '@/pages/team-trivia';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Home as HomeIcon } from 'lucide-react';
@@ -75,6 +77,7 @@ export default function Home() {
   
   // Core state
   const [leagueData, setLeagueData] = useState<LeagueData | null>(null);
+  const [gameMode, setGameMode] = useState<'choose' | 'grids' | 'team-trivia' | null>(null);
   const [rows, setRows] = useState<CatTeam[]>([]);
   const [cols, setCols] = useState<CatTeam[]>([]);
   const [cells, setCells] = useState<Record<string, CellState>>({});
@@ -691,44 +694,9 @@ export default function Home() {
 
     debugIndividualAchievements(data.players, data.seasonIndex);
     
-    // Generate initial grid with automatic retry on error
-    let gridResult: { rows: any[], cols: any[], intersections: any } = { rows: [], cols: [], intersections: {} };
-    let attempt = 0;
-    const MAX_AUTO_RETRIES = 50;
-    
-    while (attempt < MAX_AUTO_RETRIES) {
-      try {
-        gridResult = generateTeamsGrid(data);
-        break; // Success! Exit the retry loop
-      } catch (error) {
-        attempt++;
-        // Silently retry - user will never see the error
-        if (attempt >= MAX_AUTO_RETRIES) {
-          // Only log if we've exhausted all retries (very rare)
-          console.error('Error generating initial grid after maximum retries:', error);
-          // Still set empty grid rather than crashing
-          gridResult = { rows: [], cols: [], intersections: {} };
-          break;
-        }
-      }
-    }
-    
-    setRows(gridResult.rows);
-    setCols(gridResult.cols);
-    setIntersections(gridResult.intersections);
-    setCells({});
-    
-    // Initialize grid tracking
-    const gridId = `${gridResult.rows.map(r => r.key).join('-')}_${gridResult.cols.map(c => c.key).join('-')}`;
-    setCurrentGridId(gridId);
-    
-    // Load attempt count from localStorage
-    const storedAttemptCount = getAttemptCount(gridId);
-    setAttemptCount(storedAttemptCount);
-    setGiveUpPressed(false); // Ensure Give Up state is reset on new file load
-    
-    // Success toast removed - was blocking mobile interactions
-  }, [toast]);
+    // Show game mode selection interstitial instead of immediately generating grid
+    setGameMode('choose');
+  }, []);
   
 
   const handleGenerateNewGrid = useCallback(() => {
@@ -1100,6 +1068,7 @@ export default function Home() {
   const handleGoHome = useCallback(() => {
     // Reset all state to go back to upload screen
     setLeagueData(null);
+    setGameMode(null);
     setRows([]);
     setCols([]);
     setCells({});
@@ -1119,6 +1088,58 @@ export default function Home() {
     setModalPuzzleSeed("");
     setModalCellKey("");
     setRankCache({});
+  }, [parsingMethodSetting]);
+
+  // Handle game mode selection
+  const handleSelectGameMode = useCallback((mode: 'grids' | 'team-trivia') => {
+    if (mode === 'grids') {
+      // Generate grid for Grids mode
+      if (!leagueData) return;
+      
+      setIsGenerating(true);
+      
+      // Generate initial grid with automatic retry on error
+      let gridResult: { rows: any[], cols: any[], intersections: any } = { rows: [], cols: [], intersections: {} };
+      let attempt = 0;
+      const MAX_AUTO_RETRIES = 50;
+      
+      while (attempt < MAX_AUTO_RETRIES) {
+        try {
+          gridResult = generateTeamsGrid(leagueData);
+          break; // Success! Exit the retry loop
+        } catch (error) {
+          attempt++;
+          if (attempt >= MAX_AUTO_RETRIES) {
+            console.error('Error generating initial grid after maximum retries:', error);
+            gridResult = { rows: [], cols: [], intersections: {} };
+            break;
+          }
+        }
+      }
+      
+      setRows(gridResult.rows);
+      setCols(gridResult.cols);
+      setIntersections(gridResult.intersections);
+      setCells({});
+      
+      // Initialize grid tracking
+      const gridId = `${gridResult.rows.map(r => r.key).join('-')}_${gridResult.cols.map(c => c.key).join('-')}`;
+      setCurrentGridId(gridId);
+      
+      // Load attempt count from localStorage
+      const storedAttemptCount = getAttemptCount(gridId);
+      setAttemptCount(storedAttemptCount);
+      setGiveUpPressed(false);
+      
+      setIsGenerating(false);
+    }
+    
+    setGameMode(mode);
+  }, [leagueData]);
+
+  // Handle back to mode select from a game
+  const handleBackToModeSelect = useCallback(() => {
+    setGameMode('choose');
   }, []);
 
   // Handle Give Up - fill each cell with the most common answer (rank #1)
@@ -1359,7 +1380,27 @@ export default function Home() {
     );
   }
 
-  // Show grid section if league data is loaded
+  // Show game mode selection if league data is loaded but no mode selected
+  if (gameMode === 'choose') {
+    return (
+      <ChooseGameMode
+        onSelectMode={handleSelectGameMode}
+        onBackToUpload={handleGoHome}
+      />
+    );
+  }
+
+  // Show Team Trivia if that mode is selected
+  if (gameMode === 'team-trivia' && leagueData) {
+    return (
+      <TeamTrivia
+        leagueData={leagueData}
+        onBackToModeSelect={handleBackToModeSelect}
+      />
+    );
+  }
+
+  // Show grid section if Grids mode is selected
   return (
     <div>
       <header 
