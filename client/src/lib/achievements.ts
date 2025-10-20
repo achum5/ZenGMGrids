@@ -1095,10 +1095,7 @@ function buildRandomNumericalAchievements(
     );
     
     if (achievement) {
-      console.log(`[DYNAMIC] Generated: ${achievement.label} (id: ${achievement.id})`);
       achievements.push(achievement);
-    } else {
-      console.log(`[DYNAMIC] Failed to generate for ${type} ${stat}`);
     }
   }
   
@@ -1264,13 +1261,10 @@ export function getAllAchievements(
     if (sport === 'basketball' && leagueYears && players) {
       const gridSeed = `${leagueYears.minSeason}-${leagueYears.maxSeason}`;
       const numericalAchievements = buildRandomNumericalAchievements(sport, players, gridSeed, 6);
-      console.log(`[DYNAMIC ACHIEVEMENTS] Generated ${numericalAchievements.length} dynamic achievements:`, numericalAchievements.map(a => ({ id: a.id, label: a.label })));
       achievements.push(...numericalAchievements);
   
       const percentageAchievements = buildCustomizablePercentageAchievements(sport, leagueYears);
       achievements.push(...percentageAchievements);
-    } else {
-      console.log('[DYNAMIC ACHIEVEMENTS] Skipped - sport:', sport, 'leagueYears:', !!leagueYears, 'players:', !!players);
     }
       return achievements;}
 
