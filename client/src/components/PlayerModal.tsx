@@ -264,7 +264,7 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg w-[92vw] max-h-[85vh] sm:max-h-[80vh] flex flex-col overflow-hidden" data-testid="modal-player-details">
+      <DialogContent className="max-w-lg w-[92vw] max-h-[85vh] sm:max-h-[80vh] flex flex-col" data-testid="modal-player-details">
         <DialogHeader>
           <div className="flex items-center gap-4">
             <div className="shrink-0 w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40">
