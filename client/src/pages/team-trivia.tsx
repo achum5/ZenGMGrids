@@ -61,6 +61,8 @@ interface RosterPlayer {
     per: number;
   };
   position: string;
+  jerseyNumber?: string;
+  teamColors?: string[];
 }
 
 interface TeamTriviaProps {
@@ -184,6 +186,13 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         const rating = player.ratings?.find(r => r.season === season);
         const position = rating?.pos || player.pos || 'F';
 
+        // Get jersey number from season stats
+        const jerseyNumber = seasonStats.jerseyNumber;
+
+        // Get team colors for this season (season-specific or default)
+        const seasonInfo = team.seasons?.find(s => s.season === season);
+        const teamColors = seasonInfo?.colors || team.colors || ['#000000', '#ffffff', '#cccccc'];
+
         rosterPlayers.push({
           player,
           revealed: false,
@@ -191,6 +200,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
           stats: { ppg, rpg, apg },
           advancedStats: { fgp, tpp, ftp, ts, per },
           position,
+          jerseyNumber,
+          teamColors,
         });
       }
     });
@@ -305,6 +316,27 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     setAutocompleteOpen(autocompleteSuggestions.length > 0 && guess.trim().length > 0);
     setActiveIndex(-1);
   }, [autocompleteSuggestions, guess]);
+
+  // Close autocomplete when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        autocompleteOpen &&
+        autocompleteRef.current &&
+        inputRef.current &&
+        !autocompleteRef.current.contains(event.target as Node) &&
+        !inputRef.current.contains(event.target as Node)
+      ) {
+        setAutocompleteOpen(false);
+        setActiveIndex(-1);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [autocompleteOpen]);
 
   // Trigger confetti for a specific player tile
   const triggerConfetti = useCallback((pid: number) => {
@@ -765,10 +797,23 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                       }`}
                       data-testid={`card-player-${index}`}
                     >
-                      {/* Position Badge */}
-                      {rp.revealed && (
-                        <div className="absolute top-1 left-1 bg-primary/90 text-primary-foreground text-[0.6rem] sm:text-xs font-bold px-1 sm:px-1.5 py-0.5 rounded">
-                          {rp.position}
+                      {/* Position Badge - Always visible */}
+                      <div className="absolute top-1 left-1 bg-primary/90 text-primary-foreground text-[0.6rem] sm:text-xs font-bold px-1 sm:px-1.5 py-0.5 rounded z-10">
+                        {rp.position}
+                      </div>
+
+                      {/* Jersey Number Badge - Always visible, ZenGM style */}
+                      {rp.jerseyNumber && rp.teamColors && (
+                        <div
+                          className="absolute top-1 right-1 text-[0.75rem] sm:text-[0.95rem] font-extrabold px-1.5 sm:px-2 py-0.5 sm:py-1 z-10 min-w-[1.75rem] sm:min-w-[2rem] aspect-square flex items-center justify-center"
+                          style={{
+                            backgroundColor: rp.teamColors[0] || '#000000',
+                            color: rp.teamColors[1] || '#ffffff',
+                            border: `2px solid ${rp.teamColors[2] || rp.teamColors[0] || '#cccccc'}`,
+                            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)'
+                          }}
+                        >
+                          {rp.jerseyNumber}
                         </div>
                       )}
 
