@@ -1,6 +1,6 @@
 import type { Player } from "@/types/bbgm";
 import { SEASON_ACHIEVEMENTS, type SeasonAchievement, type SeasonIndex, type SeasonAchievementId, getSeasonEligiblePlayers } from './season-achievements';
-import { SeededRandom } from './seeded';
+import { SeededRandom, hashString } from './seeded';
 import { createCustomNumericalAchievement, parseAchievementLabel, parseCustomAchievementId } from './editable-achievements';
 
 import { Achv } from "./types";
@@ -1095,7 +1095,10 @@ function buildRandomNumericalAchievements(
     );
     
     if (achievement) {
+      console.log(`[DYNAMIC] Generated: ${achievement.label} (id: ${achievement.id})`);
       achievements.push(achievement);
+    } else {
+      console.log(`[DYNAMIC] Failed to generate for ${type} ${stat}`);
     }
   }
   
@@ -1154,19 +1157,6 @@ function buildCustomizablePercentageAchievements(
   }
 
   return achievements;
-}
-
-/**
- * Hash string to number for seeding
- */
-function hashString(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-  return Math.abs(hash);
 }
 
 /**
@@ -1274,10 +1264,13 @@ export function getAllAchievements(
     if (sport === 'basketball' && leagueYears && players) {
       const gridSeed = `${leagueYears.minSeason}-${leagueYears.maxSeason}`;
       const numericalAchievements = buildRandomNumericalAchievements(sport, players, gridSeed, 6);
+      console.log(`[DYNAMIC ACHIEVEMENTS] Generated ${numericalAchievements.length} dynamic achievements:`, numericalAchievements.map(a => ({ id: a.id, label: a.label })));
       achievements.push(...numericalAchievements);
   
       const percentageAchievements = buildCustomizablePercentageAchievements(sport, leagueYears);
       achievements.push(...percentageAchievements);
+    } else {
+      console.log('[DYNAMIC ACHIEVEMENTS] Skipped - sport:', sport, 'leagueYears:', !!leagueYears, 'players:', !!players);
     }
       return achievements;}
 

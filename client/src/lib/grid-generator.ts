@@ -694,7 +694,7 @@ function generateGridSeeded(leagueData: LeagueData): {
     }
     
     // Find viable season achievements that have >= 3 eligible teams (sport-filtered)
-    const sportFilteredAchievements = getAllAchievements(sport, seasonIndex, leagueData.leagueYears)
+    const sportFilteredAchievements = getAllAchievements(sport, seasonIndex, leagueData.leagueYears, players)
       .filter(ach => ach.isSeasonSpecific);
     
     const viableSeasonAchievements = sportFilteredAchievements.map(ach => 
@@ -832,7 +832,7 @@ function generateGridSeeded(leagueData: LeagueData): {
       // This prevents impossible season harmonization conflicts
       
       // Only try career achievements with decade weighting applied
-      const rawAchievements = getAllAchievements(sport, seasonIndex, leagueData.leagueYears);
+      const rawAchievements = getAllAchievements(sport, seasonIndex, leagueData.leagueYears, players);
       
       // Apply decade weighting for achievement selection 
       const currentYear = leagueData.leagueYears?.maxSeason || new Date().getFullYear();
@@ -927,7 +927,7 @@ function generateGridSeeded(leagueData: LeagueData): {
   
   
   // Only use career achievements for old-style fill with decade weighting
-  const rawAllAchievements = getAllAchievements(sport, seasonIndex, leagueData.leagueYears)
+  const rawAllAchievements = getAllAchievements(sport, seasonIndex, leagueData.leagueYears, players)
     .filter(ach => !ach.isSeasonSpecific)
     .filter(ach => ach.id !== 'bornOutsideUS50DC');
   
@@ -1462,7 +1462,7 @@ function buildOppositeAxisForSeed(
   // Fill remaining slots with safe achievements/teams
   // For layouts with season achievements, use other season achievements to avoid mixing career/season
   // But don't reuse the seed achievement (and use sport-filtered achievements)
-  const sportFilteredAchievements = getAllAchievements(sport, seasonIndex, undefined)
+  const sportFilteredAchievements = getAllAchievements(sport, seasonIndex, undefined, players)
     .filter(ach => ach.isSeasonSpecific);
   
   const availableSeasonAchievements = sportFilteredAchievements.map(ach => 
