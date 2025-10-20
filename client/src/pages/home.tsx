@@ -738,7 +738,7 @@ export default function Home() {
     debugIndividualAchievements(data.players, data.seasonIndex);
     
     // Automatically save the league to storage
-    if (fileName) {
+    if (fileName && data.sport) {
       try {
         // Generate a clean name from the file name
         const cleanName = fileName.replace(/\.(json|gz)$/gi, '').replace(/\./g, ' ');
