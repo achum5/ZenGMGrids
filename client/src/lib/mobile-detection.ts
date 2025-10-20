@@ -1,5 +1,3 @@
-import { LARGE_FILE_THRESHOLD_BYTES } from '@/lib/bbgm-parser';
-
 // Mobile detection utility
 export function isMobileDevice(): boolean {
   // Check user agent for mobile indicators
@@ -19,20 +17,10 @@ export function isMobileDevice(): boolean {
 
 export type ParsingMethod = 'auto' | 'traditional' | 'streaming' | 'mobile-idb';
 
-export function getRecommendedMethod(fileSize: number | null = null): 'traditional' | 'streaming' | 'mobile-idb' {
-  // On mobile: always use mobile-idb (IndexedDB-based streaming, handles any file size)
-  if (isMobileDevice()) {
-    return 'mobile-idb';
-  }
-  
-  // On desktop:
-  // If file size is provided and exceeds threshold, use streaming
-  // Otherwise, use traditional
-  if (fileSize !== null && fileSize > LARGE_FILE_THRESHOLD_BYTES) {
-    return 'streaming';
-  }
-  
-  return 'traditional';
+export function getRecommendedMethod(): 'traditional' | 'streaming' | 'mobile-idb' {
+  // On mobile: use mobile-idb (IndexedDB-based streaming, handles any file size)
+  // On desktop: use streaming (uses DecompressionStream which is faster)
+  return isMobileDevice() ? 'mobile-idb' : 'streaming';
 }
 
 // Get stored preference or return 'auto' as default

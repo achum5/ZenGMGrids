@@ -460,14 +460,9 @@ export default function Home() {
     try {
       // Determine which method to use based on setting
       const method: ParsingMethod = parsingMethodSetting === 'auto' 
-        ? getRecommendedMethod(file.size) 
+        ? getRecommendedMethod() 
         : parsingMethodSetting;
       
-      // If auto is selected, update the effective method for UI display IMMEDIATELY
-      if (parsingMethodSetting === 'auto') {
-        setEffectiveParsingMethod(method);
-      }
-
       // Parse the league file with progress tracking and selected method
       const data = await parseLeagueFile(file, (message, loaded, total) => {
         setUploadProgress({ message, loaded, total });
@@ -484,7 +479,6 @@ export default function Home() {
     } finally {
       setIsProcessing(false);
       setUploadProgress(null);
-      setEffectiveParsingMethod(null); // Reset effective method after processing
     }
   }, [toast, parsingMethodSetting]);
 
@@ -494,17 +488,10 @@ export default function Home() {
     
     try {
       // Determine which method to use based on setting
-      // For URL uploads, we don't have file size upfront, so pass null.
-      // getRecommendedMethod will default to 'traditional' on desktop if fileSize is null.
       const method: ParsingMethod = parsingMethodSetting === 'auto' 
-        ? getRecommendedMethod(null) 
+        ? getRecommendedMethod() 
         : parsingMethodSetting;
       
-      // If auto is selected, update the effective method for UI display IMMEDIATELY
-      if (parsingMethodSetting === 'auto') {
-        setEffectiveParsingMethod(method);
-      }
-
       // Parse the league URL with progress tracking and selected method
       const data = await parseLeagueUrl(url, (message, loaded, total) => {
         setUploadProgress({ message, loaded, total });
@@ -521,7 +508,6 @@ export default function Home() {
     } finally {
       setIsProcessing(false);
       setUploadProgress(null);
-      setEffectiveParsingMethod(null); // Reset effective method after processing
     }
   }, [toast, parsingMethodSetting]);
 

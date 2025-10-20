@@ -16,10 +16,9 @@ interface UploadSectionProps {
   } | null;
   parsingMethod?: 'auto' | 'traditional' | 'streaming' | 'mobile-idb';
   onParsingMethodChange?: (method: 'auto' | 'traditional' | 'streaming' | 'mobile-idb') => void;
-  effectiveParsingMethod?: 'traditional' | 'streaming' | 'mobile-idb' | null;
 }
 
-export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadProgress, parsingMethod = 'auto', onParsingMethodChange, effectiveParsingMethod }: UploadSectionProps) {
+export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadProgress, parsingMethod = 'auto', onParsingMethodChange }: UploadSectionProps) {
   const [urlInput, setUrlInput] = useState('');
   const [urlError, setUrlError] = useState('');
 
@@ -67,15 +66,6 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadP
     event.preventDefault();
   };
 
-  const getDisplayMethodLabel = (method: 'traditional' | 'streaming' | 'mobile-idb') => {
-    switch (method) {
-      case 'traditional': return 'Traditional';
-      case 'streaming': return <>Desktop Streaming <i>(for large files)</i></>;
-      case 'mobile-idb': return <>Mobile Streaming <i>(slow but should work!)</i></>;
-      default: return '';
-    }
-  };
-
   return (
     <div className="text-center">
       <Card className="border-0 shadow-none bg-transparent">
@@ -85,20 +75,16 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadP
             <div className="flex items-center justify-center gap-3 translate-y-[-1rem]">
               <span className="text-sm font-medium text-muted-foreground">Upload Method:</span>
               <Select 
-                value={isProcessing && parsingMethod === 'auto' && effectiveParsingMethod ? effectiveParsingMethod : parsingMethod}
+                value={parsingMethod} 
                 onValueChange={onParsingMethodChange}
                 disabled={isProcessing}
               >
                 <SelectTrigger className="w-auto max-w-full" data-testid="select-parsing-method">
-                  <SelectValue placeholder="Select method">
-                    {isProcessing && parsingMethod === 'auto' && effectiveParsingMethod 
-                      ? getDisplayMethodLabel(effectiveParsingMethod)
-                      : (parsingMethod === 'auto' ? 'Auto (Recommended)' : getDisplayMethodLabel(parsingMethod as any))}
-                  </SelectValue>
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="auto" data-testid="option-auto">
-                    {isProcessing && parsingMethod === 'auto' ? 'Auto (Detecting...)' : 'Auto (Recommended)'}
+                    Auto (Recommended)
                   </SelectItem>
                   <SelectItem value="traditional" data-testid="option-traditional">
                     Traditional

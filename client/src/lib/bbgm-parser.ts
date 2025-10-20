@@ -9,9 +9,6 @@ import { processLeagueFromIDB } from './idb-league-reader';
 
 export type ParsingMethod = 'traditional' | 'streaming' | 'mobile-idb';
 
-// Define a threshold for what constitutes a "large" file (e.g., 10MB)
-export const LARGE_FILE_THRESHOLD_BYTES = 10 * 1024 * 1024; // 10 MB
-
 export function parseLeagueFile(
   file: File,
   onProgress?: (message: string, loaded?: number, total?: number) => void,
