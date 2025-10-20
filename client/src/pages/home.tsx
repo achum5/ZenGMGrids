@@ -1396,6 +1396,7 @@ export default function Home() {
       <TeamTrivia
         leagueData={leagueData}
         onBackToModeSelect={handleBackToModeSelect}
+        onGoHome={handleGoHome}
       />
     );
   }

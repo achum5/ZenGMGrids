@@ -1,10 +1,28 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { PlayerFace } from '@/components/PlayerFace';
 import { useToast } from '@/lib/hooks/use-toast';
-import { Shuffle, Flag } from 'lucide-react';
+import { Shuffle, Flag, Home as HomeIcon, ArrowLeft } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { RulesModal } from '@/components/RulesModal';
+import { AccentLine } from '@/components/AccentLine';
 import type { LeagueData, Player, Team } from '@/types/bbgm';
+import basketballIcon from '@/assets/zengm-grids-logo-basketball.png';
+import footballIcon from '@/assets/zengm-grids-logo-football.png';
+import hockeyIcon from '@/assets/zengm-grids-logo-hockey.png';
+import baseballIcon from '@/assets/zengm-grids-logo-baseball.png';
 
 interface RosterPlayer {
   player: Player;
@@ -15,6 +33,7 @@ interface RosterPlayer {
 interface TeamTriviaProps {
   leagueData: LeagueData;
   onBackToModeSelect: () => void;
+  onGoHome: () => void;
 }
 
 // Normalize name for matching
@@ -31,13 +50,18 @@ function normalizeName(name: string): string {
     .replace(/[\u0300-\u036f]/g, '');
 }
 
-export default function TeamTrivia({ leagueData, onBackToModeSelect }: TeamTriviaProps) {
+export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }: TeamTriviaProps) {
   const { toast } = useToast();
   const [guess, setGuess] = useState('');
   const [roster, setRoster] = useState<RosterPlayer[]>([]);
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [foundCount, setFoundCount] = useState(0);
+  const [isHeaderHovered, setIsHeaderHovered] = useState(false);
+  const [autocompleteOpen, setAutocompleteOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const autocompleteRef = useRef<HTMLDivElement>(null);
 
   // Pick a random season and team
   const pickRandomTeamAndSeason = useCallback(() => {
@@ -148,8 +172,80 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect }: TeamTrivi
       : selectedTeam.abbrev || 'Unknown Team';
   }, [selectedTeam, selectedSeason]);
 
-  // Handle guess submission
-  const handleGuess = useCallback(() => {
+  // Filter unrevealed players matching current guess
+  const autocompleteSuggestions = useMemo(() => {
+    if (!guess.trim()) {
+      return [];
+    }
+
+    const normalizedGuess = normalizeName(guess);
+    const unrevealedPlayers = roster.filter(rp => !rp.revealed);
+
+    return unrevealedPlayers
+      .filter(rp => {
+        const normalizedName = normalizeName(rp.player.name);
+        return normalizedName.includes(normalizedGuess);
+      })
+      .slice(0, 6); // Show up to 6 suggestions
+  }, [guess, roster]);
+
+  // Open/close autocomplete based on suggestions
+  useEffect(() => {
+    setAutocompleteOpen(autocompleteSuggestions.length > 0 && guess.trim().length > 0);
+    setActiveIndex(-1);
+  }, [autocompleteSuggestions, guess]);
+
+  // Handle selecting a player from autocomplete
+  const handleSelectPlayer = useCallback((rosterPlayer: RosterPlayer) => {
+    setRoster(prev => prev.map(rp =>
+      rp.player.pid === rosterPlayer.player.pid
+        ? { ...rp, revealed: true }
+        : rp
+    ));
+    setFoundCount(prev => prev + 1);
+    setGuess('');
+    setAutocompleteOpen(false);
+    setActiveIndex(-1);
+    
+    // Refocus input
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
+  }, []);
+
+  // Handle keyboard navigation
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!autocompleteOpen) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIndex(prev => 
+        prev < autocompleteSuggestions.length - 1 ? prev + 1 : prev
+      );
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIndex(prev => prev > 0 ? prev - 1 : -1);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      
+      if (activeIndex >= 0 && autocompleteSuggestions[activeIndex]) {
+        // Select the highlighted suggestion
+        handleSelectPlayer(autocompleteSuggestions[activeIndex]);
+      } else if (autocompleteSuggestions.length === 1) {
+        // If only one suggestion, select it
+        handleSelectPlayer(autocompleteSuggestions[0]);
+      } else {
+        // Try to match the typed guess
+        handleManualGuess();
+      }
+    } else if (e.key === 'Escape') {
+      setAutocompleteOpen(false);
+      setActiveIndex(-1);
+    }
+  }, [autocompleteOpen, activeIndex, autocompleteSuggestions, handleSelectPlayer]);
+
+  // Handle manual guess submission (when user types and presses enter without selecting)
+  const handleManualGuess = useCallback(() => {
     if (!guess.trim()) return;
 
     const normalizedGuess = normalizeName(guess);
@@ -224,6 +320,16 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect }: TeamTrivi
     }
   }, [guess, roster, leagueData.players, selectedSeason, teamDisplayName, toast]);
 
+  // Scroll active item into view
+  useEffect(() => {
+    if (activeIndex >= 0 && autocompleteRef.current) {
+      const activeElement = autocompleteRef.current.querySelector(`[data-index="${activeIndex}"]`);
+      if (activeElement) {
+        activeElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }, [activeIndex]);
+
   // Give up - reveal all
   const handleGiveUp = useCallback(() => {
     setRoster(prev => prev.map(rp => ({ ...rp, revealed: true })));
@@ -235,119 +341,254 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect }: TeamTrivi
     pickRandomTeamAndSeason();
   }, [pickRandomTeamAndSeason]);
 
+  // Check if user has made progress
+  const hasProgress = foundCount > 0;
+
+  const sportTitle = 
+    leagueData.sport === 'basketball' ? 'Basketball GM' :
+    leagueData.sport === 'football' ? 'Football GM' :
+    leagueData.sport === 'hockey' ? 'ZenGM Hockey' :
+    leagueData.sport === 'baseball' ? 'ZenGM Baseball' :
+    'ZenGM';
+
+  const sportIcon =
+    leagueData.sport === 'basketball' ? basketballIcon :
+    leagueData.sport === 'football' ? footballIcon :
+    leagueData.sport === 'hockey' ? hockeyIcon :
+    leagueData.sport === 'baseball' ? baseballIcon :
+    basketballIcon;
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* Header with team/season info */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="container max-w-4xl mx-auto px-4 py-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold">
-                {selectedSeason} {teamDisplayName}
+      {/* Main Header */}
+      <header 
+        className="bg-card border-border"
+        onMouseEnter={() => setIsHeaderHovered(true)}
+        onMouseLeave={() => setIsHeaderHovered(false)}
+        style={{ position: 'relative' }}
+      >
+        <div className="max-w-6xl mx-auto px-6 py-4">
+          <div className="relative flex items-center justify-start md:justify-center">
+            <div className="flex items-center space-x-3">
+              <img 
+                src={sportIcon}
+                alt={`${leagueData.sport} icon`} 
+                className="w-10 h-10 object-contain header-logo"
+              />
+              <h1 className="text-base sm:text-lg md:text-2xl header-title">
+                {sportTitle} Team Trivia
               </h1>
-              <p className="text-sm text-muted-foreground">
-                Name every player on this roster
-              </p>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onBackToModeSelect}
-              data-testid="button-back-to-modes"
-            >
-              Back
-            </Button>
+            <div className="absolute right-0 flex items-center space-x-1">
+              <div>
+                <RulesModal sport={leagueData.sport} />
+              </div>
+              {hasProgress ? (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="sm" data-testid="button-back">
+                      <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
+                      <span className="sr-only">Go back</span>
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Go back to game selection?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        You have found {foundCount} players. Going back will lose your current progress. Are you sure?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={onBackToModeSelect}>Go Back</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              ) : (
+                <Button variant="ghost" size="sm" onClick={onBackToModeSelect} data-testid="button-back">
+                  <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
+                  <span className="sr-only">Go back</span>
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" onClick={onGoHome} data-testid="button-home">
+                <HomeIcon className="h-[1.2rem] w-[1.2rem]" />
+                <span className="sr-only">Go home</span>
+              </Button>
+            </div>
           </div>
+        </div>
+        <AccentLine isHovered={isHeaderHovered} />
+      </header>
 
-          {/* Search bar */}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleGuess();
-            }}
-            className="flex gap-2"
-          >
+      {/* Game Info Header */}
+      <div className="bg-card/50 border-b neon-border-subtle">
+        <div className="max-w-4xl mx-auto px-6 py-6">
+          <h2 className="text-3xl sm:text-4xl font-bold neon-text mb-2">
+            {selectedSeason} {teamDisplayName}
+          </h2>
+          <p className="text-muted-foreground text-lg">
+            Name every player on this roster
+          </p>
+        </div>
+      </div>
+
+      {/* Search Section */}
+      <div className="bg-background border-b">
+        <div className="max-w-4xl mx-auto px-6 py-4">
+          <div className="relative">
             <Input
+              ref={inputRef}
               type="text"
               value={guess}
               onChange={(e) => setGuess(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder="Type a player's name..."
-              className="flex-1"
+              className="text-lg py-6 neon-input"
               autoFocus
+              autoComplete="off"
               data-testid="input-player-guess"
             />
-          </form>
-        </div>
-      </div>
+            
+            {/* Autocomplete Dropdown */}
+            {autocompleteOpen && (
+              <div 
+                ref={autocompleteRef}
+                className="absolute z-50 w-full mt-2 bg-card border neon-border rounded-lg shadow-lg overflow-hidden"
+                data-testid="autocomplete-dropdown"
+              >
+                <ScrollArea className="max-h-[400px]">
+                  <div className="py-2">
+                    {autocompleteSuggestions.map((rp, index) => (
+                      <div
+                        key={rp.player.pid}
+                        data-index={index}
+                        className={`flex items-center gap-4 px-4 py-3 cursor-pointer transition-all hover:bg-accent/50 ${
+                          index === activeIndex ? 'bg-accent neon-glow' : ''
+                        }`}
+                        onClick={() => handleSelectPlayer(rp)}
+                        data-testid={`autocomplete-option-${index}`}
+                      >
+                        {/* Player Face */}
+                        <div className="shrink-0 w-16 h-16">
+                          <PlayerFace
+                            pid={rp.player.pid}
+                            name={rp.player.name}
+                            imgURL={rp.player.imgURL ?? undefined}
+                            face={rp.player.face}
+                            size={64}
+                            hideName={true}
+                            player={rp.player}
+                            teams={leagueData.teams}
+                            sport={leagueData.sport}
+                          />
+                        </div>
 
-      {/* Roster list */}
-      <div className="flex-1 container max-w-4xl mx-auto px-4 py-6">
-        <div className="space-y-2">
-          {roster.map((rp, index) => (
-            <div
-              key={rp.player.pid}
-              className="flex items-center gap-4 p-3 rounded-lg bg-card border hover:bg-accent/50 transition-colors"
-              data-testid={`row-player-${index}`}
-            >
-              {/* Headshot */}
-              <div className="shrink-0 w-16 h-16 sm:w-20 sm:h-20">
-                <PlayerFace
-                  pid={rp.player.pid}
-                  name={rp.player.name}
-                  imgURL={rp.player.imgURL ?? undefined}
-                  face={rp.player.face}
-                  size={80}
-                  hideName={true}
-                  player={rp.player}
-                  teams={leagueData.teams}
-                  sport={leagueData.sport}
-                />
+                        {/* Player Name */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-lg font-medium truncate">
+                            {rp.player.name}
+                          </p>
+                        </div>
+
+                        {/* Select Button */}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectPlayer(rp);
+                          }}
+                          data-testid={`button-select-${index}`}
+                        >
+                          Select
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
               </div>
+            )}
+          </div>
 
-              {/* Name area */}
-              <div className="flex-1 min-w-0">
-                {rp.revealed ? (
-                  <p className="text-lg font-medium truncate">
-                    {rp.player.name}
-                  </p>
-                ) : (
-                  <div className="h-6 bg-muted rounded animate-pulse" style={{ width: '70%' }} />
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Bottom HUD */}
-      <div className="sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t">
-        <div className="container max-w-4xl mx-auto px-4 py-4">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            {/* Counter */}
-            <div className="text-lg font-semibold" data-testid="text-found-counter">
+          {/* Counter */}
+          <div className="mt-4 text-center">
+            <div className="text-2xl font-bold neon-text" data-testid="text-found-counter">
               Found {foundCount} / {roster.length}
             </div>
+          </div>
+        </div>
+      </div>
 
-            {/* Actions */}
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={handleNew}
-                data-testid="button-new-trivia"
+      {/* Roster Grid */}
+      <div className="flex-1 overflow-auto">
+        <div className="max-w-4xl mx-auto px-6 py-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {roster.map((rp, index) => (
+              <div
+                key={rp.player.pid}
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg border transition-all ${
+                  rp.revealed 
+                    ? 'bg-card neon-border-success' 
+                    : 'bg-card/50 border-border'
+                }`}
+                data-testid={`card-player-${index}`}
               >
-                <Shuffle className="h-4 w-4 mr-2" />
-                New
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={handleGiveUp}
-                disabled={foundCount === roster.length}
-                data-testid="button-give-up"
-              >
-                <Flag className="h-4 w-4 mr-2" />
-                Give Up
-              </Button>
-            </div>
+                {/* Headshot */}
+                <div className="w-20 h-20 sm:w-24 sm:h-24">
+                  <PlayerFace
+                    pid={rp.player.pid}
+                    name={rp.player.name}
+                    imgURL={rp.player.imgURL ?? undefined}
+                    face={rp.player.face}
+                    size={96}
+                    hideName={true}
+                    player={rp.player}
+                    teams={leagueData.teams}
+                    sport={leagueData.sport}
+                  />
+                </div>
+
+                {/* Name */}
+                <div className="w-full text-center min-h-[2.5rem] flex items-center justify-center">
+                  {rp.revealed ? (
+                    <p className="text-sm font-medium line-clamp-2">
+                      {rp.player.name}
+                    </p>
+                  ) : (
+                    <div className="w-full h-4 bg-muted rounded animate-pulse" />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Actions */}
+      <div className="sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t neon-border-subtle">
+        <div className="max-w-4xl mx-auto px-6 py-4">
+          <div className="flex justify-center gap-3">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={handleNew}
+              className="neon-button"
+              data-testid="button-new-trivia"
+            >
+              <Shuffle className="h-5 w-5 mr-2" />
+              New Team
+            </Button>
+            <Button
+              variant="destructive"
+              size="lg"
+              onClick={handleGiveUp}
+              disabled={foundCount === roster.length}
+              data-testid="button-give-up"
+            >
+              <Flag className="h-5 w-5 mr-2" />
+              Give Up
+            </Button>
           </div>
         </div>
       </div>
