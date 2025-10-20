@@ -460,7 +460,7 @@ export default function Home() {
     try {
       // Determine which method to use based on setting
       const method: ParsingMethod = parsingMethodSetting === 'auto' 
-        ? getRecommendedMethod() 
+        ? getRecommendedMethod(file.size) 
         : parsingMethodSetting;
       
       // Parse the league file with progress tracking and selected method
@@ -488,8 +488,10 @@ export default function Home() {
     
     try {
       // Determine which method to use based on setting
+      // For URL uploads, we don't have file size upfront, so pass null.
+      // getRecommendedMethod will default to 'traditional' on desktop if fileSize is null.
       const method: ParsingMethod = parsingMethodSetting === 'auto' 
-        ? getRecommendedMethod() 
+        ? getRecommendedMethod(null) 
         : parsingMethodSetting;
       
       // Parse the league URL with progress tracking and selected method
