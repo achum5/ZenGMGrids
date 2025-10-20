@@ -790,11 +790,17 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                       ref={(el) => {
                         if (el) tileRefs.current.set(rp.player.pid, el);
                       }}
-                      className={`relative flex flex-col items-center gap-1 p-1.5 sm:p-2 md:p-3 rounded-md sm:rounded-lg border transition-all cursor-help ${
+                      className={`relative flex flex-col items-center gap-1 p-1.5 sm:p-2 md:p-3 rounded-md sm:rounded-lg transition-all cursor-help ${
                         rp.revealed
-                          ? 'bg-gradient-to-br from-green-500/20 to-cyan-500/20 neon-border-success neon-glow-success shadow-lg shadow-green-500/50'
-                          : 'bg-card/50 border-border'
+                          ? 'neon-glow-success shadow-lg shadow-green-500/50'
+                          : ''
                       }`}
+                      style={{
+                        backgroundColor: rp.teamColors?.[1] || 'hsl(var(--card))',
+                        borderWidth: '2px',
+                        borderStyle: 'solid',
+                        borderColor: rp.teamColors?.[0] || 'hsl(var(--border))',
+                      }}
                       data-testid={`card-player-${index}`}
                     >
                       {/* Position Badge - Always visible */}
