@@ -20,17 +20,27 @@ Preferred communication style: Simple, everyday language.
 
 ### Client-Side Processing
 - **File Parsing**: Handles both .json and .json.gz BBGM league files with multiple upload methods
-  - **Auto (Recommended)**: Intelligent method selection based on device detection
+  - **Auto (Recommended)**: Intelligent method selection based on device detection (mobile → IndexedDB, desktop → Streaming)
   - **Traditional**: Universal compatibility, loads entire file into memory (may fail on very large files)
-  - **Streaming (Desktop)**: Uses DecompressionStream API for memory-efficient processing on desktop browsers
-  - **Mobile Streaming (Beta)**: Optimized for mobile with pako-based decompression, avoids DecompressionStream (which crashes on mobile Chrome)
+  - **Streaming**: Uses DecompressionStream API for memory-efficient processing on desktop browsers (iffy on mobile)
+  - **Mobile (IndexedDB)**: NEW - Streams data directly to IndexedDB in tiny batches, never materializes giant arrays in memory
+    - Handles files of ANY size on mobile (tested with 120MB compressed / 1.6GB decompressed / 53k players)
+    - Worker streams → IndexedDB with strict backpressure (max 400 items queued, 200 items per batch)
+    - Main thread reads from IndexedDB in chunks, processes achievements incrementally
+    - No cross-thread transfer of large objects (prevents structured clone crashes)
+    - Real GC windows with setTimeout delays for stable mobile performance
+  - **Mobile Streaming (Disabled)**: Old pako-based approach, had memory issues with very large files
 - **Compression**: Dual approach - DecompressionStream for desktop, Pako library for mobile compatibility
 - **Data Processing**: Normalizes BBGM data into searchable format with player/team indices
 - **Grid Generation**: Algorithmic generation of valid 3x3 team intersections with retry logic
-- **Mobile Optimization**: Special streaming implementation that uses chunked processing and periodic UI yielding to prevent browser freezes
+- **Mobile Optimization**: IndexedDB-based streaming prevents memory overflow on constrained mobile browsers
 
 ### Data Architecture
-- **In-Memory Storage**: All game data stored client-side in React state
+- **In-Memory Storage**: Game data stored client-side in React state (traditional/streaming methods)
+- **IndexedDB Storage**: NEW - Mobile (IndexedDB) method stores raw data in IndexedDB, processes on-demand
+  - Database: `grids-league` with stores for players, teams, and metadata
+  - Bounded memory usage: only 500-1000 players in memory at any time during processing
+  - Achievement calculation runs in chunks with yielding to prevent UI freezes
 - **Search Indices**: Pre-built searchable player arrays and lookup maps for performance
 - **Type Safety**: Comprehensive TypeScript interfaces for BBGM data structures
 
@@ -64,7 +74,8 @@ Preferred communication style: Simple, everyday language.
 
 - **UI Framework**: Radix UI primitives for accessible components
 - **Styling**: Tailwind CSS for utility-first styling
-- **File Processing**: Pako for gzip decompression
+- **File Processing**: Pako for gzip decompression, @streamparser/json-whatwg for streaming JSON parsing
+- **Client Storage**: idb (IndexedDB wrapper) for Mobile (IndexedDB) upload method
 - **State Management**: TanStack React Query for caching and data fetching patterns
 - **Icons**: Lucide React for consistent iconography
 - **Database**: Drizzle ORM with PostgreSQL support (configured but not actively used in current implementation)
