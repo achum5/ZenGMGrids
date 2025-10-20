@@ -11,7 +11,7 @@ const seasonLengthAchievements = new Set(['played15PlusSeasons']);
 
 /**
  * Randomly flip customizable achievement operators
- * 65% chance of staying >= (with +), 35% chance of flipping to ≤ (less than or equal)
+ * 50% chance of staying >= (with +), 50% chance of flipping to ≤ (less than or equal)
  * Uses the same formatting logic as the custom grid modal
  */
 function maybeFlipAchievementOperator(achievement: Achievement): Achievement {
@@ -22,8 +22,8 @@ function maybeFlipAchievementOperator(achievement: Achievement): Achievement {
     return achievement; // Not customizable, return as-is
   }
 
-  // 35% chance to flip to ≤ (less than or equal)
-  if (Math.random() < 0.35) {
+  // 50% chance to flip to ≤ (less than or equal)
+  if (Math.random() < 0.5) {
     // Use the same label formatting as the custom grid modal
     const flippedLabel = generateUpdatedLabel(parsed, parsed.number, '≤');
     
@@ -33,7 +33,7 @@ function maybeFlipAchievementOperator(achievement: Achievement): Achievement {
     };
   }
   
-  // 65% chance: return as-is with ≥ (greater than or equal)
+  // 50% chance: return as-is with ≥ (greater than or equal)
   return achievement;
 }
 
