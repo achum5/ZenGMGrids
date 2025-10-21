@@ -973,7 +973,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                                     player={player}
                                     teams={leagueData.teams}
                                     sport={leagueData.sport}
-                                    season={selectedSeason || undefined}
+                                    season={player.stats?.some(s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid) ? selectedSeason : null}
                                   />
                                 </div>
   

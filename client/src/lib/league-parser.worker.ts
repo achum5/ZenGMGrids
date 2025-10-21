@@ -36,7 +36,7 @@ async function parseFileTraditional(file: File): Promise<any> {
 }
 
 // TRUE streaming method - process data incrementally like ZenGM
-// Parse specific paths and build object piece-by-piece without creating full object in memory
+// Parse individual items, never materialize giant arrays in memory
 async function parseFileStreaming(file: File): Promise<any> {
   const isCompressed = file.name.endsWith('.gz');
   
@@ -57,30 +57,30 @@ async function parseFileStreaming(file: File): Promise<any> {
   
   postProgress('Parsing league data...', 20, 100);
   
-  // Parse all major sections incrementally using streaming JSON parser
-  // This captures metadata and large arrays at specific paths
+  // CRITICAL: Use wildcard paths to get INDIVIDUAL items, not entire arrays
+  // This is how ZenGM avoids memory issues - process items one-by-one
   const jsonParser = new JSONParser({ 
     paths: [
       '$.version',
       '$.startingSeason', 
       '$.gameAttributes',
-      '$.players',
-      '$.teams',
-      '$.teamSeasons',
-      '$.teamStats',
-      '$.games',
-      '$.schedule',
-      '$.playoffSeries',
-      '$.draftPicks',
-      '$.draftOrder',
-      '$.negotiations',
-      '$.messages',
-      '$.events',
-      '$.playerFeats',
-      '$.allStars',
-      '$.awards',
-      '$.releasedPlayers',
-      '$.scheduledEvents',
+      '$.players.*',        // Individual players, not entire array
+      '$.teams.*',          // Individual teams, not entire array
+      '$.teamSeasons.*',
+      '$.teamStats.*',
+      '$.games.*',
+      '$.schedule.*',
+      '$.playoffSeries.*',
+      '$.draftPicks.*',
+      '$.draftOrder.*',
+      '$.negotiations.*',
+      '$.messages.*',
+      '$.events.*',
+      '$.playerFeats.*',
+      '$.allStars.*',
+      '$.awards.*',
+      '$.releasedPlayers.*',
+      '$.scheduledEvents.*',
       '$.trade',
       '$.meta'
     ],
@@ -90,12 +90,12 @@ async function parseFileStreaming(file: File): Promise<any> {
   const jsonStream = dataStream.pipeThrough(jsonParser);
   const reader = jsonStream.getReader();
   
-  // Build result object incrementally
+  // Build result object incrementally - arrays are built item-by-item
   const result: any = {};
   let itemCount = 0;
+  let playerCount = 0;
+  let teamCount = 0;
   let currentSection = '';
-  let playersProcessed = false;
-  let teamsProcessed = false;
   
   try {
     while (true) {
@@ -112,26 +112,54 @@ async function parseFileStreaming(file: File): Promise<any> {
         const pathArray = keyString ? keyString.split('.').filter(Boolean) : [];
         const topLevelKey = pathArray[0];
         
-        if (topLevelKey) {
-          // Track what section we're processing and show user-friendly messages
-          if (currentSection !== topLevelKey) {
-            currentSection = topLevelKey;
+        if (!topLevelKey) continue;
+        
+        // Check if this is an array item (has numeric index)
+        const isArrayItem = pathArray.length > 1 && /^\d+$/.test(pathArray[1]);
+        
+        if (isArrayItem) {
+          // Initialize array if needed
+          if (!result[topLevelKey]) {
+            result[topLevelKey] = [];
             
-            // User-friendly progress messages
-            if (topLevelKey === 'players' && !playersProcessed) {
+            // Show progress message when starting a new section
+            if (topLevelKey === 'players') {
+              currentSection = 'players';
               postProgress('Processing players...', 25, 100);
-              playersProcessed = true;
-            } else if (topLevelKey === 'teams' && !teamsProcessed) {
+            } else if (topLevelKey === 'teams') {
+              currentSection = 'teams';
               postProgress('Processing teams...', 40, 100);
-              teamsProcessed = true;
-            } else if (topLevelKey === 'gameAttributes') {
-              postProgress('Loading league settings...', 30, 100);
             }
           }
           
-          // Store the value at the appropriate key
-          result[topLevelKey] = value.value;
+          // Add item to array
+          result[topLevelKey].push(value.value);
           itemCount++;
+          
+          // Track counts and update progress
+          if (topLevelKey === 'players') {
+            playerCount++;
+            if (playerCount % 1000 === 0) {
+              const pct = Math.min(38, 25 + Math.floor(playerCount / 1000));
+              postProgress(`Processed ${playerCount.toLocaleString()} players...`, pct, 100);
+            }
+          } else if (topLevelKey === 'teams') {
+            teamCount++;
+            if (teamCount % 10 === 0) {
+              postProgress(`Processed ${teamCount} teams...`, 42, 100);
+            }
+          }
+          
+          // Yield to event loop periodically to prevent blocking
+          if (itemCount % 100 === 0) {
+            await new Promise(resolve => setTimeout(resolve, 0));
+          }
+        } else {
+          // Scalar values (version, gameAttributes, etc.)
+          if (topLevelKey === 'gameAttributes') {
+            postProgress('Loading league settings...', 22, 100);
+          }
+          result[topLevelKey] = value.value;
         }
       }
     }
@@ -173,29 +201,29 @@ async function parseUrlStreaming(url: string): Promise<any> {
   
   postProgress('Parsing league data...', 20, 100);
   
-  // Use EXACT same streaming JSON parser as files
+  // CRITICAL: Use wildcard paths to get INDIVIDUAL items, not entire arrays
   const jsonParser = new JSONParser({ 
     paths: [
       '$.version',
       '$.startingSeason', 
       '$.gameAttributes',
-      '$.players',
-      '$.teams',
-      '$.teamSeasons',
-      '$.teamStats',
-      '$.games',
-      '$.schedule',
-      '$.playoffSeries',
-      '$.draftPicks',
-      '$.draftOrder',
-      '$.negotiations',
-      '$.messages',
-      '$.events',
-      '$.playerFeats',
-      '$.allStars',
-      '$.awards',
-      '$.releasedPlayers',
-      '$.scheduledEvents',
+      '$.players.*',        // Individual players, not entire array
+      '$.teams.*',          // Individual teams, not entire array
+      '$.teamSeasons.*',
+      '$.teamStats.*',
+      '$.games.*',
+      '$.schedule.*',
+      '$.playoffSeries.*',
+      '$.draftPicks.*',
+      '$.draftOrder.*',
+      '$.negotiations.*',
+      '$.messages.*',
+      '$.events.*',
+      '$.playerFeats.*',
+      '$.allStars.*',
+      '$.awards.*',
+      '$.releasedPlayers.*',
+      '$.scheduledEvents.*',
       '$.trade',
       '$.meta'
     ],
@@ -205,10 +233,11 @@ async function parseUrlStreaming(url: string): Promise<any> {
   const jsonStream = dataStream.pipeThrough(jsonParser);
   const reader = jsonStream.getReader();
   
-  // Build result object incrementally (same as files)
+  // Build result object incrementally - arrays are built item-by-item
   const result: any = {};
   let itemCount = 0;
-  let currentSection = '';
+  let playerCount = 0;
+  let teamCount = 0;
   
   try {
     while (true) {
@@ -225,24 +254,52 @@ async function parseUrlStreaming(url: string): Promise<any> {
         const pathArray = keyString ? keyString.split('.').filter(Boolean) : [];
         const topLevelKey = pathArray[0];
         
-        if (topLevelKey) {
-          // Track what section we're processing with user-friendly messages
-          if (currentSection !== topLevelKey) {
-            currentSection = topLevelKey;
+        if (!topLevelKey) continue;
+        
+        // Check if this is an array item (has numeric index)
+        const isArrayItem = pathArray.length > 1 && /^\d+$/.test(pathArray[1]);
+        
+        if (isArrayItem) {
+          // Initialize array if needed
+          if (!result[topLevelKey]) {
+            result[topLevelKey] = [];
             
-            // User-friendly progress messages
+            // Show progress message when starting a new section
             if (topLevelKey === 'players') {
               postProgress('Processing players...', 25, 100);
             } else if (topLevelKey === 'teams') {
               postProgress('Processing teams...', 40, 100);
-            } else if (topLevelKey === 'gameAttributes') {
-              postProgress('Loading league settings...', 30, 100);
             }
           }
           
-          // Store the value at the appropriate key
-          result[topLevelKey] = value.value;
+          // Add item to array
+          result[topLevelKey].push(value.value);
           itemCount++;
+          
+          // Track counts and update progress
+          if (topLevelKey === 'players') {
+            playerCount++;
+            if (playerCount % 1000 === 0) {
+              const pct = Math.min(38, 25 + Math.floor(playerCount / 1000));
+              postProgress(`Processed ${playerCount.toLocaleString()} players...`, pct, 100);
+            }
+          } else if (topLevelKey === 'teams') {
+            teamCount++;
+            if (teamCount % 10 === 0) {
+              postProgress(`Processed ${teamCount} teams...`, 42, 100);
+            }
+          }
+          
+          // Yield to event loop periodically to prevent blocking
+          if (itemCount % 100 === 0) {
+            await new Promise(resolve => setTimeout(resolve, 0));
+          }
+        } else {
+          // Scalar values (version, gameAttributes, etc.)
+          if (topLevelKey === 'gameAttributes') {
+            postProgress('Loading league settings...', 22, 100);
+          }
+          result[topLevelKey] = value.value;
         }
       }
     }
