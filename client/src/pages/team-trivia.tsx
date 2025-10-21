@@ -349,8 +349,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         const rpStats = rp.player.stats?.find(
           s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
         );
-        const leaderTackles = (leaderStats as any)?.defTck || 0;
-        const rpTackles = (rpStats as any)?.defTck || 0;
+        const leaderTackles = ((leaderStats as any)?.defTckSolo || 0) + ((leaderStats as any)?.defTckAst || 0);
+        const rpTackles = ((rpStats as any)?.defTckSolo || 0) + ((rpStats as any)?.defTckAst || 0);
         return rpTackles > leaderTackles ? rp : leader;
       });
 
