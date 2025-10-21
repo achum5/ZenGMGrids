@@ -54,6 +54,8 @@ interface RosterPlayer {
     ppg: number;
     rpg: number;
     apg: number;
+    spg: number;
+    bpg: number;
   };
   advancedStats: {
     fgp: number;
@@ -602,6 +604,10 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         const totalReb = seasonStats.trb || ((seasonStats.orb || 0) + (seasonStats.drb || 0));
         const rpg = totalReb / gp;
         const apg = seasonStats.ast ? seasonStats.ast / gp : 0;
+        const stl = seasonStats.stl || 0;
+        const blk = seasonStats.blk || 0;
+        const spg = stl / gp;
+        const bpg = blk / gp;
 
         // Calculate advanced stats
         const fg = seasonStats.fg || 0;
@@ -622,8 +628,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
 
         // Simplified PER calculation (actual PER is very complex)
         // Using a basic approximation: (PTS + REB + AST + STL + BLK - Missed FG - Missed FT - TO) / GP
-        const stl = seasonStats.stl || 0;
-        const blk = seasonStats.blk || 0;
         const missedFG = fga - fg;
         const missedFT = fta - ft;
         // Note: turnover data might not be in stats, so we'll use a simplified version
@@ -645,7 +649,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
           revealed: false,
           hintShown: false,
           gamesPlayed: seasonStats.gp,
-          stats: { ppg, rpg, apg },
+          stats: { ppg, rpg, apg, spg, bpg },
           advancedStats: { fgp, tpp, ftp, ts, per },
           position,
           jerseyNumber,
@@ -1603,8 +1607,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                         }
                         return null;
                       })()}
-                      <p>P/R/A:</p>
-                      <p>{rp.stats.ppg.toFixed(1)}/{rp.stats.rpg.toFixed(1)}/{rp.stats.apg.toFixed(1)}</p>
+                      <p>P/R/A/S/B:</p>
+                      <p>{rp.stats.ppg.toFixed(1)}/{rp.stats.rpg.toFixed(1)}/{rp.stats.apg.toFixed(1)}/{rp.stats.spg.toFixed(1)}/{rp.stats.bpg.toFixed(1)}</p>
                       <p>Splits: {rp.advancedStats.fgp.toFixed(1)}%/{rp.advancedStats.tpp.toFixed(1)}%/{rp.advancedStats.ftp.toFixed(1)}%</p>
                       <p>PER: {rp.advancedStats.per.toFixed(1)}</p>
                       <p>TS%: {rp.advancedStats.ts.toFixed(1)}%</p>
