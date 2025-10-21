@@ -958,25 +958,21 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                       variant="ghost"
                       role="combobox"
                       aria-expanded={teamDropdownOpen}
-                      className="flex items-center gap-1 sm:gap-2 hover:bg-accent/50 px-2 sm:px-3 py-1 sm:py-2 h-8 sm:h-auto animate-on-click min-w-0"
+                      className="flex items-center gap-2 sm:gap-3 hover:bg-accent/50 px-2 sm:px-4 py-1 sm:py-2 h-8 sm:h-auto animate-on-click min-w-0"
                       data-testid="button-team-dropdown"
                     >
+                      <ChevronDown className="h-3 w-3 sm:h-5 sm:w-5 shrink-0" />
                       {(teamDisplayInfo.logo || selectedTeam?.imgURL) ? (
                         <img
                           src={teamDisplayInfo.logo || selectedTeam?.imgURL}
                           alt={teamDisplayInfo.name}
-                          className="h-6 w-6 sm:h-10 sm:w-10 object-contain shrink-0"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                          }}
+                          className="h-8 w-8 sm:h-10 sm:w-10 object-contain shrink-0"
                         />
                       ) : (
-                        <span className="text-lg sm:text-2xl md:text-3xl font-bold neon-text truncate">
+                        <span className="text-base sm:text-lg md:text-xl font-bold neon-text truncate">
                           {teamDisplayInfo.name}
                         </span>
                       )}
-                      <ChevronDown className="h-3 w-3 sm:h-5 sm:w-5 ml-1 sm:ml-2 shrink-0" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[300px] p-0" align="center">
