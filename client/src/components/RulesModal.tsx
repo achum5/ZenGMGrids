@@ -201,10 +201,10 @@ export function RulesModal({ sport }: RulesModalProps) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" data-testid="button-rules">
+        <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-9 px-3" data-testid="button-rules">
           <HelpCircle className="h-[1.2rem] w-[1.2rem] ml-[3px]" />
           <span className="sr-only">Rules</span>
-        </Button>
+        </button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[85vh] sm:max-h-[80vh] overflow-y-auto">
         <DialogHeader>
