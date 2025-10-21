@@ -57,7 +57,7 @@ function isMobile(): boolean {
  */
 export async function readAndNormalizePlayers(
   onProgress?: (message: string) => void
-): Promise<{ players: Player[]; sport: Sport; gameAttributes: any }> {
+): Promise<{ players: Player[]; sport: Sport; gameAttributes: any; minSeason: number; maxSeason: number }> {
   const db = await openLeagueDB();
   const mobile = isMobile();
   
@@ -221,7 +221,7 @@ export async function readAndNormalizePlayers(
       }
     }
     
-    return { players, sport, gameAttributes };
+    return { players, sport, gameAttributes, minSeason, maxSeason };
     
   } finally {
     db.close();
@@ -290,7 +290,7 @@ export async function processLeagueFromIDB(
     onProgress?.('Reading from database...');
     
     // Read players, teams, and teamSeasons in parallel
-    const [{ players, sport, gameAttributes }, teams, teamSeasons] = await Promise.all([
+    const [{ players, sport, gameAttributes, minSeason, maxSeason }, teams, teamSeasons] = await Promise.all([
       readAndNormalizePlayers(onProgress),
       readTeams(),
       readTeamSeasons()
@@ -301,16 +301,7 @@ export async function processLeagueFromIDB(
     // Set sport detection cache
     setCachedSportDetection(sport);
     
-    // Calculate league years
-    let minSeason = 2023, maxSeason = 2023;
-    for (const player of players) {
-      for (const stat of player.stats || []) {
-        if (!stat.playoffs && stat.season) {
-          if (stat.season < minSeason) minSeason = stat.season;
-          if (stat.season > maxSeason) maxSeason = stat.season;
-        }
-      }
-    }
+    // League years already calculated during reading
     const leagueYears = { minSeason, maxSeason };
     
     onProgress?.('Calculating player achievements...');
@@ -318,8 +309,10 @@ export async function processLeagueFromIDB(
     const leadershipMap = calculateLeagueLeadership(players, gameAttributes);
     const playerFeats: any[] = []; // We don't store feats in IDB yet
     
-    // Process achievements in chunks to avoid UI freeze
-    const CHUNK_SIZE = 500;
+    const mobile = isMobile();
+    
+    // MOBILE FIX: Process achievements in smaller chunks with more frequent yields
+    const CHUNK_SIZE = mobile ? 100 : 500; // Much smaller on mobile
     for (let i = 0; i < players.length; i += CHUNK_SIZE) {
       const chunk = players.slice(i, i + CHUNK_SIZE);
       
@@ -328,16 +321,16 @@ export async function processLeagueFromIDB(
         calculateTeamSeasonsAndAchievementSeasons(player, leadershipMap, gameAttributes);
       }
       
-      if (i % 2000 === 0 && i > 0) {
+      if (i % 1000 === 0 && i > 0) {
         onProgress?.(`Processing achievements (${i.toLocaleString()} of ${players.length.toLocaleString()} players)...`);
       }
       
-      // Yield to prevent UI freeze
-      await new Promise(resolve => setTimeout(resolve, 0));
+      // Yield to prevent UI freeze - more frequently on mobile
+      await new Promise(resolve => setTimeout(resolve, mobile ? 5 : 0));
     }
     
     onProgress?.('Building team overlaps...');
-    const teamOverlaps = analyzeTeamOverlaps(players, teams);
+    const teamOverlaps = await analyzeTeamOverlaps(players, teams, mobile);
     
     // Build season index if applicable
     let seasonIndex: SeasonIndex | undefined;

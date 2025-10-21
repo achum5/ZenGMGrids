@@ -100,7 +100,7 @@ export function detectSport(raw: any): Sport {
 }
 
 // Analyze which team combinations have shared players and team-achievement viability
-export function analyzeTeamOverlaps(players: Player[], teams: Team[]): TeamOverlapData {
+export async function analyzeTeamOverlaps(players: Player[], teams: Team[], mobile: boolean = false): Promise<TeamOverlapData> {
   const teamPlayerCounts: Record<number, number> = {};
   const teamPairCounts: Record<string, number> = {};
   const teamAchievementMatrix: Record<string, Set<number>> = {};
@@ -128,33 +128,44 @@ export function analyzeTeamOverlaps(players: Player[], teams: Team[]): TeamOverl
     achievementTeamCounts[id] = 0;
   });
   
-  players.forEach(player => {
-    const playerTeams = Array.from(player.teamsPlayed);
+  // MOBILE FIX: Process in chunks with yields to prevent freeze
+  const CHUNK_SIZE = mobile ? 500 : 5000;
+  for (let i = 0; i < players.length; i += CHUNK_SIZE) {
+    const chunk = players.slice(i, i + CHUNK_SIZE);
     
-    // Count players per team
-    playerTeams.forEach(tid => {
-      teamPlayerCounts[tid] = (teamPlayerCounts[tid] || 0) + 1;
-    });
-    
-    // Track which teams have players with each achievement
-    achievementIds.forEach(achievementId => {
-      if ((player.achievements as any)?.[achievementId]) {
-        playerTeams.forEach(tid => {
-          teamAchievementMatrix[achievementId].add(tid);
-        });
+    chunk.forEach(player => {
+      const playerTeams = Array.from(player.teamsPlayed);
+      
+      // Count players per team
+      playerTeams.forEach(tid => {
+        teamPlayerCounts[tid] = (teamPlayerCounts[tid] || 0) + 1;
+      });
+      
+      // Track which teams have players with each achievement
+      achievementIds.forEach(achievementId => {
+        if ((player.achievements as any)?.[achievementId]) {
+          playerTeams.forEach(tid => {
+            teamAchievementMatrix[achievementId].add(tid);
+          });
+        }
+      });
+      
+      // Count shared players between team pairs
+      for (let i = 0; i < playerTeams.length; i++) {
+        for (let j = i + 1; j < playerTeams.length; j++) {
+          const teamA = Math.min(playerTeams[i], playerTeams[j]);
+          const teamB = Math.max(playerTeams[i], playerTeams[j]);
+          const pairKey = `${teamA}|${teamB}`;
+          teamPairCounts[pairKey] = (teamPairCounts[pairKey] || 0) + 1;
+        }
       }
     });
     
-    // Count shared players between team pairs
-    for (let i = 0; i < playerTeams.length; i++) {
-      for (let j = i + 1; j < playerTeams.length; j++) {
-        const teamA = Math.min(playerTeams[i], playerTeams[j]);
-        const teamB = Math.max(playerTeams[i], playerTeams[j]);
-        const pairKey = `${teamA}|${teamB}`;
-        teamPairCounts[pairKey] = (teamPairCounts[pairKey] || 0) + 1;
-      }
+    // Yield on mobile to prevent freeze
+    if (mobile && i > 0) {
+      await new Promise(resolve => setTimeout(resolve, 5));
     }
-  });
+  }
   
   // Calculate team counts per achievement
   achievementIds.forEach(id => {
@@ -319,7 +330,7 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
     });
 
     postProgress('Analyzing team overlaps...');
-    const teamOverlaps = analyzeTeamOverlaps(players, teams);
+    const teamOverlaps = await analyzeTeamOverlaps(players, teams);
 
     let seasonIndex: SeasonIndex | undefined;
     const uniqueSeasons = new Set(players.flatMap(p => p.stats?.filter(s => !s.playoffs).map(s => s.season) || []));
