@@ -225,12 +225,10 @@ export async function readTeamSeasons(): Promise<any[]> {
     const store = tx.objectStore('teamSeasons');
     const teamSeasons = await store.getAll();
     await tx.done;
-    
-    console.log('[IDB Reader] Read teamSeasons from IDB:', teamSeasons.length, 'records');
+
     return teamSeasons;
   } catch (error) {
     // teamSeasons store may not exist in older database versions
-    console.warn('[IDB Reader] Could not read teamSeasons (may not exist):', error);
     return [];
   } finally {
     db.close();
@@ -252,9 +250,7 @@ export async function processLeagueFromIDB(
       readTeams(),
       readTeamSeasons()
     ]);
-    
-    console.log('[IDB Reader] Returning data with teamSeasons:', teamSeasons.length, 'records');
-    
+
     // Set sport detection cache
     setCachedSportDetection(sport);
     
