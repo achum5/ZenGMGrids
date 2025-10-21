@@ -418,6 +418,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         // Exclude already-revealed players from current roster
         if (revealedPids.has(player.pid)) return false;
 
+        // Only include players with face data
+        if (!player.face) return false;
+
         const normalizedName = normalizeName(player.name);
         return normalizedName.includes(normalizedGuess);
       })
@@ -1038,9 +1041,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     }}
                     data-testid={`card-player-${index}`}
                   >
-                  {/* Position Badge - Always visible */}
-                  <div className="absolute top-0.5 left-0.5 text-primary-foreground text-[0.5rem] sm:text-xs font-bold px-0.5 sm:px-1.5 py-0.5 rounded z-10"
-                    style={{ backgroundColor: rp.teamColors?.[0] || 'hsl(var(--primary))' }}>
+                  <div className="absolute top-0.5 left-0.5 text-[0.5rem] sm:text-xs font-bold px-0.5 sm:px-1.5 py-0.5 rounded z-10"
+                    style={{ backgroundColor: rp.teamColors?.[0] || 'hsl(var(--primary))', color: rp.teamColors?.[1] || 'hsl(var(--primary-foreground))' }}>
                     {rp.position}
                   </div>
   
@@ -1127,6 +1129,18 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                       </p>
                     )}
                   </div>
+
+                  {/* Player Stats - Show only when round is complete */}
+                  {currentRound === 'complete' && (
+                    <div className="w-full text-center text-[0.45rem] sm:text-[0.6rem] md:text-[0.7rem] leading-tight mt-1"
+                      style={{ color: rp.teamColors?.[0] || 'hsl(var(--foreground))' }}>
+                      <p>P/R/A:</p>
+                      <p>{rp.stats.ppg.toFixed(1)}/{rp.stats.rpg.toFixed(1)}/{rp.stats.apg.toFixed(1)}</p>
+                      <p>Splits: {rp.advancedStats.fgp.toFixed(1)}%/{rp.advancedStats.tpp.toFixed(1)}%/{rp.advancedStats.ftp.toFixed(1)}%</p>
+                      <p>PER: {rp.advancedStats.per.toFixed(1)}</p>
+                      <p>TS%: {rp.advancedStats.ts.toFixed(1)}%</p>
+                    </div>
+                  )}
                 </div>
                 );
               })}
