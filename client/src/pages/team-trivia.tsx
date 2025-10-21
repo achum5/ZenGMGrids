@@ -117,6 +117,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   const [activeIndex, setActiveIndex] = useState(-1);
   const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
   const [teamDropdownOpen, setTeamDropdownOpen] = useState(false);
+  const [triggerBounceAnimation, setTriggerBounceAnimation] = useState(false); // New state for animation
+  const [tileAnimations, setTileAnimations] = useState<Record<number, string>>({}); // New state for tile animations
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<HTMLDivElement>(null);
   const tileRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -619,6 +621,12 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         setRoster(prev => prev.map(rp => ({ ...rp, revealed: true })));
         setFoundCount(roster.length);
       }
+
+      // Trigger bounce animation for leader rounds
+      if (nextRound.endsWith('-leader')) {
+        setTriggerBounceAnimation(true);
+        setTimeout(() => setTriggerBounceAnimation(false), 1000); // Reset after animation
+      }
     }
   }, [currentRound, roster.length]);
 
@@ -658,15 +666,25 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       });
       setScore(prev => prev + 5); // Award 5 points for correct leader
       triggerConfetti(pid);
+
+      // Apply success animation
+      setTileAnimations(prev => ({ ...prev, [pid]: 'animate-tile-success' }));
       setTimeout(() => {
+        setTileAnimations(prev => ({ ...prev, [pid]: '' })); // Clear animation class
         handleNextRound();
-      }, 1000);
+      }, 1000); // Wait for animation to finish before advancing
     } else {
-      // Incorrect - show feedback
+      // Incorrect - show feedback and shake animation
       toast({
         description: 'Incorrect. Try again!',
         variant: 'destructive',
       });
+      // Apply shake animation
+      setTileAnimations(prev => ({ ...prev, [pid]: 'animate-tile-shake' }));
+      setTimeout(() => {
+        setTileAnimations(prev => ({ ...prev, [pid]: '' })); // Clear animation class
+        handleNextRound(); // Advance round after incorrect guess animation
+      }, 500); // Shake animation duration
     }
   }, [currentRound, statLeaders, toast, triggerConfetti, handleNextRound]);
 
@@ -725,7 +743,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                 {hasProgress ? (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="sm" data-testid="button-back" style={{ color: selectedTeam?.colors?.[0] || 'hsl(var(--primary-foreground))' }}>
+                      <Button variant="ghost" size="sm" data-testid="button-back" style={{ color: selectedTeam?.colors?.[0] || 'hsl(var(--primary-foreground))' }} className="animate-on-click">
                         <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
                         <span className="sr-only">Go back</span>
                       </Button>
@@ -739,17 +757,17 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={onBackToModeSelect}>Go Back</AlertDialogAction>
+                        <AlertDialogAction onClick={onBackToModeSelect} className="animate-on-click">Go Back</AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
                 ) : (
-                  <Button variant="ghost" size="sm" onClick={onBackToModeSelect} data-testid="button-back" style={{ color: selectedTeam?.colors?.[0] || 'hsl(var(--primary-foreground))' }}>
+                  <Button variant="ghost" size="sm" onClick={onBackToModeSelect} data-testid="button-back" style={{ color: selectedTeam?.colors?.[0] || 'hsl(var(--primary-foreground))' }} className="animate-on-click">
                     <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
                     <span className="sr-only">Go back</span>
                   </Button>
                 )}
-                              <Button variant="ghost" size="sm" onClick={onGoHome} data-testid="button-home" style={{ color: selectedTeam?.colors?.[0] || 'hsl(var(--primary-foreground))' }}>
+                              <Button variant="ghost" size="sm" onClick={onGoHome} data-testid="button-home" style={{ color: selectedTeam?.colors?.[0] || 'hsl(var(--primary-foreground))' }} className="animate-on-click">
                                 <HomeIcon className="h-[1.2rem] w-[1.2rem]" />
                                 <span className="sr-only">Go home</span>
                               </Button>              </div>
@@ -771,7 +789,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                       variant="outline"
                       role="combobox"
                       aria-expanded={yearDropdownOpen}
-                      className="text-2xl sm:text-3xl font-bold neon-text px-4 py-6"
+                      className="text-2xl sm:text-3xl font-bold neon-text px-4 py-6 animate-on-click"
                       data-testid="button-year-dropdown"
                     >
                       <ChevronDown className="mr-2 h-5 w-5" />
@@ -814,7 +832,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                       variant="ghost"
                       role="combobox"
                       aria-expanded={teamDropdownOpen}
-                      className="flex items-center gap-3 hover:bg-accent/50 px-4 py-6"
+                      className="flex items-center gap-3 hover:bg-accent/50 px-4 py-6 animate-on-click"
                       data-testid="button-team-dropdown"
                     >
                       {teamDisplayInfo.logo ? (
@@ -955,10 +973,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                                 </div>
   
                                 <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="shrink-0"
-                                  onClick={(e) => {
+                                                              size="sm"
+                                                              variant="outline"
+                                                              className="shrink-0 animate-on-click"                                  onClick={(e) => {
                                     e.stopPropagation();
                                     handleSelectPlayer(player);
                                   }}
@@ -978,7 +995,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                 {/* Show prompt during leader rounds */}
                 {currentRound.endsWith('-leader') && (
                   <div className="text-center py-6">
-                    <p className="text-2xl font-bold text-white">
+                    <p className={`text-2xl font-bold text-white ${triggerBounceAnimation ? 'animate-bounce-once' : ''}`}>
                       {currentRound === 'points-leader' && 'Click on the Team Points Leader'}
                       {currentRound === 'rebounds-leader' && 'Click on the Team Rebounds Leader'}
                       {currentRound === 'assists-leader' && 'Click on the Team Assists Leader'}
@@ -1012,7 +1029,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                       rp.revealed
                         ? 'neon-glow-success shadow-lg shadow-green-500/50'
                         : ''
-                    }`}
+                    } ${tileAnimations[rp.player.pid] || ''}`}
                     style={{
                       backgroundColor: rp.teamColors?.[1] || 'hsl(var(--card))',
                       borderWidth: '2px',
@@ -1055,6 +1072,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                       teams={leagueData.teams}
                       sport={leagueData.sport}
                       season={selectedSeason || undefined}
+                      scale={1.1}
                     />
                   </div>
   
@@ -1125,7 +1143,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                 variant="outline"
                 size="lg"
                 onClick={handleNew}
-                className="neon-button"
+                className="neon-button animate-on-click"
                 data-testid="button-new-trivia"
               >
                 <Shuffle className="h-5 w-5 mr-2" />
@@ -1138,8 +1156,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                   variant="default"
                   size="lg"
                   onClick={handleNextRound}
-                  className="neon-button"
+                  className="neon-button animate-on-click"
                   data-testid="button-next-round"
+                  disabled={currentRound.endsWith('-leader')}
                 >
                   Next Round
                   <ArrowRight className="h-5 w-5 ml-2" />

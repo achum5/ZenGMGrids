@@ -74,13 +74,13 @@
   --chart-3: hsl(42.0290, 92.8251%, 56.2745%);
   --chart-4: hsl(147.1429, 78.5047%, 41.9608%);
   --chart-5: hsl(341.4894, 75.2000%, 50.9804%);
-  --sidebar: hsl(220, 13%, 18%);
-  --sidebar-foreground: hsl(0, 0%, 92%);
-  --sidebar-primary: hsl(202.8169, 89.1213%, 53.1373%);
+  --sidebar: hsl(180, 6.6667%, 97.0588%);
+  --sidebar-foreground: hsl(210, 25%, 7.8431%);
+  --sidebar-primary: hsl(203.8863, 88.2845%, 53.1373%);
   --sidebar-primary-foreground: hsl(0, 0%, 100%);
-  --sidebar-accent: hsl(220, 13%, 28%);
-  --sidebar-accent-foreground: hsl(0, 0%, 95%);
-  --sidebar-border: hsl(220, 13%, 30%);
+  --sidebar-accent: hsl(211.5789, 51.3514%, 92.7451%);
+  --sidebar-accent-foreground: hsl(203.8863, 88.2845%, 53.1373%);
+  --sidebar-border: hsl(205.0000, 25.0000%, 90.5882%);
   --sidebar-ring: hsl(202.8169, 89.1213%, 53.1373%);
   --font-sans: Inter, system-ui, sans-serif;
   --font-serif: Georgia, serif;
@@ -121,13 +121,13 @@
   --chart-3: hsl(42.0290, 92.8251%, 56.2745%);
   --chart-4: hsl(147.1429, 78.5047%, 41.9608%);
   --chart-5: hsl(341.4894, 75.2000%, 50.9804%);
-  --sidebar: hsl(220, 13%, 18%);
-  --sidebar-foreground: hsl(0, 0%, 92%);
-  --sidebar-primary: hsl(202.8169, 89.1213%, 53.1373%);
+  --sidebar: hsl(180, 6.6667%, 97.0588%);
+  --sidebar-foreground: hsl(210, 25%, 7.8431%);
+  --sidebar-primary: hsl(203.8863, 88.2845%, 53.1373%);
   --sidebar-primary-foreground: hsl(0, 0%, 100%);
-  --sidebar-accent: hsl(220, 13%, 28%);
-  --sidebar-accent-foreground: hsl(0, 0%, 95%);
-  --sidebar-border: hsl(220, 13%, 30%);
+  --sidebar-accent: hsl(211.5789, 51.3514%, 92.7451%);
+  --sidebar-accent-foreground: hsl(203.8863, 88.2845%, 53.1373%);
+  --sidebar-border: hsl(205.0000, 25.0000%, 90.5882%);
   --sidebar-ring: hsl(202.8169, 89.1213%, 53.1373%);
   --font-sans: Inter, system-ui, sans-serif;
   --font-serif: Georgia, serif;
@@ -515,8 +515,12 @@
 }
 
 @keyframes sparkle-flicker {
-  0%, 100% { opacity: 0; transform: scale(0.5); }
-  50% { opacity: 1; transform: scale(1); }
+  0%, 100% {
+    opacity: 0; transform: scale(0.5);
+  }
+  50% {
+    opacity: 1; transform: scale(1);
+  }
 }
 
 .sparkle-dot {
@@ -530,8 +534,12 @@
 }
 
 @keyframes glow-bloom {
-  0% { box-shadow: 0 0 0px rgba(255, 255, 255, 0); }
-  100% { box-shadow: 0 0 var(--glow-radius, 18px) rgba(255, 255, 255, 0.4); opacity: 0; }
+  0% {
+    box-shadow: 0 0 0px rgba(255, 255, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 var(--glow-radius, 18px) rgba(255, 255, 255, 0.4); opacity: 0;
+  }
 }
 
 .glow-effect {
@@ -543,8 +551,12 @@
 }
 
 @keyframes shimmer-lines {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 .shimmer-effect {
@@ -558,8 +570,12 @@
 }
 
 @keyframes spark-burst {
-  0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
-  100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+  0% {
+    transform: translate(-50%, -50%) scale(0); opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2); opacity: 0;
+  }
 }
 
 .spark-burst-effect {
@@ -577,8 +593,12 @@
 }
 
 @keyframes ring-pulse {
-  0% { transform: scale(0.5); opacity: var(--ring-opacity, 0.32); border-width: 2px; }
-  100% { transform: scale(var(--ring-end-scale, 1.5)); opacity: 0; border-width: 0px; }
+  0% {
+    transform: scale(0.5); opacity: var(--ring-opacity, 0.32); border-width: 2px;
+  }
+  100% {
+    transform: scale(var(--ring-end-scale, 1.5)); opacity: 0; border-width: 0px;
+  }
 }
 
 .ring-pulse-effect {
@@ -592,8 +612,12 @@
 }
 
 @keyframes continuous-shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 .continuous-shimmer-effect {
@@ -607,9 +631,15 @@
 }
 
 @keyframes aura-rotate {
-  0% { transform: rotate(0deg) scale(1); opacity: 0.5; }
-  50% { transform: rotate(180deg) scale(1.05); opacity: 0.7; }
-  100% { transform: rotate(360deg) scale(1); opacity: 0.5; }
+  0% {
+    transform: rotate(0deg) scale(1); opacity: 0.5;
+  }
+  50% {
+    transform: rotate(180deg) scale(1.05); opacity: 0.7;
+  }
+  100% {
+    transform: rotate(360deg) scale(1); opacity: 0.5;
+  }
 }
 
 .aura-effect {
@@ -623,9 +653,15 @@
 }
 
 @keyframes border-pulse {
-  0% { box-shadow: 0 0 0px rgba(255, 255, 255, 0.18); }
-  50% { box-shadow: 0 0 10px rgba(255, 255, 255, 0.18); }
-  100% { box-shadow: 0 0 0px rgba(255, 255, 255, 0.18); }
+  0% {
+    box-shadow: 0 0 0px rgba(255, 255, 255, 0.18);
+  }
+  50% {
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.18);
+  }
+  100% {
+    box-shadow: 0 0 0px rgba(255, 255, 255, 0.18);
+  }
 }
 
 .border-pulse-effect {
@@ -633,9 +669,15 @@
 }
 
 @keyframes corner-glint {
-  0% { opacity: 0; transform: scale(0.5) translate(0, 0); }
-  50% { opacity: 1; transform: scale(1) translate(-50%, -50%); }
-  100% { opacity: 0; transform: scale(1.5) translate(-100%, -100%); }
+  0% {
+    opacity: 0; transform: scale(0.5) translate(0, 0);
+  }
+  50% {
+    opacity: 1; transform: scale(1) translate(-50%, -50%);
+  }
+  100% {
+    opacity: 0; transform: scale(1.5) translate(-100%, -100%);
+  }
 }
 
 .corner-glint-effect {
@@ -699,8 +741,11 @@
   0% {
     background-position: 0% 0%;
   }
+  50% {
+    background-position: 100% 100%;
+  }
   100% {
-    background-position: 400% 400%;
+    background-position: 0% 0%;
   }
 }
 
@@ -816,7 +861,7 @@ body::before {
   background: var(--neon-gradient);
   background-size: 400% 100%; /* Keep horizontal size, extended for full cycle */
   animation: pan-gradient 45s linear infinite; /* Longer, distinct horizontal animation */
-  opacity: 0.3; /* Maintain opacity */
+  opacity: 0.3;
   z-index: 0;
   pointer-events: none;
 }
@@ -993,4 +1038,68 @@ body::before {
   100% {
     transform: rotate(360deg);
   }
+}
+
+@keyframes bounce-once {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-15px);
+  }
+  60% {
+    transform: translateY(-7px);
+  }
+}
+
+.animate-bounce-once {
+  animation: bounce-once 0.8s ease-out;
+}
+
+@keyframes click-feedback {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.98);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-on-click:active {
+  animation: click-feedback 0.15s ease-out;
+}
+
+@keyframes tile-success-pulse {
+  0% {
+    box-shadow: 0 0 0px 0px rgba(70, 255, 166, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 15px 5px rgba(70, 255, 166, 0.7);
+  }
+  100% {
+    box-shadow: 0 0 0px 0px rgba(70, 255, 166, 0);
+  }
+}
+
+.animate-tile-success {
+  animation: tile-success-pulse 0.6s ease-out forwards;
+}
+
+@keyframes tile-shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-5px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(5px);
+  }
+}
+
+.animate-tile-shake {
+  animation: tile-shake 0.5s ease-out;
 }

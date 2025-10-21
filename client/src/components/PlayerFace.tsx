@@ -10,6 +10,7 @@ type Props = {
   face?: any | null; 
   size?: number; 
   hideName?: boolean;
+  scale?: number; // New prop for scaling
   // New props for jersey styling
   player?: Player;
   teams?: Team[];
@@ -17,7 +18,7 @@ type Props = {
   season?: number; // Add season prop
 };
 
-export function PlayerFace({ pid, name, imgURL, face, size = 110, hideName = false, player, teams = [], sport, season }: Props) {
+export function PlayerFace({ pid, name, imgURL, face, size = 110, hideName = false, scale = 1, player, teams = [], sport, season }: Props) {
   const [kind, setKind] = React.useState<"url" | "svg" | "none">("none");
   const [data, setData] = React.useState("");
 
@@ -52,7 +53,7 @@ export function PlayerFace({ pid, name, imgURL, face, size = 110, hideName = fal
         )}
 
         {kind === "svg" && (
-          <div className="w-full h-full flex items-center justify-center">
+          <div className="w-full h-full flex items-center justify-center" style={{ transform: `translateX(-7px) scale(${scale})` }}>
             <div
               className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
               dangerouslySetInnerHTML={{ __html: data }}
