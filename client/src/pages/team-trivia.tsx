@@ -1727,6 +1727,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     {currentRound === 'stolen-bases-leader' && 'Click on the Team Stolen Bases Leader'}
                     {currentRound === 'strikeouts-leader' && 'Click on the Team Strikeouts Leader'}
                     {currentRound === 'wins-leader' && 'Click on the Team Wins Leader'}
+                    {/* Hockey rounds */}
+                    {currentRound === 'goals-leader' && 'Click on the Team Goals Leader'}
+                    {currentRound === 'goalie-wins-leader' && 'Click on the Team Goalie Wins Leader'}
                   </p>
                 </div>
               ) : null}
