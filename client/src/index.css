@@ -2061,12 +2061,15 @@ body::before {
 
 @keyframes tile-success-pulse {
   0% {
+    transform: translateY(0) scale(1);
     box-shadow: 0 0 0px 0px rgba(70, 255, 166, 0.7);
   }
   50% {
+    transform: translateY(-5px) scale(1.02);
     box-shadow: 0 0 15px 5px rgba(70, 255, 166, 0.7);
   }
   100% {
+    transform: translateY(0) scale(1);
     box-shadow: 0 0 0px 0px rgba(70, 255, 166, 0);
   }
 }

@@ -6,7 +6,7 @@ import { PlayerFace } from '@/components/PlayerFace';
 import { useToast } from '@/lib/hooks/use-toast';
 import { Shuffle, Home as HomeIcon, ArrowLeft, ChevronDown, ArrowRight } from 'lucide-react';
 
-import confetti from 'canvas-confetti';
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -454,23 +454,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     };
   }, [autocompleteOpen]);
 
-  // Trigger confetti for a specific player tile
-  const triggerConfetti = useCallback((pid: number) => {
-    const tileElement = tileRefs.current.get(pid);
-    if (!tileElement) return;
 
-    const rect = tileElement.getBoundingClientRect();
-    const x = (rect.left + rect.width / 2) / window.innerWidth;
-    const y = (rect.top + rect.height / 2) / window.innerHeight;
-
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { x, y },
-      colors: ['#00ff00', '#00ffff', '#ff00ff', '#ffff00', '#ff0000'],
-      ticks: 200,
-    });
-  }, []);
 
   // Handle selecting a player (from autocomplete)
   const handleSelectPlayer = useCallback((player: Player) => {
@@ -493,10 +477,11 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         setScore(prev => prev + 8);
       }
 
-      // Trigger confetti
+      // Trigger success animation for correct guess
+      setTileAnimations(prev => ({ ...prev, [player.pid]: 'animate-tile-success' }));
       setTimeout(() => {
-        triggerConfetti(player.pid);
-      }, 50);
+        setTileAnimations(prev => ({ ...prev, [player.pid]: '' })); // Clear animation class
+      }, 600); // Match animation duration
     } else if (!rosterPlayer) {
       // Player is not on roster - show feedback
       toast({
@@ -511,7 +496,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     setTimeout(() => {
       inputRef.current?.focus();
     }, 100);
-  }, [roster, triggerConfetti, toast, selectedSeason, teamDisplayInfo.name]);
+  }, [roster, toast, selectedSeason, teamDisplayInfo.name]);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -668,7 +653,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         description: 'Correct! Moving to next round...',
       });
       setScore(prev => prev + 5); // Award 5 points for correct leader
-      triggerConfetti(pid);
 
       // Apply success animation
       setTileAnimations(prev => ({ ...prev, [pid]: 'animate-tile-success' }));
@@ -698,7 +682,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         }
       }, 500); // Shake animation duration
     }
-  }, [currentRound, statLeaders, toast, triggerConfetti, handleNextRound]);
+  }, [currentRound, statLeaders, toast, handleNextRound]);
 
   // New game
   const handleNew = useCallback(() => {
