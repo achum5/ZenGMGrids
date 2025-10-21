@@ -718,6 +718,64 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     }
   };
 
+  // Helper function to calculate hockey stats by position
+  const calculateHockeyStats = (seasonStats: any, position: string) => {
+    // Helper for safe division
+    const safeDivide = (num: number, denom: number, decimals: number = 1) => {
+      return denom > 0 ? (num / denom).toFixed(decimals) : null;
+    };
+
+    // Helper to format minutes as MM:SS
+    const formatMinutes = (totalMinutes: number) => {
+      const mins = Math.floor(totalMinutes);
+      const secs = Math.round((totalMinutes - mins) * 60);
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    if (position === 'G') {
+      // Goalie stats
+      const gW = seasonStats.gW || 0;
+      const gL = seasonStats.gL || 0;
+      const so = seasonStats.so || 0;
+      const sv = seasonStats.sv || 0;
+      const ga = seasonStats.ga || 0;
+      const gMin = seasonStats.gMin || seasonStats.min || 0;
+
+      const svPct = safeDivide(sv, sv + ga, 3);
+      const gaa = safeDivide(60 * ga, gMin, 2);
+
+      return {
+        line1: `${gW}/${gL}/${so}`,
+        line2: svPct ? `${(parseFloat(svPct) * 100).toFixed(1)}%` : null,
+        line3: gaa || null
+      };
+    } else {
+      // Skater stats (C, W, D)
+      const evG = seasonStats.evG || 0;
+      const ppG = seasonStats.ppG || 0;
+      const shG = seasonStats.shG || 0;
+      const goals = evG + ppG + shG;
+
+      const evA = seasonStats.evA || 0;
+      const ppA = seasonStats.ppA || 0;
+      const shA = seasonStats.shA || 0;
+      const assists = evA + ppA + shA;
+
+      const points = goals + assists;
+      const plusMinus = seasonStats.pm || 0;
+      const min = seasonStats.min || 0;
+      const gp = seasonStats.gp || 0;
+
+      const toiAvg = gp > 0 ? formatMinutes(min / gp) : null;
+
+      return {
+        line1: `${goals}/${assists}/${points}`,
+        line2: `${plusMinus >= 0 ? '+' : ''}${plusMinus}`,
+        line3: toiAvg || null
+      };
+    }
+  };
+
   // Build roster for selected season/team
   const buildRoster = useCallback((season: number, team: Team) => {
     const rosterPlayers: RosterPlayer[] = [];
@@ -748,6 +806,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         if (leagueData.sport === 'football') {
           // Football stats
           stats = calculateFootballStats(seasonStats, position);
+        } else if (leagueData.sport === 'hockey') {
+          // Hockey stats
+          stats = calculateHockeyStats(seasonStats, position);
         } else if (leagueData.sport === 'basketball') {
           // Basketball stats
           const gp = seasonStats.gp;
@@ -1825,6 +1886,28 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                           {rp.position === 'OL' && (
                             <>
                               {rp.stats.line3 && <p>{rp.stats.line3}</p>}
+                            </>
+                          )}
+                        </>
+                      )}
+
+                      {/* Hockey stats */}
+                      {leagueData.sport === 'hockey' && rp.stats?.line1 !== undefined && (
+                        <>
+                          {/* Goalies */}
+                          {rp.position === 'G' && (
+                            <>
+                              {rp.stats.line1 && <><p>W/L/SO:</p><p>{rp.stats.line1}</p></>}
+                              {rp.stats.line2 && <><p>SV%:</p><p>{rp.stats.line2}</p></>}
+                              {rp.stats.line3 && <><p>GAA:</p><p>{rp.stats.line3}</p></>}
+                            </>
+                          )}
+                          {/* Skaters (C, W, D) */}
+                          {(rp.position === 'C' || rp.position === 'W' || rp.position === 'D') && (
+                            <>
+                              {rp.stats.line1 && <><p>G/A/Pts:</p><p>{rp.stats.line1}</p></>}
+                              {rp.stats.line2 && <><p>+/-:</p><p>{rp.stats.line2}</p></>}
+                              {rp.stats.line3 && <><p>TOI (avg):</p><p>{rp.stats.line3}</p></>}
                             </>
                           )}
                         </>

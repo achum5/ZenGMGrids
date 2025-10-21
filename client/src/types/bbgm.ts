@@ -131,6 +131,7 @@ export interface Player {
     fow?: number; // Faceoffs won
     fol?: number; // Faceoffs lost
     pim?: number; // Penalty minutes
+    pm?: number; // Plus/minus
     ga?: number; // Goals against
     gs?: number; // Goalie starts
     ppG?: number; // Power play goals
@@ -140,10 +141,17 @@ export interface Player {
     shG?: number; // Short handed goals
     shA?: number; // Short handed assists
     gW?: number; // Goalie wins
+    gL?: number; // Goalie losses
+    gOTL?: number; // Goalie overtime losses
+    gMin?: number; // Goalie minutes
     so?: number; // Shutouts
     sa?: number; // Shots against (for goalies)
     sv?: number; // Saves (for goalies)
     gpGoalie?: number; // Games played as goalie
+    gpSkater?: number; // Games played as skater
+    g?: number; // Goals (total, alternative field)
+    a?: number; // Assists (total, alternative field)
+    asts?: number; // Assists (alternative field name)
 
     // Baseball-specific stats
     h?: number; // Hits
