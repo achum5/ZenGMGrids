@@ -1043,7 +1043,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                   )}
   
                   {/* Headshot - Takes up most of the tile */}
-                  <div className="w-full aspect-square" style={{ transform: 'translateX(-10px)' }}>
+                  <div className="w-full aspect-square">
                     <PlayerFace
                       pid={rp.player.pid}
                       name={rp.player.name}
