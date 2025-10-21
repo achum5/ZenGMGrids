@@ -988,7 +988,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                         <img
                           src={teamDisplayInfo.logo}
                           alt={teamDisplayInfo.name}
-                          className="h-6 w-6 sm:h-8 sm:w-8 object-contain shrink-0"
+                          className="h-8 w-8 sm:h-12 sm:w-12 md:h-14 md:w-14 object-contain shrink-0"
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';
                           }}
