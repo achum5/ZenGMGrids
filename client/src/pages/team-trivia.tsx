@@ -2393,9 +2393,12 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                               const startX = e.clientX;
                               const startPos = winsGuessPosition;
                               
+                              // Capture track width before event completes (e.currentTarget becomes null later)
+                              const trackWidth = e.currentTarget.parentElement?.clientWidth || 0;
+                              if (!trackWidth) return;
+                              
                               const handleMouseMove = (moveE: MouseEvent) => {
                                 const deltaX = moveE.clientX - startX;
-                                const trackWidth = e.currentTarget.parentElement!.clientWidth;
                                 const deltaWins = Math.round((deltaX / trackWidth) * winsGuessData.totalGames);
                                 handleWinsGuessSliderMove(startPos + deltaWins);
                               };
