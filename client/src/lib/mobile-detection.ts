@@ -17,44 +17,18 @@ export function isMobileDevice(): boolean {
 
 export type ParsingMethod = 'auto' | 'traditional' | 'streaming' | 'mobile-idb';
 
-// Thresholds for file parsing
-const DESKTOP_GZ_THRESHOLD_MB = 30;
-const DESKTOP_JSON_THRESHOLD_MB = 210;
-const MOBILE_GZ_THRESHOLD_MB = 10;
-const MOBILE_JSON_THRESHOLD_MB = 70;
+// 100MB threshold for compressed files (decompresses to ~1.3GB typically)
+const LARGE_FILE_THRESHOLD_BYTES = 100 * 1024 * 1024; // 100MB
 
-export function getRecommendedMethod(fileSize?: number, fileName?: string, isUrl: boolean = false): 'traditional' | 'streaming' | 'mobile-idb' {
-  // If no file size provided and it's a URL, default to streaming (safer for unknown sizes)
-  if (fileSize === undefined && isUrl) {
-    return 'streaming';
+export function getRecommendedMethod(fileSize?: number): 'traditional' | 'streaming' | 'mobile-idb' {
+  // If file size is provided and exceeds threshold, use mobile-idb (IndexedDB streaming)
+  // This works on both mobile and desktop and handles any file size
+  if (fileSize !== undefined && fileSize > LARGE_FILE_THRESHOLD_BYTES) {
+    return 'mobile-idb';
   }
 
-  // If no file size provided and it's a file upload, default to traditional
-  if (fileSize === undefined) {
-    return 'traditional';
-  }
-
-  const isMobile = isMobileDevice();
-  const isGzipped = fileName?.endsWith('.gz') || false;
-
-  // Convert fileSize to MB
-  const fileSizeMB = fileSize / (1024 * 1024);
-
-  if (isMobile) {
-    // Mobile thresholds
-    const threshold = isGzipped ? MOBILE_GZ_THRESHOLD_MB : MOBILE_JSON_THRESHOLD_MB;
-    if (fileSizeMB < threshold) {
-      return 'traditional';
-    }
-    return 'streaming';
-  } else {
-    // Desktop thresholds
-    const threshold = isGzipped ? DESKTOP_GZ_THRESHOLD_MB : DESKTOP_JSON_THRESHOLD_MB;
-    if (fileSizeMB < threshold) {
-      return 'traditional';
-    }
-    return 'streaming';
-  }
+  // For smaller files, use traditional method (faster but less reliable for large files)
+  return 'traditional';
 }
 
 // Get stored preference or return 'auto' as default

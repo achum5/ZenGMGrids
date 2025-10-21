@@ -217,6 +217,17 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   const [currentRound, setCurrentRound] = useState<RoundType>('guess');
   const [selectedLeader, setSelectedLeader] = useState<number | null>(null); // PID of selected leader
   const [clickedLeaderInfo, setClickedLeaderInfo] = useState<{ name: string; position: string } | null>(null); // Info shown after clicking
+  
+  // Debug: Log leagueData on mount
+  useEffect(() => {
+    console.log('[TeamTrivia] Component mounted with leagueData:', {
+      sport: leagueData.sport,
+      players: leagueData.players?.length,
+      teams: leagueData.teams?.length,
+      teamSeasons: leagueData.teamSeasons?.length,
+      sampleTeamSeason: leagueData.teamSeasons?.[0]
+    });
+  }, []);
   const [isHeaderHovered, setIsHeaderHovered] = useState(false);
   const [autocompleteOpen, setAutocompleteOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -294,7 +305,19 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
 
   // Calculate wins guess data (G, A, W)
   const winsGuessData = useMemo(() => {
+    console.log('[WinsGuess] Computing winsGuessData...', {
+      selectedSeason,
+      selectedTeam: selectedTeam?.tid,
+      hasTeamSeasons: !!leagueData.teamSeasons,
+      teamSeasonsCount: leagueData.teamSeasons?.length
+    });
+
     if (!selectedSeason || !selectedTeam || !leagueData.teamSeasons) {
+      console.warn('[WinsGuess] Missing required data:', {
+        selectedSeason: !!selectedSeason,
+        selectedTeam: !!selectedTeam,
+        teamSeasons: !!leagueData.teamSeasons
+      });
       return null;
     }
 
@@ -303,7 +326,16 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       ts => ts.tid === selectedTeam.tid && ts.season === selectedSeason && !ts.playoffs
     );
 
+    console.log('[WinsGuess] Looking for record:', {
+      tid: selectedTeam.tid,
+      season: selectedSeason,
+      found: !!teamSeasonRecord,
+      record: teamSeasonRecord
+    });
+
     if (!teamSeasonRecord) {
+      console.warn('[WinsGuess] No team season record found for tid:', selectedTeam.tid, 'season:', selectedSeason);
+      console.log('[WinsGuess] Available teamSeasons sample:', leagueData.teamSeasons.slice(0, 5));
       return null;
     }
 
@@ -332,11 +364,14 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     const p = 0.125; // 12.5% tolerance
     const windowWidth = Math.max(1, Math.round(G * p));
 
-    return {
+    const result = {
       totalGames: G,
       actualWins: W,
       windowWidth: windowWidth,
     };
+
+    console.log('[WinsGuess] Computed data:', result);
+    return result;
   }, [selectedSeason, selectedTeam, leagueData.teamSeasons, leagueData.sport]);
 
   // Calculate stat leaders from roster
@@ -1317,11 +1352,13 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   // Reset wins guess state when entering wins-guess round
   useEffect(() => {
     if (currentRound === 'wins-guess') {
+      console.log('[WinsGuess] Entering wins-guess phase. winsGuessData:', winsGuessData);
       setWinsGuessPosition(0); // Start at left edge
       setWinsGuessSubmitted(false);
 
       // If wins guess data is not available, skip to next round
       if (!winsGuessData) {
+        console.warn('[WinsGuess] No data available, skipping to next round');
         toast({
           description: 'Win data not available for this team/season. Skipping to completion.',
         });
@@ -1330,9 +1367,12 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
           const currentIndex = ROUND_ORDER.indexOf(currentRound as any);
           if (currentIndex < ROUND_ORDER.length - 1) {
             const nextRound = ROUND_ORDER[currentIndex + 1];
+            console.log('[WinsGuess] Advancing to:', nextRound);
             setCurrentRound(nextRound);
           }
         }, 1500);
+      } else {
+        console.log('[WinsGuess] Data is available, rendering phase');
       }
     }
   }, [currentRound, winsGuessData, toast, ROUND_ORDER]);
@@ -1358,12 +1398,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
 
       // Auto-reveal all players when entering the first leader round
       if (nextRound === 'points-leader' || nextRound === 'passing-yards-leader' || nextRound === 'hits-leader') {
-        setRoster(prev => prev.map(rp => ({ ...rp, revealed: true })));
-        setFoundCount(roster.length);
-      }
-
-      // Auto-reveal all players when entering wins-guess round (in case they weren't revealed yet)
-      if (nextRound === 'wins-guess') {
         setRoster(prev => prev.map(rp => ({ ...rp, revealed: true })));
         setFoundCount(roster.length);
       }
@@ -1579,9 +1613,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   // Wins Guess: Move slider
   const handleWinsGuessSliderMove = useCallback((newPosition: number) => {
     if (!winsGuessData || winsGuessSubmitted) return;
-
-    // Clamp position: L must be in [0, G - W + 1] so the right edge can reach G
-    const maxPosition = winsGuessData.totalGames - winsGuessData.windowWidth + 1;
+    
+    // Clamp position: L must be in [0, G - W]
+    const maxPosition = winsGuessData.totalGames - winsGuessData.windowWidth;
     const clampedPosition = Math.max(0, Math.min(newPosition, maxPosition));
     setWinsGuessPosition(clampedPosition);
   }, [winsGuessData, winsGuessSubmitted]);
@@ -2077,7 +2111,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                   </div>
 
                   {/* Player Stats - Show only when round is complete */}
-                  {(currentRound === 'complete' || currentRound === 'wins-guess') && (
+                  {currentRound === 'complete' && (
                     <div className="w-full text-center text-[0.45rem] sm:text-[0.6rem] md:text-[0.7rem] leading-tight mt-1"
                       style={{ color: rp.teamColors?.[0] || 'hsl(var(--foreground))' }}>
                       {/* Age - All sports */}
@@ -2358,23 +2392,19 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                               if (winsGuessSubmitted) return;
                               const startX = e.clientX;
                               const startPos = winsGuessPosition;
-                              const trackElement = e.currentTarget.parentElement;
-
-                              if (!trackElement) return;
-
-                              const trackWidth = trackElement.clientWidth;
-
+                              
                               const handleMouseMove = (moveE: MouseEvent) => {
                                 const deltaX = moveE.clientX - startX;
+                                const trackWidth = e.currentTarget.parentElement!.clientWidth;
                                 const deltaWins = Math.round((deltaX / trackWidth) * winsGuessData.totalGames);
                                 handleWinsGuessSliderMove(startPos + deltaWins);
                               };
-
+                              
                               const handleMouseUp = () => {
                                 document.removeEventListener('mousemove', handleMouseMove);
                                 document.removeEventListener('mouseup', handleMouseUp);
                               };
-
+                              
                               document.addEventListener('mousemove', handleMouseMove);
                               document.addEventListener('mouseup', handleMouseUp);
                             }}
