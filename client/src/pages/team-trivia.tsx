@@ -925,10 +925,18 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
-                      <DropdownMenuItem onClick={handleSameYearNewTeam} data-testid="option-same-year-new-team">
+                      <DropdownMenuItem 
+                        onClick={handleSameYearNewTeam} 
+                        data-testid="option-same-year-new-team"
+                        style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--foreground))' }}
+                      >
                         Random Team
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleNewYearSameTeam} data-testid="option-new-year-same-team">
+                      <DropdownMenuItem 
+                        onClick={handleNewYearSameTeam} 
+                        data-testid="option-new-year-same-team"
+                        style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--foreground))' }}
+                      >
                         Random Year
                       </DropdownMenuItem>
                     </DropdownMenuContent>
