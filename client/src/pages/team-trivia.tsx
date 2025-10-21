@@ -895,10 +895,10 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
                       <DropdownMenuItem onClick={handleSameYearNewTeam} data-testid="option-same-year-new-team">
-                        Same Year, New Team
+                        Random Team
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={handleNewYearSameTeam} data-testid="option-new-year-same-team">
-                        New Year, Same Team
+                        Random Year
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -958,21 +958,25 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                       variant="ghost"
                       role="combobox"
                       aria-expanded={teamDropdownOpen}
-                      className="flex items-center gap-2 sm:gap-3 hover:bg-accent/50 px-2 sm:px-4 py-1 sm:py-2 h-8 sm:h-auto animate-on-click min-w-0"
+                      className="flex items-center gap-1 sm:gap-2 hover:bg-accent/50 px-2 sm:px-4 py-1 sm:py-2 h-8 sm:h-auto animate-on-click shrink-0"
                       data-testid="button-team-dropdown"
                     >
-                      <ChevronDown className="h-3 w-3 sm:h-5 sm:w-5 shrink-0" />
-                      {(teamDisplayInfo.logo || selectedTeam?.imgURL) ? (
+                      {teamDisplayInfo.logo && (
                         <img
-                          src={teamDisplayInfo.logo || selectedTeam?.imgURL}
+                          src={teamDisplayInfo.logo}
                           alt={teamDisplayInfo.name}
-                          className="h-8 w-8 sm:h-10 sm:w-10 object-contain shrink-0"
+                          className="h-6 w-6 sm:h-8 sm:w-8 object-contain shrink-0"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
                         />
-                      ) : (
-                        <span className="text-base sm:text-lg md:text-xl font-bold neon-text truncate">
+                      )}
+                      {!teamDisplayInfo.logo && (
+                        <span className="text-lg sm:text-2xl md:text-3xl font-bold neon-text">
                           {teamDisplayInfo.name}
                         </span>
                       )}
+                      <ChevronDown className="h-3 w-3 sm:h-5 sm:w-5 ml-1 sm:ml-2 shrink-0" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[300px] p-0" align="center">
@@ -1020,8 +1024,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
               </div>
   
               {/* Right side: Score Counter */}
-              <div className="text-xs sm:text-base md:text-lg font-semibold text-muted-foreground shrink-0" data-testid="text-score-counter">
-                <span className="hidden xs:inline">Score: </span>{score}
+              <div className="text-xs sm:text-base md:text-lg font-bold shrink-0" data-testid="text-score-counter">
+                <span className="text-emerald-500">Score: {score}</span>
               </div>
             </div>
           </div>
@@ -1064,7 +1068,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                   {/* Jersey Number Badge - Always visible, ZenGM style */}
                   {rp.jerseyNumber && rp.teamColors && (
                     <div
-                      className="absolute top-0.5 right-0.5 text-[0.6rem] sm:text-[0.95rem] font-extrabold px-1 sm:px-2 py-0.5 sm:py-1 z-10 min-w-[1.25rem] sm:min-w-[2rem] aspect-square flex items-center justify-center"
+                      className="absolute top-0.5 right-0.5 text-[0.7rem] sm:text-[1.1rem] font-extrabold px-0.5 sm:px-1 py-0.5 z-10 min-w-[1.1rem] sm:min-w-[1.75rem] aspect-square flex items-center justify-center"
                       style={{
                         backgroundColor: rp.teamColors[0] || '#000000',
                         color: rp.teamColors[1] || '#ffffff',
@@ -1194,7 +1198,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                   {autocompleteOpen && (
                     <div
                       ref={autocompleteRef}
-                      className="absolute z-50 w-full bottom-full mb-2 bg-card border neon-border rounded-lg shadow-lg max-h-[400px] overflow-y-auto"
+                      className="absolute z-[9999] w-full bottom-full mb-2 bg-card border neon-border rounded-lg shadow-lg max-h-[400px] overflow-y-auto"
                       data-testid="autocomplete-dropdown"
                     >
                       <div className="py-2">
