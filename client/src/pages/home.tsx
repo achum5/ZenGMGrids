@@ -517,9 +517,9 @@ export default function Home() {
       setCurrentFileSize(undefined); // Unknown size for URLs
 
       // Determine which method to use based on setting
-      // Note: For URLs, we default to streaming which is efficient for remote files
+      // Note: For URLs, use same method selection as files for consistency
       const method: ParsingMethod = parsingMethodSetting === 'auto'
-        ? 'streaming'
+        ? getRecommendedMethod()
         : parsingMethodSetting;
 
       // Update displayed method to show actual method being used
