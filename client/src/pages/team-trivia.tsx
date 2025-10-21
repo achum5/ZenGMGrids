@@ -44,6 +44,7 @@ import basketballIcon from '@/assets/zengm-grids-logo-basketball.png';
 import footballIcon from '@/assets/zengm-grids-logo-football.png';
 import hockeyIcon from '@/assets/zengm-grids-logo-hockey.png';
 import baseballIcon from '@/assets/zengm-grids-logo-baseball.png';
+import { getAssetBaseUrl } from '@/components/TeamLogo';
 
 interface RosterPlayer {
   player: Player;
@@ -73,6 +74,21 @@ function normalizeName(name: string): string {
     .replace(/['\-\s\.]/g, '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
+}
+
+// Transform team logo URL to handle relative paths
+function getTeamLogoUrl(logoUrl: string | null | undefined, sport: string = 'basketball'): string | undefined {
+  if (!logoUrl) return undefined;
+  
+  // If it's a default relative path (starts with /img/logos-), transform it
+  if (logoUrl.startsWith('/img/logos-')) {
+    const assetBase = getAssetBaseUrl(sport);
+    const cleanPath = logoUrl.startsWith('/') ? logoUrl.substring(1) : logoUrl;
+    return `${assetBase}/${cleanPath}`;
+  }
+  
+  // Otherwise, use it as-is (external URL or custom path)
+  return logoUrl;
 }
 
 // Basketball rounds
@@ -1660,7 +1676,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                               >
                                 {(team.imgURLSmall || team.imgURL) && (
                                   <img
-                                    src={(team.imgURLSmall || team.imgURL) ?? undefined}
+                                    src={getTeamLogoUrl(team.imgURLSmall || team.imgURL, leagueData.sport)}
                                     alt={teamName}
                                     className="h-6 w-6 object-contain"
                                   />
