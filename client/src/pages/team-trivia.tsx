@@ -1632,7 +1632,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     >
                       {teamDisplayInfo.logo && (
                         <img
-                          src={teamDisplayInfo.logo}
+                          src={getTeamLogoUrl(teamDisplayInfo.logo, leagueData.sport)}
                           alt={teamDisplayInfo.name}
                           className="h-8 w-8 sm:h-12 sm:w-12 md:h-14 md:w-14 object-contain shrink-0"
                           onError={(e) => {
