@@ -1095,7 +1095,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                       style={{
                         backgroundColor: rp.teamColors[0] || '#000000',
                         color: rp.teamColors[1] || '#ffffff',
-                        border: `1.5px solid ${rp.teamColors[2] || rp.teamColors[0] || '#cccccc'} `,
+                        border: `2px solid ${rp.teamColors[2] || rp.teamColors[0] || '#cccccc'} `,
                         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)'
                       }}
                     >
