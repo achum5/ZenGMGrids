@@ -735,14 +735,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       {/* Game Info Header with Dropdowns */}
       <div className="bg-card/50 border-b neon-border-subtle shrink-0">
         <div className="max-w-4xl mx-auto px-6 py-6">
-          {/* Round Instructions */}
-          <div className="text-center mb-4">
-            <p className="text-lg sm:text-xl font-semibold text-primary">
-              {ROUND_INSTRUCTIONS[currentRound]}
-            </p>
-          </div>
 
-          <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center justify-center gap-4 flex-wrap">
             {/* Left side: Year and Team */}
             <div className="flex items-center gap-4 flex-wrap">
               {/* Year Dropdown */}
@@ -772,6 +766,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                             onSelect={() => {
                               setSelectedSeason(season);
                               setYearDropdownOpen(false);
+                              setCurrentRound('guess');
+                              setFoundCount(0);
+                              setSelectedLeader(null);
                             }}
                             data-testid={`option-year-${season}`}
                           >
@@ -829,6 +826,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                               onSelect={() => {
                                 setSelectedTeam(team);
                                 setTeamDropdownOpen(false);
+                                setCurrentRound('guess');
+                                setFoundCount(0);
+                                setSelectedLeader(null);
                               }}
                               className="flex items-center gap-2"
                               data-testid={`option-team-${team.tid}`}
@@ -956,132 +956,129 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                 const isLeaderRound = currentRound.endsWith('-leader');
 
                 return (
-                  <Tooltip key={rp.player.pid}>
-                    <TooltipTrigger asChild>
-                      <div
-                        ref={(el) => {
-                          if (el) tileRefs.current.set(rp.player.pid, el);
-                        }}
-                        onClick={() => isLeaderRound && handleTileClick(rp.player.pid)}
-                        className={`relative flex flex-col items-center gap-0.5 p-1 sm:p-2 md:p-3 rounded sm:rounded-md md:rounded-lg transition-all hover:scale-[1.02] ${
-                          isLeaderRound ? 'cursor-pointer' : ''
-                        } ${
-                          rp.revealed
-                            ? 'neon-glow-success shadow-lg shadow-green-500/50'
-                            : ''
-                        }`}
-                        style={{
-                          backgroundColor: rp.teamColors?.[1] || 'hsl(var(--card))',
-                          borderWidth: '2px',
-                          borderStyle: 'solid',
-                          borderColor: rp.teamColors?.[0] || 'hsl(var(--border))',
-                        }}
-                        data-testid={`card-player-${index}`}
-                      >
-                      {/* Position Badge - Always visible */}
-                      <div className="absolute top-0.5 left-0.5 bg-primary/90 text-primary-foreground text-[0.5rem] sm:text-xs font-bold px-0.5 sm:px-1.5 py-0.5 rounded z-10">
-                        {rp.position}
-                      </div>
-
-                      {/* Jersey Number Badge - Always visible, ZenGM style */}
-                      {rp.jerseyNumber && rp.teamColors && (
-                        <div
-                          className="absolute top-0.5 right-0.5 text-[0.6rem] sm:text-[0.95rem] font-extrabold px-1 sm:px-2 py-0.5 sm:py-1 z-10 min-w-[1.25rem] sm:min-w-[2rem] aspect-square flex items-center justify-center"
-                          style={{
-                            backgroundColor: rp.teamColors[0] || '#000000',
-                            color: rp.teamColors[1] || '#ffffff',
-                            border: `1.5px solid ${rp.teamColors[2] || rp.teamColors[0] || '#cccccc'}`,
-                            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)'
-                          }}
-                        >
-                          {rp.jerseyNumber}
-                        </div>
-                      )}
-
-                      {/* Headshot - Takes up most of the tile */}
-                      <div className="w-full aspect-square mb-0.5">
-                        <PlayerFace
-                          pid={rp.player.pid}
-                          name={rp.player.name}
-                          imgURL={rp.player.imgURL ?? undefined}
-                          face={rp.player.face}
-                          size={64}
-                          hideName={true}
-                          player={rp.player}
-                          teams={leagueData.teams}
-                          sport={leagueData.sport}
-                          season={selectedSeason || undefined}
-                        />
-                      </div>
-
-                      {/* Name - Compact */}
-                      <div className="w-full text-center min-h-[1rem] sm:min-h-[2rem] flex items-center justify-center px-0.5">
-                        {rp.revealed ? (
-                          <p
-                            className="text-[0.5rem] sm:text-xs md:text-sm font-bold line-clamp-2 leading-tight"
-                            style={{ color: rp.teamColors?.[0] || 'hsl(var(--foreground))' }}
-                          >
-                            {rp.player.name}
-                          </p>
-                        ) : rp.hintShown ? (
-                          <p
-                            className="text-[0.5rem] sm:text-xs md:text-sm font-bold leading-tight"
-                            style={{ color: rp.teamColors?.[0] || 'hsl(var(--foreground))' }}
-                          >
-                            {(() => {
-                              const nameParts = rp.player.name.trim().split(' ');
-                              const firstName = nameParts[0] || '';
-                              const lastName = nameParts[nameParts.length - 1] || '';
-                              return `${firstName.charAt(0)}. ${lastName.charAt(0)}.`;
-                            })()}
-                          </p>
-                        ) : (
-                          <div className="w-full h-1.5 sm:h-3 bg-muted rounded animate-pulse" />
-                        )}
-                      </div>
-
-                      {/* Stats - Compact and only on larger screens */}
-                      {rp.revealed && (
-                        <div className="hidden sm:block w-full text-center text-[0.6rem] md:text-xs space-y-1 mt-1">
-                          {/* Basic Stats - Condensed */}
-                          <div className="space-y-0.5 pb-1 border-b border-border/30">
-                            <div className="flex justify-between px-1">
-                              <span className="text-muted-foreground">PPG</span>
-                              <span className="font-semibold">{rp.stats.ppg.toFixed(1)}</span>
-                            </div>
-                            <div className="flex justify-between px-1">
-                              <span className="text-muted-foreground">RPG</span>
-                              <span className="font-semibold">{rp.stats.rpg.toFixed(1)}</span>
-                            </div>
-                            <div className="flex justify-between px-1">
-                              <span className="text-muted-foreground">APG</span>
-                              <span className="font-semibold">{rp.stats.apg.toFixed(1)}</span>
-                            </div>
-                          </div>
-
-                          {/* Advanced Stats - Ultra compact, only on md+ */}
-                          <div className="hidden md:block space-y-0.5">
-                            <div className="flex justify-between px-1">
-                              <span className="text-muted-foreground">FG%</span>
-                              <span className="font-semibold">{rp.advancedStats.fgp > 0 ? rp.advancedStats.fgp.toFixed(1) : '-'}</span>
-                            </div>
-                            <div className="flex justify-between px-1">
-                              <span className="text-muted-foreground">3PT%</span>
-                              <span className="font-semibold">{rp.advancedStats.tpp > 0 ? rp.advancedStats.tpp.toFixed(1) : '-'}</span>
-                            </div>
-                            <div className="flex justify-between px-1">
-                              <span className="text-muted-foreground">FT%</span>
-                              <span className="font-semibold">{rp.advancedStats.ftp > 0 ? rp.advancedStats.ftp.toFixed(1) : '-'}</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="font-semibold">{rp.position}</p>
-                  </TooltipContent>
-                </Tooltip>
+                                        <div
+                                          ref={(el) => {
+                                            if (el) tileRefs.current.set(rp.player.pid, el);
+                                          }}
+                                          onClick={() => isLeaderRound && handleTileClick(rp.player.pid)}
+                                          className={`relative flex flex-col items-center gap-0.5 p-1 sm:p-2 md:p-3 rounded sm:rounded-md md:rounded-lg transition-all hover:scale-[1.02] ${
+                                            isLeaderRound ? 'cursor-pointer' : ''
+                                          } ${
+                                            rp.revealed
+                                              ? 'neon-glow-success shadow-lg shadow-green-500/50'
+                                              : ''
+                                          }`}
+                                          style={{
+                                            backgroundColor: rp.teamColors?.[1] || 'hsl(var(--card))',
+                                            borderWidth: '2px',
+                                            borderStyle: 'solid',
+                                            borderColor: rp.teamColors?.[0] || 'hsl(var(--border))',
+                                          }}
+                                          data-testid={`card-player-${index}`}
+                                        >
+                                        {/* Position Badge - Always visible */}
+                                        <div className="absolute top-0.5 left-0.5 bg-primary/90 text-primary-foreground text-[0.5rem] sm:text-xs font-bold px-0.5 sm:px-1.5 py-0.5 rounded z-10">
+                                          {rp.position}
+                                        </div>
+                  
+                                        {/* Jersey Number Badge - Always visible, ZenGM style */}
+                                        {rp.jerseyNumber && rp.teamColors && (
+                                          <div
+                                            className="absolute top-0.5 right-0.5 text-[0.6rem] sm:text-[0.95rem] font-extrabold px-1 sm:px-2 py-0.5 sm:py-1 z-10 min-w-[1.25rem] sm:min-w-[2rem] aspect-square flex items-center justify-center"
+                                            style={{
+                                              backgroundColor: rp.teamColors[0] || '#000000',
+                                              color: rp.teamColors[1] || '#ffffff',
+                                              border: `1.5px solid ${rp.teamColors[2] || rp.teamColors[0] || '#cccccc'} `,
+                                              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)'
+                                            }}
+                                          >
+                                            {rp.jerseyNumber}
+                                          </div>
+                                        )}
+                  
+                                                              {/* Headshot - Takes up most of the tile */}
+                  
+                                                              <div className="w-full aspect-square">
+                  
+                                                                                          <PlayerFace
+                  
+                                                                                            pid={rp.player.pid}
+                  
+                                                                                            name={rp.player.name}
+                  
+                                                                                            imgURL={rp.player.imgURL ?? undefined}
+                  
+                                                                                            face={rp.player.face}
+                  
+                                                                                            size={104}
+                  
+                                                                                            hideName={true}
+                  
+                                                                                            player={rp.player}
+                  
+                                                                                            teams={leagueData.teams}
+                  
+                                                                                            sport={leagueData.sport}
+                  
+                                                                                            season={selectedSeason || undefined}
+                  
+                                                                                          />
+                  
+                                                              </div>
+                  
+                                                              {/* Name - Compact */}
+                                                              <div className="w-full text-center min-h-[1rem] sm:min-h-[2rem] flex items-center justify-center px-0.5">
+                                                                {rp.revealed ? (
+                                                                  <p
+                                                                    className="text-[0.5rem] sm:text-xs md:text-sm font-bold line-clamp-2 leading-tight"
+                                                                    style={{ color: rp.teamColors?.[0] || 'hsl(var(--foreground))' }}
+                                                                  >
+                                                                    {rp.player.name}
+                                                                  </p>
+                                                                                        ) : rp.hintShown ? (
+                                                                                          <p
+                                                                                            className="text-[0.5rem] sm:text-xs md:text-sm font-bold leading-tight"
+                                                                                            style={{ color: rp.teamColors?.[0] || 'hsl(var(--foreground))' }}
+                                                                                          >
+                                                                                            {(() => {
+                                                                                              const nameParts = rp.player.name.trim().split(' ');
+                                                                                              const firstName = nameParts[0] || '';
+                                                                                              const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+                                                                
+                                                                                              if (nameParts.length === 1) {
+                                                                                                return (
+                                                                                                  <>
+                                                                                                    <span>{firstName.charAt(0)}</span>
+                                                                                                    <span style={{ filter: 'blur(8px)' }}>{firstName.substring(1)}</span>
+                                                                                                  </>
+                                                                                                );
+                                                                                              } else {
+                                                                                                return (
+                                                                                                  <>
+                                                                                                    <span>{firstName.charAt(0)}</span>
+                                                                                                    <span style={{ filter: 'blur(8px)' }}>{firstName.substring(1)}</span>
+                                                                                                    <span> </span>
+                                                                                                    <span>{lastName.charAt(0)}</span>
+                                                                                                    <span style={{ filter: 'blur(8px)' }}>{lastName.substring(1)}</span>
+                                                                                                  </>
+                                                                                                );
+                                                                                              }
+                                                                                            })()}
+                                                                                          </p>
+                                                                                        ) : (
+                                                                                          <p
+                                                                                            className="text-[0.5rem] sm:text-xs md:text-sm font-bold line-clamp-2 leading-tight"
+                                                                                            style={{ 
+                                                                                              color: rp.teamColors?.[0] || 'hsl(var(--foreground))',
+                                                                                              filter: 'blur(8px)' // Apply severe blur
+                                                                                            }}
+                                                                                          >
+                                                                                            {rp.player.name}
+                                                                                          </p>
+                                                                                        )}
+                                                                                      </div>                                        
+                                      </div>
+                                  
                 );
               })}
             </div>
