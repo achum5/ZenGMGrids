@@ -886,7 +886,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   
         {/* Game Info Header with Dropdowns */}
         <div className="bg-card/50 border-b neon-border-subtle shrink-0">
-          <div className="max-w-4xl mx-auto px-3 sm:px-6 py-2 sm:py-3">
+          <div className="max-w-4xl mx-auto px-3 sm:px-6 py-2">
             <div className="flex items-center justify-between gap-2 sm:gap-4">
               {/* Left side: New Team button with dropdown */}
               <div className="flex items-center gap-1 shrink-0">
