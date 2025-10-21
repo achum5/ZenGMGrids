@@ -296,14 +296,25 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       }
     });
 
-    // Define the desired position order
-    const positionOrder = ['PG', 'G', 'SG', 'GF', 'SF', 'F', 'PF', 'FC', 'C'];
+    // Define the desired position order for each sport
+    const sportPositionOrder: Record<string, string[]> = {
+      basketball: ['PG', 'G', 'SG', 'GF', 'SF', 'F', 'PF', 'FC', 'C'],
+      football: ['QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S', 'K', 'P'],
+      hockey: ['C', 'W', 'D', 'G'],
+      baseball: ['SP', 'RP', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF'],
+      // Add other sports here if needed
+    };
+
+    const positionOrder = sportPositionOrder[leagueData.sport] || [];
 
     // Sort by position, then games played, then alphabetically
     rosterPlayers.sort((a, b) => {
       const posA = positionOrder.indexOf(a.position);
       const posB = positionOrder.indexOf(b.position);
 
+      // Handle positions not found in the defined order (e.g., -1), placing them at the end
+      if (posA === -1 && posB !== -1) return 1;
+      if (posB === -1 && posA !== -1) return -1;
       if (posA !== posB) {
         return posA - posB;
       }
@@ -601,6 +612,12 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
           }
           return rp;
         }));
+      }
+
+      // Auto-reveal all players when entering the 'points-leader' round
+      if (nextRound === 'points-leader') {
+        setRoster(prev => prev.map(rp => ({ ...rp, revealed: true })));
+        setFoundCount(roster.length);
       }
     }
   }, [currentRound, roster.length]);
@@ -961,7 +978,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                 {/* Show prompt during leader rounds */}
                 {currentRound.endsWith('-leader') && (
                   <div className="text-center py-6">
-                    <p className="text-2xl font-bold text-primary">
+                    <p className="text-2xl font-bold text-white">
                       {currentRound === 'points-leader' && 'Click on the Team Points Leader'}
                       {currentRound === 'rebounds-leader' && 'Click on the Team Rebounds Leader'}
                       {currentRound === 'assists-leader' && 'Click on the Team Assists Leader'}
@@ -1063,17 +1080,17 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                           if (nameParts.length === 1) {
                             return (
                               <>
-                                <span>{firstName.charAt(0)}</span>
+                                <span style={{ filter: 'none' }}>{firstName.charAt(0)}</span>
                                 <span style={{ filter: 'blur(8px)' }}>{firstName.substring(1)}</span>
                               </>
                             );
                           } else {
                             return (
                               <>
-                                <span>{firstName.charAt(0)}</span>
+                                <span style={{ filter: 'none' }}>{firstName.charAt(0)}</span>
                                 <span style={{ filter: 'blur(8px)' }}>{firstName.substring(1)}</span>
                                 <span> </span>
-                                <span>{lastName.charAt(0)}</span>
+                                <span style={{ filter: 'none' }}>{lastName.charAt(0)}</span>
                                 <span style={{ filter: 'blur(8px)' }}>{lastName.substring(1)}</span>
                               </>
                             );
