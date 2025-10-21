@@ -288,6 +288,13 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                     Player details including career statistics, achievements, and team history.
                   </DialogDescription>
                   
+                  {/* Player Age */}
+                  {modalData && modalData.type === 'correct' && player.born?.year && player.seasons && player.seasons.length > 0 && (
+                    <div className="mt-2 text-sm text-muted-foreground">
+                      Age: {player.seasons[0].season - player.born.year}
+                    </div>
+                  )}
+
                   {/* Score feedback for correct guesses OR feedback message for wrong guesses */}
                   {modalData && modalData.type === 'correct' && (
                     <div className="mt-2">

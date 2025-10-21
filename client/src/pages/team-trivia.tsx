@@ -804,7 +804,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                       <AlertDialogHeader>
                         <AlertDialogTitle>Go back to game selection?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          You have found {foundCount} players. Going back will lose your current progress. Are you sure?
+                          Going back will lose your current progress. Are you sure?
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -1153,6 +1153,14 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                   {currentRound === 'complete' && (
                     <div className="w-full text-center text-[0.45rem] sm:text-[0.6rem] md:text-[0.7rem] leading-tight mt-1"
                       style={{ color: rp.teamColors?.[0] || 'hsl(var(--foreground))' }}>
+                      {(() => {
+                        const playerRating = rp.player.ratings?.find(r => r.season === selectedSeason);
+                        const playerBornYear = rp.player.born?.year;
+                        if (playerBornYear && selectedSeason) {
+                          return <p>Age: {selectedSeason - playerBornYear}</p>;
+                        }
+                        return null;
+                      })()}
                       {(() => {
                         const playerRating = rp.player.ratings?.find(r => r.season === selectedSeason);
                         if (playerRating) {
