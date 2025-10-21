@@ -787,8 +787,7 @@ export default function Home() {
     
     // Automatically save the league to storage
     // MOBILE FIX: Skip save on mobile for large files - data already in IDB, save would crash browser
-    const playerCount = data.players?.length || 0;
-    const skipSaveOnMobile = isMobile && playerCount > 10000;
+    const skipSaveOnMobile = isMobile && isHugeFile;
     
     if (fileName && data.sport && !skipSaveOnMobile) {
       try {

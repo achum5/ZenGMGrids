@@ -1,6 +1,5 @@
 import { openDB, type IDBPDatabase } from 'idb';
 import type { Player, Team } from '@/types/bbgm';
-import type { CatTeam } from './grid-generator';
 
 const DB_NAME = 'grids-league';
 const DB_VERSION = 5;
@@ -93,11 +92,11 @@ export async function getTeamPairIntersection(
 }
 
 /**
- * Get pre-computed intersection for a CatTeam pair (handles both team and achievement categories)
+ * Get pre-computed intersection for a category pair (handles both team and achievement categories)
  */
-export async function getCatTeamIntersection(
-  cat1: CatTeam,
-  cat2: CatTeam,
+export async function getCategoryIntersection(
+  cat1: any, // CatTeam type - avoiding import to prevent circular dependency
+  cat2: any,
   players: Player[]
 ): Promise<number[]> {
   // If both are team-based categories, use pre-computed data
