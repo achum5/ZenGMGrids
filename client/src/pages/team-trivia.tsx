@@ -704,10 +704,10 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                 {hasProgress ? (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="sm" data-testid="button-back" style={{ color: selectedTeam?.colors?.[0] || 'hsl(var(--primary-foreground))' }}>
+                      <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-9 px-3" data-testid="button-back" style={{ color: selectedTeam?.colors?.[0] || 'hsl(var(--primary-foreground))' }}>
                         <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
                         <span className="sr-only">Go back</span>
-                      </Button>
+                      </button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
@@ -746,17 +746,16 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                 {/* Year Dropdown */}
                 <Popover open={yearDropdownOpen} onOpenChange={setYearDropdownOpen}>
                   <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
+                    <button
                       role="combobox"
                       aria-expanded={yearDropdownOpen}
-                      className="text-2xl sm:text-3xl font-bold px-4 py-6"
-                    style={{ color: selectedTeam?.colors?.[0] || 'hsl(var(--primary))' }}
+                      className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground text-2xl sm:text-3xl font-bold px-4 py-6"
+                      style={{ color: selectedTeam?.colors?.[0] || 'hsl(var(--primary))' }}
                       data-testid="button-year-dropdown"
                     >
                       <ChevronDown className="mr-2 h-5 w-5" />
                       {selectedSeason}
-                    </Button>
+                    </button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[200px] p-0" align="start">
                     <Command>
@@ -790,11 +789,10 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                 {/* Team Logo/Name with Dropdown */}
                 <Popover open={teamDropdownOpen} onOpenChange={setTeamDropdownOpen}>
                   <PopoverTrigger asChild>
-                                      <Button
-                                        variant="ghost"
+                                      <button
                                         role="combobox"
                                         aria-expanded={teamDropdownOpen}
-                                        className="flex items-center gap-3 hover:bg-accent/50 px-4 py-6"
+                                        className="inline-flex items-center justify-center gap-3 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground hover:bg-accent/50 px-4 py-6"
                                         data-testid="button-team-dropdown"
                                       >
                                         {teamDisplayInfo.logo ? (
@@ -814,7 +812,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                                           {teamDisplayInfo.name}
                                         </span>
                                         <ChevronDown className="h-5 w-5 ml-2" />
-                                      </Button>                  </PopoverTrigger>
+                                      </button>                  </PopoverTrigger>
                   <PopoverContent className="w-[300px] p-0" align="center">
                     <Command>
                       <CommandInput placeholder="Search team..." />

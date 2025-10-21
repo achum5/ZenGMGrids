@@ -369,16 +369,15 @@ export function GridSection({
           ) : (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button
-                  variant="ghost"
+                <button
                   disabled={isGenerating || !hasEmptyCells}
-                  className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner text-xs sm:text-sm h-8 px-2 sm:h-10 sm:px-4"
+                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner text-xs sm:text-sm h-8 px-2 sm:h-10 sm:px-4"
                   data-testid="button-give-up"
                 >
                   <Flag className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                   <span className="hidden xs:inline">Give Up</span>
                   <span className="xs:hidden">Give Up</span>
-                </Button>
+                </button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
