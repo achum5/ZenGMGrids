@@ -7,7 +7,7 @@ import type { Sport } from './league-normalizer';
 import { analyzeTeamOverlaps } from './league-normalizer';
 
 const DB_NAME = 'grids-league';
-const DB_VERSION = 4;
+const DB_VERSION = 5; // Bumped for new intersections store
 
 export interface IDBLeagueMeta {
   sport: Sport;

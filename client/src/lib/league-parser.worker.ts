@@ -75,7 +75,7 @@ async function parseFileStreaming(file: File): Promise<'idb-stored'> {
   postProgress('Setting up database...', 5, 100);
   
   // Open/create IndexedDB
-  const db = await openDB('grids-league', 4, {
+  const db = await openDB('grids-league', 5, {
     upgrade(db, oldVersion) {
       // Create stores if they don't exist
       if (!db.objectStoreNames.contains('players')) {
@@ -91,6 +91,9 @@ async function parseFileStreaming(file: File): Promise<'idb-stored'> {
       }
       if (!db.objectStoreNames.contains('meta')) {
         db.createObjectStore('meta');
+      }
+      if (!db.objectStoreNames.contains('intersections')) {
+        db.createObjectStore('intersections', { keyPath: 'key' });
       }
     }
   });
@@ -356,7 +359,7 @@ async function parseUrlStreaming(url: string): Promise<'idb-stored'> {
   postProgress('Setting up database...', 8, 100);
   
   // Open/create IndexedDB
-  const db = await openDB('grids-league', 4, {
+  const db = await openDB('grids-league', 5, {
     upgrade(db, oldVersion) {
       // Create stores if they don't exist
       if (!db.objectStoreNames.contains('players')) {
@@ -372,6 +375,9 @@ async function parseUrlStreaming(url: string): Promise<'idb-stored'> {
       }
       if (!db.objectStoreNames.contains('meta')) {
         db.createObjectStore('meta');
+      }
+      if (!db.objectStoreNames.contains('intersections')) {
+        db.createObjectStore('intersections', { keyPath: 'key' });
       }
     }
   });

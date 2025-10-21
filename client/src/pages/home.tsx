@@ -690,16 +690,30 @@ export default function Home() {
   }, [createTestData]);
 
   const processLeagueData = useCallback(async (data: LeagueData & { isFullyProcessed?: boolean; byName?: any; byPid?: any; searchablePlayers?: any; teamsByTid?: any }, fileName?: string, fileSize?: number) => {
+    // Detect if on mobile for memory-aware processing
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    const playerCount = data.players?.length || 0;
+    const isHugeFile = playerCount > 10000;
+    
     // Clear caches for the new player dataset
     clearIntersectionCachesForPlayers(data.players);
     
+    // MOBILE FIX: Give browser breathing room before massive state update
+    if (isMobile && isHugeFile) {
+      console.log('[MOBILE] Large file detected, yielding before state updates...');
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
     setLeagueData(data);
+    
+    // MOBILE FIX: Yield after setting league data to prevent overwhelm
+    if (isMobile && isHugeFile) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    
     if (data.leagueYears) {
       setCachedLeagueYears(data.leagueYears);
     }
-    
-    // Detect if on mobile for memory-aware processing
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
     
     // Force close any open dropdowns/modals on mobile after file upload
     if (isMobile) {
@@ -721,6 +735,11 @@ export default function Home() {
       setSearchablePlayers(data.searchablePlayers);
       setTeamsByTid(data.teamsByTid);
       setUploadProgress({ message: 'Finalizing...', loaded: 90, total: 100 });
+      
+      // MOBILE FIX: Yield after setting search indices
+      if (isMobile && isHugeFile) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
     } else {
       // Build search indices (async with yielding for mobile) - only for traditional/streaming uploads
       setUploadProgress({ message: 'Building search index...', loaded: 50, total: 100 });
@@ -767,7 +786,11 @@ export default function Home() {
     debugIndividualAchievements(data.players, data.seasonIndex);
     
     // Automatically save the league to storage
-    if (fileName && data.sport) {
+    // MOBILE FIX: Skip save on mobile for large files - data already in IDB, save would crash browser
+    const playerCount = data.players?.length || 0;
+    const skipSaveOnMobile = isMobile && playerCount > 10000;
+    
+    if (fileName && data.sport && !skipSaveOnMobile) {
       try {
         setUploadProgress({ message: 'Saving league...', loaded: 95, total: 100 });
         
@@ -793,6 +816,8 @@ export default function Home() {
         console.error('Error saving league:', error);
         // Don't show error toast - saving is optional
       }
+    } else if (skipSaveOnMobile) {
+      console.log('[MOBILE] Skipping league save for large file - data already in IndexedDB');
     }
     
     setUploadProgress({ message: 'Complete!', loaded: 100, total: 100 });
