@@ -732,63 +732,11 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                 onMouseEnter={() => setIsHeaderHovered(true)}
                 onMouseLeave={() => setIsHeaderHovered(false)}
                 style={{ position: 'relative', backgroundColor: selectedTeam?.colors?.[0] || 'hsl(var(--card))' }}
-              >          <div className="max-w-6xl mx-auto px-6 py-4">
-                          <div className="relative flex items-center justify-start md:justify-center">
-                            <div className="absolute left-0 flex items-center space-x-1">
-                              {hasProgress ? (
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="sm" data-testid="button-back" style={{ color: selectedTeam?.colors?.[0] || 'hsl(var(--primary-foreground))' }} className="animate-on-click">
-                                      <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
-                                      <span className="sr-only">Go back</span>
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>Go back to game selection?</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        You have found {foundCount} players. Going back will lose your current progress. Are you sure?
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                      <AlertDialogAction onClick={onBackToModeSelect} className="animate-on-click">Go Back</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              ) : (
-                                <Button variant="ghost" size="sm" onClick={onBackToModeSelect} data-testid="button-back" style={{ color: selectedTeam?.colors?.[0] || 'hsl(var(--primary-foreground))' }} className="animate-on-click">
-                                  <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
-                                  <span className="sr-only">Go back</span>
-                                </Button>
-                              )}
-                            </div>
-                            <div className="flex items-center space-x-3">                <div 
-                  className="w-10 h-10"
-                  style={{
-                    backgroundColor: selectedTeam?.colors?.[1] || 'hsl(var(--primary))',
-                    maskImage: `url(${sportIcon})`,
-                    WebkitMaskImage: `url(${sportIcon})`,
-                    maskSize: 'contain',
-                    WebkitMaskSize: 'contain',
-                    maskRepeat: 'no-repeat',
-                    WebkitMaskRepeat: 'no-repeat',
-                    maskPosition: 'center',
-                    WebkitMaskPosition: 'center'
-                  }}
-                />
-                              <h1 className="text-base sm:text-lg md:text-2xl font-bold"
-                                style={{ 
-                                  color: selectedTeam?.colors?.[1] || 'hsl(var(--primary))',
-                                  letterSpacing: '-0.02em'
-                                }}
-                              >
-                                {sportTitle} Team Trivia
-                              </h1>              </div>
-              <div className="absolute right-0 flex items-center space-x-1">
-                <div>
-                  <RulesModal sport={leagueData.sport} color={selectedTeam?.colors?.[1]} />
-                </div>
+              >
+          <div className="max-w-6xl mx-auto px-6 py-4">
+            <div className="grid grid-cols-3 items-center gap-4">
+              {/* Left: Back button */}
+              <div className="flex items-center justify-start">
                 {hasProgress ? (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -816,10 +764,43 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     <span className="sr-only">Go back</span>
                   </Button>
                 )}
-                              <Button variant="ghost" size="sm" onClick={onGoHome} data-testid="button-home" style={{ color: selectedTeam?.colors?.[1] || 'hsl(var(--primary-foreground))' }} className="animate-on-click">
-                                <HomeIcon className="h-[1.2rem] w-[1.2rem]" />
-                                <span className="sr-only">Go home</span>
-                              </Button>              </div>
+              </div>
+
+              {/* Center: Logo + Title */}
+              <div className="flex items-center justify-center space-x-3 min-w-0">
+                <div 
+                  className="w-8 h-8 sm:w-10 sm:h-10 shrink-0"
+                  style={{
+                    backgroundColor: selectedTeam?.colors?.[1] || 'hsl(var(--primary))',
+                    maskImage: `url(${sportIcon})`,
+                    WebkitMaskImage: `url(${sportIcon})`,
+                    maskSize: 'contain',
+                    WebkitMaskSize: 'contain',
+                    maskRepeat: 'no-repeat',
+                    WebkitMaskRepeat: 'no-repeat',
+                    maskPosition: 'center',
+                    WebkitMaskPosition: 'center'
+                  }}
+                />
+                <h1 
+                  className="text-sm sm:text-base md:text-lg lg:text-2xl font-bold truncate"
+                  style={{ 
+                    color: selectedTeam?.colors?.[1] || 'hsl(var(--primary))',
+                    letterSpacing: '-0.02em'
+                  }}
+                >
+                  {sportTitle} Team Trivia
+                </h1>
+              </div>
+
+              {/* Right: Help + Home buttons */}
+              <div className="flex items-center justify-end space-x-1">
+                <RulesModal sport={leagueData.sport} color={selectedTeam?.colors?.[1]} />
+                <Button variant="ghost" size="sm" onClick={onGoHome} data-testid="button-home" style={{ color: selectedTeam?.colors?.[1] || 'hsl(var(--primary-foreground))' }} className="animate-on-click">
+                  <HomeIcon className="h-[1.2rem] w-[1.2rem]" />
+                  <span className="sr-only">Go home</span>
+                </Button>
+              </div>
             </div>
           </div>
           <AccentLine isHovered={isHeaderHovered} color={selectedTeam?.colors?.[1]} />
