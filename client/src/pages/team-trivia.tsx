@@ -84,9 +84,17 @@ function normalizeName(name: string): string {
     .replace(/[\u0300-\u036f]/g, '');
 }
 
-type RoundType = 'guess' | 'hint' | 'points-leader' | 'rebounds-leader' | 'assists-leader' | 'steals-leader' | 'blocks-leader' | 'complete';
+// Basketball rounds
+type BasketballRoundType = 'guess' | 'hint' | 'points-leader' | 'rebounds-leader' | 'assists-leader' | 'steals-leader' | 'blocks-leader' | 'complete';
 
-const ROUND_ORDER: RoundType[] = [
+// Football rounds
+type FootballRoundType = 'guess' | 'hint' | 'passing-yards-leader' | 'rushing-yards-leader' | 'receiving-yards-leader' | 'tackles-leader' | 'sacks-leader' | 'interceptions-leader' | 'complete';
+
+// Union type for all possible rounds
+type RoundType = BasketballRoundType | FootballRoundType;
+
+// Sport-specific round orders
+const BASKETBALL_ROUND_ORDER: BasketballRoundType[] = [
   'guess',
   'hint',
   'points-leader',
@@ -97,7 +105,20 @@ const ROUND_ORDER: RoundType[] = [
   'complete'
 ];
 
-const ROUND_INSTRUCTIONS: Record<RoundType, string> = {
+const FOOTBALL_ROUND_ORDER: FootballRoundType[] = [
+  'guess',
+  'hint',
+  'passing-yards-leader',
+  'rushing-yards-leader',
+  'receiving-yards-leader',
+  'tackles-leader',
+  'sacks-leader',
+  'interceptions-leader',
+  'complete'
+];
+
+// Sport-specific round instructions
+const BASKETBALL_ROUND_INSTRUCTIONS: Record<BasketballRoundType, string> = {
   'guess': 'Guess the players on this team',
   'hint': 'Hints revealed! Keep guessing',
   'points-leader': 'Click on the team points leader',
@@ -105,6 +126,18 @@ const ROUND_INSTRUCTIONS: Record<RoundType, string> = {
   'assists-leader': 'Click on the team assists leader',
   'steals-leader': 'Click on the team steals leader',
   'blocks-leader': 'Click on the team blocks leader',
+  'complete': 'Round complete!'
+};
+
+const FOOTBALL_ROUND_INSTRUCTIONS: Record<FootballRoundType, string> = {
+  'guess': 'Guess the players on this team',
+  'hint': 'Hints revealed! Keep guessing',
+  'passing-yards-leader': 'Click on the team passing yards leader',
+  'rushing-yards-leader': 'Click on the team rushing yards leader',
+  'receiving-yards-leader': 'Click on the team receiving yards leader',
+  'tackles-leader': 'Click on the team tackles leader',
+  'sacks-leader': 'Click on the team sacks leader',
+  'interceptions-leader': 'Click on the team interceptions leader',
   'complete': 'Round complete!'
 };
 
@@ -129,6 +162,17 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<HTMLDivElement>(null);
   const tileRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+
+  // Get sport-specific round order
+  const ROUND_ORDER = leagueData.sport === 'football' ? FOOTBALL_ROUND_ORDER : BASKETBALL_ROUND_ORDER;
+
+  // Get sport-specific instructions
+  const getRoundInstruction = (round: RoundType): string => {
+    if (leagueData.sport === 'football') {
+      return FOOTBALL_ROUND_INSTRUCTIONS[round as FootballRoundType] || '';
+    }
+    return BASKETBALL_ROUND_INSTRUCTIONS[round as BasketballRoundType] || '';
+  };
 
   // Get all unique seasons
   const allSeasons = useMemo(() => {
@@ -173,7 +217,14 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   // Calculate stat leaders from roster
   const statLeaders = useMemo(() => {
     if (roster.length === 0) {
-      return {
+      return leagueData.sport === 'football' ? {
+        passingYards: null,
+        rushingYards: null,
+        receivingYards: null,
+        tackles: null,
+        sacks: null,
+        interceptions: null,
+      } : {
         points: null,
         rebounds: null,
         assists: null,
@@ -182,59 +233,139 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       };
     }
 
-    // Find player with highest PPG
-    const pointsLeader = roster.reduce((leader, rp) =>
-      rp.stats.ppg > leader.stats.ppg ? rp : leader
-    );
+    if (leagueData.sport === 'football') {
+      // Football stat leaders
+      const passingYardsLeader = roster.reduce((leader, rp) => {
+        const leaderStats = leader.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const rpStats = rp.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const leaderYards = (leaderStats as any)?.pssYds || 0;
+        const rpYards = (rpStats as any)?.pssYds || 0;
+        return rpYards > leaderYards ? rp : leader;
+      });
 
-    // Find player with highest RPG
-    const reboundsLeader = roster.reduce((leader, rp) =>
-      rp.stats.rpg > leader.stats.rpg ? rp : leader
-    );
+      const rushingYardsLeader = roster.reduce((leader, rp) => {
+        const leaderStats = leader.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const rpStats = rp.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const leaderYards = (leaderStats as any)?.rusYds || 0;
+        const rpYards = (rpStats as any)?.rusYds || 0;
+        return rpYards > leaderYards ? rp : leader;
+      });
 
-    // Find player with highest APG
-    const assistsLeader = roster.reduce((leader, rp) =>
-      rp.stats.apg > leader.stats.apg ? rp : leader
-    );
+      const receivingYardsLeader = roster.reduce((leader, rp) => {
+        const leaderStats = leader.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const rpStats = rp.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const leaderYards = (leaderStats as any)?.recYds || 0;
+        const rpYards = (rpStats as any)?.recYds || 0;
+        return rpYards > leaderYards ? rp : leader;
+      });
 
-    // Find player with highest steals
-    const stealsLeader = roster.reduce((leader, rp) => {
-      const leaderSeasonStats = leader.player.stats?.find(
-        s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+      const tacklesLeader = roster.reduce((leader, rp) => {
+        const leaderStats = leader.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const rpStats = rp.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const leaderTackles = (leaderStats as any)?.defTck || 0;
+        const rpTackles = (rpStats as any)?.defTck || 0;
+        return rpTackles > leaderTackles ? rp : leader;
+      });
+
+      const sacksLeader = roster.reduce((leader, rp) => {
+        const leaderStats = leader.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const rpStats = rp.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const leaderSacks = (leaderStats as any)?.defSk || (leaderStats as any)?.sks || 0;
+        const rpSacks = (rpStats as any)?.defSk || (rpStats as any)?.sks || 0;
+        return rpSacks > leaderSacks ? rp : leader;
+      });
+
+      const interceptionsLeader = roster.reduce((leader, rp) => {
+        const leaderStats = leader.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const rpStats = rp.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const leaderInts = (leaderStats as any)?.defInt || 0;
+        const rpInts = (rpStats as any)?.defInt || 0;
+        return rpInts > leaderInts ? rp : leader;
+      });
+
+      return {
+        passingYards: passingYardsLeader.player.pid,
+        rushingYards: rushingYardsLeader.player.pid,
+        receivingYards: receivingYardsLeader.player.pid,
+        tackles: tacklesLeader.player.pid,
+        sacks: sacksLeader.player.pid,
+        interceptions: interceptionsLeader.player.pid,
+      };
+    } else {
+      // Basketball stat leaders
+      const pointsLeader = roster.reduce((leader, rp) =>
+        rp.stats.ppg > leader.stats.ppg ? rp : leader
       );
-      const rpSeasonStats = rp.player.stats?.find(
-        s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+
+      const reboundsLeader = roster.reduce((leader, rp) =>
+        rp.stats.rpg > leader.stats.rpg ? rp : leader
       );
 
-      const leaderStl = leaderSeasonStats?.stl || 0;
-      const rpStl = rpSeasonStats?.stl || 0;
-
-      return rpStl > leaderStl ? rp : leader;
-    });
-
-    // Find player with highest blocks
-    const blocksLeader = roster.reduce((leader, rp) => {
-      const leaderSeasonStats = leader.player.stats?.find(
-        s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
-      );
-      const rpSeasonStats = rp.player.stats?.find(
-        s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+      const assistsLeader = roster.reduce((leader, rp) =>
+        rp.stats.apg > leader.stats.apg ? rp : leader
       );
 
-      const leaderBlk = leaderSeasonStats?.blk || 0;
-      const rpBlk = rpSeasonStats?.blk || 0;
+      const stealsLeader = roster.reduce((leader, rp) => {
+        const leaderSeasonStats = leader.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const rpSeasonStats = rp.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
 
-      return rpBlk > leaderBlk ? rp : leader;
-    });
+        const leaderStl = leaderSeasonStats?.stl || 0;
+        const rpStl = rpSeasonStats?.stl || 0;
 
-    return {
-      points: pointsLeader.player.pid,
-      rebounds: reboundsLeader.player.pid,
-      assists: assistsLeader.player.pid,
-      steals: stealsLeader.player.pid,
-      blocks: blocksLeader.player.pid,
-    };
-  }, [roster, selectedSeason, selectedTeam]);
+        return rpStl > leaderStl ? rp : leader;
+      });
+
+      const blocksLeader = roster.reduce((leader, rp) => {
+        const leaderSeasonStats = leader.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const rpSeasonStats = rp.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+
+        const leaderBlk = leaderSeasonStats?.blk || 0;
+        const rpBlk = rpSeasonStats?.blk || 0;
+
+        return rpBlk > leaderBlk ? rp : leader;
+      });
+
+      return {
+        points: pointsLeader.player.pid,
+        rebounds: reboundsLeader.player.pid,
+        assists: assistsLeader.player.pid,
+        steals: stealsLeader.player.pid,
+        blocks: blocksLeader.player.pid,
+      };
+    }
+  }, [roster, selectedSeason, selectedTeam, leagueData.sport]);
 
   // Build roster for selected season/team
   const buildRoster = useCallback((season: number, team: Team) => {
@@ -609,8 +740,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         }));
       }
 
-      // Auto-reveal all players when entering the 'points-leader' round
-      if (nextRound === 'points-leader') {
+      // Auto-reveal all players when entering the first leader round
+      if (nextRound === 'points-leader' || nextRound === 'passing-yards-leader') {
         setRoster(prev => prev.map(rp => ({ ...rp, revealed: true })));
         setFoundCount(roster.length);
       }
@@ -632,20 +763,40 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     // Determine which leader we're looking for
     let correctLeaderPid: number | null = null;
     switch (currentRound) {
+      // Basketball rounds
       case 'points-leader':
-        correctLeaderPid = statLeaders.points;
+        correctLeaderPid = (statLeaders as any).points;
         break;
       case 'rebounds-leader':
-        correctLeaderPid = statLeaders.rebounds;
+        correctLeaderPid = (statLeaders as any).rebounds;
         break;
       case 'assists-leader':
-        correctLeaderPid = statLeaders.assists;
+        correctLeaderPid = (statLeaders as any).assists;
         break;
       case 'steals-leader':
-        correctLeaderPid = statLeaders.steals;
+        correctLeaderPid = (statLeaders as any).steals;
         break;
       case 'blocks-leader':
-        correctLeaderPid = statLeaders.blocks;
+        correctLeaderPid = (statLeaders as any).blocks;
+        break;
+      // Football rounds
+      case 'passing-yards-leader':
+        correctLeaderPid = (statLeaders as any).passingYards;
+        break;
+      case 'rushing-yards-leader':
+        correctLeaderPid = (statLeaders as any).rushingYards;
+        break;
+      case 'receiving-yards-leader':
+        correctLeaderPid = (statLeaders as any).receivingYards;
+        break;
+      case 'tackles-leader':
+        correctLeaderPid = (statLeaders as any).tackles;
+        break;
+      case 'sacks-leader':
+        correctLeaderPid = (statLeaders as any).sacks;
+        break;
+      case 'interceptions-leader':
+        correctLeaderPid = (statLeaders as any).interceptions;
         break;
     }
 
@@ -1312,11 +1463,19 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                 /* Leader round prompt - centered in footer */
                 <div className="flex-1 text-center">
                   <p className={`text-lg sm:text-xl md:text-2xl font-bold text-white ${triggerBounceAnimation ? 'animate-bounce-once' : ''}`}>
+                    {/* Basketball rounds */}
                     {currentRound === 'points-leader' && 'Click on the Team Points Leader'}
                     {currentRound === 'rebounds-leader' && 'Click on the Team Rebounds Leader'}
                     {currentRound === 'assists-leader' && 'Click on the Team Assists Leader'}
                     {currentRound === 'steals-leader' && 'Click on the Team Steals Leader'}
                     {currentRound === 'blocks-leader' && 'Click on the Team Blocks Leader'}
+                    {/* Football rounds */}
+                    {currentRound === 'passing-yards-leader' && 'Click on the Team Passing Yards Leader'}
+                    {currentRound === 'rushing-yards-leader' && 'Click on the Team Rushing Yards Leader'}
+                    {currentRound === 'receiving-yards-leader' && 'Click on the Team Receiving Yards Leader'}
+                    {currentRound === 'tackles-leader' && 'Click on the Team Tackles Leader'}
+                    {currentRound === 'sacks-leader' && 'Click on the Team Sacks Leader'}
+                    {currentRound === 'interceptions-leader' && 'Click on the Team Interceptions Leader'}
                   </p>
                 </div>
               ) : null}
