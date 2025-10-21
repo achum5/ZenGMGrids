@@ -320,17 +320,98 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
 
     postProgress('Analyzing team overlaps...');
     const teamOverlaps = analyzeTeamOverlaps(players, teams);
-    
+
     let seasonIndex: SeasonIndex | undefined;
     const uniqueSeasons = new Set(players.flatMap(p => p.stats?.filter(s => !s.playoffs).map(s => s.season) || []));
     const seasonCount = uniqueSeasons.size;
-    
+
     if (['basketball', 'football', 'hockey', 'baseball'].includes(sport) && seasonCount >= 20) {
       postProgress('Building season index...');
       seasonIndex = getCachedSeasonIndex(players, sport);
     }
-  
-    return { players, teams, sport, teamOverlaps, seasonIndex, leagueYears };
+
+    // Extract team season records (wins/losses)
+    postProgress('Processing team season records...');
+
+    // Debug: Log what keys are available in raw
+    console.log('[League Normalizer] Available keys in raw:', Object.keys(raw));
+    console.log('[League Normalizer] raw.teamSeasons exists?', !!raw.teamSeasons);
+    console.log('[League Normalizer] raw.teamStats exists?', !!raw.teamStats);
+
+    let teamSeasons: any[] = [];
+
+    // Try different possible property names
+    let rawTeamSeasons = raw.teamSeasons || raw.teamStats;
+
+    if (rawTeamSeasons) {
+      console.log('[League Normalizer] Found team data at:', raw.teamSeasons ? 'teamSeasons' : 'teamStats');
+      console.log('[League Normalizer] Sample raw record:', rawTeamSeasons[0]);
+
+      teamSeasons = rawTeamSeasons.map((ts: any) => ({
+        tid: ts.tid,
+        season: ts.season,
+        won: ts.won,
+        lost: ts.lost,
+        tied: ts.tied,
+        otl: ts.otl,
+        playoffs: ts.playoffs || false,
+        gp: ts.gp
+      }));
+    } else {
+      // Alternative: Extract from teams[].seasons if raw.teamSeasons doesn't exist
+      console.log('[League Normalizer] No raw.teamSeasons found, extracting from teams[].seasons');
+
+      if (raw.teams) {
+        console.log('[League Normalizer] Number of teams:', raw.teams.length);
+
+        // Log first team structure
+        if (raw.teams.length > 0) {
+          const firstTeam = raw.teams[0];
+          console.log('[League Normalizer] First team keys:', Object.keys(firstTeam));
+          console.log('[League Normalizer] First team.seasons exists?', !!firstTeam.seasons);
+          console.log('[League Normalizer] First team.seasons type:', Array.isArray(firstTeam.seasons) ? 'array' : typeof firstTeam.seasons);
+          if (firstTeam.seasons) {
+            console.log('[League Normalizer] First team.seasons length:', firstTeam.seasons.length);
+            if (firstTeam.seasons.length > 0) {
+              console.log('[League Normalizer] First team.seasons[0]:', firstTeam.seasons[0]);
+            }
+          }
+
+          // Also check the processed teams array
+          console.log('[League Normalizer] Processed teams[0].seasons:', teams[0]?.seasons);
+        }
+
+        for (const team of raw.teams) {
+          if (team.seasons && Array.isArray(team.seasons)) {
+            for (const season of team.seasons) {
+              teamSeasons.push({
+                tid: team.tid,
+                season: season.season,
+                won: season.won,
+                lost: season.lost,
+                tied: season.tied,
+                otl: season.otl,
+                playoffs: season.playoffs || false,
+                gp: season.gp
+              });
+            }
+          }
+        }
+        console.log('[League Normalizer] Extracted from teams[].seasons:', teamSeasons.length, 'records');
+        if (teamSeasons.length > 0) {
+          console.log('[League Normalizer] Sample record:', teamSeasons[0]);
+        }
+      }
+    }
+
+    console.log('[League Normalizer] Final teamSeasons count:', teamSeasons.length, 'records');
+    if (teamSeasons.length > 0) {
+      console.log('[League Normalizer] Sample teamSeason:', teamSeasons[0]);
+    } else {
+      console.warn('[League Normalizer] No teamSeasons found in raw data');
+    }
+
+    return { players, teams, sport, teamOverlaps, seasonIndex, leagueYears, teamSeasons };
   
   } catch (error) {
     console.error('Error in normalizeLeague:', error);

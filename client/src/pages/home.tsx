@@ -743,6 +743,16 @@ export default function Home() {
       try {
         // Generate a clean name from the file name
         const cleanName = fileName.replace(/\.(json|gz)$/gi, '').replace(/\./g, ' ');
+        
+        // Debug: Check if teamSeasons exists before saving
+        console.log('[Upload] League data before save:', {
+          sport: data.sport,
+          players: data.players?.length,
+          teams: data.teams?.length,
+          teamSeasons: data.teamSeasons?.length,
+          sampleTeamSeason: data.teamSeasons?.[0]
+        });
+        
         await saveLeague(cleanName, data, data.sport, fileSize);
         
         toast({
