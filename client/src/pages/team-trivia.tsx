@@ -1618,8 +1618,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     onClick={handleNew}
                     className="neon-button animate-on-click rounded-r-none border-r-0 text-xs sm:text-sm px-2 sm:px-4 h-8 sm:h-10"
                     style={{ 
+                      backgroundColor: teamDisplayInfo.colors[0] || 'hsl(var(--primary))',
                       color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))',
-                      borderColor: teamDisplayInfo.colors[1] || 'hsl(var(--border))'
+                      borderColor: teamDisplayInfo.colors[0] || 'hsl(var(--border))'
                     }}
                     data-testid="button-new-trivia"
                   >
@@ -1635,8 +1636,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                         size="sm"
                         className="neon-button animate-on-click rounded-l-none px-1 sm:px-2 h-8 sm:h-10"
                         style={{ 
+                          backgroundColor: teamDisplayInfo.colors[0] || 'hsl(var(--primary))',
                           color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))',
-                          borderColor: teamDisplayInfo.colors[1] || 'hsl(var(--border))'
+                          borderColor: teamDisplayInfo.colors[0] || 'hsl(var(--border))'
                         }}
                         data-testid="button-new-trivia-dropdown"
                       >
