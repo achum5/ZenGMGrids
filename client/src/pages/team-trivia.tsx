@@ -1175,7 +1175,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         </div>
 
         {/* Bottom Actions */}
-        <div className="shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t neon-border-subtle">
+        <div className="shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t neon-border-subtle relative z-[1000]">
           <div className="max-w-4xl mx-auto px-6 py-4">
             <div className="flex items-center gap-3">
               {/* Center: Search input (guess/hint rounds) OR Leader prompt (leader rounds) */}
