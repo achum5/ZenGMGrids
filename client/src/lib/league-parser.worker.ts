@@ -95,7 +95,6 @@ async function parseFileStreaming(file: File): Promise<any> {
   let itemCount = 0;
   let playerCount = 0;
   let teamCount = 0;
-  let currentSection = '';
   
   try {
     while (true) {
@@ -114,8 +113,9 @@ async function parseFileStreaming(file: File): Promise<any> {
         
         if (!topLevelKey) continue;
         
-        // Check if this is an array item (has numeric index)
-        const isArrayItem = pathArray.length > 1 && /^\d+$/.test(pathArray[1]);
+        // Check if this is an array item (path has 2+ parts with numeric index)
+        // e.g., "players.0", "teams.5" etc.
+        const isArrayItem = pathArray.length >= 2 && /^\d+$/.test(pathArray[1]);
         
         if (isArrayItem) {
           // Initialize array if needed
@@ -124,10 +124,8 @@ async function parseFileStreaming(file: File): Promise<any> {
             
             // Show progress message when starting a new section
             if (topLevelKey === 'players') {
-              currentSection = 'players';
               postProgress('Processing players...', 25, 100);
             } else if (topLevelKey === 'teams') {
-              currentSection = 'teams';
               postProgress('Processing teams...', 40, 100);
             }
           }
@@ -155,11 +153,16 @@ async function parseFileStreaming(file: File): Promise<any> {
             await new Promise(resolve => setTimeout(resolve, 0));
           }
         } else {
-          // Scalar values (version, gameAttributes, etc.)
-          if (topLevelKey === 'gameAttributes') {
-            postProgress('Loading league settings...', 22, 100);
-          }
+          // Scalar/object values (version, gameAttributes, meta, trade, etc.)
+          // These are emitted as complete values
           result[topLevelKey] = value.value;
+          
+          // Show progress for key sections
+          if (topLevelKey === 'gameAttributes') {
+            postProgress('League settings loaded', 23, 100);
+          } else if (topLevelKey === 'version') {
+            postProgress('Reading file version...', 21, 100);
+          }
         }
       }
     }
@@ -256,8 +259,9 @@ async function parseUrlStreaming(url: string): Promise<any> {
         
         if (!topLevelKey) continue;
         
-        // Check if this is an array item (has numeric index)
-        const isArrayItem = pathArray.length > 1 && /^\d+$/.test(pathArray[1]);
+        // Check if this is an array item (path has 2+ parts with numeric index)
+        // e.g., "players.0", "teams.5" etc.
+        const isArrayItem = pathArray.length >= 2 && /^\d+$/.test(pathArray[1]);
         
         if (isArrayItem) {
           // Initialize array if needed
@@ -295,11 +299,16 @@ async function parseUrlStreaming(url: string): Promise<any> {
             await new Promise(resolve => setTimeout(resolve, 0));
           }
         } else {
-          // Scalar values (version, gameAttributes, etc.)
-          if (topLevelKey === 'gameAttributes') {
-            postProgress('Loading league settings...', 22, 100);
-          }
+          // Scalar/object values (version, gameAttributes, meta, trade, etc.)
+          // These are emitted as complete values
           result[topLevelKey] = value.value;
+          
+          // Show progress for key sections
+          if (topLevelKey === 'gameAttributes') {
+            postProgress('League settings loaded', 23, 100);
+          } else if (topLevelKey === 'version') {
+            postProgress('Reading file version...', 21, 100);
+          }
         }
       }
     }
