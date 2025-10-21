@@ -92,16 +92,16 @@ function getTeamLogoUrl(logoUrl: string | null | undefined, sport: string = 'bas
 }
 
 // Basketball rounds
-type BasketballRoundType = 'guess' | 'hint' | 'points-leader' | 'rebounds-leader' | 'assists-leader' | 'steals-leader' | 'blocks-leader' | 'complete';
+type BasketballRoundType = 'guess' | 'hint' | 'points-leader' | 'rebounds-leader' | 'assists-leader' | 'steals-leader' | 'blocks-leader' | 'wins-guess' | 'complete';
 
 // Football rounds
-type FootballRoundType = 'guess' | 'hint' | 'passing-yards-leader' | 'rushing-yards-leader' | 'receiving-yards-leader' | 'tackles-leader' | 'sacks-leader' | 'interceptions-leader' | 'complete';
+type FootballRoundType = 'guess' | 'hint' | 'passing-yards-leader' | 'rushing-yards-leader' | 'receiving-yards-leader' | 'tackles-leader' | 'sacks-leader' | 'interceptions-leader' | 'wins-guess' | 'complete';
 
 // Baseball rounds
-type BaseballRoundType = 'guess' | 'hint' | 'hits-leader' | 'home-runs-leader' | 'rbis-leader' | 'stolen-bases-leader' | 'strikeouts-leader' | 'wins-leader' | 'complete';
+type BaseballRoundType = 'guess' | 'hint' | 'hits-leader' | 'home-runs-leader' | 'rbis-leader' | 'stolen-bases-leader' | 'strikeouts-leader' | 'wins-leader' | 'wins-guess' | 'complete';
 
 // Hockey rounds
-type HockeyRoundType = 'guess' | 'hint' | 'points-leader' | 'goals-leader' | 'assists-leader' | 'goalie-wins-leader' | 'complete';
+type HockeyRoundType = 'guess' | 'hint' | 'points-leader' | 'goals-leader' | 'assists-leader' | 'goalie-wins-leader' | 'wins-guess' | 'complete';
 
 // Union type for all possible rounds
 type RoundType = BasketballRoundType | FootballRoundType | BaseballRoundType | HockeyRoundType;
@@ -115,6 +115,7 @@ const BASKETBALL_ROUND_ORDER: BasketballRoundType[] = [
   'assists-leader',
   'steals-leader',
   'blocks-leader',
+  'wins-guess',
   'complete'
 ];
 
@@ -127,6 +128,7 @@ const FOOTBALL_ROUND_ORDER: FootballRoundType[] = [
   'tackles-leader',
   'sacks-leader',
   'interceptions-leader',
+  'wins-guess',
   'complete'
 ];
 
@@ -139,6 +141,7 @@ const BASEBALL_ROUND_ORDER: BaseballRoundType[] = [
   'stolen-bases-leader',
   'strikeouts-leader',
   'wins-leader',
+  'wins-guess',
   'complete'
 ];
 
@@ -149,6 +152,7 @@ const HOCKEY_ROUND_ORDER: HockeyRoundType[] = [
   'goals-leader',
   'assists-leader',
   'goalie-wins-leader',
+  'wins-guess',
   'complete'
 ];
 
@@ -161,6 +165,7 @@ const BASKETBALL_ROUND_INSTRUCTIONS: Record<BasketballRoundType, string> = {
   'assists-leader': 'Click on the team assists leader',
   'steals-leader': 'Click on the team steals leader',
   'blocks-leader': 'Click on the team blocks leader',
+  'wins-guess': 'Guess how many wins this team had',
   'complete': 'Round complete!'
 };
 
@@ -173,6 +178,7 @@ const FOOTBALL_ROUND_INSTRUCTIONS: Record<FootballRoundType, string> = {
   'tackles-leader': 'Click on the team tackles leader',
   'sacks-leader': 'Click on the team sacks leader',
   'interceptions-leader': 'Click on the team interceptions leader',
+  'wins-guess': 'Guess how many wins this team had',
   'complete': 'Round complete!'
 };
 
@@ -185,6 +191,7 @@ const BASEBALL_ROUND_INSTRUCTIONS: Record<BaseballRoundType, string> = {
   'stolen-bases-leader': 'Click on the team stolen bases leader',
   'strikeouts-leader': 'Click on the team strikeouts leader',
   'wins-leader': 'Click on the team wins leader',
+  'wins-guess': 'Guess how many wins this team had',
   'complete': 'Round complete!'
 };
 
@@ -195,6 +202,7 @@ const HOCKEY_ROUND_INSTRUCTIONS: Record<HockeyRoundType, string> = {
   'goals-leader': 'Click on the team goals leader',
   'assists-leader': 'Click on the team assists leader',
   'goalie-wins-leader': 'Click on the team goalie wins leader',
+  'wins-guess': 'Guess how many wins this team had',
   'complete': 'Round complete!'
 };
 
@@ -217,6 +225,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   const [newTeamDropdownOpen, setNewTeamDropdownOpen] = useState(false);
   const [triggerBounceAnimation, setTriggerBounceAnimation] = useState(false); // New state for animation
   const [tileAnimations, setTileAnimations] = useState<Record<number, string>>({}); // New state for tile animations
+  const [winsGuessPosition, setWinsGuessPosition] = useState(0); // Left edge L of the slider window
+  const [winsGuessSubmitted, setWinsGuessSubmitted] = useState(false); // Whether user has submitted their guess
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<HTMLDivElement>(null);
   const tileRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -281,6 +291,53 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
 
     return allTeams.filter(team => teamsWithPlayers.has(team.tid));
   }, [selectedSeason, allTeams, leagueData.players]);
+
+  // Calculate wins guess data (G, A, W)
+  const winsGuessData = useMemo(() => {
+    if (!selectedSeason || !selectedTeam || !leagueData.teamSeasons) {
+      return null;
+    }
+
+    // Find the team's regular season record for this season
+    const teamSeasonRecord = leagueData.teamSeasons.find(
+      ts => ts.tid === selectedTeam.tid && ts.season === selectedSeason && !ts.playoffs
+    );
+
+    if (!teamSeasonRecord) {
+      return null;
+    }
+
+    // Extract W, L, T, OTL from the record
+    const W = teamSeasonRecord.won || 0;
+    const L = teamSeasonRecord.lost || 0;
+    const T = teamSeasonRecord.tied || 0;
+    const OTL = teamSeasonRecord.otl || 0;
+
+    // Calculate G (total games) based on sport
+    let G: number;
+    if (leagueData.sport === 'football') {
+      G = W + L + T; // Football includes ties
+    } else if (leagueData.sport === 'hockey') {
+      G = W + L + OTL; // Hockey includes overtime losses
+    } else {
+      G = W + L; // Baseball and Basketball
+    }
+
+    // If gp is present and looks reasonable, use it
+    if (teamSeasonRecord.gp && teamSeasonRecord.gp > 0) {
+      G = teamSeasonRecord.gp;
+    }
+
+    // Calculate window width: W_width = max(1, round(G × 0.125))
+    const p = 0.125; // 12.5% tolerance
+    const windowWidth = Math.max(1, Math.round(G * p));
+
+    return {
+      totalGames: G,
+      actualWins: W,
+      windowWidth: windowWidth,
+    };
+  }, [selectedSeason, selectedTeam, leagueData.teamSeasons, leagueData.sport]);
 
   // Calculate stat leaders from roster
   const statLeaders = useMemo(() => {
@@ -745,6 +802,14 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     }
   };
 
+  // Helper function to remove leading zero from decimal stats
+  const removeLeadingZero = (value: string): string => {
+    if (value.startsWith('0.')) {
+      return value.substring(1);
+    }
+    return value;
+  };
+
   // Helper function to calculate baseball stats by position
   const calculateBaseballStats = (seasonStats: any, position: string) => {
     const isPitcher = position === 'SP' || position === 'RP';
@@ -756,7 +821,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       const l = seasonStats.l || 0;
       const outs = seasonStats.outs || 0;
       const er = seasonStats.er || 0;
-      const era = outs > 0 ? (27 * er / outs).toFixed(2) : null;
+      const era = outs > 0 ? removeLeadingZero((27 * er / outs).toFixed(2)) : null;
       
       const gp = seasonStats.gpPit !== undefined ? seasonStats.gpPit : seasonStats.gp || 0;
       const gs = seasonStats.gsPit !== undefined ? seasonStats.gsPit : seasonStats.gs || 0;
@@ -770,12 +835,12 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       const so = seasonStats.soPit || 0;
       const bbPit = seasonStats.bbPit || 0;
       const hPit = seasonStats.hPit || 0;
-      const whip = outs > 0 ? (3 * (bbPit + hPit) / outs).toFixed(2) : null;
+      const whip = outs > 0 ? removeLeadingZero((3 * (bbPit + hPit) / outs).toFixed(2)) : null;
 
       return {
-        line1: era ? `${war}  ${w}  ${l}  ${era}` : `${war}  ${w}  ${l}`,
-        line2: `${gp}  ${gs}  ${sv}`,
-        line3: whip ? `${ip}  ${so}  ${whip}` : `${ip}  ${so}`
+        line1: era ? `${war}/${w}/${l}/${era}` : `${war}/${w}/${l}`,
+        line2: `${gp}/${gs}/${sv}`,
+        line3: whip ? `${ip}/${so}/${whip}` : `${ip}/${so}`
       };
     } else {
       // Hitter stats
@@ -795,23 +860,23 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       const ab = pa - bb - hbp - sf - sh;
 
       // BA, OBP, SLG, OPS
-      const ba = ab > 0 ? (h / ab).toFixed(3) : null;
-      
+      const ba = ab > 0 ? removeLeadingZero((h / ab).toFixed(3)) : null;
+
       const obpDenom = ab + bb + hbp + sf;
-      const obp = obpDenom > 0 ? ((h + bb + hbp) / obpDenom).toFixed(3) : null;
+      const obp = obpDenom > 0 ? removeLeadingZero(((h + bb + hbp) / obpDenom).toFixed(3)) : null;
 
       const doubles = seasonStats['2b'] || 0;
       const triples = seasonStats['3b'] || 0;
       const singles = h - doubles - triples - hr;
       const tb = singles + 2 * doubles + 3 * triples + 4 * hr;
-      const slg = ab > 0 ? (tb / ab).toFixed(3) : null;
+      const slg = ab > 0 ? removeLeadingZero((tb / ab).toFixed(3)) : null;
 
-      const ops = (obp && slg) ? (parseFloat(obp) + parseFloat(slg)).toFixed(3) : null;
+      const ops = (obp && slg) ? removeLeadingZero((parseFloat('0' + obp) + parseFloat('0' + slg)).toFixed(3)) : null;
 
       return {
-        line1: ba ? `${war}  ${pa}  ${h}  ${hr}  ${ba}` : `${war}  ${pa}  ${h}  ${hr}`,
-        line2: `${r}  ${rbi}  ${sb}`,
-        line3: ops ? `${obp}  ${slg}  ${ops}` : (obp && slg) ? `${obp}  ${slg}` : obp ? obp : slg ? slg : null
+        line1: ba ? `${war}/${pa}/${h}/${hr}/${ba}` : `${war}/${pa}/${h}/${hr}`,
+        line2: `${r}/${rbi}/${sb}`,
+        line3: ops ? `${obp}/${slg}/${ops}` : (obp && slg) ? `${obp}/${slg}` : obp ? obp : slg ? slg : null
       };
     }
   };
@@ -2040,19 +2105,19 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                           {/* Pitchers (SP, RP) */}
                           {(rp.position === 'SP' || rp.position === 'RP') && (
                             <>
-                              {rp.stats.line1 && <><p>WAR  W  L  ERA:</p><p>{rp.stats.line1}</p></>}
-                              {rp.stats.line2 && <><p>GP  GS  SV:</p><p>{rp.stats.line2}</p></>}
-                              {rp.stats.line3 && <><p>IP  SO  WHIP:</p><p>{rp.stats.line3}</p></>}
+                              {rp.stats.line1 && <><p>WAR/W/L/ERA:</p><p>{rp.stats.line1}</p></>}
+                              {rp.stats.line2 && <><p>GP/GS/SV:</p><p>{rp.stats.line2}</p></>}
+                              {rp.stats.line3 && <><p>IP/SO/WHIP:</p><p>{rp.stats.line3}</p></>}
                             </>
                           )}
                           {/* Hitters (C, 1B, 2B, 3B, SS, LF, CF, RF) */}
-                          {(rp.position === 'C' || rp.position === '1B' || rp.position === '2B' || 
-                            rp.position === '3B' || rp.position === 'SS' || rp.position === 'LF' || 
+                          {(rp.position === 'C' || rp.position === '1B' || rp.position === '2B' ||
+                            rp.position === '3B' || rp.position === 'SS' || rp.position === 'LF' ||
                             rp.position === 'CF' || rp.position === 'RF') && (
                             <>
-                              {rp.stats.line1 && <><p>WAR  PA  H  HR  BA:</p><p>{rp.stats.line1}</p></>}
-                              {rp.stats.line2 && <><p>R  RBI  SB:</p><p>{rp.stats.line2}</p></>}
-                              {rp.stats.line3 && <><p>OBP  SLG  OPS:</p><p>{rp.stats.line3}</p></>}
+                              {rp.stats.line1 && <><p>WAR/PA/H/HR/BA:</p><p>{rp.stats.line1}</p></>}
+                              {rp.stats.line2 && <><p>R/RBI/SB:</p><p>{rp.stats.line2}</p></>}
+                              {rp.stats.line3 && <><p>OBP/SLG/OPS:</p><p>{rp.stats.line3}</p></>}
                             </>
                           )}
                         </>

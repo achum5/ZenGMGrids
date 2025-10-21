@@ -226,9 +226,22 @@ export interface TeamOverlapData {
   achievementTeamCounts: Record<string, number>; // achievementId -> number of teams with players
 }
 
+export interface TeamSeasonRecord {
+  tid: number;
+  season: number;
+  won?: number;
+  lost?: number;
+  tied?: number;
+  otl?: number; // Overtime losses (hockey)
+  playoffs?: boolean;
+  gp?: number; // Games played (sometimes present directly)
+  [key: string]: any; // Allow other fields
+}
+
 export interface LeagueData {
   players: Player[];
   teams: Team[];
+  teamSeasons?: TeamSeasonRecord[]; // Team season records with W/L/T/OTL
   teamOverlaps?: TeamOverlapData; // Pre-analyzed team combination data
   sport?: 'basketball' | 'football' | 'hockey' | 'baseball';
   // Season index for season-specific achievements (basketball only)
