@@ -178,11 +178,6 @@ export default function ChooseGameMode({ onSelectMode, onBackToUpload }: ChooseG
             Back to Upload
           </Button>
         </div>
-
-        {/* Keyboard Hint */}
-        <p className="text-center text-sm text-muted-foreground">
-          Use arrow keys to navigate, Enter to start
-        </p>
       </div>
     </div>
   );

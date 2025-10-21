@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { PlayerFace } from '@/components/PlayerFace';
 import { useToast } from '@/lib/hooks/use-toast';
-import { Shuffle, Flag, Home as HomeIcon, ArrowLeft, ChevronDown, Lightbulb } from 'lucide-react';
+import { Shuffle, Home as HomeIcon, ArrowLeft, ChevronDown, ArrowRight } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -582,6 +582,16 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       setCurrentRound(nextRound);
       setSelectedLeader(null);
 
+      // Show hints when moving from 'guess' to 'hint' round
+      if (currentRound === 'guess' && nextRound === 'hint') {
+        setRoster(prev => prev.map(rp => {
+          if (!rp.revealed && !rp.hintShown) {
+            return { ...rp, hintShown: true };
+          }
+          return rp;
+        }));
+      }
+
       // Auto-reveal all players when entering the 'revealed' round
       if (nextRound === 'revealed') {
         setRoster(prev => prev.map(rp => ({ ...rp, revealed: true })));
@@ -590,29 +600,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     }
   }, [currentRound, roster.length]);
 
-  // Give up - behavior changes based on round
-  const handleGiveUp = useCallback(() => {
-    if (currentRound === 'guess' || currentRound === 'hint') {
-      // Reveal all players and move to next round
-      setRoster(prev => prev.map(rp => ({ ...rp, revealed: true })));
-      setFoundCount(roster.length);
-      handleNextRound();
-    }
-  }, [roster.length, currentRound, handleNextRound]);
-
-  // Show hint - reveal first letter of first and last name
-  const handleHint = useCallback(() => {
-    if (currentRound === 'guess') {
-      // Reveal hints and move to hint round
-      setRoster(prev => prev.map(rp => {
-        if (!rp.revealed && !rp.hintShown) {
-          return { ...rp, hintShown: true };
-        }
-        return rp;
-      }));
-      setCurrentRound('hint');
-    }
-  }, [currentRound]);
 
   // Handle tile click during leader selection rounds
   const handleTileClick = useCallback((pid: number) => {
@@ -969,28 +956,28 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                 const isLeaderRound = currentRound.endsWith('-leader');
 
                 return (
-                  <Tooltip key={rp.player.pid} delayDuration={300}>
+                  <Tooltip key={rp.player.pid}>
                     <TooltipTrigger asChild>
                       <div
                         ref={(el) => {
                           if (el) tileRefs.current.set(rp.player.pid, el);
                         }}
                         onClick={() => isLeaderRound && handleTileClick(rp.player.pid)}
-                        className={`relative flex flex-col items-center gap-0.5 p-1 sm:p-2 md:p-3 rounded sm:rounded-md md:rounded-lg transition-all ${
-                          isLeaderRound ? 'cursor-pointer hover:scale-105 hover:shadow-xl' : 'cursor-help'
+                        className={`relative flex flex-col items-center gap-0.5 p-1 sm:p-2 md:p-3 rounded sm:rounded-md md:rounded-lg transition-all hover:scale-[1.02] ${
+                          isLeaderRound ? 'cursor-pointer' : ''
                         } ${
                           rp.revealed
                             ? 'neon-glow-success shadow-lg shadow-green-500/50'
                             : ''
                         }`}
-                      style={{
-                        backgroundColor: rp.teamColors?.[1] || 'hsl(var(--card))',
-                        borderWidth: '2px',
-                        borderStyle: 'solid',
-                        borderColor: rp.teamColors?.[0] || 'hsl(var(--border))',
-                      }}
-                      data-testid={`card-player-${index}`}
-                    >
+                        style={{
+                          backgroundColor: rp.teamColors?.[1] || 'hsl(var(--card))',
+                          borderWidth: '2px',
+                          borderStyle: 'solid',
+                          borderColor: rp.teamColors?.[0] || 'hsl(var(--border))',
+                        }}
+                        data-testid={`card-player-${index}`}
+                      >
                       {/* Position Badge - Always visible */}
                       <div className="absolute top-0.5 left-0.5 bg-primary/90 text-primary-foreground text-[0.5rem] sm:text-xs font-bold px-0.5 sm:px-1.5 py-0.5 rounded z-10">
                         {rp.position}
@@ -1105,49 +1092,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       {/* Bottom Actions */}
       <div className="shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t neon-border-subtle">
         <div className="max-w-4xl mx-auto px-6 py-4">
-          <div className="flex justify-center gap-3">
-            {/* Show Hint button only during 'guess' round */}
-            {currentRound === 'guess' && (
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={handleHint}
-                className="neon-button"
-                data-testid="button-hint"
-              >
-                <Lightbulb className="h-5 w-5 mr-2" />
-                Hint
-              </Button>
-            )}
-
-            {/* Show Give Up only during guess/hint rounds */}
-            {(currentRound === 'guess' || currentRound === 'hint') && (
-              <Button
-                variant="destructive"
-                size="lg"
-                onClick={handleGiveUp}
-                disabled={foundCount === roster.length}
-                data-testid="button-give-up"
-              >
-                <Flag className="h-5 w-5 mr-2" />
-                Give Up
-              </Button>
-            )}
-
-            {/* Show Skip button during revealed and leader rounds */}
-            {(currentRound === 'revealed' || currentRound.endsWith('-leader')) && currentRound !== 'complete' && (
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={handleNextRound}
-                className="neon-button"
-                data-testid="button-next-round"
-              >
-                Next Round
-              </Button>
-            )}
-
-            {/* Always show New Team button */}
+          <div className="flex justify-between items-center gap-3">
+            {/* Always show New Team button on left */}
             <Button
               variant="outline"
               size="lg"
@@ -1158,6 +1104,20 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
               <Shuffle className="h-5 w-5 mr-2" />
               New Team
             </Button>
+
+            {/* Show Next Round button on right (unless complete) */}
+            {currentRound !== 'complete' && (
+              <Button
+                variant="default"
+                size="lg"
+                onClick={handleNextRound}
+                className="neon-button"
+                data-testid="button-next-round"
+              >
+                Next Round
+                <ArrowRight className="h-5 w-5 ml-2" />
+              </Button>
+            )}
           </div>
         </div>
       </div>

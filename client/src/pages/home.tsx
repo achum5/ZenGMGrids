@@ -1415,7 +1415,7 @@ export default function Home() {
                   alt="ZenGM Grids logo with Basketball, Football, Hockey, and Baseball icons" 
                   className="w-12 h-12 object-contain header-logo"
                 />
-                <h1 className="text-2xl header-title">ZenGM Grids</h1>
+                <h1 className="text-2xl header-title">ZenGM Grids & Team Trivia</h1>
               </div>
               <div className="absolute right-0 flex items-center space-x-3">
                 <div>
