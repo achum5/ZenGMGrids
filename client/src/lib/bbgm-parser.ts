@@ -12,8 +12,9 @@ export type ParsingMethod = 'auto' | 'traditional' | 'streaming';
 export function parseLeagueFile(
   file: File,
   onProgress?: (message: string, loaded?: number, total?: number) => void,
-  method: ParsingMethod = 'streaming'
-): Promise<LeagueData & { sport: Sport }> {
+  method: ParsingMethod = 'streaming',
+  dbName?: string
+): Promise<LeagueData & { sport: Sport; idbName?: string }> {
   return new Promise((resolve, reject) => {
     console.log(`[MAIN] Creating worker for file: ${file.name} (method: ${method})`);
     
@@ -23,7 +24,7 @@ export function parseLeagueFile(
     });
 
     worker.onmessage = async (event) => {
-      const { type, leagueData, error, message, loaded, total } = event.data;
+      const { type, leagueData, error, message, loaded, total, dbName: returnedDbName } = event.data;
       
       if (type === 'progress') {
         onProgress?.(message, loaded, total);
@@ -36,11 +37,12 @@ export function parseLeagueFile(
         worker.terminate();
         
         try {
-          // Process data from IndexedDB
+          // Process data from IndexedDB using the returned database name
           const leagueData = await processLeagueFromIDB((msg) => {
             onProgress?.(msg, file.size, file.size);
-          });
-          resolve(leagueData);
+          }, returnedDbName);
+          // Include the database name in the resolved data
+          resolve({ ...leagueData, idbName: returnedDbName });
         } catch (err) {
           reject(err);
         }
@@ -63,8 +65,8 @@ export function parseLeagueFile(
       reject(new Error('An unexpected error occurred in the league parser.'));
     };
 
-    // Start the worker with method parameter
-    worker.postMessage({ file, method });
+    // Start the worker with method and database name parameters
+    worker.postMessage({ file, method, dbName });
   });
 }
 
@@ -114,8 +116,9 @@ function normalizeDownloadUrl(url: string): string {
 export function parseLeagueUrl(
   url: string,
   onProgress?: (message: string, loaded?: number, total?: number) => void,
-  method: ParsingMethod = 'streaming'
-): Promise<LeagueData & { sport: Sport }> {
+  method: ParsingMethod = 'streaming',
+  dbName?: string
+): Promise<LeagueData & { sport: Sport; idbName?: string }> {
   return new Promise((resolve, reject) => {
     console.log(`[MAIN] Creating worker for URL: ${url} (method: ${method})`);
     
@@ -128,7 +131,7 @@ export function parseLeagueUrl(
     });
 
     worker.onmessage = async (event) => {
-      const { type, leagueData, error, message, loaded, total } = event.data;
+      const { type, leagueData, error, message, loaded, total, dbName: returnedDbName } = event.data;
       
       if (type === 'progress') {
         onProgress?.(message, loaded, total);
@@ -141,11 +144,12 @@ export function parseLeagueUrl(
         worker.terminate();
         
         try {
-          // Process data from IndexedDB (estimate size for progress)
+          // Process data from IndexedDB using the returned database name
           const leagueData = await processLeagueFromIDB((msg) => {
             onProgress?.(msg, 100, 100);
-          });
-          resolve(leagueData);
+          }, returnedDbName);
+          // Include the database name in the resolved data
+          resolve({ ...leagueData, idbName: returnedDbName });
         } catch (err) {
           console.error('Error processing league from IDB:', err);
           reject(err instanceof Error ? err : new Error(String(err)));
@@ -169,8 +173,8 @@ export function parseLeagueUrl(
       reject(new Error('An unexpected error occurred in the league parser.'));
     };
 
-    // Start the worker with URL and method parameter
-    worker.postMessage({ url: downloadUrl, method });
+    // Start the worker with URL, method, and database name parameters
+    worker.postMessage({ url: downloadUrl, method, dbName });
   });
 }
 

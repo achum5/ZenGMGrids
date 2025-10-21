@@ -485,10 +485,13 @@ export default function Home() {
       // Update displayed method to show actual method being used
       setDisplayedMethod(method);
 
+      // Generate unique database name for this league (for streaming/IDB method)
+      const uniqueDbName = `grids-league-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+
       // Parse the league file with progress tracking and selected method
       const data = await parseLeagueFile(file, (message, loaded, total) => {
         setUploadProgress({ message, loaded, total });
-      }, method);
+      }, method, uniqueDbName);
       await processLeagueData(data, file.name, file.size);
       
     } catch (error) {
@@ -525,10 +528,13 @@ export default function Home() {
       // Update displayed method to show actual method being used
       setDisplayedMethod(method);
       
+      // Generate unique database name for this league (for streaming/IDB method)
+      const uniqueDbName = `grids-league-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+      
       // Parse the league URL with progress tracking and selected method
       const data = await parseLeagueUrl(url, (message, loaded, total) => {
         setUploadProgress({ message, loaded, total });
-      }, method);
+      }, method, uniqueDbName);
       await processLeagueData(data, fileName, undefined);
       
     } catch (error) {
@@ -555,15 +561,15 @@ export default function Home() {
       setCurrentFileSize(storedLeague.fileSize);
       
       // Check if this is a metadata-only save (large file on mobile)
-      if (storedLeague.isMetadataOnly) {
-        console.log('[MOBILE] Loading metadata-only league - reading from grids-league IDB');
+      if (storedLeague.isMetadataOnly && storedLeague.idbName) {
+        console.log(`[MOBILE] Loading metadata-only league - reading from ${storedLeague.idbName} IDB`);
         setUploadProgress({ message: 'Loading from database...', loaded: 10, total: 100 });
         
-        // Load the full data from grids-league IDB
+        // Load the full data from the league-specific IDB
         const { processLeagueFromIDB } = await import('@/lib/idb-league-reader');
         const data = await processLeagueFromIDB((message) => {
           setUploadProgress({ message, loaded: 50, total: 100 });
-        });
+        }, storedLeague.idbName); // Pass the specific database name
         
         await processLeagueData(data, storedLeague.name, storedLeague.fileSize);
       } else {
@@ -817,7 +823,7 @@ export default function Home() {
         });
         
         // MOBILE FIX: Use lightweight metadata-only save for large files on mobile
-        if (isMobile && isHugeFile) {
+        if (isMobile && isHugeFile && data.idbName) {
           const { saveLeagueMetadata } = await import('@/lib/league-storage');
           const seasons = data.leagueYears ? { 
             min: data.leagueYears.minSeason, 
@@ -829,10 +835,11 @@ export default function Home() {
             data.sport,
             playerCount,
             data.teams?.length || 0,
+            data.idbName, // Pass the unique database name
             fileSize,
             seasons
           );
-          console.log('[MOBILE] Saved league metadata (lightweight) - data remains in IndexedDB');
+          console.log(`[MOBILE] Saved league metadata (lightweight) - data in ${data.idbName}`);
         } else {
           // Normal save for desktop or smaller files
           await saveLeague(cleanName, data, data.sport, fileSize);

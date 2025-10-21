@@ -6,7 +6,6 @@ import type { SeasonIndex } from './season-achievements';
 import type { Sport } from './league-normalizer';
 import { analyzeTeamOverlaps } from './league-normalizer';
 
-const DB_NAME = 'grids-league';
 const DB_VERSION = 5; // Bumped for new intersections store
 
 export interface IDBLeagueMeta {
@@ -23,15 +22,15 @@ export interface IDBLeagueMeta {
 /**
  * Open the league database
  */
-export async function openLeagueDB(): Promise<IDBPDatabase> {
-  return openDB(DB_NAME, DB_VERSION);
+export async function openLeagueDB(dbName: string = 'grids-league'): Promise<IDBPDatabase> {
+  return openDB(dbName, DB_VERSION);
 }
 
 /**
  * Get metadata from IDB
  */
-export async function getLeagueMeta(): Promise<IDBLeagueMeta | null> {
-  const db = await openLeagueDB();
+export async function getLeagueMeta(dbName?: string): Promise<IDBLeagueMeta | null> {
+  const db = await openLeagueDB(dbName);
   try {
     const meta = await db.get('meta', 'importMeta');
     return meta || null;
@@ -56,9 +55,10 @@ function isMobile(): boolean {
  * This prevents loading all players at once which can crash mobile browsers
  */
 export async function readAndNormalizePlayers(
-  onProgress?: (message: string) => void
+  onProgress?: (message: string) => void,
+  dbName?: string
 ): Promise<{ players: Player[]; sport: Sport; gameAttributes: any; minSeason: number; maxSeason: number }> {
-  const db = await openLeagueDB();
+  const db = await openLeagueDB(dbName);
   const mobile = isMobile();
   
   try {
@@ -231,8 +231,8 @@ export async function readAndNormalizePlayers(
 /**
  * Read all teams from IDB
  */
-export async function readTeams(): Promise<Team[]> {
-  const db = await openLeagueDB();
+export async function readTeams(dbName?: string): Promise<Team[]> {
+  const db = await openLeagueDB(dbName);
   
   try {
     const tx = db.transaction('teams', 'readonly');
@@ -260,8 +260,8 @@ export async function readTeams(): Promise<Team[]> {
 /**
  * Read all teamSeasons from IDB
  */
-export async function readTeamSeasons(): Promise<any[]> {
-  const db = await openLeagueDB();
+export async function readTeamSeasons(dbName?: string): Promise<any[]> {
+  const db = await openLeagueDB(dbName);
   
   try {
     const tx = db.transaction('teamSeasons', 'readonly');
@@ -284,16 +284,17 @@ export async function readTeamSeasons(): Promise<any[]> {
  * Process the league data from IDB - calculates achievements and overlaps
  */
 export async function processLeagueFromIDB(
-  onProgress?: (message: string) => void
+  onProgress?: (message: string) => void,
+  dbName?: string
 ): Promise<LeagueData & { sport: Sport } & { isFullyProcessed?: boolean; byName?: any; byPid?: any; searchablePlayers?: any; teamsByTid?: any }> {
   try {
     onProgress?.('Reading from database...');
     
     // Read players, teams, and teamSeasons in parallel
     const [{ players, sport, gameAttributes, minSeason, maxSeason }, teams, teamSeasons] = await Promise.all([
-      readAndNormalizePlayers(onProgress),
-      readTeams(),
-      readTeamSeasons()
+      readAndNormalizePlayers(onProgress, dbName),
+      readTeams(dbName),
+      readTeamSeasons(dbName)
     ]);
     
     console.log('[IDB Reader] Returning data with teamSeasons:', teamSeasons.length, 'records');

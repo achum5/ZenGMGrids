@@ -15,7 +15,8 @@ export interface StoredLeague {
   numPlayers?: number;
   numTeams?: number;
   seasons?: { min: number; max: number };
-  isMetadataOnly?: boolean; // Flag for lightweight saves that reference grids-league IDB
+  isMetadataOnly?: boolean; // Flag for lightweight saves that reference separate IDB
+  idbName?: string; // Name of the IndexedDB database storing the actual data (for metadata-only saves)
 }
 
 async function getDB(): Promise<IDBPDatabase> {
@@ -78,13 +79,14 @@ export async function saveLeague(
 
 /**
  * Save league metadata only (for large files on mobile)
- * The actual league data stays in the grids-league IDB from streaming upload
+ * The actual league data stays in a league-specific IDB database
  */
 export async function saveLeagueMetadata(
   name: string,
   sport: 'basketball' | 'football' | 'hockey' | 'baseball',
   numPlayers: number,
   numTeams: number,
+  idbName: string, // The unique IDB database name for this league
   fileSize?: number,
   seasons?: { min: number; max: number }
 ): Promise<string> {
@@ -93,7 +95,7 @@ export async function saveLeagueMetadata(
   // Generate unique ID based on timestamp
   const id = `league_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   
-  // Store only metadata - the actual data is in grids-league IDB
+  // Store only metadata - the actual data is in a league-specific IDB
   const storedLeague: StoredLeague = {
     id,
     name,
@@ -104,7 +106,8 @@ export async function saveLeagueMetadata(
     numPlayers,
     numTeams,
     seasons,
-    isMetadataOnly: true, // Flag indicating this references grids-league IDB
+    isMetadataOnly: true, // Flag indicating this references separate IDB
+    idbName, // The database name where the actual data is stored
   };
   
   await db.put(STORE_NAME, storedLeague);
@@ -126,7 +129,38 @@ export async function getLeague(id: string): Promise<StoredLeague | undefined> {
 
 export async function deleteLeague(id: string): Promise<void> {
   const db = await getDB();
+  
+  // Get the league to check if it has an associated IDB database
+  const league = await db.get(STORE_NAME, id);
+  
+  // Delete the metadata entry
   await db.delete(STORE_NAME, id);
+  
+  // If this was a metadata-only save with a dedicated IDB, delete that database too
+  if (league?.isMetadataOnly && league.idbName) {
+    try {
+      await deleteLeagueIDB(league.idbName);
+      console.log(`[Storage] Deleted league-specific database: ${league.idbName}`);
+    } catch (error) {
+      console.error(`[Storage] Failed to delete league database ${league.idbName}:`, error);
+    }
+  }
+}
+
+/**
+ * Delete a league-specific IndexedDB database
+ */
+export async function deleteLeagueIDB(dbName: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.deleteDatabase(dbName);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+    request.onblocked = () => {
+      console.warn(`[Storage] Delete blocked for ${dbName} - database may be in use`);
+      // Still resolve since we tried our best
+      resolve();
+    };
+  });
 }
 
 export async function updateLeagueName(id: string, newName: string): Promise<void> {

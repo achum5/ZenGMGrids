@@ -69,13 +69,13 @@ async function parseUrlTraditional(url: string): Promise<any> {
 }
 
 // Streaming: Stream directly to IndexedDB, never materialize giant arrays
-async function parseFileStreaming(file: File): Promise<'idb-stored'> {
+async function parseFileStreaming(file: File, dbName: string = 'grids-league'): Promise<'idb-stored'> {
   // Using static import from top of file instead of dynamic import
   
   postProgress('Setting up database...', 5, 100);
   
-  // Open/create IndexedDB
-  const db = await openDB('grids-league', 5, {
+  // Open/create IndexedDB with the specified database name
+  const db = await openDB(dbName, 5, {
     upgrade(db, oldVersion) {
       // Create stores if they don't exist
       if (!db.objectStoreNames.contains('players')) {
@@ -342,7 +342,7 @@ async function parseFileStreaming(file: File): Promise<'idb-stored'> {
 }
 
 // Streaming for URLs: Same as file version but fetches from URL
-async function parseUrlStreaming(url: string): Promise<'idb-stored'> {
+async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): Promise<'idb-stored'> {
   postProgress('Connecting to URL...', 5, 100);
   
   // Fetch the URL
@@ -358,8 +358,8 @@ async function parseUrlStreaming(url: string): Promise<'idb-stored'> {
   
   postProgress('Setting up database...', 8, 100);
   
-  // Open/create IndexedDB
-  const db = await openDB('grids-league', 5, {
+  // Open/create IndexedDB with the specified database name
+  const db = await openDB(dbName, 5, {
     upgrade(db, oldVersion) {
       // Create stores if they don't exist
       if (!db.objectStoreNames.contains('players')) {
@@ -626,8 +626,8 @@ async function parseUrlStreaming(url: string): Promise<'idb-stored'> {
   }
 }
 
-self.onmessage = async (event: MessageEvent<{ file?: File; url?: string; method?: ParsingMethod }>) => {
-  const { file, url, method = 'streaming' } = event.data; // Default to streaming if not specified
+self.onmessage = async (event: MessageEvent<{ file?: File; url?: string; method?: ParsingMethod; dbName?: string }>) => {
+  const { file, url, method = 'streaming', dbName = 'grids-league' } = event.data; // Default to streaming if not specified
 
   if (!file && !url) {
     self.postMessage({ type: 'error', error: 'No file or URL provided to worker.' });
@@ -661,9 +661,9 @@ self.onmessage = async (event: MessageEvent<{ file?: File; url?: string; method?
         self.postMessage({ type: 'complete', leagueData });
       } else {
         // Streaming: streams to IndexedDB, no normalization in worker
-        await parseFileStreaming(file);
+        await parseFileStreaming(file, dbName);
         // Signal main thread that data is in IDB
-        self.postMessage({ type: 'complete-idb' });
+        self.postMessage({ type: 'complete-idb', dbName }); // Include dbName in response
       }
       
     } else if (url) {
@@ -690,9 +690,9 @@ self.onmessage = async (event: MessageEvent<{ file?: File; url?: string; method?
         self.postMessage({ type: 'complete', leagueData });
       } else {
         // Streaming: streams to IndexedDB, no normalization in worker
-        await parseUrlStreaming(url);
+        await parseUrlStreaming(url, dbName);
         // Signal main thread that data is in IDB
-        self.postMessage({ type: 'complete-idb' });
+        self.postMessage({ type: 'complete-idb', dbName }); // Include dbName in response
       }
     }
 
