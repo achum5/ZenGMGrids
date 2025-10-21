@@ -479,7 +479,7 @@ export default function Home() {
 
       // Determine which method to use based on setting
       const method: ParsingMethod = parsingMethodSetting === 'auto'
-        ? getRecommendedMethod(file.size, file.name)
+        ? getRecommendedMethod(file.size)
         : parsingMethodSetting;
 
       // Update displayed method to show actual method being used
@@ -509,33 +509,17 @@ export default function Home() {
   const handleUrlUpload = useCallback(async (url: string) => {
     setIsProcessing(true);
     setUploadProgress({ message: 'Starting...', loaded: 0, total: 100 });
-
+    
     try {
       // Extract file name from URL
       const fileName = url.split('/').pop() || 'league-from-url.json';
       setCurrentFileName(fileName);
-
-      // Try to get file size from URL via HEAD request
-      // Note: This may fail due to CORS restrictions, which is OK
-      let fileSize: number | undefined;
-      try {
-        const headResponse = await fetch(url, { method: 'HEAD', mode: 'cors' });
-        if (headResponse.ok) {
-          const contentLength = headResponse.headers.get('Content-Length');
-          if (contentLength) {
-            fileSize = parseInt(contentLength, 10);
-            setCurrentFileSize(fileSize);
-          }
-        }
-      } catch (error) {
-        // CORS or network error - proceed without file size
-        // This is expected for many URLs and is not a problem
-        setCurrentFileSize(undefined);
-      }
+      setCurrentFileSize(undefined); // Unknown size for URLs
 
       // Determine which method to use based on setting
+      // Note: For URLs, we can't check file size upfront, so we use device-based detection
       const method: ParsingMethod = parsingMethodSetting === 'auto'
-        ? getRecommendedMethod(fileSize, fileName, true) // isUrl = true
+        ? getRecommendedMethod()
         : parsingMethodSetting;
 
       // Update displayed method to show actual method being used

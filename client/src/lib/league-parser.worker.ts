@@ -96,13 +96,11 @@ async function parseFileStreaming(file: File): Promise<any> {
   let playerCount = 0;
   let teamCount = 0;
   let teamSeasonCount = 0;
-  let lastProgressUpdate = Date.now();
-  const PROGRESS_UPDATE_INTERVAL = 2000; // Update every 2 seconds
-
+  
   try {
     while (true) {
       const { done, value } = await reader.read();
-
+      
       if (done) {
         postProgress('File parsing complete', 50, 100);
         console.log('[Streaming Parser] Final counts:', {
@@ -112,63 +110,57 @@ async function parseFileStreaming(file: File): Promise<any> {
         });
         return result;
       }
-
+      
       // Process each emitted value from the parser
       if (value && value.value !== undefined) {
         const keyString = typeof value.key === 'string' ? value.key : String(value.key);
         const pathArray = keyString ? keyString.split('.').filter(Boolean) : [];
         const topLevelKey = pathArray[0];
-
+        
         if (!topLevelKey) continue;
-
+        
         // Check if this is an array item (path has 2+ parts with numeric index)
         // e.g., "players.0", "teams.5", "teamSeasons.0" etc.
         const isArrayItem = pathArray.length >= 2 && /^\d+$/.test(pathArray[1]);
-
+        
         if (isArrayItem) {
           // Initialize array if needed
           if (!result[topLevelKey]) {
             result[topLevelKey] = [];
-
+            
             // Show progress message when starting a new section
             if (topLevelKey === 'players') {
               postProgress('Processing players...', 25, 100);
-              lastProgressUpdate = Date.now(); // Reset timer when entering new phase
             } else if (topLevelKey === 'teams') {
               postProgress('Processing teams...', 40, 100);
-              lastProgressUpdate = Date.now();
             } else if (topLevelKey === 'teamSeasons') {
               postProgress('Processing team seasons...', 43, 100);
-              lastProgressUpdate = Date.now();
             }
           }
-
+          
           // Add item to array
           result[topLevelKey].push(value.value);
           itemCount++;
-
+          
           // Track counts and update progress
           if (topLevelKey === 'players') {
             playerCount++;
             if (playerCount % 1000 === 0) {
               const pct = Math.min(38, 25 + Math.floor(playerCount / 1000));
               postProgress(`Processed ${playerCount.toLocaleString()} players...`, pct, 100);
-              lastProgressUpdate = Date.now();
             }
           } else if (topLevelKey === 'teams') {
             teamCount++;
             if (teamCount % 10 === 0) {
               postProgress(`Processed ${teamCount} teams...`, 42, 100);
-              lastProgressUpdate = Date.now();
             }
           } else if (topLevelKey === 'teamSeasons') {
             teamSeasonCount++;
             if (teamSeasonCount % 100 === 0) {
               postProgress(`Processed ${teamSeasonCount} team seasons...`, 45, 100);
-              lastProgressUpdate = Date.now();
             }
           }
-
+          
           // Yield to event loop periodically to prevent blocking
           if (itemCount % 100 === 0) {
             await new Promise(resolve => setTimeout(resolve, 0));
@@ -177,23 +169,13 @@ async function parseFileStreaming(file: File): Promise<any> {
           // Scalar/object values (version, gameAttributes, meta, trade, etc.)
           // These are emitted as complete values
           result[topLevelKey] = value.value;
-
+          
           // Show progress for key sections
           if (topLevelKey === 'gameAttributes') {
             postProgress('League settings loaded', 23, 100);
-            lastProgressUpdate = Date.now();
           } else if (topLevelKey === 'version') {
             postProgress('Reading file version...', 21, 100);
-            lastProgressUpdate = Date.now();
           }
-        }
-
-        // Time-based progress updates to show activity during long silent periods
-        // This prevents the UI from appearing frozen when processing many non-player items
-        const now = Date.now();
-        if (now - lastProgressUpdate > PROGRESS_UPDATE_INTERVAL) {
-          postProgress(`Processing data... (${itemCount.toLocaleString()} items read)`, 23, 100);
-          lastProgressUpdate = now;
         }
       }
     }
@@ -205,20 +187,20 @@ async function parseFileStreaming(file: File): Promise<any> {
 // Use EXACT same streaming approach as files - just with response.body as source
 async function parseUrlStreaming(url: string): Promise<any> {
   postProgress('Connecting to URL...', 5, 100);
-
-  // Fetch with appropriate mode - try without explicit CORS mode first (better compatibility)
-  const response = await fetch(url);
-
+  
+  // Try CORS fetch first
+  const response = await fetch(url, { mode: 'cors' });
+  
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }
-
+  
   if (!response.body) {
-    throw new Error('Response body not available - streaming not supported for this URL');
+    throw new Error('Response body not available');
   }
-
+  
   postProgress('Downloading file...', 10, 100);
-
+  
   // Get the stream from response
   let dataStream = response.body;
   
@@ -234,12 +216,12 @@ async function parseUrlStreaming(url: string): Promise<any> {
   }
   
   postProgress('Parsing league data...', 20, 100);
-
+  
   // CRITICAL: Use wildcard paths to get INDIVIDUAL items, not entire arrays
-  const jsonParser = new JSONParser({
+  const jsonParser = new JSONParser({ 
     paths: [
       '$.version',
-      '$.startingSeason',
+      '$.startingSeason', 
       '$.gameAttributes',
       '$.players.*',        // Individual players, not entire array
       '$.teams.*',          // Individual teams, not entire array
@@ -261,25 +243,23 @@ async function parseUrlStreaming(url: string): Promise<any> {
       '$.trade',
       '$.meta'
     ],
-    keepStack: false
+    keepStack: false 
   });
-
+  
   const jsonStream = dataStream.pipeThrough(jsonParser);
   const reader = jsonStream.getReader();
-
+  
   // Build result object incrementally - arrays are built item-by-item
   const result: any = {};
   let itemCount = 0;
   let playerCount = 0;
   let teamCount = 0;
   let teamSeasonCount = 0;
-  let lastProgressUpdate = Date.now();
-  const PROGRESS_UPDATE_INTERVAL = 2000; // Update every 2 seconds
-
+  
   try {
     while (true) {
       const { done, value } = await reader.read();
-
+      
       if (done) {
         postProgress('File parsing complete', 50, 100);
         console.log('[URL Streaming Parser] Final counts:', {
@@ -289,63 +269,57 @@ async function parseUrlStreaming(url: string): Promise<any> {
         });
         return result;
       }
-
+      
       // Process each emitted value from the parser
       if (value && value.value !== undefined) {
         const keyString = typeof value.key === 'string' ? value.key : String(value.key);
         const pathArray = keyString ? keyString.split('.').filter(Boolean) : [];
         const topLevelKey = pathArray[0];
-
+        
         if (!topLevelKey) continue;
-
+        
         // Check if this is an array item (path has 2+ parts with numeric index)
         // e.g., "players.0", "teams.5", "teamSeasons.0" etc.
         const isArrayItem = pathArray.length >= 2 && /^\d+$/.test(pathArray[1]);
-
+        
         if (isArrayItem) {
           // Initialize array if needed
           if (!result[topLevelKey]) {
             result[topLevelKey] = [];
-
+            
             // Show progress message when starting a new section
             if (topLevelKey === 'players') {
               postProgress('Processing players...', 25, 100);
-              lastProgressUpdate = Date.now(); // Reset timer when entering new phase
             } else if (topLevelKey === 'teams') {
               postProgress('Processing teams...', 40, 100);
-              lastProgressUpdate = Date.now();
             } else if (topLevelKey === 'teamSeasons') {
               postProgress('Processing team seasons...', 43, 100);
-              lastProgressUpdate = Date.now();
             }
           }
-
+          
           // Add item to array
           result[topLevelKey].push(value.value);
           itemCount++;
-
+          
           // Track counts and update progress
           if (topLevelKey === 'players') {
             playerCount++;
             if (playerCount % 1000 === 0) {
               const pct = Math.min(38, 25 + Math.floor(playerCount / 1000));
               postProgress(`Processed ${playerCount.toLocaleString()} players...`, pct, 100);
-              lastProgressUpdate = Date.now();
             }
           } else if (topLevelKey === 'teams') {
             teamCount++;
             if (teamCount % 10 === 0) {
               postProgress(`Processed ${teamCount} teams...`, 42, 100);
-              lastProgressUpdate = Date.now();
             }
           } else if (topLevelKey === 'teamSeasons') {
             teamSeasonCount++;
             if (teamSeasonCount % 100 === 0) {
               postProgress(`Processed ${teamSeasonCount} team seasons...`, 45, 100);
-              lastProgressUpdate = Date.now();
             }
           }
-
+          
           // Yield to event loop periodically to prevent blocking
           if (itemCount % 100 === 0) {
             await new Promise(resolve => setTimeout(resolve, 0));
@@ -354,23 +328,13 @@ async function parseUrlStreaming(url: string): Promise<any> {
           // Scalar/object values (version, gameAttributes, meta, trade, etc.)
           // These are emitted as complete values
           result[topLevelKey] = value.value;
-
+          
           // Show progress for key sections
           if (topLevelKey === 'gameAttributes') {
             postProgress('League settings loaded', 23, 100);
-            lastProgressUpdate = Date.now();
           } else if (topLevelKey === 'version') {
             postProgress('Reading file version...', 21, 100);
-            lastProgressUpdate = Date.now();
           }
-        }
-
-        // Time-based progress updates to show activity during long silent periods
-        // This prevents the UI from appearing frozen when processing many non-player items
-        const now = Date.now();
-        if (now - lastProgressUpdate > PROGRESS_UPDATE_INTERVAL) {
-          postProgress(`Processing data... (${itemCount.toLocaleString()} items read)`, 23, 100);
-          lastProgressUpdate = now;
         }
       }
     }
@@ -729,19 +693,13 @@ self.onmessage = async (event: MessageEvent<{ file?: File; url?: string; method?
     } else if (url) {
       // URL fetch path - use specified method
       postProgress('Starting...', 0, 100);
-
+      
       // Choose parsing method based on parameter
       if (method === 'traditional') {
         rawData = await parseUrlTraditional(url);
       } else {
-        // streaming method - with fallback to traditional if it fails
-        try {
-          rawData = await parseUrlStreaming(url);
-        } catch (streamError) {
-          console.warn('[Worker] Streaming failed for URL, falling back to traditional:', streamError);
-          postProgress('Retrying with traditional method...', 5, 100);
-          rawData = await parseUrlTraditional(url);
-        }
+        // streaming method
+        rawData = await parseUrlStreaming(url);
       }
       
       if (!rawData) {
