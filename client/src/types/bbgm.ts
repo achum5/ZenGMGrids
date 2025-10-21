@@ -85,20 +85,47 @@ export interface Player {
     // Football-specific stats
     pssYds?: number;
     pssTD?: number;
+    pssInt?: number;
+    pss?: number; // pass attempts
+    pssCmp?: number; // pass completions
     rusYds?: number;
     rusTD?: number;
+    rus?: number; // rush attempts
     recYds?: number;
     recTD?: number;
-    rec?: number;
+    rec?: number; // receptions
+    tgt?: number; // targets
     sks?: number;
-    defSk?: number;
+    defSk?: number; // defensive sacks
     defTckSolo?: number;
     defTckAst?: number;
     defInt?: number;
+    defIntYds?: number;
+    defIntTD?: number;
     defTckLoss?: number;
+    defPssDef?: number; // passes defended
+    defFmbFrc?: number; // forced fumbles
     prYds?: number;
     krYds?: number;
     ff?: number;
+    fg0?: number; // FG made 0-19 yards
+    fg20?: number; // FG made 20-29 yards
+    fg30?: number; // FG made 30-39 yards
+    fg40?: number; // FG made 40-49 yards
+    fg50?: number; // FG made 50+ yards
+    fga0?: number; // FG attempts 0-19 yards
+    fga20?: number; // FG attempts 20-29 yards
+    fga30?: number; // FG attempts 30-39 yards
+    fga40?: number; // FG attempts 40-49 yards
+    fga50?: number; // FG attempts 50+ yards
+    fgLng?: number; // longest FG
+    xp?: number; // extra points made
+    pnt?: number; // punts
+    pntYds?: number; // punt yards
+    pntIn20?: number; // punts inside 20
+    pntTB?: number; // punt touchbacks
+    pntBlk?: number; // punts blocked
+    av?: number; // approximate value
 
     // Hockey-specific stats
     fow?: number; // Faceoffs won
@@ -167,7 +194,7 @@ export interface Player {
     oneTeamOnly: Set<number>;
     isHallOfFamer: Set<number>;
   };
-  ratings?: Array<{ season: number; pos?: string; ovr?: number }>;
+  ratings?: Array<{ season: number; pos?: string; ovr?: number; pot?: number }>;
   retiredYear?: number | null;
   contract?: { amount?: number; exp?: number };
   college?: string | null;

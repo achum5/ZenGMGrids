@@ -50,23 +50,12 @@ interface RosterPlayer {
   revealed: boolean;
   hintShown: boolean;
   gamesPlayed: number;
-  stats: {
-    ppg: number;
-    rpg: number;
-    apg: number;
-    spg: number;
-    bpg: number;
-  };
-  advancedStats: {
-    fgp: number;
-    tpp: number;
-    ftp: number;
-    ts: number;
-    per: number;
-  };
+  stats: any; // Flexible stats object for different sports/positions
+  advancedStats?: any; // Optional advanced stats
   position: string;
   jerseyNumber?: string;
   teamColors?: string[];
+  age?: number; // Age during the season
 }
 
 interface TeamTriviaProps {
@@ -587,6 +576,148 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     }
   }, [roster, selectedSeason, selectedTeam, leagueData.sport]);
 
+  // Helper function to calculate football stats by position
+  const calculateFootballStats = (seasonStats: any, position: string) => {
+    const av = seasonStats.av || 0;
+    
+    // Helper for safe division
+    const safeDivide = (num: number, denom: number, decimals: number = 1) => {
+      return denom > 0 ? (num / denom).toFixed(decimals) : null;
+    };
+
+    switch (position) {
+      case 'QB': {
+        const pssYds = seasonStats.pssYds || 0;
+        const pssTD = seasonStats.pssTD || 0;
+        const pssInt = seasonStats.pssInt || 0;
+        const compPct = safeDivide(seasonStats.pssCmp || 0, seasonStats.pss || 0, 1);
+        const ypa = safeDivide(pssYds, seasonStats.pss || 0, 1);
+        
+        return {
+          line1: `${pssYds}/${pssTD}/${pssInt}`,
+          line2: compPct && ypa ? `${compPct}% / ${ypa}` : compPct ? `${compPct}%` : ypa ? ypa : null,
+          line3: `AV: ${av}`
+        };
+      }
+      
+      case 'RB': {
+        const rusYds = seasonStats.rusYds || 0;
+        const rusTD = seasonStats.rusTD || 0;
+        const rus = seasonStats.rus || 0;
+        const catchPct = safeDivide(seasonStats.rec || 0, seasonStats.tgt || 0, 1);
+        const ypc = safeDivide(rusYds, rus, 1);
+        
+        return {
+          line1: `${rusYds}/${rusTD}/${rus}`,
+          line2: catchPct && ypc ? `${catchPct}% / ${ypc}` : catchPct ? `${catchPct}%` : ypc ? ypc : null,
+          line3: `AV: ${av}`
+        };
+      }
+      
+      case 'WR':
+      case 'TE': {
+        const rec = seasonStats.rec || 0;
+        const recYds = seasonStats.recYds || 0;
+        const recTD = seasonStats.recTD || 0;
+        const catchPct = safeDivide(rec, seasonStats.tgt || 0, 1);
+        const ydsPerTarget = safeDivide(recYds, seasonStats.tgt || 0, 1);
+        
+        return {
+          line1: `${rec}/${recYds}/${recTD}`,
+          line2: catchPct && ydsPerTarget ? `${catchPct}% / ${ydsPerTarget}` : catchPct ? `${catchPct}%` : ydsPerTarget ? ydsPerTarget : null,
+          line3: `AV: ${av}`
+        };
+      }
+      
+      case 'OL': {
+        return {
+          line1: null,
+          line2: null,
+          line3: `AV: ${av}`
+        };
+      }
+      
+      case 'DL': {
+        const tackles = (seasonStats.defTckSolo || 0) + (seasonStats.defTckAst || 0);
+        const sacks = seasonStats.defSk || 0;
+        const ff = seasonStats.defFmbFrc || 0;
+        const tfl = seasonStats.defTckLoss || 0;
+        const pd = seasonStats.defPssDef || 0;
+        
+        return {
+          line1: `${tackles}/${sacks}/${ff}`,
+          line2: `${tfl} / ${pd}`,
+          line3: `AV: ${av}`
+        };
+      }
+      
+      case 'LB': {
+        const tackles = (seasonStats.defTckSolo || 0) + (seasonStats.defTckAst || 0);
+        const sacks = seasonStats.defSk || 0;
+        const ints = seasonStats.defInt || 0;
+        const tfl = seasonStats.defTckLoss || 0;
+        const pd = seasonStats.defPssDef || 0;
+        
+        return {
+          line1: `${tackles}/${sacks}/${ints}`,
+          line2: `${tfl} / ${pd}`,
+          line3: `AV: ${av}`
+        };
+      }
+      
+      case 'CB':
+      case 'S': {
+        const tackles = (seasonStats.defTckSolo || 0) + (seasonStats.defTckAst || 0);
+        const ints = seasonStats.defInt || 0;
+        const pd = seasonStats.defPssDef || 0;
+        const intYds = seasonStats.defIntYds || 0;
+        const intTD = seasonStats.defIntTD || 0;
+        
+        return {
+          line1: `${tackles}/${ints}/${pd}`,
+          line2: `${intYds}/${intTD}`,
+          line3: `AV: ${av}`
+        };
+      }
+      
+      case 'K': {
+        const fgm = (seasonStats.fg0 || 0) + (seasonStats.fg20 || 0) + (seasonStats.fg30 || 0) + (seasonStats.fg40 || 0) + (seasonStats.fg50 || 0);
+        const fga = (seasonStats.fga0 || 0) + (seasonStats.fga20 || 0) + (seasonStats.fga30 || 0) + (seasonStats.fga40 || 0) + (seasonStats.fga50 || 0);
+        const xpm = seasonStats.xp || 0;
+        const fgPct = safeDivide(fgm, fga, 1);
+        const fgLng = seasonStats.fgLng || 0;
+        
+        return {
+          line1: `${fgm}/${fga}/${xpm}`,
+          line2: fgPct ? `${fgPct}% / ${fgLng}` : `${fgLng}`,
+          line3: `AV: ${av}`
+        };
+      }
+      
+      case 'P': {
+        const punts = seasonStats.pnt || 0;
+        const pntYds = seasonStats.pntYds || 0;
+        const pntAvg = safeDivide(pntYds, punts, 1);
+        const in20 = seasonStats.pntIn20 || 0;
+        const tb = seasonStats.pntTB || 0;
+        const blk = seasonStats.pntBlk || 0;
+        
+        return {
+          line1: pntAvg ? `${punts}/${pntYds}/${pntAvg}` : `${punts}/${pntYds}`,
+          line2: `${in20}/${tb}/${blk}`,
+          line3: `AV: ${av}`
+        };
+      }
+      
+      default:
+        return {
+          line1: null,
+          line2: null,
+          line3: `AV: ${av}`
+        };
+    }
+  };
+
   // Build roster for selected season/team
   const buildRoster = useCallback((season: number, team: Team) => {
     const rosterPlayers: RosterPlayer[] = [];
@@ -597,42 +728,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       );
       
       if (seasonStats && seasonStats.gp && seasonStats.gp > 0) {
-        // Calculate per-game stats
-        const gp = seasonStats.gp;
-        const ppg = seasonStats.pts ? seasonStats.pts / gp : 0;
-        // Use trb if available, otherwise sum orb and drb, fallback to 0
-        const totalReb = seasonStats.trb || ((seasonStats.orb || 0) + (seasonStats.drb || 0));
-        const rpg = totalReb / gp;
-        const apg = seasonStats.ast ? seasonStats.ast / gp : 0;
-        const stl = seasonStats.stl || 0;
-        const blk = seasonStats.blk || 0;
-        const spg = stl / gp;
-        const bpg = blk / gp;
-
-        // Calculate advanced stats
-        const fg = seasonStats.fg || 0;
-        const fga = seasonStats.fga || 0;
-        const fgp = fga > 0 ? (fg / fga) * 100 : 0;
-
-        const tp = seasonStats.tpm || seasonStats.tp || 0;
-        const tpa = seasonStats.tpa || 0;
-        const tpp = tpa > 0 ? (tp / tpa) * 100 : 0;
-
-        const ft = seasonStats.ft || 0;
-        const fta = seasonStats.fta || 0;
-        const ftp = fta > 0 ? (ft / fta) * 100 : 0;
-
-        // True Shooting % = PTS / (2 * (FGA + 0.44 * FTA))
-        const tsDenominator = 2 * (fga + 0.44 * fta);
-        const ts = tsDenominator > 0 ? ((seasonStats.pts || 0) / tsDenominator) * 100 : 0;
-
-        // Simplified PER calculation (actual PER is very complex)
-        // Using a basic approximation: (PTS + REB + AST + STL + BLK - Missed FG - Missed FT - TO) / GP
-        const missedFG = fga - fg;
-        const missedFT = fta - ft;
-        // Note: turnover data might not be in stats, so we'll use a simplified version
-        const per = ((seasonStats.pts || 0) + totalReb + (seasonStats.ast || 0) + stl + blk - missedFG - missedFT) / gp;
-
         // Get position for this season
         const rating = player.ratings?.find(r => r.season === season);
         const position = rating?.pos || player.pos || 'F';
@@ -644,16 +739,64 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         const seasonInfo = team.seasons?.find(s => s.season === season);
         const teamColors = seasonInfo?.colors || team.colors || ['#000000', '#ffffff', '#cccccc'];
 
+        // Calculate age
+        const age = player.born?.year ? season - player.born.year : undefined;
+
+        let stats: any;
+        let advancedStats: any = undefined;
+
+        if (leagueData.sport === 'football') {
+          // Football stats
+          stats = calculateFootballStats(seasonStats, position);
+        } else if (leagueData.sport === 'basketball') {
+          // Basketball stats
+          const gp = seasonStats.gp;
+          const ppg = seasonStats.pts ? seasonStats.pts / gp : 0;
+          const totalReb = seasonStats.trb || ((seasonStats.orb || 0) + (seasonStats.drb || 0));
+          const rpg = totalReb / gp;
+          const apg = seasonStats.ast ? seasonStats.ast / gp : 0;
+          const stl = seasonStats.stl || 0;
+          const blk = seasonStats.blk || 0;
+          const spg = stl / gp;
+          const bpg = blk / gp;
+
+          const fg = seasonStats.fg || 0;
+          const fga = seasonStats.fga || 0;
+          const fgp = fga > 0 ? (fg / fga) * 100 : 0;
+
+          const tp = seasonStats.tpm || seasonStats.tp || 0;
+          const tpa = seasonStats.tpa || 0;
+          const tpp = tpa > 0 ? (tp / tpa) * 100 : 0;
+
+          const ft = seasonStats.ft || 0;
+          const fta = seasonStats.fta || 0;
+          const ftp = fta > 0 ? (ft / fta) * 100 : 0;
+
+          const tsDenominator = 2 * (fga + 0.44 * fta);
+          const ts = tsDenominator > 0 ? ((seasonStats.pts || 0) / tsDenominator) * 100 : 0;
+
+          const missedFG = fga - fg;
+          const missedFT = fta - ft;
+          const per = ((seasonStats.pts || 0) + totalReb + (seasonStats.ast || 0) + stl + blk - missedFG - missedFT) / gp;
+
+          stats = { ppg, rpg, apg, spg, bpg };
+          advancedStats = { fgp, tpp, ftp, ts, per };
+        } else {
+          // Default/placeholder for other sports
+          stats = {};
+        }
+
         rosterPlayers.push({
           player,
           revealed: false,
           hintShown: false,
           gamesPlayed: seasonStats.gp,
-          stats: { ppg, rpg, apg, spg, bpg },
-          advancedStats: { fgp, tpp, ftp, ts, per },
+          stats,
+          advancedStats,
           position,
           jerseyNumber,
           teamColors,
+          age,
         });
       }
     });
@@ -667,7 +810,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       // Add other sports here if needed
     };
 
-    const positionOrder = sportPositionOrder[leagueData.sport] || [];
+    const positionOrder = sportPositionOrder[leagueData.sport || 'basketball'] || [];
 
     // Sort by position, then games played, then alphabetically
     rosterPlayers.sort((a, b) => {
@@ -946,7 +1089,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
 
   // Progress to next round
   const handleNextRound = useCallback(() => {
-    const currentIndex = ROUND_ORDER.indexOf(currentRound);
+    const currentIndex = ROUND_ORDER.indexOf(currentRound as any);
     if (currentIndex < ROUND_ORDER.length - 1) {
       const nextRound = ROUND_ORDER[currentIndex + 1];
       setCurrentRound(nextRound);
@@ -1446,7 +1589,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                               >
                                 {(team.imgURLSmall || team.imgURL) && (
                                   <img
-                                    src={team.imgURLSmall || team.imgURL}
+                                    src={(team.imgURLSmall || team.imgURL) ?? undefined}
                                     alt={teamName}
                                     className="h-6 w-6 object-contain"
                                   />
@@ -1592,26 +1735,100 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                   {currentRound === 'complete' && (
                     <div className="w-full text-center text-[0.45rem] sm:text-[0.6rem] md:text-[0.7rem] leading-tight mt-1"
                       style={{ color: rp.teamColors?.[0] || 'hsl(var(--foreground))' }}>
+                      {/* Age - All sports */}
+                      {rp.age && <p>Age: {rp.age}</p>}
+                      
+                      {/* Ovr/Pot - All sports */}
                       {(() => {
                         const playerRating = rp.player.ratings?.find(r => r.season === selectedSeason);
-                        const playerBornYear = rp.player.born?.year;
-                        if (playerBornYear && selectedSeason) {
-                          return <p>Age: {selectedSeason - playerBornYear}</p>;
+                        if (playerRating && playerRating.ovr) {
+                          return <p>Ovr/Pot: {playerRating.ovr}/{playerRating.pot || '?'}</p>;
                         }
                         return null;
                       })()}
-                      {(() => {
-                        const playerRating = rp.player.ratings?.find(r => r.season === selectedSeason);
-                        if (playerRating) {
-                          return <p>Ovr/Pot: {playerRating.ovr}/{playerRating.pot}</p>;
-                        }
-                        return null;
-                      })()}
-                      <p>P/R/A/S/B:</p>
-                      <p>{rp.stats.ppg.toFixed(1)}/{rp.stats.rpg.toFixed(1)}/{rp.stats.apg.toFixed(1)}/{rp.stats.spg.toFixed(1)}/{rp.stats.bpg.toFixed(1)}</p>
-                      <p>Splits: {rp.advancedStats.fgp.toFixed(1)}%/{rp.advancedStats.tpp.toFixed(1)}%/{rp.advancedStats.ftp.toFixed(1)}%</p>
-                      <p>PER: {rp.advancedStats.per.toFixed(1)}</p>
-                      <p>TS%: {rp.advancedStats.ts.toFixed(1)}%</p>
+
+                      {/* Basketball stats */}
+                      {leagueData.sport === 'basketball' && rp.stats?.ppg !== undefined && (
+                        <>
+                          <p>P/R/A/S/B:</p>
+                          <p>{rp.stats.ppg?.toFixed(1)}/{rp.stats.rpg?.toFixed(1)}/{rp.stats.apg?.toFixed(1)}/{rp.stats.spg?.toFixed(1)}/{rp.stats.bpg?.toFixed(1)}</p>
+                          {rp.advancedStats && (
+                            <>
+                              <p>Splits: {rp.advancedStats.fgp?.toFixed(1)}%/{rp.advancedStats.tpp?.toFixed(1)}%/{rp.advancedStats.ftp?.toFixed(1)}%</p>
+                              <p>PER: {rp.advancedStats.per?.toFixed(1)}</p>
+                              <p>TS%: {rp.advancedStats.ts?.toFixed(1)}%</p>
+                            </>
+                          )}
+                        </>
+                      )}
+
+                      {/* Football stats */}
+                      {leagueData.sport === 'football' && rp.stats?.line1 !== undefined && (
+                        <>
+                          {/* Position-specific labels */}
+                          {rp.position === 'QB' && (
+                            <>
+                              {rp.stats.line1 && <><p>Pass Yds/TD/INT:</p><p>{rp.stats.line1}</p></>}
+                              {rp.stats.line2 && <><p>Comp% / Y/A:</p><p>{rp.stats.line2}</p></>}
+                              {rp.stats.line3 && <p>{rp.stats.line3}</p>}
+                            </>
+                          )}
+                          {rp.position === 'RB' && (
+                            <>
+                              {rp.stats.line1 && <><p>Rush Yds/TD/Att:</p><p>{rp.stats.line1}</p></>}
+                              {rp.stats.line2 && <><p>Catch% / YPC:</p><p>{rp.stats.line2}</p></>}
+                              {rp.stats.line3 && <p>{rp.stats.line3}</p>}
+                            </>
+                          )}
+                          {(rp.position === 'WR' || rp.position === 'TE') && (
+                            <>
+                              {rp.stats.line1 && <><p>Rec/Yds/TD:</p><p>{rp.stats.line1}</p></>}
+                              {rp.stats.line2 && <><p>Catch% / Yds/Target:</p><p>{rp.stats.line2}</p></>}
+                              {rp.stats.line3 && <p>{rp.stats.line3}</p>}
+                            </>
+                          )}
+                          {rp.position === 'DL' && (
+                            <>
+                              {rp.stats.line1 && <><p>Tck/Sacks/FF:</p><p>{rp.stats.line1}</p></>}
+                              {rp.stats.line2 && <><p>TFL / PD:</p><p>{rp.stats.line2}</p></>}
+                              {rp.stats.line3 && <p>{rp.stats.line3}</p>}
+                            </>
+                          )}
+                          {rp.position === 'LB' && (
+                            <>
+                              {rp.stats.line1 && <><p>Tck/Sacks/INT:</p><p>{rp.stats.line1}</p></>}
+                              {rp.stats.line2 && <><p>TFL / PD:</p><p>{rp.stats.line2}</p></>}
+                              {rp.stats.line3 && <p>{rp.stats.line3}</p>}
+                            </>
+                          )}
+                          {(rp.position === 'CB' || rp.position === 'S') && (
+                            <>
+                              {rp.stats.line1 && <><p>Tck/INT/PD:</p><p>{rp.stats.line1}</p></>}
+                              {rp.stats.line2 && <><p>INT Yds/TD:</p><p>{rp.stats.line2}</p></>}
+                              {rp.stats.line3 && <p>{rp.stats.line3}</p>}
+                            </>
+                          )}
+                          {rp.position === 'K' && (
+                            <>
+                              {rp.stats.line1 && <><p>FGM/FGA/XPM:</p><p>{rp.stats.line1}</p></>}
+                              {rp.stats.line2 && <><p>FG% / Long:</p><p>{rp.stats.line2}</p></>}
+                              {rp.stats.line3 && <p>{rp.stats.line3}</p>}
+                            </>
+                          )}
+                          {rp.position === 'P' && (
+                            <>
+                              {rp.stats.line1 && <><p>Punts/Yds/Avg:</p><p>{rp.stats.line1}</p></>}
+                              {rp.stats.line2 && <><p>In20/TB/Blk:</p><p>{rp.stats.line2}</p></>}
+                              {rp.stats.line3 && <p>{rp.stats.line3}</p>}
+                            </>
+                          )}
+                          {rp.position === 'OL' && (
+                            <>
+                              {rp.stats.line3 && <p>{rp.stats.line3}</p>}
+                            </>
+                          )}
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1675,7 +1892,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                                   player={player}
                                   teams={leagueData.teams}
                                   sport={leagueData.sport}
-                                  season={player.stats?.some(s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid) ? selectedSeason : null}
+                                  season={player.stats?.some(s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid) ? (selectedSeason ?? undefined) : undefined}
                                 />
                               </div>
 
