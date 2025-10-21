@@ -759,12 +759,12 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                               </h1>              </div>
               <div className="absolute right-0 flex items-center space-x-1">
                 <div>
-                  <RulesModal sport={leagueData.sport} />
+                  <RulesModal sport={leagueData.sport} color={selectedTeam?.colors?.[1]} />
                 </div>
                 {hasProgress ? (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="sm" data-testid="button-back" style={{ color: selectedTeam?.colors?.[0] || 'hsl(var(--primary-foreground))' }} className="animate-on-click">
+                      <Button variant="ghost" size="sm" data-testid="button-back" style={{ color: selectedTeam?.colors?.[1] || 'hsl(var(--primary-foreground))' }} className="animate-on-click">
                         <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
                         <span className="sr-only">Go back</span>
                       </Button>
@@ -783,12 +783,12 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     </AlertDialogContent>
                   </AlertDialog>
                 ) : (
-                  <Button variant="ghost" size="sm" onClick={onBackToModeSelect} data-testid="button-back" style={{ color: selectedTeam?.colors?.[0] || 'hsl(var(--primary-foreground))' }} className="animate-on-click">
+                  <Button variant="ghost" size="sm" onClick={onBackToModeSelect} data-testid="button-back" style={{ color: selectedTeam?.colors?.[1] || 'hsl(var(--primary-foreground))' }} className="animate-on-click">
                     <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
                     <span className="sr-only">Go back</span>
                   </Button>
                 )}
-                              <Button variant="ghost" size="sm" onClick={onGoHome} data-testid="button-home" style={{ color: selectedTeam?.colors?.[0] || 'hsl(var(--primary-foreground))' }} className="animate-on-click">
+                              <Button variant="ghost" size="sm" onClick={onGoHome} data-testid="button-home" style={{ color: selectedTeam?.colors?.[1] || 'hsl(var(--primary-foreground))' }} className="animate-on-click">
                                 <HomeIcon className="h-[1.2rem] w-[1.2rem]" />
                                 <span className="sr-only">Go home</span>
                               </Button>              </div>

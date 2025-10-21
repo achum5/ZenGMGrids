@@ -5,6 +5,7 @@ import { type Sport } from "@/lib/league-normalizer";
 
 interface RulesModalProps {
   sport?: Sport;
+  color?: string;
 }
 
 const generalRules = {
@@ -194,14 +195,14 @@ const sportSpecificRules = {
   }
 };
 
-export function RulesModal({ sport }: RulesModalProps) {
+export function RulesModal({ sport, color }: RulesModalProps) {
   const isGeneralRules = !sport;
   const sportRules = sport ? sportSpecificRules[sport as keyof typeof sportSpecificRules] : null;
 
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" data-testid="button-rules">
+        <Button variant="ghost" size="sm" data-testid="button-rules" style={{ color: color || 'currentColor' }}>
           <HelpCircle className="h-[1.2rem] w-[1.2rem] ml-[3px]" />
           <span className="sr-only">Rules</span>
         </Button>
