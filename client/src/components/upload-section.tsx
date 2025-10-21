@@ -74,26 +74,28 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadP
           {onParsingMethodChange && (
             <div className="flex items-center justify-center gap-3 translate-y-[-1rem]">
               <span className="text-sm font-medium text-muted-foreground">Upload Method:</span>
-              <Select 
-                value={parsingMethod} 
+              <Select
+                value={parsingMethod}
                 onValueChange={onParsingMethodChange}
                 disabled={isProcessing}
               >
                 <SelectTrigger className="w-auto max-w-full" data-testid="select-parsing-method">
-                  <SelectValue />
+                  <SelectValue>
+                    {parsingMethod === 'auto' && 'Auto'}
+                    {parsingMethod === 'traditional' && 'Traditional'}
+                    {parsingMethod === 'mobile-idb' && 'Streaming'}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="auto" data-testid="option-auto">
-                    Auto (Recommended)
+                    Auto <i>(Recommended)</i>
                   </SelectItem>
                   <SelectItem value="traditional" data-testid="option-traditional">
-                    Traditional
+                    Traditional <i>(fast but may fail on large files)</i>
                   </SelectItem>
-                  <SelectItem value="streaming" data-testid="option-streaming">
-                    Desktop Streaming <i>(for large files)</i>
-                  </SelectItem>
+
                   <SelectItem value="mobile-idb" data-testid="option-mobile-idb">
-                    Mobile Streaming <i>(slow but should work!)</i>
+                    Streaming <i>(slow but handles any file size)</i>
                   </SelectItem>
                 </SelectContent>
               </Select>

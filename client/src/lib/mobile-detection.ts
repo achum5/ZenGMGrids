@@ -17,10 +17,18 @@ export function isMobileDevice(): boolean {
 
 export type ParsingMethod = 'auto' | 'traditional' | 'streaming' | 'mobile-idb';
 
-export function getRecommendedMethod(): 'traditional' | 'streaming' | 'mobile-idb' {
-  // On mobile: use mobile-idb (IndexedDB-based streaming, handles any file size)
-  // On desktop: use streaming (uses DecompressionStream which is faster)
-  return isMobileDevice() ? 'mobile-idb' : 'streaming';
+// 100MB threshold for compressed files (decompresses to ~1.3GB typically)
+const LARGE_FILE_THRESHOLD_BYTES = 100 * 1024 * 1024; // 100MB
+
+export function getRecommendedMethod(fileSize?: number): 'traditional' | 'streaming' | 'mobile-idb' {
+  // If file size is provided and exceeds threshold, use mobile-idb (IndexedDB streaming)
+  // This works on both mobile and desktop and handles any file size
+  if (fileSize !== undefined && fileSize > LARGE_FILE_THRESHOLD_BYTES) {
+    return 'mobile-idb';
+  }
+
+  // For smaller files, use traditional method (faster but less reliable for large files)
+  return 'traditional';
 }
 
 // Get stored preference or return 'auto' as default

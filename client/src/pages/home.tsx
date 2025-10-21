@@ -476,15 +476,15 @@ export default function Home() {
       // Store file metadata for saving
       setCurrentFileName(file.name);
       setCurrentFileSize(file.size);
-      
+
       // Determine which method to use based on setting
-      const method: ParsingMethod = parsingMethodSetting === 'auto' 
-        ? getRecommendedMethod() 
+      const method: ParsingMethod = parsingMethodSetting === 'auto'
+        ? getRecommendedMethod(file.size)
         : parsingMethodSetting;
-      
+
       // Update displayed method to show actual method being used
       setDisplayedMethod(method);
-      
+
       // Parse the league file with progress tracking and selected method
       const data = await parseLeagueFile(file, (message, loaded, total) => {
         setUploadProgress({ message, loaded, total });
@@ -515,12 +515,13 @@ export default function Home() {
       const fileName = url.split('/').pop() || 'league-from-url.json';
       setCurrentFileName(fileName);
       setCurrentFileSize(undefined); // Unknown size for URLs
-      
+
       // Determine which method to use based on setting
-      const method: ParsingMethod = parsingMethodSetting === 'auto' 
-        ? getRecommendedMethod() 
+      // Note: For URLs, we can't check file size upfront, so we use device-based detection
+      const method: ParsingMethod = parsingMethodSetting === 'auto'
+        ? getRecommendedMethod()
         : parsingMethodSetting;
-      
+
       // Update displayed method to show actual method being used
       setDisplayedMethod(method);
       

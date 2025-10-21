@@ -388,19 +388,20 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   // Team display info (season-aligned)
   const teamDisplayInfo = useMemo(() => {
     if (!selectedTeam || selectedSeason === null) {
-      return { name: '', logo: null };
+      return { name: '', logo: null, colors: ['#000000', '#ffffff', '#cccccc'] };
     }
-    
+
     const seasonInfo = selectedTeam.seasons?.find(s => s.season === selectedSeason);
     const name = seasonInfo?.region && seasonInfo?.name
       ? `${seasonInfo.region} ${seasonInfo.name}`
       : selectedTeam.region && selectedTeam.name
       ? `${selectedTeam.region} ${selectedTeam.name}`
       : selectedTeam.abbrev || 'Unknown Team';
-    
+
     const logo = seasonInfo?.imgURL || selectedTeam.imgURL;
-    
-    return { name, logo };
+    const colors = seasonInfo?.colors || selectedTeam.colors || ['#000000', '#ffffff', '#cccccc'];
+
+    return { name, logo, colors };
   }, [selectedTeam, selectedSeason]);
 
   // Filter ALL players in league matching current guess
@@ -417,9 +418,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       .filter(player => {
         // Exclude already-revealed players from current roster
         if (revealedPids.has(player.pid)) return false;
-
-        // Only include players with face data
-        if (!player.face) return false;
 
         const normalizedName = normalizeName(player.name);
         return normalizedName.includes(normalizedGuess);
@@ -715,7 +713,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                 className="border-border shrink-0"
                 onMouseEnter={() => setIsHeaderHovered(true)}
                 onMouseLeave={() => setIsHeaderHovered(false)}
-                style={{ position: 'relative', backgroundColor: selectedTeam?.colors?.[0] || 'hsl(var(--card))' }}
+                style={{ position: 'relative', backgroundColor: teamDisplayInfo.colors[0] || 'hsl(var(--card))' }}
               >
           <div className="max-w-6xl mx-auto px-6 py-4">
             <div className="grid grid-cols-3 items-center gap-4">
@@ -724,7 +722,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                 {hasProgress ? (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="sm" data-testid="button-back" style={{ color: selectedTeam?.colors?.[1] || 'hsl(var(--primary-foreground))' }} className="animate-on-click">
+                      <Button variant="ghost" size="sm" data-testid="button-back" style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))' }} className="animate-on-click">
                         <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
                         <span className="sr-only">Go back</span>
                       </Button>
@@ -743,7 +741,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     </AlertDialogContent>
                   </AlertDialog>
                 ) : (
-                  <Button variant="ghost" size="sm" onClick={onBackToModeSelect} data-testid="button-back" style={{ color: selectedTeam?.colors?.[1] || 'hsl(var(--primary-foreground))' }} className="animate-on-click">
+                  <Button variant="ghost" size="sm" onClick={onBackToModeSelect} data-testid="button-back" style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))' }} className="animate-on-click">
                     <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
                     <span className="sr-only">Go back</span>
                   </Button>
@@ -752,10 +750,10 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
 
               {/* Center: Logo + Title */}
               <div className="flex items-center justify-center space-x-3 min-w-0">
-                <div 
+                <div
                   className="w-8 h-8 sm:w-10 sm:h-10 shrink-0"
                   style={{
-                    backgroundColor: selectedTeam?.colors?.[1] || 'hsl(var(--primary))',
+                    backgroundColor: teamDisplayInfo.colors[1] || 'hsl(var(--primary))',
                     maskImage: `url(${sportIcon})`,
                     WebkitMaskImage: `url(${sportIcon})`,
                     maskSize: 'contain',
@@ -766,10 +764,10 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     WebkitMaskPosition: 'center'
                   }}
                 />
-                <h1 
+                <h1
                   className="text-sm sm:text-base md:text-lg lg:text-2xl font-bold whitespace-nowrap"
-                  style={{ 
-                    color: selectedTeam?.colors?.[1] || 'hsl(var(--primary))',
+                  style={{
+                    color: teamDisplayInfo.colors[1] || 'hsl(var(--primary))',
                     letterSpacing: '-0.02em'
                   }}
                 >
@@ -779,23 +777,35 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
 
               {/* Right: Help + Home buttons */}
               <div className="flex items-center justify-end space-x-1">
-                <RulesModal sport={leagueData.sport} color={selectedTeam?.colors?.[1]} />
-                <Button variant="ghost" size="sm" onClick={onGoHome} data-testid="button-home" style={{ color: selectedTeam?.colors?.[1] || 'hsl(var(--primary-foreground))' }} className="animate-on-click">
+                <RulesModal sport={leagueData.sport} color={teamDisplayInfo.colors[1]} />
+                <Button variant="ghost" size="sm" onClick={onGoHome} data-testid="button-home" style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))' }} className="animate-on-click">
                   <HomeIcon className="h-[1.2rem] w-[1.2rem]" />
                   <span className="sr-only">Go home</span>
                 </Button>
               </div>
             </div>
           </div>
-          <AccentLine isHovered={isHeaderHovered} color={selectedTeam?.colors?.[1]} />
+          <AccentLine isHovered={isHeaderHovered} color={teamDisplayInfo.colors[1]} />
         </header>
   
         {/* Game Info Header with Dropdowns */}
         <div className="bg-card/50 border-b neon-border-subtle shrink-0">
           <div className="max-w-4xl mx-auto px-6 py-6">
-            <div className="flex items-center justify-center gap-4 flex-wrap">
-              {/* Left side: Year and Team */}
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              {/* Left side: New Team button, Year and Team */}
               <div className="flex items-center gap-4 flex-wrap">
+                {/* New Team Button */}
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={handleNew}
+                  className="neon-button animate-on-click"
+                  data-testid="button-new-trivia"
+                >
+                  <Shuffle className="h-5 w-5 mr-2" />
+                  New Team
+                </Button>
+
                 {/* Year Dropdown */}
                 <Popover open={yearDropdownOpen} onOpenChange={setYearDropdownOpen}>
                   <PopoverTrigger asChild>
@@ -917,107 +927,20 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
             </div>
           </div>
         </div>
-  
-        {/* Search Section - Show during guess/hint/leader rounds */}
-        {(currentRound === 'guess' || currentRound === 'hint' || currentRound.endsWith('-leader')) && (
+
+
+        {/* Leader Round Prompt - Show only during leader rounds */}
+        {currentRound.endsWith('-leader') && (
           <div className="bg-background border-b shrink-0">
             <div className="max-w-4xl mx-auto px-6 py-4">
-              <div className="relative">
-                {/* Show input during guess/hint rounds */}
-                {(currentRound === 'guess' || currentRound === 'hint') && (
-                  <>
-                    <Input
-                      ref={inputRef}
-                      type="text"
-                      value={guess}
-                      onChange={(e) => setGuess(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      placeholder="Type a player's name..."
-                      className="text-lg py-6 neon-input"
-                      autoFocus
-                      autoComplete="off"
-                      data-testid="input-player-guess"
-                    />
-  
-                    {/* Autocomplete Dropdown */}
-                    {autocompleteOpen && (
-                      <div
-                        ref={autocompleteRef}
-                        className="absolute z-50 w-full mt-2 bg-card border neon-border rounded-lg shadow-lg max-h-[400px] overflow-y-auto"
-                        data-testid="autocomplete-dropdown"
-                      >
-                        <div className="py-2">
-                          {autocompleteSuggestions.map((player, index) => {
-                            // Get player's position - check if they have season-specific position first
-                            const rating = player.ratings?.find(r => r.season === selectedSeason);
-                            const position = rating?.pos || player.pos || 'F';
-  
-                            return (
-                              <div
-                                key={player.pid}
-                                data-index={index}
-                                className={`flex items-center gap-4 px-4 py-3 cursor-pointer transition-all hover:bg-accent/50 ${
-                                  index === activeIndex ? 'bg-accent neon-glow' : ''
-                                }`}
-                                onClick={() => handleSelectPlayer(player)}
-                                data-testid={`autocomplete-option-${index}`}
-                              >
-                                <div className="shrink-0 w-16 h-16">
-                                  <PlayerFace
-                                    pid={player.pid}
-                                    name={player.name}
-                                    imgURL={player.imgURL ?? undefined}
-                                    face={player.face}
-                                    size={64}
-                                    hideName={true}
-                                    player={player}
-                                    teams={leagueData.teams}
-                                    sport={leagueData.sport}
-                                    season={player.stats?.some(s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid) ? selectedSeason : null}
-                                  />
-                                </div>
-  
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-lg font-medium truncate">
-                                    {player.name}
-                                  </p>
-                                  <p className="text-sm text-muted-foreground">
-                                    {position}
-                                  </p>
-                                </div>
-  
-                                <Button
-                                                              size="sm"
-                                                              variant="outline"
-                                                              className="shrink-0 animate-on-click"                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleSelectPlayer(player);
-                                  }}
-                                  data-testid={`button-select-${index}`}
-                                >
-                                  Select
-                                </Button>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {/* Show prompt during leader rounds */}
-                {currentRound.endsWith('-leader') && (
-                  <div className="text-center py-6">
-                    <p className={`text-2xl font-bold text-white ${triggerBounceAnimation ? 'animate-bounce-once' : ''}`}>
-                      {currentRound === 'points-leader' && 'Click on the Team Points Leader'}
-                      {currentRound === 'rebounds-leader' && 'Click on the Team Rebounds Leader'}
-                      {currentRound === 'assists-leader' && 'Click on the Team Assists Leader'}
-                      {currentRound === 'steals-leader' && 'Click on the Team Steals Leader'}
-                      {currentRound === 'blocks-leader' && 'Click on the Team Blocks Leader'}
-                    </p>
-                  </div>
-                )}
+              <div className="text-center py-6">
+                <p className={`text-2xl font-bold text-white ${triggerBounceAnimation ? 'animate-bounce-once' : ''}`}>
+                  {currentRound === 'points-leader' && 'Click on the Team Points Leader'}
+                  {currentRound === 'rebounds-leader' && 'Click on the Team Rebounds Leader'}
+                  {currentRound === 'assists-leader' && 'Click on the Team Assists Leader'}
+                  {currentRound === 'steals-leader' && 'Click on the Team Steals Leader'}
+                  {currentRound === 'blocks-leader' && 'Click on the Team Blocks Leader'}
+                </p>
               </div>
             </div>
           </div>
@@ -1112,17 +1035,17 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                             return (
                               <>
                                 <span style={{ filter: 'none' }}>{firstName.charAt(0)}</span>
-                                <span style={{ filter: 'blur(8px)' }}>{firstName.substring(1)}</span>
+                                <span style={{ filter: 'blur(3px)' }}>{firstName.substring(1)}</span>
                               </>
                             );
                           } else {
                             return (
                               <>
                                 <span style={{ filter: 'none' }}>{firstName.charAt(0)}</span>
-                                <span style={{ filter: 'blur(8px)' }}>{firstName.substring(1)}</span>
+                                <span style={{ filter: 'blur(3px)' }}>{firstName.substring(1)}</span>
                                 <span> </span>
                                 <span style={{ filter: 'none' }}>{lastName.charAt(0)}</span>
-                                <span style={{ filter: 'blur(8px)' }}>{lastName.substring(1)}</span>
+                                <span style={{ filter: 'blur(3px)' }}>{lastName.substring(1)}</span>
                               </>
                             );
                           }
@@ -1133,7 +1056,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                         className="text-[0.5rem] sm:text-xs md:text-sm font-bold line-clamp-2 leading-tight"
                         style={{
                           color: rp.teamColors?.[0] || 'hsl(var(--foreground))',
-                          filter: 'blur(8px)' // Apply severe blur
+                          filter: 'blur(3px)' // Apply blur
                         }}
                       >
                         {rp.player.name}
@@ -1165,35 +1088,107 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
             </div>
           </div>
         </div>
-  
+
         {/* Bottom Actions */}
         <div className="shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t neon-border-subtle">
           <div className="max-w-4xl mx-auto px-6 py-4">
-            <div className="flex justify-between items-center gap-3">
-              {/* Always show New Team button on left */}
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={handleNew}
-                className="neon-button animate-on-click"
-                data-testid="button-new-trivia"
-              >
-                <Shuffle className="h-5 w-5 mr-2" />
-                New Team
-              </Button>
-  
-              {/* Show Next Round button on right (unless complete) */}
+            <div className="flex items-center gap-3">
+              {/* Center: Search input with autocomplete (only show during guess/hint rounds) */}
+              {(currentRound === 'guess' || currentRound === 'hint') && (
+                <div className="flex-1 relative">
+                  <Input
+                    ref={inputRef}
+                    type="text"
+                    value={guess}
+                    onChange={(e) => setGuess(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Type a player's name..."
+                    className="text-lg py-6 neon-input"
+                    autoFocus
+                    autoComplete="off"
+                    data-testid="input-player-guess"
+                  />
+
+                  {/* Autocomplete Dropdown */}
+                  {autocompleteOpen && (
+                    <div
+                      ref={autocompleteRef}
+                      className="absolute z-50 w-full bottom-full mb-2 bg-card border neon-border rounded-lg shadow-lg max-h-[400px] overflow-y-auto"
+                      data-testid="autocomplete-dropdown"
+                    >
+                      <div className="py-2">
+                        {autocompleteSuggestions.map((player, index) => {
+                          // Get player's position - check if they have season-specific position first
+                          const rating = player.ratings?.find(r => r.season === selectedSeason);
+                          const position = rating?.pos || player.pos || 'F';
+
+                          return (
+                            <div
+                              key={player.pid}
+                              data-index={index}
+                              className={`flex items-center gap-4 px-4 py-3 cursor-pointer transition-all hover:bg-accent/50 ${
+                                index === activeIndex ? 'bg-accent neon-glow' : ''
+                              }`}
+                              onClick={() => handleSelectPlayer(player)}
+                              data-testid={`autocomplete-option-${index}`}
+                            >
+                              <div className="shrink-0 w-16 h-16">
+                                <PlayerFace
+                                  pid={player.pid}
+                                  name={player.name}
+                                  imgURL={player.imgURL ?? undefined}
+                                  face={player.face}
+                                  size={64}
+                                  hideName={true}
+                                  player={player}
+                                  teams={leagueData.teams}
+                                  sport={leagueData.sport}
+                                  season={player.stats?.some(s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid) ? selectedSeason : null}
+                                />
+                              </div>
+
+                              <div className="flex-1 min-w-0">
+                                <p className="text-lg font-medium truncate">
+                                  {player.name}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {position}
+                                </p>
+                              </div>
+
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="shrink-0 animate-on-click"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSelectPlayer(player);
+                                }}
+                                data-testid={`button-select-${index}`}
+                              >
+                                Select
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Right: Next Round button (use ml-auto to push it right) */}
               {currentRound !== 'complete' && (
                 <Button
                   variant="default"
                   size="lg"
                   onClick={handleNextRound}
-                  className="neon-button animate-on-click"
+                  className="neon-button animate-on-click ml-auto"
                   data-testid="button-next-round"
                   disabled={currentRound.endsWith('-leader')}
                 >
-                  Next Round
-                  <ArrowRight className="h-5 w-5 ml-2" />
+                  <span className="hidden sm:inline">Next Round</span>
+                  <ArrowRight className="h-5 w-5 sm:ml-2" />
                 </Button>
               )}
             </div>

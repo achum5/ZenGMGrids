@@ -6,7 +6,7 @@ import { openDB } from 'idb';
 
 // File size threshold for automatic method selection (50MB compressed)
 // Only used when method is 'auto'
-const STREAMING_THRESHOLD = 50 * 1024 * 1024;
+const STREAMING_THRESHOLD = 100 * 1024 * 1024;
 
 export type ParsingMethod = 'traditional' | 'streaming' | 'mobile-idb';
 
