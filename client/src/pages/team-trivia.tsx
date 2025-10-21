@@ -477,8 +477,15 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         const rpStats = rp.player.stats?.find(
           s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
         );
-        const leaderPts = (leaderStats as any)?.pts || 0;
-        const rpPts = (rpStats as any)?.pts || 0;
+        // Calculate points as goals + assists
+        const leaderGoals = ((leaderStats as any)?.evG || 0) + ((leaderStats as any)?.ppG || 0) + ((leaderStats as any)?.shG || 0);
+        const leaderAssists = ((leaderStats as any)?.evA || 0) + ((leaderStats as any)?.ppA || 0) + ((leaderStats as any)?.shA || 0);
+        const leaderPts = leaderGoals + leaderAssists;
+        
+        const rpGoals = ((rpStats as any)?.evG || 0) + ((rpStats as any)?.ppG || 0) + ((rpStats as any)?.shG || 0);
+        const rpAssists = ((rpStats as any)?.evA || 0) + ((rpStats as any)?.ppA || 0) + ((rpStats as any)?.shA || 0);
+        const rpPts = rpGoals + rpAssists;
+        
         return rpPts > leaderPts ? rp : leader;
       });
 
@@ -489,8 +496,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         const rpStats = rp.player.stats?.find(
           s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
         );
-        const leaderG = (leaderStats as any)?.g || 0;
-        const rpG = (rpStats as any)?.g || 0;
+        // Calculate goals as evG + ppG + shG
+        const leaderG = ((leaderStats as any)?.evG || 0) + ((leaderStats as any)?.ppG || 0) + ((leaderStats as any)?.shG || 0);
+        const rpG = ((rpStats as any)?.evG || 0) + ((rpStats as any)?.ppG || 0) + ((rpStats as any)?.shG || 0);
         return rpG > leaderG ? rp : leader;
       });
 
@@ -501,8 +509,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         const rpStats = rp.player.stats?.find(
           s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
         );
-        const leaderA = (leaderStats as any)?.a || (leaderStats as any)?.ast || 0;
-        const rpA = (rpStats as any)?.a || (rpStats as any)?.ast || 0;
+        // Calculate assists as evA + ppA + shA
+        const leaderA = ((leaderStats as any)?.evA || 0) + ((leaderStats as any)?.ppA || 0) + ((leaderStats as any)?.shA || 0);
+        const rpA = ((rpStats as any)?.evA || 0) + ((rpStats as any)?.ppA || 0) + ((rpStats as any)?.shA || 0);
         return rpA > leaderA ? rp : leader;
       });
 
@@ -513,8 +522,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         const rpStats = rp.player.stats?.find(
           s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
         );
-        const leaderW = (leaderStats as any)?.w || 0;
-        const rpW = (rpStats as any)?.w || 0;
+        // Use gW for goalie wins
+        const leaderW = (leaderStats as any)?.gW || 0;
+        const rpW = (rpStats as any)?.gW || 0;
         return rpW > leaderW ? rp : leader;
       });
 
