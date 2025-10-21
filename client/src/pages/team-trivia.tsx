@@ -869,7 +869,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       }
 
       // Auto-reveal all players when entering the first leader round
-      if (nextRound === 'points-leader' || nextRound === 'passing-yards-leader') {
+      if (nextRound === 'points-leader' || nextRound === 'passing-yards-leader' || nextRound === 'hits-leader') {
         setRoster(prev => prev.map(rp => ({ ...rp, revealed: true })));
         setFoundCount(roster.length);
       }
@@ -1623,6 +1623,13 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     {currentRound === 'tackles-leader' && 'Click on the Team Tackles Leader'}
                     {currentRound === 'sacks-leader' && 'Click on the Team Sacks Leader'}
                     {currentRound === 'interceptions-leader' && 'Click on the Team Interceptions Leader'}
+                    {/* Baseball rounds */}
+                    {currentRound === 'hits-leader' && 'Click on the Team Hits Leader'}
+                    {currentRound === 'home-runs-leader' && 'Click on the Team Home Runs Leader'}
+                    {currentRound === 'rbis-leader' && 'Click on the Team RBIs Leader'}
+                    {currentRound === 'stolen-bases-leader' && 'Click on the Team Stolen Bases Leader'}
+                    {currentRound === 'strikeouts-leader' && 'Click on the Team Strikeouts Leader'}
+                    {currentRound === 'wins-leader' && 'Click on the Team Wins Leader'}
                   </p>
                 </div>
               ) : null}
