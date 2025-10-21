@@ -447,7 +447,9 @@ async function parseFileMobileIDB(file: File): Promise<'idb-stored'> {
       '$.gameAttributes',
       '$.players.*',
       '$.teams.*',
+      '$.teams[*].seasons[*]',  // Capture nested team seasons
       '$.teamSeasons.*',
+      '$.teamStats.*',          // Alternative name for team seasons
       '$.meta'
     ],
     keepStack: false 
@@ -567,8 +569,26 @@ async function parseFileMobileIDB(file: File): Promise<'idb-stored'> {
               self.postMessage({ type: 'meta', sport, counts: { players: playerCount, teams: teamCount, teamSeasons: teamSeasonCount } });
             }
           } else if (currentArraySection === 'teams') {
-            teamQueue.push(value.value);
+            const team = value.value;
+            teamQueue.push(team);
             teamCount++;
+            
+            // Extract nested seasons from this team
+            if (team.seasons && Array.isArray(team.seasons)) {
+              for (const season of team.seasons) {
+                teamSeasonQueue.push({
+                  tid: team.tid,
+                  season: season.season,
+                  won: season.won,
+                  lost: season.lost,
+                  tied: season.tied,
+                  otl: season.otl,
+                  playoffs: season.playoffs || false,
+                  gp: season.gp
+                });
+                teamSeasonCount++;
+              }
+            }
           } else if (currentArraySection === 'teamSeasons') {
             teamSeasonQueue.push(value.value);
             teamSeasonCount++;
