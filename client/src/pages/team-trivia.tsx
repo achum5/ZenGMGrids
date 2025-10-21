@@ -877,89 +877,107 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
           </div>
         </div>
   
-        {/* Search Section - Only show during guess/hint rounds */}
-        {(currentRound === 'guess' || currentRound === 'hint') && (
+        {/* Search Section - Show during guess/hint/leader rounds */}
+        {(currentRound === 'guess' || currentRound === 'hint' || currentRound.endsWith('-leader')) && (
           <div className="bg-background border-b shrink-0">
             <div className="max-w-4xl mx-auto px-6 py-4">
               <div className="relative">
-                <Input
-                  ref={inputRef}
-                  type="text"
-                  value={guess}
-                  onChange={(e) => setGuess(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Type a player's name..."
-                  className="text-lg py-6 neon-input"
-                  autoFocus
-                  autoComplete="off"
-                  data-testid="input-player-guess"
-                />
+                {/* Show input during guess/hint rounds */}
+                {(currentRound === 'guess' || currentRound === 'hint') && (
+                  <>
+                    <Input
+                      ref={inputRef}
+                      type="text"
+                      value={guess}
+                      onChange={(e) => setGuess(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Type a player's name..."
+                      className="text-lg py-6 neon-input"
+                      autoFocus
+                      autoComplete="off"
+                      data-testid="input-player-guess"
+                    />
   
-              {/* Autocomplete Dropdown */}
-              {autocompleteOpen && (
-                <div
-                  ref={autocompleteRef}
-                  className="absolute z-50 w-full mt-2 bg-card border neon-border rounded-lg shadow-lg max-h-[400px] overflow-y-auto"
-                  data-testid="autocomplete-dropdown"
-                >
-                  <div className="py-2">
-                    {autocompleteSuggestions.map((player, index) => {
-                      // Get player's position - check if they have season-specific position first
-                      const rating = player.ratings?.find(r => r.season === selectedSeason);
-                      const position = rating?.pos || player.pos || 'F';
+                    {/* Autocomplete Dropdown */}
+                    {autocompleteOpen && (
+                      <div
+                        ref={autocompleteRef}
+                        className="absolute z-50 w-full mt-2 bg-card border neon-border rounded-lg shadow-lg max-h-[400px] overflow-y-auto"
+                        data-testid="autocomplete-dropdown"
+                      >
+                        <div className="py-2">
+                          {autocompleteSuggestions.map((player, index) => {
+                            // Get player's position - check if they have season-specific position first
+                            const rating = player.ratings?.find(r => r.season === selectedSeason);
+                            const position = rating?.pos || player.pos || 'F';
   
-                      return (
-                        <div
-                          key={player.pid}
-                          data-index={index}
-                          className={`flex items-center gap-4 px-4 py-3 cursor-pointer transition-all hover:bg-accent/50 ${
-                            index === activeIndex ? 'bg-accent neon-glow' : ''
-                          }`}
-                          onClick={() => handleSelectPlayer(player)}
-                          data-testid={`autocomplete-option-${index}`}
-                        >
-                          <div className="shrink-0 w-16 h-16">
-                            <PlayerFace
-                              pid={player.pid}
-                              name={player.name}
-                              imgURL={player.imgURL ?? undefined}
-                              face={player.face}
-                              size={64}
-                              hideName={true}
-                              player={player}
-                              teams={leagueData.teams}
-                              sport={leagueData.sport}
-                              season={selectedSeason || undefined}
-                            />
-                          </div>
+                            return (
+                              <div
+                                key={player.pid}
+                                data-index={index}
+                                className={`flex items-center gap-4 px-4 py-3 cursor-pointer transition-all hover:bg-accent/50 ${
+                                  index === activeIndex ? 'bg-accent neon-glow' : ''
+                                }`}
+                                onClick={() => handleSelectPlayer(player)}
+                                data-testid={`autocomplete-option-${index}`}
+                              >
+                                <div className="shrink-0 w-16 h-16">
+                                  <PlayerFace
+                                    pid={player.pid}
+                                    name={player.name}
+                                    imgURL={player.imgURL ?? undefined}
+                                    face={player.face}
+                                    size={64}
+                                    hideName={true}
+                                    player={player}
+                                    teams={leagueData.teams}
+                                    sport={leagueData.sport}
+                                    season={selectedSeason || undefined}
+                                  />
+                                </div>
   
-                          <div className="flex-1 min-w-0">
-                            <p className="text-lg font-medium truncate">
-                              {player.name}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {position}
-                            </p>
-                          </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-lg font-medium truncate">
+                                    {player.name}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {position}
+                                  </p>
+                                </div>
   
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="shrink-0"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSelectPlayer(player);
-                            }}
-                            data-testid={`button-select-${index}`}
-                          >
-                            Select
-                          </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="shrink-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSelectPlayer(player);
+                                  }}
+                                  data-testid={`button-select-${index}`}
+                                >
+                                  Select
+                                </Button>
+                              </div>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Show prompt during leader rounds */}
+                {currentRound.endsWith('-leader') && (
+                  <div className="text-center py-6">
+                    <p className="text-2xl font-bold text-primary">
+                      {currentRound === 'points-leader' && 'Click on the Team Points Leader'}
+                      {currentRound === 'rebounds-leader' && 'Click on the Team Rebounds Leader'}
+                      {currentRound === 'assists-leader' && 'Click on the Team Assists Leader'}
+                      {currentRound === 'steals-leader' && 'Click on the Team Steals Leader'}
+                      {currentRound === 'blocks-leader' && 'Click on the Team Blocks Leader'}
+                    </p>
                   </div>
-                </div>
-              )}
+                )}
               </div>
             </div>
           </div>
