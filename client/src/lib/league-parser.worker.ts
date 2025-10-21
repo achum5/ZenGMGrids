@@ -35,314 +35,6 @@ async function parseFileTraditional(file: File): Promise<any> {
   return JSON.parse(content);
 }
 
-// TRUE streaming method - process data incrementally like ZenGM
-// Parse individual items, never materialize giant arrays in memory
-async function parseFileStreaming(file: File): Promise<any> {
-  const isCompressed = file.name.endsWith('.gz');
-  
-  postProgress('Starting stream...', 5, 100);
-  
-  // Get the stream (compressed or not)
-  let dataStream = file.stream();
-  
-  if (isCompressed) {
-    if (typeof DecompressionStream === 'undefined') {
-      throw new Error(
-        'DecompressionStream not supported. Please use Chrome 80+, Firefox 113+, or Safari 16.4+'
-      );
-    }
-    postProgress('Decompressing file...', 10, 100);
-    dataStream = dataStream.pipeThrough(new DecompressionStream('gzip'));
-  }
-  
-  postProgress('Parsing league data...', 20, 100);
-  
-  // CRITICAL: Use wildcard paths to get INDIVIDUAL items, not entire arrays
-  // This is how ZenGM avoids memory issues - process items one-by-one
-  const jsonParser = new JSONParser({ 
-    paths: [
-      '$.version',
-      '$.startingSeason', 
-      '$.gameAttributes',
-      '$.players.*',        // Individual players, not entire array
-      '$.teams.*',          // Individual teams, not entire array
-      '$.teamSeasons.*',    // Individual team season records
-      '$.teamStats.*',
-      '$.games.*',
-      '$.schedule.*',
-      '$.playoffSeries.*',
-      '$.draftPicks.*',
-      '$.draftOrder.*',
-      '$.negotiations.*',
-      '$.messages.*',
-      '$.events.*',
-      '$.playerFeats.*',
-      '$.allStars.*',
-      '$.awards.*',
-      '$.releasedPlayers.*',
-      '$.scheduledEvents.*',
-      '$.trade',
-      '$.meta'
-    ],
-    keepStack: false 
-  });
-  
-  const jsonStream = dataStream.pipeThrough(jsonParser);
-  const reader = jsonStream.getReader();
-  
-  // Build result object incrementally - arrays are built item-by-item
-  const result: any = {};
-  let itemCount = 0;
-  let playerCount = 0;
-  let teamCount = 0;
-  let teamSeasonCount = 0;
-  
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      
-      if (done) {
-        postProgress('File parsing complete', 50, 100);
-        console.log('[Streaming Parser] Final counts:', {
-          players: playerCount,
-          teams: teamCount,
-          teamSeasons: teamSeasonCount
-        });
-        return result;
-      }
-      
-      // Process each emitted value from the parser
-      if (value && value.value !== undefined) {
-        const keyString = typeof value.key === 'string' ? value.key : String(value.key);
-        const pathArray = keyString ? keyString.split('.').filter(Boolean) : [];
-        const topLevelKey = pathArray[0];
-        
-        if (!topLevelKey) continue;
-        
-        // Check if this is an array item (path has 2+ parts with numeric index)
-        // e.g., "players.0", "teams.5", "teamSeasons.0" etc.
-        const isArrayItem = pathArray.length >= 2 && /^\d+$/.test(pathArray[1]);
-        
-        if (isArrayItem) {
-          // Initialize array if needed
-          if (!result[topLevelKey]) {
-            result[topLevelKey] = [];
-            
-            // Show progress message when starting a new section
-            if (topLevelKey === 'players') {
-              postProgress('Processing players...', 25, 100);
-            } else if (topLevelKey === 'teams') {
-              postProgress('Processing teams...', 40, 100);
-            } else if (topLevelKey === 'teamSeasons') {
-              postProgress('Processing team seasons...', 43, 100);
-            }
-          }
-          
-          // Add item to array
-          result[topLevelKey].push(value.value);
-          itemCount++;
-          
-          // Track counts and update progress
-          if (topLevelKey === 'players') {
-            playerCount++;
-            if (playerCount % 1000 === 0) {
-              const pct = Math.min(38, 25 + Math.floor(playerCount / 1000));
-              postProgress(`Processed ${playerCount.toLocaleString()} players...`, pct, 100);
-            }
-          } else if (topLevelKey === 'teams') {
-            teamCount++;
-            if (teamCount % 10 === 0) {
-              postProgress(`Processed ${teamCount} teams...`, 42, 100);
-            }
-          } else if (topLevelKey === 'teamSeasons') {
-            teamSeasonCount++;
-            if (teamSeasonCount % 100 === 0) {
-              postProgress(`Processed ${teamSeasonCount} team seasons...`, 45, 100);
-            }
-          }
-          
-          // Yield to event loop periodically to prevent blocking
-          if (itemCount % 100 === 0) {
-            await new Promise(resolve => setTimeout(resolve, 0));
-          }
-        } else {
-          // Scalar/object values (version, gameAttributes, meta, trade, etc.)
-          // These are emitted as complete values
-          result[topLevelKey] = value.value;
-          
-          // Show progress for key sections
-          if (topLevelKey === 'gameAttributes') {
-            postProgress('League settings loaded', 23, 100);
-          } else if (topLevelKey === 'version') {
-            postProgress('Reading file version...', 21, 100);
-          }
-        }
-      }
-    }
-  } finally {
-    reader.releaseLock();
-  }
-}
-
-// Use EXACT same streaming approach as files - just with response.body as source
-async function parseUrlStreaming(url: string): Promise<any> {
-  postProgress('Connecting to URL...', 5, 100);
-  
-  // Try CORS fetch first
-  const response = await fetch(url, { mode: 'cors' });
-  
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  }
-  
-  if (!response.body) {
-    throw new Error('Response body not available');
-  }
-  
-  postProgress('Downloading file...', 10, 100);
-  
-  // Get the stream from response
-  let dataStream = response.body;
-  
-  // Check if compressed by URL
-  const isCompressed = url.includes('.gz') || url.includes('.json.gz');
-  
-  if (isCompressed) {
-    if (typeof DecompressionStream === 'undefined') {
-      throw new Error('DecompressionStream not supported. Please use Chrome 80+, Firefox 113+, or Safari 16.4+');
-    }
-    postProgress('Decompressing file...', 15, 100);
-    dataStream = dataStream.pipeThrough(new DecompressionStream('gzip'));
-  }
-  
-  postProgress('Parsing league data...', 20, 100);
-  
-  // CRITICAL: Use wildcard paths to get INDIVIDUAL items, not entire arrays
-  const jsonParser = new JSONParser({ 
-    paths: [
-      '$.version',
-      '$.startingSeason', 
-      '$.gameAttributes',
-      '$.players.*',        // Individual players, not entire array
-      '$.teams.*',          // Individual teams, not entire array
-      '$.teamSeasons.*',    // Individual team season records
-      '$.teamStats.*',
-      '$.games.*',
-      '$.schedule.*',
-      '$.playoffSeries.*',
-      '$.draftPicks.*',
-      '$.draftOrder.*',
-      '$.negotiations.*',
-      '$.messages.*',
-      '$.events.*',
-      '$.playerFeats.*',
-      '$.allStars.*',
-      '$.awards.*',
-      '$.releasedPlayers.*',
-      '$.scheduledEvents.*',
-      '$.trade',
-      '$.meta'
-    ],
-    keepStack: false 
-  });
-  
-  const jsonStream = dataStream.pipeThrough(jsonParser);
-  const reader = jsonStream.getReader();
-  
-  // Build result object incrementally - arrays are built item-by-item
-  const result: any = {};
-  let itemCount = 0;
-  let playerCount = 0;
-  let teamCount = 0;
-  let teamSeasonCount = 0;
-  
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      
-      if (done) {
-        postProgress('File parsing complete', 50, 100);
-        console.log('[URL Streaming Parser] Final counts:', {
-          players: playerCount,
-          teams: teamCount,
-          teamSeasons: teamSeasonCount
-        });
-        return result;
-      }
-      
-      // Process each emitted value from the parser
-      if (value && value.value !== undefined) {
-        const keyString = typeof value.key === 'string' ? value.key : String(value.key);
-        const pathArray = keyString ? keyString.split('.').filter(Boolean) : [];
-        const topLevelKey = pathArray[0];
-        
-        if (!topLevelKey) continue;
-        
-        // Check if this is an array item (path has 2+ parts with numeric index)
-        // e.g., "players.0", "teams.5", "teamSeasons.0" etc.
-        const isArrayItem = pathArray.length >= 2 && /^\d+$/.test(pathArray[1]);
-        
-        if (isArrayItem) {
-          // Initialize array if needed
-          if (!result[topLevelKey]) {
-            result[topLevelKey] = [];
-            
-            // Show progress message when starting a new section
-            if (topLevelKey === 'players') {
-              postProgress('Processing players...', 25, 100);
-            } else if (topLevelKey === 'teams') {
-              postProgress('Processing teams...', 40, 100);
-            } else if (topLevelKey === 'teamSeasons') {
-              postProgress('Processing team seasons...', 43, 100);
-            }
-          }
-          
-          // Add item to array
-          result[topLevelKey].push(value.value);
-          itemCount++;
-          
-          // Track counts and update progress
-          if (topLevelKey === 'players') {
-            playerCount++;
-            if (playerCount % 1000 === 0) {
-              const pct = Math.min(38, 25 + Math.floor(playerCount / 1000));
-              postProgress(`Processed ${playerCount.toLocaleString()} players...`, pct, 100);
-            }
-          } else if (topLevelKey === 'teams') {
-            teamCount++;
-            if (teamCount % 10 === 0) {
-              postProgress(`Processed ${teamCount} teams...`, 42, 100);
-            }
-          } else if (topLevelKey === 'teamSeasons') {
-            teamSeasonCount++;
-            if (teamSeasonCount % 100 === 0) {
-              postProgress(`Processed ${teamSeasonCount} team seasons...`, 45, 100);
-            }
-          }
-          
-          // Yield to event loop periodically to prevent blocking
-          if (itemCount % 100 === 0) {
-            await new Promise(resolve => setTimeout(resolve, 0));
-          }
-        } else {
-          // Scalar/object values (version, gameAttributes, meta, trade, etc.)
-          // These are emitted as complete values
-          result[topLevelKey] = value.value;
-          
-          // Show progress for key sections
-          if (topLevelKey === 'gameAttributes') {
-            postProgress('League settings loaded', 23, 100);
-          } else if (topLevelKey === 'version') {
-            postProgress('Reading file version...', 21, 100);
-          }
-        }
-      }
-    }
-  } finally {
-    reader.releaseLock();
-  }
-}
-
 // Traditional URL fetch for small files
 async function parseUrlTraditional(url: string): Promise<any> {
   postProgress('Connecting to URL...', 5, 100);
@@ -376,8 +68,8 @@ async function parseUrlTraditional(url: string): Promise<any> {
   return JSON.parse(content);
 }
 
-// Mobile-IDB: Stream directly to IndexedDB, never materialize giant arrays
-async function parseFileMobileIDB(file: File): Promise<'idb-stored'> {
+// Streaming: Stream directly to IndexedDB, never materialize giant arrays
+async function parseFileStreaming(file: File): Promise<'idb-stored'> {
   // Using static import from top of file instead of dynamic import
   
   postProgress('Setting up database...', 5, 100);
@@ -633,7 +325,7 @@ async function parseFileMobileIDB(file: File): Promise<'idb-stored'> {
     await db.put('meta', { sport, playerCount, teamCount, teamSeasonCount, version, startingSeason, gameAttributes, meta }, 'importMeta');
     
     postProgress('Import complete', 100, 100);
-    console.log('[Mobile IDB] Import complete:', { players: playerCount, teams: teamCount, teamSeasons: teamSeasonCount });
+    console.log('[Streaming] Import complete:', { players: playerCount, teams: teamCount, teamSeasons: teamSeasonCount });
     db.close();
     
     return 'idb-stored';
@@ -646,8 +338,8 @@ async function parseFileMobileIDB(file: File): Promise<'idb-stored'> {
   }
 }
 
-// Mobile-IDB for URLs: Same as file version but fetches from URL
-async function parseUrlMobileIDB(url: string): Promise<'idb-stored'> {
+// Streaming for URLs: Same as file version but fetches from URL
+async function parseUrlStreaming(url: string): Promise<'idb-stored'> {
   postProgress('Connecting to URL...', 5, 100);
   
   // Fetch the URL
@@ -915,7 +607,7 @@ async function parseUrlMobileIDB(url: string): Promise<'idb-stored'> {
     await db.put('meta', { sport, playerCount, teamCount, teamSeasonCount, version, startingSeason, gameAttributes, meta }, 'importMeta');
     
     postProgress('Import complete', 100, 100);
-    console.log('[Mobile IDB URL] Import complete:', { players: playerCount, teams: teamCount, teamSeasons: teamSeasonCount });
+    console.log('[Streaming URL] Import complete:', { players: playerCount, teams: teamCount, teamSeasons: teamSeasonCount });
     db.close();
     
     return 'idb-stored';
@@ -945,32 +637,28 @@ self.onmessage = async (event: MessageEvent<{ file?: File; url?: string; method?
       
       // Choose parsing method based on parameter
       if (method === 'traditional') {
+        // Traditional: loads entire file to memory, normalizes in worker
         rawData = await parseFileTraditional(file);
-      } else if (method === 'mobile-idb') {
-        // NEW: IndexedDB streaming method - no normalization here!
-        await parseFileMobileIDB(file);
+        
+        if (!rawData) {
+          throw new Error('File content is empty after reading/decompression.');
+        }
+
+        // Normalize league data (50-95%)
+        let lastProgress = 50;
+        const leagueData = await normalizeLeague(rawData, (message) => {
+          lastProgress = Math.min(95, lastProgress + 5);
+          postProgress(message, lastProgress, 100);
+        });
+
+        postProgress('Complete!', 100, 100);
+        self.postMessage({ type: 'complete', leagueData });
+      } else {
+        // Streaming: streams to IndexedDB, no normalization in worker
+        await parseFileStreaming(file);
         // Signal main thread that data is in IDB
         self.postMessage({ type: 'complete-idb' });
-        return; // Exit early - no leagueData to send
-      } else {
-        // streaming method
-        rawData = await parseFileStreaming(file);
       }
-      
-      if (!rawData) {
-        throw new Error('File content is empty after reading/decompression.');
-      }
-
-      // Normalize league data (50-95%)
-      let lastProgress = 50;
-      const leagueData = await normalizeLeague(rawData, (message) => {
-        // Map normalizeLeague messages to 50-95% range
-        lastProgress = Math.min(95, lastProgress + 5);
-        postProgress(message, lastProgress, 100);
-      });
-
-      postProgress('Complete!', 100, 100);
-      self.postMessage({ type: 'complete', leagueData });
       
     } else if (url) {
       // URL fetch path - use specified method
@@ -978,32 +666,28 @@ self.onmessage = async (event: MessageEvent<{ file?: File; url?: string; method?
       
       // Choose parsing method based on parameter
       if (method === 'traditional') {
+        // Traditional: loads entire response to memory, normalizes in worker
         rawData = await parseUrlTraditional(url);
-      } else if (method === 'mobile-idb') {
-        // IndexedDB streaming method for URLs - no normalization here!
-        await parseUrlMobileIDB(url);
+        
+        if (!rawData) {
+          throw new Error('URL content is empty after fetching.');
+        }
+
+        // Normalize league data (50-95%)
+        let lastProgress = 50;
+        const leagueData = await normalizeLeague(rawData, (message) => {
+          lastProgress = Math.min(95, lastProgress + 5);
+          postProgress(message, lastProgress, 100);
+        });
+
+        postProgress('Complete!', 100, 100);
+        self.postMessage({ type: 'complete', leagueData });
+      } else {
+        // Streaming: streams to IndexedDB, no normalization in worker
+        await parseUrlStreaming(url);
         // Signal main thread that data is in IDB
         self.postMessage({ type: 'complete-idb' });
-        return; // Exit early - no leagueData to send
-      } else {
-        // streaming method
-        rawData = await parseUrlStreaming(url);
       }
-      
-      if (!rawData) {
-        throw new Error('URL content is empty after fetching.');
-      }
-
-      // Normalize league data (50-95%)
-      let lastProgress = 50;
-      const leagueData = await normalizeLeague(rawData, (message) => {
-        // Map normalizeLeague messages to 50-95% range
-        lastProgress = Math.min(95, lastProgress + 5);
-        postProgress(message, lastProgress, 100);
-      });
-
-      postProgress('Complete!', 100, 100);
-      self.postMessage({ type: 'complete', leagueData });
     }
 
   } catch (error) {

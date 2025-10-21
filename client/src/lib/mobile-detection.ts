@@ -15,7 +15,7 @@ export function isMobileDevice(): boolean {
   return isMobileUA || (isTouchDevice && isSmallScreen);
 }
 
-export type ParsingMethod = 'auto' | 'traditional' | 'streaming' | 'mobile-idb';
+export type ParsingMethod = 'auto' | 'traditional' | 'streaming';
 
 // Thresholds for file parsing (files below these sizes use traditional, above use streaming)
 const DESKTOP_GZ_THRESHOLD_MB = 30;
@@ -23,7 +23,7 @@ const DESKTOP_JSON_THRESHOLD_MB = 210;
 const MOBILE_GZ_THRESHOLD_MB = 10;
 const MOBILE_JSON_THRESHOLD_MB = 70;
 
-export function getRecommendedMethod(fileSize?: number, fileName?: string, isUrl: boolean = false): 'traditional' | 'streaming' | 'mobile-idb' {
+export function getRecommendedMethod(fileSize?: number, fileName?: string, isUrl: boolean = false): 'traditional' | 'streaming' {
   // If no file size provided and it's a URL, default to streaming (safer for unknown sizes)
   if (fileSize === undefined && isUrl) {
     return 'streaming';
@@ -61,7 +61,11 @@ export function getRecommendedMethod(fileSize?: number, fileName?: string, isUrl
 export function getStoredParsingMethod(): ParsingMethod {
   try {
     const stored = localStorage.getItem('parsingMethod');
-    if (stored === 'auto' || stored === 'traditional' || stored === 'streaming' || stored === 'mobile-idb') {
+    // Map old 'mobile-idb' to new 'streaming'
+    if (stored === 'mobile-idb') {
+      return 'streaming';
+    }
+    if (stored === 'auto' || stored === 'traditional' || stored === 'streaming') {
       return stored;
     }
   } catch {

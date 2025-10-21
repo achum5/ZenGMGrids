@@ -14,8 +14,8 @@ interface UploadSectionProps {
     loaded?: number;
     total?: number;
   } | null;
-  parsingMethod?: 'auto' | 'traditional' | 'streaming' | 'mobile-idb';
-  onParsingMethodChange?: (method: 'auto' | 'traditional' | 'streaming' | 'mobile-idb') => void;
+  parsingMethod?: 'auto' | 'traditional' | 'streaming';
+  onParsingMethodChange?: (method: 'auto' | 'traditional' | 'streaming') => void;
 }
 
 export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadProgress, parsingMethod = 'auto', onParsingMethodChange }: UploadSectionProps) {
@@ -83,7 +83,7 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadP
                   <SelectValue>
                     {parsingMethod === 'auto' && 'Auto'}
                     {parsingMethod === 'traditional' && 'Traditional'}
-                    {parsingMethod === 'mobile-idb' && 'Streaming'}
+                    {parsingMethod === 'streaming' && 'Streaming'}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
@@ -94,7 +94,7 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadP
                     Traditional <i>(fast but may fail on large files)</i>
                   </SelectItem>
 
-                  <SelectItem value="mobile-idb" data-testid="option-mobile-idb">
+                  <SelectItem value="streaming" data-testid="option-streaming">
                     Streaming <i>(slow but handles any file size)</i>
                   </SelectItem>
                 </SelectContent>
