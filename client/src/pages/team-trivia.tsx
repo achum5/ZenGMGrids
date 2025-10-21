@@ -735,11 +735,22 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
               >          <div className="max-w-6xl mx-auto px-6 py-4">
             <div className="relative flex items-center justify-start md:justify-center">
               <div className="flex items-center space-x-3">
-                <img
-                  src={sportIcon}
-                  alt={`${leagueData.sport} icon`}
-                  className="w-10 h-10 object-contain header-logo"
-                />
+                <div 
+                  className="w-10 h-10 flex items-center justify-center"
+                  style={{
+                    backgroundColor: selectedTeam?.colors?.[1] || 'transparent'
+                  }}
+                >
+                  <img
+                    src={sportIcon}
+                    alt={`${leagueData.sport} icon`}
+                    className="w-10 h-10 object-contain header-logo"
+                    style={{
+                      filter: 'brightness(0) invert(1)',
+                      mixBlendMode: 'multiply'
+                    }}
+                  />
+                </div>
                               <h1 className="text-base sm:text-lg md:text-2xl font-bold"
                                 style={{ 
                                   color: selectedTeam?.colors?.[1] || 'hsl(var(--primary))',
