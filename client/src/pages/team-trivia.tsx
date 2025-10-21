@@ -93,8 +93,11 @@ type FootballRoundType = 'guess' | 'hint' | 'passing-yards-leader' | 'rushing-ya
 // Baseball rounds
 type BaseballRoundType = 'guess' | 'hint' | 'hits-leader' | 'home-runs-leader' | 'rbis-leader' | 'stolen-bases-leader' | 'strikeouts-leader' | 'wins-leader' | 'complete';
 
+// Hockey rounds
+type HockeyRoundType = 'guess' | 'hint' | 'points-leader' | 'goals-leader' | 'assists-leader' | 'goalie-wins-leader' | 'complete';
+
 // Union type for all possible rounds
-type RoundType = BasketballRoundType | FootballRoundType | BaseballRoundType;
+type RoundType = BasketballRoundType | FootballRoundType | BaseballRoundType | HockeyRoundType;
 
 // Sport-specific round orders
 const BASKETBALL_ROUND_ORDER: BasketballRoundType[] = [
@@ -129,6 +132,16 @@ const BASEBALL_ROUND_ORDER: BaseballRoundType[] = [
   'stolen-bases-leader',
   'strikeouts-leader',
   'wins-leader',
+  'complete'
+];
+
+const HOCKEY_ROUND_ORDER: HockeyRoundType[] = [
+  'guess',
+  'hint',
+  'points-leader',
+  'goals-leader',
+  'assists-leader',
+  'goalie-wins-leader',
   'complete'
 ];
 
@@ -168,6 +181,16 @@ const BASEBALL_ROUND_INSTRUCTIONS: Record<BaseballRoundType, string> = {
   'complete': 'Round complete!'
 };
 
+const HOCKEY_ROUND_INSTRUCTIONS: Record<HockeyRoundType, string> = {
+  'guess': 'Guess the players on this team',
+  'hint': 'Hints revealed! Keep guessing',
+  'points-leader': 'Click on the team points leader',
+  'goals-leader': 'Click on the team goals leader',
+  'assists-leader': 'Click on the team assists leader',
+  'goalie-wins-leader': 'Click on the team goalie wins leader',
+  'complete': 'Round complete!'
+};
+
 export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }: TeamTriviaProps) {
   const { toast } = useToast();
   const [guess, setGuess] = useState('');
@@ -195,6 +218,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     ? FOOTBALL_ROUND_ORDER 
     : leagueData.sport === 'baseball'
     ? BASEBALL_ROUND_ORDER
+    : leagueData.sport === 'hockey'
+    ? HOCKEY_ROUND_ORDER
     : BASKETBALL_ROUND_ORDER;
 
   // Get sport-specific instructions
@@ -203,6 +228,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       return FOOTBALL_ROUND_INSTRUCTIONS[round as FootballRoundType] || '';
     } else if (leagueData.sport === 'baseball') {
       return BASEBALL_ROUND_INSTRUCTIONS[round as BaseballRoundType] || '';
+    } else if (leagueData.sport === 'hockey') {
+      return HOCKEY_ROUND_INSTRUCTIONS[round as HockeyRoundType] || '';
     }
     return BASKETBALL_ROUND_INSTRUCTIONS[round as BasketballRoundType] || '';
   };
