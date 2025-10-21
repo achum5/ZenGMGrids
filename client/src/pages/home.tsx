@@ -479,7 +479,7 @@ export default function Home() {
 
       // Determine which method to use based on setting
       const method: ParsingMethod = parsingMethodSetting === 'auto'
-        ? getRecommendedMethod(file.size)
+        ? getRecommendedMethod(file.size, file.name)
         : parsingMethodSetting;
 
       // Update displayed method to show actual method being used
@@ -517,9 +517,9 @@ export default function Home() {
       setCurrentFileSize(undefined); // Unknown size for URLs
 
       // Determine which method to use based on setting
-      // Note: For URLs, use same method selection as files for consistency
+      // For URLs, pass isUrl=true to default to streaming when size unknown
       const method: ParsingMethod = parsingMethodSetting === 'auto'
-        ? getRecommendedMethod()
+        ? getRecommendedMethod(undefined, fileName, true)
         : parsingMethodSetting;
 
       // Update displayed method to show actual method being used
