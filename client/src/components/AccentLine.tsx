@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import './accent-line.css';
 
-export const AccentLine = ({ isHovered }: { isHovered: boolean }) => {
+export const AccentLine = ({ isHovered, color }: { isHovered: boolean; color?: string }) => {
   const [isBright, setIsBright] = useState(false);
 
   useEffect(() => {
@@ -11,6 +11,7 @@ export const AccentLine = ({ isHovered }: { isHovered: boolean }) => {
   return (
     <div
       className={`header-accent-line ${isBright ? 'header-accent-line-bright' : ''}`}
+      style={color ? { background: color, boxShadow: 'none', animation: 'none' } : {}}
     />
   );
 };

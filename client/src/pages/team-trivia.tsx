@@ -298,8 +298,17 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       }
     });
 
-    // Sort by games played, then alphabetically
+    // Define the desired position order
+    const positionOrder = ['PG', 'G', 'SG', 'GF', 'SF', 'F', 'PF', 'FC', 'C'];
+
+    // Sort by position, then games played, then alphabetically
     rosterPlayers.sort((a, b) => {
+      const posA = positionOrder.indexOf(a.position);
+      const posB = positionOrder.indexOf(b.position);
+
+      if (posA !== posB) {
+        return posA - posB;
+      }
       if (b.gamesPlayed !== a.gamesPlayed) {
         return b.gamesPlayed - a.gamesPlayed;
       }
@@ -734,7 +743,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                               </Button>              </div>
             </div>
           </div>
-          <AccentLine isHovered={isHeaderHovered} />
+          <AccentLine isHovered={isHeaderHovered} color={selectedTeam?.colors?.[1]} />
         </header>
   
         {/* Game Info Header with Dropdowns */}
@@ -983,7 +992,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     data-testid={`card-player-${index}`}
                   >
                   {/* Position Badge - Always visible */}
-                  <div className="absolute top-0.5 left-0.5 bg-primary/90 text-primary-foreground text-[0.5rem] sm:text-xs font-bold px-0.5 sm:px-1.5 py-0.5 rounded z-10">
+                  <div className="absolute top-0.5 left-0.5 text-primary-foreground text-[0.5rem] sm:text-xs font-bold px-0.5 sm:px-1.5 py-0.5 rounded z-10"
+                    style={{ backgroundColor: rp.teamColors?.[0] || 'hsl(var(--primary))' }}>
                     {rp.position}
                   </div>
   
@@ -1003,7 +1013,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                   )}
   
                   {/* Headshot - Takes up most of the tile */}
-                  <div className="w-full aspect-square">
+                  <div className="w-full aspect-square" style={{ transform: 'translateX(-10px)' }}>
                     <PlayerFace
                       pid={rp.player.pid}
                       name={rp.player.name}
