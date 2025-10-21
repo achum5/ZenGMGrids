@@ -571,9 +571,10 @@ export default function Home() {
           setUploadProgress({ message, loaded: 50, total: 100 });
         }, storedLeague.idbName); // Pass the specific database name
         
-        await processLeagueData(data, storedLeague.name, storedLeague.fileSize);
+        // Process without saving (already saved)
+        await processLeagueData(data);
       } else {
-        // Normal save with full league data
+        // Normal save with full league data - process without saving (already saved)
         await processLeagueData(storedLeague.leagueData);
       }
       
@@ -709,7 +710,7 @@ export default function Home() {
     }
   }, [createTestData]);
 
-  const processLeagueData = useCallback(async (data: LeagueData & { isFullyProcessed?: boolean; byName?: any; byPid?: any; searchablePlayers?: any; teamsByTid?: any }, fileName?: string, fileSize?: number) => {
+  const processLeagueData = useCallback(async (data: LeagueData & { isFullyProcessed?: boolean; byName?: any; byPid?: any; searchablePlayers?: any; teamsByTid?: any; idbName?: string }, fileName?: string, fileSize?: number) => {
     // Detect if on mobile for memory-aware processing
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
     const playerCount = data.players?.length || 0;
