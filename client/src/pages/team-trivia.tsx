@@ -31,6 +31,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { RulesModal } from '@/components/RulesModal';
 import { AccentLine } from '@/components/AccentLine';
 import type { LeagueData, Player, Team } from '@/types/bbgm';
@@ -117,6 +123,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   const [activeIndex, setActiveIndex] = useState(-1);
   const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
   const [teamDropdownOpen, setTeamDropdownOpen] = useState(false);
+  const [newTeamDropdownOpen, setNewTeamDropdownOpen] = useState(false);
   const [triggerBounceAnimation, setTriggerBounceAnimation] = useState(false); // New state for animation
   const [tileAnimations, setTileAnimations] = useState<Record<number, string>>({}); // New state for tile animations
   const inputRef = useRef<HTMLInputElement>(null);
@@ -682,13 +689,79 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     }
   }, [currentRound, statLeaders, toast, handleNextRound]);
 
-  // New game
+  // New game - randomize both
   const handleNew = useCallback(() => {
     pickRandomTeamAndSeason();
     setCurrentRound('guess');
     setSelectedLeader(null);
     setScore(0); // Reset score for new game
   }, [pickRandomTeamAndSeason]);
+
+  // Same Year, New Team
+  const handleSameYearNewTeam = useCallback(() => {
+    if (!selectedSeason || allTeams.length === 0) return;
+
+    // Find teams with players in current season
+    const teamsInSeason = new Set<number>();
+    leagueData.players.forEach(player => {
+      player.stats?.forEach(stat => {
+        if (!stat.playoffs && stat.season === selectedSeason && stat.gp && stat.gp > 0) {
+          teamsInSeason.add(stat.tid);
+        }
+      });
+    });
+
+    const validTeams = allTeams.filter(team => teamsInSeason.has(team.tid) && team.tid !== selectedTeam?.tid);
+    if (validTeams.length === 0) {
+      toast({
+        title: 'No other teams available',
+        description: 'No other teams found for this season.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const randomTeam = validTeams[Math.floor(Math.random() * validTeams.length)];
+    setSelectedTeam(randomTeam);
+    buildRoster(selectedSeason, randomTeam);
+    setCurrentRound('guess');
+    setSelectedLeader(null);
+    setScore(0);
+    setGuess('');
+  }, [selectedSeason, selectedTeam, allTeams, leagueData.players, buildRoster, toast]);
+
+  // New Year, Same Team
+  const handleNewYearSameTeam = useCallback(() => {
+    if (!selectedTeam || allSeasons.length === 0) return;
+
+    // Find seasons where this team has players
+    const seasonsForTeam = new Set<number>();
+    leagueData.players.forEach(player => {
+      player.stats?.forEach(stat => {
+        if (!stat.playoffs && stat.tid === selectedTeam.tid && stat.gp && stat.gp > 0) {
+          seasonsForTeam.add(stat.season);
+        }
+      });
+    });
+
+    const validSeasons = allSeasons.filter(season => seasonsForTeam.has(season) && season !== selectedSeason);
+    if (validSeasons.length === 0) {
+      toast({
+        title: 'No other seasons available',
+        description: 'No other seasons found for this team.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const randomSeason = validSeasons[Math.floor(Math.random() * validSeasons.length)];
+    setSelectedSeason(randomSeason);
+    buildRoster(randomSeason, selectedTeam);
+    setCurrentRound('guess');
+    setSelectedLeader(null);
+    setScore(0);
+    setGuess('');
+  }, [selectedSeason, selectedTeam, allSeasons, leagueData.players, buildRoster, toast]);
 
   const hasProgress = foundCount > 0;
 
@@ -790,33 +863,62 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   
         {/* Game Info Header with Dropdowns */}
         <div className="bg-card/50 border-b neon-border-subtle shrink-0">
-          <div className="max-w-4xl mx-auto px-6 py-6">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              {/* Left side: New Team button, Year and Team */}
-              <div className="flex items-center gap-4 flex-wrap">
-                {/* New Team Button */}
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={handleNew}
-                  className="neon-button animate-on-click"
-                  data-testid="button-new-trivia"
-                >
-                  <Shuffle className="h-5 w-5 mr-2" />
-                  New Team
-                </Button>
+          <div className="max-w-4xl mx-auto px-3 sm:px-6 py-2 sm:py-3">
+            <div className="flex items-center justify-between gap-2 sm:gap-4">
+              {/* Left side: New Team button with dropdown */}
+              <div className="flex items-center gap-1 shrink-0">
+                {/* New Team Button Group with Dropdown */}
+                <div className="flex">
+                  {/* Main button - 75% */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNew}
+                    className="neon-button animate-on-click rounded-r-none border-r-0 text-xs sm:text-sm px-2 sm:px-4 h-8 sm:h-10"
+                    data-testid="button-new-trivia"
+                  >
+                    <Shuffle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    <span className="hidden xs:inline">New</span>
+                  </Button>
+
+                  {/* Dropdown trigger - 25% */}
+                  <DropdownMenu open={newTeamDropdownOpen} onOpenChange={setNewTeamDropdownOpen}>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="neon-button animate-on-click rounded-l-none px-1 sm:px-2 h-8 sm:h-10"
+                        data-testid="button-new-trivia-dropdown"
+                      >
+                        <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuItem onClick={handleSameYearNewTeam} data-testid="option-same-year-new-team">
+                        Same Year, New Team
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleNewYearSameTeam} data-testid="option-new-year-same-team">
+                        New Year, Same Team
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+
+              {/* Center: Year and Team */}
+              <div className="flex items-center gap-2 sm:gap-4 justify-center flex-1 min-w-0">
 
                 {/* Year Dropdown */}
                 <Popover open={yearDropdownOpen} onOpenChange={setYearDropdownOpen}>
                   <PopoverTrigger asChild>
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       role="combobox"
                       aria-expanded={yearDropdownOpen}
-                      className="text-2xl sm:text-3xl font-bold neon-text px-4 py-6 animate-on-click"
+                      className="text-lg sm:text-2xl md:text-3xl font-bold neon-text px-2 sm:px-4 py-1 sm:py-2 h-8 sm:h-auto animate-on-click shrink-0 hover:bg-accent/50"
                       data-testid="button-year-dropdown"
                     >
-                      <ChevronDown className="mr-2 h-5 w-5" />
+                      <ChevronDown className="mr-1 sm:mr-2 h-3 w-3 sm:h-5 sm:w-5" />
                       {selectedSeason}
                     </Button>
                   </PopoverTrigger>
@@ -856,24 +958,25 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                       variant="ghost"
                       role="combobox"
                       aria-expanded={teamDropdownOpen}
-                      className="flex items-center gap-3 hover:bg-accent/50 px-4 py-6 animate-on-click"
+                      className="flex items-center gap-1 sm:gap-3 hover:bg-accent/50 px-2 sm:px-4 py-1 sm:py-2 h-8 sm:h-auto animate-on-click min-w-0"
                       data-testid="button-team-dropdown"
                     >
-                      {teamDisplayInfo.logo ? (
+                      {(teamDisplayInfo.logo || selectedTeam?.imgURL) ? (
                         <img
-                          src={teamDisplayInfo.logo}
+                          src={teamDisplayInfo.logo || selectedTeam?.imgURL}
                           alt={teamDisplayInfo.name}
-                          className="h-12 w-12 object-contain"
+                          className="h-6 w-6 sm:h-8 sm:w-8 object-contain shrink-0"
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';
                             e.currentTarget.nextElementSibling?.classList.remove('hidden');
                           }}
                         />
-                      ) : null}
-                      <span className={`text-2xl sm:text-3xl font-bold neon-text ${teamDisplayInfo.logo ? 'hidden' : ''}`}>
-                        {teamDisplayInfo.name}
-                      </span>
-                      <ChevronDown className="h-5 w-5 ml-2" />
+                      ) : (
+                        <span className="text-lg sm:text-2xl md:text-3xl font-bold neon-text truncate">
+                          {teamDisplayInfo.name}
+                        </span>
+                      )}
+                      <ChevronDown className="h-3 w-3 sm:h-5 sm:w-5 ml-1 sm:ml-2 shrink-0" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[300px] p-0" align="center">
@@ -902,9 +1005,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                                 className="flex items-center gap-2"
                                 data-testid={`option-team-${team.tid}`}
                               >
-                                {team.imgURLSmall && (
+                                {(team.imgURLSmall || team.imgURL) && (
                                   <img
-                                    src={team.imgURLSmall}
+                                    src={team.imgURLSmall || team.imgURL}
                                     alt={teamName}
                                     className="h-6 w-6 object-contain"
                                   />
@@ -921,31 +1024,13 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
               </div>
   
               {/* Right side: Score Counter */}
-              <div className="text-base sm:text-lg font-semibold text-muted-foreground" data-testid="text-score-counter">
-                Score: {score}
+              <div className="text-xs sm:text-base md:text-lg font-semibold text-muted-foreground shrink-0" data-testid="text-score-counter">
+                <span className="hidden xs:inline">Score: </span>{score}
               </div>
             </div>
           </div>
         </div>
 
-
-        {/* Leader Round Prompt - Show only during leader rounds */}
-        {currentRound.endsWith('-leader') && (
-          <div className="bg-background border-b shrink-0">
-            <div className="max-w-4xl mx-auto px-6 py-4">
-              <div className="text-center py-6">
-                <p className={`text-2xl font-bold text-white ${triggerBounceAnimation ? 'animate-bounce-once' : ''}`}>
-                  {currentRound === 'points-leader' && 'Click on the Team Points Leader'}
-                  {currentRound === 'rebounds-leader' && 'Click on the Team Rebounds Leader'}
-                  {currentRound === 'assists-leader' && 'Click on the Team Assists Leader'}
-                  {currentRound === 'steals-leader' && 'Click on the Team Steals Leader'}
-                  {currentRound === 'blocks-leader' && 'Click on the Team Blocks Leader'}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-  
         {/* Roster Grid */}
         <div className="flex-1 overflow-y-auto min-h-0">
           <div className="max-w-6xl mx-auto px-1 sm:px-4 md:px-6 py-2 sm:py-4 md:py-6">
@@ -1035,17 +1120,17 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                             return (
                               <>
                                 <span style={{ filter: 'none' }}>{firstName.charAt(0)}</span>
-                                <span style={{ filter: 'blur(3px)' }}>{firstName.substring(1)}</span>
+                                <span style={{ filter: 'blur(5px)' }}>{firstName.substring(1)}</span>
                               </>
                             );
                           } else {
                             return (
                               <>
                                 <span style={{ filter: 'none' }}>{firstName.charAt(0)}</span>
-                                <span style={{ filter: 'blur(3px)' }}>{firstName.substring(1)}</span>
+                                <span style={{ filter: 'blur(5px)' }}>{firstName.substring(1)}</span>
                                 <span> </span>
                                 <span style={{ filter: 'none' }}>{lastName.charAt(0)}</span>
-                                <span style={{ filter: 'blur(3px)' }}>{lastName.substring(1)}</span>
+                                <span style={{ filter: 'blur(5px)' }}>{lastName.substring(1)}</span>
                               </>
                             );
                           }
@@ -1056,7 +1141,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                         className="text-[0.5rem] sm:text-xs md:text-sm font-bold line-clamp-2 leading-tight"
                         style={{
                           color: rp.teamColors?.[0] || 'hsl(var(--foreground))',
-                          filter: 'blur(3px)' // Apply blur
+                          filter: 'blur(5px)' // Apply blur
                         }}
                       >
                         {rp.player.name}
@@ -1093,8 +1178,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         <div className="shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t neon-border-subtle">
           <div className="max-w-4xl mx-auto px-6 py-4">
             <div className="flex items-center gap-3">
-              {/* Center: Search input with autocomplete (only show during guess/hint rounds) */}
-              {(currentRound === 'guess' || currentRound === 'hint') && (
+              {/* Center: Search input (guess/hint rounds) OR Leader prompt (leader rounds) */}
+              {(currentRound === 'guess' || currentRound === 'hint') ? (
                 <div className="flex-1 relative">
                   <Input
                     ref={inputRef}
@@ -1175,7 +1260,18 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     </div>
                   )}
                 </div>
-              )}
+              ) : currentRound.endsWith('-leader') ? (
+                /* Leader round prompt - centered in footer */
+                <div className="flex-1 text-center">
+                  <p className={`text-lg sm:text-xl md:text-2xl font-bold text-white ${triggerBounceAnimation ? 'animate-bounce-once' : ''}`}>
+                    {currentRound === 'points-leader' && 'Click on the Team Points Leader'}
+                    {currentRound === 'rebounds-leader' && 'Click on the Team Rebounds Leader'}
+                    {currentRound === 'assists-leader' && 'Click on the Team Assists Leader'}
+                    {currentRound === 'steals-leader' && 'Click on the Team Steals Leader'}
+                    {currentRound === 'blocks-leader' && 'Click on the Team Blocks Leader'}
+                  </p>
+                </div>
+              ) : null}
 
               {/* Right: Next Round button (use ml-auto to push it right) */}
               {currentRound !== 'complete' && (
