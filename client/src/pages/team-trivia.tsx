@@ -2110,8 +2110,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     )}
                   </div>
 
-                  {/* Player Stats - Show only when round is complete */}
-                  {currentRound === 'complete' && (
+                  {/* Player Stats - Show when round is complete or wins-guess */}
+                  {(currentRound === 'complete' || currentRound === 'wins-guess') && (
                     <div className="w-full text-center text-[0.45rem] sm:text-[0.6rem] md:text-[0.7rem] leading-tight mt-1"
                       style={{ color: rp.teamColors?.[0] || 'hsl(var(--foreground))' }}>
                       {/* Age - All sports */}
