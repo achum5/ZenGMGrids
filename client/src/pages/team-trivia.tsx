@@ -734,11 +734,11 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                               </Button>              </div>
             </div>
           </div>
-          <AccentLine isHovered={isHeaderHovered} />
+          <AccentLine accentColor={selectedTeam?.colors?.[0]} />
         </header>
   
         {/* Game Info Header with Dropdowns */}
-        <div className="bg-card/50 border-b neon-border-subtle shrink-0">
+        <div className="bg-card/50 border-b shrink-0">
           <div className="max-w-4xl mx-auto px-6 py-6">
             <div className="flex items-center justify-center gap-4 flex-wrap">
               {/* Left side: Year and Team */}
@@ -750,7 +750,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                       variant="outline"
                       role="combobox"
                       aria-expanded={yearDropdownOpen}
-                      className="text-2xl sm:text-3xl font-bold neon-text px-4 py-6"
+                      className="text-2xl sm:text-3xl font-bold px-4 py-6"
+                    style={{ color: selectedTeam?.colors?.[0] || 'hsl(var(--primary))' }}
                       data-testid="button-year-dropdown"
                     >
                       <ChevronDown className="mr-2 h-5 w-5" />
@@ -789,30 +790,31 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                 {/* Team Logo/Name with Dropdown */}
                 <Popover open={teamDropdownOpen} onOpenChange={setTeamDropdownOpen}>
                   <PopoverTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      role="combobox"
-                      aria-expanded={teamDropdownOpen}
-                      className="flex items-center gap-3 hover:bg-accent/50 px-4 py-6"
-                      data-testid="button-team-dropdown"
-                    >
-                      {teamDisplayInfo.logo ? (
-                        <img
-                          src={teamDisplayInfo.logo}
-                          alt={teamDisplayInfo.name}
-                          className="h-12 w-12 object-contain"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                          }}
-                        />
-                      ) : null}
-                      <span className={`text-2xl sm:text-3xl font-bold neon-text ${teamDisplayInfo.logo ? 'hidden' : ''}`}>
-                        {teamDisplayInfo.name}
-                      </span>
-                      <ChevronDown className="h-5 w-5 ml-2" />
-                    </Button>
-                  </PopoverTrigger>
+                                      <Button
+                                        variant="ghost"
+                                        role="combobox"
+                                        aria-expanded={teamDropdownOpen}
+                                        className="flex items-center gap-3 hover:bg-accent/50 px-4 py-6"
+                                        data-testid="button-team-dropdown"
+                                      >
+                                        {teamDisplayInfo.logo ? (
+                                          <img
+                                            src={teamDisplayInfo.logo}
+                                            alt={teamDisplayInfo.name}
+                                            className="h-12 w-12 object-contain"
+                                            onError={(e) => {
+                                              e.currentTarget.style.display = 'none';
+                                              e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                                            }}
+                                          />
+                                        ) : null}
+                                        <span className={`text-2xl sm:text-3xl font-bold ${teamDisplayInfo.logo ? 'hidden' : ''}`}
+                                          style={{ color: selectedTeam?.colors?.[0] || 'hsl(var(--primary))' }}
+                                        >
+                                          {teamDisplayInfo.name}
+                                        </span>
+                                        <ChevronDown className="h-5 w-5 ml-2" />
+                                      </Button>                  </PopoverTrigger>
                   <PopoverContent className="w-[300px] p-0" align="center">
                     <Command>
                       <CommandInput placeholder="Search team..." />
@@ -858,7 +860,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
               </div>
   
               {/* Right side: Score Counter */}
-              <div className="text-base sm:text-lg font-semibold text-muted-foreground" data-testid="text-score-counter">
+              <div className="text-base sm:text-lg font-semibold" data-testid="text-score-counter"
+              style={{ color: selectedTeam?.colors?.[0] || 'hsl(var(--muted-foreground))' }}
+            >
                 Score: {score}
               </div>
             </div>

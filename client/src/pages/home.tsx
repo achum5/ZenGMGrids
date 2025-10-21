@@ -1424,7 +1424,7 @@ export default function Home() {
               </div>
             </div>
           </div>
-          <AccentLine isHovered={isHeaderHovered} />
+          <AccentLine />
         </header>
         <main className="max-w-2xl mx-auto px-6 py-8 space-y-8">
           <SavedLeagues onLoadLeague={handleLoadLeague} />
@@ -1565,7 +1565,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-        <AccentLine isHovered={isHeaderHovered} />
+        <AccentLine />
       </header>
       <main className="max-w-4xl mx-auto px-6 py-8">
         <GridSection

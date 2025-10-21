@@ -1,16 +1,10 @@
 import { useState, useEffect } from 'react';
-import './accent-line.css';
 
-export const AccentLine = ({ isHovered }: { isHovered: boolean }) => {
-  const [isBright, setIsBright] = useState(false);
 
-  useEffect(() => {
-    setIsBright(isHovered);
-  }, [isHovered]);
-
+export const AccentLine = ({ accentColor }: { accentColor?: string }) => {
   return (
     <div
-      className={`header-accent-line ${isBright ? 'header-accent-line-bright' : ''}`}
+      style={{ backgroundColor: accentColor || 'hsl(var(--primary))' }}
     />
   );
 };
