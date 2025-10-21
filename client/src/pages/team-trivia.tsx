@@ -295,6 +295,13 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
           strikeouts: null,
           wins: null,
         };
+      } else if (leagueData.sport === 'hockey') {
+        return {
+          points: null,
+          goals: null,
+          assists: null,
+          goalieWins: null,
+        };
       } else {
         return {
           points: null,
@@ -469,6 +476,62 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         stolenBases: stolenBasesLeader.player.pid,
         strikeouts: strikeoutsLeader.player.pid,
         wins: winsLeader.player.pid,
+      };
+    } else if (leagueData.sport === 'hockey') {
+      // Hockey stat leaders
+      const pointsLeader = roster.reduce((leader, rp) => {
+        const leaderStats = leader.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const rpStats = rp.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const leaderPts = (leaderStats as any)?.pts || 0;
+        const rpPts = (rpStats as any)?.pts || 0;
+        return rpPts > leaderPts ? rp : leader;
+      });
+
+      const goalsLeader = roster.reduce((leader, rp) => {
+        const leaderStats = leader.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const rpStats = rp.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const leaderG = (leaderStats as any)?.g || 0;
+        const rpG = (rpStats as any)?.g || 0;
+        return rpG > leaderG ? rp : leader;
+      });
+
+      const assistsLeader = roster.reduce((leader, rp) => {
+        const leaderStats = leader.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const rpStats = rp.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const leaderA = (leaderStats as any)?.a || (leaderStats as any)?.ast || 0;
+        const rpA = (rpStats as any)?.a || (rpStats as any)?.ast || 0;
+        return rpA > leaderA ? rp : leader;
+      });
+
+      const goalieWinsLeader = roster.reduce((leader, rp) => {
+        const leaderStats = leader.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const rpStats = rp.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const leaderW = (leaderStats as any)?.w || 0;
+        const rpW = (rpStats as any)?.w || 0;
+        return rpW > leaderW ? rp : leader;
+      });
+
+      return {
+        points: pointsLeader.player.pid,
+        goals: goalsLeader.player.pid,
+        assists: assistsLeader.player.pid,
+        goalieWins: goalieWinsLeader.player.pid,
       };
     } else {
       // Basketball stat leaders
