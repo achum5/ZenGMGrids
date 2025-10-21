@@ -733,9 +733,37 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                 onMouseLeave={() => setIsHeaderHovered(false)}
                 style={{ position: 'relative', backgroundColor: selectedTeam?.colors?.[0] || 'hsl(var(--card))' }}
               >          <div className="max-w-6xl mx-auto px-6 py-4">
-            <div className="relative flex items-center justify-start md:justify-center">
-              <div className="flex items-center space-x-3">
-                <div 
+                          <div className="relative flex items-center justify-start md:justify-center">
+                            <div className="absolute left-0 flex items-center space-x-1">
+                              {hasProgress ? (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="sm" data-testid="button-back" style={{ color: selectedTeam?.colors?.[0] || 'hsl(var(--primary-foreground))' }} className="animate-on-click">
+                                      <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
+                                      <span className="sr-only">Go back</span>
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Go back to game selection?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        You have found {foundCount} players. Going back will lose your current progress. Are you sure?
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction onClick={onBackToModeSelect} className="animate-on-click">Go Back</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              ) : (
+                                <Button variant="ghost" size="sm" onClick={onBackToModeSelect} data-testid="button-back" style={{ color: selectedTeam?.colors?.[0] || 'hsl(var(--primary-foreground))' }} className="animate-on-click">
+                                  <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
+                                  <span className="sr-only">Go back</span>
+                                </Button>
+                              )}
+                            </div>
+                            <div className="flex items-center space-x-3">                <div 
                   className="w-10 h-10"
                   style={{
                     backgroundColor: selectedTeam?.colors?.[1] || 'hsl(var(--primary))',
