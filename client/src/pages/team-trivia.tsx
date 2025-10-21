@@ -1048,7 +1048,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   
               {/* Right side: Score Counter */}
               <div className="text-xs sm:text-base md:text-lg font-bold shrink-0" data-testid="text-score-counter">
-                <span className="text-emerald-500">Score: {score}</span>
+                <span style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary))' }}>Score: {score}</span>
               </div>
             </div>
           </div>
