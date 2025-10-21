@@ -851,10 +851,33 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
               {/* Right: Help + Home buttons */}
               <div className="flex items-center justify-end space-x-1">
                 <RulesModal sport={leagueData.sport} color={teamDisplayInfo.colors[1]} />
-                <Button variant="ghost" size="sm" onClick={onGoHome} data-testid="button-home" style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))' }} className="animate-on-click">
-                  <HomeIcon className="h-[1.2rem] w-[1.2rem]" />
-                  <span className="sr-only">Go home</span>
-                </Button>
+                {hasProgress ? (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="sm" data-testid="button-home" style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))' }} className="animate-on-click">
+                        <HomeIcon className="h-[1.2rem] w-[1.2rem]" />
+                        <span className="sr-only">Go home</span>
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Go home?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Going home will lose your current progress. Are you sure?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={onGoHome} className="animate-on-click">Go Home</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                ) : (
+                  <Button variant="ghost" size="sm" onClick={onGoHome} data-testid="button-home" style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))' }} className="animate-on-click">
+                    <HomeIcon className="h-[1.2rem] w-[1.2rem]" />
+                    <span className="sr-only">Go home</span>
+                  </Button>
+                )}
               </div>
             </div>
           </div>
