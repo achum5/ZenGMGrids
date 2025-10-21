@@ -701,13 +701,10 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                   alt={`${leagueData.sport} icon`}
                   className="w-10 h-10 object-contain header-logo"
                 />
-                              <h1 className="text-base sm:text-lg md:text-2xl header-title"
+                              <h1 className="text-base sm:text-lg md:text-2xl font-bold"
                                 style={{ 
                                   color: selectedTeam?.colors?.[1] || 'hsl(var(--primary))',
-                                  background: 'none',
-                                  WebkitTextFillColor: 'inherit',
-                                  animation: 'none',
-                                  filter: 'none'
+                                  letterSpacing: '-0.02em'
                                 }}
                               >
                                 {sportTitle} Team Trivia
