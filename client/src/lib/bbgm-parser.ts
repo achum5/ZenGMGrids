@@ -147,7 +147,8 @@ export function parseLeagueUrl(
           });
           resolve(leagueData);
         } catch (err) {
-          reject(err);
+          console.error('Error processing league from IDB:', err);
+          reject(err instanceof Error ? err : new Error(String(err)));
         }
       } else if (type === 'meta') {
         // Progress metadata from worker (sport detection, counts)
