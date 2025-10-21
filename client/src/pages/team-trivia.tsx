@@ -78,12 +78,11 @@ function normalizeName(name: string): string {
     .replace(/[\u0300-\u036f]/g, '');
 }
 
-type RoundType = 'guess' | 'hint' | 'revealed' | 'points-leader' | 'rebounds-leader' | 'assists-leader' | 'steals-leader' | 'blocks-leader' | 'complete';
+type RoundType = 'guess' | 'hint' | 'points-leader' | 'rebounds-leader' | 'assists-leader' | 'steals-leader' | 'blocks-leader' | 'complete';
 
 const ROUND_ORDER: RoundType[] = [
   'guess',
   'hint',
-  'revealed',
   'points-leader',
   'rebounds-leader',
   'assists-leader',
@@ -95,7 +94,6 @@ const ROUND_ORDER: RoundType[] = [
 const ROUND_INSTRUCTIONS: Record<RoundType, string> = {
   'guess': 'Guess the players on this team',
   'hint': 'Hints revealed! Keep guessing',
-  'revealed': 'All players revealed',
   'points-leader': 'Click on the team points leader',
   'rebounds-leader': 'Click on the team rebounds leader',
   'assists-leader': 'Click on the team assists leader',
@@ -603,12 +601,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
           }
           return rp;
         }));
-      }
-
-      // Auto-reveal all players when entering the 'revealed' round
-      if (nextRound === 'revealed') {
-        setRoster(prev => prev.map(rp => ({ ...rp, revealed: true })));
-        setFoundCount(roster.length);
       }
     }
   }, [currentRound, roster.length]);
