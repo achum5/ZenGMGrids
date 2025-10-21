@@ -743,7 +743,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                               </Button>              </div>
             </div>
           </div>
-          <AccentLine isHovered={isHeaderHovered} color={selectedTeam?.colors?.[1]} />
+          <AccentLine isHovered={isHeaderHovered} color={selectedTeam?.colors?.[0]} />
         </header>
   
         {/* Game Info Header with Dropdowns */}
