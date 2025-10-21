@@ -5,12 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { PlayerFace } from '@/components/PlayerFace';
 import { useToast } from '@/lib/hooks/use-toast';
 import { Shuffle, Home as HomeIcon, ArrowLeft, ChevronDown, ArrowRight } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+
 import confetti from 'canvas-confetti';
 import {
   AlertDialog,
@@ -116,6 +111,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [foundCount, setFoundCount] = useState(0);
+  const [score, setScore] = useState(0);
   const [currentRound, setCurrentRound] = useState<RoundType>('guess');
   const [selectedLeader, setSelectedLeader] = useState<number | null>(null); // PID of selected leader
   const [isHeaderHovered, setIsHeaderHovered] = useState(false);
@@ -353,6 +349,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     setSelectedTeam(randomTeam);
     buildRoster(randomSeason, randomTeam);
     setGuess('');
+    setScore(0); // Reset score for new game
   }, [allSeasons, allTeams, buildRoster, leagueData.players, toast]);
 
   // Initialize on mount
@@ -465,6 +462,13 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
           : rp
       ));
       setFoundCount(prev => prev + 1);
+
+      // Award points based on round
+      if (currentRound === 'guess') {
+        setScore(prev => prev + 10);
+      } else if (currentRound === 'hint') {
+        setScore(prev => prev + 8);
+      }
 
       // Trigger confetti
       setTimeout(() => {
@@ -634,6 +638,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       toast({
         description: 'Correct! Moving to next round...',
       });
+      setScore(prev => prev + 5); // Award 5 points for correct leader
       triggerConfetti(pid);
       setTimeout(() => {
         handleNextRound();
@@ -652,6 +657,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     pickRandomTeamAndSeason();
     setCurrentRound('guess');
     setSelectedLeader(null);
+    setScore(0); // Reset score for new game
   }, [pickRandomTeamAndSeason]);
 
   const hasProgress = foundCount > 0;
@@ -670,454 +676,439 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     leagueData.sport === 'baseball' ? baseballIcon :
     basketballIcon;
 
-  return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
-      {/* Main Header */}
-      <header
-        className="bg-card border-border shrink-0"
-        onMouseEnter={() => setIsHeaderHovered(true)}
-        onMouseLeave={() => setIsHeaderHovered(false)}
-        style={{ position: 'relative' }}
-      >
-        <div className="max-w-6xl mx-auto px-6 py-4">
-          <div className="relative flex items-center justify-start md:justify-center">
-            <div className="flex items-center space-x-3">
-              <img 
-                src={sportIcon}
-                alt={`${leagueData.sport} icon`} 
-                className="w-10 h-10 object-contain header-logo"
-              />
-              <h1 className="text-base sm:text-lg md:text-2xl header-title">
-                {sportTitle} Team Trivia
-              </h1>
-            </div>
-            <div className="absolute right-0 flex items-center space-x-1">
-              <div>
-                <RulesModal sport={leagueData.sport} />
-              </div>
-              {hasProgress ? (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="sm" data-testid="button-back">
-                      <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
-                      <span className="sr-only">Go back</span>
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Go back to game selection?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        You have found {foundCount} players. Going back will lose your current progress. Are you sure?
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={onBackToModeSelect}>Go Back</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              ) : (
-                <Button variant="ghost" size="sm" onClick={onBackToModeSelect} data-testid="button-back">
-                  <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
-                  <span className="sr-only">Go back</span>
-                </Button>
-              )}
-              <Button variant="ghost" size="sm" onClick={onGoHome} data-testid="button-home">
-                <HomeIcon className="h-[1.2rem] w-[1.2rem]" />
-                <span className="sr-only">Go home</span>
-              </Button>
+    return (
+      <div className="h-screen flex flex-col bg-background overflow-hidden">
+        {/* Main Header */}
+              <header
+                className="border-border shrink-0"
+                onMouseEnter={() => setIsHeaderHovered(true)}
+                onMouseLeave={() => setIsHeaderHovered(false)}
+                style={{ position: 'relative', backgroundColor: selectedTeam?.colors?.[1] || 'hsl(var(--card))' }}
+              >          <div className="max-w-6xl mx-auto px-6 py-4">
+            <div className="relative flex items-center justify-start md:justify-center">
+              <div className="flex items-center space-x-3">
+                <img
+                  src={sportIcon}
+                  alt={`${leagueData.sport} icon`}
+                  className="w-10 h-10 object-contain header-logo"
+                />
+                              <h1 className="text-base sm:text-lg md:text-2xl header-title"
+                                style={{ color: selectedTeam?.colors?.[0] || 'hsl(var(--primary))' }}
+                              >
+                                {sportTitle} Team Trivia
+                              </h1>              </div>
+              <div className="absolute right-0 flex items-center space-x-1">
+                <div>
+                  <RulesModal sport={leagueData.sport} />
+                </div>
+                {hasProgress ? (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="sm" data-testid="button-back" style={{ color: selectedTeam?.colors?.[0] || 'hsl(var(--primary-foreground))' }}>
+                        <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
+                        <span className="sr-only">Go back</span>
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Go back to game selection?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          You have found {foundCount} players. Going back will lose your current progress. Are you sure?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={onBackToModeSelect}>Go Back</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                ) : (
+                  <Button variant="ghost" size="sm" onClick={onBackToModeSelect} data-testid="button-back" style={{ color: selectedTeam?.colors?.[0] || 'hsl(var(--primary-foreground))' }}>
+                    <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
+                    <span className="sr-only">Go back</span>
+                  </Button>
+                )}
+                              <Button variant="ghost" size="sm" onClick={onGoHome} data-testid="button-home" style={{ color: selectedTeam?.colors?.[0] || 'hsl(var(--primary-foreground))' }}>
+                                <HomeIcon className="h-[1.2rem] w-[1.2rem]" />
+                                <span className="sr-only">Go home</span>
+                              </Button>              </div>
             </div>
           </div>
-        </div>
-        <AccentLine isHovered={isHeaderHovered} />
-      </header>
-
-      {/* Game Info Header with Dropdowns */}
-      <div className="bg-card/50 border-b neon-border-subtle shrink-0">
-        <div className="max-w-4xl mx-auto px-6 py-6">
-
-          <div className="flex items-center justify-center gap-4 flex-wrap">
-            {/* Left side: Year and Team */}
-            <div className="flex items-center gap-4 flex-wrap">
-              {/* Year Dropdown */}
-              <Popover open={yearDropdownOpen} onOpenChange={setYearDropdownOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={yearDropdownOpen}
-                    className="text-2xl sm:text-3xl font-bold neon-text px-4 py-6"
-                    data-testid="button-year-dropdown"
-                  >
-                    <ChevronDown className="mr-2 h-5 w-5" />
-                    {selectedSeason}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[200px] p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Search year..." />
-                    <CommandList>
-                      <CommandEmpty>No year found.</CommandEmpty>
-                      <CommandGroup>
-                        {allSeasons.map((season) => (
-                          <CommandItem
-                            key={season}
-                            value={season.toString()}
-                            onSelect={() => {
-                              setSelectedSeason(season);
-                              setYearDropdownOpen(false);
-                              setCurrentRound('guess');
-                              setFoundCount(0);
-                              setSelectedLeader(null);
-                            }}
-                            data-testid={`option-year-${season}`}
-                          >
-                            {season}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-
-              {/* Team Logo/Name with Dropdown */}
-              <Popover open={teamDropdownOpen} onOpenChange={setTeamDropdownOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    role="combobox"
-                    aria-expanded={teamDropdownOpen}
-                    className="flex items-center gap-3 hover:bg-accent/50 px-4 py-6"
-                    data-testid="button-team-dropdown"
-                  >
-                    {teamDisplayInfo.logo ? (
-                      <img
-                        src={teamDisplayInfo.logo}
-                        alt={teamDisplayInfo.name}
-                        className="h-12 w-12 object-contain"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                        }}
-                      />
-                    ) : null}
-                    <span className={`text-2xl sm:text-3xl font-bold neon-text ${teamDisplayInfo.logo ? 'hidden' : ''}`}>
-                      {teamDisplayInfo.name}
-                    </span>
-                    <ChevronDown className="h-5 w-5 ml-2" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[300px] p-0" align="center">
-                  <Command>
-                    <CommandInput placeholder="Search team..." />
-                    <CommandList className="max-h-[300px] overflow-y-auto">
-                      <CommandEmpty>No team found.</CommandEmpty>
-                      <CommandGroup>
-                        {teamsInSelectedSeason.map((team) => {
-                          const teamName = team.region && team.name
-                            ? `${team.region} ${team.name}`
-                            : team.abbrev;
-
-                          return (
+          <AccentLine isHovered={isHeaderHovered} />
+        </header>
+  
+        {/* Game Info Header with Dropdowns */}
+        <div className="bg-card/50 border-b neon-border-subtle shrink-0">
+          <div className="max-w-4xl mx-auto px-6 py-6">
+            <div className="flex items-center justify-center gap-4 flex-wrap">
+              {/* Left side: Year and Team */}
+              <div className="flex items-center gap-4 flex-wrap">
+                {/* Year Dropdown */}
+                <Popover open={yearDropdownOpen} onOpenChange={setYearDropdownOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={yearDropdownOpen}
+                      className="text-2xl sm:text-3xl font-bold neon-text px-4 py-6"
+                      data-testid="button-year-dropdown"
+                    >
+                      <ChevronDown className="mr-2 h-5 w-5" />
+                      {selectedSeason}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search year..." />
+                      <CommandList>
+                        <CommandEmpty>No year found.</CommandEmpty>
+                        <CommandGroup>
+                          {allSeasons.map((season) => (
                             <CommandItem
-                              key={team.tid}
-                              value={`${teamName} ${team.abbrev}`}
+                              key={season}
+                              value={season.toString()}
                               onSelect={() => {
-                                setSelectedTeam(team);
-                                setTeamDropdownOpen(false);
+                                setSelectedSeason(season);
+                                setYearDropdownOpen(false);
                                 setCurrentRound('guess');
                                 setFoundCount(0);
+                                setScore(0);
                                 setSelectedLeader(null);
                               }}
-                              className="flex items-center gap-2"
-                              data-testid={`option-team-${team.tid}`}
+                              data-testid={`option-year-${season}`}
                             >
-                              {team.imgURLSmall && (
-                                <img
-                                  src={team.imgURLSmall}
-                                  alt={teamName}
-                                  className="h-6 w-6 object-contain"
-                                />
-                              )}
-                              <span>{teamName}</span>
+                              {season}
                             </CommandItem>
-                          );
-                        })}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            {/* Right side: Counter */}
-            <div className="text-base sm:text-lg font-semibold text-muted-foreground" data-testid="text-found-counter">
-              {foundCount} / {roster.length}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Search Section - Only show during guess/hint rounds */}
-      {(currentRound === 'guess' || currentRound === 'hint') && (
-        <div className="bg-background border-b shrink-0">
-          <div className="max-w-4xl mx-auto px-6 py-4">
-            <div className="relative">
-              <Input
-                ref={inputRef}
-                type="text"
-                value={guess}
-                onChange={(e) => setGuess(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Type a player's name..."
-                className="text-lg py-6 neon-input"
-                autoFocus
-                autoComplete="off"
-                data-testid="input-player-guess"
-              />
-            
-            {/* Autocomplete Dropdown */}
-            {autocompleteOpen && (
-              <div
-                ref={autocompleteRef}
-                className="absolute z-50 w-full mt-2 bg-card border neon-border rounded-lg shadow-lg max-h-[400px] overflow-y-auto"
-                data-testid="autocomplete-dropdown"
-              >
-                <div className="py-2">
-                  {autocompleteSuggestions.map((player, index) => {
-                    // Get player's position - check if they have season-specific position first
-                    const rating = player.ratings?.find(r => r.season === selectedSeason);
-                    const position = rating?.pos || player.pos || 'F';
-
-                    return (
-                      <div
-                        key={player.pid}
-                        data-index={index}
-                        className={`flex items-center gap-4 px-4 py-3 cursor-pointer transition-all hover:bg-accent/50 ${
-                          index === activeIndex ? 'bg-accent neon-glow' : ''
-                        }`}
-                        onClick={() => handleSelectPlayer(player)}
-                        data-testid={`autocomplete-option-${index}`}
-                      >
-                        <div className="shrink-0 w-16 h-16">
-                          <PlayerFace
-                            pid={player.pid}
-                            name={player.name}
-                            imgURL={player.imgURL ?? undefined}
-                            face={player.face}
-                            size={64}
-                            hideName={true}
-                            player={player}
-                            teams={leagueData.teams}
-                            sport={leagueData.sport}
-                            season={selectedSeason || undefined}
-                          />
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <p className="text-lg font-medium truncate">
-                            {player.name}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {position}
-                          </p>
-                        </div>
-
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="shrink-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSelectPlayer(player);
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+  
+                {/* Team Logo/Name with Dropdown */}
+                <Popover open={teamDropdownOpen} onOpenChange={setTeamDropdownOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      role="combobox"
+                      aria-expanded={teamDropdownOpen}
+                      className="flex items-center gap-3 hover:bg-accent/50 px-4 py-6"
+                      data-testid="button-team-dropdown"
+                    >
+                      {teamDisplayInfo.logo ? (
+                        <img
+                          src={teamDisplayInfo.logo}
+                          alt={teamDisplayInfo.name}
+                          className="h-12 w-12 object-contain"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
                           }}
-                          data-testid={`button-select-${index}`}
-                        >
-                          Select
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
+                        />
+                      ) : null}
+                      <span className={`text-2xl sm:text-3xl font-bold neon-text ${teamDisplayInfo.logo ? 'hidden' : ''}`}>
+                        {teamDisplayInfo.name}
+                      </span>
+                      <ChevronDown className="h-5 w-5 ml-2" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0" align="center">
+                    <Command>
+                      <CommandInput placeholder="Search team..." />
+                      <CommandList className="max-h-[300px] overflow-y-auto">
+                        <CommandEmpty>No team found.</CommandEmpty>
+                        <CommandGroup>
+                          {teamsInSelectedSeason.map((team) => {
+                            const teamName = team.region && team.name
+                              ? `${team.region} ${team.name}`
+                              : team.abbrev;
+  
+                            return (
+                              <CommandItem
+                                key={team.tid}
+                                value={`${teamName} ${team.abbrev}`}
+                                onSelect={() => {
+                                  setSelectedTeam(team);
+                                  setTeamDropdownOpen(false);
+                                  setCurrentRound('guess');
+                                  setFoundCount(0);
+                                  setScore(0);
+                                  setSelectedLeader(null);
+                                }}
+                                className="flex items-center gap-2"
+                                data-testid={`option-team-${team.tid}`}
+                              >
+                                {team.imgURLSmall && (
+                                  <img
+                                    src={team.imgURLSmall}
+                                    alt={teamName}
+                                    className="h-6 w-6 object-contain"
+                                  />
+                                )}
+                                <span>{teamName}</span>
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
-            )}
+  
+              {/* Right side: Score Counter */}
+              <div className="text-base sm:text-lg font-semibold text-muted-foreground" data-testid="text-score-counter">
+                Score: {score}
+              </div>
             </div>
           </div>
         </div>
-      )}
-
-      {/* Roster Grid */}
-      <div className="flex-1 overflow-y-auto min-h-0">
-        <div className="max-w-6xl mx-auto px-1 sm:px-4 md:px-6 py-2 sm:py-4 md:py-6">
-          <TooltipProvider>
+  
+        {/* Search Section - Only show during guess/hint rounds */}
+        {(currentRound === 'guess' || currentRound === 'hint') && (
+          <div className="bg-background border-b shrink-0">
+            <div className="max-w-4xl mx-auto px-6 py-4">
+              <div className="relative">
+                <Input
+                  ref={inputRef}
+                  type="text"
+                  value={guess}
+                  onChange={(e) => setGuess(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Type a player's name..."
+                  className="text-lg py-6 neon-input"
+                  autoFocus
+                  autoComplete="off"
+                  data-testid="input-player-guess"
+                />
+  
+              {/* Autocomplete Dropdown */}
+              {autocompleteOpen && (
+                <div
+                  ref={autocompleteRef}
+                  className="absolute z-50 w-full mt-2 bg-card border neon-border rounded-lg shadow-lg max-h-[400px] overflow-y-auto"
+                  data-testid="autocomplete-dropdown"
+                >
+                  <div className="py-2">
+                    {autocompleteSuggestions.map((player, index) => {
+                      // Get player's position - check if they have season-specific position first
+                      const rating = player.ratings?.find(r => r.season === selectedSeason);
+                      const position = rating?.pos || player.pos || 'F';
+  
+                      return (
+                        <div
+                          key={player.pid}
+                          data-index={index}
+                          className={`flex items-center gap-4 px-4 py-3 cursor-pointer transition-all hover:bg-accent/50 ${
+                            index === activeIndex ? 'bg-accent neon-glow' : ''
+                          }`}
+                          onClick={() => handleSelectPlayer(player)}
+                          data-testid={`autocomplete-option-${index}`}
+                        >
+                          <div className="shrink-0 w-16 h-16">
+                            <PlayerFace
+                              pid={player.pid}
+                              name={player.name}
+                              imgURL={player.imgURL ?? undefined}
+                              face={player.face}
+                              size={64}
+                              hideName={true}
+                              player={player}
+                              teams={leagueData.teams}
+                              sport={leagueData.sport}
+                              season={selectedSeason || undefined}
+                            />
+                          </div>
+  
+                          <div className="flex-1 min-w-0">
+                            <p className="text-lg font-medium truncate">
+                              {player.name}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {position}
+                            </p>
+                          </div>
+  
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSelectPlayer(player);
+                            }}
+                            data-testid={`button-select-${index}`}
+                          >
+                            Select
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              </div>
+            </div>
+          </div>
+        )}
+  
+        {/* Roster Grid */}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          <div className="max-w-6xl mx-auto px-1 sm:px-4 md:px-6 py-2 sm:py-4 md:py-6">
             <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 gap-1 sm:gap-3 md:gap-4">
               {roster.map((rp, index) => {
                 const isLeaderRound = currentRound.endsWith('-leader');
-
+  
                 return (
-                                        <div
-                                          ref={(el) => {
-                                            if (el) tileRefs.current.set(rp.player.pid, el);
-                                          }}
-                                          onClick={() => isLeaderRound && handleTileClick(rp.player.pid)}
-                                          className={`relative flex flex-col items-center gap-0.5 p-1 sm:p-2 md:p-3 rounded sm:rounded-md md:rounded-lg transition-all hover:scale-[1.02] ${
-                                            isLeaderRound ? 'cursor-pointer' : ''
-                                          } ${
-                                            rp.revealed
-                                              ? 'neon-glow-success shadow-lg shadow-green-500/50'
-                                              : ''
-                                          }`}
-                                          style={{
-                                            backgroundColor: rp.teamColors?.[1] || 'hsl(var(--card))',
-                                            borderWidth: '2px',
-                                            borderStyle: 'solid',
-                                            borderColor: rp.teamColors?.[0] || 'hsl(var(--border))',
-                                          }}
-                                          data-testid={`card-player-${index}`}
-                                        >
-                                        {/* Position Badge - Always visible */}
-                                        <div className="absolute top-0.5 left-0.5 bg-primary/90 text-primary-foreground text-[0.5rem] sm:text-xs font-bold px-0.5 sm:px-1.5 py-0.5 rounded z-10">
-                                          {rp.position}
-                                        </div>
-                  
-                                        {/* Jersey Number Badge - Always visible, ZenGM style */}
-                                        {rp.jerseyNumber && rp.teamColors && (
-                                          <div
-                                            className="absolute top-0.5 right-0.5 text-[0.6rem] sm:text-[0.95rem] font-extrabold px-1 sm:px-2 py-0.5 sm:py-1 z-10 min-w-[1.25rem] sm:min-w-[2rem] aspect-square flex items-center justify-center"
-                                            style={{
-                                              backgroundColor: rp.teamColors[0] || '#000000',
-                                              color: rp.teamColors[1] || '#ffffff',
-                                              border: `1.5px solid ${rp.teamColors[2] || rp.teamColors[0] || '#cccccc'} `,
-                                              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)'
-                                            }}
-                                          >
-                                            {rp.jerseyNumber}
-                                          </div>
-                                        )}
-                  
-                                                              {/* Headshot - Takes up most of the tile */}
-                  
-                                                              <div className="w-full aspect-square">
-                  
-                                                                                          <PlayerFace
-                  
-                                                                                            pid={rp.player.pid}
-                  
-                                                                                            name={rp.player.name}
-                  
-                                                                                            imgURL={rp.player.imgURL ?? undefined}
-                  
-                                                                                            face={rp.player.face}
-                  
-                                                                                            size={104}
-                  
-                                                                                            hideName={true}
-                  
-                                                                                            player={rp.player}
-                  
-                                                                                            teams={leagueData.teams}
-                  
-                                                                                            sport={leagueData.sport}
-                  
-                                                                                            season={selectedSeason || undefined}
-                  
-                                                                                          />
-                  
-                                                              </div>
-                  
-                                                              {/* Name - Compact */}
-                                                              <div className="w-full text-center min-h-[1rem] sm:min-h-[2rem] flex items-center justify-center px-0.5">
-                                                                {rp.revealed ? (
-                                                                  <p
-                                                                    className="text-[0.5rem] sm:text-xs md:text-sm font-bold line-clamp-2 leading-tight"
-                                                                    style={{ color: rp.teamColors?.[0] || 'hsl(var(--foreground))' }}
-                                                                  >
-                                                                    {rp.player.name}
-                                                                  </p>
-                                                                                        ) : rp.hintShown ? (
-                                                                                          <p
-                                                                                            className="text-[0.5rem] sm:text-xs md:text-sm font-bold leading-tight"
-                                                                                            style={{ color: rp.teamColors?.[0] || 'hsl(var(--foreground))' }}
-                                                                                          >
-                                                                                            {(() => {
-                                                                                              const nameParts = rp.player.name.trim().split(' ');
-                                                                                              const firstName = nameParts[0] || '';
-                                                                                              const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
-                                                                
-                                                                                              if (nameParts.length === 1) {
-                                                                                                return (
-                                                                                                  <>
-                                                                                                    <span>{firstName.charAt(0)}</span>
-                                                                                                    <span style={{ filter: 'blur(8px)' }}>{firstName.substring(1)}</span>
-                                                                                                  </>
-                                                                                                );
-                                                                                              } else {
-                                                                                                return (
-                                                                                                  <>
-                                                                                                    <span>{firstName.charAt(0)}</span>
-                                                                                                    <span style={{ filter: 'blur(8px)' }}>{firstName.substring(1)}</span>
-                                                                                                    <span> </span>
-                                                                                                    <span>{lastName.charAt(0)}</span>
-                                                                                                    <span style={{ filter: 'blur(8px)' }}>{lastName.substring(1)}</span>
-                                                                                                  </>
-                                                                                                );
-                                                                                              }
-                                                                                            })()}
-                                                                                          </p>
-                                                                                        ) : (
-                                                                                          <p
-                                                                                            className="text-[0.5rem] sm:text-xs md:text-sm font-bold line-clamp-2 leading-tight"
-                                                                                            style={{ 
-                                                                                              color: rp.teamColors?.[0] || 'hsl(var(--foreground))',
-                                                                                              filter: 'blur(8px)' // Apply severe blur
-                                                                                            }}
-                                                                                          >
-                                                                                            {rp.player.name}
-                                                                                          </p>
-                                                                                        )}
-                                                                                      </div>                                        
-                                      </div>
-                                  
+                  <div
+                    key={rp.player.pid}
+                    ref={(el) => {
+                      if (el) tileRefs.current.set(rp.player.pid, el);
+                    }}
+                    onClick={() => isLeaderRound && handleTileClick(rp.player.pid)}
+                    className={`relative flex flex-col items-center gap-0.5 p-1 sm:p-2 md:p-3 rounded sm:rounded-md md:rounded-lg transition-all hover:scale-[1.02] ${
+                      isLeaderRound ? 'cursor-pointer' : ''
+                    } ${
+                      rp.revealed
+                        ? 'neon-glow-success shadow-lg shadow-green-500/50'
+                        : ''
+                    }`}
+                    style={{
+                      backgroundColor: rp.teamColors?.[1] || 'hsl(var(--card))',
+                      borderWidth: '2px',
+                      borderStyle: 'solid',
+                      borderColor: rp.teamColors?.[0] || 'hsl(var(--border))',
+                    }}
+                    data-testid={`card-player-${index}`}
+                  >
+                  {/* Position Badge - Always visible */}
+                  <div className="absolute top-0.5 left-0.5 bg-primary/90 text-primary-foreground text-[0.5rem] sm:text-xs font-bold px-0.5 sm:px-1.5 py-0.5 rounded z-10">
+                    {rp.position}
+                  </div>
+  
+                  {/* Jersey Number Badge - Always visible, ZenGM style */}
+                  {rp.jerseyNumber && rp.teamColors && (
+                    <div
+                      className="absolute top-0.5 right-0.5 text-[0.6rem] sm:text-[0.95rem] font-extrabold px-1 sm:px-2 py-0.5 sm:py-1 z-10 min-w-[1.25rem] sm:min-w-[2rem] aspect-square flex items-center justify-center"
+                      style={{
+                        backgroundColor: rp.teamColors[0] || '#000000',
+                        color: rp.teamColors[1] || '#ffffff',
+                        border: `1.5px solid ${rp.teamColors[2] || rp.teamColors[0] || '#cccccc'} `,
+                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)'
+                      }}
+                    >
+                      {rp.jerseyNumber}
+                    </div>
+                  )}
+  
+                  {/* Headshot - Takes up most of the tile */}
+                  <div className="w-full aspect-square">
+                    <PlayerFace
+                      pid={rp.player.pid}
+                      name={rp.player.name}
+                      imgURL={rp.player.imgURL ?? undefined}
+                      face={rp.player.face}
+                      size={104}
+                      hideName={true}
+                      player={rp.player}
+                      teams={leagueData.teams}
+                      sport={leagueData.sport}
+                      season={selectedSeason || undefined}
+                    />
+                  </div>
+  
+                  {/* Name - Compact */}
+                  <div className="w-full text-center min-h-[1rem] sm:min-h-[2rem] flex items-center justify-center px-0.5">
+                    {rp.revealed ? (
+                      <p
+                        className="text-[0.5rem] sm:text-xs md:text-sm font-bold line-clamp-2 leading-tight"
+                        style={{ color: rp.teamColors?.[0] || 'hsl(var(--foreground))' }}
+                      >
+                        {rp.player.name}
+                      </p>
+                    ) : rp.hintShown ? (
+                      <p
+                        className="text-[0.5rem] sm:text-xs md:text-sm font-bold leading-tight"
+                        style={{ color: rp.teamColors?.[0] || 'hsl(var(--foreground))' }}
+                      >
+                        {(() => {
+                          const nameParts = rp.player.name.trim().split(' ');
+                          const firstName = nameParts[0] || '';
+                          const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+  
+                          if (nameParts.length === 1) {
+                            return (
+                              <>
+                                <span>{firstName.charAt(0)}</span>
+                                <span style={{ filter: 'blur(8px)' }}>{firstName.substring(1)}</span>
+                              </>
+                            );
+                          } else {
+                            return (
+                              <>
+                                <span>{firstName.charAt(0)}</span>
+                                <span style={{ filter: 'blur(8px)' }}>{firstName.substring(1)}</span>
+                                <span> </span>
+                                <span>{lastName.charAt(0)}</span>
+                                <span style={{ filter: 'blur(8px)' }}>{lastName.substring(1)}</span>
+                              </>
+                            );
+                          }
+                        })()}
+                      </p>
+                    ) : (
+                      <p
+                        className="text-[0.5rem] sm:text-xs md:text-sm font-bold line-clamp-2 leading-tight"
+                        style={{
+                          color: rp.teamColors?.[0] || 'hsl(var(--foreground))',
+                          filter: 'blur(8px)' // Apply severe blur
+                        }}
+                      >
+                        {rp.player.name}
+                      </p>
+                    )}
+                  </div>
+                </div>
                 );
               })}
             </div>
-          </TooltipProvider>
+          </div>
         </div>
-      </div>
-
-      {/* Bottom Actions */}
-      <div className="shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t neon-border-subtle">
-        <div className="max-w-4xl mx-auto px-6 py-4">
-          <div className="flex justify-between items-center gap-3">
-            {/* Always show New Team button on left */}
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={handleNew}
-              className="neon-button"
-              data-testid="button-new-trivia"
-            >
-              <Shuffle className="h-5 w-5 mr-2" />
-              New Team
-            </Button>
-
-            {/* Show Next Round button on right (unless complete) */}
-            {currentRound !== 'complete' && (
+  
+        {/* Bottom Actions */}
+        <div className="shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t neon-border-subtle">
+          <div className="max-w-4xl mx-auto px-6 py-4">
+            <div className="flex justify-between items-center gap-3">
+              {/* Always show New Team button on left */}
               <Button
-                variant="default"
+                variant="outline"
                 size="lg"
-                onClick={handleNextRound}
+                onClick={handleNew}
                 className="neon-button"
-                data-testid="button-next-round"
+                data-testid="button-new-trivia"
               >
-                Next Round
-                <ArrowRight className="h-5 w-5 ml-2" />
+                <Shuffle className="h-5 w-5 mr-2" />
+                New Team
               </Button>
-            )}
+  
+              {/* Show Next Round button on right (unless complete) */}
+              {currentRound !== 'complete' && (
+                <Button
+                  variant="default"
+                  size="lg"
+                  onClick={handleNextRound}
+                  className="neon-button"
+                  data-testid="button-next-round"
+                >
+                  Next Round
+                  <ArrowRight className="h-5 w-5 ml-2" />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
+  
