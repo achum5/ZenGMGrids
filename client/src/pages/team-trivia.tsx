@@ -745,6 +745,77 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     }
   };
 
+  // Helper function to calculate baseball stats by position
+  const calculateBaseballStats = (seasonStats: any, position: string) => {
+    const isPitcher = position === 'SP' || position === 'RP';
+
+    if (isPitcher) {
+      // Pitcher stats
+      const war = seasonStats.war !== undefined ? seasonStats.war.toFixed(1) : '0.0';
+      const w = seasonStats.w || 0;
+      const l = seasonStats.l || 0;
+      const outs = seasonStats.outs || 0;
+      const er = seasonStats.er || 0;
+      const era = outs > 0 ? (27 * er / outs).toFixed(2) : null;
+      
+      const gp = seasonStats.gpPit !== undefined ? seasonStats.gpPit : seasonStats.gp || 0;
+      const gs = seasonStats.gsPit !== undefined ? seasonStats.gsPit : seasonStats.gs || 0;
+      const sv = seasonStats.sv || 0;
+
+      // IP conversion: outs to baseball notation (X.Y where Y = outs % 3)
+      const ipWhole = Math.floor(outs / 3);
+      const ipRemainder = outs % 3;
+      const ip = `${ipWhole}.${ipRemainder}`;
+
+      const so = seasonStats.soPit || 0;
+      const bbPit = seasonStats.bbPit || 0;
+      const hPit = seasonStats.hPit || 0;
+      const whip = outs > 0 ? (3 * (bbPit + hPit) / outs).toFixed(2) : null;
+
+      return {
+        line1: era ? `${war}  ${w}  ${l}  ${era}` : `${war}  ${w}  ${l}`,
+        line2: `${gp}  ${gs}  ${sv}`,
+        line3: whip ? `${ip}  ${so}  ${whip}` : `${ip}  ${so}`
+      };
+    } else {
+      // Hitter stats
+      const war = seasonStats.war !== undefined ? seasonStats.war.toFixed(1) : '0.0';
+      const pa = seasonStats.pa || 0;
+      const h = seasonStats.h || 0;
+      const hr = seasonStats.hr || 0;
+      const r = seasonStats.r || 0;
+      const rbi = seasonStats.rbi || 0;
+      const sb = seasonStats.sb || 0;
+
+      // Calculate AB
+      const bb = seasonStats.bb || 0;
+      const hbp = seasonStats.hbp || 0;
+      const sf = seasonStats.sf || 0;
+      const sh = seasonStats.sh || 0;
+      const ab = pa - bb - hbp - sf - sh;
+
+      // BA, OBP, SLG, OPS
+      const ba = ab > 0 ? (h / ab).toFixed(3) : null;
+      
+      const obpDenom = ab + bb + hbp + sf;
+      const obp = obpDenom > 0 ? ((h + bb + hbp) / obpDenom).toFixed(3) : null;
+
+      const doubles = seasonStats['2b'] || 0;
+      const triples = seasonStats['3b'] || 0;
+      const singles = h - doubles - triples - hr;
+      const tb = singles + 2 * doubles + 3 * triples + 4 * hr;
+      const slg = ab > 0 ? (tb / ab).toFixed(3) : null;
+
+      const ops = (obp && slg) ? (parseFloat(obp) + parseFloat(slg)).toFixed(3) : null;
+
+      return {
+        line1: ba ? `${war}  ${pa}  ${h}  ${hr}  ${ba}` : `${war}  ${pa}  ${h}  ${hr}`,
+        line2: `${r}  ${rbi}  ${sb}`,
+        line3: ops ? `${obp}  ${slg}  ${ops}` : (obp && slg) ? `${obp}  ${slg}` : obp ? obp : slg ? slg : null
+      };
+    }
+  };
+
   // Helper function to calculate hockey stats by position
   const calculateHockeyStats = (seasonStats: any, position: string) => {
     // Helper for safe division
@@ -836,6 +907,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         } else if (leagueData.sport === 'hockey') {
           // Hockey stats
           stats = calculateHockeyStats(seasonStats, position);
+        } else if (leagueData.sport === 'baseball') {
+          // Baseball stats
+          stats = calculateBaseballStats(seasonStats, position);
         } else if (leagueData.sport === 'basketball') {
           // Basketball stats
           const gp = seasonStats.gp;
@@ -1285,10 +1359,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     // Get the correct leader's player info for display
     const correctRosterPlayer = roster.find(rp => rp.player.pid === correctLeaderPid);
     if (correctRosterPlayer) {
-      const seasonStats = correctRosterPlayer.player.stats?.find(
-        s => s.season === selectedSeason && s.tid === selectedTeam?.tid && !s.playoffs
-      );
-      const pos = seasonStats?.pos || correctRosterPlayer.player.ratings?.[0]?.pos || 'Unknown';
+      const rating = correctRosterPlayer.player.ratings?.find(r => r.season === selectedSeason);
+      const pos = rating?.pos || correctRosterPlayer.player.ratings?.[0]?.pos || 'Unknown';
       setClickedLeaderInfo({
         name: correctRosterPlayer.player.name,
         position: pos
@@ -1952,6 +2024,30 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                               {rp.stats.line1 && <><p>G/A/Pts:</p><p>{rp.stats.line1}</p></>}
                               {rp.stats.line2 && <><p>+/-:</p><p>{rp.stats.line2}</p></>}
                               {rp.stats.line3 && <><p>TOI (avg):</p><p>{rp.stats.line3}</p></>}
+                            </>
+                          )}
+                        </>
+                      )}
+
+                      {/* Baseball stats */}
+                      {leagueData.sport === 'baseball' && rp.stats?.line1 !== undefined && (
+                        <>
+                          {/* Pitchers (SP, RP) */}
+                          {(rp.position === 'SP' || rp.position === 'RP') && (
+                            <>
+                              {rp.stats.line1 && <><p>WAR  W  L  ERA:</p><p>{rp.stats.line1}</p></>}
+                              {rp.stats.line2 && <><p>GP  GS  SV:</p><p>{rp.stats.line2}</p></>}
+                              {rp.stats.line3 && <><p>IP  SO  WHIP:</p><p>{rp.stats.line3}</p></>}
+                            </>
+                          )}
+                          {/* Hitters (C, 1B, 2B, 3B, SS, LF, CF, RF) */}
+                          {(rp.position === 'C' || rp.position === '1B' || rp.position === '2B' || 
+                            rp.position === '3B' || rp.position === 'SS' || rp.position === 'LF' || 
+                            rp.position === 'CF' || rp.position === 'RF') && (
+                            <>
+                              {rp.stats.line1 && <><p>WAR  PA  H  HR  BA:</p><p>{rp.stats.line1}</p></>}
+                              {rp.stats.line2 && <><p>R  RBI  SB:</p><p>{rp.stats.line2}</p></>}
+                              {rp.stats.line3 && <><p>OBP  SLG  OPS:</p><p>{rp.stats.line3}</p></>}
                             </>
                           )}
                         </>
