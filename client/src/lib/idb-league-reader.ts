@@ -7,7 +7,7 @@ import type { Sport } from './league-normalizer';
 import { analyzeTeamOverlaps } from './league-normalizer';
 
 const DB_NAME = 'grids-league';
-const DB_VERSION = 4;
+const DB_VERSION = 3;
 
 export interface IDBLeagueMeta {
   sport: Sport;
@@ -23,26 +23,7 @@ export interface IDBLeagueMeta {
  * Open the league database
  */
 export async function openLeagueDB(): Promise<IDBPDatabase> {
-  return openDB(DB_NAME, DB_VERSION, {
-    upgrade(db, oldVersion, newVersion, transaction) {
-      // Create stores if they don't exist
-      if (!db.objectStoreNames.contains('players')) {
-        const playerStore = db.createObjectStore('players', { keyPath: 'pid' });
-        playerStore.createIndex('tid', 'tid', { multiEntry: true });
-      }
-      if (!db.objectStoreNames.contains('teams')) {
-        db.createObjectStore('teams', { keyPath: 'tid' });
-      }
-      if (!db.objectStoreNames.contains('teamSeasons')) {
-        const teamSeasonsStore = db.createObjectStore('teamSeasons', { autoIncrement: true });
-        teamSeasonsStore.createIndex('tid', 'tid');
-        teamSeasonsStore.createIndex('season', 'season');
-      }
-      if (!db.objectStoreNames.contains('meta')) {
-        db.createObjectStore('meta');
-      }
-    }
-  });
+  return openDB(DB_NAME, DB_VERSION);
 }
 
 /**
@@ -233,31 +214,6 @@ export async function readTeams(): Promise<Team[]> {
 }
 
 /**
- * Read all teamSeasons from IDB
- */
-export async function readTeamSeasons(): Promise<any[]> {
-  const db = await openLeagueDB();
-
-  try {
-    // Check if teamSeasons store exists
-    if (!db.objectStoreNames.contains('teamSeasons')) {
-      console.warn('[IDB Reader] teamSeasons store does not exist');
-      return [];
-    }
-
-    const tx = db.transaction('teamSeasons', 'readonly');
-    const store = tx.objectStore('teamSeasons');
-    const teamSeasons = await store.getAll();
-    await tx.done;
-
-    console.log('[IDB Reader] Read teamSeasons from IDB:', teamSeasons.length, 'records');
-    return teamSeasons;
-  } finally {
-    db.close();
-  }
-}
-
-/**
  * Process the league data from IDB - calculates achievements and overlaps
  */
 export async function processLeagueFromIDB(
@@ -265,12 +221,11 @@ export async function processLeagueFromIDB(
 ): Promise<LeagueData & { sport: Sport }> {
   try {
     onProgress?.('Reading from database...');
-
-    // Read players, teams, and teamSeasons in parallel
-    const [{ players, sport, gameAttributes }, teams, teamSeasons] = await Promise.all([
+    
+    // Read players and teams in parallel
+    const [{ players, sport, gameAttributes }, teams] = await Promise.all([
       readAndNormalizePlayers(onProgress),
-      readTeams(),
-      readTeamSeasons()
+      readTeams()
     ]);
     
     // Set sport detection cache
@@ -325,9 +280,8 @@ export async function processLeagueFromIDB(
     }
     
     onProgress?.('Complete!');
-
-    console.log('[IDB Reader] Returning data with teamSeasons:', teamSeasons.length, 'records');
-    return { players, teams, sport, teamOverlaps, seasonIndex, leagueYears, teamSeasons };
+    
+    return { players, teams, sport, teamOverlaps, seasonIndex, leagueYears };
     
   } catch (error) {
     console.error('Error processing league from IDB:', error);
@@ -353,16 +307,11 @@ export async function hasLeagueData(): Promise<boolean> {
 export async function clearLeagueData(): Promise<void> {
   const db = await openLeagueDB();
   try {
-    const clears = [
+    await Promise.all([
       db.clear('players'),
       db.clear('teams'),
       db.clear('meta')
-    ];
-    // Clear teamSeasons if it exists
-    if (db.objectStoreNames.contains('teamSeasons')) {
-      clears.push(db.clear('teamSeasons'));
-    }
-    await Promise.all(clears);
+    ]);
   } finally {
     db.close();
   }
