@@ -569,12 +569,12 @@ async function parseFileMobileIDB(file: File): Promise<'idb-stored'> {
               self.postMessage({ type: 'meta', sport, counts: { players: playerCount, teams: teamCount, teamSeasons: teamSeasonCount } });
             }
           } else if (currentArraySection === 'teams') {
-            const team = value.value;
+            const team = value.value as any;
             teamQueue.push(team);
             teamCount++;
             
             // Extract nested seasons from this team
-            if (team.seasons && Array.isArray(team.seasons)) {
+            if (team && typeof team === 'object' && team.seasons && Array.isArray(team.seasons)) {
               for (const season of team.seasons) {
                 teamSeasonQueue.push({
                   tid: team.tid,
