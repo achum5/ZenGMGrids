@@ -542,30 +542,10 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
   // rows.sort(() => Math.random() - 0.5);
   // cols.sort(() => Math.random() - 0.5);
 
-const POSITION_ORDER = ['PG', 'SG', 'SF', 'PF', 'C'];
-
-function sortCatTeamsByPosition(catTeams: CatTeam[]): CatTeam[] {
-  const positionMap = new Map<string, number>();
-  POSITION_ORDER.forEach((pos, index) => positionMap.set(pos, index));
-
-  return [...catTeams].sort((a, b) => {
-    const aPos = a.label.toUpperCase();
-    const bPos = b.label.toUpperCase();
-
-    const aIndex = positionMap.has(aPos) ? positionMap.get(aPos)! : Infinity;
-    const bIndex = positionMap.has(bPos) ? positionMap.get(bPos)! : Infinity;
-
-    return aIndex - bIndex;
-  });
-}
-
   // Log the achievement distribution for debugging
   const rowAchievements = rows.filter(r => r.type === 'achievement').length;
   const colAchievements = cols.filter(c => c.type === 'achievement').length;
   
-  // Sort rows and cols by position if they are position-based
-  rows = sortCatTeamsByPosition(rows);
-  cols = sortCatTeamsByPosition(cols);
 
   // Build intersections and validate
   const intersections: Record<string, number[]> = {};
@@ -1663,10 +1643,6 @@ function buildOppositeAxisForSeed(
   console.log(`Grid structure verified: 3x3 with unique constraints`);
   console.log(`Rows: ${rows.map(r => r.label).join(', ')}`);
   console.log(`Cols: ${cols.map(c => c.label).join(', ')}`);
-
-  // Sort rows and cols by position if they are position-based
-  rows = sortCatTeamsByPosition(rows);
-  cols = sortCatTeamsByPosition(cols);
   
   // Calculate intersections using the evaluation system
   const intersections: Record<string, number[]> = {};
