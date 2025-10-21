@@ -1620,7 +1620,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     style={{ 
                       backgroundColor: teamDisplayInfo.colors[0] || 'hsl(var(--primary))',
                       color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))',
-                      borderColor: teamDisplayInfo.colors[0] || 'hsl(var(--border))'
+                      borderColor: teamDisplayInfo.colors[1] || 'hsl(var(--border))'
                     }}
                     data-testid="button-new-trivia"
                   >
@@ -1638,14 +1638,17 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                         style={{ 
                           backgroundColor: teamDisplayInfo.colors[0] || 'hsl(var(--primary))',
                           color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))',
-                          borderColor: teamDisplayInfo.colors[0] || 'hsl(var(--border))'
+                          borderColor: teamDisplayInfo.colors[1] || 'hsl(var(--border))'
                         }}
                         data-testid="button-new-trivia-dropdown"
                       >
                         <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start">
+                    <DropdownMenuContent 
+                      align="start"
+                      style={{ backgroundColor: teamDisplayInfo.colors[0] || 'hsl(var(--popover))' }}
+                    >
                       <DropdownMenuItem 
                         onClick={handleSameYearNewTeam} 
                         data-testid="option-same-year-new-team"
