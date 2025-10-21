@@ -1614,8 +1614,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   const handleWinsGuessSliderMove = useCallback((newPosition: number) => {
     if (!winsGuessData || winsGuessSubmitted) return;
     
-    // Clamp position: L must be in [0, G - W]
-    const maxPosition = winsGuessData.totalGames - winsGuessData.windowWidth;
+    // Clamp position: L must be in [0, G - W + 1] so the upper bound (L + W - 1) can reach G
+    const maxPosition = winsGuessData.totalGames - winsGuessData.windowWidth + 1;
     const clampedPosition = Math.max(0, Math.min(newPosition, maxPosition));
     setWinsGuessPosition(clampedPosition);
   }, [winsGuessData, winsGuessSubmitted]);
