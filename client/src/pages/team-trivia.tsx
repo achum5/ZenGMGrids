@@ -578,7 +578,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
 
   // Helper function to calculate football stats by position
   const calculateFootballStats = (seasonStats: any, position: string) => {
-    const av = seasonStats.av || 0;
+    const av = Math.round(seasonStats.av || 0);
     
     // Helper for safe division
     const safeDivide = (num: number, denom: number, decimals: number = 1) => {
