@@ -104,12 +104,12 @@ export default function Home() {
   const [isLoadingCustomIntersection, setIsLoadingCustomIntersection] = useState(false);
   
   // Parsing method state - load from localStorage or default to 'auto'
-  const [parsingMethodSetting, setParsingMethodSetting] = useState<'auto' | 'traditional' | 'streaming' | 'mobile-idb'>(() => 
+  const [parsingMethodSetting, setParsingMethodSetting] = useState<ParsingMethod>(() => 
     getStoredParsingMethod()
   );
   
   // Displayed method in UI - shows actual method when auto is selected and uploading
-  const [displayedMethod, setDisplayedMethod] = useState<'auto' | 'traditional' | 'streaming' | 'mobile-idb'>(() => 
+  const [displayedMethod, setDisplayedMethod] = useState<ParsingMethod>(() => 
     getStoredParsingMethod()
   );
   
@@ -160,7 +160,7 @@ export default function Home() {
   }, []);
 
   // Handle parsing method change
-  const handleParsingMethodChange = useCallback((method: 'auto' | 'traditional' | 'streaming' | 'mobile-idb') => {
+  const handleParsingMethodChange = useCallback((method: ParsingMethod) => {
     setParsingMethodSetting(method);
     setDisplayedMethod(method); // Update display to match setting
     storeParsingMethod(method);
