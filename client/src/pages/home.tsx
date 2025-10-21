@@ -554,8 +554,22 @@ export default function Home() {
       setCurrentFileName(storedLeague.name);
       setCurrentFileSize(storedLeague.fileSize);
       
-      // Load the league data directly without saving again
-      await processLeagueData(storedLeague.leagueData);
+      // Check if this is a metadata-only save (large file on mobile)
+      if (storedLeague.isMetadataOnly) {
+        console.log('[MOBILE] Loading metadata-only league - reading from grids-league IDB');
+        setUploadProgress({ message: 'Loading from database...', loaded: 10, total: 100 });
+        
+        // Load the full data from grids-league IDB
+        const { processLeagueFromIDB } = await import('@/lib/idb-league-reader');
+        const data = await processLeagueFromIDB((message) => {
+          setUploadProgress({ message, loaded: 50, total: 100 });
+        });
+        
+        await processLeagueData(data, storedLeague.name, storedLeague.fileSize);
+      } else {
+        // Normal save with full league data
+        await processLeagueData(storedLeague.leagueData);
+      }
       
       toast({
         title: 'League loaded',
@@ -786,10 +800,7 @@ export default function Home() {
     debugIndividualAchievements(data.players, data.seasonIndex);
     
     // Automatically save the league to storage
-    // MOBILE FIX: Skip save on mobile for large files - data already in IDB, save would crash browser
-    const skipSaveOnMobile = isMobile && isHugeFile;
-    
-    if (fileName && data.sport && !skipSaveOnMobile) {
+    if (fileName && data.sport) {
       try {
         setUploadProgress({ message: 'Saving league...', loaded: 95, total: 100 });
         
@@ -805,7 +816,27 @@ export default function Home() {
           sampleTeamSeason: data.teamSeasons?.[0]
         });
         
-        await saveLeague(cleanName, data, data.sport, fileSize);
+        // MOBILE FIX: Use lightweight metadata-only save for large files on mobile
+        if (isMobile && isHugeFile) {
+          const { saveLeagueMetadata } = await import('@/lib/league-storage');
+          const seasons = data.leagueYears ? { 
+            min: data.leagueYears.minSeason, 
+            max: data.leagueYears.maxSeason 
+          } : undefined;
+          
+          await saveLeagueMetadata(
+            cleanName,
+            data.sport,
+            playerCount,
+            data.teams?.length || 0,
+            fileSize,
+            seasons
+          );
+          console.log('[MOBILE] Saved league metadata (lightweight) - data remains in IndexedDB');
+        } else {
+          // Normal save for desktop or smaller files
+          await saveLeague(cleanName, data, data.sport, fileSize);
+        }
         
         toast({
           title: 'League saved',
@@ -815,8 +846,6 @@ export default function Home() {
         console.error('Error saving league:', error);
         // Don't show error toast - saving is optional
       }
-    } else if (skipSaveOnMobile) {
-      console.log('[MOBILE] Skipping league save for large file - data already in IndexedDB');
     }
     
     setUploadProgress({ message: 'Complete!', loaded: 100, total: 100 });

@@ -15,6 +15,7 @@ export interface StoredLeague {
   numPlayers?: number;
   numTeams?: number;
   seasons?: { min: number; max: number };
+  isMetadataOnly?: boolean; // Flag for lightweight saves that reference grids-league IDB
 }
 
 async function getDB(): Promise<IDBPDatabase> {
@@ -69,6 +70,41 @@ export async function saveLeague(
     numPlayers,
     numTeams,
     seasons,
+  };
+  
+  await db.put(STORE_NAME, storedLeague);
+  return id;
+}
+
+/**
+ * Save league metadata only (for large files on mobile)
+ * The actual league data stays in the grids-league IDB from streaming upload
+ */
+export async function saveLeagueMetadata(
+  name: string,
+  sport: 'basketball' | 'football' | 'hockey' | 'baseball',
+  numPlayers: number,
+  numTeams: number,
+  fileSize?: number,
+  seasons?: { min: number; max: number }
+): Promise<string> {
+  const db = await getDB();
+  
+  // Generate unique ID based on timestamp
+  const id = `league_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  // Store only metadata - the actual data is in grids-league IDB
+  const storedLeague: StoredLeague = {
+    id,
+    name,
+    sport,
+    savedAt: Date.now(),
+    leagueData: {} as LeagueData, // Empty placeholder
+    fileSize,
+    numPlayers,
+    numTeams,
+    seasons,
+    isMetadataOnly: true, // Flag indicating this references grids-league IDB
   };
   
   await db.put(STORE_NAME, storedLeague);
