@@ -517,9 +517,9 @@ export default function Home() {
       setCurrentFileSize(undefined); // Unknown size for URLs
 
       // Determine which method to use based on setting
-      // Note: For URLs, we can't check file size upfront, so we use device-based detection
+      // For URLs, always use streaming when in auto mode (can't reliably detect size upfront)
       const method: ParsingMethod = parsingMethodSetting === 'auto'
-        ? getRecommendedMethod()
+        ? 'streaming'
         : parsingMethodSetting;
 
       // Update displayed method to show actual method being used
