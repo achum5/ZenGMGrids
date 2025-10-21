@@ -90,8 +90,11 @@ type BasketballRoundType = 'guess' | 'hint' | 'points-leader' | 'rebounds-leader
 // Football rounds
 type FootballRoundType = 'guess' | 'hint' | 'passing-yards-leader' | 'rushing-yards-leader' | 'receiving-yards-leader' | 'tackles-leader' | 'sacks-leader' | 'interceptions-leader' | 'complete';
 
+// Baseball rounds
+type BaseballRoundType = 'guess' | 'hint' | 'hits-leader' | 'home-runs-leader' | 'rbis-leader' | 'stolen-bases-leader' | 'strikeouts-leader' | 'wins-leader' | 'complete';
+
 // Union type for all possible rounds
-type RoundType = BasketballRoundType | FootballRoundType;
+type RoundType = BasketballRoundType | FootballRoundType | BaseballRoundType;
 
 // Sport-specific round orders
 const BASKETBALL_ROUND_ORDER: BasketballRoundType[] = [
@@ -114,6 +117,18 @@ const FOOTBALL_ROUND_ORDER: FootballRoundType[] = [
   'tackles-leader',
   'sacks-leader',
   'interceptions-leader',
+  'complete'
+];
+
+const BASEBALL_ROUND_ORDER: BaseballRoundType[] = [
+  'guess',
+  'hint',
+  'hits-leader',
+  'home-runs-leader',
+  'rbis-leader',
+  'stolen-bases-leader',
+  'strikeouts-leader',
+  'wins-leader',
   'complete'
 ];
 
@@ -141,6 +156,18 @@ const FOOTBALL_ROUND_INSTRUCTIONS: Record<FootballRoundType, string> = {
   'complete': 'Round complete!'
 };
 
+const BASEBALL_ROUND_INSTRUCTIONS: Record<BaseballRoundType, string> = {
+  'guess': 'Guess the players on this team',
+  'hint': 'Hints revealed! Keep guessing',
+  'hits-leader': 'Click on the team hits leader',
+  'home-runs-leader': 'Click on the team home runs leader',
+  'rbis-leader': 'Click on the team RBIs leader',
+  'stolen-bases-leader': 'Click on the team stolen bases leader',
+  'strikeouts-leader': 'Click on the team strikeouts leader',
+  'wins-leader': 'Click on the team wins leader',
+  'complete': 'Round complete!'
+};
+
 export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }: TeamTriviaProps) {
   const { toast } = useToast();
   const [guess, setGuess] = useState('');
@@ -164,12 +191,18 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   const tileRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
   // Get sport-specific round order
-  const ROUND_ORDER = leagueData.sport === 'football' ? FOOTBALL_ROUND_ORDER : BASKETBALL_ROUND_ORDER;
+  const ROUND_ORDER = leagueData.sport === 'football' 
+    ? FOOTBALL_ROUND_ORDER 
+    : leagueData.sport === 'baseball'
+    ? BASEBALL_ROUND_ORDER
+    : BASKETBALL_ROUND_ORDER;
 
   // Get sport-specific instructions
   const getRoundInstruction = (round: RoundType): string => {
     if (leagueData.sport === 'football') {
       return FOOTBALL_ROUND_INSTRUCTIONS[round as FootballRoundType] || '';
+    } else if (leagueData.sport === 'baseball') {
+      return BASEBALL_ROUND_INSTRUCTIONS[round as BaseballRoundType] || '';
     }
     return BASKETBALL_ROUND_INSTRUCTIONS[round as BasketballRoundType] || '';
   };
