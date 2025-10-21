@@ -1424,7 +1424,7 @@ export default function Home() {
               </div>
             </div>
           </div>
-          <AccentLine />
+          <AccentLine isHovered={isHeaderHovered} />
         </header>
         <main className="max-w-2xl mx-auto px-6 py-8 space-y-8">
           <SavedLeagues onLoadLeague={handleLoadLeague} />
@@ -1511,10 +1511,10 @@ export default function Home() {
               {hasGuesses ? (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-9 px-3" data-testid="button-back">
+                    <Button variant="ghost" size="sm" data-testid="button-back">
                       <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
                       <span className="sr-only">Go back</span>
-                    </button>
+                    </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
@@ -1538,10 +1538,10 @@ export default function Home() {
               {hasGuesses ? (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-9 px-3" data-testid="button-home">
+                    <Button variant="ghost" size="sm" data-testid="button-home">
                       <HomeIcon className="h-[1.2rem] w-[1.2rem]" />
                       <span className="sr-only">Go home</span>
-                    </button>
+                    </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
@@ -1565,7 +1565,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-        <AccentLine />
+        <AccentLine isHovered={isHeaderHovered} />
       </header>
       <main className="max-w-4xl mx-auto px-6 py-8">
         <GridSection
