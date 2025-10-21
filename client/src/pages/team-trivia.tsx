@@ -898,7 +898,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     size="sm"
                     onClick={handleNew}
                     className="neon-button animate-on-click rounded-r-none border-r-0 text-xs sm:text-sm px-2 sm:px-4 h-8 sm:h-10"
-                    style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))' }}
                     data-testid="button-new-trivia"
                   >
                     <Shuffle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
@@ -912,7 +911,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                         variant="outline"
                         size="sm"
                         className="neon-button animate-on-click rounded-l-none px-1 sm:px-2 h-8 sm:h-10"
-                        style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))' }}
                         data-testid="button-new-trivia-dropdown"
                       >
                         <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -940,8 +938,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                       variant="ghost"
                       role="combobox"
                       aria-expanded={yearDropdownOpen}
-                      className="text-lg sm:text-2xl md:text-3xl font-bold px-2 sm:px-4 py-1 sm:py-2 h-8 sm:h-auto animate-on-click shrink-0 hover:bg-accent/50"
-                      style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary))' }}
+                      className="text-lg sm:text-2xl md:text-3xl font-bold neon-text px-2 sm:px-4 py-1 sm:py-2 h-8 sm:h-auto animate-on-click shrink-0 hover:bg-accent/50"
                       data-testid="button-year-dropdown"
                     >
                       <ChevronDown className="mr-1 sm:mr-2 h-3 w-3 sm:h-5 sm:w-5" />
@@ -1050,7 +1047,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
               </div>
   
               {/* Right side: Score Counter */}
-              <div className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold shrink-0" data-testid="text-score-counter">
+              <div className="text-xs sm:text-base md:text-lg font-bold shrink-0" data-testid="text-score-counter">
                 <span style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary))' }}>Score: {score}</span>
               </div>
             </div>
