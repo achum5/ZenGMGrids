@@ -958,14 +958,14 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                       variant="ghost"
                       role="combobox"
                       aria-expanded={teamDropdownOpen}
-                      className="flex items-center gap-1 sm:gap-3 hover:bg-accent/50 px-2 sm:px-4 py-1 sm:py-2 h-8 sm:h-auto animate-on-click min-w-0"
+                      className="flex items-center gap-1 sm:gap-2 hover:bg-accent/50 px-2 sm:px-3 py-1 sm:py-2 h-8 sm:h-auto animate-on-click min-w-0"
                       data-testid="button-team-dropdown"
                     >
                       {(teamDisplayInfo.logo || selectedTeam?.imgURL) ? (
                         <img
                           src={teamDisplayInfo.logo || selectedTeam?.imgURL}
                           alt={teamDisplayInfo.name}
-                          className="h-6 w-6 sm:h-8 sm:w-8 object-contain shrink-0"
+                          className="h-6 w-6 sm:h-10 sm:w-10 object-contain shrink-0"
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';
                             e.currentTarget.nextElementSibling?.classList.remove('hidden');
