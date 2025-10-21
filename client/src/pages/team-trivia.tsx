@@ -1314,6 +1314,14 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     }
   }, [activeIndex]);
 
+  // Reset wins guess state when entering wins-guess round
+  useEffect(() => {
+    if (currentRound === 'wins-guess') {
+      setWinsGuessPosition(0); // Start at left edge
+      setWinsGuessSubmitted(false);
+    }
+  }, [currentRound]);
+
   // Progress to next round
   const handleNextRound = useCallback(() => {
     const currentIndex = ROUND_ORDER.indexOf(currentRound as any);
@@ -1546,6 +1554,75 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     setScore(0);
     setGuess('');
   }, [selectedSeason, selectedTeam, allSeasons, leagueData.players, buildRoster, toast]);
+
+  // Wins Guess: Move slider
+  const handleWinsGuessSliderMove = useCallback((newPosition: number) => {
+    if (!winsGuessData || winsGuessSubmitted) return;
+    
+    // Clamp position: L must be in [0, G - W]
+    const maxPosition = winsGuessData.totalGames - winsGuessData.windowWidth;
+    const clampedPosition = Math.max(0, Math.min(newPosition, maxPosition));
+    setWinsGuessPosition(clampedPosition);
+  }, [winsGuessData, winsGuessSubmitted]);
+
+  // Wins Guess: Submit guess
+  const handleWinsGuessSubmit = useCallback(() => {
+    if (!winsGuessData || winsGuessSubmitted) return;
+
+    const L = winsGuessPosition;
+    const R = L + winsGuessData.windowWidth - 1;
+    const A = winsGuessData.actualWins;
+
+    // Check if A ∈ [L, R]
+    const isCorrect = A >= L && A <= R;
+
+    setWinsGuessSubmitted(true);
+
+    if (isCorrect) {
+      toast({
+        description: `Correct! The team had ${A} wins. +10 points`,
+      });
+      setScore(prev => prev + 10);
+    } else {
+      toast({
+        description: `Incorrect. The team had ${A} wins.`,
+        variant: 'destructive',
+      });
+    }
+
+    // Move to next round after a brief delay
+    setTimeout(() => {
+      handleNextRound();
+    }, 2000);
+  }, [winsGuessData, winsGuessPosition, winsGuessSubmitted, toast, handleNextRound]);
+
+  // Wins Guess: Keyboard controls
+  const handleWinsGuessKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!winsGuessData || winsGuessSubmitted) return;
+
+    let delta = 0;
+    if (e.key === 'ArrowLeft') {
+      delta = -1;
+      e.preventDefault();
+    } else if (e.key === 'ArrowRight') {
+      delta = 1;
+      e.preventDefault();
+    } else if (e.key === 'PageDown') {
+      delta = 5;
+      e.preventDefault();
+    } else if (e.key === 'PageUp') {
+      delta = -5;
+      e.preventDefault();
+    } else if (e.key === 'Enter') {
+      handleWinsGuessSubmit();
+      e.preventDefault();
+      return;
+    }
+
+    if (delta !== 0) {
+      handleWinsGuessSliderMove(winsGuessPosition + delta);
+    }
+  }, [winsGuessData, winsGuessPosition, winsGuessSubmitted, handleWinsGuessSliderMove, handleWinsGuessSubmit]);
 
   const hasProgress = foundCount > 0;
 
@@ -2217,6 +2294,120 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     </div>
                   )}
                 </div>
+              ) : currentRound === 'wins-guess' ? (
+                /* Wins Guess Phase */
+                winsGuessData ? (
+                  <div className="flex-1" onKeyDown={handleWinsGuessKeyDown} tabIndex={0} data-testid="wins-guess-container">
+                    <div className="space-y-4">
+                      {/* Title */}
+                      <div className="text-center">
+                        <p className="text-xl sm:text-2xl font-bold text-white">
+                          How many wins did {teamDisplayInfo.name} have in {selectedSeason}?
+                        </p>
+                      </div>
+
+                      {/* Slider Track */}
+                      <div className="px-4">
+                        <div className="relative h-16">
+                          {/* Track background */}
+                          <div className="absolute top-6 left-0 right-0 h-2 bg-muted rounded-full"></div>
+
+                          {/* Tick marks */}
+                          {[0, 0.25, 0.5, 0.75, 1].map((pct) => {
+                            const tickPos = Math.round(winsGuessData.totalGames * pct);
+                            const leftPct = (tickPos / winsGuessData.totalGames) * 100;
+                            return (
+                              <div key={pct} className="absolute" style={{ left: `${leftPct}%`, top: '0' }}>
+                                <div className="relative" style={{ transform: 'translateX(-50%)' }}>
+                                  <div className="w-px h-4 bg-muted-foreground/50"></div>
+                                  <div className="text-xs text-muted-foreground mt-1">{tickPos}</div>
+                                </div>
+                              </div>
+                            );
+                          })}
+
+                          {/* Draggable Window */}
+                          <div
+                            className="absolute top-5 h-4 bg-primary/80 rounded cursor-grab active:cursor-grabbing border-2 border-primary"
+                            style={{
+                              left: `${(winsGuessPosition / winsGuessData.totalGames) * 100}%`,
+                              width: `${(winsGuessData.windowWidth / winsGuessData.totalGames) * 100}%`,
+                            }}
+                            onMouseDown={(e) => {
+                              if (winsGuessSubmitted) return;
+                              const startX = e.clientX;
+                              const startPos = winsGuessPosition;
+                              
+                              const handleMouseMove = (moveE: MouseEvent) => {
+                                const deltaX = moveE.clientX - startX;
+                                const trackWidth = e.currentTarget.parentElement!.clientWidth;
+                                const deltaWins = Math.round((deltaX / trackWidth) * winsGuessData.totalGames);
+                                handleWinsGuessSliderMove(startPos + deltaWins);
+                              };
+                              
+                              const handleMouseUp = () => {
+                                document.removeEventListener('mousemove', handleMouseMove);
+                                document.removeEventListener('mouseup', handleMouseUp);
+                              };
+                              
+                              document.addEventListener('mousemove', handleMouseMove);
+                              document.addEventListener('mouseup', handleMouseUp);
+                            }}
+                            data-testid="wins-guess-slider"
+                          ></div>
+
+                          {/* Actual wins marker (shown after submit) */}
+                          {winsGuessSubmitted && (
+                            <div
+                              className="absolute top-3 w-1 h-8 bg-green-500"
+                              style={{
+                                left: `${(winsGuessData.actualWins / winsGuessData.totalGames) * 100}%`,
+                                transform: 'translateX(-50%)',
+                              }}
+                              data-testid="actual-wins-marker"
+                            ></div>
+                          )}
+                        </div>
+
+                        {/* Range Display */}
+                        <div className="text-center mt-6">
+                          <p className="text-lg text-white">
+                            Selected Range: <span className="font-bold">{winsGuessPosition}–{winsGuessPosition + winsGuessData.windowWidth - 1}</span> wins
+                          </p>
+                          {winsGuessSubmitted && (
+                            <p className="text-lg mt-2">
+                              <span className={winsGuessData.actualWins >= winsGuessPosition && winsGuessData.actualWins <= winsGuessPosition + winsGuessData.windowWidth - 1 ? 'text-green-400' : 'text-red-400'}>
+                                Actual: {winsGuessData.actualWins} wins
+                              </span>
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Submit Button */}
+                        {!winsGuessSubmitted && (
+                          <div className="text-center mt-4">
+                            <Button
+                              onClick={handleWinsGuessSubmit}
+                              className="neon-button animate-on-click px-8"
+                              data-testid="button-submit-wins-guess"
+                            >
+                              Submit Guess
+                            </Button>
+                          </div>
+                        )}
+
+                        {/* Keyboard hints */}
+                        {!winsGuessSubmitted && (
+                          <div className="text-center mt-4">
+                            <p className="text-xs text-muted-foreground">
+                              Use ← → arrows (±1) or Page Up/Down (±5) • Enter to submit
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : null
               ) : currentRound.endsWith('-leader') ? (
                 /* Leader round prompt - centered in footer */
                 <div className="flex-1 text-center">
@@ -2255,7 +2446,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
               ) : null}
 
               {/* Right: Next Round button (use ml-auto to push it right) */}
-              {currentRound !== 'complete' && (
+              {currentRound !== 'complete' && currentRound !== 'wins-guess' && (
                 <Button
                   variant="default"
                   size="lg"
