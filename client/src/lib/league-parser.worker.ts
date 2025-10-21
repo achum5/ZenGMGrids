@@ -357,7 +357,7 @@ async function parseFileMobileIDB(file: File): Promise<'idb-stored'> {
   postProgress('Setting up database...', 5, 100);
   
   // Open/create IndexedDB
-  const db = await openDB('grids-league', 3, {
+  const db = await openDB('grids-league', 4, {
     upgrade(db, oldVersion) {
       // Create stores if they don't exist
       if (!db.objectStoreNames.contains('players')) {
@@ -367,16 +367,22 @@ async function parseFileMobileIDB(file: File): Promise<'idb-stored'> {
       if (!db.objectStoreNames.contains('teams')) {
         db.createObjectStore('teams', { keyPath: 'tid' });
       }
+      if (!db.objectStoreNames.contains('teamSeasons')) {
+        const teamSeasonsStore = db.createObjectStore('teamSeasons', { autoIncrement: true });
+        teamSeasonsStore.createIndex('tid', 'tid');
+        teamSeasonsStore.createIndex('season', 'season');
+      }
       if (!db.objectStoreNames.contains('meta')) {
         db.createObjectStore('meta');
       }
     }
   });
-  
+
   // Clear old data
   postProgress('Clearing previous data...', 10, 100);
   await db.clear('players');
   await db.clear('teams');
+  await db.clear('teamSeasons');
   await db.clear('meta');
   
   const isCompressed = file.name.endsWith('.gz');
@@ -409,16 +415,18 @@ async function parseFileMobileIDB(file: File): Promise<'idb-stored'> {
   postProgress('Streaming to database...', 20, 100);
   
   // Parse with wildcard paths to get individual items
-  const jsonParser = new JSONParser({ 
+  const jsonParser = new JSONParser({
     paths: [
       '$.version',
       '$.startingSeason',
       '$.gameAttributes',
       '$.players.*',
       '$.teams.*',
+      '$.teamSeasons.*',
+      '$.teamStats.*',
       '$.meta'
     ],
-    keepStack: false 
+    keepStack: false
   });
   
   const jsonStream = dataStream.pipeThrough(jsonParser);
@@ -427,18 +435,20 @@ async function parseFileMobileIDB(file: File): Promise<'idb-stored'> {
   // Buffers for batching
   const playerQueue: any[] = [];
   const teamQueue: any[] = [];
+  const teamSeasonsQueue: any[] = [];
   const BATCH_SIZE = 200;
   const MAX_QUEUE = 400;
-  
+
   let itemCount = 0;
   let playerCount = 0;
   let teamCount = 0;
+  let teamSeasonsCount = 0;
   let sport: string | null = null;
   let meta: any = null;
   let version: any = null;
   let startingSeason: any = null;
   let gameAttributes: any = null;
-  let currentArraySection: 'players' | 'teams' | null = null;
+  let currentArraySection: 'players' | 'teams' | 'teamSeasons' | null = null;
   
   // Helper to detect sport from player
   const detectSportFromPlayer = (player: any) => {
@@ -452,9 +462,9 @@ async function parseFileMobileIDB(file: File): Promise<'idb-stored'> {
   
   // Helper to flush buffers to IDB
   const flushBuffers = async (force = false) => {
-    const shouldFlush = force || playerQueue.length >= BATCH_SIZE || teamQueue.length >= BATCH_SIZE;
+    const shouldFlush = force || playerQueue.length >= BATCH_SIZE || teamQueue.length >= BATCH_SIZE || teamSeasonsQueue.length >= BATCH_SIZE;
     if (!shouldFlush) return;
-    
+
     if (playerQueue.length > 0) {
       const tx = db.transaction('players', 'readwrite');
       const store = tx.objectStore('players');
@@ -464,7 +474,7 @@ async function parseFileMobileIDB(file: File): Promise<'idb-stored'> {
       }
       await tx.done;
     }
-    
+
     if (teamQueue.length > 0) {
       const tx = db.transaction('teams', 'readwrite');
       const store = tx.objectStore('teams');
@@ -474,12 +484,22 @@ async function parseFileMobileIDB(file: File): Promise<'idb-stored'> {
       }
       await tx.done;
     }
+
+    if (teamSeasonsQueue.length > 0) {
+      const tx = db.transaction('teamSeasons', 'readwrite');
+      const store = tx.objectStore('teamSeasons');
+      const batch = teamSeasonsQueue.splice(0, Math.min(BATCH_SIZE, teamSeasonsQueue.length));
+      for (const teamSeason of batch) {
+        await store.add(teamSeason);
+      }
+      await tx.done;
+    }
   };
   
   try {
     while (true) {
       // Backpressure: pause if queue too large
-      while (playerQueue.length + teamQueue.length > MAX_QUEUE) {
+      while (playerQueue.length + teamQueue.length + teamSeasonsQueue.length > MAX_QUEUE) {
         await flushBuffers(true);
         await new Promise(resolve => setTimeout(resolve, 20));
       }
@@ -491,37 +511,34 @@ async function parseFileMobileIDB(file: File): Promise<'idb-stored'> {
         const keyString = typeof value.key === 'string' ? value.key : String(value.key);
         const pathArray = keyString ? keyString.split('.').filter(Boolean) : [];
         const topLevelKey = pathArray[0];
-        
+
         if (!topLevelKey) continue;
-        
-        const isArrayIndex = /^\d+$/.test(topLevelKey);
-        
-        if (isArrayIndex) {
-          // Determine which array based on order
-          if (topLevelKey === '0') {
-            if (!currentArraySection) {
-              currentArraySection = 'players';
-              postProgress('Processing players...', 25, 100);
-            } else if (currentArraySection === 'players') {
-              currentArraySection = 'teams';
-              postProgress('Processing teams...', 70, 100);
-            }
-          }
-          
-          if (currentArraySection === 'players') {
+
+        // Check if this is an array item (path like "players.0", "teams.5", etc.)
+        const isArrayItem = pathArray.length >= 2 && /^\d+$/.test(pathArray[1]);
+
+        if (isArrayItem) {
+          // Determine array type from path
+          if (topLevelKey === 'players') {
             detectSportFromPlayer(value.value);
             playerQueue.push(value.value);
             playerCount++;
-            
+
             // Progress update every 1000 players
             if (playerCount % 1000 === 0) {
               const pct = Math.min(65, 25 + (playerCount / 1000) * 2);
               postProgress(`Processed ${playerCount.toLocaleString()} players...`, pct, 100);
-              self.postMessage({ type: 'meta', sport, counts: { players: playerCount, teams: teamCount } });
+              self.postMessage({ type: 'meta', sport, counts: { players: playerCount, teams: teamCount, teamSeasons: teamSeasonsCount } });
             }
-          } else if (currentArraySection === 'teams') {
+          } else if (topLevelKey === 'teams') {
             teamQueue.push(value.value);
             teamCount++;
+          } else if (topLevelKey === 'teamSeasons' || topLevelKey === 'teamStats') {
+            teamSeasonsQueue.push(value.value);
+            teamSeasonsCount++;
+            if (teamSeasonsCount % 500 === 0) {
+              postProgress(`Processed ${teamSeasonsCount} team seasons...`, 75, 100);
+            }
           }
         } else {
           // Non-array values
@@ -532,7 +549,6 @@ async function parseFileMobileIDB(file: File): Promise<'idb-stored'> {
             if (gameAttributes?.sport) sport = gameAttributes.sport;
           }
           else if (topLevelKey === 'meta') meta = value.value;
-          currentArraySection = null;
         }
         
         itemCount++;
@@ -554,7 +570,7 @@ async function parseFileMobileIDB(file: File): Promise<'idb-stored'> {
     await flushBuffers(true);
     
     // Store metadata
-    await db.put('meta', { sport, playerCount, teamCount, version, startingSeason, gameAttributes, meta }, 'importMeta');
+    await db.put('meta', { sport, playerCount, teamCount, teamSeasonsCount, version, startingSeason, gameAttributes, meta }, 'importMeta');
     
     postProgress('Import complete', 100, 100);
     db.close();
