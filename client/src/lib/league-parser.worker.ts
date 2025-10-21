@@ -66,7 +66,7 @@ async function parseFileStreaming(file: File): Promise<any> {
       '$.gameAttributes',
       '$.players.*',        // Individual players, not entire array
       '$.teams.*',          // Individual teams, not entire array
-      '$.teamSeasons.*',
+      '$.teamSeasons.*',    // Individual team season records
       '$.teamStats.*',
       '$.games.*',
       '$.schedule.*',
@@ -95,6 +95,7 @@ async function parseFileStreaming(file: File): Promise<any> {
   let itemCount = 0;
   let playerCount = 0;
   let teamCount = 0;
+  let teamSeasonCount = 0;
   
   try {
     while (true) {
@@ -102,6 +103,11 @@ async function parseFileStreaming(file: File): Promise<any> {
       
       if (done) {
         postProgress('File parsing complete', 50, 100);
+        console.log('[Streaming Parser] Final counts:', {
+          players: playerCount,
+          teams: teamCount,
+          teamSeasons: teamSeasonCount
+        });
         return result;
       }
       
@@ -114,7 +120,7 @@ async function parseFileStreaming(file: File): Promise<any> {
         if (!topLevelKey) continue;
         
         // Check if this is an array item (path has 2+ parts with numeric index)
-        // e.g., "players.0", "teams.5" etc.
+        // e.g., "players.0", "teams.5", "teamSeasons.0" etc.
         const isArrayItem = pathArray.length >= 2 && /^\d+$/.test(pathArray[1]);
         
         if (isArrayItem) {
@@ -127,6 +133,8 @@ async function parseFileStreaming(file: File): Promise<any> {
               postProgress('Processing players...', 25, 100);
             } else if (topLevelKey === 'teams') {
               postProgress('Processing teams...', 40, 100);
+            } else if (topLevelKey === 'teamSeasons') {
+              postProgress('Processing team seasons...', 43, 100);
             }
           }
           
@@ -145,6 +153,11 @@ async function parseFileStreaming(file: File): Promise<any> {
             teamCount++;
             if (teamCount % 10 === 0) {
               postProgress(`Processed ${teamCount} teams...`, 42, 100);
+            }
+          } else if (topLevelKey === 'teamSeasons') {
+            teamSeasonCount++;
+            if (teamSeasonCount % 100 === 0) {
+              postProgress(`Processed ${teamSeasonCount} team seasons...`, 45, 100);
             }
           }
           
@@ -212,7 +225,7 @@ async function parseUrlStreaming(url: string): Promise<any> {
       '$.gameAttributes',
       '$.players.*',        // Individual players, not entire array
       '$.teams.*',          // Individual teams, not entire array
-      '$.teamSeasons.*',
+      '$.teamSeasons.*',    // Individual team season records
       '$.teamStats.*',
       '$.games.*',
       '$.schedule.*',
@@ -241,6 +254,7 @@ async function parseUrlStreaming(url: string): Promise<any> {
   let itemCount = 0;
   let playerCount = 0;
   let teamCount = 0;
+  let teamSeasonCount = 0;
   
   try {
     while (true) {
@@ -248,6 +262,11 @@ async function parseUrlStreaming(url: string): Promise<any> {
       
       if (done) {
         postProgress('File parsing complete', 50, 100);
+        console.log('[URL Streaming Parser] Final counts:', {
+          players: playerCount,
+          teams: teamCount,
+          teamSeasons: teamSeasonCount
+        });
         return result;
       }
       
@@ -260,7 +279,7 @@ async function parseUrlStreaming(url: string): Promise<any> {
         if (!topLevelKey) continue;
         
         // Check if this is an array item (path has 2+ parts with numeric index)
-        // e.g., "players.0", "teams.5" etc.
+        // e.g., "players.0", "teams.5", "teamSeasons.0" etc.
         const isArrayItem = pathArray.length >= 2 && /^\d+$/.test(pathArray[1]);
         
         if (isArrayItem) {
@@ -273,6 +292,8 @@ async function parseUrlStreaming(url: string): Promise<any> {
               postProgress('Processing players...', 25, 100);
             } else if (topLevelKey === 'teams') {
               postProgress('Processing teams...', 40, 100);
+            } else if (topLevelKey === 'teamSeasons') {
+              postProgress('Processing team seasons...', 43, 100);
             }
           }
           
@@ -291,6 +312,11 @@ async function parseUrlStreaming(url: string): Promise<any> {
             teamCount++;
             if (teamCount % 10 === 0) {
               postProgress(`Processed ${teamCount} teams...`, 42, 100);
+            }
+          } else if (topLevelKey === 'teamSeasons') {
+            teamSeasonCount++;
+            if (teamSeasonCount % 100 === 0) {
+              postProgress(`Processed ${teamSeasonCount} team seasons...`, 45, 100);
             }
           }
           
