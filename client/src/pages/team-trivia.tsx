@@ -1035,6 +1035,13 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       case 'wins-leader':
         correctLeaderPid = (statLeaders as any).wins;
         break;
+      // Hockey rounds
+      case 'goals-leader':
+        correctLeaderPid = (statLeaders as any).goals;
+        break;
+      case 'goalie-wins-leader':
+        correctLeaderPid = (statLeaders as any).goalieWins;
+        break;
     }
 
     if (correctLeaderPid === null) return;
