@@ -692,7 +692,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                 className="border-border shrink-0"
                 onMouseEnter={() => setIsHeaderHovered(true)}
                 onMouseLeave={() => setIsHeaderHovered(false)}
-                style={{ position: 'relative', backgroundColor: selectedTeam?.colors?.[1] || 'hsl(var(--card))' }}
+                style={{ position: 'relative', backgroundColor: selectedTeam?.colors?.[0] || 'hsl(var(--card))' }}
               >          <div className="max-w-6xl mx-auto px-6 py-4">
             <div className="relative flex items-center justify-start md:justify-center">
               <div className="flex items-center space-x-3">
