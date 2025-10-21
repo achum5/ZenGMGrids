@@ -689,7 +689,7 @@ export default function Home() {
     }
   }, [createTestData]);
 
-  const processLeagueData = useCallback(async (data: LeagueData, fileName?: string, fileSize?: number) => {
+  const processLeagueData = useCallback(async (data: LeagueData & { isFullyProcessed?: boolean; byName?: any; byPid?: any; searchablePlayers?: any; teamsByTid?: any }, fileName?: string, fileSize?: number) => {
     // Clear caches for the new player dataset
     clearIntersectionCachesForPlayers(data.players);
     
@@ -713,36 +713,46 @@ export default function Home() {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     
-    // Build search indices (async with yielding for mobile)
-    setUploadProgress({ message: 'Building search index...', loaded: 50, total: 100 });
-    const indices = await buildSearchIndex(data.players, data.teams);
-    setByName(indices.byName);
-    setByPid(indices.byPid);
-    setSearchablePlayers(indices.searchablePlayers);
-    setTeamsByTid(indices.teamsByTid);
+    // MOBILE FIX: Skip redundant processing if data comes from IDB (already fully processed)
+    if (data.isFullyProcessed && data.byName && data.byPid && data.searchablePlayers && data.teamsByTid) {
+      console.log('[MOBILE] Using pre-built search indices from IDB processing - skipping rebuild');
+      setByName(data.byName);
+      setByPid(data.byPid);
+      setSearchablePlayers(data.searchablePlayers);
+      setTeamsByTid(data.teamsByTid);
+      setUploadProgress({ message: 'Finalizing...', loaded: 90, total: 100 });
+    } else {
+      // Build search indices (async with yielding for mobile) - only for traditional/streaming uploads
+      setUploadProgress({ message: 'Building search index...', loaded: 50, total: 100 });
+      const indices = await buildSearchIndex(data.players, data.teams);
+      setByName(indices.byName);
+      setByPid(indices.byPid);
+      setSearchablePlayers(indices.searchablePlayers);
+      setTeamsByTid(indices.teamsByTid);
 
-    // Calculate team seasons and achievement seasons for each player
-    // MOBILE FIX: More aggressive yielding on mobile to prevent crashes
-    setUploadProgress({ message: 'Calculating player achievements...', loaded: 75, total: 100 });
-    const yieldInterval = isMobile ? 250 : 500; // More frequent yielding on mobile
-    const batchSize = isMobile ? 100 : 250; // Smaller processing batches on mobile
-    
-    for (let i = 0; i < data.players.length; i += batchSize) {
-      // Process in batches
-      const end = Math.min(i + batchSize, data.players.length);
-      for (let j = i; j < end; j++) {
-        calculateTeamSeasonsAndAchievementSeasons(data.players[j], data.teamOverlaps, data.gameAttributes);
-      }
+      // Calculate team seasons and achievement seasons for each player
+      // MOBILE FIX: More aggressive yielding on mobile to prevent crashes
+      setUploadProgress({ message: 'Calculating player achievements...', loaded: 75, total: 100 });
+      const yieldInterval = isMobile ? 250 : 500; // More frequent yielding on mobile
+      const batchSize = isMobile ? 100 : 250; // Smaller processing batches on mobile
       
-      // Yield control after each batch
-      if (i % yieldInterval === 0 && i > 0) {
-        const progress = Math.floor((i / data.players.length) * 25) + 75; // 75-100%
-        setUploadProgress({ 
-          message: `Processing ${i.toLocaleString()} of ${data.players.length.toLocaleString()} players...`,
-          loaded: progress,
-          total: 100 
-        });
-        await new Promise(resolve => setTimeout(resolve, 0));
+      for (let i = 0; i < data.players.length; i += batchSize) {
+        // Process in batches
+        const end = Math.min(i + batchSize, data.players.length);
+        for (let j = i; j < end; j++) {
+          calculateTeamSeasonsAndAchievementSeasons(data.players[j], data.teamOverlaps, data.gameAttributes);
+        }
+        
+        // Yield control after each batch
+        if (i % yieldInterval === 0 && i > 0) {
+          const progress = Math.floor((i / data.players.length) * 25) + 75; // 75-100%
+          setUploadProgress({ 
+            message: `Processing ${i.toLocaleString()} of ${data.players.length.toLocaleString()} players...`,
+            loaded: progress,
+            total: 100 
+          });
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
       }
     }
     

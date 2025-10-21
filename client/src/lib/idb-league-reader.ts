@@ -285,7 +285,7 @@ export async function readTeamSeasons(): Promise<any[]> {
  */
 export async function processLeagueFromIDB(
   onProgress?: (message: string) => void
-): Promise<LeagueData & { sport: Sport }> {
+): Promise<LeagueData & { sport: Sport } & { isFullyProcessed?: boolean; byName?: any; byPid?: any; searchablePlayers?: any; teamsByTid?: any }> {
   try {
     onProgress?.('Reading from database...');
     
@@ -342,9 +342,29 @@ export async function processLeagueFromIDB(
       seasonIndex = getCachedSeasonIndex(players, sport);
     }
     
+    // MOBILE FIX: Build search index here to avoid redundant processing later
+    onProgress?.('Building search index...');
+    const { buildSearchIndex } = await import('./bbgm-parser');
+    const { byName, byPid, searchablePlayers, teamsByTid } = await buildSearchIndex(players, teams);
+    
     onProgress?.('Complete!');
     
-    return { players, teams, teamSeasons, sport, teamOverlaps, seasonIndex, leagueYears };
+    return { 
+      players, 
+      teams, 
+      teamSeasons, 
+      sport, 
+      teamOverlaps, 
+      seasonIndex, 
+      leagueYears,
+      // Include search indices to avoid rebuilding
+      byName,
+      byPid,
+      searchablePlayers,
+      teamsByTid,
+      // Flag to indicate this data is already fully processed
+      isFullyProcessed: true
+    };
     
   } catch (error) {
     console.error('Error processing league from IDB:', error);
