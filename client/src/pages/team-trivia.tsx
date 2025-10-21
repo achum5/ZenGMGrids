@@ -783,13 +783,13 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                   }}
                 />
                 <h1 
-                  className="text-sm sm:text-base md:text-lg lg:text-2xl font-bold truncate"
+                  className="text-sm sm:text-base md:text-lg lg:text-2xl font-bold whitespace-nowrap"
                   style={{ 
                     color: selectedTeam?.colors?.[1] || 'hsl(var(--primary))',
                     letterSpacing: '-0.02em'
                   }}
                 >
-                  {sportTitle} Team Trivia
+                  {sportTitle} Trivia
                 </h1>
               </div>
 
