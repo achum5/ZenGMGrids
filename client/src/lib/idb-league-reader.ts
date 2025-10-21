@@ -41,12 +41,25 @@ export async function getLeagueMeta(): Promise<IDBLeagueMeta | null> {
 }
 
 /**
- * Read all players from IDB in small batches and process them
+ * Detect if we're on a mobile device for memory-aware processing
+ */
+function isMobile(): boolean {
+  if (typeof window === 'undefined') return false;
+  const userAgent = navigator.userAgent.toLowerCase();
+  const mobileKeywords = ['android', 'webos', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone'];
+  return mobileKeywords.some(keyword => userAgent.includes(keyword)) || 
+         (('ontouchstart' in window || navigator.maxTouchPoints > 0) && window.innerWidth <= 768);
+}
+
+/**
+ * Read all players from IDB in small batches using cursor for memory efficiency
+ * This prevents loading all players at once which can crash mobile browsers
  */
 export async function readAndNormalizePlayers(
   onProgress?: (message: string) => void
 ): Promise<{ players: Player[]; sport: Sport; gameAttributes: any }> {
   const db = await openLeagueDB();
+  const mobile = isMobile();
   
   try {
     onProgress?.('Reading metadata...');
@@ -57,21 +70,29 @@ export async function readAndNormalizePlayers(
     }
     
     const gameAttributes = meta.gameAttributes || {};
+    const totalPlayers = meta.playerCount || 0;
     
     onProgress?.('Loading players...');
     
-    // Read all players (they're already in memory from IDB, but we process in chunks)
-    const tx = db.transaction('players', 'readonly');
-    const store = tx.objectStore('players');
-    const allPlayers: any[] = await store.getAll();
+    // MOBILE FIX: Use cursor instead of getAll() to avoid loading all players into memory at once
+    // First, read a small sample for sport detection only
+    const samplePlayers: any[] = [];
+    let tx = db.transaction('players', 'readonly');
+    let store = tx.objectStore('players');
+    let cursor = await store.openCursor();
+    let sampleCount = 0;
+    
+    while (cursor && sampleCount < 10) {
+      samplePlayers.push(cursor.value);
+      cursor = await cursor.continue();
+      sampleCount++;
+    }
     await tx.done;
     
-    // Detect sport using the robust detection function (same as traditional/streaming methods)
+    // Detect sport using the robust detection function
     onProgress?.('Detecting sport type...');
     const { detectSport } = await import('./league-normalizer');
-    const sport = detectSport({ players: allPlayers.slice(0, 10) });
-    
-    // Cache the detected sport for other parts of the app
+    const sport = detectSport({ players: samplePlayers });
     setCachedSportDetection(sport);
     
     onProgress?.('Processing player data...');
@@ -82,26 +103,136 @@ export async function readAndNormalizePlayers(
     let minSeason = currentSeason;
     let maxSeason = currentSeason;
     
-    // Find min/max seasons
-    for (const rawPlayer of allPlayers) {
-      if (rawPlayer.stats) {
-        for (const stat of rawPlayer.stats) {
-          if (!stat.playoffs && stat.season) {
-            if (stat.season < minSeason) minSeason = stat.season;
-            if (stat.season > maxSeason) maxSeason = stat.season;
+    // MOBILE FIX: Process in smaller batches with more aggressive memory management
+    const BATCH_SIZE = mobile ? 200 : 500; // Smaller batches on mobile
+    const YIELD_INTERVAL = mobile ? 100 : 500; // Yield more frequently on mobile
+    
+    let processedCount = 0;
+    let batch: any[] = [];
+    
+    // Use cursor to read players in batches
+    tx = db.transaction('players', 'readonly');
+    store = tx.objectStore('players');
+    cursor = await store.openCursor();
+    
+    while (cursor) {
+      batch.push(cursor.value);
+      
+      // When batch is full, process it
+      if (batch.length >= BATCH_SIZE) {
+        // Find min/max seasons from this batch
+        for (const rawPlayer of batch) {
+          if (rawPlayer.stats) {
+            for (const stat of rawPlayer.stats) {
+              if (!stat.playoffs && stat.season) {
+                if (stat.season < minSeason) minSeason = stat.season;
+                if (stat.season > maxSeason) maxSeason = stat.season;
+              }
+            }
+          }
+        }
+        
+        // Process batch into normalized players
+        for (const rawPlayer of batch) {
+          const regularSeasonStats = rawPlayer.stats?.filter((stat: any) => !stat.playoffs) || [];
+          const playoffStats = rawPlayer.stats?.filter((stat: any) => stat.playoffs) || [];
+          
+          const seasons = [
+            ...regularSeasonStats.map((stat: any) => ({ 
+              season: stat.season, 
+              tid: stat.tid, 
+              gp: stat.gp || 0, 
+              playoffs: false 
+            })),
+            ...playoffStats.map((stat: any) => ({ 
+              season: stat.season, 
+              tid: stat.tid, 
+              gp: stat.gp || 0, 
+              playoffs: true 
+            }))
+          ];
+          
+          const teamsPlayed = new Set<number>();
+          regularSeasonStats.forEach((stat: any) => {
+            if ((stat.gp || 0) > 0) teamsPlayed.add(stat.tid);
+          });
+          
+          if (teamsPlayed.size > 0) {
+            let firstSeason = 0, lastSeason = 0;
+            if (seasons.length > 0) {
+              firstSeason = seasons.reduce((min, s) => Math.min(min, s.season), seasons[0].season);
+              lastSeason = seasons.reduce((max, s) => Math.max(max, s.season), seasons[0].season);
+            }
+            
+            const decadesPlayed = new Set<number>();
+            seasons.forEach(s => {
+              if (s.season > 0) decadesPlayed.add(Math.floor(s.season / 10) * 10);
+            });
+            
+            players.push({
+              pid: rawPlayer.pid,
+              name: `${rawPlayer.firstName || ''} ${rawPlayer.lastName || ''}`.trim() || 'Unknown Player',
+              seasons,
+              teamsPlayed,
+              imgURL: rawPlayer.imgURL || null,
+              face: rawPlayer.face || null,
+              firstName: rawPlayer.firstName,
+              lastName: rawPlayer.lastName,
+              pos: rawPlayer.pos,
+              born: rawPlayer.born,
+              draft: rawPlayer.draft,
+              weight: rawPlayer.weight,
+              hgt: rawPlayer.hgt,
+              tid: rawPlayer.tid ?? -1,
+              awards: rawPlayer.awards || [],
+              stats: rawPlayer.stats || [],
+              ratings: rawPlayer.ratings || [],
+              retiredYear: rawPlayer.retiredYear,
+              contract: rawPlayer.contract,
+              college: rawPlayer.college,
+              injury: rawPlayer.injury,
+              jerseyNumber: rawPlayer.jerseyNumber,
+              firstSeason: firstSeason > 0 ? firstSeason : undefined,
+              lastSeason: lastSeason > 0 ? lastSeason : undefined,
+              debutDecade: firstSeason > 0 ? Math.floor(firstSeason / 10) * 10 : undefined,
+              retiredDecade: lastSeason > 0 ? Math.floor(lastSeason / 10) * 10 : undefined,
+              decadesPlayed: decadesPlayed.size > 0 ? decadesPlayed : undefined,
+            });
+          }
+          
+          processedCount++;
+          
+          // Yield more frequently on mobile
+          if (processedCount % YIELD_INTERVAL === 0) {
+            if (totalPlayers > 0) {
+              const percentage = Math.floor((processedCount / totalPlayers) * 100);
+              onProgress?.(`Processing ${processedCount.toLocaleString()} of ${totalPlayers.toLocaleString()} players (${percentage}%)...`);
+            }
+            await new Promise(resolve => setTimeout(resolve, 0));
+          }
+        }
+        
+        // Clear the batch to free memory
+        batch = [];
+      }
+      
+      cursor = await cursor.continue();
+    }
+    
+    // Process any remaining players in the last batch
+    if (batch.length > 0) {
+      for (const rawPlayer of batch) {
+        if (rawPlayer.stats) {
+          for (const stat of rawPlayer.stats) {
+            if (!stat.playoffs && stat.season) {
+              if (stat.season < minSeason) minSeason = stat.season;
+              if (stat.season > maxSeason) maxSeason = stat.season;
+            }
           }
         }
       }
-    }
-    
-    const leagueYears = { minSeason, maxSeason };
-    
-    // Process players in chunks
-    const CHUNK_SIZE = 500;
-    for (let i = 0; i < allPlayers.length; i += CHUNK_SIZE) {
-      const chunk = allPlayers.slice(i, i + CHUNK_SIZE);
       
-      for (const rawPlayer of chunk) {
+      for (const rawPlayer of batch) {
         const regularSeasonStats = rawPlayer.stats?.filter((stat: any) => !stat.playoffs) || [];
         const playoffStats = rawPlayer.stats?.filter((stat: any) => stat.playoffs) || [];
         
@@ -168,15 +299,9 @@ export async function readAndNormalizePlayers(
           });
         }
       }
-      
-      // Progress update
-      if (i % 2000 === 0 && i > 0) {
-        onProgress?.(`Normalized ${i.toLocaleString()} of ${allPlayers.length.toLocaleString()} players...`);
-      }
-      
-      // Yield to prevent UI freeze
-      await new Promise(resolve => setTimeout(resolve, 0));
     }
+    
+    await tx.done;
     
     return { players, sport, gameAttributes };
     

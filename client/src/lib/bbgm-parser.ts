@@ -188,24 +188,16 @@ export async function buildSearchIndex(players: Player[], teams: Team[]) {
   const byPid: Record<number, Player> = {};
   const teamsByTid: Record<number, Team> = {};
   
+  // Detect mobile for more aggressive memory management
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const yieldInterval = isMobile ? 500 : 1000; // More frequent on mobile
+  
   // Build team lookup
   teams.forEach(team => {
     teamsByTid[team.tid] = team;
   });
   
-  // Build player indices with yielding for mobile
-  for (let i = 0; i < players.length; i++) {
-    const player = players[i];
-    byPid[player.pid] = player;
-    byName[player.name.toLowerCase()] = player.pid;
-    
-    // Yield every 1000 players to prevent mobile freeze
-    if (i % 1000 === 0 && i > 0) {
-      await new Promise(resolve => setTimeout(resolve, 0));
-    }
-  }
-
-  // Calculate current season once for all players - avoid stack overflow
+  // Calculate current season once - do this first to avoid multiple passes
   let currentSeason = new Date().getFullYear();
   for (let i = 0; i < players.length; i++) {
     const player = players[i];
@@ -217,16 +209,22 @@ export async function buildSearchIndex(players: Player[], teams: Team[]) {
       }
     }
     
-    // Yield every 1000 players to prevent mobile freeze
-    if (i % 1000 === 0 && i > 0) {
+    // Yield periodically
+    if (i % yieldInterval === 0 && i > 0) {
       await new Promise(resolve => setTimeout(resolve, 0));
     }
   }
-
-  // Build searchable player list with diacritic-insensitive folding
+  
+  // MOBILE FIX: Build all indices in a single pass to minimize iterations
   const searchablePlayers = [];
   for (let i = 0; i < players.length; i++) {
     const player = players[i];
+    
+    // Build byPid and byName indices
+    byPid[player.pid] = player;
+    byName[player.name.toLowerCase()] = player.pid;
+    
+    // Build searchable player data
     const nameParts = player.name.split(' ');
     const teamAbbrevs = Array.from(player.teamsPlayed)
       .map(tid => teamsByTid[tid]?.abbrev)
@@ -248,8 +246,8 @@ export async function buildSearchIndex(players: Player[], teams: Team[]) {
       careerYears,
     });
     
-    // Yield every 1000 players to prevent mobile freeze
-    if (i % 1000 === 0 && i > 0) {
+    // Yield more frequently on mobile to prevent freezing
+    if (i % yieldInterval === 0 && i > 0) {
       await new Promise(resolve => setTimeout(resolve, 0));
     }
   }

@@ -698,8 +698,11 @@ export default function Home() {
       setCachedLeagueYears(data.leagueYears);
     }
     
+    // Detect if on mobile for memory-aware processing
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    
     // Force close any open dropdowns/modals on mobile after file upload
-    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+    if (isMobile) {
       // Close any open dialogs or dropdowns by clicking outside
       document.body.click();
       // Remove focus from any elements that might be capturing events
@@ -711,6 +714,7 @@ export default function Home() {
     }
     
     // Build search indices (async with yielding for mobile)
+    setUploadProgress({ message: 'Building search index...', loaded: 50, total: 100 });
     const indices = await buildSearchIndex(data.players, data.teams);
     setByName(indices.byName);
     setByPid(indices.byPid);
@@ -718,12 +722,26 @@ export default function Home() {
     setTeamsByTid(indices.teamsByTid);
 
     // Calculate team seasons and achievement seasons for each player
-    // MOBILE FIX: Yield control periodically to prevent UI freezing/crashes
-    for (let i = 0; i < data.players.length; i++) {
-      calculateTeamSeasonsAndAchievementSeasons(data.players[i], data.teamOverlaps, data.gameAttributes);
+    // MOBILE FIX: More aggressive yielding on mobile to prevent crashes
+    setUploadProgress({ message: 'Calculating player achievements...', loaded: 75, total: 100 });
+    const yieldInterval = isMobile ? 250 : 500; // More frequent yielding on mobile
+    const batchSize = isMobile ? 100 : 250; // Smaller processing batches on mobile
+    
+    for (let i = 0; i < data.players.length; i += batchSize) {
+      // Process in batches
+      const end = Math.min(i + batchSize, data.players.length);
+      for (let j = i; j < end; j++) {
+        calculateTeamSeasonsAndAchievementSeasons(data.players[j], data.teamOverlaps, data.gameAttributes);
+      }
       
-      // Yield control every 500 players to prevent mobile freeze
-      if (i % 500 === 0 && i > 0) {
+      // Yield control after each batch
+      if (i % yieldInterval === 0 && i > 0) {
+        const progress = Math.floor((i / data.players.length) * 25) + 75; // 75-100%
+        setUploadProgress({ 
+          message: `Processing ${i.toLocaleString()} of ${data.players.length.toLocaleString()} players...`,
+          loaded: progress,
+          total: 100 
+        });
         await new Promise(resolve => setTimeout(resolve, 0));
       }
     }
@@ -741,6 +759,8 @@ export default function Home() {
     // Automatically save the league to storage
     if (fileName && data.sport) {
       try {
+        setUploadProgress({ message: 'Saving league...', loaded: 95, total: 100 });
+        
         // Generate a clean name from the file name
         const cleanName = fileName.replace(/\.(json|gz)$/gi, '').replace(/\./g, ' ');
         
@@ -764,6 +784,8 @@ export default function Home() {
         // Don't show error toast - saving is optional
       }
     }
+    
+    setUploadProgress({ message: 'Complete!', loaded: 100, total: 100 });
     
     // Show game mode selection interstitial instead of immediately generating grid
     setGameMode('choose');
