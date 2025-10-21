@@ -250,20 +250,33 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   // Calculate stat leaders from roster
   const statLeaders = useMemo(() => {
     if (roster.length === 0) {
-      return leagueData.sport === 'football' ? {
-        passingYards: null,
-        rushingYards: null,
-        receivingYards: null,
-        tackles: null,
-        sacks: null,
-        interceptions: null,
-      } : {
-        points: null,
-        rebounds: null,
-        assists: null,
-        steals: null,
-        blocks: null,
-      };
+      if (leagueData.sport === 'football') {
+        return {
+          passingYards: null,
+          rushingYards: null,
+          receivingYards: null,
+          tackles: null,
+          sacks: null,
+          interceptions: null,
+        };
+      } else if (leagueData.sport === 'baseball') {
+        return {
+          hits: null,
+          homeRuns: null,
+          rbis: null,
+          stolenBases: null,
+          strikeouts: null,
+          wins: null,
+        };
+      } else {
+        return {
+          points: null,
+          rebounds: null,
+          assists: null,
+          steals: null,
+          blocks: null,
+        };
+      }
     }
 
     if (leagueData.sport === 'football') {
@@ -347,6 +360,88 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         tackles: tacklesLeader.player.pid,
         sacks: sacksLeader.player.pid,
         interceptions: interceptionsLeader.player.pid,
+      };
+    } else if (leagueData.sport === 'baseball') {
+      // Baseball stat leaders
+      const hitsLeader = roster.reduce((leader, rp) => {
+        const leaderStats = leader.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const rpStats = rp.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const leaderHits = (leaderStats as any)?.h || 0;
+        const rpHits = (rpStats as any)?.h || 0;
+        return rpHits > leaderHits ? rp : leader;
+      });
+
+      const homeRunsLeader = roster.reduce((leader, rp) => {
+        const leaderStats = leader.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const rpStats = rp.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const leaderHR = (leaderStats as any)?.hr || 0;
+        const rpHR = (rpStats as any)?.hr || 0;
+        return rpHR > leaderHR ? rp : leader;
+      });
+
+      const rbisLeader = roster.reduce((leader, rp) => {
+        const leaderStats = leader.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const rpStats = rp.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const leaderRBI = (leaderStats as any)?.rbi || 0;
+        const rpRBI = (rpStats as any)?.rbi || 0;
+        return rpRBI > leaderRBI ? rp : leader;
+      });
+
+      const stolenBasesLeader = roster.reduce((leader, rp) => {
+        const leaderStats = leader.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const rpStats = rp.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const leaderSB = (leaderStats as any)?.sb || 0;
+        const rpSB = (rpStats as any)?.sb || 0;
+        return rpSB > leaderSB ? rp : leader;
+      });
+
+      const strikeoutsLeader = roster.reduce((leader, rp) => {
+        const leaderStats = leader.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const rpStats = rp.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const leaderSO = (leaderStats as any)?.so || (leaderStats as any)?.k || 0;
+        const rpSO = (rpStats as any)?.so || (rpStats as any)?.k || 0;
+        return rpSO > leaderSO ? rp : leader;
+      });
+
+      const winsLeader = roster.reduce((leader, rp) => {
+        const leaderStats = leader.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const rpStats = rp.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const leaderW = (leaderStats as any)?.w || 0;
+        const rpW = (rpStats as any)?.w || 0;
+        return rpW > leaderW ? rp : leader;
+      });
+
+      return {
+        hits: hitsLeader.player.pid,
+        homeRuns: homeRunsLeader.player.pid,
+        rbis: rbisLeader.player.pid,
+        stolenBases: stolenBasesLeader.player.pid,
+        strikeouts: strikeoutsLeader.player.pid,
+        wins: winsLeader.player.pid,
       };
     } else {
       // Basketball stat leaders
@@ -830,6 +925,25 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         break;
       case 'interceptions-leader':
         correctLeaderPid = (statLeaders as any).interceptions;
+        break;
+      // Baseball rounds
+      case 'hits-leader':
+        correctLeaderPid = (statLeaders as any).hits;
+        break;
+      case 'home-runs-leader':
+        correctLeaderPid = (statLeaders as any).homeRuns;
+        break;
+      case 'rbis-leader':
+        correctLeaderPid = (statLeaders as any).rbis;
+        break;
+      case 'stolen-bases-leader':
+        correctLeaderPid = (statLeaders as any).stolenBases;
+        break;
+      case 'strikeouts-leader':
+        correctLeaderPid = (statLeaders as any).strikeouts;
+        break;
+      case 'wins-leader':
+        correctLeaderPid = (statLeaders as any).wins;
         break;
     }
 
