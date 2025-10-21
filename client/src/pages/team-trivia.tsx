@@ -685,8 +685,17 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       // Apply shake animation
       setTileAnimations(prev => ({ ...prev, [pid]: 'animate-tile-shake' }));
       setTimeout(() => {
-        setTileAnimations(prev => ({ ...prev, [pid]: '' })); // Clear animation class
-        handleNextRound(); // Advance round after incorrect guess animation
+        setTileAnimations(prev => ({ ...prev, [pid]: '' })); // Clear shake animation class
+        // Highlight the correct answer
+        if (correctLeaderPid !== null) {
+          setTileAnimations(prev => ({ ...prev, [correctLeaderPid]: 'animate-tile-correct-highlight' }));
+          setTimeout(() => {
+            setTileAnimations(prev => ({ ...prev, [correctLeaderPid]: '' })); // Clear highlight animation
+            handleNextRound(); // Advance round after animations
+          }, 800); // Highlight animation duration
+        } else {
+          handleNextRound(); // Advance round if no correct leader found (shouldn't happen)
+        }
       }, 500); // Shake animation duration
     }
   }, [currentRound, statLeaders, toast, triggerConfetti, handleNextRound]);
@@ -1134,6 +1143,13 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                   {currentRound === 'complete' && (
                     <div className="w-full text-center text-[0.45rem] sm:text-[0.6rem] md:text-[0.7rem] leading-tight mt-1"
                       style={{ color: rp.teamColors?.[0] || 'hsl(var(--foreground))' }}>
+                      {(() => {
+                        const playerRating = rp.player.ratings?.find(r => r.season === selectedSeason);
+                        if (playerRating) {
+                          return <p>Ovr/Pot: {playerRating.ovr}/{playerRating.pot}</p>;
+                        }
+                        return null;
+                      })()}
                       <p>P/R/A:</p>
                       <p>{rp.stats.ppg.toFixed(1)}/{rp.stats.rpg.toFixed(1)}/{rp.stats.apg.toFixed(1)}</p>
                       <p>Splits: {rp.advancedStats.fgp.toFixed(1)}%/{rp.advancedStats.tpp.toFixed(1)}%/{rp.advancedStats.ftp.toFixed(1)}%</p>
