@@ -368,30 +368,21 @@ export function ScoreSummaryModal({
   const detailedContent = (
     <div className="space-y-6">
       <div
-        className={`bg-card border rounded-xl p-6 shadow-sm transition-all duration-300 ${
+        className={`border rounded-xl p-6 shadow-sm transition-all duration-300 ${
           cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
         }`}
         style={{
           borderColor: `${secondaryColor}60`,
-          background: `linear-gradient(to bottom right, ${secondaryColor}15, transparent)`,
+          backgroundColor: `${secondaryColor}15`,
         }}
       >
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <div className="flex-1">
-            <h3 className="text-sm font-medium" style={{ color: secondaryColor }}>Final Score</h3>
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+          <div>
+            <h3 className="text-sm font-medium mb-2" style={{ color: secondaryColor }}>Final Score</h3>
             <div className="text-6xl font-bold tabular-nums" style={{ color: secondaryColor }}>{animatedScore}</div>
             {data.timeElapsed && (
               <p className="text-xs mt-2" style={{ color: `${secondaryColor}aa` }}>Time: {formatTime(data.timeElapsed)}</p>
             )}
-            <div className="mt-4 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: `${secondaryColor}20` }}>
-              <div
-                className="h-full transition-all duration-500 ease-out"
-                style={{
-                  width: `${progress}%`,
-                  background: `linear-gradient(90deg, ${secondaryColor}, ${accentColor})`,
-                }}
-              />
-            </div>
           </div>
           <div
             className="rounded-lg p-4 min-w-[220px]"
@@ -401,7 +392,7 @@ export function ScoreSummaryModal({
             }}
           >
             <h4 className="text-xs font-semibold mb-3 uppercase tracking-wide" style={{ color: `${secondaryColor}dd` }}>Breakdown</h4>
-            <div className="space-y-2 text-sm text-white">
+            <div className="space-y-2 text-sm" style={{ color: getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000' }}>
               <div className="flex justify-between">
                 <span>Round 1</span>
                 <span className="font-semibold tabular-nums" style={{ color: secondaryColor }}>+{guessRoundPoints}</span>
