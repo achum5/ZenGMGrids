@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { ReactNode, CSSProperties } from 'react';
 import { Button } from '@/components/ui/button';
-import { Home, Shuffle, X, Lock } from 'lucide-react';
+import { Home, Shuffle, X } from 'lucide-react';
 import type { ScoreSummaryData } from '@/components/ScoreSummaryModal';
 
 interface CompactScoreCardProps {
@@ -94,18 +94,59 @@ export function CompactScoreCard({
     if (data.leaders.length === 0) return 'N/A';
     return data.leaders
       .map(leader => {
-        // Try to find matching token from the mappings
-        let token = Object.entries(leaderTokens).find(([label]) => leader.label.includes(label))?.[1];
+        let token: string | undefined;
 
-        // If no match found, try to extract abbreviation from statLabel
-        if (!token && leader.statLabel) {
-          // Common patterns: "PPG", "RPG", "APG", "BPG", "SPG", etc.
-          const match = leader.statLabel.match(/^([A-Z]+)$/);
-          token = match ? match[1] : 'STAT';
+        // First, try to match against the sport-specific token mappings using the label
+        for (const [key, value] of Object.entries(leaderTokens)) {
+          if (leader.label.toLowerCase().includes(key.toLowerCase())) {
+            token = value;
+            break;
+          }
         }
 
-        // Fallback to 'STAT'
-        token = token ?? 'STAT';
+        // If no match, try using statLabel if it's already an abbreviation (all caps)
+        if (!token && leader.statLabel) {
+          const trimmed = leader.statLabel.trim();
+          // Check if it's already an abbreviation (e.g., "PPG", "APG", "PTS")
+          if (/^[A-Z0-9%]+$/.test(trimmed) && trimmed.length <= 5) {
+            token = trimmed;
+          }
+        }
+
+        // If still no token, try to create abbreviation from label
+        if (!token) {
+          // Remove "Leader" from label and try to create abbreviation
+          const labelWords = leader.label.replace(/Leader/i, '').trim().split(/\s+/);
+          if (labelWords.length > 0) {
+            const firstWord = labelWords[0].toLowerCase();
+            // Common stat name mappings
+            const commonMappings: Record<string, string> = {
+              'points': 'PTS',
+              'rebounds': 'REB',
+              'assists': 'AST',
+              'steals': 'STL',
+              'blocks': 'BLK',
+              'goals': 'G',
+              'passing': 'PASS',
+              'rushing': 'RUSH',
+              'receiving': 'REC',
+              'tackles': 'TACK',
+              'sacks': 'SACK',
+              'interceptions': 'INT',
+              'hits': 'H',
+              'home': 'HR',
+              'runs': 'R',
+              'rbis': 'RBI',
+              'stolen': 'SB',
+              'strikeouts': 'K',
+              'wins': 'W',
+            };
+            token = commonMappings[firstWord] || labelWords[0].substring(0, 3).toUpperCase();
+          }
+        }
+
+        // Final fallback
+        token = token || 'STAT';
 
         return `${token}${leader.userCorrect ? '✓' : '✗'}`;
       })
@@ -198,12 +239,11 @@ export function CompactScoreCard({
           {data.playoffFinish && (
             <ScoreRow
               label="PLAYOFF"
-              detail={<HiddenChip />}
+              detail={data.playoffFinish.correct ? 'Correct' : 'Incorrect'}
               points={playoffPoints}
               textColor={textColor}
               secondaryColor={secondaryColor}
               icon="🏆"
-              renderDetailAsNode
             />
           )}
 
@@ -258,15 +298,6 @@ export function CompactScoreCard({
     >
       {card}
     </div>
-  );
-}
-
-function HiddenChip() {
-  return (
-    <span className="text-xs inline-flex items-center gap-1 px-2 py-1 rounded-full bg-background/40 text-muted-foreground border border-border/60">
-      <Lock className="h-3 w-3" />
-      Hidden
-    </span>
   );
 }
 

@@ -1,12 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Trophy, Users as UsersIcon, TrendingUp, Target, Flag, Shuffle, Home, Share2 } from 'lucide-react';
+import { Users as UsersIcon, TrendingUp, Target, Flag, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PlayerFace } from '@/components/PlayerFace';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
 } from '@/components/ui/dialog';
 import { CompactScoreCard } from '@/components/CompactScoreCard';
 import type { Player } from '@/types/bbgm';
@@ -250,11 +248,18 @@ export function ScoreSummaryModal({
   const renderPlayerList = (players: PlayerGuess[], emptyMessage: string) => (
     <div className="space-y-3">
       {players.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{emptyMessage}</p>
+        <p className="text-sm" style={{ color: `${getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000'}aa` }}>{emptyMessage}</p>
       ) : (
         players.map((pg, idx) => (
-          <div key={`${pg.player.pid}-${idx}`} className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/20 p-2">
-            <div className="w-12 h-12 rounded-full overflow-hidden bg-background/60">
+          <div
+            key={`${pg.player.pid}-${idx}`}
+            className="flex items-center gap-3 rounded-lg border p-2"
+            style={{
+              borderColor: `${secondaryColor}40`,
+              backgroundColor: `${secondaryColor}10`,
+            }}
+          >
+            <div className="w-12 h-12 rounded-full overflow-hidden" style={{ backgroundColor: `${secondaryColor}30` }}>
               <PlayerFace
                 pid={pg.player.pid}
                 name={pg.player.name}
@@ -266,7 +271,7 @@ export function ScoreSummaryModal({
                 season={data.season}
               />
             </div>
-            <p className="text-sm font-medium text-foreground">{pg.player.name}</p>
+            <p className="text-sm font-medium" style={{ color: getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000' }}>{pg.player.name}</p>
           </div>
         ))
       )}
@@ -276,17 +281,25 @@ export function ScoreSummaryModal({
   const renderLeaderEntry = (leader: LeaderRound, index: number) => {
     const guessedPlayer = leader.userSelectedPlayer;
     const correctPlayer = leader.correctPlayer;
+    const textColor = getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000';
     return (
-      <div key={`${leader.label}-${index}`} className="rounded-xl border border-border/70 bg-card/60 p-4 space-y-3">
+      <div
+        key={`${leader.label}-${index}`}
+        className="rounded-xl border p-4 space-y-3"
+        style={{
+          borderColor: `${secondaryColor}40`,
+          backgroundColor: `${secondaryColor}10`,
+        }}
+      >
         <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold text-foreground">{leader.label}</span>
+          <span className="text-sm font-semibold" style={{ color: textColor }}>{leader.label}</span>
           <span className={`text-xs font-semibold ${leader.userCorrect ? 'text-green-500' : 'text-red-400'}`}>
             {leader.userCorrect ? 'Correct' : 'Missed'}
           </span>
         </div>
         {leader.userCorrect ? (
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full overflow-hidden bg-background/60">
+            <div className="w-12 h-12 rounded-full overflow-hidden" style={{ backgroundColor: `${secondaryColor}30` }}>
               <PlayerFace
                 pid={correctPlayer.pid}
                 name={correctPlayer.name}
@@ -299,14 +312,14 @@ export function ScoreSummaryModal({
               />
             </div>
             <div>
-              <p className="text-sm font-medium text-foreground">{correctPlayer.name}</p>
-              {leader.statValue ? <p className="text-xs text-muted-foreground">{leader.statValue}</p> : null}
+              <p className="text-sm font-medium" style={{ color: textColor }}>{correctPlayer.name}</p>
+              {leader.statValue ? <p className="text-xs" style={{ color: `${textColor}aa` }}>{leader.statValue}</p> : null}
             </div>
           </div>
         ) : (
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full overflow-hidden bg-background/60">
+              <div className="w-12 h-12 rounded-full overflow-hidden" style={{ backgroundColor: `${secondaryColor}30` }}>
                 {guessedPlayer ? (
                   <PlayerFace
                     pid={guessedPlayer.pid}
@@ -319,16 +332,16 @@ export function ScoreSummaryModal({
                     season={data.season}
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">—</div>
+                  <div className="flex h-full w-full items-center justify-center text-xs" style={{ color: `${textColor}aa` }}>—</div>
                 )}
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Your guess</p>
-                <p className="text-sm font-medium text-foreground">{guessedPlayer ? guessedPlayer.name : 'No selection'}</p>
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: `${textColor}aa` }}>Your guess</p>
+                <p className="text-sm font-medium" style={{ color: textColor }}>{guessedPlayer ? guessedPlayer.name : 'No selection'}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full overflow-hidden bg-background/60">
+              <div className="w-12 h-12 rounded-full overflow-hidden" style={{ backgroundColor: `${secondaryColor}30` }}>
                 <PlayerFace
                   pid={correctPlayer.pid}
                   name={correctPlayer.name}
@@ -341,9 +354,9 @@ export function ScoreSummaryModal({
                 />
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Correct</p>
-                <p className="text-sm font-medium text-foreground">{correctPlayer.name}</p>
-                {leader.statValue ? <p className="text-xs text-muted-foreground">{leader.statValue}</p> : null}
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: `${textColor}aa` }}>Correct</p>
+                <p className="text-sm font-medium" style={{ color: textColor }}>{correctPlayer.name}</p>
+                {leader.statValue ? <p className="text-xs" style={{ color: `${textColor}aa` }}>{leader.statValue}</p> : null}
               </div>
             </div>
           </div>
@@ -359,23 +372,23 @@ export function ScoreSummaryModal({
           cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
         }`}
         style={{
-          borderColor: `${primaryColor}40`,
-          background: `linear-gradient(to bottom right, ${primaryColor}08, transparent)`,
+          borderColor: `${secondaryColor}60`,
+          background: `linear-gradient(to bottom right, ${secondaryColor}15, transparent)`,
         }}
       >
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div className="flex-1">
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">Final Score</h3>
-            <div className="text-6xl font-bold tabular-nums" style={{ color: primaryColor }}>{animatedScore}</div>
+            <h3 className="text-sm font-medium" style={{ color: secondaryColor }}>Final Score</h3>
+            <div className="text-6xl font-bold tabular-nums" style={{ color: secondaryColor }}>{animatedScore}</div>
             {data.timeElapsed && (
-              <p className="text-xs text-muted-foreground mt-2">Time: {formatTime(data.timeElapsed)}</p>
+              <p className="text-xs mt-2" style={{ color: `${secondaryColor}aa` }}>Time: {formatTime(data.timeElapsed)}</p>
             )}
-            <div className="mt-4 h-1.5 bg-muted rounded-full overflow-hidden">
+            <div className="mt-4 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: `${secondaryColor}20` }}>
               <div
                 className="h-full transition-all duration-500 ease-out"
                 style={{
                   width: `${progress}%`,
-                  background: `linear-gradient(90deg, ${primaryColor}, ${secondaryColor})`,
+                  background: `linear-gradient(90deg, ${secondaryColor}, ${accentColor})`,
                 }}
               />
             </div>
@@ -383,31 +396,31 @@ export function ScoreSummaryModal({
           <div
             className="rounded-lg p-4 min-w-[220px]"
             style={{
-              backgroundColor: `${primaryColor}15`,
-              border: `1px solid ${primaryColor}30`,
+              backgroundColor: `${secondaryColor}25`,
+              border: `1px solid ${secondaryColor}50`,
             }}
           >
-            <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Breakdown</h4>
-            <div className="space-y-2 text-sm">
+            <h4 className="text-xs font-semibold mb-3 uppercase tracking-wide" style={{ color: `${secondaryColor}dd` }}>Breakdown</h4>
+            <div className="space-y-2 text-sm text-white">
               <div className="flex justify-between">
                 <span>Round 1</span>
-                <span className="font-semibold tabular-nums" style={{ color: primaryColor }}>+{guessRoundPoints}</span>
+                <span className="font-semibold tabular-nums" style={{ color: secondaryColor }}>+{guessRoundPoints}</span>
               </div>
               <div className="flex justify-between">
                 <span>Round 2</span>
-                <span className="font-semibold tabular-nums" style={{ color: primaryColor }}>+{hintRoundPoints}</span>
+                <span className="font-semibold tabular-nums" style={{ color: secondaryColor }}>+{hintRoundPoints}</span>
               </div>
               <div className="flex justify-between">
                 <span>Leaders</span>
-                <span className="font-semibold tabular-nums" style={{ color: primaryColor }}>+{categoryTotals['Leaders'] || 0}</span>
+                <span className="font-semibold tabular-nums" style={{ color: secondaryColor }}>+{categoryTotals['Leaders'] || 0}</span>
               </div>
               <div className="flex justify-between">
                 <span>Wins Guess</span>
-                <span className="font-semibold tabular-nums" style={{ color: primaryColor }}>+{winsGuessPoints}</span>
+                <span className="font-semibold tabular-nums" style={{ color: secondaryColor }}>+{winsGuessPoints}</span>
               </div>
               <div className="flex justify-between">
                 <span>Playoff</span>
-                <span className="font-semibold tabular-nums" style={{ color: primaryColor }}>+{playoffPoints}</span>
+                <span className="font-semibold tabular-nums" style={{ color: secondaryColor }}>+{playoffPoints}</span>
               </div>
             </div>
           </div>
@@ -415,43 +428,61 @@ export function ScoreSummaryModal({
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        <div className={`bg-card border rounded-xl p-6 shadow-sm transition-opacity duration-300 ${cardsVisible ? 'opacity-100' : 'opacity-0'}`}>
+        <div
+          className={`border rounded-xl p-6 shadow-sm transition-opacity duration-300 ${cardsVisible ? 'opacity-100' : 'opacity-0'}`}
+          style={{
+            backgroundColor: `${secondaryColor}15`,
+            borderColor: `${secondaryColor}60`,
+          }}
+        >
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-2">
-              <UsersIcon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-              <h3 className="font-semibold">Round 1 — Player Guesses</h3>
+              <UsersIcon className="h-5 w-5" style={{ color: secondaryColor }} aria-hidden="true" />
+              <h3 className="font-semibold" style={{ color: getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000' }}>Round 1 — Player Guesses</h3>
             </div>
-            <PointsPill points={guessRoundPoints} teamColor={primaryColor} />
+            <PointsPill points={guessRoundPoints} teamColor={secondaryColor} />
           </div>
-          <p className="text-xs text-muted-foreground mb-4">15 points per correct answer.</p>
+          <p className="text-xs mb-4" style={{ color: `${getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000'}aa` }}>15 points per correct answer.</p>
           {renderPlayerList(guessRoundPlayers, 'No correct players found in this round.')}
         </div>
 
-        <div className={`bg-card border rounded-xl p-6 shadow-sm transition-opacity duration-300 ${cardsVisible ? 'opacity-100' : 'opacity-0'}`}>
+        <div
+          className={`border rounded-xl p-6 shadow-sm transition-opacity duration-300 ${cardsVisible ? 'opacity-100' : 'opacity-0'}`}
+          style={{
+            backgroundColor: `${secondaryColor}15`,
+            borderColor: `${secondaryColor}60`,
+          }}
+        >
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-2">
-              <UsersIcon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-              <h3 className="font-semibold">Round 2 — Hints Enabled</h3>
+              <UsersIcon className="h-5 w-5" style={{ color: secondaryColor }} aria-hidden="true" />
+              <h3 className="font-semibold" style={{ color: getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000' }}>Round 2 — Hints Enabled</h3>
             </div>
-            <PointsPill points={hintRoundPoints} teamColor={primaryColor} />
+            <PointsPill points={hintRoundPoints} teamColor={secondaryColor} />
           </div>
-          <p className="text-xs text-muted-foreground mb-4">10 points per correct answer.</p>
+          <p className="text-xs mb-4" style={{ color: `${getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000'}aa` }}>10 points per correct answer.</p>
           {renderPlayerList(hintRoundPlayers, 'No correct players found with hints.')}
         </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        <div className={`bg-card border rounded-xl p-6 shadow-sm transition-opacity duration-300 ${cardsVisible ? 'opacity-100' : 'opacity-0'}`}>
+        <div
+          className={`border rounded-xl p-6 shadow-sm transition-opacity duration-300 ${cardsVisible ? 'opacity-100' : 'opacity-0'}`}
+          style={{
+            backgroundColor: `${secondaryColor}15`,
+            borderColor: `${secondaryColor}60`,
+          }}
+        >
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-              <h3 className="font-semibold">Stat Leaders</h3>
+              <TrendingUp className="h-5 w-5" style={{ color: secondaryColor }} aria-hidden="true" />
+              <h3 className="font-semibold" style={{ color: getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000' }}>Stat Leaders</h3>
             </div>
-            <PointsPill points={categoryTotals['Leaders'] || 0} teamColor={primaryColor} />
+            <PointsPill points={categoryTotals['Leaders'] || 0} teamColor={secondaryColor} />
           </div>
           <div className="space-y-3">
             {data.leaders.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No leader rounds were played.</p>
+              <p className="text-sm" style={{ color: `${getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000'}aa` }}>No leader rounds were played.</p>
             ) : (
               data.leaders.map((leader, idx) => renderLeaderEntry(leader, idx))
             )}
@@ -459,51 +490,63 @@ export function ScoreSummaryModal({
         </div>
 
         <div className="space-y-6">
-          <div className={`bg-card border rounded-xl p-6 shadow-sm transition-opacity duration-300 ${cardsVisible ? 'opacity-100' : 'opacity-0'}`}>
+          <div
+            className={`border rounded-xl p-6 shadow-sm transition-opacity duration-300 ${cardsVisible ? 'opacity-100' : 'opacity-0'}`}
+            style={{
+              backgroundColor: `${secondaryColor}15`,
+              borderColor: `${secondaryColor}60`,
+            }}
+          >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-2">
-                <Target className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-                <h3 className="font-semibold">Wins Guess</h3>
+                <Target className="h-5 w-5" style={{ color: secondaryColor }} aria-hidden="true" />
+                <h3 className="font-semibold" style={{ color: getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000' }}>Wins Guess</h3>
               </div>
-              <PointsPill points={winsGuessPoints} teamColor={primaryColor} />
+              <PointsPill points={winsGuessPoints} teamColor={secondaryColor} />
             </div>
             {data.winsGuess ? (
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <p><span className="font-semibold text-foreground">Guessed:</span> {data.winsGuess.L}–{data.winsGuess.R}</p>
-                <p><span className="font-semibold text-foreground">Actual:</span> {data.winsGuess.A}</p>
+              <div className="space-y-2 text-sm" style={{ color: `${getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000'}aa` }}>
+                <p><span className="font-semibold" style={{ color: getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000' }}>Guessed:</span> {data.winsGuess.L}–{data.winsGuess.R}</p>
+                <p><span className="font-semibold" style={{ color: getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000' }}>Actual:</span> {data.winsGuess.A}</p>
                 <p className={`text-xs font-semibold uppercase tracking-wide ${data.winsGuess.awarded ? 'text-green-500' : 'text-red-400'}`}>
                   {data.winsGuess.awarded ? 'Correct' : 'Incorrect'}
                 </p>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">This round was skipped.</p>
+              <p className="text-sm" style={{ color: `${getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000'}aa` }}>This round was skipped.</p>
             )}
           </div>
 
-          <div className={`bg-card border rounded-xl p-6 shadow-sm transition-opacity duration-300 ${cardsVisible ? 'opacity-100' : 'opacity-0'}`}>
+          <div
+            className={`border rounded-xl p-6 shadow-sm transition-opacity duration-300 ${cardsVisible ? 'opacity-100' : 'opacity-0'}`}
+            style={{
+              backgroundColor: `${secondaryColor}15`,
+              borderColor: `${secondaryColor}60`,
+            }}
+          >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-2">
-                <Flag className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-                <h3 className="font-semibold">Playoff Finish</h3>
+                <Flag className="h-5 w-5" style={{ color: secondaryColor }} aria-hidden="true" />
+                <h3 className="font-semibold" style={{ color: getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000' }}>Playoff Finish</h3>
               </div>
-              <PointsPill points={playoffPoints} teamColor={primaryColor} />
+              <PointsPill points={playoffPoints} teamColor={secondaryColor} />
             </div>
             {data.playoffFinish ? (
-              <div className="space-y-2 text-sm text-muted-foreground">
+              <div className="space-y-2 text-sm" style={{ color: `${getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000'}aa` }}>
                 {data.playoffFinish.correct ? (
-                  <p><span className="font-semibold text-foreground">Outcome:</span> {data.playoffFinish.correctOutcome}</p>
+                  <p><span className="font-semibold" style={{ color: getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000' }}>Outcome:</span> {data.playoffFinish.correctOutcome}</p>
                 ) : (
                   <>
-                    <p><span className="font-semibold text-foreground">Your guess:</span> {data.playoffFinish.userGuess}</p>
-                    <p><span className="font-semibold text-foreground">Actual:</span> {data.playoffFinish.correctOutcome}</p>
+                    <p><span className="font-semibold" style={{ color: getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000' }}>Your guess:</span> {data.playoffFinish.userGuess}</p>
+                    <p><span className="font-semibold" style={{ color: getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000' }}>Actual:</span> {data.playoffFinish.correctOutcome}</p>
                   </>
                 )}
                 {data.playoffFinish.seriesScore && (
-                  <p className="text-xs text-muted-foreground">Series: {data.playoffFinish.seriesScore}</p>
+                  <p className="text-xs" style={{ color: `${getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000'}aa` }}>Series: {data.playoffFinish.seriesScore}</p>
                 )}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">No playoff question this session.</p>
+              <p className="text-sm" style={{ color: `${getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000'}aa` }}>No playoff question this session.</p>
             )}
           </div>
         </div>
@@ -525,53 +568,56 @@ export function ScoreSummaryModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
+      <style>{`
+        [data-state="open"] .rainbow-border {
+          background: ${secondaryColor} !important;
+          padding: 2px !important;
+        }
+        /* Force primary color background on all modal inner elements */
+        [data-state="open"] .rainbow-border > div {
+          background: ${primaryColor} !important;
+        }
+        /* Hide default close button */
+        [data-radix-dialog-content] button[data-radix-dialog-close] {
+          display: none !important;
+        }
+        /* Force modal overlay and content above footer */
+        [data-radix-dialog-overlay] {
+          z-index: 10000 !important;
+          backdrop-filter: blur(8px) !important;
+          -webkit-backdrop-filter: blur(8px) !important;
+          background-color: rgba(0, 0, 0, 0.5) !important;
+        }
+      `}</style>
       <DialogContent
-        className="max-w-5xl max-h-[90vh] overflow-y-auto p-0"
+        className="max-w-5xl max-h-[90vh] overflow-y-auto p-0 !z-[10000]"
         aria-describedby="score-summary-description"
         style={{
-          background: `linear-gradient(to bottom, ${primaryColor}15, transparent 200px)`,
+          backgroundColor: primaryColor,
         }}
       >
-        <DialogHeader
-          className="sticky top-0 z-10 border-b px-6 py-4"
+        {/* Custom Close Button */}
+        <button
+          onClick={() => onOpenChange(false)}
+          className="absolute right-4 top-4 z-[10001] rounded-lg p-2.5 transition-all duration-200 hover:scale-110 hover:rotate-90 shadow-lg"
           style={{
-            background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
-            borderColor: accentColor,
+            backgroundColor: `${secondaryColor}40`,
+            color: getContrastColor(secondaryColor) === 'white' ? '#ffffff' : '#000000',
+            border: `2px solid ${secondaryColor}`,
+            backdropFilter: 'blur(8px)',
           }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = `${secondaryColor}60`;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = `${secondaryColor}40`;
+          }}
+          aria-label="Close"
         >
-          <div className="flex flex-col items-center text-center gap-3">
-            <div className="flex items-center gap-3">
-              <Trophy
-                className="h-6 w-6"
-                aria-hidden="true"
-                style={{ color: headerTextColor === 'white' ? '#ffffff' : '#000000' }}
-              />
-              <DialogTitle style={{ color: headerTextColor === 'white' ? '#ffffff' : '#000000' }}>
-                Score Breakdown
-              </DialogTitle>
-            </div>
-            <div id="score-summary-description" className="flex items-center gap-3">
-              <span
-                className="text-sm font-medium"
-                style={{ color: headerTextColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}
-              >
-                {data.season} {data.teamName}
-              </span>
-              {data.teamLogo && (
-                <img
-                  src={data.teamLogo}
-                  alt={`${data.teamName} logo`}
-                  className="h-12 w-12 object-contain"
-                  style={{
-                    filter: headerTextColor === 'white' ? 'brightness(1.1) drop-shadow(0 2px 4px rgba(0,0,0,0.3))' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
-                  }}
-                />
-              )}
-            </div>
-          </div>
-        </DialogHeader>
+          <X className="h-6 w-6" />
+        </button>
 
-        <div className="px-6 py-6 space-y-6">
+        <div className="px-6 pt-6 pb-6 space-y-6">
           <div className="flex flex-wrap items-center justify-center gap-2">
             <Button
               variant={viewMode === 'detailed' ? 'default' : 'outline'}
@@ -579,12 +625,12 @@ export function ScoreSummaryModal({
               onClick={() => setViewMode('detailed')}
               className="px-4"
               style={viewMode === 'detailed' ? {
-                backgroundColor: primaryColor,
-                color: headerTextColor === 'white' ? '#ffffff' : '#000000',
-                borderColor: primaryColor,
+                backgroundColor: secondaryColor,
+                color: getContrastColor(secondaryColor) === 'white' ? '#ffffff' : '#000000',
+                borderColor: secondaryColor,
               } : {
-                borderColor: primaryColor,
-                color: primaryColor,
+                borderColor: secondaryColor,
+                color: secondaryColor,
               }}
             >
               Detailed Breakdown
@@ -595,71 +641,41 @@ export function ScoreSummaryModal({
               onClick={() => setViewMode('spoilerFree')}
               className="px-4"
               style={viewMode === 'spoilerFree' ? {
-                backgroundColor: primaryColor,
-                color: headerTextColor === 'white' ? '#ffffff' : '#000000',
-                borderColor: primaryColor,
+                backgroundColor: secondaryColor,
+                color: getContrastColor(secondaryColor) === 'white' ? '#ffffff' : '#000000',
+                borderColor: secondaryColor,
               } : {
-                borderColor: primaryColor,
-                color: primaryColor,
+                borderColor: secondaryColor,
+                color: secondaryColor,
               }}
             >
               Spoiler-Free Card
             </Button>
           </div>
 
+          {/* Season and Team Logo */}
+          <div className="flex items-center justify-center gap-4">
+            {data.teamLogo && (
+              <img
+                src={data.teamLogo}
+                alt={data.teamName}
+                className="h-12 w-12 object-contain"
+              />
+            )}
+            <h2
+              className="text-2xl font-bold"
+              style={{
+                color: getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000'
+              }}
+            >
+              {data.season} {data.teamName}
+            </h2>
+          </div>
+
           {viewMode === 'detailed' ? detailedContent : spoilerContent}
 
           <div className="text-right text-sm font-mono text-muted-foreground border-t pt-4">
             Total = {data.categories.map(c => c.points).join(' + ')} = {data.finalScore}
-          </div>
-        </div>
-
-        <div
-          className="sticky bottom-0 border-t px-6 py-4"
-          style={{
-            background: `linear-gradient(to top, ${primaryColor}20, transparent)`,
-            borderColor: accentColor,
-          }}
-        >
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <Button
-              onClick={onPlayAgain}
-              size="lg"
-              style={{
-                backgroundColor: primaryColor,
-                color: headerTextColor === 'white' ? '#ffffff' : '#000000',
-                borderColor: primaryColor,
-              }}
-            >
-              <Shuffle className="h-4 w-4 mr-2" />
-              Play Again
-            </Button>
-            <Button
-              onClick={onNewSeason}
-              variant="outline"
-              size="lg"
-              style={{
-                borderColor: primaryColor,
-                color: primaryColor,
-              }}
-            >
-              <Home className="h-4 w-4 mr-2" />
-              New Season
-            </Button>
-            <Button
-              onClick={onShare}
-              variant="outline"
-              size="lg"
-              disabled={!onShare}
-              title={onShare ? 'Share result' : 'Coming soon'}
-              style={{
-                borderColor: primaryColor,
-                color: primaryColor,
-              }}
-            >
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
-            </Button>
           </div>
         </div>
       </DialogContent>
