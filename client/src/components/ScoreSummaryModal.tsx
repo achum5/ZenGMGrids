@@ -77,10 +77,14 @@ function PointsPill({
   points,
   variant = 'default',
   size = 'default',
+  teamColor,
+  textColor,
 }: {
   points: number;
   variant?: 'default' | 'large' | 'muted';
   size?: 'default' | 'large';
+  teamColor?: string;
+  textColor?: string;
 }) {
   const isAwarded = points > 0;
   const baseClasses = 'rounded-full font-semibold inline-flex items-center justify-center';
@@ -99,10 +103,17 @@ function PointsPill({
     ? `${points} points awarded`
     : `0 points awarded`;
 
+  const customStyle = teamColor && isAwarded ? {
+    backgroundColor: `${teamColor}25`,
+    color: teamColor,
+    border: `1.5px solid ${teamColor}`,
+  } : undefined;
+
   return (
     <span
       className={`${baseClasses} ${variantClasses} ${sizeClasses}`}
       aria-label={ariaLabel}
+      style={customStyle}
     >
       {points > 0 ? '+' : ''}{points} {size === 'large' ? 'points' : 'pts'}
     </span>
@@ -142,6 +153,15 @@ function useCountUp(end: number, duration: number = 600, shouldStart: boolean = 
   return count;
 }
 
+function getContrastColor(hexColor: string): 'white' | 'black' {
+  const hex = hexColor.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.5 ? 'black' : 'white';
+}
+
 export function ScoreSummaryModal({
   open,
   onOpenChange,
@@ -164,6 +184,26 @@ export function ScoreSummaryModal({
 
   const animatedScore = useCountUp(data.finalScore, 600, cardsVisible);
   const progress = data.finalScore > 0 ? (animatedScore / data.finalScore) * 100 : 0;
+
+  // Team colors
+  const teamColors = useMemo(() => {
+    if (data.teamColors && data.teamColors.length > 0) {
+      return data.teamColors;
+    }
+    return ['#1d4ed8', '#3b82f6', '#60a5fa'];
+  }, [data.teamColors]);
+
+  const [primaryColor, secondaryColor, accentColor] = useMemo(() => {
+    if (teamColors.length === 1) {
+      return [teamColors[0], teamColors[0], teamColors[0]];
+    }
+    if (teamColors.length === 2) {
+      return [teamColors[0], teamColors[1], teamColors[1]];
+    }
+    return [teamColors[0], teamColors[1], teamColors[2] || teamColors[1]];
+  }, [teamColors]);
+
+  const headerTextColor = useMemo(() => getContrastColor(primaryColor), [primaryColor]);
 
   const correctPlayers = useMemo(
     () => data.playerGuesses.filter(p => p.correct),
@@ -318,43 +358,56 @@ export function ScoreSummaryModal({
         className={`bg-card border rounded-xl p-6 shadow-sm transition-all duration-300 ${
           cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
         }`}
+        style={{
+          borderColor: `${primaryColor}40`,
+          background: `linear-gradient(to bottom right, ${primaryColor}08, transparent)`,
+        }}
       >
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div className="flex-1">
             <h3 className="text-sm font-medium text-muted-foreground mb-2">Final Score</h3>
-            <div className="text-6xl font-bold text-primary tabular-nums">{animatedScore}</div>
+            <div className="text-6xl font-bold tabular-nums" style={{ color: primaryColor }}>{animatedScore}</div>
             {data.timeElapsed && (
               <p className="text-xs text-muted-foreground mt-2">Time: {formatTime(data.timeElapsed)}</p>
             )}
             <div className="mt-4 h-1.5 bg-muted rounded-full overflow-hidden">
               <div
-                className="h-full bg-primary transition-all duration-500 ease-out"
-                style={{ width: `${progress}%` }}
+                className="h-full transition-all duration-500 ease-out"
+                style={{
+                  width: `${progress}%`,
+                  background: `linear-gradient(90deg, ${primaryColor}, ${secondaryColor})`,
+                }}
               />
             </div>
           </div>
-          <div className="bg-muted/30 rounded-lg p-4 min-w-[220px]">
+          <div
+            className="rounded-lg p-4 min-w-[220px]"
+            style={{
+              backgroundColor: `${primaryColor}15`,
+              border: `1px solid ${primaryColor}30`,
+            }}
+          >
             <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Breakdown</h4>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span>Round 1</span>
-                <span className="font-semibold tabular-nums">+{guessRoundPoints}</span>
+                <span className="font-semibold tabular-nums" style={{ color: primaryColor }}>+{guessRoundPoints}</span>
               </div>
               <div className="flex justify-between">
                 <span>Round 2</span>
-                <span className="font-semibold tabular-nums">+{hintRoundPoints}</span>
+                <span className="font-semibold tabular-nums" style={{ color: primaryColor }}>+{hintRoundPoints}</span>
               </div>
               <div className="flex justify-between">
                 <span>Leaders</span>
-                <span className="font-semibold tabular-nums">+{categoryTotals['Leaders'] || 0}</span>
+                <span className="font-semibold tabular-nums" style={{ color: primaryColor }}>+{categoryTotals['Leaders'] || 0}</span>
               </div>
               <div className="flex justify-between">
                 <span>Wins Guess</span>
-                <span className="font-semibold tabular-nums">+{winsGuessPoints}</span>
+                <span className="font-semibold tabular-nums" style={{ color: primaryColor }}>+{winsGuessPoints}</span>
               </div>
               <div className="flex justify-between">
                 <span>Playoff</span>
-                <span className="font-semibold tabular-nums">+{playoffPoints}</span>
+                <span className="font-semibold tabular-nums" style={{ color: primaryColor }}>+{playoffPoints}</span>
               </div>
             </div>
           </div>
@@ -368,7 +421,7 @@ export function ScoreSummaryModal({
               <UsersIcon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
               <h3 className="font-semibold">Round 1 — Player Guesses</h3>
             </div>
-            <PointsPill points={guessRoundPoints} />
+            <PointsPill points={guessRoundPoints} teamColor={primaryColor} />
           </div>
           <p className="text-xs text-muted-foreground mb-4">15 points per correct answer.</p>
           {renderPlayerList(guessRoundPlayers, 'No correct players found in this round.')}
@@ -380,7 +433,7 @@ export function ScoreSummaryModal({
               <UsersIcon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
               <h3 className="font-semibold">Round 2 — Hints Enabled</h3>
             </div>
-            <PointsPill points={hintRoundPoints} />
+            <PointsPill points={hintRoundPoints} teamColor={primaryColor} />
           </div>
           <p className="text-xs text-muted-foreground mb-4">10 points per correct answer.</p>
           {renderPlayerList(hintRoundPlayers, 'No correct players found with hints.')}
@@ -394,7 +447,7 @@ export function ScoreSummaryModal({
               <TrendingUp className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
               <h3 className="font-semibold">Stat Leaders</h3>
             </div>
-            <PointsPill points={categoryTotals['Leaders'] || 0} />
+            <PointsPill points={categoryTotals['Leaders'] || 0} teamColor={primaryColor} />
           </div>
           <div className="space-y-3">
             {data.leaders.length === 0 ? (
@@ -412,7 +465,7 @@ export function ScoreSummaryModal({
                 <Target className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                 <h3 className="font-semibold">Wins Guess</h3>
               </div>
-              <PointsPill points={winsGuessPoints} />
+              <PointsPill points={winsGuessPoints} teamColor={primaryColor} />
             </div>
             {data.winsGuess ? (
               <div className="space-y-2 text-sm text-muted-foreground">
@@ -433,7 +486,7 @@ export function ScoreSummaryModal({
                 <Flag className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                 <h3 className="font-semibold">Playoff Finish</h3>
               </div>
-              <PointsPill points={playoffPoints} />
+              <PointsPill points={playoffPoints} teamColor={primaryColor} />
             </div>
             {data.playoffFinish ? (
               <div className="space-y-2 text-sm text-muted-foreground">
@@ -475,20 +528,43 @@ export function ScoreSummaryModal({
       <DialogContent
         className="max-w-5xl max-h-[90vh] overflow-y-auto p-0"
         aria-describedby="score-summary-description"
+        style={{
+          background: `linear-gradient(to bottom, ${primaryColor}15, transparent 200px)`,
+        }}
       >
-        <DialogHeader className="sticky top-0 z-10 bg-background border-b px-6 py-4">
+        <DialogHeader
+          className="sticky top-0 z-10 border-b px-6 py-4"
+          style={{
+            background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
+            borderColor: accentColor,
+          }}
+        >
           <div className="flex flex-col items-center text-center gap-3">
             <div className="flex items-center gap-3">
-              <Trophy className="h-6 w-6 text-primary" aria-hidden="true" />
-              <DialogTitle>Score Breakdown</DialogTitle>
+              <Trophy
+                className="h-6 w-6"
+                aria-hidden="true"
+                style={{ color: headerTextColor === 'white' ? '#ffffff' : '#000000' }}
+              />
+              <DialogTitle style={{ color: headerTextColor === 'white' ? '#ffffff' : '#000000' }}>
+                Score Breakdown
+              </DialogTitle>
             </div>
             <div id="score-summary-description" className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">{data.season}</span>
+              <span
+                className="text-sm font-medium"
+                style={{ color: headerTextColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}
+              >
+                {data.season} {data.teamName}
+              </span>
               {data.teamLogo && (
                 <img
                   src={data.teamLogo}
                   alt={`${data.teamName} logo`}
                   className="h-12 w-12 object-contain"
+                  style={{
+                    filter: headerTextColor === 'white' ? 'brightness(1.1) drop-shadow(0 2px 4px rgba(0,0,0,0.3))' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
+                  }}
                 />
               )}
             </div>
@@ -502,6 +578,14 @@ export function ScoreSummaryModal({
               size="sm"
               onClick={() => setViewMode('detailed')}
               className="px-4"
+              style={viewMode === 'detailed' ? {
+                backgroundColor: primaryColor,
+                color: headerTextColor === 'white' ? '#ffffff' : '#000000',
+                borderColor: primaryColor,
+              } : {
+                borderColor: primaryColor,
+                color: primaryColor,
+              }}
             >
               Detailed Breakdown
             </Button>
@@ -510,6 +594,14 @@ export function ScoreSummaryModal({
               size="sm"
               onClick={() => setViewMode('spoilerFree')}
               className="px-4"
+              style={viewMode === 'spoilerFree' ? {
+                backgroundColor: primaryColor,
+                color: headerTextColor === 'white' ? '#ffffff' : '#000000',
+                borderColor: primaryColor,
+              } : {
+                borderColor: primaryColor,
+                color: primaryColor,
+              }}
             >
               Spoiler-Free Card
             </Button>
@@ -522,13 +614,35 @@ export function ScoreSummaryModal({
           </div>
         </div>
 
-        <div className="sticky bottom-0 bg-background border-t px-6 py-4">
+        <div
+          className="sticky bottom-0 border-t px-6 py-4"
+          style={{
+            background: `linear-gradient(to top, ${primaryColor}20, transparent)`,
+            borderColor: accentColor,
+          }}
+        >
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <Button onClick={onPlayAgain} size="lg">
+            <Button
+              onClick={onPlayAgain}
+              size="lg"
+              style={{
+                backgroundColor: primaryColor,
+                color: headerTextColor === 'white' ? '#ffffff' : '#000000',
+                borderColor: primaryColor,
+              }}
+            >
               <Shuffle className="h-4 w-4 mr-2" />
               Play Again
             </Button>
-            <Button onClick={onNewSeason} variant="outline" size="lg">
+            <Button
+              onClick={onNewSeason}
+              variant="outline"
+              size="lg"
+              style={{
+                borderColor: primaryColor,
+                color: primaryColor,
+              }}
+            >
               <Home className="h-4 w-4 mr-2" />
               New Season
             </Button>
@@ -538,6 +652,10 @@ export function ScoreSummaryModal({
               size="lg"
               disabled={!onShare}
               title={onShare ? 'Share result' : 'Coming soon'}
+              style={{
+                borderColor: primaryColor,
+                color: primaryColor,
+              }}
             >
               <Share2 className="h-4 w-4 mr-2" />
               Share

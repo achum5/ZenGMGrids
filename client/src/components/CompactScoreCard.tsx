@@ -94,10 +94,22 @@ export function CompactScoreCard({
     if (data.leaders.length === 0) return 'N/A';
     return data.leaders
       .map(leader => {
-        const token = Object.entries(leaderTokens).find(([label]) => leader.label.includes(label))?.[1] ?? 'STAT';
+        // Try to find matching token from the mappings
+        let token = Object.entries(leaderTokens).find(([label]) => leader.label.includes(label))?.[1];
+
+        // If no match found, try to extract abbreviation from statLabel
+        if (!token && leader.statLabel) {
+          // Common patterns: "PPG", "RPG", "APG", "BPG", "SPG", etc.
+          const match = leader.statLabel.match(/^([A-Z]+)$/);
+          token = match ? match[1] : 'STAT';
+        }
+
+        // Fallback to 'STAT'
+        token = token ?? 'STAT';
+
         return `${token}${leader.userCorrect ? '✓' : '✗'}`;
       })
-      .join(' ');
+      .join(' | ');
   }, [data.leaders, leaderTokens]);
 
   const winsPoints = data.winsGuess ? (data.winsGuess.awarded ? 10 : 0) : 0;
