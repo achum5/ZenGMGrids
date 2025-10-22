@@ -424,7 +424,7 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
 
     // Extract playoff series data
     postProgress('Processing playoff data...');
-    let playoffSeries: any[] | undefined;
+    let playoffSeries: any[] | undefined = undefined;
     if (raw.playoffSeries && Array.isArray(raw.playoffSeries)) {
       console.log('[League Normalizer] Found playoff series data:', raw.playoffSeries.length, 'seasons');
       playoffSeries = raw.playoffSeries.map((ps: any) => ({
@@ -436,7 +436,7 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
       console.log('[League Normalizer] No playoff series data found in raw');
     }
 
-    return { players, teams, sport, teamOverlaps, seasonIndex, leagueYears, teamSeasons, playoffSeries };
+    return { players, teams, sport, teamOverlaps, seasonIndex, leagueYears, teamSeasons, playoffSeries: playoffSeries || undefined };
   
   } catch (error) {
     console.error('Error in normalizeLeague:', error);
