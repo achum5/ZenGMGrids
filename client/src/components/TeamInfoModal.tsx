@@ -282,21 +282,22 @@ export function TeamInfoModal({
             </h2>
             {teamStats && (
               <ul className="mt-2 space-y-1 text-sm">
-                <li style={{ color: statTextColor }} className="flex items-center gap-2">
-                  <span>
-                    Record: {teamStats.wins}-{teamStats.losses}
-                    {teamStats.playoffResult ? ` | ${teamStats.playoffResult}` : ''}
-                  </span>
-                  {teamStats.playoffResult && teamPlayoffSeries.length > 0 && (
-                    <Popover open={playoffPopoverOpen} onOpenChange={setPlayoffPopoverOpen}>
-                      <PopoverTrigger asChild>
-                        <button
-                          className="inline-flex items-center justify-center rounded-full p-0.5 hover:bg-white/10 transition-colors"
-                          style={{ color: statTextColor }}
-                        >
-                          <Info className="h-3.5 w-3.5" />
-                        </button>
-                      </PopoverTrigger>
+                <li style={{ color: statTextColor }}>
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <span>
+                      Record: {teamStats.wins}-{teamStats.losses}
+                      {teamStats.playoffResult ? ` | ${teamStats.playoffResult}` : ''}
+                    </span>
+                    {teamStats.playoffResult && teamPlayoffSeries.length > 0 && (
+                      <Popover open={playoffPopoverOpen} onOpenChange={setPlayoffPopoverOpen}>
+                        <PopoverTrigger asChild>
+                          <button
+                            className="inline-flex items-center justify-center rounded-full p-0.5 hover:bg-white/10 transition-colors flex-shrink-0"
+                            style={{ color: statTextColor }}
+                          >
+                            <Info className="h-3.5 w-3.5" />
+                          </button>
+                        </PopoverTrigger>
                       <PopoverContent
                         className="w-80 p-4 z-[3000]"
                         style={{
@@ -349,7 +350,8 @@ export function TeamInfoModal({
                         </div>
                       </PopoverContent>
                     </Popover>
-                  )}
+                    )}
+                  </div>
                 </li>
                 <li style={{ color: statTextColor }}>
                   Team rating: {teamStats.teamRating}/100
