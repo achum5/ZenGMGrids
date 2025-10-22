@@ -39,7 +39,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { RulesModal } from '@/components/RulesModal';
 import { AccentLine } from '@/components/AccentLine';
-import { ScoreSummaryModal, type ScoreSummaryData } from '@/components/ScoreSummaryModal';
+import { CompactScoreCard } from '@/components/CompactScoreCard';
+import type { ScoreSummaryData } from '@/components/ScoreSummaryModal';
 import type { LeagueData, Player, Team } from '@/types/bbgm';
 
 // Type for ScoreCategory
@@ -239,7 +240,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   const [score, setScore] = useState(0);
   const [currentRound, setCurrentRound] = useState<RoundType>('guess');
   const [selectedLeader, setSelectedLeader] = useState<number | null>(null); // PID of selected leader
-  const [clickedLeaderInfo, setClickedLeaderInfo] = useState<{ name: string; position: string } | null>(null); // Info shown after clicking
+  const [clickedLeaderInfo, setClickedLeaderInfo] = useState<{ name: string; position: string; statValue: string } | null>(null); // Info shown after clicking
   
   // Debug: Log leagueData on mount
   useEffect(() => {
@@ -1726,9 +1727,78 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     if (correctRosterPlayer) {
       const rating = correctRosterPlayer.player.ratings?.find(r => r.season === selectedSeason);
       const pos = rating?.pos || correctRosterPlayer.player.ratings?.[0]?.pos || 'Unknown';
+
+      // Get the stat value based on the current round
+      let statValue = '';
+      const stats = correctRosterPlayer.stats;
+      switch (currentRound) {
+        // Basketball rounds
+        case 'points-leader':
+          statValue = stats?.ppg ? `${stats.ppg.toFixed(1)} PPG` : 'N/A';
+          break;
+        case 'rebounds-leader':
+          statValue = stats?.rpg ? `${stats.rpg.toFixed(1)} RPG` : 'N/A';
+          break;
+        case 'assists-leader':
+          statValue = stats?.apg ? `${stats.apg.toFixed(1)} APG` : 'N/A';
+          break;
+        case 'steals-leader':
+          statValue = stats?.spg ? `${stats.spg.toFixed(1)} SPG` : 'N/A';
+          break;
+        case 'blocks-leader':
+          statValue = stats?.bpg ? `${stats.bpg.toFixed(1)} BPG` : 'N/A';
+          break;
+        // Football rounds
+        case 'passing-yards-leader':
+          statValue = stats?.passYards ? `${Math.round(stats.passYards)} Yards` : 'N/A';
+          break;
+        case 'rushing-yards-leader':
+          statValue = stats?.rushYards ? `${Math.round(stats.rushYards)} Yards` : 'N/A';
+          break;
+        case 'receiving-yards-leader':
+          statValue = stats?.recYards ? `${Math.round(stats.recYards)} Yards` : 'N/A';
+          break;
+        case 'tackles-leader':
+          statValue = stats?.tackles ? `${Math.round(stats.tackles)} Tackles` : 'N/A';
+          break;
+        case 'sacks-leader':
+          statValue = stats?.sacks ? `${stats.sacks.toFixed(1)} Sacks` : 'N/A';
+          break;
+        case 'interceptions-leader':
+          statValue = stats?.interceptions ? `${stats.interceptions} INT` : 'N/A';
+          break;
+        // Baseball rounds
+        case 'hits-leader':
+          statValue = stats?.hits ? `${stats.hits} H` : 'N/A';
+          break;
+        case 'home-runs-leader':
+          statValue = stats?.homeRuns ? `${stats.homeRuns} HR` : 'N/A';
+          break;
+        case 'rbis-leader':
+          statValue = stats?.rbis ? `${stats.rbis} RBI` : 'N/A';
+          break;
+        case 'stolen-bases-leader':
+          statValue = stats?.stolenBases ? `${stats.stolenBases} SB` : 'N/A';
+          break;
+        case 'strikeouts-leader':
+          statValue = stats?.strikeouts ? `${stats.strikeouts} K` : 'N/A';
+          break;
+        case 'wins-leader':
+          statValue = stats?.wins ? `${stats.wins} W` : 'N/A';
+          break;
+        // Hockey rounds
+        case 'goals-leader':
+          statValue = stats?.goals ? `${stats.goals} G` : 'N/A';
+          break;
+        case 'goalie-wins-leader':
+          statValue = stats?.wins ? `${stats.wins} W` : 'N/A';
+          break;
+      }
+
       setClickedLeaderInfo({
         name: correctRosterPlayer.player.name,
-        position: pos
+        position: pos,
+        statValue: statValue
       });
     }
 
@@ -2918,11 +2988,11 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                                 ? 'border-primary bg-primary/20 text-white'
                                 : 'border-muted bg-muted/10 text-muted-foreground hover:border-primary/50 hover:bg-primary/10'
                               }
-                              ${playoffFinishSubmitted && option.value === playoffFinishData.finishValue
+                              ${playoffFinishSubmitted && playoffFinishGuess !== null && option.value === playoffFinishGuess && option.value === playoffFinishData.finishValue
                                 ? 'border-green-500 bg-green-500/20 text-green-400'
                                 : ''
                               }
-                              ${playoffFinishSubmitted && option.value === playoffFinishGuess && option.value !== playoffFinishData.finishValue
+                              ${playoffFinishSubmitted && playoffFinishGuess !== null && option.value === playoffFinishGuess && option.value !== playoffFinishData.finishValue
                                 ? 'border-red-500 bg-red-500/20 text-red-400'
                                 : ''
                               }
@@ -3008,7 +3078,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     {/* Show correct answer after click */}
                     {clickedLeaderInfo && (
                       <span className="ml-2 text-green-400">
-                        — {clickedLeaderInfo.name} ({clickedLeaderInfo.position})
+                        — {clickedLeaderInfo.name} ({clickedLeaderInfo.statValue})
                       </span>
                     )}
                   </p>
@@ -3033,15 +3103,23 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
           </div>
         </div>
 
-        {/* Score Summary Modal - New Premium Design */}
-        {scoreSummaryData && (
-          <ScoreSummaryModal
-            open={showBreakdownModal}
-            onOpenChange={setShowBreakdownModal}
-            data={scoreSummaryData}
-            onPlayAgain={handleNewYearSameTeam}
-            onNewSeason={handleNew}
-          />
+        {/* Compact Score Card - Shown when breakdown modal is open */}
+        {showBreakdownModal && scoreSummaryData && (
+          <div className="fixed inset-0 z-50">
+            <CompactScoreCard
+              data={scoreSummaryData}
+              teamColors={teamDisplayInfo.colors}
+              onPlayAgain={() => {
+                setShowBreakdownModal(false);
+                handleNewYearSameTeam();
+              }}
+              onNewSeason={() => {
+                setShowBreakdownModal(false);
+                handleNew();
+              }}
+              onClose={() => setShowBreakdownModal(false)}
+            />
+          </div>
         )}
       </div>
     );
