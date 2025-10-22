@@ -1,8 +1,13 @@
 import { useMemo, useState, useEffect } from 'react';
-import { X } from 'lucide-react';
-import type { Player, Team } from '@/types/bbgm';
+import { X, Info } from 'lucide-react';
+import type { Player, Team, PlayoffSeasonData } from '@/types/bbgm';
 import { getPlayerImage } from '@/lib/faceRenderer';
 import { getPlayerJerseyInfo } from '@/lib/jersey-utils';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
 interface TeamInfoModalProps {
   open: boolean;
@@ -22,6 +27,8 @@ interface TeamInfoModalProps {
     avgAge: number;
     playoffResult?: string;
   };
+  playoffSeriesData?: PlayoffSeasonData;
+  teamTid?: number;
 }
 
 interface PlayerInfo {
@@ -126,6 +133,8 @@ export function TeamInfoModal({
   sport,
   teams = [],
   teamStats,
+  playoffSeriesData,
+  teamTid,
 }: TeamInfoModalProps) {
   // Ensure we have valid colors with fallbacks
   const [primaryColor, secondaryColor] = useMemo(() => {
@@ -152,6 +161,54 @@ export function TeamInfoModal({
       return bContribution - aContribution;
     });
   }, [players]);
+
+  // Extract playoff series info for this team
+  const teamPlayoffSeries = useMemo(() => {
+    if (!playoffSeriesData || !teamTid) return [];
+
+    const series: Array<{
+      round: number;
+      opponent: string;
+      opponentTid: number;
+      teamWon: number;
+      teamLost: number;
+      opponentWon: number;
+      opponentLost: number;
+      won: boolean;
+    }> = [];
+
+    playoffSeriesData.series.forEach((round, roundIndex) => {
+      round.forEach(matchup => {
+        if (matchup.home.tid === teamTid) {
+          const opponentTeam = teams.find(t => t.tid === matchup.away.tid);
+          series.push({
+            round: roundIndex + 1,
+            opponent: opponentTeam?.name || `Team ${matchup.away.tid}`,
+            opponentTid: matchup.away.tid,
+            teamWon: matchup.home.won,
+            teamLost: matchup.home.lost || 0,
+            opponentWon: matchup.away.won,
+            opponentLost: matchup.away.lost || 0,
+            won: matchup.home.won > matchup.away.won,
+          });
+        } else if (matchup.away.tid === teamTid) {
+          const opponentTeam = teams.find(t => t.tid === matchup.home.tid);
+          series.push({
+            round: roundIndex + 1,
+            opponent: opponentTeam?.name || `Team ${matchup.home.tid}`,
+            opponentTid: matchup.home.tid,
+            teamWon: matchup.away.won,
+            teamLost: matchup.away.lost || 0,
+            opponentWon: matchup.home.won,
+            opponentLost: matchup.home.lost || 0,
+            won: matchup.away.won > matchup.home.won,
+          });
+        }
+      });
+    });
+
+    return series;
+  }, [playoffSeriesData, teamTid, teams]);
 
   if (!open) return null;
 
@@ -218,9 +275,66 @@ export function TeamInfoModal({
             </h2>
             {teamStats && (
               <ul className="mt-2 space-y-1 text-sm">
-                <li style={{ color: statTextColor }}>
-                  Record: {teamStats.wins}-{teamStats.losses}
-                  {teamStats.playoffResult ? ` | ${teamStats.playoffResult}` : ''}
+                <li style={{ color: statTextColor }} className="flex items-center gap-2">
+                  <span>
+                    Record: {teamStats.wins}-{teamStats.losses}
+                    {teamStats.playoffResult ? ` | ${teamStats.playoffResult}` : ''}
+                  </span>
+                  {teamStats.playoffResult && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          className="inline-flex items-center justify-center rounded-full p-0.5 hover:bg-white/10 transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Info className="h-3.5 w-3.5" style={{ color: statTextColor }} />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-80 p-4"
+                        style={{
+                          backgroundColor: primaryColor,
+                          borderColor: secondaryColor,
+                          border: `2px solid ${secondaryColor}`,
+                        }}
+                      >
+                        <h4 className="text-sm font-semibold mb-3" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>
+                          Playoff Series
+                        </h4>
+                        <div className="space-y-2">
+                          {teamPlayoffSeries.length === 0 ? (
+                            <p className="text-xs" style={{ color: statTextColor }}>
+                              No detailed playoff series data available.
+                            </p>
+                          ) : (
+                            teamPlayoffSeries.map((s, idx) => {
+                            const isSingleGame = s.teamWon + s.teamLost === 1 && s.opponentWon + s.opponentLost === 1;
+                            const scoreDisplay = isSingleGame
+                              ? `${s.teamWon > s.opponentWon ? 'W' : 'L'} ${Math.max(s.teamWon, s.opponentWon)}-${Math.min(s.teamWon, s.opponentWon)}`
+                              : `${s.won ? 'W' : 'L'} ${s.teamWon}-${s.opponentWon}`;
+
+                              return (
+                                <div
+                                  key={idx}
+                                  className="text-xs p-2 rounded"
+                                  style={{
+                                    backgroundColor: `${secondaryColor}15`,
+                                    borderLeft: `3px solid ${s.won ? '#22c55e' : '#ef4444'}`,
+                                    color: statTextColor,
+                                  }}
+                                >
+                                  <div className="font-medium" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>
+                                    Round {s.round}: vs {s.opponent}
+                                  </div>
+                                  <div className="mt-0.5">{scoreDisplay}</div>
+                                </div>
+                              );
+                            }))
+                          }
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  )}
                 </li>
                 <li style={{ color: statTextColor }}>
                   Team rating: {teamStats.teamRating}/100

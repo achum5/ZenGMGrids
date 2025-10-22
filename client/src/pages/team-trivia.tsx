@@ -3391,6 +3391,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
             sport={leagueData.sport}
             teams={leagueData.teams}
             teamStats={calculateTeamStats(leagueData, selectedTeam.tid, selectedSeason, roster)}
+            playoffSeriesData={leagueData.playoffSeries?.find(ps => ps.season === selectedSeason)}
+            teamTid={selectedTeam.tid}
           />
         )}
       </div>
