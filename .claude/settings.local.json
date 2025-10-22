@@ -7,7 +7,10 @@
       "Bash(git checkout:*)",
       "Bash(npm run build:*)",
       "Bash(curl:*)",
-      "Bash(timeout 15 npm run dev:*)"
+      "Bash(timeout 15 npm run dev:*)",
+      "Bash(npm run dev:*)",
+      "Bash(pkill:*)",
+      "Bash(npx vite:*)"
     ],
     "deny": [],
     "ask": []

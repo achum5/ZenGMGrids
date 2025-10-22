@@ -49,6 +49,7 @@ export function PlayerFace({ pid, name, imgURL, face, size = 110, hideName = fal
             alt={name}
             className="block w-full h-full object-contain"
             draggable={false}
+            style={{ transform: 'translateX(-7px)' }}
           />
         )}
 

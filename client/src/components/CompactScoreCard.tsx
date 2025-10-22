@@ -71,7 +71,7 @@ function getPlayoffToken(outcome: string): string {
     return 'L-R1';
   }
   if (lower.includes('missed') || lower.includes('did not qualify')) {
-    return 'DNQ';
+    return 'Missed Playoffs';
   }
   return 'N/A';
 }
@@ -126,7 +126,7 @@ export function CompactScoreCard({
       totals[cat.name] = (totals[cat.name] || 0) + cat.points;
 
       // Track guess vs hint round points separately
-      // Guess rounds award 10 points, hint rounds award 8 points
+      // Guess rounds award 15 points, hint rounds award 10 points
       if (cat.name === 'Player Guesses') {
         hasGuess = true; // Mark that guess round was played
       } else if (cat.name === 'Player Guesses (with hints)') {
@@ -135,7 +135,7 @@ export function CompactScoreCard({
 
       // Calculate points based on point value
       if (cat.name === 'Player Guesses' || cat.name === 'Player Guesses (with hints)') {
-        if (cat.points % 10 === 0) {
+        if (cat.points % 15 === 0) {
           guessPoints += cat.points;
         } else {
           hintPoints += cat.points;
@@ -153,8 +153,8 @@ export function CompactScoreCard({
   }, [data.categories]);
 
   // Count correct guesses for each round
-  const guessRoundCount = Math.floor(guessRoundPoints / 10);
-  const hintRoundCount = Math.floor(hintRoundPoints / 8);
+  const guessRoundCount = Math.floor(guessRoundPoints / 15);
+  const hintRoundCount = Math.floor(hintRoundPoints / 10);
 
   // Build leaders line
   const leadersLine = useMemo(() => {
@@ -239,7 +239,7 @@ export function CompactScoreCard({
               }}
             >
               <div className="flex items-center gap-3">
-                <span className="text-lg">👤</span>
+                <span className="text-lg" style={{ filter: 'grayscale(100%) brightness(0.6) sepia(100%) hue-rotate(70deg) saturate(500%)' }}>👤</span>
                 <span
                   className="text-sm font-bold uppercase tracking-wide"
                   style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
@@ -250,14 +250,14 @@ export function CompactScoreCard({
                   className="text-sm"
                   style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}
                 >
-                  • {guessRoundCount}×10 = {guessRoundPoints}
+                  • {guessRoundCount}×15 = {guessRoundPoints}
                 </span>
               </div>
               <span
                 className="text-sm font-semibold px-3 py-1 rounded-full"
                 style={{
-                  backgroundColor: '#22c55e',
-                  color: '#ffffff',
+                  backgroundColor: secondaryColor,
+                  color: getContrastColor(secondaryColor) === 'white' ? '#ffffff' : '#000000',
                 }}
               >
                 +{guessRoundPoints}
@@ -272,7 +272,7 @@ export function CompactScoreCard({
               }}
             >
               <div className="flex items-center gap-3">
-                <span className="text-lg">👤</span>
+                <span className="text-lg" style={{ filter: 'grayscale(100%) brightness(1.2) sepia(100%) hue-rotate(10deg) saturate(600%)' }}>👤</span>
                 <span
                   className="text-sm font-bold uppercase tracking-wide"
                   style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
@@ -283,14 +283,14 @@ export function CompactScoreCard({
                   className="text-sm"
                   style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}
                 >
-                  • {hintRoundCount}×8 = {hintRoundPoints}
+                  • {hintRoundCount}×10 = {hintRoundPoints}
                 </span>
               </div>
               <span
                 className="text-sm font-semibold px-3 py-1 rounded-full"
                 style={{
-                  backgroundColor: '#eab308',
-                  color: '#ffffff',
+                  backgroundColor: secondaryColor,
+                  color: getContrastColor(secondaryColor) === 'white' ? '#ffffff' : '#000000',
                 }}
               >
                 +{hintRoundPoints}
@@ -402,28 +402,20 @@ export function CompactScoreCard({
 
             {/* Total Row */}
             <div
-              className="flex items-center justify-between py-3 px-3 rounded-lg mt-4"
+              className="flex items-center justify-center py-3 px-3 rounded-lg mt-4"
               style={{
                 borderTop: `2px solid ${textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'}`,
               }}
             >
-              <div className="flex items-center gap-3">
-                <span
-                  className="text-base font-bold uppercase tracking-wide"
-                  style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
-                >
-                  TOTAL
-                </span>
-                <span
-                  className="text-sm font-mono"
-                  style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)' }}
-                >
-                  • {data.categories.map(c => c.points).join(' + ')} = {data.finalScore}
-                </span>
-              </div>
+              <span
+                className="text-xl font-bold uppercase tracking-wide"
+                style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
+              >
+                TOTAL {data.finalScore}
+              </span>
               {data.timeElapsed && (
                 <span
-                  className="text-xs px-2 py-1 rounded"
+                  className="text-xs px-2 py-1 rounded ml-4"
                   style={{
                     backgroundColor: `${textColor === 'white' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'}`,
                     color: textColor === 'white' ? '#ffffff' : '#000000',

@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { PlayerFace } from '@/components/PlayerFace';
 import { useToast } from '@/lib/hooks/use-toast';
-import { Shuffle, Home as HomeIcon, ArrowLeft, ChevronDown, ArrowRight } from 'lucide-react';
+import { Shuffle, Home as HomeIcon, ArrowLeft, ChevronDown, ArrowRight, Info } from 'lucide-react';
 
 
 import {
@@ -40,6 +40,7 @@ import {
 import { RulesModal } from '@/components/RulesModal';
 import { AccentLine } from '@/components/AccentLine';
 import { CompactScoreCard } from '@/components/CompactScoreCard';
+import { TeamInfoModal } from '@/components/TeamInfoModal';
 import type { ScoreSummaryData } from '@/components/ScoreSummaryModal';
 import type { LeagueData, Player, Team } from '@/types/bbgm';
 
@@ -230,6 +231,51 @@ const HOCKEY_ROUND_INSTRUCTIONS: Record<HockeyRoundType, string> = {
   'complete': 'Round complete!'
 };
 
+// Helper function to calculate years with team
+function calculateYearsWithTeam(player: Player, tid: number, season: number): number {
+  if (!player.stats || player.stats.length === 0) return 0;
+
+  // Count seasons with this team up to and including the selected season
+  const seasonsWithTeam = player.stats.filter(stat =>
+    stat.tid === tid && stat.season <= season
+  );
+
+  return seasonsWithTeam.length;
+}
+
+// Helper function to get player rating for a specific season
+function getPlayerRating(player: Player, season: number, type: 'ovr' | 'pot'): number | undefined {
+  if (!player.ratings || player.ratings.length === 0) return undefined;
+
+  // Find rating for the specific season
+  const seasonRating = player.ratings.find(r => r.season === season);
+  if (seasonRating) {
+    return type === 'ovr' ? seasonRating.ovr : seasonRating.pot;
+  }
+
+  // Fallback to closest season if exact match not found
+  const closestRating = player.ratings.reduce((closest, current) => {
+    const currentDiff = Math.abs(current.season - season);
+    const closestDiff = Math.abs(closest.season - season);
+    return currentDiff < closestDiff ? current : closest;
+  });
+
+  return type === 'ovr' ? closestRating.ovr : closestRating.pot;
+}
+
+// Helper function to format contract information
+function formatContract(player: Player, season: number): string | undefined {
+  if (!player.salaries || player.salaries.length === 0) return undefined;
+
+  // Find salary for the specific season
+  const seasonSalary = player.salaries.find(s => s.season === season);
+  if (!seasonSalary) return undefined;
+
+  // Format as $X.XXM
+  const salaryInMillions = seasonSalary.amount / 1000;
+  return `$${salaryInMillions.toFixed(2)}M`;
+}
+
 export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }: TeamTriviaProps) {
   const { toast } = useToast();
   const [guess, setGuess] = useState('');
@@ -266,6 +312,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   const [playoffFinishSubmitted, setPlayoffFinishSubmitted] = useState(false); // Whether user has submitted playoff finish guess
   const [scoreBreakdown, setScoreBreakdown] = useState<RoundScore[]>([]); // Track score per round
   const [showBreakdownModal, setShowBreakdownModal] = useState(false); // Show breakdown dialog
+  const [showTeamInfo, setShowTeamInfo] = useState(false); // Show team info modal
 
   // Detailed game tracking for new summary modal
   const [detailedGameData, setDetailedGameData] = useState<{
@@ -1438,11 +1485,11 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
 
       // Award points based on round
       if (currentRound === 'guess') {
-        setScore(prev => prev + 10);
-        addToScoreBreakdown('guess', 'Player Guesses', 10, player.name);
+        setScore(prev => prev + 15);
+        addToScoreBreakdown('guess', 'Player Guesses', 15, player.name);
       } else if (currentRound === 'hint') {
-        setScore(prev => prev + 8);
-        addToScoreBreakdown('hint', 'Player Guesses (with hints)', 8, player.name);
+        setScore(prev => prev + 10);
+        addToScoreBreakdown('hint', 'Player Guesses (with hints)', 10, player.name);
       }
 
       // Trigger success animation for correct guess
@@ -1811,8 +1858,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       toast({
         description: 'Correct! Moving to next round...',
       });
-      setScore(prev => prev + 5); // Award 5 points for correct leader
-      addToScoreBreakdown(currentRound, getRoundInstruction(currentRound), 5, correctRosterPlayer?.player.name || 'Stat leader');
+      setScore(prev => prev + 10); // Award 10 points for correct leader
+      addToScoreBreakdown(currentRound, getRoundInstruction(currentRound), 10, correctRosterPlayer?.player.name || 'Stat leader');
 
       // Track leader result for detailed game data
       if (correctRosterPlayer) {
@@ -2433,8 +2480,20 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     </Command>
                   </PopoverContent>
                 </Popover>
+
+                {/* Team Info Button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowTeamInfo(true)}
+                  className="text-xs sm:text-sm px-2 sm:px-3 h-8 sm:h-10 shrink-0 hover:bg-accent/50 animate-on-click"
+                  style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary))' }}
+                >
+                  <Info className="h-4 w-4 sm:h-5 sm:w-5 mr-1" />
+                  <span className="hidden sm:inline">Team Info</span>
+                </Button>
               </div>
-  
+
               {/* Right side: Score Counter */}
               <div className="text-sm sm:text-xl md:text-2xl font-bold shrink-0" data-testid="text-score-counter">
                 <span style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary))' }}>
@@ -3120,6 +3179,32 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
               onClose={() => setShowBreakdownModal(false)}
             />
           </div>
+        )}
+
+        {/* Team Info Modal */}
+        {showTeamInfo && (
+          <TeamInfoModal
+            open={showTeamInfo}
+            onClose={() => setShowTeamInfo(false)}
+            season={selectedSeason}
+            teamName={teamDisplayInfo.name}
+            teamAbbrev={selectedTeam.abbrev}
+            teamLogo={teamDisplayInfo.logo ? getTeamLogoUrl(teamDisplayInfo.logo, leagueData.sport) : undefined}
+            teamColors={teamDisplayInfo.colors}
+            players={roster.map(rp => ({
+              player: rp.player,
+              position: rp.position,
+              age: rp.age,
+              gamesPlayed: rp.gamesPlayed,
+              stats: rp.stats,
+              yearsWithTeam: calculateYearsWithTeam(rp.player, selectedTeam.tid, selectedSeason),
+              ovr: getPlayerRating(rp.player, selectedSeason, 'ovr'),
+              pot: getPlayerRating(rp.player, selectedSeason, 'pot'),
+              contract: formatContract(rp.player, selectedSeason),
+            }))}
+            sport={leagueData.sport}
+            teams={leagueData.teams}
+          />
         )}
       </div>
     );
