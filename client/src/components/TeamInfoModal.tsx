@@ -104,7 +104,7 @@ export function TeamInfoModal({
         {/* Team Logo Watermark - Large centered background */}
         {teamLogo && (
           <div
-            className="absolute inset-0 flex items-center justify-center opacity-[0.06] pointer-events-none -z-10"
+            className="absolute inset-0 flex items-center justify-center opacity-[0.06] pointer-events-none"
           >
             <img
               src={teamLogo}
