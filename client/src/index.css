@@ -1131,11 +1131,32 @@
 }
 
 @layer base {
-  * {
+  /* Mobile viewport height fix for iOS Safari and other mobile browsers */
+  html {
+    height: 100%;
+    /* Fallback for browsers that don't support dvh */
+    height: 100vh;
+    /* Use dynamic viewport height which accounts for browser UI */
+    height: 100dvh;
   }
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    height: 100%;
+    /* Prevent overscroll/bounce on mobile */
+    overscroll-behavior: none;
+    /* Prevent iOS Safari from zooming on input focus */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Ensure root element also respects mobile viewport */
+  #root {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  * {
   }
 }
 

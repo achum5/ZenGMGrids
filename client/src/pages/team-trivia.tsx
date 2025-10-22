@@ -552,6 +552,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   const [scoreBreakdown, setScoreBreakdown] = useState<RoundScore[]>([]); // Track score per round
   const [showBreakdownModal, setShowBreakdownModal] = useState(false); // Show breakdown dialog
   const [showTeamInfo, setShowTeamInfo] = useState(false); // Show team info modal
+  const [opponentTeamInfo, setOpponentTeamInfo] = useState<{ tid: number; season: number } | null>(null); // Opponent team modal state
 
   // Detailed game tracking for new summary modal
   const [detailedGameData, setDetailedGameData] = useState<{
@@ -1479,6 +1480,11 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     setFoundCount(0);
   }, [leagueData.players]);
 
+  // Handler for opening opponent team modal
+  const handleOpenOpponentTeam = useCallback((opponentTid: number, season: number) => {
+    setOpponentTeamInfo({ tid: opponentTid, season });
+  }, []);
+
   // Pick random season and team
   const pickRandomTeamAndSeason = useCallback(() => {
     if (allSeasons.length === 0 || allTeams.length === 0) {
@@ -2382,7 +2388,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   }, [selectedTeam, selectedSeason, teamDisplayInfo, leagueData.sport, score, scoreBreakdown, detailedGameData]);
 
     return (
-      <div className="h-screen flex flex-col bg-background overflow-hidden">
+      <div className="h-full flex flex-col bg-background overflow-hidden">
         {/* Main Header */}
               <header
                 className="border-border shrink-0"
@@ -3393,8 +3399,78 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
             teamStats={calculateTeamStats(leagueData, selectedTeam.tid, selectedSeason, roster)}
             playoffSeriesData={leagueData.playoffSeries?.find(ps => ps.season === selectedSeason)}
             teamTid={selectedTeam.tid}
+            onOpenOpponentTeam={handleOpenOpponentTeam}
           />
         )}
+
+        {/* Opponent Team Info Modal */}
+        {opponentTeamInfo && (() => {
+          const opponentTeam = leagueData.teams.find(t => t.tid === opponentTeamInfo.tid);
+          if (!opponentTeam) return null;
+
+          // Build opponent roster
+          const opponentRoster: any[] = [];
+          leagueData.players.forEach(player => {
+            const seasonStats = player.stats?.find(
+              s => !s.playoffs && s.season === opponentTeamInfo.season && s.tid === opponentTeamInfo.tid
+            );
+
+            if (seasonStats && seasonStats.gp && seasonStats.gp > 0) {
+              const rating = player.ratings?.find(r => r.season === opponentTeamInfo.season);
+              const position = rating?.pos || player.pos || 'F';
+              const age = player.born?.year ? opponentTeamInfo.season - player.born.year : undefined;
+
+              let stats: any;
+              if (leagueData.sport === 'basketball') {
+                const gp = seasonStats.gp;
+                const mpg = seasonStats.min ? seasonStats.min / gp : 0;
+                const ppg = seasonStats.pts ? seasonStats.pts / gp : 0;
+                const totalReb = seasonStats.trb || ((seasonStats.orb || 0) + (seasonStats.drb || 0));
+                const rpg = totalReb / gp;
+                const apg = seasonStats.ast ? seasonStats.ast / gp : 0;
+                const per = seasonStats.per || 0;
+                stats = { mpg, ppg, rpg, apg, per };
+              } else {
+                stats = {};
+              }
+
+              opponentRoster.push({
+                player,
+                position,
+                age,
+                gamesPlayed: seasonStats.gp,
+                stats,
+                yearsWithTeam: calculateYearsWithTeam(player, opponentTeamInfo.tid, opponentTeamInfo.season),
+                ovr: getPlayerRating(player, opponentTeamInfo.season, 'ovr'),
+                pot: getPlayerRating(player, opponentTeamInfo.season, 'pot'),
+              });
+            }
+          });
+
+          const seasonInfo = opponentTeam.seasons?.find(s => s.season === opponentTeamInfo.season);
+          const opponentLogo = seasonInfo?.imgURL || opponentTeam.imgURL;
+          const opponentColors = seasonInfo?.colors || opponentTeam.colors || ['#000000', '#ffffff'];
+          const opponentName = seasonInfo?.name || opponentTeam.name || `Team ${opponentTeam.tid}`;
+
+          return (
+            <TeamInfoModal
+              open={true}
+              onClose={() => setOpponentTeamInfo(null)}
+              season={opponentTeamInfo.season}
+              teamName={opponentName}
+              teamAbbrev={seasonInfo?.abbrev || opponentTeam.abbrev || ''}
+              teamLogo={opponentLogo ? getTeamLogoUrl(opponentLogo, leagueData.sport) : undefined}
+              teamColors={opponentColors}
+              players={opponentRoster}
+              sport={leagueData.sport}
+              teams={leagueData.teams}
+              teamStats={calculateTeamStats(leagueData, opponentTeamInfo.tid, opponentTeamInfo.season, opponentRoster)}
+              playoffSeriesData={leagueData.playoffSeries?.find(ps => ps.season === opponentTeamInfo.season)}
+              teamTid={opponentTeamInfo.tid}
+              onOpenOpponentTeam={handleOpenOpponentTeam}
+            />
+          );
+        })()}
       </div>
     );
   }

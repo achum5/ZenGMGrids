@@ -13,7 +13,8 @@
       "Bash(npx vite:*)",
       "Bash(lsof:*)",
       "Bash(xargs kill:*)",
-      "Bash(fuser:*)"
+      "Bash(fuser:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

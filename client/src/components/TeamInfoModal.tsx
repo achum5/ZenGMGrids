@@ -29,6 +29,7 @@ interface TeamInfoModalProps {
   };
   playoffSeriesData?: PlayoffSeasonData;
   teamTid?: number;
+  onOpenOpponentTeam?: (opponentTid: number, season: number) => void;
 }
 
 interface PlayerInfo {
@@ -135,7 +136,10 @@ export function TeamInfoModal({
   teamStats,
   playoffSeriesData,
   teamTid,
+  onOpenOpponentTeam,
 }: TeamInfoModalProps) {
+  const [playoffPopoverOpen, setPlayoffPopoverOpen] = useState(false);
+
   // Ensure we have valid colors with fallbacks
   const [primaryColor, secondaryColor] = useMemo(() => {
     if (!teamColors || teamColors.length === 0) {
@@ -179,6 +183,9 @@ export function TeamInfoModal({
 
     playoffSeriesData.series.forEach((round, roundIndex) => {
       round.forEach(matchup => {
+        // Safety check: ensure matchup has home and away data
+        if (!matchup?.home || !matchup?.away) return;
+
         if (matchup.home.tid === teamTid) {
           const opponentTeam = teams.find(t => t.tid === matchup.away.tid);
           series.push({
@@ -280,23 +287,24 @@ export function TeamInfoModal({
                     Record: {teamStats.wins}-{teamStats.losses}
                     {teamStats.playoffResult ? ` | ${teamStats.playoffResult}` : ''}
                   </span>
-                  {teamStats.playoffResult && (
-                    <Popover>
+                  {teamStats.playoffResult && teamPlayoffSeries.length > 0 && (
+                    <Popover open={playoffPopoverOpen} onOpenChange={setPlayoffPopoverOpen}>
                       <PopoverTrigger asChild>
                         <button
                           className="inline-flex items-center justify-center rounded-full p-0.5 hover:bg-white/10 transition-colors"
-                          onClick={(e) => e.stopPropagation()}
+                          style={{ color: statTextColor }}
                         >
-                          <Info className="h-3.5 w-3.5" style={{ color: statTextColor }} />
+                          <Info className="h-3.5 w-3.5" />
                         </button>
                       </PopoverTrigger>
                       <PopoverContent
-                        className="w-80 p-4"
+                        className="w-80 p-4 z-[3000]"
                         style={{
                           backgroundColor: primaryColor,
                           borderColor: secondaryColor,
                           border: `2px solid ${secondaryColor}`,
                         }}
+                        onClick={(e) => e.stopPropagation()}
                       >
                         <h4 className="text-sm font-semibold mb-3" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>
                           Playoff Series
@@ -309,25 +317,32 @@ export function TeamInfoModal({
                           ) : (
                             teamPlayoffSeries.map((s, idx) => {
                             const isSingleGame = s.teamWon + s.teamLost === 1 && s.opponentWon + s.opponentLost === 1;
-                            const scoreDisplay = isSingleGame
-                              ? `${s.teamWon > s.opponentWon ? 'W' : 'L'} ${Math.max(s.teamWon, s.opponentWon)}-${Math.min(s.teamWon, s.opponentWon)}`
-                              : `${s.won ? 'W' : 'L'} ${s.teamWon}-${s.opponentWon}`;
+                            const higherScore = Math.max(s.teamWon, s.opponentWon);
+                            const lowerScore = Math.min(s.teamWon, s.opponentWon);
+                            const scoreDisplay = `${s.won ? 'W' : 'L'} ${higherScore}-${lowerScore}`;
 
                               return (
-                                <div
+                                <button
                                   key={idx}
-                                  className="text-xs p-2 rounded"
+                                  className="text-xs p-2 rounded w-full text-left transition-all hover:scale-[1.02] cursor-pointer"
                                   style={{
                                     backgroundColor: `${secondaryColor}15`,
                                     borderLeft: `3px solid ${s.won ? '#22c55e' : '#ef4444'}`,
                                     color: statTextColor,
+                                  }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPlayoffPopoverOpen(false);
+                                    if (onOpenOpponentTeam) {
+                                      onOpenOpponentTeam(s.opponentTid, season);
+                                    }
                                   }}
                                 >
                                   <div className="font-medium" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>
                                     Round {s.round}: vs {s.opponent}
                                   </div>
                                   <div className="mt-0.5">{scoreDisplay}</div>
-                                </div>
+                                </button>
                               );
                             }))
                           }
