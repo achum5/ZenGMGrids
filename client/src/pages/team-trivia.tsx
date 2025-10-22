@@ -2456,9 +2456,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                 </h1>
               </div>
 
-              {/* Right: Help + Home buttons */}
+              {/* Right: Home button */}
               <div className="flex items-center justify-end space-x-1">
-                <RulesModal sport={leagueData.sport} color={teamDisplayInfo.colors[1]} />
                 {hasProgress ? (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -2481,7 +2480,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     </AlertDialogContent>
                   </AlertDialog>
                 ) : (
-                  <Button variant="ghost" size="sm" onClick={onGoHome} data-testid="button-home" style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))' }} className="animate-on-click">
+                  <Button variant="ghost" size="sm" onClick={onGoHome} data-testid="button-home" style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))' }} className="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3 animate-on-click text-[16px]">
                     <HomeIcon className="h-[1.2rem] w-[1.2rem]" />
                     <span className="sr-only">Go home</span>
                   </Button>
@@ -2675,17 +2674,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                   </PopoverContent>
                 </Popover>
 
-                {/* Team Info Button */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowTeamInfo(true)}
-                  className="text-xs sm:text-sm px-2 sm:px-3 h-8 sm:h-10 shrink-0 hover:bg-accent/50 animate-on-click"
-                  style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary))' }}
-                >
-                  <Info className="h-4 w-4 sm:h-5 sm:w-5 mr-1" />
-                  <span className="hidden sm:inline">Team Info</span>
-                </Button>
               </div>
 
               {/* Right side: Score Counter */}
@@ -3370,6 +3358,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
               setShowBreakdownModal(false);
               handleNew();
             }}
+            onShowTeamInfo={() => setShowTeamInfo(true)}
           />
         )}
 

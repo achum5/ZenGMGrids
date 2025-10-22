@@ -221,7 +221,7 @@ export function TeamInfoModal({
 
   return (
     <div
-      className="fixed inset-0 z-[2000] flex items-center justify-center p-4 backdrop-blur-sm bg-black/20"
+      className="fixed inset-0 z-[20000] flex items-center justify-center p-4 backdrop-blur-sm bg-black/20"
       onClick={onClose}
     >
       {/* Team Info Card */}
@@ -299,7 +299,7 @@ export function TeamInfoModal({
                           </button>
                         </PopoverTrigger>
                       <PopoverContent
-                        className="w-80 p-4 z-[3000]"
+                        className="w-80 p-4 z-[30000]"
                         style={{
                           backgroundColor: primaryColor,
                           borderColor: secondaryColor,
