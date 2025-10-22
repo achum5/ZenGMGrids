@@ -1604,29 +1604,7 @@ export default function Home() {
       >
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="relative flex items-center justify-start md:justify-center">
-            <div className="flex items-center space-x-3">
-              <img 
-                src={
-                  leagueData?.sport === 'basketball' ? basketballIcon :
-                  leagueData?.sport === 'football' ? footballIcon :
-                  leagueData?.sport === 'hockey' ? hockeyIcon :
-                  leagueData?.sport === 'baseball' ? baseballIcon :
-                  zengmGridsLogo
-                }
-                alt={`${leagueData?.sport || 'Sports'} icon`} 
-                className="w-10 h-10 object-contain header-logo"
-              />
-              <h1 className="text-base sm:text-lg md:text-2xl header-title">
-                {leagueData?.sport === 'basketball' && 'Basketball GM Grids'}
-                {leagueData?.sport === 'football' && 'Football GM Grids'}
-                {leagueData?.sport === 'hockey' && 'ZenGM Hockey Grids'}
-                {leagueData?.sport === 'baseball' && 'ZenGM Baseball Grids'}
-              </h1>
-            </div>
-            <div className="absolute right-0 flex items-center space-x-1">
-              <div>
-                <RulesModal sport={leagueData?.sport} />
-              </div>
+            <div className="absolute left-0 flex items-center space-x-1">
               {hasGuesses ? (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -1654,6 +1632,30 @@ export default function Home() {
                   <span className="sr-only">Go back</span>
                 </Button>
               )}
+            </div>
+            <div className="flex items-center space-x-3">
+              <img 
+                src={
+                  leagueData?.sport === 'basketball' ? basketballIcon :
+                  leagueData?.sport === 'football' ? footballIcon :
+                  leagueData?.sport === 'hockey' ? hockeyIcon :
+                  leagueData?.sport === 'baseball' ? baseballIcon :
+                  zengmGridsLogo
+                }
+                alt={`${leagueData?.sport || 'Sports'} icon`} 
+                className="w-10 h-10 object-contain header-logo"
+              />
+              <h1 className="text-base sm:text-lg md:text-2xl header-title">
+                {leagueData?.sport === 'basketball' && 'Basketball GM Grids'}
+                {leagueData?.sport === 'football' && 'Football GM Grids'}
+                {leagueData?.sport === 'hockey' && 'ZenGM Hockey Grids'}
+                {leagueData?.sport === 'baseball' && 'ZenGM Baseball Grids'}
+              </h1>
+            </div>
+            <div className="absolute right-0 flex items-center space-x-1">
+              <div>
+                <RulesModal sport={leagueData?.sport} />
+              </div>
               {hasGuesses ? (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
