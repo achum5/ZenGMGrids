@@ -235,7 +235,26 @@ export interface TeamSeasonRecord {
   otl?: number; // Overtime losses (hockey)
   playoffs?: boolean;
   gp?: number; // Games played (sometimes present directly)
+  playoffRoundsWon?: number; // Number of playoff rounds won (-1 = missed playoffs, 0 = lost first round, etc.)
   [key: string]: any; // Allow other fields
+}
+
+export interface PlayoffSeriesTeam {
+  tid: number;
+  seed?: number;
+  won: number;
+  lost?: number;
+}
+
+export interface PlayoffSeriesMatchup {
+  home: PlayoffSeriesTeam;
+  away: PlayoffSeriesTeam;
+}
+
+export interface PlayoffSeasonData {
+  season: number;
+  series: PlayoffSeriesMatchup[][]; // Array of rounds, each round has array of matchups
+  [key: string]: any;
 }
 
 export interface LeagueData {
@@ -249,6 +268,7 @@ export interface LeagueData {
   // League year bounds for dynamic decade achievements
   leagueYears?: { minSeason: number; maxSeason: number };
   gameAttributes?: any; // Add gameAttributes here
+  playoffSeries?: PlayoffSeasonData[]; // Playoff bracket data by season
 }
 
 import type { Achv } from '@/lib/types';

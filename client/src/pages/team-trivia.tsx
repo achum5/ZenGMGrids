@@ -92,16 +92,16 @@ function getTeamLogoUrl(logoUrl: string | null | undefined, sport: string = 'bas
 }
 
 // Basketball rounds
-type BasketballRoundType = 'guess' | 'hint' | 'points-leader' | 'rebounds-leader' | 'assists-leader' | 'steals-leader' | 'blocks-leader' | 'wins-guess' | 'complete';
+type BasketballRoundType = 'guess' | 'hint' | 'points-leader' | 'rebounds-leader' | 'assists-leader' | 'steals-leader' | 'blocks-leader' | 'wins-guess' | 'playoff-finish' | 'complete';
 
 // Football rounds
-type FootballRoundType = 'guess' | 'hint' | 'passing-yards-leader' | 'rushing-yards-leader' | 'receiving-yards-leader' | 'tackles-leader' | 'sacks-leader' | 'interceptions-leader' | 'wins-guess' | 'complete';
+type FootballRoundType = 'guess' | 'hint' | 'passing-yards-leader' | 'rushing-yards-leader' | 'receiving-yards-leader' | 'tackles-leader' | 'sacks-leader' | 'interceptions-leader' | 'wins-guess' | 'playoff-finish' | 'complete';
 
 // Baseball rounds
-type BaseballRoundType = 'guess' | 'hint' | 'hits-leader' | 'home-runs-leader' | 'rbis-leader' | 'stolen-bases-leader' | 'strikeouts-leader' | 'wins-leader' | 'wins-guess' | 'complete';
+type BaseballRoundType = 'guess' | 'hint' | 'hits-leader' | 'home-runs-leader' | 'rbis-leader' | 'stolen-bases-leader' | 'strikeouts-leader' | 'wins-leader' | 'wins-guess' | 'playoff-finish' | 'complete';
 
 // Hockey rounds
-type HockeyRoundType = 'guess' | 'hint' | 'points-leader' | 'goals-leader' | 'assists-leader' | 'goalie-wins-leader' | 'wins-guess' | 'complete';
+type HockeyRoundType = 'guess' | 'hint' | 'points-leader' | 'goals-leader' | 'assists-leader' | 'goalie-wins-leader' | 'wins-guess' | 'playoff-finish' | 'complete';
 
 // Union type for all possible rounds
 type RoundType = BasketballRoundType | FootballRoundType | BaseballRoundType | HockeyRoundType;
@@ -116,6 +116,7 @@ const BASKETBALL_ROUND_ORDER: BasketballRoundType[] = [
   'steals-leader',
   'blocks-leader',
   'wins-guess',
+  'playoff-finish',
   'complete'
 ];
 
@@ -129,6 +130,7 @@ const FOOTBALL_ROUND_ORDER: FootballRoundType[] = [
   'sacks-leader',
   'interceptions-leader',
   'wins-guess',
+  'playoff-finish',
   'complete'
 ];
 
@@ -142,6 +144,7 @@ const BASEBALL_ROUND_ORDER: BaseballRoundType[] = [
   'strikeouts-leader',
   'wins-leader',
   'wins-guess',
+  'playoff-finish',
   'complete'
 ];
 
@@ -153,6 +156,7 @@ const HOCKEY_ROUND_ORDER: HockeyRoundType[] = [
   'assists-leader',
   'goalie-wins-leader',
   'wins-guess',
+  'playoff-finish',
   'complete'
 ];
 
@@ -166,6 +170,7 @@ const BASKETBALL_ROUND_INSTRUCTIONS: Record<BasketballRoundType, string> = {
   'steals-leader': 'Click on the team steals leader',
   'blocks-leader': 'Click on the team blocks leader',
   'wins-guess': 'Guess how many wins this team had',
+  'playoff-finish': 'How far did this team go in the playoffs?',
   'complete': 'Round complete!'
 };
 
@@ -179,6 +184,7 @@ const FOOTBALL_ROUND_INSTRUCTIONS: Record<FootballRoundType, string> = {
   'sacks-leader': 'Click on the team sacks leader',
   'interceptions-leader': 'Click on the team interceptions leader',
   'wins-guess': 'Guess how many wins this team had',
+  'playoff-finish': 'How far did this team go in the playoffs?',
   'complete': 'Round complete!'
 };
 
@@ -192,6 +198,7 @@ const BASEBALL_ROUND_INSTRUCTIONS: Record<BaseballRoundType, string> = {
   'strikeouts-leader': 'Click on the team strikeouts leader',
   'wins-leader': 'Click on the team wins leader',
   'wins-guess': 'Guess how many wins this team had',
+  'playoff-finish': 'How far did this team go in the playoffs?',
   'complete': 'Round complete!'
 };
 
@@ -203,6 +210,7 @@ const HOCKEY_ROUND_INSTRUCTIONS: Record<HockeyRoundType, string> = {
   'assists-leader': 'Click on the team assists leader',
   'goalie-wins-leader': 'Click on the team goalie wins leader',
   'wins-guess': 'Guess how many wins this team had',
+  'playoff-finish': 'How far did this team go in the playoffs?',
   'complete': 'Round complete!'
 };
 
@@ -238,6 +246,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   const [tileAnimations, setTileAnimations] = useState<Record<number, string>>({}); // New state for tile animations
   const [winsGuessPosition, setWinsGuessPosition] = useState(0); // Left edge L of the slider window
   const [winsGuessSubmitted, setWinsGuessSubmitted] = useState(false); // Whether user has submitted their guess
+  const [playoffFinishGuess, setPlayoffFinishGuess] = useState<number | null>(null); // Selected playoff finish option
+  const [playoffFinishSubmitted, setPlayoffFinishSubmitted] = useState(false); // Whether user has submitted playoff finish guess
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<HTMLDivElement>(null);
   const tileRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -373,6 +383,125 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     console.log('[WinsGuess] Computed data:', result);
     return result;
   }, [selectedSeason, selectedTeam, leagueData.teamSeasons, leagueData.sport]);
+
+  // Calculate playoff finish data
+  const playoffFinishData = useMemo(() => {
+    console.log('[PlayoffFinish] Computing playoffFinishData...', {
+      selectedSeason,
+      selectedTeam: selectedTeam?.tid,
+      hasPlayoffSeries: !!leagueData.playoffSeries
+    });
+
+    if (!selectedSeason || !selectedTeam) {
+      console.warn('[PlayoffFinish] Missing required data');
+      return null;
+    }
+
+    const tid = selectedTeam.tid;
+    let finishLabel: string = 'Missed Playoffs';
+    let finishValue: number = -1;
+    let seriesScore: string | null = null;
+
+    // Try to find playoff data from playoffSeries
+    if (leagueData.playoffSeries) {
+      const seasonPlayoffs = leagueData.playoffSeries.find(ps => ps.season === selectedSeason);
+
+      if (seasonPlayoffs?.series) {
+        console.log('[PlayoffFinish] Found playoff series for season:', selectedSeason, seasonPlayoffs);
+
+        const rounds = seasonPlayoffs.series;
+        const numRounds = rounds.length;
+
+        // Iterate through rounds to find where team was eliminated or won
+        for (let r = 0; r < numRounds; r++) {
+          const roundMatchups = rounds[r];
+
+          // Find the matchup where our team played
+          const matchup = roundMatchups.find(m =>
+            m.home?.tid === tid || m.away?.tid === tid
+          );
+
+          if (matchup) {
+            const isHome = matchup.home?.tid === tid;
+            const teamSide = isHome ? matchup.home : matchup.away;
+            const oppSide = isHome ? matchup.away : matchup.home;
+
+            const teamWins = teamSide?.won ?? 0;
+            const oppWins = oppSide?.won ?? 0;
+
+            seriesScore = `${teamWins}–${oppWins}`;
+
+            console.log(`[PlayoffFinish] Round ${r + 1}/${numRounds}: Team wins=${teamWins}, Opp wins=${oppWins}`);
+
+            // Last round and team won = Champion
+            if (r === numRounds - 1 && teamWins > oppWins) {
+              finishLabel = 'Won Championship';
+              finishValue = 4;
+              console.log('[PlayoffFinish] Team won championship!');
+              break;
+            }
+
+            // Team lost this series = eliminated
+            if (teamWins < oppWins) {
+              finishValue = r; // Round they were eliminated (0 = first round, 1 = second, etc.)
+
+              // Determine label based on round
+              if (numRounds === 4) {
+                // Standard 4-round playoff (NBA/NHL style)
+                if (r === 0) finishLabel = 'Lost First Round';
+                else if (r === 1) finishLabel = 'Lost Second Round';
+                else if (r === 2) finishLabel = 'Lost Conference Finals';
+                else if (r === 3) finishLabel = 'Lost Finals';
+              } else if (numRounds === 3) {
+                // 3-round playoff
+                if (r === 0) finishLabel = 'Lost First Round';
+                else if (r === 1) finishLabel = 'Lost Second Round';
+                else if (r === 2) finishLabel = 'Lost Finals';
+              } else if (numRounds === 2) {
+                // 2-round playoff
+                if (r === 0) finishLabel = 'Lost First Round';
+                else if (r === 1) finishLabel = 'Lost Finals';
+              } else {
+                // Generic labeling
+                if (r === numRounds - 1) finishLabel = 'Lost Finals';
+                else finishLabel = `Lost Round ${r + 1}`;
+              }
+
+              console.log(`[PlayoffFinish] Team eliminated in round ${r + 1}: ${finishLabel}`);
+              break;
+            }
+
+            // Team won this series, continue to next round
+            if (teamWins > oppWins) {
+              console.log(`[PlayoffFinish] Team won round ${r + 1}, advancing...`);
+              continue;
+            }
+          }
+        }
+      } else {
+        console.log('[PlayoffFinish] No playoff series found for season:', selectedSeason);
+      }
+    } else {
+      console.warn('[PlayoffFinish] No playoffSeries data available in league file');
+    }
+
+    const result = {
+      finishLabel,
+      finishValue,
+      seriesScore,
+      options: [
+        { label: 'Missed Playoffs', value: -1 },
+        { label: 'Lost First Round', value: 0 },
+        { label: 'Lost Second Round', value: 1 },
+        { label: 'Lost Conference Finals', value: 2 },
+        { label: 'Lost Finals', value: 3 },
+        { label: 'Won Championship', value: 4 }
+      ]
+    };
+
+    console.log('[PlayoffFinish] Computed data:', result);
+    return result;
+  }, [selectedSeason, selectedTeam, leagueData.playoffSeries]);
 
   // Calculate stat leaders from roster
   const statLeaders = useMemo(() => {
@@ -1377,6 +1506,33 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     }
   }, [currentRound, winsGuessData, toast, ROUND_ORDER]);
 
+  // Reset playoff finish state when entering playoff-finish round
+  useEffect(() => {
+    if (currentRound === 'playoff-finish') {
+      console.log('[PlayoffFinish] Entering playoff-finish phase. playoffFinishData:', playoffFinishData);
+      setPlayoffFinishGuess(null);
+      setPlayoffFinishSubmitted(false);
+
+      // If playoff finish data is not available, skip to next round
+      if (!playoffFinishData) {
+        console.warn('[PlayoffFinish] No data available, skipping to next round');
+        toast({
+          description: 'Playoff data not available for this team/season. Skipping to completion.',
+        });
+        setTimeout(() => {
+          const currentIndex = ROUND_ORDER.indexOf(currentRound as any);
+          if (currentIndex < ROUND_ORDER.length - 1) {
+            const nextRound = ROUND_ORDER[currentIndex + 1];
+            console.log('[PlayoffFinish] Advancing to:', nextRound);
+            setCurrentRound(nextRound);
+          }
+        }, 1500);
+      } else {
+        console.log('[PlayoffFinish] Data is available, rendering phase');
+      }
+    }
+  }, [currentRound, playoffFinishData, toast, ROUND_ORDER]);
+
   // Progress to next round
   const handleNextRound = useCallback(() => {
     const currentIndex = ROUND_ORDER.indexOf(currentRound as any);
@@ -1678,6 +1834,32 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       handleWinsGuessSliderMove(winsGuessPosition + delta);
     }
   }, [winsGuessData, winsGuessPosition, winsGuessSubmitted, handleWinsGuessSliderMove, handleWinsGuessSubmit]);
+
+  // Playoff Finish: Submit guess
+  const handlePlayoffFinishSubmit = useCallback(() => {
+    if (!playoffFinishData || playoffFinishSubmitted || playoffFinishGuess === null) return;
+
+    const isCorrect = playoffFinishGuess === playoffFinishData.finishValue;
+
+    setPlayoffFinishSubmitted(true);
+
+    if (isCorrect) {
+      toast({
+        description: `Correct! ${playoffFinishData.finishLabel}. +10 points`,
+      });
+      setScore(prev => prev + 10);
+    } else {
+      toast({
+        description: `Incorrect. ${playoffFinishData.finishLabel}.`,
+        variant: 'destructive',
+      });
+    }
+
+    // Auto-progress to next round after a delay
+    setTimeout(() => {
+      handleNextRound();
+    }, 2000);
+  }, [playoffFinishData, playoffFinishGuess, playoffFinishSubmitted, toast, handleNextRound]);
 
   const hasProgress = foundCount > 0;
 
@@ -2110,8 +2292,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     )}
                   </div>
 
-                  {/* Player Stats - Show when round is complete or wins-guess */}
-                  {(currentRound === 'complete' || currentRound === 'wins-guess') && (
+                  {/* Player Stats - Show when round is complete, wins-guess, or playoff-finish */}
+                  {(currentRound === 'complete' || currentRound === 'wins-guess' || currentRound === 'playoff-finish') && (
                     <div className="w-full text-center text-[0.45rem] sm:text-[0.6rem] md:text-[0.7rem] leading-tight mt-1"
                       style={{ color: rp.teamColors?.[0] || 'hsl(var(--foreground))' }}>
                       {/* Age - All sports */}
@@ -2454,15 +2636,102 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                           </div>
                         )}
 
-                        {/* Keyboard hints */}
-                        {!winsGuessSubmitted && (
-                          <div className="text-center mt-4">
-                            <p className="text-xs text-muted-foreground">
-                              Use ← → arrows (±1) or Page Up/Down (±5) • Enter to submit
-                            </p>
-                          </div>
-                        )}
                       </div>
+                    </div>
+                  </div>
+                ) : null
+              ) : currentRound === 'playoff-finish' ? (
+                /* Playoff Finish Phase */
+                playoffFinishData ? (
+                  <div className="flex-1">
+                    <div className="space-y-2 sm:space-y-4">
+                      {/* Title */}
+                      <div className="text-center px-2">
+                        <p className="text-base sm:text-xl md:text-2xl font-bold text-white">
+                          How far did {teamDisplayInfo.name} go in the playoffs during {selectedSeason}?
+                        </p>
+                      </div>
+
+                      {/* Mobile: Dropdown Select (shows on small screens) */}
+                      <div className="md:hidden px-4">
+                        <select
+                          value={playoffFinishGuess ?? ''}
+                          onChange={(e) => !playoffFinishSubmitted && setPlayoffFinishGuess(Number(e.target.value))}
+                          disabled={playoffFinishSubmitted}
+                          className={`
+                            w-full p-3 rounded-lg border-2 text-center font-semibold transition-all
+                            bg-background text-foreground
+                            ${playoffFinishGuess !== null
+                              ? 'border-primary bg-primary/10'
+                              : 'border-muted bg-muted/10'
+                            }
+                            ${playoffFinishSubmitted ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}
+                          `}
+                          data-testid="playoff-finish-select"
+                        >
+                          <option value="" disabled>Select playoff finish...</option>
+                          {playoffFinishData.options.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Desktop/Tablet: Button Grid (hidden on small screens) */}
+                      <div className="hidden md:grid grid-cols-2 gap-2 max-w-2xl mx-auto px-4">
+                        {playoffFinishData.options.map((option) => (
+                          <button
+                            key={option.value}
+                            onClick={() => !playoffFinishSubmitted && setPlayoffFinishGuess(option.value)}
+                            disabled={playoffFinishSubmitted}
+                            className={`
+                              p-3 rounded-lg border-2 text-center font-semibold transition-all text-sm
+                              ${playoffFinishGuess === option.value
+                                ? 'border-primary bg-primary/20 text-white'
+                                : 'border-muted bg-muted/10 text-muted-foreground hover:border-primary/50 hover:bg-primary/10'
+                              }
+                              ${playoffFinishSubmitted && option.value === playoffFinishData.finishValue
+                                ? 'border-green-500 bg-green-500/20 text-green-400'
+                                : ''
+                              }
+                              ${playoffFinishSubmitted && option.value === playoffFinishGuess && option.value !== playoffFinishData.finishValue
+                                ? 'border-red-500 bg-red-500/20 text-red-400'
+                                : ''
+                              }
+                              ${playoffFinishSubmitted ? 'cursor-not-allowed' : 'cursor-pointer'}
+                            `}
+                            data-testid={`playoff-option-${option.value}`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Submit Button */}
+                      {!playoffFinishSubmitted && playoffFinishGuess !== null && (
+                        <div className="text-center mt-2 sm:mt-4">
+                          <Button
+                            onClick={handlePlayoffFinishSubmit}
+                            className="neon-button animate-on-click px-6 sm:px-8 text-sm sm:text-base"
+                            data-testid="button-submit-playoff-finish"
+                          >
+                            Submit Answer
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Result Display */}
+                      {playoffFinishSubmitted && (
+                        <div className="text-center mt-2 sm:mt-4 px-2">
+                          <p className={`text-sm sm:text-lg font-semibold ${playoffFinishGuess === playoffFinishData.finishValue ? 'text-green-400' : 'text-red-400'}`}>
+                            {playoffFinishGuess === playoffFinishData.finishValue
+                              ? `Correct! +10 points`
+                              : `Incorrect. The team ${playoffFinishData.finishLabel.toLowerCase()}.`
+                            }
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : null
@@ -2504,7 +2773,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
               ) : null}
 
               {/* Right: Next Round button (use ml-auto to push it right) */}
-              {currentRound !== 'complete' && currentRound !== 'wins-guess' && (
+              {currentRound !== 'complete' && currentRound !== 'wins-guess' && currentRound !== 'playoff-finish' && (
                 <Button
                   variant="default"
                   size="lg"
