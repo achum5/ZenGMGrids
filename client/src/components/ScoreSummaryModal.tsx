@@ -19,6 +19,7 @@ interface ScoreCategory {
 interface PlayerGuess {
   player: Player;
   correct: boolean;
+  round?: 'guess' | 'hint';
   headshot?: string;
 }
 
@@ -234,6 +235,23 @@ export function ScoreSummaryModal({
     return totals;
   }, [data.categories]);
 
+  const recordedGuessPoints = categoryTotals['Player Guesses'] ?? 0;
+  const recordedHintPoints = categoryTotals['Player Guesses (with hints)'] ?? 0;
+  const guessRoundCorrect = recordedGuessPoints > 0
+    ? Math.round(recordedGuessPoints / 15)
+    : correctPlayers.filter(p => (p.round ?? 'guess') === 'guess').length;
+  const hintRoundCorrect = recordedHintPoints > 0
+    ? Math.round(recordedHintPoints / 10)
+    : correctPlayers.filter(p => (p.round ?? 'hint') === 'hint').length;
+  const guessRoundPoints = recordedGuessPoints || guessRoundCorrect * 15;
+  const hintRoundPoints = recordedHintPoints || hintRoundCorrect * 10;
+  const totalPlayerGuessPoints = guessRoundPoints + hintRoundPoints;
+
+  const hasPlayerGuessCategory =
+    categoryTotals['Player Guesses'] !== undefined ||
+    categoryTotals['Player Guesses (with hints)'] !== undefined ||
+    data.playerGuesses.length > 0;
+
   // Get playoff badge variant
   const getPlayoffBadgeVariant = (outcome: string): 'gold' | 'silver' | 'neutral' => {
     if (outcome.toLowerCase().includes('won championship') || outcome.toLowerCase().includes('champion')) {
@@ -323,10 +341,10 @@ export function ScoreSummaryModal({
                       <span className="font-semibold tabular-nums">+{categoryTotals['Playoff Finish']}</span>
                     </div>
                   )}
-                  {categoryTotals['Player Guesses'] !== undefined && (
+                  {hasPlayerGuessCategory && (
                     <div className="flex justify-between items-center">
                       <span>Player Guesses</span>
-                      <span className="font-semibold tabular-nums">+{categoryTotals['Player Guesses']}</span>
+                      <span className="font-semibold tabular-nums">+{totalPlayerGuessPoints}</span>
                     </div>
                   )}
                   {categoryTotals['Leaders'] !== undefined && (
@@ -416,12 +434,17 @@ export function ScoreSummaryModal({
                   <UsersIcon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                   <h3 className="font-semibold">Player Guesses</h3>
                 </div>
-                <PointsPill points={categoryTotals['Player Guesses'] || 0} />
+                <PointsPill points={totalPlayerGuessPoints} />
               </div>
 
-              <p className="text-sm text-muted-foreground mb-4">
-                {correctPlayers.length} correct × 10 = +{correctPlayers.length * 10}
-              </p>
+              <div className="text-sm text-muted-foreground mb-4 space-y-1">
+                <p>
+                  Round 1: {guessRoundCorrect} correct × 15 = +{guessRoundPoints}
+                </p>
+                <p>
+                  Round 2: {hintRoundCorrect} correct × 10 = +{hintRoundPoints}
+                </p>
+              </div>
 
               {/* Correct Players Grid */}
               <div className="grid grid-cols-4 gap-3 mb-4">

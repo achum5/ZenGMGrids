@@ -114,47 +114,25 @@ export function CompactScoreCard({
   const textColor = useMemo(() => getContrastColor(primaryColor), [primaryColor]);
   const leaderTokens = useMemo(() => getLeaderTokens(data.sport), [data.sport]);
 
-  // Calculate category totals and separate guess/hint rounds
-  const { categoryTotals, guessRoundPoints, hintRoundPoints, hasGuessRound, hasHintRound } = useMemo(() => {
+  // Aggregate category totals
+  const categoryTotals = useMemo(() => {
     const totals: Record<string, number> = {};
-    let guessPoints = 0;
-    let hintPoints = 0;
-    let hasGuess = false;
-    let hasHint = false;
-
     data.categories.forEach(cat => {
       totals[cat.name] = (totals[cat.name] || 0) + cat.points;
-
-      // Track guess vs hint round points separately
-      // Guess rounds award 15 points, hint rounds award 10 points
-      if (cat.name === 'Player Guesses') {
-        hasGuess = true; // Mark that guess round was played
-      } else if (cat.name === 'Player Guesses (with hints)') {
-        hasHint = true; // Mark that hint round was played
-      }
-
-      // Calculate points based on point value
-      if (cat.name === 'Player Guesses' || cat.name === 'Player Guesses (with hints)') {
-        if (cat.points % 15 === 0) {
-          guessPoints += cat.points;
-        } else {
-          hintPoints += cat.points;
-        }
-      }
     });
-
-    return {
-      categoryTotals: totals,
-      guessRoundPoints: guessPoints,
-      hintRoundPoints: hintPoints,
-      hasGuessRound: hasGuess,
-      hasHintRound: hasHint
-    };
+    return totals;
   }, [data.categories]);
 
-  // Count correct guesses for each round
-  const guessRoundCount = Math.floor(guessRoundPoints / 15);
-  const hintRoundCount = Math.floor(hintRoundPoints / 10);
+  const recordedGuessPoints = categoryTotals['Player Guesses'] ?? 0;
+  const recordedHintPoints = categoryTotals['Player Guesses (with hints)'] ?? 0;
+  const guessRoundCount = recordedGuessPoints > 0
+    ? Math.round(recordedGuessPoints / 15)
+    : data.playerGuesses.filter(pg => pg.correct && (pg.round ?? 'guess') === 'guess').length;
+  const hintRoundCount = recordedHintPoints > 0
+    ? Math.round(recordedHintPoints / 10)
+    : data.playerGuesses.filter(pg => pg.correct && (pg.round ?? 'hint') === 'hint').length;
+  const guessRoundPoints = recordedGuessPoints || guessRoundCount * 15;
+  const hintRoundPoints = recordedHintPoints || hintRoundCount * 10;
 
   // Build leaders line
   const leadersLine = useMemo(() => {

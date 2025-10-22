@@ -276,6 +276,229 @@ function formatContract(player: Player, season: number): string | undefined {
   return `$${salaryInMillions.toFixed(2)}M`;
 }
 
+// Helper function to get team MOV (Margin of Victory)
+function getTeamMOV(
+  leagueData: LeagueData,
+  season: number,
+  tid: number
+): { mov: number; diff: number; gp: number } | null {
+  // Try to find teamStats first (preferred)
+  const teamStats = (leagueData as any).teamStats?.find(
+    (ts: any) => ts.season === season && ts.tid === tid && !ts.playoffs
+  );
+
+  if (teamStats) {
+    // Determine field names by checking what's available
+    const forKeys = ['pts', 'pf', 'gf', 'r'];
+    const againstKeys = ['oppPts', 'pa', 'ga', 'ra', 'oppR'];
+
+    let pf: number | undefined;
+    let pa: number | undefined;
+
+    // Find first matching pair
+    for (const forKey of forKeys) {
+      if (teamStats[forKey] !== undefined) {
+        pf = teamStats[forKey];
+        break;
+      }
+    }
+
+    for (const againstKey of againstKeys) {
+      if (teamStats[againstKey] !== undefined) {
+        pa = teamStats[againstKey];
+        break;
+      }
+    }
+
+    const gp = teamStats.gp || 0;
+
+    if (pf !== undefined && pa !== undefined && gp > 0) {
+      const diff = pf - pa;
+      const mov = diff / gp;
+      return { mov, diff, gp };
+    }
+  }
+
+  // Fallback to teamSeasons
+  const teamSeason = leagueData.teamSeasons?.find(
+    ts => ts.tid === tid && ts.season === season && !ts.playoffs
+  );
+
+  if (teamSeason) {
+    const forKeys = ['pts', 'pf', 'gf', 'r'];
+    const againstKeys = ['oppPts', 'pa', 'ga', 'ra', 'oppR'];
+
+    let pf: number | undefined;
+    let pa: number | undefined;
+
+    // Find first matching pair
+    for (const forKey of forKeys) {
+      if ((teamSeason as any)[forKey] !== undefined) {
+        pf = (teamSeason as any)[forKey];
+        break;
+      }
+    }
+
+    for (const againstKey of againstKeys) {
+      if ((teamSeason as any)[againstKey] !== undefined) {
+        pa = (teamSeason as any)[againstKey];
+        break;
+      }
+    }
+
+    // Calculate gp
+    let gp = teamSeason.gp || 0;
+    if (gp === 0) {
+      gp = (teamSeason.won || 0) + (teamSeason.lost || 0) + (teamSeason.tied || 0) + (teamSeason.otl || 0);
+    }
+
+    if (pf !== undefined && pa !== undefined && gp > 0) {
+      const diff = pf - pa;
+      const mov = diff / gp;
+      return { mov, diff, gp };
+    }
+  }
+
+  // TODO: Fallback to games reconstruction if needed
+  // This would require access to leagueData.games which may not be available
+
+  return null;
+}
+
+// Helper function to calculate team stats
+function getTeamPlayoffResult(
+  leagueData: LeagueData,
+  tid: number,
+  season: number
+): { label: string; value: number; seriesScore: string | null } {
+  let finishLabel = 'Missed Playoffs';
+  let finishValue = -1;
+  let seriesScore: string | null = null;
+
+  const seasonPlayoffs = leagueData.playoffSeries?.find(ps => ps.season === season);
+
+  if (seasonPlayoffs?.series) {
+    const rounds = seasonPlayoffs.series;
+    const numRounds = rounds.length;
+
+    for (let r = 0; r < numRounds; r++) {
+      const matchup = rounds[r]?.find(
+        m => m?.home?.tid === tid || m?.away?.tid === tid
+      );
+
+      if (!matchup) {
+        continue;
+      }
+
+      const isHome = matchup.home?.tid === tid;
+      const teamSide = isHome ? matchup.home : matchup.away;
+      const oppSide = isHome ? matchup.away : matchup.home;
+      const teamWins = teamSide?.won ?? 0;
+      const oppWins = oppSide?.won ?? 0;
+
+      seriesScore = `${teamWins}–${oppWins}`;
+
+      if (r === numRounds - 1 && teamWins > oppWins) {
+        finishLabel = 'Won Championship';
+        finishValue = 4;
+        break;
+      }
+
+      if (teamWins < oppWins) {
+        finishValue = r;
+
+        if (numRounds === 4) {
+          finishLabel =
+            r === 0
+              ? 'Lost First Round'
+              : r === 1
+              ? 'Lost Second Round'
+              : r === 2
+              ? 'Lost Conference Finals'
+              : 'Lost Finals';
+        } else if (numRounds === 3) {
+          finishLabel =
+            r === 0
+              ? 'Lost First Round'
+              : r === 1
+              ? 'Lost Second Round'
+              : 'Lost Finals';
+        } else if (numRounds === 2) {
+          finishLabel = r === 0 ? 'Lost First Round' : 'Lost Finals';
+        } else {
+          finishLabel = r === numRounds - 1 ? 'Lost Finals' : `Lost Round ${r + 1}`;
+        }
+        break;
+      }
+    }
+  }
+
+  return { label: finishLabel, value: finishValue, seriesScore };
+}
+
+function calculateTeamStats(
+  leagueData: LeagueData,
+  tid: number,
+  season: number,
+  roster: any[]
+): { wins: number; losses: number; teamRating: number; avgAge: number; playoffResult: string } | undefined {
+  // Get team season record
+  const teamSeason = leagueData.teamSeasons?.find(
+    ts => ts.tid === tid && ts.season === season && !ts.playoffs
+  );
+
+  if (!teamSeason) return undefined;
+
+  const wins = teamSeason.won || 0;
+  const losses = teamSeason.lost || 0;
+
+  // Calculate average age weighted by minutes played
+  let totalWeightedAge = 0;
+  let totalMinutes = 0;
+
+  roster.forEach(rp => {
+    if (rp.age && rp.stats?.mpg) {
+      const minutesPlayed = rp.stats.mpg * rp.gamesPlayed;
+      totalWeightedAge += rp.age * minutesPlayed;
+      totalMinutes += minutesPlayed;
+    }
+  });
+
+  const avgAge = totalMinutes > 0 ? totalWeightedAge / totalMinutes : 0;
+
+  // Calculate team rating (average ovr)
+  const team = leagueData.teams.find(t => t.tid === tid);
+  let teamRating = 0;
+  if (team) {
+    // Get all player ratings for this season and team
+    const playerRatings: number[] = [];
+    leagueData.players.forEach(player => {
+      const seasonStats = player.stats?.find(
+        s => !s.playoffs && s.season === season && s.tid === tid
+      );
+      if (seasonStats && seasonStats.gp && seasonStats.gp > 0) {
+        const rating = player.ratings?.find(r => r.season === season);
+        if (rating?.ovr) {
+          playerRatings.push(rating.ovr);
+        }
+      }
+    });
+    if (playerRatings.length > 0) {
+      teamRating = Math.round(playerRatings.reduce((sum, r) => sum + r, 0) / playerRatings.length);
+    }
+  }
+
+  const playoffResult = getTeamPlayoffResult(leagueData, tid, season).label;
+
+  return {
+    wins,
+    losses,
+    teamRating,
+    avgAge,
+    playoffResult,
+  };
+}
+
 export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }: TeamTriviaProps) {
   const { toast } = useToast();
   const [guess, setGuess] = useState('');
@@ -316,7 +539,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
 
   // Detailed game tracking for new summary modal
   const [detailedGameData, setDetailedGameData] = useState<{
-    playerGuesses: Array<{ player: Player; correct: boolean }>;
+    playerGuesses: Array<{ player: Player; correct: boolean; round: 'guess' | 'hint' }>;
     leaderResults: Array<{
       round: RoundType;
       label: string;
@@ -494,93 +717,11 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       return null;
     }
 
-    const tid = selectedTeam.tid;
-    let finishLabel: string = 'Missed Playoffs';
-    let finishValue: number = -1;
-    let seriesScore: string | null = null;
-
-    // Try to find playoff data from playoffSeries
-    if (leagueData.playoffSeries) {
-      const seasonPlayoffs = leagueData.playoffSeries.find(ps => ps.season === selectedSeason);
-
-      if (seasonPlayoffs?.series) {
-        console.log('[PlayoffFinish] Found playoff series for season:', selectedSeason, seasonPlayoffs);
-
-        const rounds = seasonPlayoffs.series;
-        const numRounds = rounds.length;
-
-        // Iterate through rounds to find where team was eliminated or won
-        for (let r = 0; r < numRounds; r++) {
-          const roundMatchups = rounds[r];
-
-          // Find the matchup where our team played
-          const matchup = roundMatchups.find(m =>
-            m.home?.tid === tid || m.away?.tid === tid
-          );
-
-          if (matchup) {
-            const isHome = matchup.home?.tid === tid;
-            const teamSide = isHome ? matchup.home : matchup.away;
-            const oppSide = isHome ? matchup.away : matchup.home;
-
-            const teamWins = teamSide?.won ?? 0;
-            const oppWins = oppSide?.won ?? 0;
-
-            seriesScore = `${teamWins}–${oppWins}`;
-
-            console.log(`[PlayoffFinish] Round ${r + 1}/${numRounds}: Team wins=${teamWins}, Opp wins=${oppWins}`);
-
-            // Last round and team won = Champion
-            if (r === numRounds - 1 && teamWins > oppWins) {
-              finishLabel = 'Won Championship';
-              finishValue = 4;
-              console.log('[PlayoffFinish] Team won championship!');
-              break;
-            }
-
-            // Team lost this series = eliminated
-            if (teamWins < oppWins) {
-              finishValue = r; // Round they were eliminated (0 = first round, 1 = second, etc.)
-
-              // Determine label based on round
-              if (numRounds === 4) {
-                // Standard 4-round playoff (NBA/NHL style)
-                if (r === 0) finishLabel = 'Lost First Round';
-                else if (r === 1) finishLabel = 'Lost Second Round';
-                else if (r === 2) finishLabel = 'Lost Conference Finals';
-                else if (r === 3) finishLabel = 'Lost Finals';
-              } else if (numRounds === 3) {
-                // 3-round playoff
-                if (r === 0) finishLabel = 'Lost First Round';
-                else if (r === 1) finishLabel = 'Lost Second Round';
-                else if (r === 2) finishLabel = 'Lost Finals';
-              } else if (numRounds === 2) {
-                // 2-round playoff
-                if (r === 0) finishLabel = 'Lost First Round';
-                else if (r === 1) finishLabel = 'Lost Finals';
-              } else {
-                // Generic labeling
-                if (r === numRounds - 1) finishLabel = 'Lost Finals';
-                else finishLabel = `Lost Round ${r + 1}`;
-              }
-
-              console.log(`[PlayoffFinish] Team eliminated in round ${r + 1}: ${finishLabel}`);
-              break;
-            }
-
-            // Team won this series, continue to next round
-            if (teamWins > oppWins) {
-              console.log(`[PlayoffFinish] Team won round ${r + 1}, advancing...`);
-              continue;
-            }
-          }
-        }
-      } else {
-        console.log('[PlayoffFinish] No playoff series found for season:', selectedSeason);
-      }
-    } else {
-      console.warn('[PlayoffFinish] No playoffSeries data available in league file');
-    }
+    const { label: finishLabel, value: finishValue, seriesScore } = getTeamPlayoffResult(
+      leagueData,
+      selectedTeam.tid,
+      selectedSeason
+    );
 
     const result = {
       finishLabel,
@@ -1239,6 +1380,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         } else if (leagueData.sport === 'basketball') {
           // Basketball stats
           const gp = seasonStats.gp;
+          const mpg = seasonStats.min ? seasonStats.min / gp : 0;
           const ppg = seasonStats.pts ? seasonStats.pts / gp : 0;
           const totalReb = seasonStats.trb || ((seasonStats.orb || 0) + (seasonStats.drb || 0));
           const rpg = totalReb / gp;
@@ -1267,7 +1409,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
           const missedFT = fta - ft;
           const per = ((seasonStats.pts || 0) + totalReb + (seasonStats.ast || 0) + stl + blk - missedFG - missedFT) / gp;
 
-          stats = { ppg, rpg, apg, spg, bpg };
+          stats = { mpg, ppg, rpg, apg, spg, bpg, per };
           advancedStats = { fgp, tpp, ftp, ts, per };
         } else {
           // Default/placeholder for other sports
@@ -1480,7 +1622,10 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       // Track correct guess for detailed game data
       setDetailedGameData(prev => ({
         ...prev,
-        playerGuesses: [...prev.playerGuesses, { player, correct: true }]
+        playerGuesses: [
+          ...prev.playerGuesses,
+          { player, correct: true, round: currentRound === 'hint' ? 'hint' : 'guess' },
+        ],
       }));
 
       // Award points based on round
@@ -1506,7 +1651,10 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       // Track incorrect guess for detailed game data
       setDetailedGameData(prev => ({
         ...prev,
-        playerGuesses: [...prev.playerGuesses, { player, correct: false }]
+        playerGuesses: [
+          ...prev.playerGuesses,
+          { player, correct: false, round: currentRound === 'hint' ? 'hint' : 'guess' },
+        ],
       }));
     }
 
@@ -2156,7 +2304,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
 
     scoreBreakdown.forEach(round => {
       const categoryName =
-        round.round === 'guess' || round.round === 'hint' ? 'Player Guesses' :
+        round.round === 'guess' ? 'Player Guesses' :
+        round.round === 'hint' ? 'Player Guesses (with hints)' :
         round.round === 'wins-guess' ? 'Wins Guess' :
         round.round === 'playoff-finish' ? 'Playoff Finish' :
         'Leaders';
@@ -3204,6 +3353,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
             }))}
             sport={leagueData.sport}
             teams={leagueData.teams}
+            teamStats={calculateTeamStats(leagueData, selectedTeam.tid, selectedSeason, roster)}
           />
         )}
       </div>

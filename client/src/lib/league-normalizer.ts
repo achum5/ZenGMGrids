@@ -366,7 +366,9 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
         tied: ts.tied,
         otl: ts.otl,
         playoffs: ts.playoffs || false,
-        gp: ts.gp
+        gp: ts.gp,
+        pts: ts.pts,
+        oppPts: ts.oppPts
       }));
     } else {
       // Alternative: Extract from teams[].seasons if raw.teamSeasons doesn't exist
@@ -403,7 +405,9 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
                 tied: season.tied,
                 otl: season.otl,
                 playoffs: season.playoffs || false,
-                gp: season.gp
+                gp: season.gp,
+                pts: season.pts,
+                oppPts: season.oppPts
               });
             }
           }
