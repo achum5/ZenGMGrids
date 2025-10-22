@@ -75,7 +75,7 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
   postProgress('Setting up database...', 5, 100);
   
   // Open/create IndexedDB with the specified database name
-  const db = await openDB(dbName, 5, {
+  const db = await openDB(dbName, 6, {
     upgrade(db, oldVersion) {
       // Create stores if they don't exist
       if (!db.objectStoreNames.contains('players')) {
@@ -88,6 +88,9 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
       if (!db.objectStoreNames.contains('teamSeasons')) {
         const teamSeasonStore = db.createObjectStore('teamSeasons', { autoIncrement: true });
         teamSeasonStore.createIndex('season_tid', ['season', 'tid'], { unique: false });
+      }
+      if (!db.objectStoreNames.contains('playoffSeries')) {
+        const playoffSeriesStore = db.createObjectStore('playoffSeries', { keyPath: 'season' });
       }
       if (!db.objectStoreNames.contains('meta')) {
         db.createObjectStore('meta');
@@ -103,6 +106,7 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
   await db.clear('players');
   await db.clear('teams');
   await db.clear('teamSeasons');
+  await db.clear('playoffSeries');
   await db.clear('meta');
   
   const isCompressed = file.name.endsWith('.gz');
@@ -145,6 +149,7 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
       '$.teams[*].seasons[*]',  // Capture nested team seasons
       '$.teamSeasons.*',
       '$.teamStats.*',          // Alternative name for team seasons
+      '$.playoffSeries.*',      // Playoff bracket data
       '$.meta'
     ],
     keepStack: false 
@@ -359,7 +364,7 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
   postProgress('Setting up database...', 8, 100);
   
   // Open/create IndexedDB with the specified database name
-  const db = await openDB(dbName, 5, {
+  const db = await openDB(dbName, 6, {
     upgrade(db, oldVersion) {
       // Create stores if they don't exist
       if (!db.objectStoreNames.contains('players')) {
@@ -372,6 +377,9 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
       if (!db.objectStoreNames.contains('teamSeasons')) {
         const teamSeasonStore = db.createObjectStore('teamSeasons', { autoIncrement: true });
         teamSeasonStore.createIndex('season_tid', ['season', 'tid'], { unique: false });
+      }
+      if (!db.objectStoreNames.contains('playoffSeries')) {
+        const playoffSeriesStore = db.createObjectStore('playoffSeries', { keyPath: 'season' });
       }
       if (!db.objectStoreNames.contains('meta')) {
         db.createObjectStore('meta');
@@ -387,6 +395,7 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
   await db.clear('players');
   await db.clear('teams');
   await db.clear('teamSeasons');
+  await db.clear('playoffSeries');
   await db.clear('meta');
   
   const isCompressed = url.includes('.gz') || url.includes('.json.gz');
@@ -429,6 +438,7 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
       '$.teams[*].seasons[*]',  // Capture nested team seasons
       '$.teamSeasons.*',
       '$.teamStats.*',          // Alternative name for team seasons
+      '$.playoffSeries.*',      // Playoff bracket data
       '$.meta'
     ],
     keepStack: false 

@@ -422,7 +422,21 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
       console.warn('[League Normalizer] No teamSeasons found in raw data');
     }
 
-    return { players, teams, sport, teamOverlaps, seasonIndex, leagueYears, teamSeasons };
+    // Extract playoff series data
+    postProgress('Processing playoff data...');
+    let playoffSeries: any[] | undefined;
+    if (raw.playoffSeries && Array.isArray(raw.playoffSeries)) {
+      console.log('[League Normalizer] Found playoff series data:', raw.playoffSeries.length, 'seasons');
+      playoffSeries = raw.playoffSeries.map((ps: any) => ({
+        season: ps.season,
+        series: ps.series || [],
+      }));
+      console.log('[League Normalizer] Processed playoff series for', playoffSeries.length, 'seasons');
+    } else {
+      console.log('[League Normalizer] No playoff series data found in raw');
+    }
+
+    return { players, teams, sport, teamOverlaps, seasonIndex, leagueYears, teamSeasons, playoffSeries };
   
   } catch (error) {
     console.error('Error in normalizeLeague:', error);
