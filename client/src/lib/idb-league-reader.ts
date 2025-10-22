@@ -350,6 +350,25 @@ export async function processLeagueFromIDB(
     
     onProgress?.('Complete!');
     
+    // Try to read playoff series if available (may not exist in older databases)
+    let playoffSeries: any[] | undefined = undefined;
+    try {
+      const db2 = await openLeagueDB(dbName);
+      const tx = db2.transaction('meta', 'readonly');
+      const store = tx.objectStore('meta');
+      const meta = await store.get('importMeta');
+      await tx.done;
+      db2.close();
+      
+      // Check if meta has playoffSeries stored
+      if (meta?.playoffSeries) {
+        playoffSeries = meta.playoffSeries;
+        console.log('[IDB Reader] Found playoff series in meta:', playoffSeries.length, 'seasons');
+      }
+    } catch (error) {
+      console.log('[IDB Reader] No playoff series data found in IDB');
+    }
+    
     return { 
       players, 
       teams, 
@@ -358,6 +377,7 @@ export async function processLeagueFromIDB(
       teamOverlaps, 
       seasonIndex, 
       leagueYears,
+      playoffSeries,
       // Include search indices to avoid rebuilding
       byName,
       byPid,

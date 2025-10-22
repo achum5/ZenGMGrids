@@ -145,7 +145,8 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
       '$.teams[*].seasons[*]',  // Capture nested team seasons
       '$.teamSeasons.*',
       '$.teamStats.*',          // Alternative name for team seasons
-      '$.meta'
+      '$.meta',
+      '$.playoffSeries.*'
     ],
     keepStack: false 
   });
@@ -169,6 +170,7 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
   let version: any = null;
   let startingSeason: any = null;
   let gameAttributes: any = null;
+  let playoffSeries: any[] = [];
   let currentArraySection: 'players' | 'teams' | 'teamSeasons' | null = null;
   
   // Helper to detect sport from player
@@ -303,6 +305,10 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
             if (gameAttributes?.sport) sport = gameAttributes.sport;
           }
           else if (topLevelKey === 'meta') meta = value.value;
+          else if (topLevelKey === 'playoffSeries') {
+            // playoffSeries is an array, so collect each individual item
+            playoffSeries.push(value.value);
+          }
           currentArraySection = null;
         }
         
@@ -324,8 +330,13 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
     postProgress('Finalizing database...', 90, 100);
     await flushBuffers(true);
     
-    // Store metadata
-    await db.put('meta', { sport, playerCount, teamCount, teamSeasonCount, version, startingSeason, gameAttributes, meta }, 'importMeta');
+    // Store metadata (include playoffSeries if we found any)
+    const metaData: any = { sport, playerCount, teamCount, teamSeasonCount, version, startingSeason, gameAttributes, meta };
+    if (playoffSeries.length > 0) {
+      metaData.playoffSeries = playoffSeries;
+      console.log('[Streaming] Stored playoff series data:', playoffSeries.length, 'seasons');
+    }
+    await db.put('meta', metaData, 'importMeta');
     
     postProgress('Import complete', 100, 100);
     console.log('[Streaming] Import complete:', { players: playerCount, teams: teamCount, teamSeasons: teamSeasonCount });
@@ -429,7 +440,8 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
       '$.teams[*].seasons[*]',  // Capture nested team seasons
       '$.teamSeasons.*',
       '$.teamStats.*',          // Alternative name for team seasons
-      '$.meta'
+      '$.meta',
+      '$.playoffSeries.*'
     ],
     keepStack: false 
   });
@@ -453,6 +465,7 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
   let version: any = null;
   let startingSeason: any = null;
   let gameAttributes: any = null;
+  let playoffSeries: any[] = [];
   let currentArraySection: 'players' | 'teams' | 'teamSeasons' | null = null;
   
   // Helper to detect sport from player
@@ -588,6 +601,10 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
             if (gameAttributes?.sport) sport = gameAttributes.sport;
           }
           else if (topLevelKey === 'meta') meta = value.value;
+          else if (topLevelKey === 'playoffSeries') {
+            // playoffSeries is an array, so collect each individual item
+            playoffSeries.push(value.value);
+          }
           currentArraySection = null;
         }
         
@@ -609,8 +626,13 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
     postProgress('Finalizing database...', 90, 100);
     await flushBuffers(true);
     
-    // Store metadata
-    await db.put('meta', { sport, playerCount, teamCount, teamSeasonCount, version, startingSeason, gameAttributes, meta }, 'importMeta');
+    // Store metadata (include playoffSeries if we found any)
+    const metaData: any = { sport, playerCount, teamCount, teamSeasonCount, version, startingSeason, gameAttributes, meta };
+    if (playoffSeries.length > 0) {
+      metaData.playoffSeries = playoffSeries;
+      console.log('[Streaming] Stored playoff series data:', playoffSeries.length, 'seasons');
+    }
+    await db.put('meta', metaData, 'importMeta');
     
     postProgress('Import complete', 100, 100);
     console.log('[Streaming URL] Import complete:', { players: playerCount, teams: teamCount, teamSeasons: teamSeasonCount });
