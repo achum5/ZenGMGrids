@@ -93,6 +93,21 @@ function normalizeName(name: string): string {
     .replace(/[\u0300-\u036f]/g, '');
 }
 
+// Format stat leader label for display
+function formatStatLabel(roundInstruction: string): string {
+  // Extract the stat name from the instruction (e.g., "Click on the team points leader" -> "points")
+  const statName = roundInstruction
+    .replace('Click on the team ', '')
+    .replace(' leader', '')
+    .trim();
+
+  // Split by space or hyphen and capitalize each word
+  return statName
+    .split(/[\s-]+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
 // Transform team logo URL to handle relative paths
 function getTeamLogoUrl(logoUrl: string | null | undefined, sport: string = 'basketball'): string | undefined {
   if (!logoUrl) return undefined;
@@ -510,6 +525,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   const [currentRound, setCurrentRound] = useState<RoundType>('guess');
   const [selectedLeader, setSelectedLeader] = useState<number | null>(null); // PID of selected leader
   const [clickedLeaderInfo, setClickedLeaderInfo] = useState<{ name: string; position: string; statValue: string } | null>(null); // Info shown after clicking
+  const [leaderGuessLocked, setLeaderGuessLocked] = useState(false); // Prevent multiple guesses per round
   
   // Debug: Log leagueData on mount
   useEffect(() => {
@@ -1486,7 +1502,21 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       });
     });
 
-    const validTeams = allTeams.filter(team => teamsInSeason.has(team.tid));
+    // Also ensure team has wins data in teamSeasons
+    const teamsWithWinsData = new Set<number>();
+    if (leagueData.teamSeasons) {
+      leagueData.teamSeasons.forEach(ts => {
+        if (ts.season === randomSeason && !ts.playoffs) {
+          teamsWithWinsData.add(ts.tid);
+        }
+      });
+    }
+
+    // Filter to teams that have BOTH player stats AND wins data
+    const validTeams = allTeams.filter(team => 
+      teamsInSeason.has(team.tid) && teamsWithWinsData.has(team.tid)
+    );
+    
     if (validTeams.length === 0) {
       toast({
         title: 'Error',
@@ -1503,7 +1533,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     buildRoster(randomSeason, randomTeam);
     setGuess('');
     setScore(0); // Reset score for new game
-  }, [allSeasons, allTeams, buildRoster, leagueData.players, toast]);
+  }, [allSeasons, allTeams, buildRoster, leagueData.players, leagueData.teamSeasons, toast]);
 
   // Initialize on mount
   useEffect(() => {
@@ -1843,11 +1873,19 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     }
   }, [currentRound, roster.length]);
 
+  // Reset leader guess lock when round changes
+  useEffect(() => {
+    setLeaderGuessLocked(false);
+  }, [currentRound]);
 
   // Handle tile click during leader selection rounds
   const handleTileClick = useCallback((pid: number) => {
     const isLeaderRound = currentRound.endsWith('-leader');
     if (!isLeaderRound) return;
+    if (leaderGuessLocked) return; // Prevent multiple guesses per round
+
+    // Lock further guesses
+    setLeaderGuessLocked(true);
 
     // Determine which leader we're looking for
     let correctLeaderPid: number | null = null;
@@ -2015,8 +2053,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
           ...prev,
           leaderResults: [...prev.leaderResults, {
             round: currentRound,
-            label: getRoundInstruction(currentRound).replace('Click on the team ', '').replace(' leader', ''),
-            statLabel: getRoundInstruction(currentRound).replace('Click on the team ', '').replace(' leader', ''),
+            label: formatStatLabel(getRoundInstruction(currentRound)),
+            statLabel: formatStatLabel(getRoundInstruction(currentRound)),
             statValue: 0, // Will be populated later with actual stat value
             correctPlayer: correctRosterPlayer.player,
             userCorrect: true,
@@ -2043,8 +2081,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
           ...prev,
           leaderResults: [...prev.leaderResults, {
             round: currentRound,
-            label: getRoundInstruction(currentRound).replace('Click on the team ', '').replace(' leader', ''),
-            statLabel: getRoundInstruction(currentRound).replace('Click on the team ', '').replace(' leader', ''),
+            label: formatStatLabel(getRoundInstruction(currentRound)),
+            statLabel: formatStatLabel(getRoundInstruction(currentRound)),
             statValue: 0, // Will be populated later with actual stat value
             correctPlayer: correctRosterPlayer.player,
             userCorrect: false,
@@ -2069,7 +2107,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         }
       }, 500); // Shake animation duration
     }
-  }, [currentRound, statLeaders, toast, handleNextRound, roster, selectedSeason, selectedTeam, getRoundInstruction]);
+  }, [currentRound, statLeaders, toast, handleNextRound, roster, selectedSeason, selectedTeam, getRoundInstruction, leaderGuessLocked]);
 
   // New game - randomize both
   const handleNew = useCallback(() => {

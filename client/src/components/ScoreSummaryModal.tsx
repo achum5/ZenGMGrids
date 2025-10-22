@@ -259,7 +259,7 @@ export function ScoreSummaryModal({
               backgroundColor: `${secondaryColor}10`,
             }}
           >
-            <div className="w-12 h-12 rounded-full overflow-hidden" style={{ backgroundColor: `${secondaryColor}30` }}>
+            <div className="w-12 h-12">
               <PlayerFace
                 pid={pg.player.pid}
                 name={pg.player.name}
@@ -299,7 +299,7 @@ export function ScoreSummaryModal({
         </div>
         {leader.userCorrect ? (
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full overflow-hidden" style={{ backgroundColor: `${secondaryColor}30` }}>
+            <div className="w-12 h-12">
               <PlayerFace
                 pid={correctPlayer.pid}
                 name={correctPlayer.name}
@@ -319,7 +319,7 @@ export function ScoreSummaryModal({
         ) : (
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full overflow-hidden" style={{ backgroundColor: `${secondaryColor}30` }}>
+              <div className="w-12 h-12">
                 {guessedPlayer ? (
                   <PlayerFace
                     pid={guessedPlayer.pid}
@@ -341,7 +341,7 @@ export function ScoreSummaryModal({
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full overflow-hidden" style={{ backgroundColor: `${secondaryColor}30` }}>
+              <div className="w-12 h-12">
                 <PlayerFace
                   pid={correctPlayer.pid}
                   name={correctPlayer.name}
@@ -376,8 +376,8 @@ export function ScoreSummaryModal({
           backgroundColor: `${secondaryColor}15`,
         }}
       >
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
-          <div>
+        <div className="flex flex-col md:flex-row items-center justify-center gap-8">
+          <div className="text-center md:text-left">
             <h3 className="text-sm font-medium mb-2" style={{ color: secondaryColor }}>Final Score</h3>
             <div className="text-6xl font-bold tabular-nums" style={{ color: secondaryColor }}>{animatedScore}</div>
             {data.timeElapsed && (
