@@ -1263,42 +1263,50 @@ export default function Home() {
       // Generate grid for Grids mode
       if (!leagueData) return;
       
+      // IMPORTANT: Set the game mode FIRST so UI can update
+      setGameMode('grids');
       setIsGenerating(true);
       
-      // Generate initial grid with automatic retry on error
-      let gridResult: { rows: any[], cols: any[], intersections: any } = { rows: [], cols: [], intersections: {} };
-      let attempt = 0;
-      const MAX_AUTO_RETRIES = 50;
-      
-      while (attempt < MAX_AUTO_RETRIES) {
-        try {
-          gridResult = generateTeamsGrid(leagueData);
-          break; // Success! Exit the retry loop
-        } catch (error) {
-          attempt++;
-          if (attempt >= MAX_AUTO_RETRIES) {
-            console.error('Error generating initial grid after maximum retries:', error);
-            gridResult = { rows: [], cols: [], intersections: {} };
-            break;
+      // Defer grid generation to prevent mobile browser crash
+      // This allows the browser to render the loading state first
+      setTimeout(() => {
+        // Generate initial grid with automatic retry on error
+        let gridResult: { rows: any[], cols: any[], intersections: any } = { rows: [], cols: [], intersections: {} };
+        let attempt = 0;
+        const MAX_AUTO_RETRIES = 50;
+        
+        while (attempt < MAX_AUTO_RETRIES) {
+          try {
+            gridResult = generateTeamsGrid(leagueData);
+            break; // Success! Exit the retry loop
+          } catch (error) {
+            attempt++;
+            if (attempt >= MAX_AUTO_RETRIES) {
+              console.error('Error generating initial grid after maximum retries:', error);
+              gridResult = { rows: [], cols: [], intersections: {} };
+              break;
+            }
           }
         }
-      }
+        
+        setRows(gridResult.rows);
+        setCols(gridResult.cols);
+        setIntersections(gridResult.intersections);
+        setCells({});
+        
+        // Initialize grid tracking
+        const gridId = `${gridResult.rows.map(r => r.key).join('-')}_${gridResult.cols.map(c => c.key).join('-')}`;
+        setCurrentGridId(gridId);
+        
+        // Load attempt count from localStorage
+        const storedAttemptCount = getAttemptCount(gridId);
+        setAttemptCount(storedAttemptCount);
+        setGiveUpPressed(false);
+        
+        setIsGenerating(false);
+      }, 100); // 100ms delay to let browser render
       
-      setRows(gridResult.rows);
-      setCols(gridResult.cols);
-      setIntersections(gridResult.intersections);
-      setCells({});
-      
-      // Initialize grid tracking
-      const gridId = `${gridResult.rows.map(r => r.key).join('-')}_${gridResult.cols.map(c => c.key).join('-')}`;
-      setCurrentGridId(gridId);
-      
-      // Load attempt count from localStorage
-      const storedAttemptCount = getAttemptCount(gridId);
-      setAttemptCount(storedAttemptCount);
-      setGiveUpPressed(false);
-      
-      setIsGenerating(false);
+      return; // Exit early since we set gameMode above
     }
     
     setGameMode(mode);
