@@ -362,8 +362,22 @@ export async function processLeagueFromIDB(
       
       // Check if meta has playoffSeries stored
       if (meta?.playoffSeries) {
-        playoffSeries = meta.playoffSeries;
-        console.log('[IDB Reader] Found playoff series in meta:', playoffSeries.length, 'seasons');
+        const rawPlayoffSeries = meta.playoffSeries;
+        
+        // Normalize to array format - it might be an object keyed by season or an array
+        if (Array.isArray(rawPlayoffSeries)) {
+          playoffSeries = rawPlayoffSeries;
+        } else if (typeof rawPlayoffSeries === 'object') {
+          // Convert object to array of season objects
+          playoffSeries = Object.keys(rawPlayoffSeries).map(season => ({
+            season: parseInt(season),
+            ...rawPlayoffSeries[season]
+          }));
+        }
+        
+        if (playoffSeries) {
+          console.log('[IDB Reader] Found playoff series in meta:', playoffSeries.length, 'seasons');
+        }
       }
     } catch (error) {
       console.log('[IDB Reader] No playoff series data found in IDB');

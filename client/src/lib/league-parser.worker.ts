@@ -146,7 +146,7 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
       '$.teamSeasons.*',
       '$.teamStats.*',          // Alternative name for team seasons
       '$.meta',
-      '$.playoffSeries.*'
+      '$.playoffSeries'       // Capture entire playoffSeries object/array
     ],
     keepStack: false 
   });
@@ -170,7 +170,7 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
   let version: any = null;
   let startingSeason: any = null;
   let gameAttributes: any = null;
-  let playoffSeries: any[] = [];
+  let playoffSeries: any = null;  // Changed to single value instead of array
   let currentArraySection: 'players' | 'teams' | 'teamSeasons' | null = null;
   
   // Helper to detect sport from player
@@ -193,6 +193,10 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
       const store = tx.objectStore('players');
       const batch = playerQueue.splice(0, Math.min(BATCH_SIZE, playerQueue.length));
       for (const player of batch) {
+        if (!player || typeof player.pid === 'undefined') {
+          console.error('[Streaming] Invalid player object (missing pid):', player);
+          continue;
+        }
         await store.put(player);
       }
       await tx.done;
@@ -203,6 +207,10 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
       const store = tx.objectStore('teams');
       const batch = teamQueue.splice(0, Math.min(BATCH_SIZE, teamQueue.length));
       for (const team of batch) {
+        if (!team || typeof team.tid === 'undefined') {
+          console.error('[Streaming] Invalid team object (missing tid):', team);
+          continue;
+        }
         await store.put(team);
       }
       await tx.done;
@@ -238,6 +246,11 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
         if (!topLevelKey) continue;
         
         const isArrayIndex = /^\d+$/.test(topLevelKey);
+        
+        // Debug logging for playoff series
+        if (keyString.includes('playoff')) {
+          console.log('[Streaming DEBUG] Playoff key:', keyString, 'topLevelKey:', topLevelKey, 'isArrayIndex:', isArrayIndex);
+        }
         
         if (isArrayIndex) {
           // Determine which array based on order
@@ -306,8 +319,10 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
           }
           else if (topLevelKey === 'meta') meta = value.value;
           else if (topLevelKey === 'playoffSeries') {
-            // playoffSeries is an array, so collect each individual item
-            playoffSeries.push(value.value);
+            // Capture entire playoffSeries object/array
+            playoffSeries = value.value;
+            const seriesCount = Array.isArray(playoffSeries) ? playoffSeries.length : Object.keys(playoffSeries || {}).length;
+            console.log('[Streaming] Captured playoff series data:', seriesCount, 'seasons');
           }
           currentArraySection = null;
         }
@@ -332,9 +347,10 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
     
     // Store metadata (include playoffSeries if we found any)
     const metaData: any = { sport, playerCount, teamCount, teamSeasonCount, version, startingSeason, gameAttributes, meta };
-    if (playoffSeries.length > 0) {
+    if (playoffSeries) {
       metaData.playoffSeries = playoffSeries;
-      console.log('[Streaming] Stored playoff series data:', playoffSeries.length, 'seasons');
+      const seriesCount = Array.isArray(playoffSeries) ? playoffSeries.length : Object.keys(playoffSeries).length;
+      console.log('[Streaming] Stored playoff series data:', seriesCount, 'seasons');
     }
     await db.put('meta', metaData, 'importMeta');
     
@@ -441,7 +457,7 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
       '$.teamSeasons.*',
       '$.teamStats.*',          // Alternative name for team seasons
       '$.meta',
-      '$.playoffSeries.*'
+      '$.playoffSeries'       // Capture entire playoffSeries object/array
     ],
     keepStack: false 
   });
@@ -465,7 +481,7 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
   let version: any = null;
   let startingSeason: any = null;
   let gameAttributes: any = null;
-  let playoffSeries: any[] = [];
+  let playoffSeries: any = null;  // Changed to single value instead of array
   let currentArraySection: 'players' | 'teams' | 'teamSeasons' | null = null;
   
   // Helper to detect sport from player
@@ -489,6 +505,10 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
       const store = tx.objectStore('players');
       const batch = playerQueue.splice(0, Math.min(BATCH_SIZE, playerQueue.length));
       for (const player of batch) {
+        if (!player || typeof player.pid === 'undefined') {
+          console.error('[Streaming] Invalid player object (missing pid):', player);
+          continue;
+        }
         await store.put(player);
       }
       await tx.done;
@@ -499,6 +519,10 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
       const store = tx.objectStore('teams');
       const batch = teamQueue.splice(0, Math.min(BATCH_SIZE, teamQueue.length));
       for (const team of batch) {
+        if (!team || typeof team.tid === 'undefined') {
+          console.error('[Streaming] Invalid team object (missing tid):', team);
+          continue;
+        }
         await store.put(team);
       }
       await tx.done;
@@ -534,6 +558,11 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
         if (!topLevelKey) continue;
         
         const isArrayIndex = /^\d+$/.test(topLevelKey);
+        
+        // Debug logging for playoff series
+        if (keyString.includes('playoff')) {
+          console.log('[Streaming DEBUG] Playoff key:', keyString, 'topLevelKey:', topLevelKey, 'isArrayIndex:', isArrayIndex);
+        }
         
         if (isArrayIndex) {
           // Determine which array based on order
@@ -602,8 +631,10 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
           }
           else if (topLevelKey === 'meta') meta = value.value;
           else if (topLevelKey === 'playoffSeries') {
-            // playoffSeries is an array, so collect each individual item
-            playoffSeries.push(value.value);
+            // Capture entire playoffSeries object/array
+            playoffSeries = value.value;
+            const seriesCount = Array.isArray(playoffSeries) ? playoffSeries.length : Object.keys(playoffSeries || {}).length;
+            console.log('[Streaming] Captured playoff series data:', seriesCount, 'seasons');
           }
           currentArraySection = null;
         }
@@ -628,9 +659,10 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
     
     // Store metadata (include playoffSeries if we found any)
     const metaData: any = { sport, playerCount, teamCount, teamSeasonCount, version, startingSeason, gameAttributes, meta };
-    if (playoffSeries.length > 0) {
+    if (playoffSeries) {
       metaData.playoffSeries = playoffSeries;
-      console.log('[Streaming] Stored playoff series data:', playoffSeries.length, 'seasons');
+      const seriesCount = Array.isArray(playoffSeries) ? playoffSeries.length : Object.keys(playoffSeries).length;
+      console.log('[Streaming] Stored playoff series data:', seriesCount, 'seasons');
     }
     await db.put('meta', metaData, 'importMeta');
     
