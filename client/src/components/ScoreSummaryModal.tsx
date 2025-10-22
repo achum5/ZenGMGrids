@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Trophy, Medal, Flag, Target, Users as UsersIcon, TrendingUp, Share2, Home, Shuffle, X, ChevronDown } from 'lucide-react';
+import { Trophy, Users as UsersIcon, TrendingUp, Target, Flag, Shuffle, Home, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PlayerFace } from '@/components/PlayerFace';
 import {
@@ -8,9 +8,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { CompactScoreCard } from '@/components/CompactScoreCard';
 import type { Player } from '@/types/bbgm';
 
-// Types
 interface ScoreCategory {
   name: string;
   points: number;
@@ -20,7 +20,6 @@ interface PlayerGuess {
   player: Player;
   correct: boolean;
   round?: 'guess' | 'hint';
-  headshot?: string;
 }
 
 interface LeaderRound {
@@ -33,10 +32,10 @@ interface LeaderRound {
 }
 
 interface WinsGuessData {
-  G: number; // Total games
-  L: number; // Left edge of user's guess range
-  R: number; // Right edge of user's guess range
-  A: number; // Actual wins
+  G: number;
+  L: number;
+  R: number;
+  A: number;
   awarded: boolean;
 }
 
@@ -50,30 +49,18 @@ interface PlayoffFinishData {
 }
 
 export interface ScoreSummaryData {
-  // Meta
   season: number;
   teamName: string;
   teamAbbrev: string;
   teamLogo?: string;
+  teamColors?: string[];
   sport: string;
-
-  // Totals
   finalScore: number;
   categories: ScoreCategory[];
-
-  // Playoff finish
   playoffFinish?: PlayoffFinishData;
-
-  // Player guesses
   playerGuesses: PlayerGuess[];
-
-  // Leaders
   leaders: LeaderRound[];
-
-  // Wins guess
   winsGuess?: WinsGuessData;
-
-  // Time elapsed (optional)
   timeElapsed?: number;
 }
 
@@ -86,11 +73,10 @@ interface ScoreSummaryModalProps {
   onShare?: () => void;
 }
 
-// Helper component: Points Pill
 function PointsPill({
   points,
   variant = 'default',
-  size = 'default'
+  size = 'default',
 }: {
   points: number;
   variant?: 'default' | 'large' | 'muted';
@@ -123,38 +109,6 @@ function PointsPill({
   );
 }
 
-// Helper component: Badge
-function Badge({
-  children,
-  variant = 'default'
-}: {
-  children: React.ReactNode;
-  variant?: 'gold' | 'silver' | 'neutral' | 'default';
-}) {
-  const variantClasses = {
-    gold: 'bg-yellow-500/20 text-yellow-700 dark:bg-yellow-500/30 dark:text-yellow-400 border-yellow-500/30',
-    silver: 'bg-slate-400/20 text-slate-700 dark:bg-slate-400/30 dark:text-slate-300 border-slate-400/30',
-    neutral: 'bg-muted text-muted-foreground border-border',
-    default: 'bg-primary/10 text-primary border-primary/20',
-  };
-
-  return (
-    <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border ${variantClasses[variant]}`}>
-      {children}
-    </span>
-  );
-}
-
-// Helper component: Chip
-function Chip({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-secondary text-secondary-foreground">
-      {children}
-    </span>
-  );
-}
-
-// Helper: Count-up animation hook
 function useCountUp(end: number, duration: number = 600, shouldStart: boolean = true) {
   const [count, setCount] = useState(0);
 
@@ -168,7 +122,6 @@ function useCountUp(end: number, duration: number = 600, shouldStart: boolean = 
       if (startTime === null) startTime = currentTime;
       const progress = Math.min((currentTime - startTime) / duration, 1);
 
-      // Ease-out quad
       const eased = 1 - Math.pow(1 - progress, 3);
       setCount(Math.floor(eased * end));
 
@@ -197,36 +150,36 @@ export function ScoreSummaryModal({
   onNewSeason,
   onShare,
 }: ScoreSummaryModalProps) {
-  const [showMissedPlayers, setShowMissedPlayers] = useState(false);
-  const [showAllPlayoffOutcomes, setShowAllPlayoffOutcomes] = useState(false);
+  const [viewMode, setViewMode] = useState<'detailed' | 'spoilerFree'>('detailed');
   const [cardsVisible, setCardsVisible] = useState(false);
 
-  // Trigger animations when modal opens
   useEffect(() => {
     if (open) {
       setCardsVisible(false);
       const timer = setTimeout(() => setCardsVisible(true), 100);
       return () => clearTimeout(timer);
-    } else {
-      setCardsVisible(false);
     }
+    setCardsVisible(false);
   }, [open]);
 
-  // Count-up animation for score
   const animatedScore = useCountUp(data.finalScore, 600, cardsVisible);
   const progress = data.finalScore > 0 ? (animatedScore / data.finalScore) * 100 : 0;
 
-  // Separate player guesses
   const correctPlayers = useMemo(
     () => data.playerGuesses.filter(p => p.correct),
     [data.playerGuesses]
   );
-  const missedPlayers = useMemo(
-    () => data.playerGuesses.filter(p => !p.correct),
+
+  const guessRoundPlayers = useMemo(
+    () => data.playerGuesses.filter(p => p.correct && (p.round ?? 'guess') === 'guess'),
     [data.playerGuesses]
   );
 
-  // Calculate category totals
+  const hintRoundPlayers = useMemo(
+    () => data.playerGuesses.filter(p => p.correct && (p.round ?? 'hint') === 'hint'),
+    [data.playerGuesses]
+  );
+
   const categoryTotals = useMemo(() => {
     const totals: Record<string, number> = {};
     data.categories.forEach(cat => {
@@ -245,30 +198,277 @@ export function ScoreSummaryModal({
     : correctPlayers.filter(p => (p.round ?? 'hint') === 'hint').length;
   const guessRoundPoints = recordedGuessPoints || guessRoundCorrect * 15;
   const hintRoundPoints = recordedHintPoints || hintRoundCorrect * 10;
-  const totalPlayerGuessPoints = guessRoundPoints + hintRoundPoints;
+  const winsGuessPoints = data.winsGuess ? (data.winsGuess.awarded ? 10 : 0) : 0;
+  const playoffPoints = data.playoffFinish?.pointsAwarded ?? 0;
 
-  const hasPlayerGuessCategory =
-    categoryTotals['Player Guesses'] !== undefined ||
-    categoryTotals['Player Guesses (with hints)'] !== undefined ||
-    data.playerGuesses.length > 0;
-
-  // Get playoff badge variant
-  const getPlayoffBadgeVariant = (outcome: string): 'gold' | 'silver' | 'neutral' => {
-    if (outcome.toLowerCase().includes('won championship') || outcome.toLowerCase().includes('champion')) {
-      return 'gold';
-    }
-    if (outcome.toLowerCase().includes('lost finals')) {
-      return 'silver';
-    }
-    return 'neutral';
-  };
-
-  // Format time elapsed
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  const renderPlayerList = (players: PlayerGuess[], emptyMessage: string) => (
+    <div className="space-y-3">
+      {players.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{emptyMessage}</p>
+      ) : (
+        players.map((pg, idx) => (
+          <div key={`${pg.player.pid}-${idx}`} className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/20 p-2">
+            <div className="w-12 h-12 rounded-full overflow-hidden bg-background/60">
+              <PlayerFace
+                pid={pg.player.pid}
+                name={pg.player.name}
+                imgURL={pg.player.imgURL ?? undefined}
+                face={pg.player.face}
+                hideName
+                player={pg.player}
+                sport={data.sport}
+                season={data.season}
+              />
+            </div>
+            <p className="text-sm font-medium text-foreground">{pg.player.name}</p>
+          </div>
+        ))
+      )}
+    </div>
+  );
+
+  const renderLeaderEntry = (leader: LeaderRound, index: number) => {
+    const guessedPlayer = leader.userSelectedPlayer;
+    const correctPlayer = leader.correctPlayer;
+    return (
+      <div key={`${leader.label}-${index}`} className="rounded-xl border border-border/70 bg-card/60 p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold text-foreground">{leader.label}</span>
+          <span className={`text-xs font-semibold ${leader.userCorrect ? 'text-green-500' : 'text-red-400'}`}>
+            {leader.userCorrect ? 'Correct' : 'Missed'}
+          </span>
+        </div>
+        {leader.userCorrect ? (
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full overflow-hidden bg-background/60">
+              <PlayerFace
+                pid={correctPlayer.pid}
+                name={correctPlayer.name}
+                imgURL={correctPlayer.imgURL ?? undefined}
+                face={correctPlayer.face}
+                hideName
+                player={correctPlayer}
+                sport={data.sport}
+                season={data.season}
+              />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground">{correctPlayer.name}</p>
+              {leader.statValue ? <p className="text-xs text-muted-foreground">{leader.statValue}</p> : null}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full overflow-hidden bg-background/60">
+                {guessedPlayer ? (
+                  <PlayerFace
+                    pid={guessedPlayer.pid}
+                    name={guessedPlayer.name}
+                    imgURL={guessedPlayer.imgURL ?? undefined}
+                    face={guessedPlayer.face}
+                    hideName
+                    player={guessedPlayer}
+                    sport={data.sport}
+                    season={data.season}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">—</div>
+                )}
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Your guess</p>
+                <p className="text-sm font-medium text-foreground">{guessedPlayer ? guessedPlayer.name : 'No selection'}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full overflow-hidden bg-background/60">
+                <PlayerFace
+                  pid={correctPlayer.pid}
+                  name={correctPlayer.name}
+                  imgURL={correctPlayer.imgURL ?? undefined}
+                  face={correctPlayer.face}
+                  hideName
+                  player={correctPlayer}
+                  sport={data.sport}
+                  season={data.season}
+                />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Correct</p>
+                <p className="text-sm font-medium text-foreground">{correctPlayer.name}</p>
+                {leader.statValue ? <p className="text-xs text-muted-foreground">{leader.statValue}</p> : null}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const detailedContent = (
+    <div className="space-y-6">
+      <div
+        className={`bg-card border rounded-xl p-6 shadow-sm transition-all duration-300 ${
+          cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+        }`}
+      >
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div className="flex-1">
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Final Score</h3>
+            <div className="text-6xl font-bold text-primary tabular-nums">{animatedScore}</div>
+            {data.timeElapsed && (
+              <p className="text-xs text-muted-foreground mt-2">Time: {formatTime(data.timeElapsed)}</p>
+            )}
+            <div className="mt-4 h-1.5 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary transition-all duration-500 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+          <div className="bg-muted/30 rounded-lg p-4 min-w-[220px]">
+            <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Breakdown</h4>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span>Round 1</span>
+                <span className="font-semibold tabular-nums">+{guessRoundPoints}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Round 2</span>
+                <span className="font-semibold tabular-nums">+{hintRoundPoints}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Leaders</span>
+                <span className="font-semibold tabular-nums">+{categoryTotals['Leaders'] || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Wins Guess</span>
+                <span className="font-semibold tabular-nums">+{winsGuessPoints}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Playoff</span>
+                <span className="font-semibold tabular-nums">+{playoffPoints}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className={`bg-card border rounded-xl p-6 shadow-sm transition-opacity duration-300 ${cardsVisible ? 'opacity-100' : 'opacity-0'}`}>
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <UsersIcon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+              <h3 className="font-semibold">Round 1 — Player Guesses</h3>
+            </div>
+            <PointsPill points={guessRoundPoints} />
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">15 points per correct answer.</p>
+          {renderPlayerList(guessRoundPlayers, 'No correct players found in this round.')}
+        </div>
+
+        <div className={`bg-card border rounded-xl p-6 shadow-sm transition-opacity duration-300 ${cardsVisible ? 'opacity-100' : 'opacity-0'}`}>
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <UsersIcon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+              <h3 className="font-semibold">Round 2 — Hints Enabled</h3>
+            </div>
+            <PointsPill points={hintRoundPoints} />
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">10 points per correct answer.</p>
+          {renderPlayerList(hintRoundPlayers, 'No correct players found with hints.')}
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className={`bg-card border rounded-xl p-6 shadow-sm transition-opacity duration-300 ${cardsVisible ? 'opacity-100' : 'opacity-0'}`}>
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+              <h3 className="font-semibold">Stat Leaders</h3>
+            </div>
+            <PointsPill points={categoryTotals['Leaders'] || 0} />
+          </div>
+          <div className="space-y-3">
+            {data.leaders.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No leader rounds were played.</p>
+            ) : (
+              data.leaders.map((leader, idx) => renderLeaderEntry(leader, idx))
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <div className={`bg-card border rounded-xl p-6 shadow-sm transition-opacity duration-300 ${cardsVisible ? 'opacity-100' : 'opacity-0'}`}>
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Target className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                <h3 className="font-semibold">Wins Guess</h3>
+              </div>
+              <PointsPill points={winsGuessPoints} />
+            </div>
+            {data.winsGuess ? (
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p><span className="font-semibold text-foreground">Guessed:</span> {data.winsGuess.L}–{data.winsGuess.R}</p>
+                <p><span className="font-semibold text-foreground">Actual:</span> {data.winsGuess.A}</p>
+                <p className={`text-xs font-semibold uppercase tracking-wide ${data.winsGuess.awarded ? 'text-green-500' : 'text-red-400'}`}>
+                  {data.winsGuess.awarded ? 'Correct' : 'Incorrect'}
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">This round was skipped.</p>
+            )}
+          </div>
+
+          <div className={`bg-card border rounded-xl p-6 shadow-sm transition-opacity duration-300 ${cardsVisible ? 'opacity-100' : 'opacity-0'}`}>
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Flag className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                <h3 className="font-semibold">Playoff Finish</h3>
+              </div>
+              <PointsPill points={playoffPoints} />
+            </div>
+            {data.playoffFinish ? (
+              <div className="space-y-2 text-sm text-muted-foreground">
+                {data.playoffFinish.correct ? (
+                  <p><span className="font-semibold text-foreground">Outcome:</span> {data.playoffFinish.correctOutcome}</p>
+                ) : (
+                  <>
+                    <p><span className="font-semibold text-foreground">Your guess:</span> {data.playoffFinish.userGuess}</p>
+                    <p><span className="font-semibold text-foreground">Actual:</span> {data.playoffFinish.correctOutcome}</p>
+                  </>
+                )}
+                {data.playoffFinish.seriesScore && (
+                  <p className="text-xs text-muted-foreground">Series: {data.playoffFinish.seriesScore}</p>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No playoff question this session.</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const spoilerContent = (
+    <div className="flex justify-center">
+      <CompactScoreCard
+        data={data}
+        teamColors={data.teamColors}
+        onPlayAgain={onPlayAgain}
+        onNewSeason={onNewSeason}
+        variant="embedded"
+      />
+    </div>
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -276,15 +476,12 @@ export function ScoreSummaryModal({
         className="max-w-5xl max-h-[90vh] overflow-y-auto p-0"
         aria-describedby="score-summary-description"
       >
-        {/* Header */}
         <DialogHeader className="sticky top-0 z-10 bg-background border-b px-6 py-4">
           <div className="flex flex-col items-center text-center gap-3">
             <div className="flex items-center gap-3">
               <Trophy className="h-6 w-6 text-primary" aria-hidden="true" />
               <DialogTitle>Score Breakdown</DialogTitle>
             </div>
-
-            {/* Subheader: Season + Team Logo */}
             <div id="score-summary-description" className="flex items-center gap-3">
               <span className="text-sm text-muted-foreground">{data.season}</span>
               {data.teamLogo && (
@@ -298,336 +495,33 @@ export function ScoreSummaryModal({
           </div>
         </DialogHeader>
 
-        {/* Body: Card Grid */}
         <div className="px-6 py-6 space-y-6">
-
-          {/* 1. Final Result Card */}
-          <div
-            className={`bg-card border rounded-xl p-6 shadow-sm transition-all duration-300 ${
-              cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-            }`}
-          >
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-              {/* Left: Big Score */}
-              <div className="flex-1">
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">Final Score</h3>
-                <div className="text-6xl font-bold text-primary tabular-nums">
-                  {animatedScore}
-                </div>
-                {data.timeElapsed && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Time: {formatTime(data.timeElapsed)}
-                  </p>
-                )}
-
-                {/* Progress Bar */}
-                <div className="mt-4 h-1.5 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary transition-all duration-500 ease-out"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Right: Receipt */}
-              <div className="bg-muted/30 rounded-lg p-4 min-w-[200px]">
-                <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
-                  Breakdown
-                </h4>
-                <div className="space-y-2 text-sm">
-                  {categoryTotals['Playoff Finish'] !== undefined && (
-                    <div className="flex justify-between items-center">
-                      <span>Playoff Finish</span>
-                      <span className="font-semibold tabular-nums">+{categoryTotals['Playoff Finish']}</span>
-                    </div>
-                  )}
-                  {hasPlayerGuessCategory && (
-                    <div className="flex justify-between items-center">
-                      <span>Player Guesses</span>
-                      <span className="font-semibold tabular-nums">+{totalPlayerGuessPoints}</span>
-                    </div>
-                  )}
-                  {categoryTotals['Leaders'] !== undefined && (
-                    <div className="flex justify-between items-center">
-                      <span>Leaders</span>
-                      <span className="font-semibold tabular-nums">+{categoryTotals['Leaders']}</span>
-                    </div>
-                  )}
-                  {categoryTotals['Wins Guess'] !== undefined && (
-                    <div className="flex justify-between items-center">
-                      <span>Wins Guess</span>
-                      <span className="font-semibold tabular-nums">+{categoryTotals['Wins Guess']}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Responsive Grid for remaining cards */}
-          <div className="grid md:grid-cols-2 gap-6">
-
-            {/* 2. Playoff Finish Card */}
-            {data.playoffFinish && (
-              <div
-                className={`bg-card border rounded-xl p-6 shadow-sm transition-all duration-300 ${
-                  cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-                }`}
-                style={{ transitionDelay: '50ms' }}
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Flag className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-                    <h3 className="font-semibold">Playoff Finish</h3>
-                  </div>
-                  <PointsPill points={data.playoffFinish.pointsAwarded} />
-                </div>
-
-                <div className="space-y-3">
-                  <Badge variant={getPlayoffBadgeVariant(data.playoffFinish.correctOutcome)}>
-                    {data.playoffFinish.correctOutcome}
-                  </Badge>
-
-                  {data.playoffFinish.seriesScore && (
-                    <p className="text-sm text-muted-foreground">
-                      Series: {data.playoffFinish.seriesScore}
-                    </p>
-                  )}
-
-                  <div className="text-xs text-muted-foreground space-y-1">
-                    <p>Your guess: <Chip>{data.playoffFinish.userGuess}</Chip></p>
-                    <p>Points per correct: {data.playoffFinish.pointsPerCorrect}</p>
-                  </div>
-
-                  {/* Show all outcomes toggle */}
-                  <button
-                    onClick={() => setShowAllPlayoffOutcomes(!showAllPlayoffOutcomes)}
-                    className="text-xs text-primary hover:underline flex items-center gap-1 mt-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded"
-                  >
-                    {showAllPlayoffOutcomes ? 'Hide' : 'Show all outcomes'}
-                    <ChevronDown className={`h-3 w-3 transition-transform ${showAllPlayoffOutcomes ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  {showAllPlayoffOutcomes && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      <Chip>Missed Playoffs</Chip>
-                      <Chip>Lost First Round</Chip>
-                      <Chip>Lost Second Round</Chip>
-                      <Chip>Lost Conference Finals</Chip>
-                      <Chip>Lost Finals</Chip>
-                      <Chip>Won Championship</Chip>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* 3. Player Guesses Card */}
-            <div
-              className={`bg-card border rounded-xl p-6 shadow-sm transition-all duration-300 ${
-                cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-              }`}
-              style={{ transitionDelay: data.playoffFinish ? '100ms' : '50ms' }}
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Button
+              variant={viewMode === 'detailed' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('detailed')}
+              className="px-4"
             >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <UsersIcon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-                  <h3 className="font-semibold">Player Guesses</h3>
-                </div>
-                <PointsPill points={totalPlayerGuessPoints} />
-              </div>
-
-              <div className="text-sm text-muted-foreground mb-4 space-y-1">
-                <p>
-                  Round 1: {guessRoundCorrect} correct × 15 = +{guessRoundPoints}
-                </p>
-                <p>
-                  Round 2: {hintRoundCorrect} correct × 10 = +{hintRoundPoints}
-                </p>
-              </div>
-
-              {/* Correct Players Grid */}
-              <div className="grid grid-cols-4 gap-3 mb-4">
-                {correctPlayers.slice(0, 8).map((pg, idx) => (
-                  <div key={idx} className="text-center">
-                    <div className="relative mb-1">
-                      <PlayerFace
-                        face={pg.player.face}
-                        className="w-12 h-12 rounded-full mx-auto"
-                      />
-                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                        <span className="text-white text-xs">✓</span>
-                      </div>
-                    </div>
-                    <p className="text-xs truncate" title={pg.player.name}>
-                      {pg.player.name.split(' ').pop()}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              {correctPlayers.length > 8 && (
-                <p className="text-xs text-muted-foreground text-center mb-3">
-                  +{correctPlayers.length - 8} more
-                </p>
-              )}
-
-              {/* Show Missed Toggle */}
-              {missedPlayers.length > 0 && (
-                <>
-                  <button
-                    onClick={() => setShowMissedPlayers(!showMissedPlayers)}
-                    className="text-xs text-primary hover:underline flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded"
-                  >
-                    {showMissedPlayers ? 'Hide' : 'Show'} missed ({missedPlayers.length})
-                    <ChevronDown className={`h-3 w-3 transition-transform ${showMissedPlayers ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  {showMissedPlayers && (
-                    <div className="grid grid-cols-4 gap-3 mt-3 opacity-60">
-                      {missedPlayers.map((pg, idx) => (
-                        <div key={idx} className="text-center">
-                          <div className="relative mb-1">
-                            <PlayerFace
-                              face={pg.player.face}
-                              className="w-12 h-12 rounded-full mx-auto grayscale"
-                            />
-                            <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-                              <span className="text-white text-xs">✕</span>
-                            </div>
-                          </div>
-                          <p className="text-xs truncate" title={pg.player.name}>
-                            {pg.player.name.split(' ').pop()}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* 4. Leaders Card */}
-            {data.leaders.length > 0 && (
-              <div
-                className={`bg-card border rounded-xl p-6 shadow-sm md:col-span-2 transition-all duration-300 ${
-                  cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-                }`}
-                style={{ transitionDelay: '150ms' }}
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-                    <h3 className="font-semibold">Stat Leaders</h3>
-                  </div>
-                  <PointsPill points={categoryTotals['Leaders'] || 0} />
-                </div>
-
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {data.leaders.map((leader, idx) => (
-                    <div
-                      key={idx}
-                      className="bg-muted/30 rounded-lg p-3 hover:shadow-md hover:scale-[1.02] transition-all group"
-                      title={`${leader.statLabel}: ${leader.statValue}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <PlayerFace
-                          face={leader.correctPlayer.face}
-                          className="w-10 h-10 rounded-full"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">
-                            {leader.correctPlayer.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {leader.label}
-                          </p>
-                        </div>
-                        <PointsPill points={leader.userCorrect ? 5 : 0} />
-                      </div>
-
-                      {!leader.userCorrect && leader.userSelectedPlayer && (
-                        <p className="text-xs text-muted-foreground mt-2">
-                          You picked: {leader.userSelectedPlayer.name}
-                        </p>
-                      )}
-
-                      {/* Tooltip on hover */}
-                      <div className="text-xs text-muted-foreground mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {leader.statLabel}: {leader.statValue}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* 5. Wins Guess Card */}
-            {data.winsGuess && (
-              <div
-                className={`bg-card border rounded-xl p-6 shadow-sm md:col-span-2 transition-all duration-300 ${
-                  cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-                }`}
-                style={{ transitionDelay: '200ms' }}
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Target className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-                    <h3 className="font-semibold">Wins Guess</h3>
-                  </div>
-                  <PointsPill points={data.winsGuess.awarded ? 10 : 0} />
-                </div>
-
-                {/* Slider Snapshot */}
-                <div className="relative py-8">
-                  {/* Track */}
-                  <div className="relative h-2 bg-muted rounded-full">
-                    {/* User's range band */}
-                    <div
-                      className="absolute h-full bg-primary/30 rounded-full transition-all duration-300"
-                      style={{
-                        left: `${(data.winsGuess.L / data.winsGuess.G) * 100}%`,
-                        width: `${((data.winsGuess.R - data.winsGuess.L) / data.winsGuess.G) * 100}%`,
-                      }}
-                    />
-
-                    {/* Actual wins marker */}
-                    <div
-                      className="absolute -top-1 w-1 h-4 bg-primary rounded-full transition-all duration-300 delay-300"
-                      style={{
-                        left: `${(data.winsGuess.A / data.winsGuess.G) * 100}%`,
-                      }}
-                    >
-                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-bold px-2 py-0.5 rounded whitespace-nowrap">
-                        A: {data.winsGuess.A}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Track labels */}
-                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                    <span>0</span>
-                    <span>{Math.round(data.winsGuess.G * 0.25)}</span>
-                    <span>{Math.round(data.winsGuess.G * 0.5)}</span>
-                    <span>{Math.round(data.winsGuess.G * 0.75)}</span>
-                    <span>{data.winsGuess.G}</span>
-                  </div>
-                </div>
-
-                <p className="text-sm text-muted-foreground text-center">
-                  Guessed {data.winsGuess.L}–{data.winsGuess.R} • Actual {data.winsGuess.A}
-                </p>
-              </div>
-            )}
+              Detailed Breakdown
+            </Button>
+            <Button
+              variant={viewMode === 'spoilerFree' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('spoilerFree')}
+              className="px-4"
+            >
+              Spoiler-Free Card
+            </Button>
           </div>
 
-          {/* Math Footer */}
+          {viewMode === 'detailed' ? detailedContent : spoilerContent}
+
           <div className="text-right text-sm font-mono text-muted-foreground border-t pt-4">
             Total = {data.categories.map(c => c.points).join(' + ')} = {data.finalScore}
           </div>
         </div>
 
-        {/* Footer Actions */}
         <div className="sticky bottom-0 bg-background border-t px-6 py-4">
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Button onClick={onPlayAgain} size="lg">

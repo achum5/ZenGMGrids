@@ -41,7 +41,7 @@ import { RulesModal } from '@/components/RulesModal';
 import { AccentLine } from '@/components/AccentLine';
 import { CompactScoreCard } from '@/components/CompactScoreCard';
 import { TeamInfoModal } from '@/components/TeamInfoModal';
-import type { ScoreSummaryData } from '@/components/ScoreSummaryModal';
+import { ScoreSummaryModal, type ScoreSummaryData } from '@/components/ScoreSummaryModal';
 import type { LeagueData, Player, Team } from '@/types/bbgm';
 
 // Type for ScoreCategory
@@ -2322,6 +2322,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       teamName: teamDisplayInfo.name,
       teamAbbrev: teamDisplayInfo.abbrev,
       teamLogo: teamDisplayInfo.logoUrl,
+      teamColors: teamDisplayInfo.colors,
       sport: leagueData.sport || 'basketball',
       finalScore: score,
       categories,
@@ -3311,23 +3312,21 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
           </div>
         </div>
 
-        {/* Compact Score Card - Shown when breakdown modal is open */}
-        {showBreakdownModal && scoreSummaryData && (
-          <div className="fixed inset-0 z-50">
-            <CompactScoreCard
-              data={scoreSummaryData}
-              teamColors={teamDisplayInfo.colors}
-              onPlayAgain={() => {
-                setShowBreakdownModal(false);
-                handleNewYearSameTeam();
-              }}
-              onNewSeason={() => {
-                setShowBreakdownModal(false);
-                handleNew();
-              }}
-              onClose={() => setShowBreakdownModal(false)}
-            />
-          </div>
+        {/* Score Summary Modal - Shown when breakdown modal is open */}
+        {scoreSummaryData && (
+          <ScoreSummaryModal
+            open={showBreakdownModal}
+            onOpenChange={setShowBreakdownModal}
+            data={scoreSummaryData}
+            onPlayAgain={() => {
+              setShowBreakdownModal(false);
+              handleNewYearSameTeam();
+            }}
+            onNewSeason={() => {
+              setShowBreakdownModal(false);
+              handleNew();
+            }}
+          />
         )}
 
         {/* Team Info Modal */}
