@@ -119,6 +119,7 @@ export default function Home() {
     loaded?: number;
     total?: number;
   } | null>(null);
+  const [loadingLeagueId, setLoadingLeagueId] = useState<string | null>(null);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [currentCellKey, setCurrentCellKey] = useState<string | null>(null);
   const [playerModalOpen, setPlayerModalOpen] = useState(false);
@@ -554,30 +555,31 @@ export default function Home() {
 
   const handleLoadLeague = useCallback(async (storedLeague: StoredLeague) => {
     setIsProcessing(true);
+    setLoadingLeagueId(storedLeague.id);
     setUploadProgress({ message: 'Loading saved league...', loaded: 0, total: 100 });
-    
+
     try {
       setCurrentFileName(storedLeague.name);
       setCurrentFileSize(storedLeague.fileSize);
-      
+
       // Check if this is a metadata-only save (large file on mobile)
       if (storedLeague.isMetadataOnly && storedLeague.idbName) {
         console.log(`[MOBILE] Loading metadata-only league - reading from ${storedLeague.idbName} IDB`);
         setUploadProgress({ message: 'Loading from database...', loaded: 10, total: 100 });
-        
+
         // Load the full data from the league-specific IDB
         const { processLeagueFromIDB } = await import('@/lib/idb-league-reader');
         const data = await processLeagueFromIDB((message) => {
           setUploadProgress({ message, loaded: 50, total: 100 });
         }, storedLeague.idbName); // Pass the specific database name
-        
+
         // Process without saving (already saved)
         await processLeagueData(data);
       } else {
         // Normal save with full league data - process without saving (already saved)
         await processLeagueData(storedLeague.leagueData);
       }
-      
+
       toast({
         title: 'League loaded',
         description: `${storedLeague.name} has been loaded successfully.`,
@@ -591,6 +593,7 @@ export default function Home() {
       });
     } finally {
       setIsProcessing(false);
+      setLoadingLeagueId(null);
       setUploadProgress(null);
     }
   }, [toast]);
@@ -1531,7 +1534,11 @@ export default function Home() {
           <AccentLine isHovered={isHeaderHovered} />
         </header>
         <main className="max-w-2xl mx-auto px-6 py-8 space-y-8">
-          <SavedLeagues onLoadLeague={handleLoadLeague} />
+          <SavedLeagues
+            onLoadLeague={handleLoadLeague}
+            loadingLeagueId={loadingLeagueId}
+            uploadProgress={uploadProgress}
+          />
           
           <div className="relative">
             <div className="absolute inset-0 flex items-center">

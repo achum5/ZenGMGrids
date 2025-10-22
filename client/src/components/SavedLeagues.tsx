@@ -12,9 +12,15 @@ import baseballIcon from '@/assets/zengm-grids-logo-baseball.png';
 
 interface SavedLeaguesProps {
   onLoadLeague: (league: StoredLeague) => void;
+  loadingLeagueId?: string | null;
+  uploadProgress?: {
+    message: string;
+    loaded?: number;
+    total?: number;
+  } | null;
 }
 
-export function SavedLeagues({ onLoadLeague }: SavedLeaguesProps) {
+export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: SavedLeaguesProps) {
   const [leagues, setLeagues] = useState<StoredLeague[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -185,17 +191,19 @@ export function SavedLeagues({ onLoadLeague }: SavedLeaguesProps) {
                 size="sm"
                 onClick={() => onLoadLeague(league)}
                 data-testid={`button-load-${league.id}`}
+                disabled={loadingLeagueId === league.id}
               >
                 <Download className="w-4 h-4 mr-2" />
-                Load
+                {loadingLeagueId === league.id ? 'Loading...' : 'Load'}
               </Button>
-              
+
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
                     size="sm"
                     variant="destructive"
                     data-testid={`button-delete-trigger-${league.id}`}
+                    disabled={loadingLeagueId === league.id}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -221,6 +229,30 @@ export function SavedLeagues({ onLoadLeague }: SavedLeaguesProps) {
               </AlertDialog>
             </div>
           </div>
+
+          {/* Progress Bar - shown directly under this league when loading */}
+          {loadingLeagueId === league.id && uploadProgress && (
+            <div className="mt-4 space-y-2 px-4">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground font-medium">{uploadProgress.message}</span>
+                {uploadProgress.loaded !== undefined && uploadProgress.total !== undefined && (
+                  <span className="text-primary font-bold">
+                    {((uploadProgress.loaded / uploadProgress.total) * 100).toFixed(0)}%
+                  </span>
+                )}
+              </div>
+              {uploadProgress.loaded !== undefined && uploadProgress.total !== undefined && (
+                <div className="w-full bg-secondary/50 rounded-full h-3 overflow-hidden shadow-lg">
+                  <div
+                    className="h-3 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)] bg-primary"
+                    style={{
+                      width: `${(uploadProgress.loaded / uploadProgress.total) * 100}%`
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </Card>
       ))}
     </div>

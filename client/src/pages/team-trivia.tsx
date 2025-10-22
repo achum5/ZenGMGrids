@@ -39,7 +39,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { RulesModal } from '@/components/RulesModal';
 import { AccentLine } from '@/components/AccentLine';
+import { ScoreSummaryModal, type ScoreSummaryData } from '@/components/ScoreSummaryModal';
 import type { LeagueData, Player, Team } from '@/types/bbgm';
+
+// Type for ScoreCategory
+interface ScoreCategory {
+  name: string;
+  points: number;
+}
 import basketballIcon from '@/assets/zengm-grids-logo-basketball.png';
 import footballIcon from '@/assets/zengm-grids-logo-football.png';
 import hockeyIcon from '@/assets/zengm-grids-logo-hockey.png';
@@ -63,6 +70,14 @@ interface TeamTriviaProps {
   leagueData: LeagueData;
   onBackToModeSelect: () => void;
   onGoHome: () => void;
+}
+
+interface RoundScore {
+  round: string;
+  roundLabel: string;
+  guesses: number;
+  points: number;
+  details: string;
 }
 
 // Normalize name for matching
@@ -248,6 +263,40 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   const [winsGuessSubmitted, setWinsGuessSubmitted] = useState(false); // Whether user has submitted their guess
   const [playoffFinishGuess, setPlayoffFinishGuess] = useState<number | null>(null); // Selected playoff finish option
   const [playoffFinishSubmitted, setPlayoffFinishSubmitted] = useState(false); // Whether user has submitted playoff finish guess
+  const [scoreBreakdown, setScoreBreakdown] = useState<RoundScore[]>([]); // Track score per round
+  const [showBreakdownModal, setShowBreakdownModal] = useState(false); // Show breakdown dialog
+
+  // Detailed game tracking for new summary modal
+  const [detailedGameData, setDetailedGameData] = useState<{
+    playerGuesses: Array<{ player: Player; correct: boolean }>;
+    leaderResults: Array<{
+      round: RoundType;
+      label: string;
+      statLabel: string;
+      statValue: string | number;
+      correctPlayer: Player;
+      userCorrect: boolean;
+      userSelectedPlayer?: Player;
+    }>;
+    winsGuessData?: {
+      G: number;
+      L: number;
+      R: number;
+      A: number;
+      awarded: boolean;
+    };
+    playoffFinishData?: {
+      userGuess: string;
+      correctOutcome: string;
+      correct: boolean;
+      seriesScore?: string;
+      pointsAwarded: number;
+    };
+  }>({
+    playerGuesses: [],
+    leaderResults: [],
+  });
+
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<HTMLDivElement>(null);
   const tileRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -1282,7 +1331,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   // Team display info (season-aligned)
   const teamDisplayInfo = useMemo(() => {
     if (!selectedTeam || selectedSeason === null) {
-      return { name: '', logo: null, colors: ['#000000', '#ffffff', '#cccccc'] };
+      return { name: '', abbrev: '', logo: null, logoUrl: undefined, colors: ['#000000', '#ffffff', '#cccccc'] };
     }
 
     const seasonInfo = selectedTeam.seasons?.find(s => s.season === selectedSeason);
@@ -1292,11 +1341,13 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       ? `${selectedTeam.region} ${selectedTeam.name}`
       : selectedTeam.abbrev || 'Unknown Team';
 
+    const abbrev = seasonInfo?.abbrev || selectedTeam.abbrev || '';
     const logo = seasonInfo?.imgURL || selectedTeam.imgURL;
+    const logoUrl = getTeamLogoUrl(logo, leagueData.sport);
     const colors = seasonInfo?.colors || selectedTeam.colors || ['#000000', '#ffffff', '#cccccc'];
 
-    return { name, logo, colors };
-  }, [selectedTeam, selectedSeason]);
+    return { name, abbrev, logo, logoUrl, colors };
+  }, [selectedTeam, selectedSeason, leagueData.sport]);
 
   // Filter ALL players in league matching current guess
   const autocompleteSuggestions = useMemo(() => {
@@ -1346,7 +1397,23 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     };
   }, [autocompleteOpen]);
 
-
+  // Helper function to add score to breakdown
+  const addToScoreBreakdown = useCallback((round: string, roundLabel: string, points: number, details: string) => {
+    setScoreBreakdown(prev => {
+      const existing = prev.find(r => r.round === round);
+      if (existing) {
+        // Update existing round
+        return prev.map(r =>
+          r.round === round
+            ? { ...r, guesses: r.guesses + 1, points: r.points + points, details: r.details + ', ' + details }
+            : r
+        );
+      } else {
+        // Add new round
+        return [...prev, { round, roundLabel, guesses: 1, points, details }];
+      }
+    });
+  }, []);
 
   // Handle selecting a player (from autocomplete)
   const handleSelectPlayer = useCallback((player: Player) => {
@@ -1362,11 +1429,19 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       ));
       setFoundCount(prev => prev + 1);
 
+      // Track correct guess for detailed game data
+      setDetailedGameData(prev => ({
+        ...prev,
+        playerGuesses: [...prev.playerGuesses, { player, correct: true }]
+      }));
+
       // Award points based on round
       if (currentRound === 'guess') {
         setScore(prev => prev + 10);
+        addToScoreBreakdown('guess', 'Player Guesses', 10, player.name);
       } else if (currentRound === 'hint') {
         setScore(prev => prev + 8);
+        addToScoreBreakdown('hint', 'Player Guesses (with hints)', 8, player.name);
       }
 
       // Trigger success animation for correct guess
@@ -1379,6 +1454,12 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       toast({
         description: `Not on ${selectedSeason} ${teamDisplayInfo.name}.`,
       });
+
+      // Track incorrect guess for detailed game data
+      setDetailedGameData(prev => ({
+        ...prev,
+        playerGuesses: [...prev.playerGuesses, { player, correct: false }]
+      }));
     }
 
     setGuess('');
@@ -1388,7 +1469,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     setTimeout(() => {
       inputRef.current?.focus();
     }, 100);
-  }, [roster, toast, selectedSeason, teamDisplayInfo.name]);
+  }, [roster, toast, selectedSeason, teamDisplayInfo.name, currentRound, addToScoreBreakdown]);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -1651,6 +1732,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       });
     }
 
+    // Get user selected player
+    const userSelectedPlayer = roster.find(rp => rp.player.pid === pid)?.player;
+
     // Check if the clicked player is correct
     if (pid === correctLeaderPid) {
       // Correct! Show success feedback and move to next round
@@ -1658,6 +1742,22 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         description: 'Correct! Moving to next round...',
       });
       setScore(prev => prev + 5); // Award 5 points for correct leader
+      addToScoreBreakdown(currentRound, getRoundInstruction(currentRound), 5, correctRosterPlayer?.player.name || 'Stat leader');
+
+      // Track leader result for detailed game data
+      if (correctRosterPlayer) {
+        setDetailedGameData(prev => ({
+          ...prev,
+          leaderResults: [...prev.leaderResults, {
+            round: currentRound,
+            label: getRoundInstruction(currentRound).replace('Click on the team ', '').replace(' leader', ''),
+            statLabel: getRoundInstruction(currentRound).replace('Click on the team ', '').replace(' leader', ''),
+            statValue: 0, // Will be populated later with actual stat value
+            correctPlayer: correctRosterPlayer.player,
+            userCorrect: true,
+          }]
+        }));
+      }
 
       // Apply success animation
       setTileAnimations(prev => ({ ...prev, [pid]: 'animate-tile-success' }));
@@ -1671,6 +1771,23 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         description: 'Incorrect. Try again!',
         variant: 'destructive',
       });
+
+      // Track leader result for detailed game data
+      if (correctRosterPlayer && userSelectedPlayer) {
+        setDetailedGameData(prev => ({
+          ...prev,
+          leaderResults: [...prev.leaderResults, {
+            round: currentRound,
+            label: getRoundInstruction(currentRound).replace('Click on the team ', '').replace(' leader', ''),
+            statLabel: getRoundInstruction(currentRound).replace('Click on the team ', '').replace(' leader', ''),
+            statValue: 0, // Will be populated later with actual stat value
+            correctPlayer: correctRosterPlayer.player,
+            userCorrect: false,
+            userSelectedPlayer,
+          }]
+        }));
+      }
+
       // Apply shake animation
       setTileAnimations(prev => ({ ...prev, [pid]: 'animate-tile-shake' }));
       setTimeout(() => {
@@ -1687,7 +1804,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         }
       }, 500); // Shake animation duration
     }
-  }, [currentRound, statLeaders, toast, handleNextRound, roster, selectedSeason, selectedTeam]);
+  }, [currentRound, statLeaders, toast, handleNextRound, roster, selectedSeason, selectedTeam, getRoundInstruction]);
 
   // New game - randomize both
   const handleNew = useCallback(() => {
@@ -1696,6 +1813,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     setSelectedLeader(null);
     setClickedLeaderInfo(null);
     setScore(0); // Reset score for new game
+    setScoreBreakdown([]); // Reset score breakdown
+    setDetailedGameData({ playerGuesses: [], leaderResults: [] }); // Reset detailed game data
   }, [pickRandomTeamAndSeason]);
 
   // Same Year, New Team
@@ -1730,6 +1849,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     setClickedLeaderInfo(null);
     setScore(0);
     setGuess('');
+    setScoreBreakdown([]); // Reset score breakdown
+    setDetailedGameData({ playerGuesses: [], leaderResults: [] }); // Reset detailed game data
   }, [selectedSeason, selectedTeam, allTeams, leagueData.players, buildRoster, toast]);
 
   // New Year, Same Team
@@ -1764,6 +1885,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     setClickedLeaderInfo(null);
     setScore(0);
     setGuess('');
+    setScoreBreakdown([]); // Reset score breakdown
+    setDetailedGameData({ playerGuesses: [], leaderResults: [] }); // Reset detailed game data
   }, [selectedSeason, selectedTeam, allSeasons, leagueData.players, buildRoster, toast]);
 
   // Wins Guess: Move slider
@@ -1789,23 +1912,37 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
 
     setWinsGuessSubmitted(true);
 
+    // Track wins guess data
+    setDetailedGameData(prev => ({
+      ...prev,
+      winsGuessData: {
+        G: winsGuessData.totalGames,
+        L,
+        R,
+        A,
+        awarded: isCorrect,
+      }
+    }));
+
     if (isCorrect) {
       toast({
         description: `Correct! The team had ${A} wins. +10 points`,
       });
       setScore(prev => prev + 10);
+      addToScoreBreakdown('wins-guess', 'Wins Guess', 10, `Guessed ${L}-${R}, actual ${A}`);
     } else {
       toast({
         description: `Incorrect. The team had ${A} wins.`,
         variant: 'destructive',
       });
+      addToScoreBreakdown('wins-guess', 'Wins Guess', 0, `Guessed ${L}-${R}, actual ${A}`);
     }
 
     // Move to next round after a brief delay
     setTimeout(() => {
       handleNextRound();
     }, 2000);
-  }, [winsGuessData, winsGuessPosition, winsGuessSubmitted, toast, handleNextRound]);
+  }, [winsGuessData, winsGuessPosition, winsGuessSubmitted, toast, handleNextRound, addToScoreBreakdown]);
 
   // Wins Guess: Keyboard controls
   const handleWinsGuessKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -1840,30 +1977,45 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     if (!playoffFinishData || playoffFinishSubmitted || playoffFinishGuess === null) return;
 
     const isCorrect = playoffFinishGuess === playoffFinishData.finishValue;
+    const userGuessLabel = playoffFinishData.options.find(opt => opt.value === playoffFinishGuess)?.label || 'Unknown';
 
     setPlayoffFinishSubmitted(true);
+
+    // Track playoff finish data
+    setDetailedGameData(prev => ({
+      ...prev,
+      playoffFinishData: {
+        userGuess: userGuessLabel,
+        correctOutcome: playoffFinishData.finishLabel,
+        correct: isCorrect,
+        seriesScore: playoffFinishData.seriesScore || undefined,
+        pointsAwarded: isCorrect ? 10 : 0,
+      }
+    }));
 
     if (isCorrect) {
       toast({
         description: `Correct! ${playoffFinishData.finishLabel}. +10 points`,
       });
       setScore(prev => prev + 10);
+      addToScoreBreakdown('playoff-finish', 'Playoff Finish', 10, playoffFinishData.finishLabel);
     } else {
       toast({
         description: `Incorrect. ${playoffFinishData.finishLabel}.`,
         variant: 'destructive',
       });
+      addToScoreBreakdown('playoff-finish', 'Playoff Finish', 0, playoffFinishData.finishLabel);
     }
 
     // Auto-progress to next round after a delay
     setTimeout(() => {
       handleNextRound();
     }, 2000);
-  }, [playoffFinishData, playoffFinishGuess, playoffFinishSubmitted, toast, handleNextRound]);
+  }, [playoffFinishData, playoffFinishGuess, playoffFinishSubmitted, toast, handleNextRound, addToScoreBreakdown]);
 
   const hasProgress = foundCount > 0;
 
-  const sportTitle = 
+  const sportTitle =
     leagueData.sport === 'basketball' ? 'Basketball GM' :
     leagueData.sport === 'football' ? 'Football GM' :
     leagueData.sport === 'hockey' ? 'ZenGM Hockey' :
@@ -1876,6 +2028,53 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     leagueData.sport === 'hockey' ? hockeyIcon :
     leagueData.sport === 'baseball' ? baseballIcon :
     basketballIcon;
+
+  // Transform detailed game data into ScoreSummaryData format
+  const scoreSummaryData: ScoreSummaryData | null = useMemo(() => {
+    if (!selectedTeam || !selectedSeason) return null;
+
+    // Calculate category totals from scoreBreakdown
+    const categories: ScoreCategory[] = [];
+    const categoryMap: Record<string, number> = {};
+
+    scoreBreakdown.forEach(round => {
+      const categoryName =
+        round.round === 'guess' || round.round === 'hint' ? 'Player Guesses' :
+        round.round === 'wins-guess' ? 'Wins Guess' :
+        round.round === 'playoff-finish' ? 'Playoff Finish' :
+        'Leaders';
+
+      categoryMap[categoryName] = (categoryMap[categoryName] || 0) + round.points;
+    });
+
+    Object.entries(categoryMap).forEach(([name, points]) => {
+      categories.push({ name, points });
+    });
+
+    return {
+      season: selectedSeason,
+      teamName: teamDisplayInfo.name,
+      teamAbbrev: teamDisplayInfo.abbrev,
+      teamLogo: teamDisplayInfo.logoUrl,
+      sport: leagueData.sport || 'basketball',
+      finalScore: score,
+      categories,
+      playoffFinish: detailedGameData.playoffFinishData ? {
+        ...detailedGameData.playoffFinishData,
+        pointsPerCorrect: 10,
+      } : undefined,
+      playerGuesses: detailedGameData.playerGuesses,
+      leaders: detailedGameData.leaderResults.map(lr => ({
+        label: lr.label,
+        statLabel: lr.statLabel,
+        statValue: lr.statValue,
+        correctPlayer: lr.correctPlayer,
+        userCorrect: lr.userCorrect,
+        userSelectedPlayer: lr.userSelectedPlayer,
+      })),
+      winsGuess: detailedGameData.winsGuessData,
+    };
+  }, [selectedTeam, selectedSeason, teamDisplayInfo, leagueData.sport, score, scoreBreakdown, detailedGameData]);
 
     return (
       <div className="h-screen flex flex-col bg-background overflow-hidden">
@@ -2168,7 +2367,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   
               {/* Right side: Score Counter */}
               <div className="text-sm sm:text-xl md:text-2xl font-bold shrink-0" data-testid="text-score-counter">
-                <span style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary))' }}>Score: {score}</span>
+                <span style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary))' }}>
+                  {currentRound === 'complete' ? 'Final Score' : 'Score'}: {score}
+                </span>
               </div>
             </div>
           </div>
@@ -2574,24 +2775,50 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                               if (winsGuessSubmitted) return;
                               const startX = e.clientX;
                               const startPos = winsGuessPosition;
-                              
+
                               // Capture track width before event completes (e.currentTarget becomes null later)
                               const trackWidth = e.currentTarget.parentElement?.clientWidth || 0;
                               if (!trackWidth) return;
-                              
+
                               const handleMouseMove = (moveE: MouseEvent) => {
                                 const deltaX = moveE.clientX - startX;
                                 const deltaWins = Math.round((deltaX / trackWidth) * winsGuessData.totalGames);
                                 handleWinsGuessSliderMove(startPos + deltaWins);
                               };
-                              
+
                               const handleMouseUp = () => {
                                 document.removeEventListener('mousemove', handleMouseMove);
                                 document.removeEventListener('mouseup', handleMouseUp);
                               };
-                              
+
                               document.addEventListener('mousemove', handleMouseMove);
                               document.addEventListener('mouseup', handleMouseUp);
+                            }}
+                            onTouchStart={(e) => {
+                              if (winsGuessSubmitted) return;
+                              const touch = e.touches[0];
+                              const startX = touch.clientX;
+                              const startPos = winsGuessPosition;
+
+                              // Capture track width before event completes (e.currentTarget becomes null later)
+                              const trackWidth = e.currentTarget.parentElement?.clientWidth || 0;
+                              if (!trackWidth) return;
+
+                              const handleTouchMove = (moveE: TouchEvent) => {
+                                moveE.preventDefault(); // Prevent scrolling while dragging
+                                const touch = moveE.touches[0];
+                                const deltaX = touch.clientX - startX;
+                                const deltaWins = Math.round((deltaX / trackWidth) * winsGuessData.totalGames);
+                                handleWinsGuessSliderMove(startPos + deltaWins);
+                              };
+
+                              const handleTouchEnd = () => {
+                                document.removeEventListener('touchmove', handleTouchMove as any);
+                                document.removeEventListener('touchend', handleTouchEnd);
+                              };
+
+                              document.addEventListener('touchmove', handleTouchMove as any, { passive: false });
+                              document.addEventListener('touchend', handleTouchEnd);
                             }}
                             data-testid="wins-guess-slider"
                           ></div>
@@ -2735,6 +2962,22 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     </div>
                   </div>
                 ) : null
+              ) : currentRound === 'complete' ? (
+                /* Complete Phase - Show Final Score and Breakdown Button */
+                <div className="flex-1 flex items-center justify-center gap-4">
+                  <div className="text-center">
+                    <p className="text-2xl sm:text-3xl font-bold text-white">
+                      Final Score: {score}
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => setShowBreakdownModal(true)}
+                    className="neon-button animate-on-click"
+                    data-testid="button-show-breakdown"
+                  >
+                    View Breakdown
+                  </Button>
+                </div>
               ) : currentRound.endsWith('-leader') ? (
                 /* Leader round prompt - centered in footer */
                 <div className="flex-1 text-center">
@@ -2789,6 +3032,17 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
             </div>
           </div>
         </div>
+
+        {/* Score Summary Modal - New Premium Design */}
+        {scoreSummaryData && (
+          <ScoreSummaryModal
+            open={showBreakdownModal}
+            onOpenChange={setShowBreakdownModal}
+            data={scoreSummaryData}
+            onPlayAgain={handleNewYearSameTeam}
+            onNewSeason={handleNew}
+          />
+        )}
       </div>
     );
   }
