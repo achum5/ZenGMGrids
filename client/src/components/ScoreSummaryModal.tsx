@@ -245,7 +245,7 @@ export function ScoreSummaryModal({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const renderPlayerList = (players: PlayerGuess[], emptyMessage: string) => (
+  const renderPlayerList = (players: PlayerGuess[], emptyMessage: string, pointsPerPlayer: number) => (
     <div className="space-y-3">
       {players.length === 0 ? (
         <p className="text-sm" style={{ color: `${getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000'}aa` }}>{emptyMessage}</p>
@@ -253,25 +253,28 @@ export function ScoreSummaryModal({
         players.map((pg, idx) => (
           <div
             key={`${pg.player.pid}-${idx}`}
-            className="flex items-center gap-3 rounded-lg border p-2"
+            className="flex items-center justify-between gap-3 rounded-lg border p-2"
             style={{
               borderColor: `${secondaryColor}40`,
               backgroundColor: `${secondaryColor}10`,
             }}
           >
-            <div className="w-12 h-12">
-              <PlayerFace
-                pid={pg.player.pid}
-                name={pg.player.name}
-                imgURL={pg.player.imgURL ?? undefined}
-                face={pg.player.face}
-                hideName
-                player={pg.player}
-                sport={data.sport}
-                season={data.season}
-              />
+            <div className="flex items-center gap-3 flex-1">
+              <div className="w-12 h-12">
+                <PlayerFace
+                  pid={pg.player.pid}
+                  name={pg.player.name}
+                  imgURL={pg.player.imgURL ?? undefined}
+                  face={pg.player.face}
+                  hideName
+                  player={pg.player}
+                  sport={data.sport}
+                  season={data.season}
+                />
+              </div>
+              <p className="text-sm font-medium" style={{ color: getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000' }}>{pg.player.name}</p>
             </div>
-            <p className="text-sm font-medium" style={{ color: getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000' }}>{pg.player.name}</p>
+            <PointsPill points={pointsPerPlayer} teamColor={secondaryColor} />
           </div>
         ))
       )}
@@ -426,15 +429,14 @@ export function ScoreSummaryModal({
             borderColor: `${secondaryColor}60`,
           }}
         >
-          <div className="flex items-start justify-between mb-4">
+          <div className="flex items-start mb-4">
             <div className="flex items-center gap-2">
               <UsersIcon className="h-5 w-5" style={{ color: secondaryColor }} aria-hidden="true" />
               <h3 className="font-semibold" style={{ color: getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000' }}>Round 1 — Player Guesses</h3>
             </div>
-            <PointsPill points={guessRoundPoints} teamColor={secondaryColor} />
           </div>
           <p className="text-xs mb-4" style={{ color: `${getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000'}aa` }}>15 points per correct answer.</p>
-          {renderPlayerList(guessRoundPlayers, 'No correct players found in this round.')}
+          {renderPlayerList(guessRoundPlayers, 'No correct players found in this round.', 15)}
         </div>
 
         <div
@@ -444,15 +446,14 @@ export function ScoreSummaryModal({
             borderColor: `${secondaryColor}60`,
           }}
         >
-          <div className="flex items-start justify-between mb-4">
+          <div className="flex items-start mb-4">
             <div className="flex items-center gap-2">
               <UsersIcon className="h-5 w-5" style={{ color: secondaryColor }} aria-hidden="true" />
               <h3 className="font-semibold" style={{ color: getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000' }}>Round 2 — Hints Enabled</h3>
             </div>
-            <PointsPill points={hintRoundPoints} teamColor={secondaryColor} />
           </div>
           <p className="text-xs mb-4" style={{ color: `${getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000'}aa` }}>10 points per correct answer.</p>
-          {renderPlayerList(hintRoundPlayers, 'No correct players found with hints.')}
+          {renderPlayerList(hintRoundPlayers, 'No correct players found with hints.', 10)}
         </div>
       </div>
 
