@@ -69,6 +69,7 @@ interface ScoreSummaryModalProps {
   onPlayAgain: () => void;
   onNewSeason: () => void;
   onShare?: () => void;
+  onPlayerClick?: (player: Player) => void;
 }
 
 function PointsPill({
@@ -167,6 +168,7 @@ export function ScoreSummaryModal({
   onPlayAgain,
   onNewSeason,
   onShare,
+  onPlayerClick,
 }: ScoreSummaryModalProps) {
   const [viewMode, setViewMode] = useState<'detailed' | 'spoilerFree'>('detailed');
   const [cardsVisible, setCardsVisible] = useState(false);
@@ -253,7 +255,8 @@ export function ScoreSummaryModal({
         players.map((pg, idx) => (
           <div
             key={`${pg.player.pid}-${idx}`}
-            className="flex items-center justify-between gap-3 rounded-lg border p-2"
+            onClick={() => onPlayerClick?.(pg.player)}
+            className="flex items-center justify-between gap-3 rounded-lg border p-2 cursor-pointer hover:opacity-80 transition-opacity"
             style={{
               borderColor: `${secondaryColor}40`,
               backgroundColor: `${secondaryColor}10`,
@@ -301,7 +304,10 @@ export function ScoreSummaryModal({
           </span>
         </div>
         {leader.userCorrect ? (
-          <div className="flex items-center gap-3">
+          <div
+            onClick={() => onPlayerClick?.(correctPlayer)}
+            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+          >
             <div className="w-12 h-12">
               <PlayerFace
                 pid={correctPlayer.pid}
@@ -321,7 +327,10 @@ export function ScoreSummaryModal({
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="flex items-center gap-3">
+            <div
+              onClick={() => guessedPlayer && onPlayerClick?.(guessedPlayer)}
+              className={`flex items-center gap-3 ${guessedPlayer ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+            >
               <div className="w-12 h-12">
                 {guessedPlayer ? (
                   <PlayerFace
@@ -343,7 +352,10 @@ export function ScoreSummaryModal({
                 <p className="text-sm font-medium" style={{ color: textColor }}>{guessedPlayer ? guessedPlayer.name : 'No selection'}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div
+              onClick={() => onPlayerClick?.(correctPlayer)}
+              className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+            >
               <div className="w-12 h-12">
                 <PlayerFace
                   pid={correctPlayer.pid}

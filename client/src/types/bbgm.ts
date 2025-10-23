@@ -202,7 +202,32 @@ export interface Player {
     oneTeamOnly: Set<number>;
     isHallOfFamer: Set<number>;
   };
-  ratings?: Array<{ season: number; pos?: string; ovr?: number; pot?: number }>;
+  ratings?: Array<{
+    season: number;
+    pos?: string;
+    ovr?: number;
+    pot?: number;
+    // Physical ratings
+    hgt?: number;
+    stre?: number;
+    spd?: number;
+    jmp?: number;
+    endu?: number;
+    // Shooting ratings
+    ins?: number;
+    dnk?: number;
+    ft?: number;
+    fg?: number;
+    tp?: number;
+    // Skill ratings
+    oiq?: number;
+    diq?: number;
+    drb?: number;
+    pss?: number;
+    reb?: number;
+    // Allow any other rating fields
+    [key: string]: any;
+  }>;
   retiredYear?: number | null;
   contract?: { amount?: number; exp?: number };
   college?: string | null;

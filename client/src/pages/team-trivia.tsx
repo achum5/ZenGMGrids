@@ -42,6 +42,7 @@ import { AccentLine } from '@/components/AccentLine';
 import { CompactScoreCard } from '@/components/CompactScoreCard';
 import { TeamInfoModal } from '@/components/TeamInfoModal';
 import { ScoreSummaryModal, type ScoreSummaryData } from '@/components/ScoreSummaryModal';
+import { PlayerPageModal } from '@/components/PlayerPageModal';
 import type { LeagueData, Player, Team } from '@/types/bbgm';
 
 // Type for ScoreCategory
@@ -60,7 +61,8 @@ interface RosterPlayer {
   revealed: boolean;
   hintShown: boolean;
   gamesPlayed: number;
-  stats: any; // Flexible stats object for different sports/positions
+  stats: any; // Calculated per-game stats for tile display (ppg, rpg, line1, line2, etc.)
+  rawSeasonStats?: any; // Raw season totals for TeamInfoModal (pts, ast, trb, etc.)
   advancedStats?: any; // Optional advanced stats
   position: string;
   jerseyNumber?: string;
@@ -421,7 +423,6 @@ function getTeamPlayoffResult(
       if (matchup) {
         lastRoundFound = r;
         lastMatchup = matchup;
-        console.log('[PlayoffFinish] Found team in round', r, ':', matchup);
       }
     }
 
@@ -434,7 +435,7 @@ function getTeamPlayoffResult(
 
       seriesScore = `${teamWins}–${oppWins}`;
 
-      console.log('[PlayoffFinish] Last round data:', {
+      console.log('[PlayoffFinish] Team found in round:', {
         round: lastRoundFound,
         teamWins,
         oppWins,
@@ -472,12 +473,9 @@ function getTeamPlayoffResult(
         }
       }
 
-      console.log('[PlayoffFinish] Result:', { finishLabel, finishValue, seriesScore });
     } else {
-      console.log('[PlayoffFinish] Team not found in any playoff round');
     }
   } else {
-    console.log('[PlayoffFinish] No playoff series data found for season', season);
   }
 
   return { label: finishLabel, value: finishValue, seriesScore };
@@ -585,6 +583,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   const [playoffFinishSubmitted, setPlayoffFinishSubmitted] = useState(false); // Whether user has submitted playoff finish guess
   const [scoreBreakdown, setScoreBreakdown] = useState<RoundScore[]>([]); // Track score per round
   const [showBreakdownModal, setShowBreakdownModal] = useState(false); // Show breakdown dialog
+  const [selectedPlayerForPage, setSelectedPlayerForPage] = useState<Player | null>(null); // Player page modal
   const [showTeamInfo, setShowTeamInfo] = useState(false); // Show team info modal
   const [opponentTeamInfo, setOpponentTeamInfo] = useState<{ tid: number; season: number } | null>(null); // Opponent team modal state
   const [logoError, setLogoError] = useState(false); // Track if team logo failed to load
@@ -672,13 +671,26 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
 
   // Get all teams (sorted alphabetically)
   const allTeams = useMemo(() => {
-    return leagueData.teams
+    const teams = leagueData.teams
       .filter(team => !team.disabled)
       .sort((a, b) => {
         const nameA = a.region && a.name ? `${a.region} ${a.name}` : a.abbrev;
         const nameB = b.region && b.name ? `${b.region} ${b.name}` : b.abbrev;
         return nameA.localeCompare(nameB);
       });
+
+    // Debug: Check if STL and CLB are in allTeams
+    const stl = teams.find(t => t.abbrev === 'STL');
+    const clb = teams.find(t => t.abbrev === 'CLB');
+    console.log('[AllTeams] STL and CLB check:', {
+      stlExists: !!stl,
+      clbExists: !!clb,
+      stlDisabled: stl?.disabled,
+      clbDisabled: clb?.disabled,
+      totalTeams: teams.length
+    });
+
+    return teams;
   }, [leagueData.teams]);
 
   // Get teams that have players in the selected season (sorted alphabetically)
@@ -704,15 +716,43 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       });
     }
 
-    // Filter to teams that have BOTH player stats AND wins data
-    return allTeams.filter(team => 
-      teamsWithPlayers.has(team.tid) && teamsWithWinsData.has(team.tid)
-    );
+    // Filter to teams that:
+    // 1. Have player stats for this season
+    // 2. Have wins data for this season
+    // 3. OR have this season in their seasons array (for newly added teams)
+    const filteredTeams = allTeams.filter(team => {
+      const hasPlayers = teamsWithPlayers.has(team.tid);
+      const hasWins = teamsWithWinsData.has(team.tid);
+      const existsInSeason = team.seasons?.some(s => s.season === selectedSeason);
+
+      // Debug logging for STL and CLB
+      if (team.abbrev === 'STL' || team.abbrev === 'CLB') {
+        console.log(`[TeamFilter] ${team.abbrev} (tid: ${team.tid}) for season ${selectedSeason}:`, {
+          hasPlayers,
+          hasWins,
+          existsInSeason,
+          seasons: team.seasons?.map(s => s.season),
+          willBeIncluded: hasWins && (hasPlayers || existsInSeason)
+        });
+      }
+
+      // Team must have wins data, AND (have players OR exist in that season)
+      return hasWins && (hasPlayers || existsInSeason);
+    });
+
+    // Debug: log filtered teams count
+    console.log(`[TeamFilter] Season ${selectedSeason}: ${filteredTeams.length} teams available`, {
+      teamsWithPlayers: teamsWithPlayers.size,
+      teamsWithWins: teamsWithWinsData.size,
+      teamAbbrevs: filteredTeams.map(t => t.abbrev).join(', ')
+    });
+
+    return filteredTeams;
   }, [selectedSeason, allTeams, leagueData.players, leagueData.teamSeasons]);
 
   // Calculate wins guess data (G, A, W)
   const winsGuessData = useMemo(() => {
-    console.log('[WinsGuess] Computing winsGuessData...', {
+    console.log('[WinsGuess] Computing winsGuessData:', {
       selectedSeason,
       selectedTeam: selectedTeam?.tid,
       hasTeamSeasons: !!leagueData.teamSeasons,
@@ -742,7 +782,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
 
     if (!teamSeasonRecord) {
       console.warn('[WinsGuess] No team season record found for tid:', selectedTeam.tid, 'season:', selectedSeason);
-      console.log('[WinsGuess] Available teamSeasons sample:', leagueData.teamSeasons.slice(0, 5));
       return null;
     }
 
@@ -767,7 +806,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     // This ensures we prefer the W+L calculation which is definitely regular season only
     if (G === 0 && teamSeasonRecord.gp && teamSeasonRecord.gp > 0) {
       G = teamSeasonRecord.gp;
-      console.log('[WinsGuess] Using gp as fallback:', G);
     }
 
     // Calculate window width: W_width = max(1, round(G × 0.125))
@@ -780,13 +818,12 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       windowWidth: windowWidth,
     };
 
-    console.log('[WinsGuess] Computed data:', result);
     return result;
   }, [selectedSeason, selectedTeam, leagueData.teamSeasons, leagueData.sport]);
 
   // Calculate playoff finish data
   const playoffFinishData = useMemo(() => {
-    console.log('[PlayoffFinish] Computing playoffFinishData...', {
+    console.log('[PlayoffFinish] Computing playoffFinishData:', {
       selectedSeason,
       selectedTeam: selectedTeam?.tid,
       hasPlayoffSeries: !!leagueData.playoffSeries,
@@ -819,7 +856,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       ]
     };
 
-    console.log('[PlayoffFinish] Computed data:', result);
     return result;
   }, [selectedSeason, selectedTeam, leagueData.playoffSeries]);
 
@@ -1651,7 +1687,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
           revealed: false,
           hintShown: false,
           gamesPlayed: seasonStats.gp,
-          stats: seasonStats, // Pass raw seasonStats for TeamInfoModal
+          stats, // Calculated per-game stats for tile display
+          rawSeasonStats: seasonStats, // Raw season totals for TeamInfoModal
           advancedStats,
           position,
           jerseyNumber,
@@ -2008,7 +2045,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   // Reset wins guess state when entering wins-guess round
   useEffect(() => {
     if (currentRound === 'wins-guess') {
-      console.log('[WinsGuess] Entering wins-guess phase. winsGuessData:', winsGuessData);
       setWinsGuessPosition(0); // Start at left edge
       setWinsGuessSubmitted(false);
 
@@ -2023,12 +2059,10 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
           const currentIndex = ROUND_ORDER.indexOf(currentRound as any);
           if (currentIndex < ROUND_ORDER.length - 1) {
             const nextRound = ROUND_ORDER[currentIndex + 1];
-            console.log('[WinsGuess] Advancing to:', nextRound);
             setCurrentRound(nextRound);
           }
         }, 1500);
       } else {
-        console.log('[WinsGuess] Data is available, rendering phase');
       }
     }
   }, [currentRound, winsGuessData, toast, ROUND_ORDER]);
@@ -2036,7 +2070,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   // Reset playoff finish state when entering playoff-finish round
   useEffect(() => {
     if (currentRound === 'playoff-finish') {
-      console.log('[PlayoffFinish] Entering playoff-finish phase. playoffFinishData:', playoffFinishData);
       setPlayoffFinishGuess(null);
       setPlayoffFinishSubmitted(false);
 
@@ -2050,12 +2083,10 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
           const currentIndex = ROUND_ORDER.indexOf(currentRound as any);
           if (currentIndex < ROUND_ORDER.length - 1) {
             const nextRound = ROUND_ORDER[currentIndex + 1];
-            console.log('[PlayoffFinish] Advancing to:', nextRound);
             setCurrentRound(nextRound);
           }
         }, 1500);
       } else {
-        console.log('[PlayoffFinish] Data is available, rendering phase');
       }
     }
   }, [currentRound, playoffFinishData, toast, ROUND_ORDER]);
@@ -2452,6 +2483,50 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     setDetailedGameData({ playerGuesses: [], leaderResults: [] }); // Reset detailed game data
   }, [selectedSeason, selectedTeam, allSeasons, leagueData.players, leagueData.teamSeasons, buildRoster, toast]);
 
+  // DEV: Skip to complete - simulates all rounds quickly
+  const handleDevSkipToComplete = useCallback(() => {
+    // Simulate guessing all players correctly - keep all stats intact
+    const updatedRoster = roster.map(rp => ({
+      ...rp,
+      revealed: true,
+      hintShown: false,
+      // Keep all existing stats that were calculated during buildRoster
+    }));
+    setRoster(updatedRoster);
+    setFoundCount(roster.length);
+
+    // Add points for all roster players (5 points each for no hint)
+    const rosterPoints = roster.length * 5;
+    let totalScore = rosterPoints;
+
+    // Estimate leader rounds (typically 4-5 per sport, 10 points each)
+    const leaderRoundsEstimate = leagueData.sport === 'football' ? 6 : 5;
+    const leaderPoints = leaderRoundsEstimate * 10;
+    totalScore += leaderPoints;
+
+    // Simulate wins guess (10 points)
+    setWinsGuessSubmitted(true);
+    totalScore += 10;
+
+    // Simulate playoff finish guess (5 points)
+    if (playoffFinishData && playoffFinishData.options.length > 0) {
+      setPlayoffFinishGuess(0);
+      setPlayoffFinishSubmitted(true);
+      totalScore += 5;
+    }
+
+    // Set the score
+    setScore(totalScore);
+
+    // Move to complete phase
+    setCurrentRound('complete');
+
+    toast({
+      title: 'Dev: Skipped to Complete',
+      description: `Simulated perfect score: ${totalScore} points`,
+    });
+  }, [roster, leagueData.sport, playoffFinishData, toast]);
+
   // Wins Guess: Move slider
   const handleWinsGuessSliderMove = useCallback((newPosition: number) => {
     if (!winsGuessData || winsGuessSubmitted) return;
@@ -2710,8 +2785,20 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                 </h1>
               </div>
 
-              {/* Right: Home button */}
+              {/* Right: Dev Skip & Home buttons */}
               <div className="flex items-center justify-end space-x-1">
+                {/* DEV: Skip to Complete button */}
+                {process.env.NODE_ENV === 'development' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDevSkipToComplete}
+                    style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))' }}
+                    className="animate-on-click text-xs"
+                  >
+                    Skip
+                  </Button>
+                )}
                 {hasProgress ? (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -2888,7 +2975,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                           alt={teamDisplayInfo.name}
                           className="h-8 w-8 sm:h-12 sm:w-12 md:h-14 md:w-14 object-contain shrink-0"
                           onError={() => {
-                            console.log('[TeamTrivia] Logo failed to load:', teamDisplayInfo.logo);
                             setLogoError(true);
                           }}
                         />
@@ -3006,9 +3092,15 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     ref={(el) => {
                       if (el) tileRefs.current.set(rp.player.pid, el);
                     }}
-                    onClick={() => isLeaderRound && handleTileClick(rp.player.pid)}
+                    onClick={() => {
+                      if (isLeaderRound) {
+                        handleTileClick(rp.player.pid);
+                      } else if (rp.revealed) {
+                        setSelectedPlayerForPage(rp.player);
+                      }
+                    }}
                     className={`relative flex flex-col items-center gap-0.5 p-1 sm:p-2 md:p-3 rounded sm:rounded-md md:rounded-lg transition-all hover:scale-[1.02] ${
-                      isLeaderRound ? 'cursor-pointer' : ''
+                      isLeaderRound || rp.revealed ? 'cursor-pointer' : ''
                     } ${
                       rp.revealed
                         ? 'neon-glow-success shadow-lg shadow-green-500/50'
@@ -3659,6 +3751,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
             open={showBreakdownModal}
             onOpenChange={setShowBreakdownModal}
             data={scoreSummaryData}
+            onPlayerClick={(player) => setSelectedPlayerForPage(player)}
             onPlayAgain={() => {
               setShowBreakdownModal(false);
               handleNewYearSameTeam();
@@ -3678,6 +3771,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
             season={selectedSeason}
             teamName={teamDisplayInfo.name}
             teamAbbrev={selectedTeam.abbrev}
+            onPlayerClick={(player) => setSelectedPlayerForPage(player)}
             teamLogo={teamDisplayInfo.logo ? getTeamLogoUrl(teamDisplayInfo.logo, leagueData.sport) : undefined}
             teamColors={teamDisplayInfo.colors}
             players={roster.map(rp => ({
@@ -3685,7 +3779,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
               position: rp.position,
               age: rp.age,
               gamesPlayed: rp.gamesPlayed,
-              stats: rp.stats,
+              stats: rp.rawSeasonStats || rp.stats, // Use raw season stats for TeamInfoModal
               yearsWithTeam: calculateYearsWithTeam(rp.player, selectedTeam.tid, selectedSeason),
               ovr: getPlayerRating(rp.player, selectedSeason, 'ovr'),
               pot: getPlayerRating(rp.player, selectedSeason, 'pot'),
@@ -3765,9 +3859,19 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
               playoffSeriesData={leagueData.playoffSeries?.find(ps => ps.season === opponentTeamInfo.season)}
               teamTid={opponentTeamInfo.tid}
               onOpenOpponentTeam={handleOpenOpponentTeam}
+              onPlayerClick={(player) => setSelectedPlayerForPage(player)}
             />
           );
         })()}
+
+        {/* Player Page Modal */}
+        <PlayerPageModal
+          player={selectedPlayerForPage}
+          sport={leagueData.sport}
+          teams={leagueData.teams}
+          season={selectedSeason || undefined}
+          onClose={() => setSelectedPlayerForPage(null)}
+        />
       </div>
     );
   }

@@ -30,6 +30,7 @@ interface TeamInfoModalProps {
   playoffSeriesData?: PlayoffSeasonData;
   teamTid?: number;
   onOpenOpponentTeam?: (opponentTid: number, season: number) => void;
+  onPlayerClick?: (player: Player) => void;
 }
 
 interface PlayerInfo {
@@ -341,6 +342,7 @@ export function TeamInfoModal({
   playoffSeriesData,
   teamTid,
   onOpenOpponentTeam,
+  onPlayerClick,
 }: TeamInfoModalProps) {
   const [playoffPopoverOpen, setPlayoffPopoverOpen] = useState(false);
 
@@ -639,7 +641,8 @@ export function TeamInfoModal({
               {sortedPlayers.map((playerInfo, idx) => (
                 <tr
                   key={playerInfo.player.pid}
-                  className="border-b hover:bg-white/5 transition-colors"
+                  onClick={() => onPlayerClick?.(playerInfo.player)}
+                  className="border-b hover:bg-white/5 transition-colors cursor-pointer"
                   style={{
                     borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
                   }}
