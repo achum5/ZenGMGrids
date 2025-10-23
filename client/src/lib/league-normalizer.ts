@@ -428,14 +428,32 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
 
     // Extract playoff series data
     postProgress('Processing playoff data...');
+    console.log('[League Normalizer] Checking for playoff series in raw data...', {
+      hasPlayoffSeries: !!raw.playoffSeries,
+      typeOfPlayoffSeries: typeof raw.playoffSeries,
+      isArray: Array.isArray(raw.playoffSeries),
+      keys: raw.playoffSeries ? Object.keys(raw.playoffSeries).slice(0, 5) : null
+    });
     let playoffSeries: any[] | undefined = undefined;
-    if (raw.playoffSeries && Array.isArray(raw.playoffSeries)) {
-      console.log('[League Normalizer] Found playoff series data:', raw.playoffSeries.length, 'seasons');
-      playoffSeries = raw.playoffSeries.map((ps: any) => ({
-        season: ps.season,
-        series: ps.series || [],
-      }));
-      console.log('[League Normalizer] Processed playoff series for', playoffSeries.length, 'seasons');
+    if (raw.playoffSeries) {
+      // Handle both array and object formats
+      if (Array.isArray(raw.playoffSeries)) {
+        console.log('[League Normalizer] Found playoff series data (array format):', raw.playoffSeries.length, 'seasons');
+        playoffSeries = raw.playoffSeries.map((ps: any) => ({
+          season: ps.season,
+          series: ps.series || [],
+        }));
+      } else if (typeof raw.playoffSeries === 'object') {
+        // Convert object keyed by season to array
+        console.log('[League Normalizer] Found playoff series data (object format):', Object.keys(raw.playoffSeries).length, 'seasons');
+        playoffSeries = Object.keys(raw.playoffSeries).map(season => ({
+          season: parseInt(season),
+          series: raw.playoffSeries[season].series || raw.playoffSeries[season] || [],
+        }));
+      }
+      if (playoffSeries) {
+        console.log('[League Normalizer] Processed playoff series for', playoffSeries.length, 'seasons');
+      }
     } else {
       console.log('[League Normalizer] No playoff series data found in raw');
     }

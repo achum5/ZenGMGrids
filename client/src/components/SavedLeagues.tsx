@@ -103,7 +103,7 @@ export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: 
 
   return (
     <div className="space-y-3">
-      <h3 className="text-lg font-semibold mb-4">Your Saved Leagues</h3>
+      <h3 className="text-lg font-semibold mt-[7px] mb-[7px]">Your Saved Leagues</h3>
       {leagues.map((league) => (
         <Card key={league.id} className="p-4 hover:bg-accent/50 transition-colors" data-testid={`league-card-${league.id}`}>
           <div className="flex items-start gap-4">

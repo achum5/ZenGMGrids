@@ -288,6 +288,7 @@ export async function processLeagueFromIDB(
   dbName?: string
 ): Promise<LeagueData & { sport: Sport } & { isFullyProcessed?: boolean; byName?: any; byPid?: any; searchablePlayers?: any; teamsByTid?: any }> {
   try {
+    console.log('[IDB Reader] processLeagueFromIDB called with dbName:', dbName);
     onProgress?.('Reading from database...');
     
     // Read players, teams, and teamSeasons in parallel
@@ -361,26 +362,33 @@ export async function processLeagueFromIDB(
       db2.close();
       
       // Check if meta has playoffSeries stored
+      console.log('[IDB Reader] Checking for playoff series...', {
+        hasMeta: !!meta,
+        hasPlayoffSeries: !!meta?.playoffSeries,
+        typeOfPlayoffSeries: typeof meta?.playoffSeries,
+        sampleKeys: meta?.playoffSeries ? Object.keys(meta.playoffSeries).slice(0, 5) : null
+      });
+
       if (meta?.playoffSeries) {
         const rawPlayoffSeries = meta.playoffSeries;
-        
+
         // Normalize to array format - it might be an object keyed by season or an array
         if (Array.isArray(rawPlayoffSeries)) {
           playoffSeries = rawPlayoffSeries;
-        } else if (typeof rawPlayoffSeries === 'object') {
+          console.log('[IDB Reader] Found playoff series in meta (array format):', playoffSeries.length, 'seasons');
+        } else if (typeof rawPlayoffSeries === 'object' && rawPlayoffSeries !== null) {
           // Convert object to array of season objects
           playoffSeries = Object.keys(rawPlayoffSeries).map(season => ({
             season: parseInt(season),
             ...rawPlayoffSeries[season]
           }));
+          console.log('[IDB Reader] Found playoff series in meta (object format):', playoffSeries.length, 'seasons');
         }
-        
-        if (playoffSeries) {
-          console.log('[IDB Reader] Found playoff series in meta:', playoffSeries.length, 'seasons');
-        }
+      } else {
+        console.log('[IDB Reader] No playoff series in meta');
       }
     } catch (error) {
-      console.log('[IDB Reader] No playoff series data found in IDB');
+      console.error('[IDB Reader] Error reading playoff series:', error);
     }
     
     return { 

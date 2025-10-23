@@ -344,16 +344,25 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
     // Final flush
     postProgress('Finalizing database...', 90, 100);
     await flushBuffers(true);
-    
+
     // Store metadata (include playoffSeries if we found any)
+    console.log('[Streaming] Preparing to store metadata. playoffSeries:', {
+      hasPlayoffSeries: !!playoffSeries,
+      type: typeof playoffSeries,
+      isArray: Array.isArray(playoffSeries),
+      keysOrLength: playoffSeries ? (Array.isArray(playoffSeries) ? playoffSeries.length : Object.keys(playoffSeries).slice(0, 5)) : null
+    });
+
     const metaData: any = { sport, playerCount, teamCount, teamSeasonCount, version, startingSeason, gameAttributes, meta };
     if (playoffSeries) {
       metaData.playoffSeries = playoffSeries;
       const seriesCount = Array.isArray(playoffSeries) ? playoffSeries.length : Object.keys(playoffSeries).length;
       console.log('[Streaming] Stored playoff series data:', seriesCount, 'seasons');
+    } else {
+      console.log('[Streaming] No playoff series data to store');
     }
     await db.put('meta', metaData, 'importMeta');
-    
+
     postProgress('Import complete', 100, 100);
     console.log('[Streaming] Import complete:', { players: playerCount, teams: teamCount, teamSeasons: teamSeasonCount });
     db.close();
@@ -656,16 +665,25 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
     // Final flush
     postProgress('Finalizing database...', 90, 100);
     await flushBuffers(true);
-    
+
     // Store metadata (include playoffSeries if we found any)
+    console.log('[Streaming URL] Preparing to store metadata. playoffSeries:', {
+      hasPlayoffSeries: !!playoffSeries,
+      type: typeof playoffSeries,
+      isArray: Array.isArray(playoffSeries),
+      keysOrLength: playoffSeries ? (Array.isArray(playoffSeries) ? playoffSeries.length : Object.keys(playoffSeries).slice(0, 5)) : null
+    });
+
     const metaData: any = { sport, playerCount, teamCount, teamSeasonCount, version, startingSeason, gameAttributes, meta };
     if (playoffSeries) {
       metaData.playoffSeries = playoffSeries;
       const seriesCount = Array.isArray(playoffSeries) ? playoffSeries.length : Object.keys(playoffSeries).length;
-      console.log('[Streaming] Stored playoff series data:', seriesCount, 'seasons');
+      console.log('[Streaming URL] Stored playoff series data:', seriesCount, 'seasons');
+    } else {
+      console.log('[Streaming URL] No playoff series data to store');
     }
     await db.put('meta', metaData, 'importMeta');
-    
+
     postProgress('Import complete', 100, 100);
     console.log('[Streaming URL] Import complete:', { players: playerCount, teams: teamCount, teamSeasons: teamSeasonCount });
     db.close();

@@ -392,60 +392,92 @@ function getTeamPlayoffResult(
 
   const seasonPlayoffs = leagueData.playoffSeries?.find(ps => ps.season === season);
 
+  console.log('[PlayoffFinish] Looking for playoff data:', {
+    tid,
+    season,
+    hasPlayoffSeries: !!leagueData.playoffSeries,
+    playoffSeriesCount: leagueData.playoffSeries?.length,
+    availableSeasons: leagueData.playoffSeries?.map(ps => ps.season),
+    seasonPlayoffs: seasonPlayoffs ? {
+      season: seasonPlayoffs.season,
+      numRounds: seasonPlayoffs.series?.length,
+      firstRound: seasonPlayoffs.series?.[0]?.length
+    } : null
+  });
+
   if (seasonPlayoffs?.series) {
     const rounds = seasonPlayoffs.series;
     const numRounds = rounds.length;
 
+    let lastRoundFound = -1;
+    let lastMatchup: any = null;
+
+    // Find the last round this team appeared in
     for (let r = 0; r < numRounds; r++) {
       const matchup = rounds[r]?.find(
         m => m?.home?.tid === tid || m?.away?.tid === tid
       );
 
-      if (!matchup) {
-        continue;
+      if (matchup) {
+        lastRoundFound = r;
+        lastMatchup = matchup;
+        console.log('[PlayoffFinish] Found team in round', r, ':', matchup);
       }
+    }
 
-      const isHome = matchup.home?.tid === tid;
-      const teamSide = isHome ? matchup.home : matchup.away;
-      const oppSide = isHome ? matchup.away : matchup.home;
+    if (lastRoundFound >= 0 && lastMatchup) {
+      const isHome = lastMatchup.home?.tid === tid;
+      const teamSide = isHome ? lastMatchup.home : lastMatchup.away;
+      const oppSide = isHome ? lastMatchup.away : lastMatchup.home;
       const teamWins = teamSide?.won ?? 0;
       const oppWins = oppSide?.won ?? 0;
 
       seriesScore = `${teamWins}–${oppWins}`;
 
-      if (r === numRounds - 1 && teamWins > oppWins) {
+      console.log('[PlayoffFinish] Last round data:', {
+        round: lastRoundFound,
+        teamWins,
+        oppWins,
+        isChampionshipRound: lastRoundFound === numRounds - 1
+      });
+
+      // If they won the championship round
+      if (lastRoundFound === numRounds - 1 && teamWins > oppWins) {
         finishLabel = 'Won Championship';
         finishValue = 4;
-        break;
-      }
-
-      if (teamWins < oppWins) {
-        finishValue = r;
+      } else if (teamWins < oppWins) {
+        // They lost in this round
+        finishValue = lastRoundFound;
 
         if (numRounds === 4) {
           finishLabel =
-            r === 0
+            lastRoundFound === 0
               ? 'Lost First Round'
-              : r === 1
+              : lastRoundFound === 1
               ? 'Lost Second Round'
-              : r === 2
+              : lastRoundFound === 2
               ? 'Lost Conference Finals'
               : 'Lost Finals';
         } else if (numRounds === 3) {
           finishLabel =
-            r === 0
+            lastRoundFound === 0
               ? 'Lost First Round'
-              : r === 1
+              : lastRoundFound === 1
               ? 'Lost Second Round'
               : 'Lost Finals';
         } else if (numRounds === 2) {
-          finishLabel = r === 0 ? 'Lost First Round' : 'Lost Finals';
+          finishLabel = lastRoundFound === 0 ? 'Lost First Round' : 'Lost Finals';
         } else {
-          finishLabel = r === numRounds - 1 ? 'Lost Finals' : `Lost Round ${r + 1}`;
+          finishLabel = lastRoundFound === numRounds - 1 ? 'Lost Finals' : `Lost Round ${lastRoundFound + 1}`;
         }
-        break;
       }
+
+      console.log('[PlayoffFinish] Result:', { finishLabel, finishValue, seriesScore });
+    } else {
+      console.log('[PlayoffFinish] Team not found in any playoff round');
     }
+  } else {
+    console.log('[PlayoffFinish] No playoff series data found for season', season);
   }
 
   return { label: finishLabel, value: finishValue, seriesScore };
@@ -534,7 +566,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       players: leagueData.players?.length,
       teams: leagueData.teams?.length,
       teamSeasons: leagueData.teamSeasons?.length,
-      sampleTeamSeason: leagueData.teamSeasons?.[0]
+      playoffSeries: leagueData.playoffSeries?.length,
+      sampleTeamSeason: leagueData.teamSeasons?.[0],
+      samplePlayoffSeries: leagueData.playoffSeries?.[0]
     });
   }, []);
   const [isHeaderHovered, setIsHeaderHovered] = useState(false);
@@ -553,6 +587,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   const [showBreakdownModal, setShowBreakdownModal] = useState(false); // Show breakdown dialog
   const [showTeamInfo, setShowTeamInfo] = useState(false); // Show team info modal
   const [opponentTeamInfo, setOpponentTeamInfo] = useState<{ tid: number; season: number } | null>(null); // Opponent team modal state
+  const [logoError, setLogoError] = useState(false); // Track if team logo failed to load
 
   // Detailed game tracking for new summary modal
   const [detailedGameData, setDetailedGameData] = useState<{
@@ -613,15 +648,27 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   // Get all unique seasons
   const allSeasons = useMemo(() => {
     const seasons = new Set<number>();
+
+    // Collect from player seasons
     leagueData.players.forEach(player => {
       player.seasons?.forEach(season => {
-        if (!season.playoffs) {
+        if (!season.playoffs && typeof season.season === 'number') {
           seasons.add(season.season);
         }
       });
     });
-    return Array.from(seasons).sort((a, b) => b - a); // Most recent first
-  }, [leagueData.players]);
+
+    // Also collect from team seasons to ensure completeness
+    leagueData.teamSeasons?.forEach(ts => {
+      if (!ts.playoffs && typeof ts.season === 'number') {
+        seasons.add(ts.season);
+      }
+    });
+
+    // Convert to array, ensure uniqueness again, and sort
+    const uniqueSeasons = [...new Set(Array.from(seasons))];
+    return uniqueSeasons.sort((a, b) => b - a); // Most recent first
+  }, [leagueData.players, leagueData.teamSeasons]);
 
   // Get all teams (sorted alphabetically)
   const allTeams = useMemo(() => {
@@ -706,6 +753,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     const OTL = teamSeasonRecord.otl || 0;
 
     // Calculate G (total games) based on sport
+    // Always calculate from W/L/T/OTL to ensure we only count regular season games
     let G: number;
     if (leagueData.sport === 'football') {
       G = W + L + T; // Football includes ties
@@ -715,9 +763,11 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       G = W + L; // Baseball and Basketball
     }
 
-    // If gp is present and looks reasonable, use it
-    if (teamSeasonRecord.gp && teamSeasonRecord.gp > 0) {
+    // Only use gp as a fallback if calculated G is 0 or invalid
+    // This ensures we prefer the W+L calculation which is definitely regular season only
+    if (G === 0 && teamSeasonRecord.gp && teamSeasonRecord.gp > 0) {
       G = teamSeasonRecord.gp;
+      console.log('[WinsGuess] Using gp as fallback:', G);
     }
 
     // Calculate window width: W_width = max(1, round(G × 0.125))
@@ -739,7 +789,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     console.log('[PlayoffFinish] Computing playoffFinishData...', {
       selectedSeason,
       selectedTeam: selectedTeam?.tid,
-      hasPlayoffSeries: !!leagueData.playoffSeries
+      hasPlayoffSeries: !!leagueData.playoffSeries,
+      playoffSeriesLength: leagueData.playoffSeries?.length,
+      samplePlayoffSeries: leagueData.playoffSeries?.[0]
     });
 
     if (!selectedSeason || !selectedTeam) {
@@ -1564,6 +1616,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     if (selectedSeason !== null && selectedTeam) {
       buildRoster(selectedSeason, selectedTeam);
       setGuess('');
+      setLogoError(false); // Reset logo error state when team/season changes
     }
   }, [selectedSeason, selectedTeam, buildRoster]);
 
@@ -2623,9 +2676,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                       <CommandList>
                         <CommandEmpty>No year found.</CommandEmpty>
                         <CommandGroup>
-                          {allSeasons.map((season) => (
+                          {allSeasons.map((season, index) => (
                             <CommandItem
-                              key={season}
+                              key={`season-${season}-${index}`}
                               value={season.toString()}
                               onSelect={() => {
                                 // Validate that current team has teamSeasons data for this season
@@ -2671,22 +2724,22 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                       className="flex items-center gap-1 sm:gap-2 hover:bg-accent/50 px-2 sm:px-4 py-1 sm:py-2 h-8 sm:h-auto animate-on-click shrink-0"
                       data-testid="button-team-dropdown"
                     >
-                      {teamDisplayInfo.logo && (
+                      {teamDisplayInfo.logo && !logoError ? (
                         <img
                           src={getTeamLogoUrl(teamDisplayInfo.logo, leagueData.sport)}
                           alt={teamDisplayInfo.name}
                           className="h-8 w-8 sm:h-12 sm:w-12 md:h-14 md:w-14 object-contain shrink-0"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
+                          onError={() => {
+                            console.log('[TeamTrivia] Logo failed to load:', teamDisplayInfo.logo);
+                            setLogoError(true);
                           }}
                         />
-                      )}
-                      {!teamDisplayInfo.logo && (
-                        <span className="text-lg sm:text-2xl md:text-3xl font-bold neon-text">
+                      ) : (
+                        <span className="text-lg sm:text-2xl md:text-3xl font-bold neon-text" style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary))' }}>
                           {teamDisplayInfo.name}
                         </span>
                       )}
-                      <ChevronDown className="h-3 w-3 sm:h-5 sm:w-5 ml-1 sm:ml-2 shrink-0" />
+                      <ChevronDown className="h-3 w-3 sm:h-5 sm:w-5 ml-1 sm:ml-2 shrink-0" style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary))' }} />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[300px] p-0" align="center">
