@@ -63,7 +63,7 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
         </DialogHeader>
 
         {/* Player Name */}
-        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight break-words pt-2">
+        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight break-words pt-0 pl-4 mt-[-8px]">
           {player.name}
         </h2>
 
