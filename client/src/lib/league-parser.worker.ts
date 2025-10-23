@@ -223,30 +223,8 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
       const tx = db.transaction('teamSeasons', 'readwrite');
       const store = tx.objectStore('teamSeasons');
       const batch = teamSeasonQueue.splice(0, Math.min(BATCH_SIZE, teamSeasonQueue.length));
-
-      // Check if this batch contains CLB or STL
-      const targetRecords = batch.filter(ts => ts.tid === 36 || ts.tid === 37);
-      if (targetRecords.length > 0) {
-        console.log('[Streaming] Flushing batch with', targetRecords.length, 'CLB/STL records:',
-          targetRecords.slice(0, 3).map(ts => `tid=${ts.tid} season=${ts.season}`));
-      }
-
-      let addedCount = 0;
-      let failedCount = 0;
       for (const teamSeason of batch) {
-        try {
-          await store.add(teamSeason);
-          addedCount++;
-        } catch (err) {
-          failedCount++;
-          const isTarget = teamSeason.tid === 36 || teamSeason.tid === 37;
-          if (failedCount <= 3 || isTarget) {
-            console.warn('[Streaming] Failed to add teamSeason:', teamSeason.tid, teamSeason.season, err);
-          }
-        }
-      }
-      if (failedCount > 0) {
-        console.log('[Streaming] TeamSeason batch: added', addedCount, 'failed', failedCount);
+        await store.add(teamSeason);
       }
       await tx.done;
     }
@@ -331,17 +309,10 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
           } else if (currentArraySection === 'teamSeasons') {
             const teamSeason = value.value;
             const key = `${teamSeason.tid}-${teamSeason.season}-${teamSeason.playoffs || false}`;
-            const isTarget = teamSeason.tid === 36 || teamSeason.tid === 37;
-
             if (!teamSeasonKeys.has(key)) {
               teamSeasonKeys.add(key);
               teamSeasonQueue.push(teamSeason);
               teamSeasonCount++;
-              if (isTarget && teamSeasonCount % 10 === 0) {
-                console.log(`[Streaming] Added from raw.teamSeasons: tid=${teamSeason.tid} season=${teamSeason.season}`);
-              }
-            } else if (isTarget) {
-              console.log(`[Streaming] Skipped duplicate from raw.teamSeasons: tid=${teamSeason.tid} season=${teamSeason.season}`);
             }
             
             // Progress update every 100 team seasons
@@ -599,30 +570,8 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
       const tx = db.transaction('teamSeasons', 'readwrite');
       const store = tx.objectStore('teamSeasons');
       const batch = teamSeasonQueue.splice(0, Math.min(BATCH_SIZE, teamSeasonQueue.length));
-
-      // Check if this batch contains CLB or STL
-      const targetRecords = batch.filter(ts => ts.tid === 36 || ts.tid === 37);
-      if (targetRecords.length > 0) {
-        console.log('[Streaming] Flushing batch with', targetRecords.length, 'CLB/STL records:',
-          targetRecords.slice(0, 3).map(ts => `tid=${ts.tid} season=${ts.season}`));
-      }
-
-      let addedCount = 0;
-      let failedCount = 0;
       for (const teamSeason of batch) {
-        try {
-          await store.add(teamSeason);
-          addedCount++;
-        } catch (err) {
-          failedCount++;
-          const isTarget = teamSeason.tid === 36 || teamSeason.tid === 37;
-          if (failedCount <= 3 || isTarget) {
-            console.warn('[Streaming] Failed to add teamSeason:', teamSeason.tid, teamSeason.season, err);
-          }
-        }
-      }
-      if (failedCount > 0) {
-        console.log('[Streaming] TeamSeason batch: added', addedCount, 'failed', failedCount);
+        await store.add(teamSeason);
       }
       await tx.done;
     }
@@ -707,17 +656,10 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
           } else if (currentArraySection === 'teamSeasons') {
             const teamSeason = value.value;
             const key = `${teamSeason.tid}-${teamSeason.season}-${teamSeason.playoffs || false}`;
-            const isTarget = teamSeason.tid === 36 || teamSeason.tid === 37;
-
             if (!teamSeasonKeys.has(key)) {
               teamSeasonKeys.add(key);
               teamSeasonQueue.push(teamSeason);
               teamSeasonCount++;
-              if (isTarget && teamSeasonCount % 10 === 0) {
-                console.log(`[Streaming] Added from raw.teamSeasons: tid=${teamSeason.tid} season=${teamSeason.season}`);
-              }
-            } else if (isTarget) {
-              console.log(`[Streaming] Skipped duplicate from raw.teamSeasons: tid=${teamSeason.tid} season=${teamSeason.season}`);
             }
             
             // Progress update every 100 team seasons
