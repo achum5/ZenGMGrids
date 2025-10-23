@@ -85,7 +85,7 @@ function PointsPill({
   textColor?: string;
 }) {
   const isAwarded = points > 0;
-  const baseClasses = 'rounded-full font-semibold inline-flex items-center justify-center';
+  const baseClasses = 'rounded-full font-semibold inline-flex items-center justify-center text-center';
 
   const variantClasses = variant === 'large'
     ? 'bg-primary text-primary-foreground'
