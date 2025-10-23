@@ -596,7 +596,7 @@ export function ScoreSummaryModal({
         {/* Custom Close Button - Fixed */}
         <button
           onClick={() => onOpenChange(false)}
-          className="absolute right-4 top-4 z-[10001] rounded-lg p-2.5 transition-all duration-200 hover:scale-110 hover:rotate-90 shadow-lg bg-background ml-[54px] mr-[54px]"
+          className="absolute right-4 top-4 z-[10001] rounded-lg p-2.5 transition-all duration-200 hover:scale-110 hover:rotate-90 shadow-lg bg-background ml-[43px] mr-[43px]"
           style={{
             backgroundColor: `${secondaryColor}40`,
             color: secondaryColor,
