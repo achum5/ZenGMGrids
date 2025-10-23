@@ -683,7 +683,7 @@ export function ScoreSummaryModal({
                   <img
                     src={data.teamLogo}
                     alt={data.teamName}
-                    className="h-12 w-12 object-contain"
+                    className="h-12 w-12 object-contain mt-[8px] mb-[8px]"
                   />
                 )}
                 <h2
