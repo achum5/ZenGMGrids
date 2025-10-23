@@ -619,10 +619,13 @@ export function ScoreSummaryModal({
           className="overflow-y-auto overflow-x-hidden"
           style={{
             maxHeight: 'calc(100vh - 8rem)',
+            minHeight: 'calc(100vh - 8rem)',
+            display: 'flex',
+            flexDirection: 'column',
           }}
         >
-          <div className="px-6 pt-6 pb-6 space-y-6">
-          <div className="flex flex-wrap items-center justify-center gap-2">
+          {/* Fixed buttons at top */}
+          <div className="px-6 pt-6 flex flex-wrap items-center justify-center gap-2 shrink-0">
             <Button
               variant="outline"
               size="sm"
@@ -671,32 +674,34 @@ export function ScoreSummaryModal({
             </Button>
           </div>
 
-          {/* Season and Team Logo - Only show in detailed view */}
-          {viewMode === 'detailed' && (
-            <div className="flex items-center justify-center gap-4">
-              {data.teamLogo && (
-                <img
-                  src={data.teamLogo}
-                  alt={data.teamName}
-                  className="h-12 w-12 object-contain"
-                />
-              )}
-              <h2
-                className="text-2xl font-bold"
-                style={{
-                  color: secondaryColor
-                }}
-              >
-                {data.season} {data.teamName}
-              </h2>
+          {/* Centered content area */}
+          <div className="px-6 pb-6 flex-1 flex flex-col justify-center space-y-6">
+            {/* Season and Team Logo - Only show in detailed view */}
+            {viewMode === 'detailed' && (
+              <div className="flex items-center justify-center gap-4">
+                {data.teamLogo && (
+                  <img
+                    src={data.teamLogo}
+                    alt={data.teamName}
+                    className="h-12 w-12 object-contain"
+                  />
+                )}
+                <h2
+                  className="text-2xl font-bold"
+                  style={{
+                    color: secondaryColor
+                  }}
+                >
+                  {data.season} {data.teamName}
+                </h2>
+              </div>
+            )}
+
+            {viewMode === 'detailed' ? detailedContent : spoilerContent}
+
+            <div className="text-right text-sm font-mono text-muted-foreground border-t pt-4">
+              Total = {data.categories.map(c => c.points).join(' + ')} = {data.finalScore} 
             </div>
-          )}
-
-          {viewMode === 'detailed' ? detailedContent : spoilerContent}
-
-          <div className="text-right text-sm font-mono text-muted-foreground border-t pt-4">
-            Total = {data.categories.map(c => c.points).join(' + ')} = {data.finalScore}
-          </div>
           </div>
         </div>
       </DialogContent>
