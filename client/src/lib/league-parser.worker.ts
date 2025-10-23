@@ -356,20 +356,9 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
     // Final flush - keep flushing until all queues are empty
     postProgress('Finalizing database...', 90, 100);
     while (playerQueue.length > 0 || teamQueue.length > 0 || teamSeasonQueue.length > 0) {
-      console.log('[Streaming] Final flush: playerQueue=', playerQueue.length, 'teamQueue=', teamQueue.length, 'teamSeasonQueue=', teamSeasonQueue.length);
       await flushBuffers(true);
     }
-    console.log('[Streaming] All queues flushed');
 
-    // Verify what was actually written to IDB
-    const verifyTx = db.transaction('teamSeasons', 'readonly');
-    const actualCount = await verifyTx.store.count();
-    await verifyTx.done;
-    console.log('[Streaming] TeamSeasons verification:', {
-      countedDuringImport: teamSeasonCount,
-      actuallyInDB: actualCount,
-      difference: teamSeasonCount - actualCount
-    });
 
     // Store metadata (include playoffSeries if we found any)
     console.log('[Streaming] Preparing to store metadata. playoffSeries:', {
@@ -379,7 +368,7 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
       keysOrLength: playoffSeries ? (Array.isArray(playoffSeries) ? playoffSeries.length : Object.keys(playoffSeries).slice(0, 5)) : null
     });
 
-    const metaData: any = { sport, playerCount, teamCount, teamSeasonCount: actualCount || teamSeasonCount, version, startingSeason, gameAttributes, meta };
+    const metaData: any = { sport, playerCount, teamCount, teamSeasonCount, version, startingSeason, gameAttributes, meta };
     if (playoffSeries) {
       metaData.playoffSeries = playoffSeries;
       const seriesCount = Array.isArray(playoffSeries) ? playoffSeries.length : Object.keys(playoffSeries).length;
@@ -703,10 +692,8 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
     // Final flush - keep flushing until all queues are empty
     postProgress('Finalizing database...', 90, 100);
     while (playerQueue.length > 0 || teamQueue.length > 0 || teamSeasonQueue.length > 0) {
-      console.log('[Streaming] Final flush: playerQueue=', playerQueue.length, 'teamQueue=', teamQueue.length, 'teamSeasonQueue=', teamSeasonQueue.length);
       await flushBuffers(true);
     }
-    console.log('[Streaming] All queues flushed');
 
     // Verify what was actually written to IDB
     const verifyTx = db.transaction('teamSeasons', 'readonly');
@@ -726,7 +713,7 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
       keysOrLength: playoffSeries ? (Array.isArray(playoffSeries) ? playoffSeries.length : Object.keys(playoffSeries).slice(0, 5)) : null
     });
 
-    const metaData: any = { sport, playerCount, teamCount, teamSeasonCount: actualCount || teamSeasonCount, version, startingSeason, gameAttributes, meta };
+    const metaData: any = { sport, playerCount, teamCount, teamSeasonCount, version, startingSeason, gameAttributes, meta };
     if (playoffSeries) {
       metaData.playoffSeries = playoffSeries;
       const seriesCount = Array.isArray(playoffSeries) ? playoffSeries.length : Object.keys(playoffSeries).length;

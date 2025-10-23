@@ -62,8 +62,13 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
           </Button>
         </DialogHeader>
 
+        {/* Player Name */}
+        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight break-words pt-2">
+          {player.name}
+        </h2>
+
         {/* Player Header Section */}
-        <div className="flex flex-col lg:flex-row items-start gap-6 pt-2">
+        <div className="flex flex-col lg:flex-row items-start gap-6 pt-4">
           {/* Left Side: Image + Details */}
           <div className="flex items-start gap-6">
             {/* Player Image */}
@@ -79,9 +84,10 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
                 )}
 
                 {imageKind === "svg" && (
-                  <div className="w-full h-full flex items-center justify-center">
+                  <div className="w-full h-full flex items-center justify-center overflow-visible">
                     <div
-                      className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
+                      className="w-full h-full flex items-center justify-center [&>svg]:w-[130%] [&>svg]:h-[130%]"
+                      style={{ transform: 'translate(-25%, -15%)' }}
                       dangerouslySetInnerHTML={{ __html: imageData }}
                     />
                   </div>
@@ -95,13 +101,8 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
               </div>
             </div>
 
-            {/* Player Name and Details */}
-            <div className="flex-1 min-w-0 space-y-2">
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight break-words">
-              {player.name}
-            </h2>
-
             {/* Player Details */}
+            <div className="flex-1 min-w-0 space-y-2">
             <div className="space-y-1 text-sm text-muted-foreground">
               {/* Height and Weight */}
               {(player.hgt || player.weight) && (
@@ -185,18 +186,16 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
             };
 
             return (
-              <div className="space-y-3 min-w-[280px]">
+              <div className="space-y-3 min-w-[280px] mt-[-12px] mb-[-12px]">
                 {/* Overall and Potential */}
-                <div className="space-y-1">
-                  <div className="text-lg font-bold">
-                    Overall: {seasonRating.ovr ?? 'N/A'}
-                  </div>
-                  <div className="text-lg font-bold">
+                <div className="text-lg font-bold flex gap-4">
+                  <span>Overall: {seasonRating.ovr ?? 'N/A'}</span>
+                  <span>
                     Potential: {seasonRating.pot ?? 'N/A'}{' '}
                     <span className="text-sm text-muted-foreground">
                       {getRatingChange(seasonRating.pot, prevSeasonRating?.pot)}
                     </span>
-                  </div>
+                  </span>
                 </div>
 
                 {/* Three Column Ratings */}
@@ -205,9 +204,9 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
                   <div className="space-y-0.5">
                     <div className="font-bold text-sm mb-1">Physical</div>
                     {seasonRating.hgt != null && (
-                      <div className="flex justify-between">
+                      <div className="grid grid-cols-[1fr_auto] gap-2">
                         <span>Height:</span>
-                        <span className="font-medium">
+                        <span className="font-medium text-right">
                           {seasonRating.hgt}{' '}
                           <span className="text-muted-foreground text-[10px]">
                             {getRatingChange(seasonRating.hgt, prevSeasonRating?.hgt)}
@@ -216,9 +215,9 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
                       </div>
                     )}
                     {seasonRating.stre != null && (
-                      <div className="flex justify-between">
+                      <div className="grid grid-cols-[1fr_auto] gap-2">
                         <span>Strength:</span>
-                        <span className="font-medium">
+                        <span className="font-medium text-right">
                           {seasonRating.stre}{' '}
                           <span className="text-muted-foreground text-[10px]">
                             {getRatingChange(seasonRating.stre, prevSeasonRating?.stre)}
@@ -227,9 +226,9 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
                       </div>
                     )}
                     {seasonRating.spd != null && (
-                      <div className="flex justify-between">
+                      <div className="grid grid-cols-[1fr_auto] gap-2">
                         <span>Speed:</span>
-                        <span className="font-medium">
+                        <span className="font-medium text-right">
                           {seasonRating.spd}{' '}
                           <span className="text-muted-foreground text-[10px]">
                             {getRatingChange(seasonRating.spd, prevSeasonRating?.spd)}
@@ -238,9 +237,9 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
                       </div>
                     )}
                     {seasonRating.jmp != null && (
-                      <div className="flex justify-between">
+                      <div className="grid grid-cols-[1fr_auto] gap-2">
                         <span>Jumping:</span>
-                        <span className="font-medium">
+                        <span className="font-medium text-right">
                           {seasonRating.jmp}{' '}
                           <span className="text-muted-foreground text-[10px]">
                             {getRatingChange(seasonRating.jmp, prevSeasonRating?.jmp)}
@@ -249,9 +248,9 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
                       </div>
                     )}
                     {seasonRating.endu != null && (
-                      <div className="flex justify-between">
+                      <div className="grid grid-cols-[1fr_auto] gap-2">
                         <span>Endurance:</span>
-                        <span className="font-medium">
+                        <span className="font-medium text-right">
                           {seasonRating.endu}{' '}
                           <span className="text-muted-foreground text-[10px]">
                             {getRatingChange(seasonRating.endu, prevSeasonRating?.endu)}
@@ -265,9 +264,9 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
                   <div className="space-y-0.5">
                     <div className="font-bold text-sm mb-1">Shooting</div>
                     {seasonRating.ins != null && (
-                      <div className="flex justify-between">
+                      <div className="grid grid-cols-[1fr_auto] gap-2">
                         <span>Inside:</span>
-                        <span className="font-medium">
+                        <span className="font-medium text-right">
                           {seasonRating.ins}{' '}
                           <span className="text-muted-foreground text-[10px]">
                             {getRatingChange(seasonRating.ins, prevSeasonRating?.ins)}
@@ -276,9 +275,9 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
                       </div>
                     )}
                     {seasonRating.dnk != null && (
-                      <div className="flex justify-between">
+                      <div className="grid grid-cols-[1fr_auto] gap-2">
                         <span>Dunks/Layups:</span>
-                        <span className="font-medium">
+                        <span className="font-medium text-right">
                           {seasonRating.dnk}{' '}
                           <span className="text-muted-foreground text-[10px]">
                             {getRatingChange(seasonRating.dnk, prevSeasonRating?.dnk)}
@@ -287,9 +286,9 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
                       </div>
                     )}
                     {seasonRating.ft != null && (
-                      <div className="flex justify-between">
+                      <div className="grid grid-cols-[1fr_auto] gap-2">
                         <span>Free Throws:</span>
-                        <span className="font-medium">
+                        <span className="font-medium text-right">
                           {seasonRating.ft}{' '}
                           <span className="text-muted-foreground text-[10px]">
                             {getRatingChange(seasonRating.ft, prevSeasonRating?.ft)}
@@ -298,9 +297,9 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
                       </div>
                     )}
                     {seasonRating.fg != null && (
-                      <div className="flex justify-between">
+                      <div className="grid grid-cols-[1fr_auto] gap-2">
                         <span>Mid Range:</span>
-                        <span className="font-medium">
+                        <span className="font-medium text-right">
                           {seasonRating.fg}{' '}
                           <span className="text-muted-foreground text-[10px]">
                             {getRatingChange(seasonRating.fg, prevSeasonRating?.fg)}
@@ -309,9 +308,9 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
                       </div>
                     )}
                     {seasonRating.tp != null && (
-                      <div className="flex justify-between">
+                      <div className="grid grid-cols-[1fr_auto] gap-2">
                         <span>Three Pointers:</span>
-                        <span className="font-medium">
+                        <span className="font-medium text-right">
                           {seasonRating.tp}{' '}
                           <span className="text-muted-foreground text-[10px]">
                             {getRatingChange(seasonRating.tp, prevSeasonRating?.tp)}
@@ -325,9 +324,9 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
                   <div className="space-y-0.5">
                     <div className="font-bold text-sm mb-1">Skill</div>
                     {seasonRating.oiq != null && (
-                      <div className="flex justify-between">
+                      <div className="grid grid-cols-[1fr_auto] gap-2">
                         <span>Offensive IQ:</span>
-                        <span className="font-medium">
+                        <span className="font-medium text-right">
                           {seasonRating.oiq}{' '}
                           <span className="text-muted-foreground text-[10px]">
                             {getRatingChange(seasonRating.oiq, prevSeasonRating?.oiq)}
@@ -336,9 +335,9 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
                       </div>
                     )}
                     {seasonRating.diq != null && (
-                      <div className="flex justify-between">
+                      <div className="grid grid-cols-[1fr_auto] gap-2">
                         <span>Defensive IQ:</span>
-                        <span className="font-medium">
+                        <span className="font-medium text-right">
                           {seasonRating.diq}{' '}
                           <span className="text-muted-foreground text-[10px]">
                             {getRatingChange(seasonRating.diq, prevSeasonRating?.diq)}
@@ -347,9 +346,9 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
                       </div>
                     )}
                     {seasonRating.drb != null && (
-                      <div className="flex justify-between">
+                      <div className="grid grid-cols-[1fr_auto] gap-2">
                         <span>Dribbling:</span>
-                        <span className="font-medium">
+                        <span className="font-medium text-right">
                           {seasonRating.drb}{' '}
                           <span className="text-muted-foreground text-[10px]">
                             {getRatingChange(seasonRating.drb, prevSeasonRating?.drb)}
@@ -358,9 +357,9 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
                       </div>
                     )}
                     {seasonRating.pss != null && (
-                      <div className="flex justify-between">
+                      <div className="grid grid-cols-[1fr_auto] gap-2">
                         <span>Passing:</span>
-                        <span className="font-medium">
+                        <span className="font-medium text-right">
                           {seasonRating.pss}{' '}
                           <span className="text-muted-foreground text-[10px]">
                             {getRatingChange(seasonRating.pss, prevSeasonRating?.pss)}
@@ -369,9 +368,9 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
                       </div>
                     )}
                     {seasonRating.reb != null && (
-                      <div className="flex justify-between">
+                      <div className="grid grid-cols-[1fr_auto] gap-2">
                         <span>Rebounding:</span>
-                        <span className="font-medium">
+                        <span className="font-medium text-right">
                           {seasonRating.reb}{' '}
                           <span className="text-muted-foreground text-[10px]">
                             {getRatingChange(seasonRating.reb, prevSeasonRating?.reb)}

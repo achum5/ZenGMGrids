@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, Download, Edit2, Check, X, Info, Star } from 'lucide-react';
+import { Trash2, Download, Edit2, Check, X, Info, Star, Loader2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
@@ -29,6 +29,7 @@ export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [actionLoading, setActionLoading] = useState<{ id: string; action: 'star' | 'delete' | 'rename' } | null>(null);
   const { toast } = useToast();
 
   const loadLeagues = async () => {
@@ -48,6 +49,7 @@ export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: 
   }, []);
 
   const handleDelete = async (id: string) => {
+    setActionLoading({ id, action: 'delete' });
     try {
       // Optimistically remove from UI
       setLeagues(prev => prev.filter(l => l.id !== id));
@@ -57,6 +59,8 @@ export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: 
       console.error('Error deleting league:', error);
       // On error, reload to restore correct state
       await loadLeagues();
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -67,6 +71,7 @@ export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: 
 
   const handleSaveEdit = async (id: string) => {
     if (editName.trim()) {
+      setActionLoading({ id, action: 'rename' });
       try {
         // Optimistically update UI
         setLeagues(prev => prev.map(l =>
@@ -80,6 +85,8 @@ export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: 
         console.error('Error updating league name:', error);
         // On error, reload to restore correct state
         await loadLeagues();
+      } finally {
+        setActionLoading(null);
       }
     } else {
       setEditingId(null);
@@ -93,6 +100,7 @@ export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: 
   };
 
   const handleToggleStar = async (id: string) => {
+    setActionLoading({ id, action: 'star' });
     try {
       // Optimistically update UI
       setLeagues(prev => prev.map(l =>
@@ -104,6 +112,8 @@ export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: 
       console.error('Error toggling star:', error);
       // On error, reload to restore correct state
       await loadLeagues();
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -349,14 +359,19 @@ export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: 
                     className="h-7 w-7 p-0"
                     data-testid={`button-star-${league.id}`}
                     aria-label={league.starred ? 'Unstar league' : 'Star league'}
+                    disabled={actionLoading?.id === league.id && actionLoading?.action === 'star'}
                   >
-                    <Star
-                      className={`w-3 h-3 ${
-                        league.starred
-                          ? 'fill-yellow-400 text-yellow-400'
-                          : 'text-muted-foreground'
-                      }`}
-                    />
+                    {actionLoading?.id === league.id && actionLoading?.action === 'star' ? (
+                      <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+                    ) : (
+                      <Star
+                        className={`w-3 h-3 ${
+                          league.starred
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'text-muted-foreground'
+                        }`}
+                      />
+                    )}
                   </Button>
 
                   <Button
@@ -365,8 +380,13 @@ export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: 
                     onClick={() => handleStartEdit(league)}
                     className="h-7 w-7 p-0"
                     data-testid={`button-edit-${league.id}`}
+                    disabled={actionLoading?.id === league.id && actionLoading?.action === 'rename'}
                   >
-                    <Edit2 className="w-3 h-3" />
+                    {actionLoading?.id === league.id && actionLoading?.action === 'rename' ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Edit2 className="w-3 h-3" />
+                    )}
                   </Button>
 
                   <Button
@@ -386,10 +406,14 @@ export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: 
                         size="sm"
                         variant="destructive"
                         data-testid={`button-delete-trigger-${league.id}`}
-                        disabled={loadingLeagueId === league.id}
+                        disabled={loadingLeagueId === league.id || (actionLoading?.id === league.id && actionLoading?.action === 'delete')}
                         className="h-7 w-7 p-0"
                       >
-                        <Trash2 className="w-3 h-3" />
+                        {actionLoading?.id === league.id && actionLoading?.action === 'delete' ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-3 h-3" />
+                        )}
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>

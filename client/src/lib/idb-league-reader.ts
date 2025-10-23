@@ -269,8 +269,6 @@ export async function readTeamSeasons(dbName?: string): Promise<any[]> {
     const teamSeasons = await store.getAll();
     await tx.done;
 
-    console.log('[IDB Reader] Read teamSeasons from IDB:', teamSeasons.length, 'records (before deduplication)');
-
     // Deduplicate teamSeasons (worker may have added duplicates from both raw.teamSeasons and team.seasons)
     const seen = new Map<string, any>();
     for (const ts of teamSeasons) {
@@ -280,10 +278,7 @@ export async function readTeamSeasons(dbName?: string): Promise<any[]> {
       }
     }
 
-    const deduplicated = Array.from(seen.values());
-    console.log('[IDB Reader] Deduplicated teamSeasons:', deduplicated.length, 'unique records');
-
-    return deduplicated;
+    return Array.from(seen.values());
   } catch (error) {
     // teamSeasons store may not exist in older database versions
     console.warn('[IDB Reader] Could not read teamSeasons (may not exist):', error);

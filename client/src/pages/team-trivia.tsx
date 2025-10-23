@@ -394,19 +394,6 @@ function getTeamPlayoffResult(
 
   const seasonPlayoffs = leagueData.playoffSeries?.find(ps => ps.season === season);
 
-  console.log('[PlayoffFinish] Looking for playoff data:', {
-    tid,
-    season,
-    hasPlayoffSeries: !!leagueData.playoffSeries,
-    playoffSeriesCount: leagueData.playoffSeries?.length,
-    availableSeasons: leagueData.playoffSeries?.map(ps => ps.season),
-    seasonPlayoffs: seasonPlayoffs ? {
-      season: seasonPlayoffs.season,
-      numRounds: seasonPlayoffs.series?.length,
-      firstRound: seasonPlayoffs.series?.[0]?.length
-    } : null
-  });
-
   if (seasonPlayoffs?.series) {
     const rounds = seasonPlayoffs.series;
     const numRounds = rounds.length;
@@ -434,13 +421,6 @@ function getTeamPlayoffResult(
       const oppWins = oppSide?.won ?? 0;
 
       seriesScore = `${teamWins}–${oppWins}`;
-
-      console.log('[PlayoffFinish] Team found in round:', {
-        round: lastRoundFound,
-        teamWins,
-        oppWins,
-        isChampionshipRound: lastRoundFound === numRounds - 1
-      });
 
       // If they won the championship round
       if (lastRoundFound === numRounds - 1 && teamWins > oppWins) {
@@ -671,7 +651,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
 
   // Get all teams (sorted alphabetically)
   const allTeams = useMemo(() => {
-    console.log('[AllTeams] Computing allTeams...');
     const teams = leagueData.teams
       .filter(team => !team.disabled)
       .sort((a, b) => {
@@ -679,65 +658,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         const nameB = b.region && b.name ? `${b.region} ${b.name}` : b.abbrev;
         return nameA.localeCompare(nameB);
       });
-
-    // Debug: Check if STL and CLB are in allTeams and have teamSeasons data
-    const stl = teams.find(t => t.abbrev === 'STL');
-    const clb = teams.find(t => t.abbrev === 'CLB');
-    console.log('[AllTeams] Found STL:', !!stl, 'Found CLB:', !!clb);
-
-    // Check teamSeasons for these teams
-    const stlTeamSeasons = leagueData.teamSeasons?.filter(ts => ts.tid === stl?.tid);
-    const clbTeamSeasons = leagueData.teamSeasons?.filter(ts => ts.tid === clb?.tid);
-
-    // Get all unique tids from teamSeasons to check for mapping issues
-    const allTeamSeasonTids = new Set(leagueData.teamSeasons?.map(ts => ts.tid) || []);
-    const allTeamTids = new Set(teams.map(t => t.tid));
-
-    // Find tids that exist in teamSeasons but not in teams (orphaned data)
-    const orphanedTids = Array.from(allTeamSeasonTids).filter(tid => !allTeamTids.has(tid));
-
-    // Find tids that exist in teams but not in teamSeasons (missing data)
-    const missingDataTids = Array.from(allTeamTids).filter(tid => !allTeamSeasonTids.has(tid));
-
-    // Check specific seasons for these teams
-    const stlSeasonRange = stlTeamSeasons?.map(ts => ts.season).sort((a, b) => a - b);
-    const clbSeasonRange = clbTeamSeasons?.map(ts => ts.season).sort((a, b) => a - b);
-
-    console.log('[AllTeams] STL and CLB check:', {
-      stlExists: !!stl,
-      clbExists: !!clb,
-      stlTid: stl?.tid,
-      clbTid: clb?.tid,
-      stlDisabled: stl?.disabled,
-      clbDisabled: clb?.disabled,
-      stlTeamSeasonsCount: stlTeamSeasons?.length || 0,
-      clbTeamSeasonsCount: clbTeamSeasons?.length || 0,
-      stlSeasonRange: stlSeasonRange?.length ? `${stlSeasonRange[0]}-${stlSeasonRange[stlSeasonRange.length - 1]}` : 'none',
-      clbSeasonRange: clbSeasonRange?.length ? `${clbSeasonRange[0]}-${clbSeasonRange[clbSeasonRange.length - 1]}` : 'none',
-      stlSampleSeasons: stlTeamSeasons?.slice(0, 3).map(ts => ({ season: ts.season, won: ts.won, lost: ts.lost })),
-      clbSampleSeasons: clbTeamSeasons?.slice(0, 3).map(ts => ({ season: ts.season, won: ts.won, lost: ts.lost })),
-      totalTeams: teams.length,
-      totalTeamSeasons: leagueData.teamSeasons?.length || 0,
-      uniqueTeamSeasonTids: allTeamSeasonTids.size,
-      orphanedTids: orphanedTids.length > 0 ? orphanedTids : 'none',
-      missingDataTids: missingDataTids.length > 0 ? missingDataTids.map(tid => {
-        const team = teams.find(t => t.tid === tid);
-        return `${team?.abbrev} (tid: ${tid})`;
-      }) : 'none',
-      // Check team.seasons array for these teams
-      stlTeamSeasonsArray: stl?.seasons?.map(s => s.season).sort((a, b) => a - b),
-      clbTeamSeasonsArray: clb?.seasons?.map(s => s.season).sort((a, b) => a - b),
-      // Sample a specific season from team.seasons to see structure
-      stlSeason2036FromTeam: stl?.seasons?.find(s => s.season === 2036),
-      clbSeason2036FromTeam: clb?.seasons?.find(s => s.season === 2036),
-      // Check what fields exist
-      clbSeason2036Fields: clb?.seasons?.find(s => s.season === 2036) ?
-        Object.keys(clb.seasons.find(s => s.season === 2036)!) : [],
-      clbHasWonLost: (() => {
-        const season = clb?.seasons?.find(s => s.season === 2036);
-        return season ? { won: season.won, lost: season.lost } : null;
-      })()
-    });
 
     return teams;
   }, [leagueData.teams]);
@@ -774,28 +694,10 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       const hasWins = teamsWithWinsData.has(team.tid);
       const existsInSeason = team.seasons?.some(s => s.season === selectedSeason);
 
-      // Debug logging for STL and CLB
-      if (team.abbrev === 'STL' || team.abbrev === 'CLB') {
-        console.log(`[TeamFilter] ${team.abbrev} (tid: ${team.tid}) for season ${selectedSeason}:`, {
-          hasPlayers,
-          hasWins,
-          existsInSeason,
-          seasons: team.seasons?.map(s => s.season),
-          willBeIncluded: (hasWins && hasPlayers) || (hasPlayers && existsInSeason)
-        });
-      }
-
       // Team should be included if:
       // - Has both players and wins data (ideal case)
       // - OR has players and exists in that season (even without wins data - data may be incomplete)
       return (hasWins && hasPlayers) || (hasPlayers && existsInSeason);
-    });
-
-    // Debug: log filtered teams count
-    console.log(`[TeamFilter] Season ${selectedSeason}: ${filteredTeams.length} teams available`, {
-      teamsWithPlayers: teamsWithPlayers.size,
-      teamsWithWins: teamsWithWinsData.size,
-      teamAbbrevs: filteredTeams.map(t => t.abbrev).join(', ')
     });
 
     return filteredTeams;
@@ -803,19 +705,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
 
   // Calculate wins guess data (G, A, W)
   const winsGuessData = useMemo(() => {
-    console.log('[WinsGuess] Computing winsGuessData:', {
-      selectedSeason,
-      selectedTeam: selectedTeam?.tid,
-      hasTeamSeasons: !!leagueData.teamSeasons,
-      teamSeasonsCount: leagueData.teamSeasons?.length
-    });
-
     if (!selectedSeason || !selectedTeam || !leagueData.teamSeasons) {
-      console.warn('[WinsGuess] Missing required data:', {
-        selectedSeason: !!selectedSeason,
-        selectedTeam: !!selectedTeam,
-        teamSeasons: !!leagueData.teamSeasons
-      });
       return null;
     }
 
@@ -824,15 +714,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       ts => ts.tid === selectedTeam.tid && ts.season === selectedSeason && !ts.playoffs
     );
 
-    console.log('[WinsGuess] Looking for record:', {
-      tid: selectedTeam.tid,
-      season: selectedSeason,
-      found: !!teamSeasonRecord,
-      record: teamSeasonRecord
-    });
-
     if (!teamSeasonRecord) {
-      console.warn('[WinsGuess] No team season record found for tid:', selectedTeam.tid, 'season:', selectedSeason);
       return null;
     }
 
@@ -874,16 +756,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
 
   // Calculate playoff finish data
   const playoffFinishData = useMemo(() => {
-    console.log('[PlayoffFinish] Computing playoffFinishData:', {
-      selectedSeason,
-      selectedTeam: selectedTeam?.tid,
-      hasPlayoffSeries: !!leagueData.playoffSeries,
-      playoffSeriesLength: leagueData.playoffSeries?.length,
-      samplePlayoffSeries: leagueData.playoffSeries?.[0]
-    });
-
     if (!selectedSeason || !selectedTeam) {
-      console.warn('[PlayoffFinish] Missing required data');
       return null;
     }
 
@@ -2101,7 +1974,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
 
       // If wins guess data is not available, skip to next round
       if (!winsGuessData) {
-        console.warn('[WinsGuess] No data available, skipping to next round');
         toast({
           description: 'Win data not available for this team/season. Skipping to completion.',
         });
@@ -2126,7 +1998,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
 
       // If playoff finish data is not available, skip to next round
       if (!playoffFinishData) {
-        console.warn('[PlayoffFinish] No data available, skipping to next round');
         toast({
           description: 'Playoff data not available for this team/season. Skipping to completion.',
         });
@@ -3257,13 +3128,18 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     )}
                   </div>
 
+                  {/* Age - Always visible under name */}
+                  {rp.age && (
+                    <div className="w-full text-center text-[0.45rem] sm:text-[0.6rem] md:text-[0.7rem] leading-tight mt-1"
+                      style={{ color: rp.teamColors?.[0] || 'hsl(var(--foreground))' }}>
+                      <p>Age: {rp.age}</p>
+                    </div>
+                  )}
+
                   {/* Player Stats - Show when round is complete, wins-guess, or playoff-finish */}
                   {(currentRound === 'complete' || currentRound === 'wins-guess' || currentRound === 'playoff-finish') && (
                     <div className="w-full text-center text-[0.45rem] sm:text-[0.6rem] md:text-[0.7rem] leading-tight mt-1"
                       style={{ color: rp.teamColors?.[0] || 'hsl(var(--foreground))' }}>
-                      {/* Age - All sports */}
-                      {rp.age && <p>Age: {rp.age}</p>}
-                      
                       {/* Ovr/Pot - All sports */}
                       {(() => {
                         const playerRating = rp.player.ratings?.find(r => r.season === selectedSeason);
