@@ -17,6 +17,7 @@ export interface StoredLeague {
   seasons?: { min: number; max: number };
   isMetadataOnly?: boolean; // Flag for lightweight saves that reference separate IDB
   idbName?: string; // Name of the IndexedDB database storing the actual data (for metadata-only saves)
+  starred?: boolean; // Flag for favorited/starred leagues
 }
 
 async function getDB(): Promise<IDBPDatabase> {
@@ -188,11 +189,56 @@ export function formatDate(timestamp: number): string {
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
-  
+
   if (diffMins < 1) return 'Just now';
   if (diffMins < 60) return `${diffMins}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
-  
+
   return date.toLocaleDateString();
+}
+
+/**
+ * Toggle the starred status of a league
+ */
+export async function toggleLeagueStarred(id: string): Promise<void> {
+  const db = await getDB();
+  const league = await db.get(STORE_NAME, id);
+  if (league) {
+    league.starred = !league.starred;
+    await db.put(STORE_NAME, league);
+  }
+}
+
+/**
+ * Bulk delete leagues by IDs
+ */
+export async function bulkDeleteLeagues(ids: string[]): Promise<number> {
+  const db = await getDB();
+  let deletedCount = 0;
+
+  for (const id of ids) {
+    try {
+      // Get the league to check if it has an associated IDB database
+      const league = await db.get(STORE_NAME, id);
+
+      // Delete the metadata entry
+      await db.delete(STORE_NAME, id);
+      deletedCount++;
+
+      // If this was a metadata-only save with a dedicated IDB, delete that database too
+      if (league?.isMetadataOnly && league.idbName) {
+        try {
+          await deleteLeagueIDB(league.idbName);
+          console.log(`[Storage] Deleted league-specific database: ${league.idbName}`);
+        } catch (error) {
+          console.error(`[Storage] Failed to delete league database ${league.idbName}:`, error);
+        }
+      }
+    } catch (error) {
+      console.error(`[Storage] Failed to delete league ${id}:`, error);
+    }
+  }
+
+  return deletedCount;
 }

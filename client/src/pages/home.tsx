@@ -813,17 +813,28 @@ export default function Home() {
     if (fileName && data.sport) {
       try {
         setUploadProgress({ message: 'Saving league...', loaded: 95, total: 100 });
-        
-        // Generate a clean name from the file name
-        const cleanName = fileName.replace(/\.(json|gz)$/gi, '').replace(/\./g, ' ');
-        
+
+        // Extract league name from gameAttributes, fallback to file name
+        let leagueName = '';
+        if (data.gameAttributes?.leagueName) {
+          leagueName = data.gameAttributes.leagueName;
+        } else if (Array.isArray(data.gameAttributes) && data.gameAttributes.length > 0) {
+          // Some BBGM files have gameAttributes as an array
+          leagueName = data.gameAttributes[0]?.leagueName || '';
+        }
+
+        // Fallback to cleaned filename if no league name found
+        const cleanName = leagueName || fileName.replace(/\.(json|gz)$/gi, '').replace(/\./g, ' ');
+
         // Debug: Check if teamSeasons exists before saving
         console.log('[Upload] League data before save:', {
           sport: data.sport,
           players: data.players?.length,
           teams: data.teams?.length,
           teamSeasons: data.teamSeasons?.length,
-          sampleTeamSeason: data.teamSeasons?.[0]
+          sampleTeamSeason: data.teamSeasons?.[0],
+          extractedLeagueName: leagueName,
+          finalName: cleanName
         });
         
         // MOBILE FIX: Use lightweight metadata-only save for large files on mobile

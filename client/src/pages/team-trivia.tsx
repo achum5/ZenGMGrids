@@ -1146,143 +1146,196 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
 
   // Helper function to calculate football stats by position
   const calculateFootballStats = (seasonStats: any, position: string) => {
-    const av = Math.round(seasonStats.av || 0);
-    
-    // Helper for safe division
-    const safeDivide = (num: number, denom: number, decimals: number = 1) => {
-      return denom > 0 ? (num / denom).toFixed(decimals) : null;
+    const avValue = Math.round(seasonStats.av ?? 0);
+
+    const safeDivide = (num: number | undefined, denom: number | undefined): number | undefined => {
+      if (num === undefined || denom === undefined || denom === 0) return undefined;
+      return num / denom;
+    };
+
+    const passAttempts = seasonStats.pss !== undefined ? seasonStats.pss : undefined;
+    const passCompletions = seasonStats.pssCmp !== undefined ? seasonStats.pssCmp : undefined;
+    const passYds = seasonStats.pssYds !== undefined ? seasonStats.pssYds : undefined;
+    const passTD = seasonStats.pssTD !== undefined ? seasonStats.pssTD : undefined;
+    const passInt = seasonStats.pssInt !== undefined ? seasonStats.pssInt : undefined;
+    const compPctRaw = safeDivide(passCompletions, passAttempts);
+    const passYardsPerAttemptRaw = safeDivide(passYds, passAttempts);
+
+    const rushAttempts = seasonStats.rus !== undefined ? seasonStats.rus : undefined;
+    const rushYds = seasonStats.rusYds !== undefined ? seasonStats.rusYds : undefined;
+    const rushTD = seasonStats.rusTD !== undefined ? seasonStats.rusTD : undefined;
+    const rushYardsPerAttemptRaw = safeDivide(rushYds, rushAttempts);
+
+    const targets = seasonStats.tgt !== undefined ? seasonStats.tgt : undefined;
+    const receptions = seasonStats.rec !== undefined ? seasonStats.rec : undefined;
+    const recYds = seasonStats.recYds !== undefined ? seasonStats.recYds : undefined;
+    const recTD = seasonStats.recTD !== undefined ? seasonStats.recTD : undefined;
+    const catchPctRaw = safeDivide(receptions, targets);
+    const yardsPerTargetRaw = safeDivide(recYds, targets);
+
+    const soloTackles = seasonStats.defTckSolo !== undefined ? seasonStats.defTckSolo : undefined;
+    const assistTackles = seasonStats.defTckAst !== undefined ? seasonStats.defTckAst : undefined;
+    const tackles = soloTackles !== undefined || assistTackles !== undefined
+      ? (soloTackles ?? 0) + (assistTackles ?? 0)
+      : undefined;
+
+    const sacks = seasonStats.defSk ?? seasonStats.sks;
+    const tacklesForLoss = seasonStats.defTckLoss;
+    const forcedFumbles = seasonStats.defFmbFrc ?? seasonStats.ff;
+    const passesDefended = seasonStats.defPssDef;
+    const interceptions = seasonStats.defInt;
+    const interceptionYds = seasonStats.defIntYds;
+    const interceptionTD = seasonStats.defIntTD;
+
+    const kickReturnYds = seasonStats.krYds;
+    const puntReturnYds = seasonStats.prYds;
+    const allPurposeYds = (rushYds ?? 0) + (recYds ?? 0) + (kickReturnYds ?? 0) + (puntReturnYds ?? 0);
+
+    const fgMade =
+      (seasonStats.fg0 ?? 0) +
+      (seasonStats.fg20 ?? 0) +
+      (seasonStats.fg30 ?? 0) +
+      (seasonStats.fg40 ?? 0) +
+      (seasonStats.fg50 ?? 0);
+    const fgAtt =
+      (seasonStats.fga0 ?? 0) +
+      (seasonStats.fga20 ?? 0) +
+      (seasonStats.fga30 ?? 0) +
+      (seasonStats.fga40 ?? 0) +
+      (seasonStats.fga50 ?? 0);
+    const fgPctRaw = fgAtt > 0 ? fgMade / fgAtt : undefined;
+    const fgLng = seasonStats.fgLng;
+    const extraPoints = seasonStats.xp;
+
+    const punts = seasonStats.pnt;
+    const puntYds = seasonStats.pntYds;
+    const puntAvgRaw = safeDivide(puntYds, punts);
+    const puntsInside20 = seasonStats.pntIn20;
+    const puntTouchbacks = seasonStats.pntTB;
+    const puntsBlocked = seasonStats.pntBlk;
+
+    const stats: any = {
+      line1: null,
+      line2: null,
+      line3: `AV: ${avValue}`,
+      approxValue: avValue,
+      passCmp: passCompletions,
+      passAtt: passAttempts,
+      passYds,
+      passTD,
+      passInt,
+      passCompPct: compPctRaw !== undefined ? parseFloat((compPctRaw * 100).toFixed(1)) : undefined,
+      passYardsPerAtt: passYardsPerAttemptRaw !== undefined ? parseFloat(passYardsPerAttemptRaw.toFixed(1)) : undefined,
+      rushAtt: rushAttempts,
+      rushYds,
+      rushTD,
+      rushYardsPerAtt: rushYardsPerAttemptRaw !== undefined ? parseFloat(rushYardsPerAttemptRaw.toFixed(1)) : undefined,
+      targets,
+      receptions,
+      recYds,
+      recTD,
+      catchPct: catchPctRaw !== undefined ? parseFloat((catchPctRaw * 100).toFixed(1)) : undefined,
+      yardsPerTarget: yardsPerTargetRaw !== undefined ? parseFloat(yardsPerTargetRaw.toFixed(1)) : undefined,
+      tackles,
+      soloTackles,
+      assistTackles,
+      sacks: sacks !== undefined ? parseFloat(sacks.toFixed(1)) : undefined,
+      tacklesForLoss,
+      forcedFumbles,
+      passesDefended,
+      interceptions,
+      interceptionYds,
+      interceptionTD,
+      kickReturnYds,
+      puntReturnYds,
+      allPurposeYds,
+      fieldGoalsMade: fgMade || fgAtt ? fgMade : undefined,
+      fieldGoalsAtt: fgMade || fgAtt ? fgAtt : undefined,
+      fieldGoalPct: fgPctRaw !== undefined ? parseFloat((fgPctRaw * 100).toFixed(1)) : undefined,
+      fieldGoalLong: fgLng,
+      extraPointsMade: extraPoints,
+      punts,
+      puntYds,
+      puntAvg: puntAvgRaw !== undefined ? parseFloat(puntAvgRaw.toFixed(1)) : undefined,
+      puntsInside20,
+      puntTouchbacks,
+      puntsBlocked,
     };
 
     switch (position) {
       case 'QB': {
-        const pssYds = seasonStats.pssYds || 0;
-        const pssTD = seasonStats.pssTD || 0;
-        const pssInt = seasonStats.pssInt || 0;
-        const compPct = safeDivide(seasonStats.pssCmp || 0, seasonStats.pss || 0, 1);
-        const ypa = safeDivide(pssYds, seasonStats.pss || 0, 1);
-        
-        return {
-          line1: `${pssYds}/${pssTD}/${pssInt}`,
-          line2: compPct && ypa ? `${compPct}% / ${ypa}` : compPct ? `${compPct}%` : ypa ? ypa : null,
-          line3: `AV: ${av}`
-        };
+        const displayCompPct = stats.passCompPct !== undefined ? `${stats.passCompPct}%` : null;
+        const displayYpa = stats.passYardsPerAtt !== undefined ? stats.passYardsPerAtt.toFixed(1) : null;
+        stats.line1 = `${passYds ?? 0}/${passTD ?? 0}/${passInt ?? 0}`;
+        stats.line2 =
+          displayCompPct && displayYpa
+            ? `${displayCompPct} / ${displayYpa}`
+            : displayCompPct ?? displayYpa;
+        return stats;
       }
-      
+
       case 'RB': {
-        const rusYds = seasonStats.rusYds || 0;
-        const rusTD = seasonStats.rusTD || 0;
-        const rus = seasonStats.rus || 0;
-        const catchPct = safeDivide(seasonStats.rec || 0, seasonStats.tgt || 0, 1);
-        const ypc = safeDivide(rusYds, rus, 1);
-        
-        return {
-          line1: `${rusYds}/${rusTD}/${rus}`,
-          line2: catchPct && ypc ? `${catchPct}% / ${ypc}` : catchPct ? `${catchPct}%` : ypc ? ypc : null,
-          line3: `AV: ${av}`
-        };
+        const displayCatchPct = stats.catchPct !== undefined ? `${stats.catchPct}%` : null;
+        const displayYpc = stats.rushYardsPerAtt !== undefined ? stats.rushYardsPerAtt.toFixed(1) : null;
+        stats.line1 = `${rushYds ?? 0}/${rushTD ?? 0}/${rushAttempts ?? 0}`;
+        stats.line2 =
+          displayCatchPct && displayYpc
+            ? `${displayCatchPct} / ${displayYpc}`
+            : displayCatchPct ?? displayYpc;
+        return stats;
       }
-      
+
       case 'WR':
       case 'TE': {
-        const rec = seasonStats.rec || 0;
-        const recYds = seasonStats.recYds || 0;
-        const recTD = seasonStats.recTD || 0;
-        const catchPct = safeDivide(rec, seasonStats.tgt || 0, 1);
-        const ydsPerTarget = safeDivide(recYds, seasonStats.tgt || 0, 1);
-        
-        return {
-          line1: `${rec}/${recYds}/${recTD}`,
-          line2: catchPct && ydsPerTarget ? `${catchPct}% / ${ydsPerTarget}` : catchPct ? `${catchPct}%` : ydsPerTarget ? ydsPerTarget : null,
-          line3: `AV: ${av}`
-        };
+        const displayCatchPct = stats.catchPct !== undefined ? `${stats.catchPct}%` : null;
+        const displayYpt = stats.yardsPerTarget !== undefined ? stats.yardsPerTarget.toFixed(1) : null;
+        stats.line1 = `${receptions ?? 0}/${recYds ?? 0}/${recTD ?? 0}`;
+        stats.line2 =
+          displayCatchPct && displayYpt
+            ? `${displayCatchPct} / ${displayYpt}`
+            : displayCatchPct ?? displayYpt;
+        return stats;
       }
-      
-      case 'OL': {
-        return {
-          line1: null,
-          line2: null,
-          line3: `AV: ${av}`
-        };
-      }
-      
+
       case 'DL': {
-        const tackles = (seasonStats.defTckSolo || 0) + (seasonStats.defTckAst || 0);
-        const sacks = seasonStats.defSk || 0;
-        const ff = seasonStats.defFmbFrc || 0;
-        const tfl = seasonStats.defTckLoss || 0;
-        const pd = seasonStats.defPssDef || 0;
-        
-        return {
-          line1: `${tackles}/${sacks}/${ff}`,
-          line2: `${tfl} / ${pd}`,
-          line3: `AV: ${av}`
-        };
+        stats.line1 = `${tackles ?? 0}/${stats.sacks ?? 0}/${forcedFumbles ?? 0}`;
+        stats.line2 = `${tacklesForLoss ?? 0} / ${passesDefended ?? 0}`;
+        return stats;
       }
-      
+
       case 'LB': {
-        const tackles = (seasonStats.defTckSolo || 0) + (seasonStats.defTckAst || 0);
-        const sacks = seasonStats.defSk || 0;
-        const ints = seasonStats.defInt || 0;
-        const tfl = seasonStats.defTckLoss || 0;
-        const pd = seasonStats.defPssDef || 0;
-        
-        return {
-          line1: `${tackles}/${sacks}/${ints}`,
-          line2: `${tfl} / ${pd}`,
-          line3: `AV: ${av}`
-        };
+        stats.line1 = `${tackles ?? 0}/${stats.sacks ?? 0}/${interceptions ?? 0}`;
+        stats.line2 = `${tacklesForLoss ?? 0} / ${passesDefended ?? 0}`;
+        return stats;
       }
-      
+
       case 'CB':
       case 'S': {
-        const tackles = (seasonStats.defTckSolo || 0) + (seasonStats.defTckAst || 0);
-        const ints = seasonStats.defInt || 0;
-        const pd = seasonStats.defPssDef || 0;
-        const intYds = seasonStats.defIntYds || 0;
-        const intTD = seasonStats.defIntTD || 0;
-        
-        return {
-          line1: `${tackles}/${ints}/${pd}`,
-          line2: `${intYds}/${intTD}`,
-          line3: `AV: ${av}`
-        };
+        stats.line1 = `${tackles ?? 0}/${interceptions ?? 0}/${passesDefended ?? 0}`;
+        stats.line2 = `${interceptionYds ?? 0}/${interceptionTD ?? 0}`;
+        return stats;
       }
-      
+
       case 'K': {
-        const fgm = (seasonStats.fg0 || 0) + (seasonStats.fg20 || 0) + (seasonStats.fg30 || 0) + (seasonStats.fg40 || 0) + (seasonStats.fg50 || 0);
-        const fga = (seasonStats.fga0 || 0) + (seasonStats.fga20 || 0) + (seasonStats.fga30 || 0) + (seasonStats.fga40 || 0) + (seasonStats.fga50 || 0);
-        const xpm = seasonStats.xp || 0;
-        const fgPct = safeDivide(fgm, fga, 1);
-        const fgLng = seasonStats.fgLng || 0;
-        
-        return {
-          line1: `${fgm}/${fga}/${xpm}`,
-          line2: fgPct ? `${fgPct}% / ${fgLng}` : `${fgLng}`,
-          line3: `AV: ${av}`
-        };
+        const displayFgPct = stats.fieldGoalPct !== undefined ? `${stats.fieldGoalPct}%` : null;
+        stats.line1 = `${stats.fieldGoalsMade ?? 0}/${stats.fieldGoalsAtt ?? 0}/${extraPoints ?? 0}`;
+        stats.line2 = displayFgPct
+          ? `${displayFgPct} / ${fgLng ?? 0}`
+          : `${fgLng ?? 0}`;
+        return stats;
       }
-      
+
       case 'P': {
-        const punts = seasonStats.pnt || 0;
-        const pntYds = seasonStats.pntYds || 0;
-        const pntAvg = safeDivide(pntYds, punts, 1);
-        const in20 = seasonStats.pntIn20 || 0;
-        const tb = seasonStats.pntTB || 0;
-        const blk = seasonStats.pntBlk || 0;
-        
-        return {
-          line1: pntAvg ? `${punts}/${pntYds}/${pntAvg}` : `${punts}/${pntYds}`,
-          line2: `${in20}/${tb}/${blk}`,
-          line3: `AV: ${av}`
-        };
+        stats.line1 =
+          stats.puntAvg !== undefined
+            ? `${punts ?? 0}/${puntYds ?? 0}/${stats.puntAvg}`
+            : `${punts ?? 0}/${puntYds ?? 0}`;
+        stats.line2 = `${puntsInside20 ?? 0}/${puntTouchbacks ?? 0}/${puntsBlocked ?? 0}`;
+        return stats;
       }
-      
+
       default:
-        return {
-          line1: null,
-          line2: null,
-          line3: `AV: ${av}`
-        };
+        return stats;
     }
   };
 
@@ -1298,129 +1351,224 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   const calculateBaseballStats = (seasonStats: any, position: string) => {
     const isPitcher = position === 'SP' || position === 'RP';
 
-    if (isPitcher) {
-      // Pitcher stats
-      const war = seasonStats.war !== undefined ? seasonStats.war.toFixed(1) : '0.0';
-      const w = seasonStats.w || 0;
-      const l = seasonStats.l || 0;
-      const outs = seasonStats.outs || 0;
-      const er = seasonStats.er || 0;
-      const era = outs > 0 ? removeLeadingZero((27 * er / outs).toFixed(2)) : null;
-      
-      const gp = seasonStats.gpPit !== undefined ? seasonStats.gpPit : seasonStats.gp || 0;
-      const gs = seasonStats.gsPit !== undefined ? seasonStats.gsPit : seasonStats.gs || 0;
-      const sv = seasonStats.sv || 0;
+    const stats: any = {
+      line1: null,
+      line2: null,
+      line3: null,
+    };
 
-      // IP conversion: outs to baseball notation (X.Y where Y = outs % 3)
+    if (isPitcher) {
+      const warRaw = seasonStats.war;
+      const war = warRaw !== undefined ? parseFloat(warRaw.toFixed(1)) : undefined;
+      const wins = seasonStats.w;
+      const losses = seasonStats.l;
+      const outs = seasonStats.outs ?? 0;
+      const earnedRuns = seasonStats.er ?? 0;
+      const eraRaw = outs > 0 ? (27 * earnedRuns) / outs : undefined;
+
+      const games = seasonStats.gpPit !== undefined ? seasonStats.gpPit : seasonStats.gp;
+      const gamesStarted = seasonStats.gsPit !== undefined ? seasonStats.gsPit : seasonStats.gs;
+      const saves = seasonStats.sv;
+
       const ipWhole = Math.floor(outs / 3);
       const ipRemainder = outs % 3;
-      const ip = `${ipWhole}.${ipRemainder}`;
+      const ipDisplay = `${ipWhole}.${ipRemainder}`;
 
-      const so = seasonStats.soPit || 0;
-      const bbPit = seasonStats.bbPit || 0;
-      const hPit = seasonStats.hPit || 0;
-      const whip = outs > 0 ? removeLeadingZero((3 * (bbPit + hPit) / outs).toFixed(2)) : null;
+      const strikeouts = seasonStats.soPit;
+      const walks = seasonStats.bbPit;
+      const hitsAllowed = seasonStats.hPit;
+      const whipRaw = outs > 0 ? (3 * ((walks ?? 0) + (hitsAllowed ?? 0))) / outs : undefined;
+      const soPerNineRaw = outs > 0 ? (strikeouts ?? 0) * 27 / outs : undefined;
+      const bbPerNineRaw = outs > 0 ? (walks ?? 0) * 27 / outs : undefined;
 
-      return {
-        line1: era ? `${war}/${w}/${l}/${era}` : `${war}/${w}/${l}`,
-        line2: `${gp}/${gs}/${sv}`,
-        line3: whip ? `${ip}/${so}/${whip}` : `${ip}/${so}`
-      };
-    } else {
-      // Hitter stats
-      const war = seasonStats.war !== undefined ? seasonStats.war.toFixed(1) : '0.0';
-      const pa = seasonStats.pa || 0;
-      const h = seasonStats.h || 0;
-      const hr = seasonStats.hr || 0;
-      const r = seasonStats.r || 0;
-      const rbi = seasonStats.rbi || 0;
-      const sb = seasonStats.sb || 0;
+      stats.line1 = eraRaw !== undefined
+        ? `${war !== undefined ? war.toFixed(1) : '0.0'}/${wins ?? 0}/${losses ?? 0}/${removeLeadingZero(eraRaw.toFixed(2))}`
+        : `${war !== undefined ? war.toFixed(1) : '0.0'}/${wins ?? 0}/${losses ?? 0}`;
+      stats.line2 = `${games ?? 0}/${gamesStarted ?? 0}/${saves ?? 0}`;
+      stats.line3 = whipRaw !== undefined
+        ? `${ipDisplay}/${strikeouts ?? 0}/${removeLeadingZero(whipRaw.toFixed(2))}`
+        : `${ipDisplay}/${strikeouts ?? 0}`;
 
-      // Calculate AB
-      const bb = seasonStats.bb || 0;
-      const hbp = seasonStats.hbp || 0;
-      const sf = seasonStats.sf || 0;
-      const sh = seasonStats.sh || 0;
-      const ab = pa - bb - hbp - sf - sh;
+      stats.war = war;
+      stats.games = games;
+      stats.gamesStarted = gamesStarted;
+      stats.wins = wins;
+      stats.losses = losses;
+      stats.saves = saves;
+      stats.ip = ipDisplay;
+      stats.era = eraRaw !== undefined ? parseFloat(eraRaw.toFixed(2)) : undefined;
+      stats.whip = whipRaw !== undefined ? parseFloat(whipRaw.toFixed(2)) : undefined;
+      stats.strikeouts = strikeouts;
+      stats.walks = walks;
+      stats.hitsAllowed = hitsAllowed;
+      stats.soPerNine = soPerNineRaw !== undefined ? parseFloat(soPerNineRaw.toFixed(1)) : undefined;
+      stats.bbPerNine = bbPerNineRaw !== undefined ? parseFloat(bbPerNineRaw.toFixed(1)) : undefined;
+      stats.outsRecorded = outs;
 
-      // BA, OBP, SLG, OPS
-      const ba = ab > 0 ? removeLeadingZero((h / ab).toFixed(3)) : null;
-
-      const obpDenom = ab + bb + hbp + sf;
-      const obp = obpDenom > 0 ? removeLeadingZero(((h + bb + hbp) / obpDenom).toFixed(3)) : null;
-
-      const doubles = seasonStats['2b'] || 0;
-      const triples = seasonStats['3b'] || 0;
-      const singles = h - doubles - triples - hr;
-      const tb = singles + 2 * doubles + 3 * triples + 4 * hr;
-      const slg = ab > 0 ? removeLeadingZero((tb / ab).toFixed(3)) : null;
-
-      const ops = (obp && slg) ? removeLeadingZero((parseFloat('0' + obp) + parseFloat('0' + slg)).toFixed(3)) : null;
-
-      return {
-        line1: ba ? `${war}/${pa}/${h}/${hr}/${ba}` : `${war}/${pa}/${h}/${hr}`,
-        line2: `${r}/${rbi}/${sb}`,
-        line3: ops ? `${obp}/${slg}/${ops}` : (obp && slg) ? `${obp}/${slg}` : obp ? obp : slg ? slg : null
-      };
+      return stats;
     }
+
+    const warRaw = seasonStats.war;
+    const war = warRaw !== undefined ? parseFloat(warRaw.toFixed(1)) : undefined;
+    const pa = seasonStats.pa ?? 0;
+    const bb = seasonStats.bb ?? 0;
+    const hbp = seasonStats.hbp ?? 0;
+    const sf = seasonStats.sf ?? 0;
+    const sh = seasonStats.sh ?? 0;
+    const atBats = pa - bb - hbp - sf - sh;
+    const hits = seasonStats.h ?? 0;
+    const doubles = seasonStats['2b'] ?? 0;
+    const triples = seasonStats['3b'] ?? 0;
+    const homeRuns = seasonStats.hr ?? 0;
+    const runs = seasonStats.r ?? 0;
+    const rbi = seasonStats.rbi ?? 0;
+    const stolenBases = seasonStats.sb ?? 0;
+    const walks = bb;
+    const strikeouts = seasonStats.so ?? undefined;
+
+    const singles = hits - doubles - triples - homeRuns;
+    const totalBases = singles + 2 * doubles + 3 * triples + 4 * homeRuns;
+
+    const battingAverageRaw = atBats > 0 ? hits / atBats : undefined;
+    const obpDenom = atBats + bb + hbp + sf;
+    const obpRaw = obpDenom > 0 ? (hits + bb + hbp) / obpDenom : undefined;
+    const sluggingRaw = atBats > 0 ? totalBases / atBats : undefined;
+    const opsRaw = obpRaw !== undefined && sluggingRaw !== undefined ? obpRaw + sluggingRaw : undefined;
+
+    stats.line1 = battingAverageRaw !== undefined
+      ? `${war !== undefined ? war.toFixed(1) : '0.0'}/${pa}/${hits}/${homeRuns}/${removeLeadingZero(battingAverageRaw.toFixed(3))}`
+      : `${war !== undefined ? war.toFixed(1) : '0.0'}/${pa}/${hits}/${homeRuns}`;
+    stats.line2 = `${runs}/${rbi}/${stolenBases}`;
+    stats.line3 = opsRaw !== undefined
+      ? `${removeLeadingZero((obpRaw ?? 0).toFixed(3))}/${removeLeadingZero((sluggingRaw ?? 0).toFixed(3))}/${removeLeadingZero(opsRaw.toFixed(3))}`
+      : obpRaw !== undefined && sluggingRaw !== undefined
+        ? `${removeLeadingZero(obpRaw.toFixed(3))}/${removeLeadingZero(sluggingRaw.toFixed(3))}`
+        : obpRaw !== undefined
+          ? removeLeadingZero(obpRaw.toFixed(3))
+          : sluggingRaw !== undefined
+            ? removeLeadingZero(sluggingRaw.toFixed(3))
+            : null;
+
+    stats.war = war;
+    stats.plateAppearances = pa;
+    stats.atBats = atBats;
+    stats.hits = hits;
+    stats.doubles = doubles;
+    stats.triples = triples;
+    stats.homeRuns = homeRuns;
+    stats.runs = runs;
+    stats.rbi = rbi;
+    stats.stolenBases = stolenBases;
+    stats.walks = walks;
+    stats.strikeouts = strikeouts;
+    stats.battingAverage = battingAverageRaw !== undefined ? parseFloat(battingAverageRaw.toFixed(3)) : undefined;
+    stats.onBasePct = obpRaw !== undefined ? parseFloat(obpRaw.toFixed(3)) : undefined;
+    stats.sluggingPct = sluggingRaw !== undefined ? parseFloat(sluggingRaw.toFixed(3)) : undefined;
+    stats.ops = opsRaw !== undefined ? parseFloat(opsRaw.toFixed(3)) : undefined;
+    stats.hitByPitch = hbp;
+    stats.sacFly = sf;
+    stats.sacBunt = sh;
+
+    return stats;
   };
 
   // Helper function to calculate hockey stats by position
   const calculateHockeyStats = (seasonStats: any, position: string) => {
-    // Helper for safe division
-    const safeDivide = (num: number, denom: number, decimals: number = 1) => {
-      return denom > 0 ? (num / denom).toFixed(decimals) : null;
+    const safeDivide = (num: number | undefined, denom: number | undefined): number | undefined => {
+      if (num === undefined || denom === undefined || denom === 0) return undefined;
+      return num / denom;
     };
 
-    // Helper to format minutes as MM:SS
     const formatMinutes = (totalMinutes: number) => {
       const mins = Math.floor(totalMinutes);
       const secs = Math.round((totalMinutes - mins) * 60);
       return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
+    const stats: any = {
+      line1: null,
+      line2: null,
+      line3: null,
+    };
+
     if (position === 'G') {
-      // Goalie stats
-      const gW = seasonStats.gW || 0;
-      const gL = seasonStats.gL || 0;
-      const so = seasonStats.so || 0;
-      const sv = seasonStats.sv || 0;
-      const ga = seasonStats.ga || 0;
-      const gMin = seasonStats.gMin || seasonStats.min || 0;
+      const wins = seasonStats.gW ?? 0;
+      const losses = seasonStats.gL ?? 0;
+      const otl = seasonStats.gOTL;
+      const shutouts = seasonStats.so ?? 0;
+      const saves = seasonStats.sv ?? 0;
+      const goalsAgainst = seasonStats.ga ?? 0;
+      const minutesRaw = seasonStats.gMin ?? seasonStats.min ?? 0;
+      const shotsAgainst = seasonStats.sa;
+      const games = seasonStats.gpGoalie ?? seasonStats.gp ?? undefined;
+      const starts = seasonStats.gs ?? undefined;
 
-      const svPct = safeDivide(sv, sv + ga, 3);
-      const gaa = safeDivide(60 * ga, gMin, 2);
+      const svPctRaw = safeDivide(saves, (saves ?? 0) + (goalsAgainst ?? 0));
+      const gaaRaw = safeDivide(60 * goalsAgainst, minutesRaw);
 
-      return {
-        line1: `${gW}/${gL}/${so}`,
-        line2: svPct ? `${(parseFloat(svPct) * 100).toFixed(1)}%` : null,
-        line3: gaa || null
-      };
-    } else {
-      // Skater stats (C, W, D)
-      const evG = seasonStats.evG || 0;
-      const ppG = seasonStats.ppG || 0;
-      const shG = seasonStats.shG || 0;
-      const goals = evG + ppG + shG;
+      stats.line1 = `${wins}/${losses}/${shutouts}`;
+      stats.line2 = svPctRaw !== undefined ? `${(svPctRaw * 100).toFixed(1)}%` : null;
+      stats.line3 = gaaRaw !== undefined ? gaaRaw.toFixed(2) : null;
 
-      const evA = seasonStats.evA || 0;
-      const ppA = seasonStats.ppA || 0;
-      const shA = seasonStats.shA || 0;
-      const assists = evA + ppA + shA;
+      stats.wins = wins;
+      stats.losses = losses;
+      stats.overtimeLosses = otl;
+      stats.shutouts = shutouts;
+      stats.saves = saves;
+      stats.goalsAgainst = goalsAgainst;
+      stats.minutes = minutesRaw ? formatMinutes(minutesRaw) : undefined;
+      stats.rawMinutes = minutesRaw;
+      stats.savePct = svPctRaw !== undefined ? parseFloat((svPctRaw * 100).toFixed(1)) : undefined;
+      stats.gaa = gaaRaw !== undefined ? parseFloat(gaaRaw.toFixed(2)) : undefined;
+      stats.shotsAgainst = shotsAgainst;
+      stats.games = games;
+      stats.starts = starts;
 
-      const points = goals + assists;
-      const plusMinus = seasonStats.pm || 0;
-      const min = seasonStats.min || 0;
-      const gp = seasonStats.gp || 0;
-
-      const toiAvg = gp > 0 ? formatMinutes(min / gp) : null;
-
-      return {
-        line1: `${goals}/${assists}/${points}`,
-        line2: `${plusMinus >= 0 ? '+' : ''}${plusMinus}`,
-        line3: toiAvg || null
-      };
+      return stats;
     }
+
+    const evG = seasonStats.evG ?? 0;
+    const ppG = seasonStats.ppG ?? 0;
+    const shG = seasonStats.shG ?? 0;
+    const evA = seasonStats.evA ?? 0;
+    const ppA = seasonStats.ppA ?? 0;
+    const shA = seasonStats.shA ?? 0;
+    const plusMinus = seasonStats.pm;
+    const pim = seasonStats.pim;
+    const minutesRaw = seasonStats.min ?? 0;
+    const gp = seasonStats.gp ?? 0;
+    const fow = seasonStats.fow;
+    const fol = seasonStats.fol;
+    const faceoffPctRaw = safeDivide(fow, (fow ?? 0) + (fol ?? 0));
+
+    const goals = evG + ppG + shG;
+    const assists = evA + ppA + shA;
+    const points = goals + assists;
+    const toiAvg = gp > 0 ? formatMinutes(minutesRaw / gp) : null;
+
+    stats.line1 = `${goals}/${assists}/${points}`;
+    stats.line2 = plusMinus !== undefined ? `${plusMinus >= 0 ? '+' : ''}${plusMinus}` : null;
+    stats.line3 = toiAvg;
+
+    stats.goals = goals;
+    stats.assists = assists;
+    stats.points = points;
+    stats.plusMinus = plusMinus;
+    stats.penaltyMinutes = pim;
+    stats.evenStrengthGoals = evG;
+    stats.powerPlayGoals = ppG;
+    stats.shortHandedGoals = shG;
+    stats.evenStrengthAssists = evA;
+    stats.powerPlayAssists = ppA;
+    stats.shortHandedAssists = shA;
+    stats.faceoffsWon = fow;
+    stats.faceoffsLost = fol;
+    stats.faceoffPct = faceoffPctRaw !== undefined ? parseFloat((faceoffPctRaw * 100).toFixed(1)) : undefined;
+    stats.timeOnIce = minutesRaw ? formatMinutes(minutesRaw) : undefined;
+    stats.avgTimeOnIce = toiAvg;
+    stats.games = gp;
+
+    return stats;
   };
 
   // Build roster for selected season/team
@@ -1503,7 +1651,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
           revealed: false,
           hintShown: false,
           gamesPlayed: seasonStats.gp,
-          stats,
+          stats: seasonStats, // Pass raw seasonStats for TeamInfoModal
           advancedStats,
           position,
           jerseyNumber,
@@ -2033,6 +2181,11 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       const rating = correctRosterPlayer.player.ratings?.find(r => r.season === selectedSeason);
       const pos = rating?.pos || correctRosterPlayer.player.ratings?.[0]?.pos || 'Unknown';
 
+      // Get the raw season stats from the player
+      const seasonStats = correctRosterPlayer.player.stats?.find(
+        s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+      );
+
       // Get the stat value based on the current round
       let statValue = '';
       const stats = correctRosterPlayer.stats;
@@ -2055,48 +2208,53 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
           break;
         // Football rounds
         case 'passing-yards-leader':
-          statValue = stats?.passYards ? `${Math.round(stats.passYards)} Yards` : 'N/A';
+          statValue = seasonStats?.pssYds ? `${Math.round(seasonStats.pssYds)} Yards` : 'N/A';
           break;
         case 'rushing-yards-leader':
-          statValue = stats?.rushYards ? `${Math.round(stats.rushYards)} Yards` : 'N/A';
+          statValue = seasonStats?.rusYds ? `${Math.round(seasonStats.rusYds)} Yards` : 'N/A';
           break;
         case 'receiving-yards-leader':
-          statValue = stats?.recYards ? `${Math.round(stats.recYards)} Yards` : 'N/A';
+          statValue = seasonStats?.recYds ? `${Math.round(seasonStats.recYds)} Yards` : 'N/A';
           break;
         case 'tackles-leader':
-          statValue = stats?.tackles ? `${Math.round(stats.tackles)} Tackles` : 'N/A';
+          const tackles = ((seasonStats as any)?.defTckSolo || 0) + ((seasonStats as any)?.defTckAst || 0);
+          statValue = tackles > 0 ? `${tackles} Tackles` : 'N/A';
           break;
         case 'sacks-leader':
-          statValue = stats?.sacks ? `${stats.sacks.toFixed(1)} Sacks` : 'N/A';
+          const sacks = (seasonStats as any)?.defSk || (seasonStats as any)?.sks || 0;
+          statValue = sacks > 0 ? `${sacks.toFixed(1)} Sacks` : 'N/A';
           break;
         case 'interceptions-leader':
-          statValue = stats?.interceptions ? `${stats.interceptions} INT` : 'N/A';
+          const ints = (seasonStats as any)?.defInt || 0;
+          statValue = ints > 0 ? `${ints} INT` : 'N/A';
           break;
         // Baseball rounds
         case 'hits-leader':
-          statValue = stats?.hits ? `${stats.hits} H` : 'N/A';
+          statValue = seasonStats?.h ? `${seasonStats.h} H` : 'N/A';
           break;
         case 'home-runs-leader':
-          statValue = stats?.homeRuns ? `${stats.homeRuns} HR` : 'N/A';
+          statValue = seasonStats?.hr ? `${seasonStats.hr} HR` : 'N/A';
           break;
         case 'rbis-leader':
-          statValue = stats?.rbis ? `${stats.rbis} RBI` : 'N/A';
+          statValue = seasonStats?.rbi ? `${seasonStats.rbi} RBI` : 'N/A';
           break;
         case 'stolen-bases-leader':
-          statValue = stats?.stolenBases ? `${stats.stolenBases} SB` : 'N/A';
+          statValue = seasonStats?.sb ? `${seasonStats.sb} SB` : 'N/A';
           break;
         case 'strikeouts-leader':
-          statValue = stats?.strikeouts ? `${stats.strikeouts} K` : 'N/A';
+          const strikeouts = (seasonStats as any)?.so || (seasonStats as any)?.k || 0;
+          statValue = strikeouts > 0 ? `${strikeouts} K` : 'N/A';
           break;
         case 'wins-leader':
-          statValue = stats?.wins ? `${stats.wins} W` : 'N/A';
+          statValue = seasonStats?.w ? `${seasonStats.w} W` : 'N/A';
           break;
         // Hockey rounds
         case 'goals-leader':
-          statValue = stats?.goals ? `${stats.goals} G` : 'N/A';
+          const goals = ((seasonStats as any)?.evG || 0) + ((seasonStats as any)?.ppG || 0) + ((seasonStats as any)?.shG || 0);
+          statValue = goals > 0 ? `${goals} G` : 'N/A';
           break;
         case 'goalie-wins-leader':
-          statValue = stats?.wins ? `${stats.wins} W` : 'N/A';
+          statValue = (seasonStats as any)?.gW ? `${(seasonStats as any).gW} W` : 'N/A';
           break;
       }
 
