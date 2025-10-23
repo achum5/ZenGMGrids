@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, Download, Edit2, Check, X, Info } from 'lucide-react';
+import { Trash2, Download, Edit2, Check, X, Info, Star } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/lib/hooks/use-toast';
-import { getAllLeagues, deleteLeague, updateLeagueName, bulkDeleteLeagues, formatFileSize, formatDate, type StoredLeague } from '@/lib/league-storage';
+import { getAllLeagues, deleteLeague, updateLeagueName, bulkDeleteLeagues, toggleLeagueStarred, formatFileSize, formatDate, type StoredLeague } from '@/lib/league-storage';
 import { BulkDeleteModal } from '@/components/BulkDeleteModal';
 import basketballIcon from '@/assets/zengm-grids-logo-basketball.png';
 import footballIcon from '@/assets/zengm-grids-logo-football.png';
@@ -77,6 +77,15 @@ export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: 
   const handleCancelEdit = () => {
     setEditingId(null);
     setEditName('');
+  };
+
+  const handleToggleStar = async (id: string) => {
+    try {
+      await toggleLeagueStarred(id);
+      await loadLeagues();
+    } catch (error) {
+      console.error('Error toggling star:', error);
+    }
   };
 
   const handleBulkDelete = async (unstarredOnly: boolean) => {
@@ -297,6 +306,24 @@ export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: 
                       </div>
                     </PopoverContent>
                   </Popover>
+
+                  {/* Star/Unstar button */}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleToggleStar(league.id)}
+                    className="h-7 w-7 p-0"
+                    data-testid={`button-star-${league.id}`}
+                    aria-label={league.starred ? 'Unstar league' : 'Star league'}
+                  >
+                    <Star
+                      className={`w-3 h-3 ${
+                        league.starred
+                          ? 'fill-yellow-400 text-yellow-400'
+                          : 'text-muted-foreground'
+                      }`}
+                    />
+                  </Button>
 
                   <Button
                     size="sm"
