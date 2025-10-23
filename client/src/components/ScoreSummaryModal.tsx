@@ -587,20 +587,16 @@ export function ScoreSummaryModal({
         }
       `}</style>
       <DialogContent
-        className="max-w-5xl max-h-[85vh] w-[calc(100vw-2rem)] p-0 !z-[50001] flex flex-col my-8 overflow-hidden"
+        className="max-w-5xl max-h-[calc(100vh-4rem)] w-[calc(100vw-2rem)] p-0 !z-[50001]"
         aria-describedby="score-summary-description"
         style={{
           backgroundColor: primaryColor,
-          display: 'flex',
-          flexDirection: 'column',
-          maxHeight: '85vh',
-          overflow: 'hidden',
         }}
       >
         {/* Custom Close Button - Fixed */}
         <button
           onClick={() => onOpenChange(false)}
-          className="absolute right-4 top-4 z-[10001] rounded-lg p-2.5 transition-all duration-200 hover:scale-110 hover:rotate-90 shadow-lg"
+          className="absolute right-4 top-4 z-[10001] rounded-lg p-2.5 transition-all duration-200 hover:scale-110 hover:rotate-90 shadow-lg bg-background"
           style={{
             backgroundColor: `${secondaryColor}40`,
             color: secondaryColor,
@@ -620,12 +616,9 @@ export function ScoreSummaryModal({
 
         {/* Scrollable content area */}
         <div
-          className="flex-1"
+          className="overflow-y-auto overflow-x-hidden"
           style={{
-            overflowY: 'auto',
-            overflowX: 'hidden',
-            minHeight: 0,
-            flex: '1 1 0%'
+            maxHeight: 'calc(100vh - 4rem)',
           }}
         >
           <div className="px-6 pt-6 pb-6 space-y-6">
