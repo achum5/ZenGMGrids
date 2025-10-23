@@ -647,8 +647,21 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       });
     });
 
-    return allTeams.filter(team => teamsWithPlayers.has(team.tid));
-  }, [selectedSeason, allTeams, leagueData.players]);
+    // Also ensure team has wins data in teamSeasons
+    const teamsWithWinsData = new Set<number>();
+    if (leagueData.teamSeasons) {
+      leagueData.teamSeasons.forEach(ts => {
+        if (ts.season === selectedSeason && !ts.playoffs) {
+          teamsWithWinsData.add(ts.tid);
+        }
+      });
+    }
+
+    // Filter to teams that have BOTH player stats AND wins data
+    return allTeams.filter(team => 
+      teamsWithPlayers.has(team.tid) && teamsWithWinsData.has(team.tid)
+    );
+  }, [selectedSeason, allTeams, leagueData.players, leagueData.teamSeasons]);
 
   // Calculate wins guess data (G, A, W)
   const winsGuessData = useMemo(() => {
@@ -2140,7 +2153,22 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       });
     });
 
-    const validTeams = allTeams.filter(team => teamsInSeason.has(team.tid) && team.tid !== selectedTeam?.tid);
+    // Also ensure team has wins data in teamSeasons
+    const teamsWithWinsData = new Set<number>();
+    if (leagueData.teamSeasons) {
+      leagueData.teamSeasons.forEach(ts => {
+        if (ts.season === selectedSeason && !ts.playoffs) {
+          teamsWithWinsData.add(ts.tid);
+        }
+      });
+    }
+
+    // Filter to teams that have BOTH player stats AND wins data
+    const validTeams = allTeams.filter(team => 
+      teamsInSeason.has(team.tid) && 
+      teamsWithWinsData.has(team.tid) && 
+      team.tid !== selectedTeam?.tid
+    );
     if (validTeams.length === 0) {
       toast({
         title: 'No other teams available',
@@ -2160,7 +2188,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     setGuess('');
     setScoreBreakdown([]); // Reset score breakdown
     setDetailedGameData({ playerGuesses: [], leaderResults: [] }); // Reset detailed game data
-  }, [selectedSeason, selectedTeam, allTeams, leagueData.players, buildRoster, toast]);
+  }, [selectedSeason, selectedTeam, allTeams, leagueData.players, leagueData.teamSeasons, buildRoster, toast]);
 
   // New Year, Same Team
   const handleNewYearSameTeam = useCallback(() => {
@@ -2176,7 +2204,22 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       });
     });
 
-    const validSeasons = allSeasons.filter(season => seasonsForTeam.has(season) && season !== selectedSeason);
+    // Also ensure team has wins data in teamSeasons for these seasons
+    const seasonsWithWinsData = new Set<number>();
+    if (leagueData.teamSeasons) {
+      leagueData.teamSeasons.forEach(ts => {
+        if (ts.tid === selectedTeam.tid && !ts.playoffs) {
+          seasonsWithWinsData.add(ts.season);
+        }
+      });
+    }
+
+    // Filter to seasons that have BOTH player stats AND wins data
+    const validSeasons = allSeasons.filter(season => 
+      seasonsForTeam.has(season) && 
+      seasonsWithWinsData.has(season) && 
+      season !== selectedSeason
+    );
     if (validSeasons.length === 0) {
       toast({
         title: 'No other seasons available',
@@ -2196,7 +2239,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     setGuess('');
     setScoreBreakdown([]); // Reset score breakdown
     setDetailedGameData({ playerGuesses: [], leaderResults: [] }); // Reset detailed game data
-  }, [selectedSeason, selectedTeam, allSeasons, leagueData.players, buildRoster, toast]);
+  }, [selectedSeason, selectedTeam, allSeasons, leagueData.players, leagueData.teamSeasons, buildRoster, toast]);
 
   // Wins Guess: Move slider
   const handleWinsGuessSliderMove = useCallback((newPosition: number) => {
@@ -2585,6 +2628,21 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                               key={season}
                               value={season.toString()}
                               onSelect={() => {
+                                // Validate that current team has teamSeasons data for this season
+                                if (selectedTeam) {
+                                  const hasTeamSeasonData = leagueData.teamSeasons?.some(
+                                    ts => ts.tid === selectedTeam.tid && ts.season === season && !ts.playoffs
+                                  );
+                                  if (!hasTeamSeasonData) {
+                                    toast({
+                                      title: 'Invalid Season',
+                                      description: 'This team does not have complete data for the selected season.',
+                                      variant: 'destructive',
+                                    });
+                                    setYearDropdownOpen(false);
+                                    return;
+                                  }
+                                }
                                 setSelectedSeason(season);
                                 setYearDropdownOpen(false);
                                 setCurrentRound('guess');
