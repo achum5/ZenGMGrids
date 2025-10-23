@@ -103,7 +103,7 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
 
             {/* Player Details */}
             <div className="flex-1 min-w-0 space-y-2">
-            <div className="space-y-1 text-sm text-muted-foreground">
+            <div className="space-y-1 text-sm text-muted-foreground mt-[-7px] mb-[-7px]">
               {/* Height and Weight */}
               {(player.hgt || player.weight) && (
                 <div>
