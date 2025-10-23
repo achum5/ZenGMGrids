@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Grid3x3, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 
 type GameMode = 'grids' | 'team-trivia';
 
@@ -106,12 +106,6 @@ export default function ChooseGameMode({ onSelectMode, onBackToUpload }: ChooseG
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <CardDescription className="text-base">
-                Fill a 3×3 grid using team and achievement combinations. 
-                Find players that match each row and column intersection.
-              </CardDescription>
-            </CardContent>
           </Card>
 
           {/* Team Trivia Card */}
@@ -147,12 +141,6 @@ export default function ChooseGameMode({ onSelectMode, onBackToUpload }: ChooseG
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <CardDescription className="text-base">
-                Name every player from a random team and season. 
-                See their faces and guess their names!
-              </CardDescription>
-            </CardContent>
           </Card>
         </div>
 

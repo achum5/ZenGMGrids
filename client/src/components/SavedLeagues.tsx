@@ -49,10 +49,14 @@ export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: 
 
   const handleDelete = async (id: string) => {
     try {
+      // Optimistically remove from UI
+      setLeagues(prev => prev.filter(l => l.id !== id));
+      // Delete in background
       await deleteLeague(id);
-      await loadLeagues();
     } catch (error) {
       console.error('Error deleting league:', error);
+      // On error, reload to restore correct state
+      await loadLeagues();
     }
   };
 
@@ -64,14 +68,23 @@ export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: 
   const handleSaveEdit = async (id: string) => {
     if (editName.trim()) {
       try {
+        // Optimistically update UI
+        setLeagues(prev => prev.map(l =>
+          l.id === id ? { ...l, name: editName.trim() } : l
+        ));
+        setEditingId(null);
+        setEditName('');
+        // Update in background
         await updateLeagueName(id, editName.trim());
-        await loadLeagues();
       } catch (error) {
         console.error('Error updating league name:', error);
+        // On error, reload to restore correct state
+        await loadLeagues();
       }
+    } else {
+      setEditingId(null);
+      setEditName('');
     }
-    setEditingId(null);
-    setEditName('');
   };
 
   const handleCancelEdit = () => {
@@ -81,10 +94,16 @@ export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: 
 
   const handleToggleStar = async (id: string) => {
     try {
+      // Optimistically update UI
+      setLeagues(prev => prev.map(l =>
+        l.id === id ? { ...l, starred: !l.starred } : l
+      ));
+      // Update in background
       await toggleLeagueStarred(id);
-      await loadLeagues();
     } catch (error) {
       console.error('Error toggling star:', error);
+      // On error, reload to restore correct state
+      await loadLeagues();
     }
   };
 
@@ -105,14 +124,29 @@ export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: 
     }
 
     const ids = leaguesToDelete.map(l => l.id);
-    const deletedCount = await bulkDeleteLeagues(ids);
+    const deletedCount = ids.length;
 
-    await loadLeagues();
+    try {
+      // Optimistically remove from UI
+      setLeagues(prev => prev.filter(l => !ids.includes(l.id)));
 
-    toast({
-      title: 'Leagues deleted',
-      description: `Deleted ${deletedCount} league${deletedCount !== 1 ? 's' : ''}.`,
-    });
+      // Delete in background
+      await bulkDeleteLeagues(ids);
+
+      toast({
+        title: 'Leagues deleted',
+        description: `Deleted ${deletedCount} league${deletedCount !== 1 ? 's' : ''}.`,
+      });
+    } catch (error) {
+      console.error('Error deleting leagues:', error);
+      // On error, reload to restore correct state
+      await loadLeagues();
+      toast({
+        title: 'Error',
+        description: 'Failed to delete leagues. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const getSportIcon = (sport: string) => {

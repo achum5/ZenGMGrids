@@ -814,13 +814,14 @@ export default function Home() {
       try {
         setUploadProgress({ message: 'Saving league...', loaded: 95, total: 100 });
 
-        // Extract league name from gameAttributes, fallback to file name
+        // Extract league name from gameAttributes
+        // gameAttributes is an array of {key, value} pairs
         let leagueName = '';
-        if (data.gameAttributes?.leagueName) {
-          leagueName = data.gameAttributes.leagueName;
-        } else if (Array.isArray(data.gameAttributes) && data.gameAttributes.length > 0) {
-          // Some BBGM files have gameAttributes as an array
-          leagueName = data.gameAttributes[0]?.leagueName || '';
+        if (Array.isArray(data.gameAttributes)) {
+          const leagueNameEntry = data.gameAttributes.find(attr => attr.key === 'leagueName');
+          if (leagueNameEntry) {
+            leagueName = leagueNameEntry.value;
+          }
         }
 
         // Fallback to cleaned filename if no league name found

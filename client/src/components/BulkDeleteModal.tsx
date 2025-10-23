@@ -50,13 +50,8 @@ export function BulkDeleteModal({
         <AlertDialogHeader>
           <AlertDialogTitle>Delete all saved leagues?</AlertDialogTitle>
           <AlertDialogDescription className="space-y-4">
-            <p>
-              Are you sure you want to delete <strong>ALL data</strong> in{' '}
-              <strong>ALL</strong> of your saved leagues?
-            </p>
-
             {/* Checkbox for unstarred only */}
-            <div className="flex items-center space-x-2 pt-2">
+            <div className="flex items-center space-x-2">
               <Checkbox
                 id="unstarred-only"
                 checked={unstarredOnly}
