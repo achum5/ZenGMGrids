@@ -2480,7 +2480,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     </AlertDialogContent>
                   </AlertDialog>
                 ) : (
-                  <Button variant="ghost" size="sm" onClick={onGoHome} data-testid="button-home" style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))' }} className="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3 animate-on-click text-[16px]">
+                  <Button variant="ghost" size="sm" onClick={onGoHome} data-testid="button-home" style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))' }} className="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3 animate-on-click text-[16px] pl-[12.1px] pr-[12.1px]">
                     <HomeIcon className="h-[1.2rem] w-[1.2rem]" />
                     <span className="sr-only">Go home</span>
                   </Button>
@@ -2995,8 +2995,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
           </div>
         </div>
 
-        {/* Bottom Actions */}
-        <div className="shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t neon-border-subtle relative z-[1000]">
+        {/* Bottom Actions - Hide when breakdown modal is open */}
+        {!showBreakdownModal && (
+          <div className="shrink-0 bg-background/95 border-t neon-border-subtle relative z-[100]">
           <div className="max-w-4xl mx-auto px-6 py-4">
             <div className="flex items-center gap-3">
               {/* Center: Search input (guess/hint rounds) OR Leader prompt (leader rounds) */}
@@ -3381,6 +3382,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
             </div>
           </div>
         </div>
+        )}
 
         {/* Score Summary Modal - Shown when breakdown modal is open */}
         {scoreSummaryData && (

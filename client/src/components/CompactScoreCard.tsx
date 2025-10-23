@@ -150,17 +150,20 @@ export function CompactScoreCard({
 
         return `${token}${leader.userCorrect ? '✓' : '✗'}`;
       })
-      .join(' | ');
+      .join(' · ');
   }, [data.leaders, leaderTokens]);
 
   const winsPoints = data.winsGuess ? (data.winsGuess.awarded ? 10 : 0) : 0;
   const playoffPoints = data.playoffFinish?.pointsAwarded ?? 0;
 
+  // Darken background on mobile for better contrast
+  const cardBackground = `linear-gradient(180deg, ${primaryColor}f0 0%, ${primaryColor}e8 100%)`;
+
   const card = (
     <div
-      className="relative w-full max-w-[560px] rounded-2xl shadow-2xl overflow-hidden"
+      className="relative w-full max-w-[560px] rounded-xl sm:rounded-2xl shadow-2xl overflow-hidden"
       style={{
-        background: `linear-gradient(180deg, ${primaryColor}f5 0%, ${primaryColor}ed 100%)`,
+        background: cardBackground,
         border: `2px solid ${secondaryColor}`,
       }}
       onClick={(e) => e.stopPropagation()}
@@ -168,7 +171,7 @@ export function CompactScoreCard({
       {variant === 'standalone' && onClose && (
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-20 rounded-full p-2 transition-all hover:scale-110 hover:rotate-90"
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 rounded-full p-2 transition-all hover:scale-110 hover:rotate-90"
           style={{
             backgroundColor: `${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`,
             color: textColor === 'white' ? '#ffffff' : '#000000',
@@ -179,23 +182,33 @@ export function CompactScoreCard({
         </button>
       )}
 
+      {/* Watermark - reduced opacity on mobile */}
       {data.teamLogo && (
-        <div className="absolute inset-0 flex items-center justify-center opacity-[0.06] pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] sm:opacity-[0.06] pointer-events-none">
           <img src={data.teamLogo} alt="" className="w-[80%] h-[80%] object-contain" />
         </div>
       )}
 
-      <div className="relative z-10 p-6 space-y-3">
-        <div className="mb-4">
+      <div className="relative z-10 p-3 sm:p-6 space-y-2 sm:space-y-3">
+        {/* Header - single instance, centered */}
+        <div className="flex items-center justify-center gap-2 mb-3 sm:mb-4">
+          {data.teamLogo && (
+            <img
+              src={data.teamLogo}
+              alt={data.teamName}
+              className="h-7 w-7 sm:h-8 sm:w-8 object-contain flex-shrink-0"
+            />
+          )}
           <h2
-            className="text-xl font-bold tracking-tight"
+            className="text-lg sm:text-xl font-bold tracking-tight leading-tight"
             style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
           >
             {data.season} {data.teamName}
           </h2>
         </div>
 
-        <div className="space-y-2">
+        {/* Score Rows */}
+        <div className="space-y-0">
           <ScoreRow
             label="ROUND 1"
             detail={`${guessRoundCount}×15 = ${guessRoundPoints}`}
@@ -228,7 +241,7 @@ export function CompactScoreCard({
           {data.winsGuess && (
             <ScoreRow
               label="WINS"
-              detail={data.winsGuess.awarded ? '✓' : '✗'}
+              detail={data.winsGuess.awarded ? 'Correct' : 'Incorrect'}
               points={winsPoints}
               textColor={textColor}
               secondaryColor={secondaryColor}
@@ -246,20 +259,23 @@ export function CompactScoreCard({
               icon="🏆"
             />
           )}
+        </div>
 
-          <div
-            className="flex items-center justify-center py-3 px-3 rounded-lg mt-4"
-            style={{ borderTop: `2px solid ${textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'}` }}
-          >
+        {/* Total Section */}
+        <div
+          className="flex flex-col items-center gap-1 py-3 px-3 rounded-lg mt-3 sm:mt-4"
+          style={{ borderTop: `2px solid ${textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'}` }}
+        >
+          <div className="flex items-center gap-3">
             <span
-              className="text-xl font-bold uppercase tracking-wide"
+              className="text-lg sm:text-xl font-bold uppercase tracking-wide"
               style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
             >
               TOTAL {data.finalScore}
             </span>
             {data.timeElapsed && (
               <span
-                className="text-xs px-2 py-1 rounded ml-4"
+                className="text-xs px-2 py-1 rounded"
                 style={{
                   backgroundColor: `${textColor === 'white' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'}`,
                   color: textColor === 'white' ? '#ffffff' : '#000000',
@@ -269,18 +285,27 @@ export function CompactScoreCard({
               </span>
             )}
           </div>
+          {/* Math breakdown - tiny on mobile */}
+          <span
+            className="text-[10px] sm:text-xs font-mono opacity-60 hidden sm:block"
+            style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
+          >
+            {data.categories.map(c => c.points).join(' + ')} = {data.finalScore}
+          </span>
         </div>
       </div>
 
       {variant === 'standalone' && (
-        <div className="flex gap-3 mt-6">
-          <Button onClick={onPlayAgain} size="lg" className="gap-2">
+        <div className="flex gap-3 p-3 sm:p-4">
+          <Button onClick={onPlayAgain} size="lg" className="gap-2 flex-1">
             <Shuffle className="h-4 w-4" />
-            Play Again
+            <span className="hidden sm:inline">Play Again</span>
+            <span className="sm:hidden">Again</span>
           </Button>
-          <Button onClick={onNewSeason} variant="outline" size="lg" className="gap-2">
+          <Button onClick={onNewSeason} variant="outline" size="lg" className="gap-2 flex-1">
             <Home className="h-4 w-4" />
-            New Season
+            <span className="hidden sm:inline">New Season</span>
+            <span className="sm:hidden">New</span>
           </Button>
         </div>
       )}
@@ -293,7 +318,7 @@ export function CompactScoreCard({
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center p-4 backdrop-blur-sm bg-black/20"
+      className="min-h-screen flex flex-col items-center justify-center p-3 sm:p-4 backdrop-blur-sm bg-black/20"
       onClick={onClose}
     >
       {card}
@@ -326,30 +351,42 @@ function ScoreRow({
 }: ScoreRowProps) {
   return (
     <div
-      className="flex items-center justify-between py-2 px-3 rounded-lg border-b"
-      style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)' }}
+      className="flex items-start min-h-[44px] py-2 px-2 sm:px-3 border-b"
+      style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)' }}
     >
-      <div className="flex items-center gap-3">
-        <span className="text-lg" style={iconStyle}>{icon}</span>
+      {/* Left section: Icon + Label + Detail (grows) */}
+      <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
         <span
-          className="text-sm font-bold uppercase tracking-wide"
-          style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
+          className="text-base sm:text-lg flex-shrink-0 leading-none mt-0.5"
+          style={iconStyle}
         >
-          {label}
+          {icon}
         </span>
-        {renderDetailAsNode ? (
-          detail
-        ) : (
+        <div className="flex flex-col gap-0.5 min-w-0 flex-1">
           <span
-            className={monoDetail ? 'text-sm font-mono' : 'text-sm'}
-            style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}
+            className="text-sm sm:text-sm font-bold uppercase tracking-wide leading-tight"
+            style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
           >
-            • {detail}
+            {label}
           </span>
-        )}
+          {renderDetailAsNode ? (
+            detail
+          ) : (
+            <span
+              className={`text-xs sm:text-sm leading-tight break-words ${monoDetail ? 'font-mono' : ''}`}
+              style={{
+                color: textColor === 'white' ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.75)',
+              }}
+            >
+              {detail}
+            </span>
+          )}
+        </div>
       </div>
+
+      {/* Right section: Points pill (fixed width) */}
       <span
-        className="text-sm font-semibold px-3 py-1 rounded-full"
+        className="text-xs sm:text-sm font-semibold px-2.5 sm:px-3 py-1 rounded-full flex-shrink-0 min-w-[56px] sm:min-w-[64px] text-center"
         style={{
           backgroundColor: secondaryColor,
           color: getContrastColor(secondaryColor) === 'white' ? '#ffffff' : '#000000',

@@ -558,7 +558,7 @@ export function ScoreSummaryModal({
   );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
+    <Dialog open={open} onOpenChange={onOpenChange} modal={true}>
       <style>{`
         [data-state="open"] .rainbow-border {
           background: ${secondaryColor} !important;
@@ -574,14 +574,19 @@ export function ScoreSummaryModal({
         }
         /* Force modal overlay and content above footer */
         [data-radix-dialog-overlay] {
-          z-index: 10000 !important;
-          backdrop-filter: blur(8px) !important;
-          -webkit-backdrop-filter: blur(8px) !important;
-          background-color: rgba(0, 0, 0, 0.5) !important;
+          z-index: 50000 !important;
+          backdrop-filter: blur(12px) !important;
+          -webkit-backdrop-filter: blur(12px) !important;
+          background-color: rgba(0, 0, 0, 0.6) !important;
+          position: fixed !important;
+          inset: 0 !important;
+        }
+        [data-radix-dialog-content] {
+          z-index: 50001 !important;
         }
       `}</style>
       <DialogContent
-        className="max-w-5xl max-h-[90vh] overflow-y-auto p-0 !z-[10000]"
+        className="max-w-5xl max-h-[90vh] overflow-y-auto p-0 !z-[50001]"
         aria-describedby="score-summary-description"
         style={{
           backgroundColor: primaryColor,
@@ -644,24 +649,26 @@ export function ScoreSummaryModal({
             </Button>
           </div>
 
-          {/* Season and Team Logo */}
-          <div className="flex items-center justify-center gap-4">
-            {data.teamLogo && (
-              <img
-                src={data.teamLogo}
-                alt={data.teamName}
-                className="h-12 w-12 object-contain"
-              />
-            )}
-            <h2
-              className="text-2xl font-bold"
-              style={{
-                color: getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000'
-              }}
-            >
-              {data.season} {data.teamName}
-            </h2>
-          </div>
+          {/* Season and Team Logo - Only show in detailed view */}
+          {viewMode === 'detailed' && (
+            <div className="flex items-center justify-center gap-4">
+              {data.teamLogo && (
+                <img
+                  src={data.teamLogo}
+                  alt={data.teamName}
+                  className="h-12 w-12 object-contain"
+                />
+              )}
+              <h2
+                className="text-2xl font-bold"
+                style={{
+                  color: getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000'
+                }}
+              >
+                {data.season} {data.teamName}
+              </h2>
+            </div>
+          )}
 
           {viewMode === 'detailed' ? detailedContent : spoilerContent}
 
