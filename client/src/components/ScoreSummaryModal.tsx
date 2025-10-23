@@ -678,7 +678,7 @@ export function ScoreSummaryModal({
           <div className="px-6 pb-6 flex-1 flex flex-col justify-center space-y-6">
             {/* Season and Team Logo - Only show in detailed view */}
             {viewMode === 'detailed' && (
-              <div className="flex items-center justify-center gap-4">
+              <div className="flex items-center justify-center gap-4 mt-8">
                 {data.teamLogo && (
                   <img
                     src={data.teamLogo}
