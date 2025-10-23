@@ -587,7 +587,7 @@ export function ScoreSummaryModal({
         }
       `}</style>
       <DialogContent
-        className="max-w-5xl max-h-[calc(100vh-4rem)] w-[calc(100vw-2rem)] p-0 !z-[50001]"
+        className="max-w-5xl max-h-[calc(100vh-8rem)] w-[calc(100vw-2rem)] p-0 !z-[50001]"
         aria-describedby="score-summary-description"
         style={{
           backgroundColor: primaryColor,
@@ -618,7 +618,7 @@ export function ScoreSummaryModal({
         <div
           className="overflow-y-auto overflow-x-hidden"
           style={{
-            maxHeight: 'calc(100vh - 4rem)',
+            maxHeight: 'calc(100vh - 8rem)',
           }}
         >
           <div className="px-6 pt-6 pb-6 space-y-6">
