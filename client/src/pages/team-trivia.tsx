@@ -671,6 +671,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
 
   // Get all teams (sorted alphabetically)
   const allTeams = useMemo(() => {
+    console.log('[AllTeams] Computing allTeams...');
     const teams = leagueData.teams
       .filter(team => !team.disabled)
       .sort((a, b) => {
@@ -679,15 +680,63 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         return nameA.localeCompare(nameB);
       });
 
-    // Debug: Check if STL and CLB are in allTeams
+    // Debug: Check if STL and CLB are in allTeams and have teamSeasons data
     const stl = teams.find(t => t.abbrev === 'STL');
     const clb = teams.find(t => t.abbrev === 'CLB');
+    console.log('[AllTeams] Found STL:', !!stl, 'Found CLB:', !!clb);
+
+    // Check teamSeasons for these teams
+    const stlTeamSeasons = leagueData.teamSeasons?.filter(ts => ts.tid === stl?.tid);
+    const clbTeamSeasons = leagueData.teamSeasons?.filter(ts => ts.tid === clb?.tid);
+
+    // Get all unique tids from teamSeasons to check for mapping issues
+    const allTeamSeasonTids = new Set(leagueData.teamSeasons?.map(ts => ts.tid) || []);
+    const allTeamTids = new Set(teams.map(t => t.tid));
+
+    // Find tids that exist in teamSeasons but not in teams (orphaned data)
+    const orphanedTids = Array.from(allTeamSeasonTids).filter(tid => !allTeamTids.has(tid));
+
+    // Find tids that exist in teams but not in teamSeasons (missing data)
+    const missingDataTids = Array.from(allTeamTids).filter(tid => !allTeamSeasonTids.has(tid));
+
+    // Check specific seasons for these teams
+    const stlSeasonRange = stlTeamSeasons?.map(ts => ts.season).sort((a, b) => a - b);
+    const clbSeasonRange = clbTeamSeasons?.map(ts => ts.season).sort((a, b) => a - b);
+
     console.log('[AllTeams] STL and CLB check:', {
       stlExists: !!stl,
       clbExists: !!clb,
+      stlTid: stl?.tid,
+      clbTid: clb?.tid,
       stlDisabled: stl?.disabled,
       clbDisabled: clb?.disabled,
-      totalTeams: teams.length
+      stlTeamSeasonsCount: stlTeamSeasons?.length || 0,
+      clbTeamSeasonsCount: clbTeamSeasons?.length || 0,
+      stlSeasonRange: stlSeasonRange?.length ? `${stlSeasonRange[0]}-${stlSeasonRange[stlSeasonRange.length - 1]}` : 'none',
+      clbSeasonRange: clbSeasonRange?.length ? `${clbSeasonRange[0]}-${clbSeasonRange[clbSeasonRange.length - 1]}` : 'none',
+      stlSampleSeasons: stlTeamSeasons?.slice(0, 3).map(ts => ({ season: ts.season, won: ts.won, lost: ts.lost })),
+      clbSampleSeasons: clbTeamSeasons?.slice(0, 3).map(ts => ({ season: ts.season, won: ts.won, lost: ts.lost })),
+      totalTeams: teams.length,
+      totalTeamSeasons: leagueData.teamSeasons?.length || 0,
+      uniqueTeamSeasonTids: allTeamSeasonTids.size,
+      orphanedTids: orphanedTids.length > 0 ? orphanedTids : 'none',
+      missingDataTids: missingDataTids.length > 0 ? missingDataTids.map(tid => {
+        const team = teams.find(t => t.tid === tid);
+        return `${team?.abbrev} (tid: ${tid})`;
+      }) : 'none',
+      // Check team.seasons array for these teams
+      stlTeamSeasonsArray: stl?.seasons?.map(s => s.season).sort((a, b) => a - b),
+      clbTeamSeasonsArray: clb?.seasons?.map(s => s.season).sort((a, b) => a - b),
+      // Sample a specific season from team.seasons to see structure
+      stlSeason2036FromTeam: stl?.seasons?.find(s => s.season === 2036),
+      clbSeason2036FromTeam: clb?.seasons?.find(s => s.season === 2036),
+      // Check what fields exist
+      clbSeason2036Fields: clb?.seasons?.find(s => s.season === 2036) ?
+        Object.keys(clb.seasons.find(s => s.season === 2036)!) : [],
+      clbHasWonLost: (() => {
+        const season = clb?.seasons?.find(s => s.season === 2036);
+        return season ? { won: season.won, lost: season.lost } : null;
+      })()
     });
 
     return teams;
@@ -732,12 +781,14 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
           hasWins,
           existsInSeason,
           seasons: team.seasons?.map(s => s.season),
-          willBeIncluded: hasWins && (hasPlayers || existsInSeason)
+          willBeIncluded: (hasWins && hasPlayers) || (hasPlayers && existsInSeason)
         });
       }
 
-      // Team must have wins data, AND (have players OR exist in that season)
-      return hasWins && (hasPlayers || existsInSeason);
+      // Team should be included if:
+      // - Has both players and wins data (ideal case)
+      // - OR has players and exists in that season (even without wins data - data may be incomplete)
+      return (hasWins && hasPlayers) || (hasPlayers && existsInSeason);
     });
 
     // Debug: log filtered teams count
@@ -2456,12 +2507,15 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       });
     }
 
-    // Filter to seasons that have BOTH player stats AND wins data
-    const validSeasons = allSeasons.filter(season => 
-      seasonsForTeam.has(season) && 
-      seasonsWithWinsData.has(season) && 
-      season !== selectedSeason
-    );
+    // Filter to seasons that have player stats (wins data preferred but not required)
+    // Include season if it has players AND (has wins data OR team exists in that season)
+    const validSeasons = allSeasons.filter(season => {
+      const hasPlayers = seasonsForTeam.has(season);
+      const hasWins = seasonsWithWinsData.has(season);
+      const teamExistsInSeason = selectedTeam.seasons?.some(s => s.season === season);
+
+      return hasPlayers && (hasWins || teamExistsInSeason) && season !== selectedSeason;
+    });
     if (validSeasons.length === 0) {
       toast({
         title: 'No other seasons available',
