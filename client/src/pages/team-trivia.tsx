@@ -2686,6 +2686,44 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
           </div>
         </div>
 
+        {/* Team Info Sub-Header - Only shown when game is complete */}
+        {currentRound === 'complete' && (
+          <div className="border-b shrink-0" style={{ backgroundColor: `${teamDisplayInfo.colors[0]}dd` || 'hsl(var(--card))' }}>
+            <div className="max-w-4xl mx-auto px-3 sm:px-6 py-3">
+              <div className="flex items-center justify-center gap-3">
+                {teamDisplayInfo.logo && (
+                  <img
+                    src={getTeamLogoUrl(teamDisplayInfo.logo, leagueData.sport)}
+                    alt={teamDisplayInfo.name}
+                    className="h-8 w-8 object-contain"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                )}
+                <h2
+                  className="text-lg sm:text-xl font-bold"
+                  style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary))' }}
+                >
+                  {selectedSeason} {teamDisplayInfo.name}
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowTeamInfo(true)}
+                  className="animate-on-click"
+                  style={{
+                    color: teamDisplayInfo.colors[1] || 'hsl(var(--primary))'
+                  }}
+                >
+                  <Info className="h-5 w-5" />
+                  <span className="ml-1 hidden sm:inline">Team Info</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Roster Grid */}
         <div className="flex-1 overflow-y-auto min-h-0">
           <div className="max-w-6xl mx-auto px-1 sm:px-4 md:px-6 py-2 sm:py-4 md:py-6">
@@ -3358,7 +3396,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
               setShowBreakdownModal(false);
               handleNew();
             }}
-            onShowTeamInfo={() => setShowTeamInfo(true)}
           />
         )}
 

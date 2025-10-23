@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Users as UsersIcon, TrendingUp, Target, Flag, X, Info } from 'lucide-react';
+import { Users as UsersIcon, TrendingUp, Target, Flag, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PlayerFace } from '@/components/PlayerFace';
 import {
@@ -69,7 +69,6 @@ interface ScoreSummaryModalProps {
   onPlayAgain: () => void;
   onNewSeason: () => void;
   onShare?: () => void;
-  onShowTeamInfo?: () => void;
 }
 
 function PointsPill({
@@ -168,7 +167,6 @@ export function ScoreSummaryModal({
   onPlayAgain,
   onNewSeason,
   onShare,
-  onShowTeamInfo,
 }: ScoreSummaryModalProps) {
   const [viewMode, setViewMode] = useState<'detailed' | 'spoilerFree'>('detailed');
   const [cardsVisible, setCardsVisible] = useState(false);
@@ -663,20 +661,6 @@ export function ScoreSummaryModal({
             >
               {data.season} {data.teamName}
             </h2>
-            {onShowTeamInfo && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onShowTeamInfo}
-                className="animate-bounce"
-                style={{
-                  color: getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000'
-                }}
-              >
-                <Info className="h-5 w-5 mr-1" />
-                Team Info
-              </Button>
-            )}
           </div>
 
           {viewMode === 'detailed' ? detailedContent : spoilerContent}

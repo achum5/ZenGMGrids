@@ -14,7 +14,9 @@
       "Bash(lsof:*)",
       "Bash(xargs kill:*)",
       "Bash(fuser:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(xargs cat:*)",
+      "Bash(killall node:*)"
     ],
     "deny": [],
     "ask": []

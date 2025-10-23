@@ -13,11 +13,18 @@ Built as a single-page React application deployable to Vercel without server-sid
 
 ## Development Commands
 
+**IMPORTANT: Do NOT run `npm run dev`**
+- The user manages the dev server manually in their own terminal
+- Only run `npm run check` for TypeScript validation when making changes
+- Never start the development server (`npm run dev`) in any conversation
+- This prevents port conflicts and gives the user full control over the server lifecycle
+
 ### Running the Development Server
 ```bash
 npm run dev
 ```
 Starts the development server using tsx. Sets NODE_ENV=development and runs server/index.ts, which serves both the Vite dev server and API routes.
+**Note: User runs this manually - Claude should NOT run this command.**
 
 ### Building for Production
 ```bash
