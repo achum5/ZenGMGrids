@@ -698,10 +698,6 @@ export function ScoreSummaryModal({
             )}
 
             {viewMode === 'detailed' ? detailedContent : spoilerContent}
-
-            <div className="text-right text-sm font-mono text-muted-foreground border-t pt-4">
-              Total = {data.categories.map(c => c.points).join(' + ')} = {data.finalScore} 
-            </div>
           </div>
         </div>
       </DialogContent>
