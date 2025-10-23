@@ -373,6 +373,8 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
 
       // Find teams that have no data in raw.teamSeasons but have data in teams[].seasons
       // This handles expansion teams that were added after the league started
+
+      // First, identify which tids are completely missing from teamSeasons
       const tidsInTeamSeasons = new Set(teamSeasons.map(ts => ts.tid));
       console.log('[League Normalizer] Checking for missing teams...', {
         totalTeams: raw.teams?.length || 0,
@@ -419,6 +421,10 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
       } else {
         console.log('[League Normalizer] No teams missing from raw.teamSeasons');
       }
+
+      // Note: The worker may have already extracted some data from teams[].seasons
+      // and there may be duplicates. The IDB reader handles this correctly by reading
+      // all records, so we don't need to deduplicate here.
     } else {
       // Alternative: Extract from teams[].seasons if raw.teamSeasons doesn't exist
       console.log('[League Normalizer] No raw.teamSeasons found, extracting from teams[].seasons');

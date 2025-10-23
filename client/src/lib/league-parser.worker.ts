@@ -172,7 +172,10 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
   let gameAttributes: any = null;
   let playoffSeries: any = null;  // Changed to single value instead of array
   let currentArraySection: 'players' | 'teams' | 'teamSeasons' | null = null;
-  
+
+  // Track unique team-season combinations to avoid duplicates
+  const teamSeasonKeys = new Set<string>();
+
   // Helper to detect sport from player
   const detectSportFromPlayer = (player: any) => {
     if (sport) return;
@@ -220,8 +223,30 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
       const tx = db.transaction('teamSeasons', 'readwrite');
       const store = tx.objectStore('teamSeasons');
       const batch = teamSeasonQueue.splice(0, Math.min(BATCH_SIZE, teamSeasonQueue.length));
+
+      // Check if this batch contains CLB or STL
+      const targetRecords = batch.filter(ts => ts.tid === 36 || ts.tid === 37);
+      if (targetRecords.length > 0) {
+        console.log('[Streaming] Flushing batch with', targetRecords.length, 'CLB/STL records:',
+          targetRecords.slice(0, 3).map(ts => `tid=${ts.tid} season=${ts.season}`));
+      }
+
+      let addedCount = 0;
+      let failedCount = 0;
       for (const teamSeason of batch) {
-        await store.add(teamSeason);
+        try {
+          await store.add(teamSeason);
+          addedCount++;
+        } catch (err) {
+          failedCount++;
+          const isTarget = teamSeason.tid === 36 || teamSeason.tid === 37;
+          if (failedCount <= 3 || isTarget) {
+            console.warn('[Streaming] Failed to add teamSeason:', teamSeason.tid, teamSeason.season, err);
+          }
+        }
+      }
+      if (failedCount > 0) {
+        console.log('[Streaming] TeamSeason batch: added', addedCount, 'failed', failedCount);
       }
       await tx.done;
     }
@@ -282,26 +307,42 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
             const team = value.value as any;
             teamQueue.push(team);
             teamCount++;
-            
-            // Extract nested seasons from this team
+
+            // Extract nested seasons from this team, checking for duplicates
             if (team && typeof team === 'object' && team.seasons && Array.isArray(team.seasons)) {
               for (const season of team.seasons) {
-                teamSeasonQueue.push({
-                  tid: team.tid,
-                  season: season.season,
-                  won: season.won,
-                  lost: season.lost,
-                  tied: season.tied,
-                  otl: season.otl,
-                  playoffs: season.playoffs || false,
-                  gp: season.gp
-                });
-                teamSeasonCount++;
+                const key = `${team.tid}-${season.season}-${season.playoffs || false}`;
+                if (!teamSeasonKeys.has(key)) {
+                  teamSeasonKeys.add(key);
+                  teamSeasonQueue.push({
+                    tid: team.tid,
+                    season: season.season,
+                    won: season.won,
+                    lost: season.lost,
+                    tied: season.tied,
+                    otl: season.otl,
+                    playoffs: season.playoffs || false,
+                    gp: season.gp
+                  });
+                  teamSeasonCount++;
+                }
               }
             }
           } else if (currentArraySection === 'teamSeasons') {
-            teamSeasonQueue.push(value.value);
-            teamSeasonCount++;
+            const teamSeason = value.value;
+            const key = `${teamSeason.tid}-${teamSeason.season}-${teamSeason.playoffs || false}`;
+            const isTarget = teamSeason.tid === 36 || teamSeason.tid === 37;
+
+            if (!teamSeasonKeys.has(key)) {
+              teamSeasonKeys.add(key);
+              teamSeasonQueue.push(teamSeason);
+              teamSeasonCount++;
+              if (isTarget && teamSeasonCount % 10 === 0) {
+                console.log(`[Streaming] Added from raw.teamSeasons: tid=${teamSeason.tid} season=${teamSeason.season}`);
+              }
+            } else if (isTarget) {
+              console.log(`[Streaming] Skipped duplicate from raw.teamSeasons: tid=${teamSeason.tid} season=${teamSeason.season}`);
+            }
             
             // Progress update every 100 team seasons
             if (teamSeasonCount % 100 === 0) {
@@ -341,9 +382,13 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
       }
     }
     
-    // Final flush
+    // Final flush - keep flushing until all queues are empty
     postProgress('Finalizing database...', 90, 100);
-    await flushBuffers(true);
+    while (playerQueue.length > 0 || teamQueue.length > 0 || teamSeasonQueue.length > 0) {
+      console.log('[Streaming] Final flush: playerQueue=', playerQueue.length, 'teamQueue=', teamQueue.length, 'teamSeasonQueue=', teamSeasonQueue.length);
+      await flushBuffers(true);
+    }
+    console.log('[Streaming] All queues flushed');
 
     // Verify what was actually written to IDB
     const verifyTx = db.transaction('teamSeasons', 'readonly');
@@ -502,7 +547,10 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
   let gameAttributes: any = null;
   let playoffSeries: any = null;  // Changed to single value instead of array
   let currentArraySection: 'players' | 'teams' | 'teamSeasons' | null = null;
-  
+
+  // Track unique team-season combinations to avoid duplicates
+  const teamSeasonKeys = new Set<string>();
+
   // Helper to detect sport from player
   const detectSportFromPlayer = (player: any) => {
     if (sport) return;
@@ -551,8 +599,30 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
       const tx = db.transaction('teamSeasons', 'readwrite');
       const store = tx.objectStore('teamSeasons');
       const batch = teamSeasonQueue.splice(0, Math.min(BATCH_SIZE, teamSeasonQueue.length));
+
+      // Check if this batch contains CLB or STL
+      const targetRecords = batch.filter(ts => ts.tid === 36 || ts.tid === 37);
+      if (targetRecords.length > 0) {
+        console.log('[Streaming] Flushing batch with', targetRecords.length, 'CLB/STL records:',
+          targetRecords.slice(0, 3).map(ts => `tid=${ts.tid} season=${ts.season}`));
+      }
+
+      let addedCount = 0;
+      let failedCount = 0;
       for (const teamSeason of batch) {
-        await store.add(teamSeason);
+        try {
+          await store.add(teamSeason);
+          addedCount++;
+        } catch (err) {
+          failedCount++;
+          const isTarget = teamSeason.tid === 36 || teamSeason.tid === 37;
+          if (failedCount <= 3 || isTarget) {
+            console.warn('[Streaming] Failed to add teamSeason:', teamSeason.tid, teamSeason.season, err);
+          }
+        }
+      }
+      if (failedCount > 0) {
+        console.log('[Streaming] TeamSeason batch: added', addedCount, 'failed', failedCount);
       }
       await tx.done;
     }
@@ -613,26 +683,42 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
             const team = value.value as any;
             teamQueue.push(team);
             teamCount++;
-            
-            // Extract nested seasons from this team
+
+            // Extract nested seasons from this team, checking for duplicates
             if (team && typeof team === 'object' && team.seasons && Array.isArray(team.seasons)) {
               for (const season of team.seasons) {
-                teamSeasonQueue.push({
-                  tid: team.tid,
-                  season: season.season,
-                  won: season.won,
-                  lost: season.lost,
-                  tied: season.tied,
-                  otl: season.otl,
-                  playoffs: season.playoffs || false,
-                  gp: season.gp
-                });
-                teamSeasonCount++;
+                const key = `${team.tid}-${season.season}-${season.playoffs || false}`;
+                if (!teamSeasonKeys.has(key)) {
+                  teamSeasonKeys.add(key);
+                  teamSeasonQueue.push({
+                    tid: team.tid,
+                    season: season.season,
+                    won: season.won,
+                    lost: season.lost,
+                    tied: season.tied,
+                    otl: season.otl,
+                    playoffs: season.playoffs || false,
+                    gp: season.gp
+                  });
+                  teamSeasonCount++;
+                }
               }
             }
           } else if (currentArraySection === 'teamSeasons') {
-            teamSeasonQueue.push(value.value);
-            teamSeasonCount++;
+            const teamSeason = value.value;
+            const key = `${teamSeason.tid}-${teamSeason.season}-${teamSeason.playoffs || false}`;
+            const isTarget = teamSeason.tid === 36 || teamSeason.tid === 37;
+
+            if (!teamSeasonKeys.has(key)) {
+              teamSeasonKeys.add(key);
+              teamSeasonQueue.push(teamSeason);
+              teamSeasonCount++;
+              if (isTarget && teamSeasonCount % 10 === 0) {
+                console.log(`[Streaming] Added from raw.teamSeasons: tid=${teamSeason.tid} season=${teamSeason.season}`);
+              }
+            } else if (isTarget) {
+              console.log(`[Streaming] Skipped duplicate from raw.teamSeasons: tid=${teamSeason.tid} season=${teamSeason.season}`);
+            }
             
             // Progress update every 100 team seasons
             if (teamSeasonCount % 100 === 0) {
@@ -672,9 +758,13 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
       }
     }
     
-    // Final flush
+    // Final flush - keep flushing until all queues are empty
     postProgress('Finalizing database...', 90, 100);
-    await flushBuffers(true);
+    while (playerQueue.length > 0 || teamQueue.length > 0 || teamSeasonQueue.length > 0) {
+      console.log('[Streaming] Final flush: playerQueue=', playerQueue.length, 'teamQueue=', teamQueue.length, 'teamSeasonQueue=', teamSeasonQueue.length);
+      await flushBuffers(true);
+    }
+    console.log('[Streaming] All queues flushed');
 
     // Verify what was actually written to IDB
     const verifyTx = db.transaction('teamSeasons', 'readonly');
