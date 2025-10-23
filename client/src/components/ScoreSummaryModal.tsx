@@ -587,19 +587,23 @@ export function ScoreSummaryModal({
         }
       `}</style>
       <DialogContent
-        className="max-w-5xl max-h-[90vh] overflow-y-auto p-0 !z-[50001]"
+        className="max-w-5xl max-h-[85vh] w-[calc(100vw-2rem)] p-0 !z-[50001] flex flex-col my-8 overflow-hidden"
         aria-describedby="score-summary-description"
         style={{
           backgroundColor: primaryColor,
+          display: 'flex',
+          flexDirection: 'column',
+          maxHeight: '85vh',
+          overflow: 'hidden',
         }}
       >
-        {/* Custom Close Button */}
+        {/* Custom Close Button - Fixed */}
         <button
           onClick={() => onOpenChange(false)}
           className="absolute right-4 top-4 z-[10001] rounded-lg p-2.5 transition-all duration-200 hover:scale-110 hover:rotate-90 shadow-lg"
           style={{
             backgroundColor: `${secondaryColor}40`,
-            color: getContrastColor(secondaryColor) === 'white' ? '#ffffff' : '#000000',
+            color: secondaryColor,
             border: `2px solid ${secondaryColor}`,
             backdropFilter: 'blur(8px)',
           }}
@@ -614,36 +618,60 @@ export function ScoreSummaryModal({
           <X className="h-6 w-6" />
         </button>
 
-        <div className="px-6 pt-6 pb-6 space-y-6">
+        {/* Scrollable content area */}
+        <div
+          className="flex-1"
+          style={{
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            minHeight: 0,
+            flex: '1 1 0%'
+          }}
+        >
+          <div className="px-6 pt-6 pb-6 space-y-6">
           <div className="flex flex-wrap items-center justify-center gap-2">
             <Button
-              variant={viewMode === 'detailed' ? 'default' : 'outline'}
+              variant="outline"
               size="sm"
               onClick={() => setViewMode('detailed')}
-              className="px-4"
+              className="px-4 transition-all duration-150"
               style={viewMode === 'detailed' ? {
-                backgroundColor: secondaryColor,
-                color: getContrastColor(secondaryColor) === 'white' ? '#ffffff' : '#000000',
-                borderColor: secondaryColor,
-              } : {
-                borderColor: secondaryColor,
+                backgroundColor: primaryColor,
                 color: secondaryColor,
+                borderColor: secondaryColor,
+                border: `2px solid ${secondaryColor}`,
+                transform: 'translateY(2px)',
+                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)',
+              } : {
+                backgroundColor: primaryColor,
+                color: secondaryColor,
+                borderColor: secondaryColor,
+                border: `2px solid ${secondaryColor}`,
+                transform: 'translateY(0)',
+                boxShadow: `0 4px 0 ${secondaryColor}`,
               }}
             >
               Detailed Breakdown
             </Button>
             <Button
-              variant={viewMode === 'spoilerFree' ? 'default' : 'outline'}
+              variant="outline"
               size="sm"
               onClick={() => setViewMode('spoilerFree')}
-              className="px-4"
+              className="px-4 transition-all duration-150"
               style={viewMode === 'spoilerFree' ? {
-                backgroundColor: secondaryColor,
-                color: getContrastColor(secondaryColor) === 'white' ? '#ffffff' : '#000000',
-                borderColor: secondaryColor,
-              } : {
-                borderColor: secondaryColor,
+                backgroundColor: primaryColor,
                 color: secondaryColor,
+                borderColor: secondaryColor,
+                border: `2px solid ${secondaryColor}`,
+                transform: 'translateY(2px)',
+                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)',
+              } : {
+                backgroundColor: primaryColor,
+                color: secondaryColor,
+                borderColor: secondaryColor,
+                border: `2px solid ${secondaryColor}`,
+                transform: 'translateY(0)',
+                boxShadow: `0 4px 0 ${secondaryColor}`,
               }}
             >
               Spoiler-Free Card
@@ -663,7 +691,7 @@ export function ScoreSummaryModal({
               <h2
                 className="text-2xl font-bold"
                 style={{
-                  color: getContrastColor(primaryColor) === 'white' ? '#ffffff' : '#000000'
+                  color: secondaryColor
                 }}
               >
                 {data.season} {data.teamName}
@@ -675,6 +703,7 @@ export function ScoreSummaryModal({
 
           <div className="text-right text-sm font-mono text-muted-foreground border-t pt-4">
             Total = {data.categories.map(c => c.points).join(' + ')} = {data.finalScore}
+          </div>
           </div>
         </div>
       </DialogContent>
