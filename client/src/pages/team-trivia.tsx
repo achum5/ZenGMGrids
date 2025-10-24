@@ -1918,6 +1918,39 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     });
   }, []);
 
+  // Progress to next round
+  const handleNextRound = useCallback(() => {
+    const currentIndex = ROUND_ORDER.indexOf(currentRound as any);
+    if (currentIndex < ROUND_ORDER.length - 1) {
+      const nextRound = ROUND_ORDER[currentIndex + 1];
+      setCurrentRound(nextRound);
+      setSelectedLeader(null);
+      setClickedLeaderInfo(null); // Clear the clicked leader info when moving to next round
+
+      // Show hints when moving from 'guess' to 'hint' round
+      if (currentRound === 'guess' && nextRound === 'hint') {
+        setRoster(prev => prev.map(rp => {
+          if (!rp.revealed && !rp.hintShown) {
+            return { ...rp, hintShown: true };
+          }
+          return rp;
+        }));
+      }
+
+      // Auto-reveal all players when entering the first leader round
+      if (nextRound === 'points-leader' || nextRound === 'passing-yards-leader' || nextRound === 'hits-leader') {
+        setRoster(prev => prev.map(rp => ({ ...rp, revealed: true })));
+        setFoundCount(roster.length);
+      }
+
+      // Trigger bounce animation for leader rounds
+      if (nextRound.endsWith('-leader')) {
+        setTriggerBounceAnimation(true);
+        setTimeout(() => setTriggerBounceAnimation(false), 1000); // Reset after animation
+      }
+    }
+  }, [currentRound, roster.length]);
+
   // Handle selecting a player (from autocomplete)
   const handleSelectPlayer = useCallback((player: Player) => {
     // Check if player is on the current roster
@@ -1930,7 +1963,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
           ? { ...rp, revealed: true }
           : rp
       ));
-      setFoundCount(prev => prev + 1);
+      const newFoundCount = foundCount + 1;
+      setFoundCount(newFoundCount);
 
       // Track correct guess for detailed game data
       setDetailedGameData(prev => ({
@@ -1955,6 +1989,22 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
       setTimeout(() => {
         setTileAnimations(prev => ({ ...prev, [player.pid]: '' })); // Clear animation class
       }, 600); // Match animation duration
+
+      // Auto-advance to first leader round if all players found
+      if (newFoundCount === roster.length && (currentRound === 'guess' || currentRound === 'hint')) {
+        setTimeout(() => {
+          // Skip directly to the first leader round
+          const firstLeaderRound = ROUND_ORDER.find(r => r.endsWith('-leader'));
+          if (firstLeaderRound) {
+            setCurrentRound(firstLeaderRound);
+            setSelectedLeader(null);
+            setClickedLeaderInfo(null);
+            // Trigger bounce animation for leader round
+            setTriggerBounceAnimation(true);
+            setTimeout(() => setTriggerBounceAnimation(false), 1000);
+          }
+        }, 800); // Delay to show the last player's success animation
+      }
     } else if (!rosterPlayer) {
       // Player is not on roster - show feedback
       toast({
@@ -1978,7 +2028,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     setTimeout(() => {
       inputRef.current?.focus();
     }, 100);
-  }, [roster, toast, selectedSeason, teamDisplayInfo.name, currentRound, addToScoreBreakdown]);
+  }, [roster, toast, selectedSeason, teamDisplayInfo.name, currentRound, addToScoreBreakdown, foundCount, ROUND_ORDER]);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -2114,39 +2164,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
       }
     }
   }, [currentRound, playoffFinishData, toast, ROUND_ORDER]);
-
-  // Progress to next round
-  const handleNextRound = useCallback(() => {
-    const currentIndex = ROUND_ORDER.indexOf(currentRound as any);
-    if (currentIndex < ROUND_ORDER.length - 1) {
-      const nextRound = ROUND_ORDER[currentIndex + 1];
-      setCurrentRound(nextRound);
-      setSelectedLeader(null);
-      setClickedLeaderInfo(null); // Clear the clicked leader info when moving to next round
-
-      // Show hints when moving from 'guess' to 'hint' round
-      if (currentRound === 'guess' && nextRound === 'hint') {
-        setRoster(prev => prev.map(rp => {
-          if (!rp.revealed && !rp.hintShown) {
-            return { ...rp, hintShown: true };
-          }
-          return rp;
-        }));
-      }
-
-      // Auto-reveal all players when entering the first leader round
-      if (nextRound === 'points-leader' || nextRound === 'passing-yards-leader' || nextRound === 'hits-leader') {
-        setRoster(prev => prev.map(rp => ({ ...rp, revealed: true })));
-        setFoundCount(roster.length);
-      }
-
-      // Trigger bounce animation for leader rounds
-      if (nextRound.endsWith('-leader')) {
-        setTriggerBounceAnimation(true);
-        setTimeout(() => setTriggerBounceAnimation(false), 1000); // Reset after animation
-      }
-    }
-  }, [currentRound, roster.length]);
 
   // Reset leader guess lock when round changes
   useEffect(() => {
