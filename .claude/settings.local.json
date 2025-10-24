@@ -16,7 +16,10 @@
       "Bash(fuser:*)",
       "Bash(find:*)",
       "Bash(xargs cat:*)",
-      "Bash(killall node:*)"
+      "Bash(killall node:*)",
+      "WebFetch(domain:basketball-gm.com)",
+      "WebFetch(domain:play.basketball-gm.com)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

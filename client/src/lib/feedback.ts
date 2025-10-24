@@ -2375,7 +2375,6 @@ function getAchievementDetails(
 
   return { value, years, label: baseLabel, isPlural, isAverage };
 }
-}
 
 // Helper to generate a natural language phrase for a single constraint
 
