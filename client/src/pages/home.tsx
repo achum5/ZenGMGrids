@@ -14,7 +14,7 @@ import TeamTrivia from '@/pages/team-trivia';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Home as HomeIcon, ArrowLeft } from 'lucide-react';
-import { saveLeague, type StoredLeague } from '@/lib/league-storage';
+import { saveLeague, updateLastPlayed, type StoredLeague } from '@/lib/league-storage';
 // Import sport icon images  
 import zengmGridsLogo from '@/assets/zengm-grids-logo-mark.png';
 import basketballIcon from '@/assets/zengm-grids-logo-basketball.png';
@@ -559,6 +559,9 @@ export default function Home() {
     setUploadProgress({ message: 'Loading saved league...', loaded: 0, total: 100 });
 
     try {
+      // Update last played timestamp
+      await updateLastPlayed(storedLeague.id);
+
       setCurrentFileName(storedLeague.name);
       setCurrentFileSize(storedLeague.fileSize);
 

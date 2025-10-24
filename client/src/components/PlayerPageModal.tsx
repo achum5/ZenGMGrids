@@ -68,7 +68,7 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
         </h2>
 
         {/* Player Header Section */}
-        <div className="flex flex-col lg:flex-row items-start gap-6 pt-4">
+        <div className="flex flex-col sm:flex-row items-start gap-6 pt-4">
           {/* Left Side: Image + Details */}
           <div className="flex items-start gap-6">
             {/* Player Image */}
@@ -226,7 +226,7 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
             );
 
             return (
-              <div className="p-[4px] sm:p-4 font-['system-ui'] tabular-nums">
+              <div className="p-[4px] sm:p-4 sm:ml-6 sm:mt-[-12px] sm:mb-[-12px] font-['system-ui'] tabular-nums">
                 {/* Header Row: Overall and Potential */}
                 <div className="flex justify-between mb-1.5 sm:mb-3">
                   <div className="font-semibold text-[clamp(16px,3.6vw,18px)]">

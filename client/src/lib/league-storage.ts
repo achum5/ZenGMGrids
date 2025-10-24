@@ -10,6 +10,7 @@ export interface StoredLeague {
   name: string;
   sport: 'basketball' | 'football' | 'hockey' | 'baseball';
   savedAt: number;
+  lastPlayed?: number; // Last time this league was loaded/played
   leagueData: LeagueData;
   fileSize?: number;
   numPlayers?: number;
@@ -118,9 +119,13 @@ export async function saveLeagueMetadata(
 export async function getAllLeagues(): Promise<StoredLeague[]> {
   const db = await getDB();
   const leagues = await db.getAll(STORE_NAME);
-  
-  // Sort by savedAt descending (most recent first)
-  return leagues.sort((a, b) => b.savedAt - a.savedAt);
+
+  // Sort by lastPlayed descending (most recently played first), fallback to savedAt
+  return leagues.sort((a, b) => {
+    const aTime = a.lastPlayed || a.savedAt;
+    const bTime = b.lastPlayed || b.savedAt;
+    return bTime - aTime;
+  });
 }
 
 export async function getLeague(id: string): Promise<StoredLeague | undefined> {
@@ -169,6 +174,15 @@ export async function updateLeagueName(id: string, newName: string): Promise<voi
   const league = await db.get(STORE_NAME, id);
   if (league) {
     league.name = newName;
+    await db.put(STORE_NAME, league);
+  }
+}
+
+export async function updateLastPlayed(id: string): Promise<void> {
+  const db = await getDB();
+  const league = await db.get(STORE_NAME, id);
+  if (league) {
+    league.lastPlayed = Date.now();
     await db.put(STORE_NAME, league);
   }
 }
