@@ -806,6 +806,84 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
                     </div>
                   </div>
                 </div>
+                )}
+
+                {/* Football: Three Column Ratings - Physical/Blocking, Passing/Defense, Rushing-Receiving/Kicking */}
+                {sport === 'football' && (
+                <div className="flex flex-col sm:flex-row gap-6 sm:gap-6">
+                  {/* Column 1: Physical & Blocking */}
+                  <div className="flex-1">
+                    {/* Physical Section */}
+                    <div className="mb-3 sm:mb-4">
+                      <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2 pb-0.5 border-b border-current/20">Physical</div>
+                      <div className="space-y-[2px] sm:space-y-[6px] mt-2">
+                        {seasonRating.hgt != null && <StatRow label="Height" value={seasonRating.hgt} delta={getRatingChange(seasonRating.hgt, prevSeasonRating?.hgt)} />}
+                        {seasonRating.stre != null && <StatRow label="Strength" value={seasonRating.stre} delta={getRatingChange(seasonRating.stre, prevSeasonRating?.stre)} />}
+                        {seasonRating.spd != null && <StatRow label="Speed" value={seasonRating.spd} delta={getRatingChange(seasonRating.spd, prevSeasonRating?.spd)} />}
+                        {seasonRating.endu != null && <StatRow label="Endurance" value={seasonRating.endu} delta={getRatingChange(seasonRating.endu, prevSeasonRating?.endu)} />}
+                      </div>
+                    </div>
+
+                    {/* Blocking Section */}
+                    <div>
+                      <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2 pb-0.5 border-b border-current/20">Blocking</div>
+                      <div className="space-y-[2px] sm:space-y-[6px] mt-2">
+                        {seasonRating.rbk != null && <StatRow label="Run Blocking" value={seasonRating.rbk} delta={getRatingChange(seasonRating.rbk, prevSeasonRating?.rbk)} />}
+                        {seasonRating.pbk != null && <StatRow label="Pass Blocking" value={seasonRating.pbk} delta={getRatingChange(seasonRating.pbk, prevSeasonRating?.pbk)} />}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Column 2: Passing & Defense */}
+                  <div className="flex-1">
+                    {/* Passing Section */}
+                    <div className="mb-3 sm:mb-4">
+                      <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2 pb-0.5 border-b border-current/20">Passing</div>
+                      <div className="space-y-[2px] sm:space-y-[6px] mt-2">
+                        {seasonRating.thv != null && <StatRow label="Vision" value={seasonRating.thv} delta={getRatingChange(seasonRating.thv, prevSeasonRating?.thv)} />}
+                        {seasonRating.thp != null && <StatRow label="Power" value={seasonRating.thp} delta={getRatingChange(seasonRating.thp, prevSeasonRating?.thp)} />}
+                        {seasonRating.tha != null && <StatRow label="Accuracy" value={seasonRating.tha} delta={getRatingChange(seasonRating.tha, prevSeasonRating?.tha)} />}
+                      </div>
+                    </div>
+
+                    {/* Defense Section */}
+                    <div>
+                      <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2 pb-0.5 border-b border-current/20">Defense</div>
+                      <div className="space-y-[2px] sm:space-y-[6px] mt-2">
+                        {seasonRating.pcv != null && <StatRow label="Pass Coverage" value={seasonRating.pcv} delta={getRatingChange(seasonRating.pcv, prevSeasonRating?.pcv)} />}
+                        {seasonRating.tck != null && <StatRow label="Tackling" value={seasonRating.tck} delta={getRatingChange(seasonRating.tck, prevSeasonRating?.tck)} />}
+                        {seasonRating.prs != null && <StatRow label="Pass Rushing" value={seasonRating.prs} delta={getRatingChange(seasonRating.prs, prevSeasonRating?.prs)} />}
+                        {seasonRating.rns != null && <StatRow label="Run Stopping" value={seasonRating.rns} delta={getRatingChange(seasonRating.rns, prevSeasonRating?.rns)} />}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Column 3: Rushing/Receiving & Kicking */}
+                  <div className="flex-1">
+                    {/* Rushing/Receiving Section */}
+                    <div className="mb-3 sm:mb-4">
+                      <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2 pb-0.5 border-b border-current/20">Rushing & Receiving</div>
+                      <div className="space-y-[2px] sm:space-y-[6px] mt-2">
+                        {seasonRating.elu != null && <StatRow label="Elusiveness" value={seasonRating.elu} delta={getRatingChange(seasonRating.elu, prevSeasonRating?.elu)} />}
+                        {seasonRating.rtr != null && <StatRow label="Route Running" value={seasonRating.rtr} delta={getRatingChange(seasonRating.rtr, prevSeasonRating?.rtr)} />}
+                        {seasonRating.hnd != null && <StatRow label="Hands" value={seasonRating.hnd} delta={getRatingChange(seasonRating.hnd, prevSeasonRating?.hnd)} />}
+                        {seasonRating.bsc != null && <StatRow label="Ball Security" value={seasonRating.bsc} delta={getRatingChange(seasonRating.bsc, prevSeasonRating?.bsc)} />}
+                      </div>
+                    </div>
+
+                    {/* Kicking Section */}
+                    <div>
+                      <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2 pb-0.5 border-b border-current/20">Kicking</div>
+                      <div className="space-y-[2px] sm:space-y-[6px] mt-2">
+                        {seasonRating.kpw != null && <StatRow label="Kick Power" value={seasonRating.kpw} delta={getRatingChange(seasonRating.kpw, prevSeasonRating?.kpw)} />}
+                        {seasonRating.kac != null && <StatRow label="Kick Accuracy" value={seasonRating.kac} delta={getRatingChange(seasonRating.kac, prevSeasonRating?.kac)} />}
+                        {seasonRating.ppw != null && <StatRow label="Punt Power" value={seasonRating.ppw} delta={getRatingChange(seasonRating.ppw, prevSeasonRating?.ppw)} />}
+                        {seasonRating.pac != null && <StatRow label="Punt Accuracy" value={seasonRating.pac} delta={getRatingChange(seasonRating.pac, prevSeasonRating?.pac)} />}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                )}
               </div>
             );
           })()}

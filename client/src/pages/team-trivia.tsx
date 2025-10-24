@@ -2508,49 +2508,16 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     setDetailedGameData({ playerGuesses: [], leaderResults: [] }); // Reset detailed game data
   }, [selectedSeason, selectedTeam, allSeasons, leagueData.players, leagueData.teamSeasons, buildRoster, toast, yearRange]);
 
-  // DEV: Skip to complete - simulates all rounds quickly
-  const handleDevSkipToComplete = useCallback(() => {
-    // Simulate guessing all players correctly - keep all stats intact
-    const updatedRoster = roster.map(rp => ({
-      ...rp,
-      revealed: true,
-      hintShown: false,
-      // Keep all existing stats that were calculated during buildRoster
-    }));
-    setRoster(updatedRoster);
-    setFoundCount(roster.length);
-
-    // Add points for all roster players (5 points each for no hint)
-    const rosterPoints = roster.length * 5;
-    let totalScore = rosterPoints;
-
-    // Estimate leader rounds (typically 4-5 per sport, 10 points each)
-    const leaderRoundsEstimate = leagueData.sport === 'football' ? 6 : 5;
-    const leaderPoints = leaderRoundsEstimate * 10;
-    totalScore += leaderPoints;
-
-    // Simulate wins guess (10 points)
-    setWinsGuessSubmitted(true);
-    totalScore += 10;
-
-    // Simulate playoff finish guess (5 points)
-    if (playoffFinishData && playoffFinishData.options.length > 0) {
-      setPlayoffFinishGuess(0);
-      setPlayoffFinishSubmitted(true);
-      totalScore += 5;
-    }
-
-    // Set the score
-    setScore(totalScore);
-
-    // Move to complete phase
+  // Give Up - skip to complete with current score
+  const handleGiveUp = useCallback(() => {
+    // Just move to complete phase without adding any points
     setCurrentRound('complete');
 
     toast({
-      title: 'Dev: Skipped to Complete',
-      description: `Simulated perfect score: ${totalScore} points`,
+      title: 'Game Ended',
+      description: `Final Score: ${score} points`,
     });
-  }, [roster, leagueData.sport, playoffFinishData, toast]);
+  }, [score, toast]);
 
   // Wins Guess: Move slider
   const handleWinsGuessSliderMove = useCallback((newPosition: number) => {
@@ -2811,18 +2778,18 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                 </h1>
               </div>
 
-              {/* Right: Dev Skip & Home buttons */}
+              {/* Right: Give Up & Home buttons */}
               <div className="flex items-center justify-end space-x-1">
-                {/* DEV: Skip to Complete button */}
-                {process.env.NODE_ENV === 'development' && (
+                {/* Give Up button - only show before game is complete */}
+                {currentRound !== 'complete' && (
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={handleDevSkipToComplete}
+                    onClick={handleGiveUp}
                     style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))' }}
                     className="animate-on-click text-xs"
                   >
-                    Skip
+                    Give Up
                   </Button>
                 )}
                 {hasProgress ? (
