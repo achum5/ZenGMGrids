@@ -600,6 +600,7 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
             // Label abbreviations - BBGM style
             const getAbbreviatedLabel = (label: string): string => {
               const abbreviations: Record<string, string> = {
+                // Basketball
                 'Height': 'Hgt',
                 'Strength': 'Str',
                 'Speed': 'Spd',
@@ -615,6 +616,18 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
                 'Dribbling': 'Drb',
                 'Passing': 'Pss',
                 'Rebounding': 'Reb',
+                // Football
+                'Run Blocking': 'Run Blk',
+                'Pass Blocking': 'Pass Blk',
+                'Pass Coverage': 'Pass Cov',
+                'Route Running': 'Route Run',
+                'Ball Security': 'Ball Sec',
+                'Kick Power': 'K Pwr',
+                'Kick Accuracy': 'K Acc',
+                'Punt Power': 'P Pwr',
+                'Punt Accuracy': 'P Acc',
+                'Pass Rushing': 'Pass Rush',
+                'Run Stopping': 'Run Stop',
               };
               return abbreviations[label] || label;
             };
@@ -664,7 +677,8 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
                   </div>
                 </div>
 
-                {/* Three Column Ratings - Physical left, Shooting center, Skill right */}
+                {/* Basketball: Three Column Ratings - Physical left, Shooting center, Skill right */}
+                {sport === 'basketball' && (
                 <div className="flex gap-4 sm:gap-1">
                   {/* Physical */}
                   <div className="flex-shrink-0">
