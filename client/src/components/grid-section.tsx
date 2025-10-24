@@ -147,7 +147,7 @@ export function GridSection({
 
   const [scorePopups, setScorePopups] = useState<ScorePopupInfo[]>([]);
   const [liveRegionMessage, setLiveRegionMessage] = useState('');
-  
+
   const scoreBatchQueue = useRef<number[]>([]);
   const scoreDisplayQueue = useRef<ScorePopupInfo[]>([]);
   const batchTimerRef = useRef<NodeJS.Timeout | null>(null);

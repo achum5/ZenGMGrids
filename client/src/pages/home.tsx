@@ -120,6 +120,8 @@ export default function Home() {
     total?: number;
   } | null>(null);
   const [loadingLeagueId, setLoadingLeagueId] = useState<string | null>(null);
+  const [currentLeagueId, setCurrentLeagueId] = useState<string | null>(null); // Track currently loaded league ID
+  const [savedYearRange, setSavedYearRange] = useState<[number, number] | null>(null); // Saved year range from loaded league
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [currentCellKey, setCurrentCellKey] = useState<string | null>(null);
   const [playerModalOpen, setPlayerModalOpen] = useState(false);
@@ -564,6 +566,8 @@ export default function Home() {
 
       setCurrentFileName(storedLeague.name);
       setCurrentFileSize(storedLeague.fileSize);
+      setCurrentLeagueId(storedLeague.id);
+      setSavedYearRange(storedLeague.yearRange || null);
 
       // Check if this is a metadata-only save (large file on mobile)
       if (storedLeague.isMetadataOnly && storedLeague.idbName) {
@@ -1589,6 +1593,8 @@ export default function Home() {
         leagueData={leagueData}
         onBackToModeSelect={handleBackToModeSelect}
         onGoHome={handleGoHome}
+        leagueId={currentLeagueId}
+        initialYearRange={savedYearRange}
       />
     );
   }

@@ -2,9 +2,11 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Slider } from '@/components/ui/slider';
 import { PlayerFace } from '@/components/PlayerFace';
 import { useToast } from '@/lib/hooks/use-toast';
-import { Shuffle, Home as HomeIcon, ArrowLeft, ChevronDown, ArrowRight, Info } from 'lucide-react';
+import { Shuffle, Home as HomeIcon, ArrowLeft, ChevronDown, ArrowRight, Info, Settings, Save } from 'lucide-react';
+import { updateYearRange } from '@/lib/league-storage';
 
 
 import {
@@ -74,6 +76,8 @@ interface TeamTriviaProps {
   leagueData: LeagueData;
   onBackToModeSelect: () => void;
   onGoHome: () => void;
+  leagueId: string | null;
+  initialYearRange?: [number, number] | null;
 }
 
 interface RoundScore {
@@ -196,8 +200,8 @@ const HOCKEY_ROUND_ORDER: HockeyRoundType[] = [
 
 // Sport-specific round instructions
 const BASKETBALL_ROUND_INSTRUCTIONS: Record<BasketballRoundType, string> = {
-  'guess': 'Guess the players on this team',
-  'hint': 'Hints revealed! Keep guessing',
+  'guess': 'Guess a player correctly for 15 points...',
+  'hint': 'Guess a player correctly for 10 points...',
   'points-leader': 'Click on the team points leader',
   'rebounds-leader': 'Click on the team rebounds leader',
   'assists-leader': 'Click on the team assists leader',
@@ -209,8 +213,8 @@ const BASKETBALL_ROUND_INSTRUCTIONS: Record<BasketballRoundType, string> = {
 };
 
 const FOOTBALL_ROUND_INSTRUCTIONS: Record<FootballRoundType, string> = {
-  'guess': 'Guess the players on this team',
-  'hint': 'Hints revealed! Keep guessing',
+  'guess': 'Guess a player correctly for 15 points...',
+  'hint': 'Guess a player correctly for 10 points...',
   'passing-yards-leader': 'Click on the team passing yards leader',
   'rushing-yards-leader': 'Click on the team rushing yards leader',
   'receiving-yards-leader': 'Click on the team receiving yards leader',
@@ -223,8 +227,8 @@ const FOOTBALL_ROUND_INSTRUCTIONS: Record<FootballRoundType, string> = {
 };
 
 const BASEBALL_ROUND_INSTRUCTIONS: Record<BaseballRoundType, string> = {
-  'guess': 'Guess the players on this team',
-  'hint': 'Hints revealed! Keep guessing',
+  'guess': 'Guess a player correctly for 15 points...',
+  'hint': 'Guess a player correctly for 10 points...',
   'hits-leader': 'Click on the team hits leader',
   'home-runs-leader': 'Click on the team home runs leader',
   'rbis-leader': 'Click on the team RBIs leader',
@@ -237,8 +241,8 @@ const BASEBALL_ROUND_INSTRUCTIONS: Record<BaseballRoundType, string> = {
 };
 
 const HOCKEY_ROUND_INSTRUCTIONS: Record<HockeyRoundType, string> = {
-  'guess': 'Guess the players on this team',
-  'hint': 'Hints revealed! Keep guessing',
+  'guess': 'Guess a player correctly for 15 points...',
+  'hint': 'Guess a player correctly for 10 points...',
   'points-leader': 'Click on the team points leader',
   'goals-leader': 'Click on the team goals leader',
   'assists-leader': 'Click on the team assists leader',
@@ -524,7 +528,7 @@ function calculateTeamStats(
   };
 }
 
-export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }: TeamTriviaProps) {
+export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, leagueId, initialYearRange }: TeamTriviaProps) {
   const { toast } = useToast();
   const [guess, setGuess] = useState('');
   const [roster, setRoster] = useState<RosterPlayer[]>([]);
@@ -555,6 +559,12 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   const [showTeamInfo, setShowTeamInfo] = useState(false); // Show team info modal
   const [opponentTeamInfo, setOpponentTeamInfo] = useState<{ tid: number; season: number } | null>(null); // Opponent team modal state
   const [logoError, setLogoError] = useState(false); // Track if team logo failed to load
+  const [yearRangeOpen, setYearRangeOpen] = useState(false); // Year range settings popover
+  const [yearRange, setYearRange] = useState<[number, number] | null>(null); // Year range for randomizer [from, to]
+  const [yearFromInput, setYearFromInput] = useState<string>(''); // Local state for "From" input
+  const [yearToInput, setYearToInput] = useState<string>(''); // Local state for "To" input
+  const [isSavingYearRange, setIsSavingYearRange] = useState(false); // Loading state for saving year range
+  const [lastSavedYearRange, setLastSavedYearRange] = useState<[number, number] | null>(null); // Track last saved year range
 
   // Detailed game tracking for new summary modal
   const [detailedGameData, setDetailedGameData] = useState<{
@@ -1658,7 +1668,21 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       return;
     }
 
-    const randomSeason = allSeasons[Math.floor(Math.random() * allSeasons.length)];
+    // Filter seasons by year range if set
+    const filteredSeasons = yearRange
+      ? allSeasons.filter(season => season >= yearRange[0] && season <= yearRange[1])
+      : allSeasons;
+
+    if (filteredSeasons.length === 0) {
+      toast({
+        title: 'Error',
+        description: 'No seasons found in the selected year range.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const randomSeason = filteredSeasons[Math.floor(Math.random() * filteredSeasons.length)];
     
     // Find teams with players in this season
     const teamsInSeason = new Set<number>();
@@ -1701,12 +1725,13 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     buildRoster(randomSeason, randomTeam);
     setGuess('');
     setScore(0); // Reset score for new game
-  }, [allSeasons, allTeams, buildRoster, leagueData.players, leagueData.teamSeasons, toast]);
+  }, [allSeasons, allTeams, buildRoster, leagueData.players, leagueData.teamSeasons, toast, yearRange]);
 
   // Initialize on mount
   useEffect(() => {
     pickRandomTeamAndSeason();
-  }, [pickRandomTeamAndSeason]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // When season or team changes, rebuild roster
   useEffect(() => {
@@ -1716,6 +1741,91 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
       setLogoError(false); // Reset logo error state when team/season changes
     }
   }, [selectedSeason, selectedTeam, buildRoster]);
+
+  // Initialize year range when allSeasons is available
+  useEffect(() => {
+    if (allSeasons.length > 0 && yearRange === null) {
+      // Use initialYearRange if provided, otherwise default to full range
+      if (initialYearRange) {
+        setYearRange(initialYearRange);
+        setLastSavedYearRange(initialYearRange);
+      } else {
+        const minYear = Math.min(...allSeasons);
+        const maxYear = Math.max(...allSeasons);
+        const defaultRange: [number, number] = [minYear, maxYear];
+        setYearRange(defaultRange);
+        setLastSavedYearRange(defaultRange);
+      }
+    }
+  }, [allSeasons, yearRange, initialYearRange]);
+
+  // Sync input states with yearRange when it changes or popover opens
+  useEffect(() => {
+    if (yearRange && yearRangeOpen) {
+      setYearFromInput(yearRange[0].toString());
+      setYearToInput(yearRange[1].toString());
+    }
+  }, [yearRange, yearRangeOpen]);
+
+  // Apply year range from input
+  const applyYearFromInput = useCallback(() => {
+    if (!yearRange || allSeasons.length === 0) return;
+    const val = parseInt(yearFromInput);
+    if (!isNaN(val)) {
+      const minYear = Math.min(...allSeasons);
+      const maxYear = Math.max(...allSeasons);
+      const clampedVal = Math.max(minYear, Math.min(val, yearRange[1]));
+      setYearRange([clampedVal, yearRange[1]]);
+      setYearFromInput(clampedVal.toString());
+    } else {
+      // Reset to current value if invalid
+      setYearFromInput(yearRange[0].toString());
+    }
+  }, [yearFromInput, yearRange, allSeasons]);
+
+  const applyYearToInput = useCallback(() => {
+    if (!yearRange || allSeasons.length === 0) return;
+    const val = parseInt(yearToInput);
+    if (!isNaN(val)) {
+      const minYear = Math.min(...allSeasons);
+      const maxYear = Math.max(...allSeasons);
+      const clampedVal = Math.min(maxYear, Math.max(val, yearRange[0]));
+      setYearRange([yearRange[0], clampedVal]);
+      setYearToInput(clampedVal.toString());
+    } else {
+      // Reset to current value if invalid
+      setYearToInput(yearRange[1].toString());
+    }
+  }, [yearToInput, yearRange, allSeasons]);
+
+  // Save year range to storage when popover closes
+  const handleYearRangePopoverChange = useCallback(async (open: boolean) => {
+    // If closing and we have a valid year range, check if it changed before saving
+    if (!open && yearRange && leagueId) {
+      // Check if year range has actually changed
+      const hasChanged = !lastSavedYearRange ||
+        yearRange[0] !== lastSavedYearRange[0] ||
+        yearRange[1] !== lastSavedYearRange[1];
+
+      if (hasChanged) {
+        setIsSavingYearRange(true);
+        try {
+          await updateYearRange(leagueId, yearRange);
+          setLastSavedYearRange(yearRange);
+        } catch (err) {
+          console.error('Failed to save year range:', err);
+        } finally {
+          setIsSavingYearRange(false);
+          setYearRangeOpen(open);
+        }
+      } else {
+        // No change, just close
+        setYearRangeOpen(open);
+      }
+    } else {
+      setYearRangeOpen(open);
+    }
+  }, [yearRange, leagueId, lastSavedYearRange]);
 
   // Team display info (season-aligned)
   const teamDisplayInfo = useMemo(() => {
@@ -2368,12 +2478,14 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
 
     // Filter to seasons that have player stats (wins data preferred but not required)
     // Include season if it has players AND (has wins data OR team exists in that season)
+    // Also filter by year range if set
     const validSeasons = allSeasons.filter(season => {
       const hasPlayers = seasonsForTeam.has(season);
       const hasWins = seasonsWithWinsData.has(season);
       const teamExistsInSeason = selectedTeam.seasons?.some(s => s.season === season);
+      const inYearRange = yearRange ? (season >= yearRange[0] && season <= yearRange[1]) : true;
 
-      return hasPlayers && (hasWins || teamExistsInSeason) && season !== selectedSeason;
+      return hasPlayers && (hasWins || teamExistsInSeason) && season !== selectedSeason && inYearRange;
     });
     if (validSeasons.length === 0) {
       toast({
@@ -2394,7 +2506,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
     setGuess('');
     setScoreBreakdown([]); // Reset score breakdown
     setDetailedGameData({ playerGuesses: [], leaderResults: [] }); // Reset detailed game data
-  }, [selectedSeason, selectedTeam, allSeasons, leagueData.players, leagueData.teamSeasons, buildRoster, toast]);
+  }, [selectedSeason, selectedTeam, allSeasons, leagueData.players, leagueData.teamSeasons, buildRoster, toast, yearRange]);
 
   // DEV: Skip to complete - simulates all rounds quickly
   const handleDevSkipToComplete = useCallback(() => {
@@ -2701,8 +2813,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
 
               {/* Right: Dev Skip & Home buttons */}
               <div className="flex items-center justify-end space-x-1">
-                {/* DEV: Skip to Complete button - TEMPORARILY DISABLED */}
-                {false && process.env.NODE_ENV === 'development' && (
+                {/* DEV: Skip to Complete button */}
+                {process.env.NODE_ENV === 'development' && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -2752,6 +2864,88 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
             <div className="flex items-center justify-between gap-2 sm:gap-4">
               {/* Left side: New Team button with dropdown */}
               <div className="flex items-center gap-1 shrink-0">
+                {/* Year Range Settings */}
+                <Popover open={yearRangeOpen} onOpenChange={handleYearRangePopoverChange}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="animate-on-click text-xs sm:text-sm px-2 h-8 sm:h-10"
+                      style={{
+                        color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))'
+                      }}
+                    >
+                      <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80" align="start">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm">Year Range</h4>
+                        <p className="text-xs text-muted-foreground">
+                          Set the year range for random team/year generation
+                        </p>
+                      </div>
+
+                      {yearRange && allSeasons.length > 0 && (
+                        <>
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              {isSavingYearRange && (
+                                <Save className="h-4 w-4 animate-pulse text-muted-foreground flex-shrink-0" />
+                              )}
+                              <Slider
+                                min={Math.min(...allSeasons)}
+                                max={Math.max(...allSeasons)}
+                                step={1}
+                                value={yearRange}
+                                onValueChange={(value) => setYearRange(value as [number, number])}
+                                className="flex-1"
+                              />
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1">
+                                <label className="text-xs text-muted-foreground">From</label>
+                                <Input
+                                  type="text"
+                                  value={yearFromInput}
+                                  onChange={(e) => setYearFromInput(e.target.value)}
+                                  onBlur={applyYearFromInput}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      applyYearFromInput();
+                                      e.currentTarget.blur();
+                                    }
+                                  }}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+
+                              <div className="flex-1">
+                                <label className="text-xs text-muted-foreground">To</label>
+                                <Input
+                                  type="text"
+                                  value={yearToInput}
+                                  onChange={(e) => setYearToInput(e.target.value)}
+                                  onBlur={applyYearToInput}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      applyYearToInput();
+                                      e.currentTarget.blur();
+                                    }
+                                  }}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
                 {/* New Team Button Group with Dropdown */}
                 <div className="flex">
                   {/* Main button - 75% */}
@@ -3289,8 +3483,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     value={guess}
                     onChange={(e) => setGuess(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Type a player's name..."
-                    className="text-lg py-6 neon-input"
+                    placeholder={currentRound === 'guess' ? "Guess a player correctly for 15 points..." : "Guess a player correctly for 10 points..."}
+                    className="text-sm sm:text-lg py-6 neon-input placeholder:text-xs sm:placeholder:text-sm"
                     autoFocus
                     autoComplete="off"
                     data-testid="input-player-guess"
@@ -3645,17 +3839,18 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                 </div>
               ) : null}
 
-              {/* Right: Next Round button (use ml-auto to push it right) */}
-              {currentRound !== 'complete' && currentRound !== 'wins-guess' && currentRound !== 'playoff-finish' && (
+              {/* Right: Next Round button (only show in guess and hint rounds) */}
+              {(currentRound === 'guess' || currentRound === 'hint') && (
                 <Button
                   variant="default"
                   size="lg"
                   onClick={handleNextRound}
-                  className="neon-button animate-on-click ml-auto"
+                  className="neon-button animate-on-click ml-auto bg-red-600 hover:bg-red-700"
                   data-testid="button-next-round"
-                  disabled={currentRound.endsWith('-leader')}
                 >
-                  <span className="hidden sm:inline">Next Round</span>
+                  <span className="hidden sm:inline">
+                    {currentRound === 'guess' ? 'Hint Round' : 'Stat Leaders'}
+                  </span>
                   <ArrowRight className="h-5 w-5 sm:ml-2" />
                 </Button>
               )}

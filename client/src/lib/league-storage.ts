@@ -19,6 +19,7 @@ export interface StoredLeague {
   isMetadataOnly?: boolean; // Flag for lightweight saves that reference separate IDB
   idbName?: string; // Name of the IndexedDB database storing the actual data (for metadata-only saves)
   starred?: boolean; // Flag for favorited/starred leagues
+  yearRange?: [number, number]; // Year range setting for team trivia randomizer
 }
 
 async function getDB(): Promise<IDBPDatabase> {
@@ -183,6 +184,15 @@ export async function updateLastPlayed(id: string): Promise<void> {
   const league = await db.get(STORE_NAME, id);
   if (league) {
     league.lastPlayed = Date.now();
+    await db.put(STORE_NAME, league);
+  }
+}
+
+export async function updateYearRange(id: string, yearRange: [number, number]): Promise<void> {
+  const db = await getDB();
+  const league = await db.get(STORE_NAME, id);
+  if (league) {
+    league.yearRange = yearRange;
     await db.put(STORE_NAME, league);
   }
 }
