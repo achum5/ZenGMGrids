@@ -2701,8 +2701,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
 
               {/* Right: Dev Skip & Home buttons */}
               <div className="flex items-center justify-end space-x-1">
-                {/* DEV: Skip to Complete button */}
-                {process.env.NODE_ENV === 'development' && (
+                {/* DEV: Skip to Complete button - TEMPORARILY DISABLED */}
+                {false && process.env.NODE_ENV === 'development' && (
                   <Button
                     variant="ghost"
                     size="sm"

@@ -28,6 +28,29 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
   const [imageKind, setImageKind] = useState<"url" | "svg" | "none">("none");
   const [imageData, setImageData] = useState("");
 
+  // Helper function to get season-aligned team name
+  const getTeamNameForSeason = (team: Team | undefined, seasonYear: number): { region: string; name: string; abbrev: string } => {
+    if (!team) return { region: '', name: '', abbrev: '' };
+
+    // Check if team has season-specific data
+    if (team.seasons && team.seasons.length > 0) {
+      const seasonData = team.seasons.find(s => s.season === seasonYear);
+      if (seasonData) {
+        const region = seasonData.region || team.region || '';
+        const name = seasonData.name || team.name;
+        const abbrev = seasonData.abbrev || team.abbrev;
+        return { region, name, abbrev };
+      }
+    }
+
+    // Fallback to current team data
+    return {
+      region: team.region || '',
+      name: team.name,
+      abbrev: team.abbrev
+    };
+  };
+
   // Get team colors for the player's current team
   const { primaryColor, secondaryColor, textColor } = useMemo(() => {
     if (!player || !season || teams.length === 0) {
@@ -104,7 +127,18 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
       if (mostSeasonsTeamId >= 0) {
         const mostSeasonsTeam = teams.find(t => t.tid === mostSeasonsTeamId);
         if (mostSeasonsTeam) {
-          const colors = mostSeasonsTeam.colors || ['#1f2937', '#ffffff'];
+          // Get the latest season they played for this team
+          let latestSeasonWithTeam = -1;
+          for (const stat of player.stats) {
+            if (!stat.playoffs && stat.gp && stat.gp > 0 && stat.tid === mostSeasonsTeamId && stat.season > latestSeasonWithTeam) {
+              latestSeasonWithTeam = stat.season;
+            }
+          }
+
+          // Use season-aligned team data from their latest season with the team
+          const teamInfo = getTeamNameForSeason(mostSeasonsTeam, latestSeasonWithTeam);
+          const teamSeasonInfo = mostSeasonsTeam.seasons?.find(s => s.season === latestSeasonWithTeam);
+          const colors = teamSeasonInfo?.colors || mostSeasonsTeam.colors || ['#1f2937', '#ffffff'];
           const primary = colors[0] || '#1f2937';
           const secondary = colors[1] || '#ffffff';
 
@@ -200,74 +234,94 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
 
         {/* Header */}
         <div className="relative z-10 p-6 border-b" style={{ borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}` }}>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 sm:gap-3">
             <h2 className="text-2xl font-bold tracking-tight" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>
               {player.name}
             </h2>
-            {onSeasonClick && player.ratings && player.ratings.length > 0 && (
-              <>
-                <span className="text-2xl font-bold" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }}>|</span>
-                <select
-                  value={season || ''}
-                  onChange={(e) => {
-                    const selectedSeason = parseInt(e.target.value);
-                    if (!isNaN(selectedSeason)) {
-                      onSeasonClick(selectedSeason);
-                    }
-                  }}
-                  className="text-lg font-semibold rounded px-2 py-1 cursor-pointer [&>option]:text-black [&>option]:bg-white"
-                  style={{
-                    backgroundColor: textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-                    color: textColor === 'white' ? '#ffffff' : '#000000',
-                    border: `1px solid ${textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'}`,
-                  }}
+            {onSeasonClick && player.ratings && player.ratings.length > 0 && (() => {
+              // Get all unique seasons from ratings
+              const uniqueSeasons = player.ratings
+                ? Array.from(new Set(player.ratings.map(r => r.season))).sort((a, b) => b - a)
+                : [];
 
-                >
-                  {(() => {
-                    // Get all unique seasons from ratings
-                    const uniqueSeasons = player.ratings
-                      ? Array.from(
-                          new Set(player.ratings.map(r => r.season))
-                        ).sort((a, b) => b - a) // Descending order
-                      : [];
+              // Get current league year (max season from teams or player data)
+              let currentYear = 0;
+              if (teams && teams.length > 0) {
+                currentYear = Math.max(
+                  ...teams.map(t =>
+                    t.seasons && t.seasons.length > 0
+                      ? Math.max(...t.seasons.map(s => s.season))
+                      : 0
+                  )
+                );
+              }
 
-                    // Get current league year (max season from teams or player data)
-                    let currentYear = 0;
-                    if (teams && teams.length > 0) {
-                      // Find the maximum season from all teams
-                      currentYear = Math.max(
-                        ...teams.map(t =>
-                          t.seasons && t.seasons.length > 0
-                            ? Math.max(...t.seasons.map(s => s.season))
-                            : 0
-                        )
-                      );
-                    }
+              if (currentYear === 0) {
+                const latestRating = uniqueSeasons.length > 0 ? uniqueSeasons[0] : 0;
+                const latestStat = player.stats && player.stats.length > 0
+                  ? Math.max(...player.stats.map(s => s.season))
+                  : 0;
+                currentYear = Math.max(latestRating, latestStat);
+              }
 
-                    // If we couldn't get it from teams, try player's latest rating or stat
-                    if (currentYear === 0) {
-                      const latestRating = uniqueSeasons.length > 0 ? uniqueSeasons[0] : 0;
-                      const latestStat = player.stats && player.stats.length > 0
-                        ? Math.max(...player.stats.map(s => s.season))
-                        : 0;
-                      currentYear = Math.max(latestRating, latestStat);
-                    }
+              const hasCurrentYearRatings = uniqueSeasons.includes(currentYear);
 
-                    // Check if player has ratings for current year
-                    const hasCurrentYearRatings = uniqueSeasons.includes(currentYear);
+              let statusLabel = '';
+              if (!hasCurrentYearRatings && currentYear > 0) {
+                if (player.tid === -2 || (player.retiredYear && player.retiredYear <= currentYear)) {
+                  statusLabel = 'Retired';
+                } else if (player.tid === -1) {
+                  statusLabel = 'Free Agent';
+                } else {
+                  statusLabel = 'Current';
+                }
+              }
 
-                    // Determine player status
-                    let statusLabel = '';
-                    if (!hasCurrentYearRatings && currentYear > 0) {
-                      if (player.tid === -2 || (player.retiredYear && player.retiredYear <= currentYear)) {
-                        statusLabel = 'Retired';
-                      } else if (player.tid === -1) {
-                        statusLabel = 'Free Agent';
-                      } else {
-                        statusLabel = 'Current';
+              // Calculate selected text for width
+              let selectedText = '';
+              if (season) {
+                if (!hasCurrentYearRatings && season === currentYear && statusLabel) {
+                  selectedText = `${season} (${statusLabel})`;
+                } else {
+                  selectedText = `${season}`;
+                }
+              }
+
+              return (
+                <>
+                  <span className="text-2xl font-bold" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }}>|</span>
+                  {/* Hidden span to measure text width */}
+                  <span
+                    className="text-lg font-semibold invisible absolute pointer-events-none whitespace-nowrap"
+                    style={{ font: 'inherit' }}
+                    ref={(el) => {
+                      if (el) {
+                        const selectEl = el.nextElementSibling as HTMLSelectElement;
+                        if (selectEl) {
+                          selectEl.style.width = `${el.offsetWidth + 60}px`;
+                        }
                       }
-                    }
+                    }}
+                  >
+                    {selectedText}
+                  </span>
+                  <select
+                    value={season || ''}
+                    onChange={(e) => {
+                      const selectedSeason = parseInt(e.target.value);
+                      if (!isNaN(selectedSeason)) {
+                        onSeasonClick(selectedSeason);
+                      }
+                    }}
+                    className="text-lg font-semibold rounded px-2 py-1 cursor-pointer [&>option]:text-black [&>option]:bg-white"
+                    style={{
+                      backgroundColor: textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                      color: textColor === 'white' ? '#ffffff' : '#000000',
+                      border: `1px solid ${textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'}`,
+                    }}
 
+                  >
+                  {(() => {
                     const options = [];
 
                     // Add current year option if player doesn't have ratings for it
@@ -289,8 +343,9 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
                     return options;
                   })()}
                 </select>
-              </>
-            )}
+                </>
+              );
+            })()}
           </div>
         </div>
 
@@ -298,7 +353,7 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
         <div className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden p-4 sm:px-8 sm:pb-8 sm:pt-4" style={{ color: statTextColor }}>
 
         {/* Player Header Section */}
-        <div className="flex flex-col sm:flex-row items-start gap-6 pt-4 sm:pt-0">
+        <div className="flex flex-col sm:flex-row items-start gap-6 pt-0 sm:pt-0">
           {/* Left Side: Image + Details */}
           <div className="flex items-start gap-3 sm:gap-6 w-full sm:flex-1 sm:min-w-0">
             {/* Player Image */}
@@ -378,13 +433,16 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
 
                 if (!position && !team && !jerseyNumber && !status) return null;
 
+                // Get season-aligned team name
+                const teamInfo = team ? getTeamNameForSeason(team, season) : null;
+
                 return (
                   <div className="flex items-center flex-wrap">
                     <span className="font-semibold" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>
                       {position}
                       {position && (team || status || jerseyNumber) && ', '}
                     </span>
-                    {team && (
+                    {team && teamInfo && (
                       <button
                         type="button"
                         className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer bg-transparent border-0 p-0 font-inherit"
@@ -396,7 +454,7 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
                           }
                         }}
                       >
-                         {team.region} {team.name}
+                         {teamInfo.region} {teamInfo.name}
                       </button>
                     )}
                     {!team && status && (
@@ -465,6 +523,9 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
                 }
 
                 const draftTeam = teams?.find(t => t.tid === player.draft?.tid);
+                const draftTeamInfo = draftTeam && player.draft.year
+                  ? getTeamNameForSeason(draftTeam, player.draft.year)
+                  : null;
 
                 return (
                   <div className="whitespace-nowrap">
@@ -477,7 +538,7 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
                         {player.draft.pick && <span> (Pick {player.draft.pick})</span>}
                       </>
                     )}
-                    {draftTeam && <span> by {draftTeam.abbrev}</span>}
+                    {draftTeamInfo && <span> by {draftTeamInfo.abbrev}</span>}
                   </div>
                 );
               })()}
@@ -789,6 +850,7 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
 
                   return filteredStats.map((stat, idx) => {
                     const team = teams.find(t => t.tid === stat.tid);
+                    const teamInfo = team ? getTeamNameForSeason(team, stat.season) : null;
                     const age = player.born?.year ? stat.season - player.born.year : null;
 
                     // Check if there's a year gap between this row and the next row
@@ -849,10 +911,10 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
                               className="hover:underline cursor-pointer"
                               style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}
                             >
-                              {team?.abbrev || 'UNK'}
+                              {teamInfo?.abbrev || 'UNK'}
                             </button>
                           ) : (
-                            <span>{team?.abbrev || 'UNK'}</span>
+                            <span>{teamInfo?.abbrev || 'UNK'}</span>
                           )}
                         </td>
                         <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{age ?? '-'}</td>
@@ -938,6 +1000,7 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
 
                     return filteredStats.map((stat, idx) => {
                       const team = teams.find(t => t.tid === stat.tid);
+                      const teamInfo = team ? getTeamNameForSeason(team, stat.season) : null;
                       const age = player.born?.year ? stat.season - player.born.year : null;
                       const hasYearGap = idx < filteredStats.length - 1 &&
                                         stat.season - filteredStats[idx + 1].season > 1;
@@ -1003,10 +1066,10 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
                                 className="hover:underline cursor-pointer"
                                 style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}
                               >
-                                {team?.abbrev || 'UNK'}
+                                {teamInfo?.abbrev || 'UNK'}
                               </button>
                             ) : (
-                              <span>{team?.abbrev || 'UNK'}</span>
+                              <span>{teamInfo?.abbrev || 'UNK'}</span>
                             )}
                           </td>
                           <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{age ?? '-'}</td>
@@ -1086,6 +1149,7 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
                       // Find the team from stats for this season
                       const statForSeason = player.stats?.find(s => s.season === rating.season && !s.playoffs);
                       const team = statForSeason ? teams.find(t => t.tid === statForSeason.tid) : null;
+                      const teamInfo = team ? getTeamNameForSeason(team, rating.season) : null;
                       const age = player.born?.year ? rating.season - player.born.year : null;
                       const hasYearGap = idx < filteredRatings.length - 1 &&
                                         rating.season - filteredRatings[idx + 1].season > 1;
@@ -1126,10 +1190,10 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
                                 className="hover:underline cursor-pointer"
                                 style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}
                               >
-                                {team?.abbrev || (isDraftProspect ? 'DP' : 'FA')}
+                                {teamInfo?.abbrev || (isDraftProspect ? 'DP' : 'FA')}
                               </button>
                             ) : (
-                              <span>{team?.abbrev || (isDraftProspect ? 'DP' : 'FA')}</span>
+                              <span>{teamInfo?.abbrev || (isDraftProspect ? 'DP' : 'FA')}</span>
                             )}
                           </td>
                           <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{age ?? '-'}</td>
