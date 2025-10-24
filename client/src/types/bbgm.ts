@@ -233,6 +233,7 @@ export interface Player {
   college?: string | null;
   injury?: { type?: string; gamesRemaining?: number };
   jerseyNumber?: string | number | null;
+  relatives?: Array<{ type: string; pid: number; name: string }>;
   // Decade metadata for dynamic decade achievements
   firstSeason?: number;
   lastSeason?: number;

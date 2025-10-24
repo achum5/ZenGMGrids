@@ -19,7 +19,9 @@
       "Bash(killall node:*)",
       "WebFetch(domain:basketball-gm.com)",
       "WebFetch(domain:play.basketball-gm.com)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(cat:*)",
+      "Bash(awk:*)"
     ],
     "deny": [],
     "ask": []

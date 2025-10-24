@@ -1,7 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { X } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { getPlayerImage } from '@/lib/faceRenderer';
 import { getPlayerJerseyInfo } from '@/lib/jersey-utils';
 import type { Player, Team } from '@/types/bbgm';
@@ -12,11 +10,55 @@ interface PlayerPageModalProps {
   teams?: Team[];
   season?: number;
   onClose: () => void;
+  onTeamClick?: (tid: number, season: number) => void;
 }
 
-export function PlayerPageModal({ player, sport, teams = [], season, onClose }: PlayerPageModalProps) {
+// Helper to check contrast and adjust text color
+function getContrastColor(hexColor: string): 'white' | 'black' {
+  const hex = hexColor.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.5 ? 'black' : 'white';
+}
+
+export function PlayerPageModal({ player, sport, teams = [], season, onClose, onTeamClick }: PlayerPageModalProps) {
   const [imageKind, setImageKind] = useState<"url" | "svg" | "none">("none");
   const [imageData, setImageData] = useState("");
+
+  // Get team colors for the player's current team
+  const { primaryColor, secondaryColor, textColor } = useMemo(() => {
+    if (!player || !season || teams.length === 0) {
+      return {
+        primaryColor: '#1f2937',
+        secondaryColor: '#ffffff',
+        textColor: 'white' as const
+      };
+    }
+
+    const seasonStats = player.stats?.find(s => s.season === season && !s.playoffs);
+    const team = seasonStats ? teams.find(t => t.tid === seasonStats.tid) : null;
+
+    if (team) {
+      const seasonInfo = team.seasons?.find(s => s.season === season);
+      const colors = seasonInfo?.colors || team.colors || ['#1f2937', '#ffffff'];
+      const primary = colors[0] || '#1f2937';
+      const secondary = colors[1] || '#ffffff';
+
+      return {
+        primaryColor: primary,
+        secondaryColor: secondary,
+        textColor: getContrastColor(primary)
+      };
+    }
+
+    return {
+      primaryColor: '#1f2937',
+      secondaryColor: '#ffffff',
+      textColor: 'white' as const
+    };
+  }, [player, season, teams]);
 
   useEffect(() => {
     if (!player) return;
@@ -47,33 +89,67 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
 
   if (!player) return null;
 
-  return (
-    <Dialog open={!!player} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] max-h-[95vh] w-full h-full overflow-y-auto p-6 sm:p-8">
-        <DialogHeader>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
-          >
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </Button>
-        </DialogHeader>
+  const statTextColor = textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)';
 
-        {/* Player Name */}
-        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight break-words pt-0 pl-4 mt-[-8px]">
-          {player.name}
-        </h2>
+  return (
+      <div
+        id="player-page-modal-overlay-unique"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 80000,
+          backdropFilter: 'blur(10px) brightness(0.8)',
+          WebkitBackdropFilter: 'blur(10px) brightness(0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1rem',
+          pointerEvents: 'auto'
+        }}
+        onClick={onClose}
+      >
+      {/* Player Info Card */}
+      <div
+        className="relative w-full max-w-6xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        style={{
+          background: `linear-gradient(180deg, ${primaryColor} 0%, ${primaryColor} 100%)`,
+          border: `2px solid ${secondaryColor}`,
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-20 rounded-full p-2 transition-all hover:scale-110 hover:rotate-90"
+          style={{
+            backgroundColor: `${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`,
+            color: textColor === 'white' ? '#ffffff' : '#000000',
+          }}
+          aria-label="Close"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        {/* Header */}
+        <div className="relative z-10 p-6 border-b" style={{ borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}` }}>
+          <h2 className="text-2xl font-bold tracking-tight" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>
+            {player.name}
+          </h2>
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-8" style={{ color: statTextColor }}>
 
         {/* Player Header Section */}
         <div className="flex flex-col sm:flex-row items-start gap-6 pt-4">
           {/* Left Side: Image + Details */}
-          <div className="flex items-start gap-6">
+          <div className="flex items-start gap-3 sm:gap-6 w-full">
             {/* Player Image */}
             <div className="flex-shrink-0">
-              <div className="w-32 h-32 sm:w-40 sm:h-40">
+              <div className="w-24 h-24 sm:w-40 sm:h-40">
                 {imageKind === "url" && (
                   <img
                     src={imageData}
@@ -86,8 +162,7 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
                 {imageKind === "svg" && (
                   <div className="w-full h-full flex items-center justify-center overflow-visible">
                     <div
-                      className="w-full h-full flex items-center justify-center [&>svg]:w-[130%] [&>svg]:h-[130%]"
-                      style={{ transform: 'translate(-25%, -15%)' }}
+                      className="w-full h-full flex items-center justify-center [&>svg]:w-[130%] [&>svg]:h-[130%] translate-x-[-15%] translate-y-[-12%] sm:translate-x-[-25%] sm:translate-y-[-15%]"
                       dangerouslySetInnerHTML={{ __html: imageData }}
                     />
                   </div>
@@ -102,11 +177,52 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
             </div>
 
             {/* Player Details */}
-            <div className="flex-1 min-w-0 space-y-2">
-            <div className="space-y-1 text-sm text-muted-foreground mt-[-7px] mb-[-7px]">
+            <div className="flex-1 min-w-0 space-y-2 overflow-hidden">
+            <div className="space-y-1 text-muted-foreground w-full" style={{ fontSize: 'clamp(8px, 2.8vw, 14px)' }}>
+              {/* Position, Team, and Jersey Number */}
+              {season && (() => {
+                const seasonRating = player.ratings?.find(r => r.season === season);
+                const seasonStats = player.stats?.find(s => s.season === season && !s.playoffs);
+                const position = seasonRating?.pos || player.pos;
+                const team = seasonStats ? teams.find(t => t.tid === seasonStats.tid) : null;
+                const jerseyNumber = seasonStats?.jerseyNumber || player.jerseyNumber;
+
+                if (!position && !team && !jerseyNumber) return null;
+
+                return (
+                  <div className="flex items-center gap-1">
+                    {position && <span className="font-semibold whitespace-nowrap">{position}</span>}
+                    {position && (team || jerseyNumber) && <span className="whitespace-nowrap">,</span>}
+                    {team && (
+                      <>
+                        <button
+                          type="button"
+                          className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer bg-transparent border-0 p-0 font-inherit whitespace-nowrap"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (onTeamClick && season) {
+                              onTeamClick(team.tid, season);
+                            }
+                          }}
+                        >
+                          {team.region} {team.name}
+                        </button>
+                      </>
+                    )}
+                    {jerseyNumber && (
+                      <>
+                        {(position || team) && <span className="whitespace-nowrap">,</span>}
+                        <span className="whitespace-nowrap">#{jerseyNumber}</span>
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
+
               {/* Height and Weight */}
               {(player.hgt || player.weight) && (
-                <div>
+                <div className="whitespace-nowrap">
                   {player.hgt && (
                     <span>{Math.floor(player.hgt / 12)}'{player.hgt % 12}"</span>
                   )}
@@ -117,7 +233,7 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
 
               {/* Born */}
               {player.born && (
-                <div>
+                <div className="whitespace-nowrap">
                   <span className="font-semibold">Born:</span> {player.born.year || 'Unknown'}
                   {player.born.loc && <span> - {player.born.loc}</span>}
                 </div>
@@ -125,7 +241,7 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
 
               {/* Age (as of latest season) */}
               {player.born?.year && season && (
-                <div>
+                <div className="whitespace-nowrap">
                   <span className="font-semibold">Age:</span> {season - player.born.year}
                 </div>
               )}
@@ -134,7 +250,7 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
               {(() => {
                 if (!player.draft || player.draft.tid == null || player.draft.tid < 0) {
                   return (
-                    <div>
+                    <div className="whitespace-nowrap">
                       <span className="font-semibold">Draft:</span> Undrafted
                     </div>
                   );
@@ -143,7 +259,7 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
                 const draftTeam = teams?.find(t => t.tid === player.draft.tid);
 
                 return (
-                  <div>
+                  <div className="whitespace-nowrap">
                     <span className="font-semibold">Draft:</span>{' '}
                     {player.draft.year && <span>{player.draft.year}</span>}
                     {(player.draft.round || player.draft.pick) && (
@@ -157,6 +273,18 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
                   </div>
                 );
               })()}
+
+              {/* Relatives */}
+              {player.relatives && player.relatives.length > 0 && (
+                <div>
+                  {player.relatives.map((relative, idx) => (
+                    <div key={idx}>
+                      <span className="font-semibold capitalize">{relative.type}:</span>{' '}
+                      {relative.name}
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* College */}
               <div>
@@ -239,9 +367,9 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
             );
 
             return (
-              <div className="p-[4px] sm:p-4 sm:ml-[83px] sm:mt-[-44px] sm:mb-[-44px] sm:mr-[83px] font-['system-ui'] tabular-nums">
+              <div className="p-[4px] mx-auto sm:p-4 sm:mt-[-44px] sm:mb-[-44px] font-['system-ui'] tabular-nums max-w-full w-fit">
                 {/* Header Row: Overall and Potential */}
-                <div className="flex justify-between mb-1.5 sm:mb-3">
+                <div className="flex justify-between mb-1.5 sm:mb-3 gap-6">
                   <div className="font-semibold text-[clamp(16px,3.6vw,18px)]">
                     <span className="sm:hidden">Ovr: </span>
                     <span className="hidden sm:inline">Overall: </span>
@@ -271,7 +399,7 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
                 </div>
 
                 {/* Three Column Ratings - Physical left, Shooting center, Skill right */}
-                <div className="flex justify-between">
+                <div className="flex gap-4 sm:gap-8">
                   {/* Physical */}
                   <div className="flex-shrink-0">
                     <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2">Physical</div>
@@ -409,9 +537,9 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
             <h3 className="text-xl font-bold mb-4">Career Stats</h3>
             <table className="w-full text-xs tabular-nums border-collapse">
               <thead>
-                <tr className="border-b-2 border-gray-300">
-                  <th className="px-2 py-1 text-left sticky left-0 bg-background">Year</th>
-                  <th className="px-2 py-1 text-left">Team</th>
+                <tr className="border-b-2" style={{ borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'}`, backgroundColor: `${textColor === 'white' ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)'}` }}>
+                  <th className="pl-2 pr-0 py-1 text-left sticky left-0 w-[52px]" style={{ backgroundColor: `${textColor === 'white' ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)'}` }}>Year</th>
+                  <th className="pl-1 pr-2 py-1 text-left sticky left-[52px]" style={{ backgroundColor: `${textColor === 'white' ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)'}` }}>Team</th>
                   <th className="px-2 py-1 text-right">Age</th>
                   <th className="px-2 py-1 text-right">G</th>
                   <th className="px-2 py-1 text-right">GS</th>
@@ -471,9 +599,9 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
                     const efgPct = fga > 0 ? (((fg + 0.5 * tpm) / fga) * 100).toFixed(1) : '-';
 
                     return (
-                      <tr key={`${stat.season}-${stat.tid}-${idx}`} className="border-b border-gray-200 hover:bg-gray-50">
-                        <td className="px-2 py-1 sticky left-0 bg-background">{stat.season}</td>
-                        <td className="px-2 py-1">{team?.abbrev || 'UNK'}</td>
+                      <tr key={`${stat.season}-${stat.tid}-${idx}`} className="border-b" style={{ borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}` }}>
+                        <td className="pl-2 pr-0 py-1 sticky left-0 w-[52px]" style={{ backgroundColor: primaryColor }}>{stat.season}</td>
+                        <td className="pl-1 pr-2 py-1 sticky left-[52px]" style={{ backgroundColor: primaryColor }}>{team?.abbrev || 'UNK'}</td>
                         <td className="px-2 py-1 text-right">{age ?? '-'}</td>
                         <td className="px-2 py-1 text-right">{gp}</td>
                         <td className="px-2 py-1 text-right">{(stat as any).gs ?? '-'}</td>
@@ -508,7 +636,8 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
             </table>
           </div>
         )}
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    </div>
   );
 }

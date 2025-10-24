@@ -379,6 +379,24 @@ export function TeamInfoModal({
   const teamPlayoffSeries = useMemo(() => {
     if (!playoffSeriesData || !teamTid) return [];
 
+    // Helper function to get season-aligned team name
+    const getTeamNameForSeason = (team: Team | undefined, seasonYear: number): string => {
+      if (!team) return 'Unknown';
+
+      // Check if team has season-specific data
+      if (team.seasons && team.seasons.length > 0) {
+        const seasonData = team.seasons.find(s => s.season === seasonYear);
+        if (seasonData) {
+          const region = seasonData.region || team.region;
+          const name = seasonData.name || team.name;
+          return name; // Just return the team name (not region + name)
+        }
+      }
+
+      // Fallback to current team name
+      return team.name;
+    };
+
     const series: Array<{
       round: number;
       opponent: string;
@@ -397,9 +415,10 @@ export function TeamInfoModal({
 
         if (matchup.home.tid === teamTid) {
           const opponentTeam = teams.find(t => t.tid === matchup.away.tid);
+          const opponentName = getTeamNameForSeason(opponentTeam, season);
           series.push({
             round: roundIndex + 1,
-            opponent: opponentTeam?.name || `Team ${matchup.away.tid}`,
+            opponent: opponentName || `Team ${matchup.away.tid}`,
             opponentTid: matchup.away.tid,
             teamWon: matchup.home.won,
             teamLost: matchup.home.lost || 0,
@@ -409,9 +428,10 @@ export function TeamInfoModal({
           });
         } else if (matchup.away.tid === teamTid) {
           const opponentTeam = teams.find(t => t.tid === matchup.home.tid);
+          const opponentName = getTeamNameForSeason(opponentTeam, season);
           series.push({
             round: roundIndex + 1,
-            opponent: opponentTeam?.name || `Team ${matchup.home.tid}`,
+            opponent: opponentName || `Team ${matchup.home.tid}`,
             opponentTid: matchup.home.tid,
             teamWon: matchup.away.won,
             teamLost: matchup.away.lost || 0,
@@ -424,15 +444,28 @@ export function TeamInfoModal({
     });
 
     return series;
-  }, [playoffSeriesData, teamTid, teams]);
+  }, [playoffSeriesData, teamTid, teams, season]);
 
   if (!open) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-[20000] flex items-center justify-center p-4 backdrop-blur-sm bg-black/20"
-      onClick={onClose}
-    >
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 100000,
+          backdropFilter: 'blur(10px) brightness(0.8)',
+          WebkitBackdropFilter: 'blur(10px) brightness(0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1rem'
+        }}
+        onClick={onClose}
+      >
       {/* Team Info Card */}
       <div
         className="relative w-full max-w-6xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col"
@@ -503,16 +536,18 @@ export function TeamInfoModal({
                           <button
                             className="inline-flex items-center justify-center rounded-full p-0.5 hover:bg-white/10 transition-colors flex-shrink-0"
                             style={{ color: statTextColor }}
+                            onClick={(e) => e.stopPropagation()}
                           >
                             <Info className="h-3.5 w-3.5" />
                           </button>
                         </PopoverTrigger>
                       <PopoverContent
-                        className="w-80 p-4 z-[30000]"
+                        className="w-80 p-4"
                         style={{
                           backgroundColor: primaryColor,
                           borderColor: secondaryColor,
                           border: `2px solid ${secondaryColor}`,
+                          zIndex: 110000,
                         }}
                         onClick={(e) => e.stopPropagation()}
                       >

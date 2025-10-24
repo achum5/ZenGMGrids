@@ -537,18 +537,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
   const [clickedLeaderInfo, setClickedLeaderInfo] = useState<{ name: string; position: string; statValue: string } | null>(null); // Info shown after clicking
   const [leaderGuessLocked, setLeaderGuessLocked] = useState(false); // Prevent multiple guesses per round
   
-  // Debug: Log leagueData on mount
-  useEffect(() => {
-    console.log('[TeamTrivia] Component mounted with leagueData:', {
-      sport: leagueData.sport,
-      players: leagueData.players?.length,
-      teams: leagueData.teams?.length,
-      teamSeasons: leagueData.teamSeasons?.length,
-      playoffSeries: leagueData.playoffSeries?.length,
-      sampleTeamSeason: leagueData.teamSeasons?.[0],
-      samplePlayoffSeries: leagueData.playoffSeries?.[0]
-    });
-  }, []);
   const [isHeaderHovered, setIsHeaderHovered] = useState(false);
   const [autocompleteOpen, setAutocompleteOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -2643,8 +2631,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
 
     return (
       <div className="h-full flex flex-col bg-background overflow-hidden">
-        {/* Main Header */}
-              <header
+          <>
+            {/* Main Header */}
+            <header
                 className="border-border shrink-0"
                 onMouseEnter={() => setIsHeaderHovered(true)}
                 onMouseLeave={() => setIsHeaderHovered(false)}
@@ -3727,7 +3716,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
         {/* Opponent Team Info Modal */}
         {opponentTeamInfo && (() => {
           const opponentTeam = leagueData.teams.find(t => t.tid === opponentTeamInfo.tid);
-          if (!opponentTeam) return null;
+          if (!opponentTeam) {
+            return null;
+          }
 
           // Build opponent roster
           const opponentRoster: any[] = [];
@@ -3741,26 +3732,12 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
               const position = rating?.pos || player.pos || 'F';
               const age = player.born?.year ? opponentTeamInfo.season - player.born.year : undefined;
 
-              let stats: any;
-              if (leagueData.sport === 'basketball') {
-                const gp = seasonStats.gp;
-                const mpg = seasonStats.min ? seasonStats.min / gp : 0;
-                const ppg = seasonStats.pts ? seasonStats.pts / gp : 0;
-                const totalReb = seasonStats.trb || ((seasonStats.orb || 0) + (seasonStats.drb || 0));
-                const rpg = totalReb / gp;
-                const apg = seasonStats.ast ? seasonStats.ast / gp : 0;
-                const per = seasonStats.per || 0;
-                stats = { mpg, ppg, rpg, apg, per };
-              } else {
-                stats = {};
-              }
-
               opponentRoster.push({
                 player,
                 position,
                 age,
                 gamesPlayed: seasonStats.gp,
-                stats,
+                stats: seasonStats, // Pass raw season stats for TeamInfoModal to format
                 yearsWithTeam: calculateYearsWithTeam(player, opponentTeamInfo.tid, opponentTeamInfo.season),
                 ovr: getPlayerRating(player, opponentTeamInfo.season, 'ovr'),
                 pot: getPlayerRating(player, opponentTeamInfo.season, 'pot'),
@@ -3793,6 +3770,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
             />
           );
         })()}
+          </>
 
         {/* Player Page Modal */}
         <PlayerPageModal
@@ -3801,6 +3779,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
           teams={leagueData.teams}
           season={selectedSeason || undefined}
           onClose={() => setSelectedPlayerForPage(null)}
+          onTeamClick={handleOpenOpponentTeam}
         />
       </div>
     );

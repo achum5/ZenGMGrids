@@ -567,7 +567,6 @@ export default function Home() {
 
       // Check if this is a metadata-only save (large file on mobile)
       if (storedLeague.isMetadataOnly && storedLeague.idbName) {
-        console.log(`[MOBILE] Loading metadata-only league - reading from ${storedLeague.idbName} IDB`);
         setUploadProgress({ message: 'Loading from database...', loaded: 10, total: 100 });
 
         // Load the full data from the league-specific IDB
@@ -727,7 +726,6 @@ export default function Home() {
     
     // MOBILE FIX: Give browser breathing room before massive state update
     if (isMobile && isHugeFile) {
-      console.log('[MOBILE] Large file detected, yielding before state updates...');
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     
@@ -756,7 +754,6 @@ export default function Home() {
     
     // MOBILE FIX: Skip redundant processing if data comes from IDB (already fully processed)
     if (data.isFullyProcessed && data.byName && data.byPid && data.searchablePlayers && data.teamsByTid) {
-      console.log('[MOBILE] Using pre-built search indices from IDB processing - skipping rebuild');
       setByName(data.byName);
       setByPid(data.byPid);
       setSearchablePlayers(data.searchablePlayers);
@@ -830,17 +827,6 @@ export default function Home() {
         // Fallback to cleaned filename if no league name found
         const cleanName = leagueName || fileName.replace(/\.(json|gz)$/gi, '').replace(/\./g, ' ');
 
-        // Debug: Check if teamSeasons exists before saving
-        console.log('[Upload] League data before save:', {
-          sport: data.sport,
-          players: data.players?.length,
-          teams: data.teams?.length,
-          teamSeasons: data.teamSeasons?.length,
-          sampleTeamSeason: data.teamSeasons?.[0],
-          extractedLeagueName: leagueName,
-          finalName: cleanName
-        });
-        
         // MOBILE FIX: Use lightweight metadata-only save for large files on mobile
         if (isMobile && isHugeFile && data.idbName) {
           const { saveLeagueMetadata } = await import('@/lib/league-storage');
@@ -858,7 +844,6 @@ export default function Home() {
             fileSize,
             seasons
           );
-          console.log(`[MOBILE] Saved league metadata (lightweight) - data in ${data.idbName}`);
         } else {
           // Normal save for desktop or smaller files
           await saveLeague(cleanName, data, data.sport, fileSize);

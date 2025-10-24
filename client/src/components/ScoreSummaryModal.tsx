@@ -590,7 +590,7 @@ export function ScoreSummaryModal({
           z-index: 50000 !important;
           backdrop-filter: blur(12px) !important;
           -webkit-backdrop-filter: blur(12px) !important;
-          background-color: rgba(0, 0, 0, 0.6) !important;
+          background-color: rgba(0, 0, 0, 0.1) !important;
           position: fixed !important;
           inset: 0 !important;
         }
