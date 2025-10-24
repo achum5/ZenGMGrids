@@ -2510,14 +2510,22 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
 
   // Give Up - skip to complete with current score
   const handleGiveUp = useCallback(() => {
-    // Just move to complete phase without adding any points
+    // Reveal all players without adding points
+    const updatedRoster = roster.map(rp => ({
+      ...rp,
+      revealed: true,
+    }));
+    setRoster(updatedRoster);
+    setFoundCount(roster.length);
+
+    // Move to complete phase without changing score
     setCurrentRound('complete');
 
     toast({
       title: 'Game Ended',
       description: `Final Score: ${score} points`,
     });
-  }, [score, toast]);
+  }, [score, toast, roster]);
 
   // Wins Guess: Move slider
   const handleWinsGuessSliderMove = useCallback((newPosition: number) => {
