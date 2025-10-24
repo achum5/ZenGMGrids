@@ -24,9 +24,20 @@ function getContrastColor(hexColor: string): 'white' | 'black' {
   return luminance > 0.5 ? 'black' : 'white';
 }
 
-export function PlayerPageModal({ player, sport, teams = [], season, onClose, onTeamClick, onSeasonClick }: PlayerPageModalProps) {
+export function PlayerPageModal({ player, sport, teams = [], season: initialSeason, onClose, onTeamClick, onSeasonClick }: PlayerPageModalProps) {
   const [imageKind, setImageKind] = useState<"url" | "svg" | "none">("none");
   const [imageData, setImageData] = useState("");
+
+  // Internal state for the selected season in the player modal (independent from game state)
+  const [modalSeason, setModalSeason] = useState<number | undefined>(initialSeason);
+
+  // Update modal season when player changes
+  useEffect(() => {
+    setModalSeason(initialSeason);
+  }, [player?.pid, initialSeason]);
+
+  // Use modalSeason for all internal rendering
+  const season = modalSeason;
 
   // Helper function to get season-aligned team name
   const getTeamNameForSeason = (team: Team | undefined, seasonYear: number): { region: string; name: string; abbrev: string } => {
@@ -238,7 +249,7 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
             <h2 className="text-2xl font-bold tracking-tight" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>
               {player.name}
             </h2>
-            {onSeasonClick && player.ratings && player.ratings.length > 0 && (() => {
+            {player.ratings && player.ratings.length > 0 && (() => {
               // Get all unique seasons from ratings
               const uniqueSeasons = player.ratings
                 ? Array.from(new Set(player.ratings.map(r => r.season))).sort((a, b) => b - a)
@@ -310,7 +321,7 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
                     onChange={(e) => {
                       const selectedSeason = parseInt(e.target.value);
                       if (!isNaN(selectedSeason)) {
-                        onSeasonClick(selectedSeason);
+                        setModalSeason(selectedSeason);
                       }
                     }}
                     className="text-lg font-semibold rounded px-2 py-1 cursor-pointer [&>option]:text-black [&>option]:bg-white"
@@ -808,9 +819,9 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
                 </div>
                 )}
 
-                {/* Football: Three Column Ratings - Physical/Blocking, Passing/Defense, Rushing-Receiving/Kicking */}
+                {/* Football: Three Column Ratings - Physical/Blocking, Passing/Defense, Rush-Rec/Kicking */}
                 {sport === 'football' && (
-                <div className="flex flex-col sm:flex-row gap-6 sm:gap-6">
+                <div className="grid grid-cols-3 gap-2 sm:gap-6">
                   {/* Column 1: Physical & Blocking */}
                   <div className="flex-1">
                     {/* Physical Section */}
@@ -858,11 +869,11 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
                     </div>
                   </div>
 
-                  {/* Column 3: Rushing/Receiving & Kicking */}
+                  {/* Column 3: Rush/Rec & Kicking */}
                   <div className="flex-1">
-                    {/* Rushing/Receiving Section */}
+                    {/* Rush/Rec Section */}
                     <div className="mb-3 sm:mb-4">
-                      <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2 pb-0.5 border-b border-current/20">Rushing & Receiving</div>
+                      <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2 pb-0.5 border-b border-current/20">Rush & Rec</div>
                       <div className="space-y-[2px] sm:space-y-[6px] mt-2">
                         {seasonRating.elu != null && <StatRow label="Elusiveness" value={seasonRating.elu} delta={getRatingChange(seasonRating.elu, prevSeasonRating?.elu)} />}
                         {seasonRating.rtr != null && <StatRow label="Route Running" value={seasonRating.rtr} delta={getRatingChange(seasonRating.rtr, prevSeasonRating?.rtr)} />}
@@ -880,6 +891,257 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
                         {seasonRating.ppw != null && <StatRow label="Punt Power" value={seasonRating.ppw} delta={getRatingChange(seasonRating.ppw, prevSeasonRating?.ppw)} />}
                         {seasonRating.pac != null && <StatRow label="Punt Accuracy" value={seasonRating.pac} delta={getRatingChange(seasonRating.pac, prevSeasonRating?.pac)} />}
                       </div>
+                    </div>
+                  </div>
+                </div>
+                )}
+
+                {/* Hockey: Three Column Ratings - Physical, Offense, Defense */}
+                {sport === 'hockey' && (
+                <div className="flex gap-4 sm:gap-6">
+                  {/* Physical */}
+                  <div className="flex-shrink-0">
+                    <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2">Physical</div>
+                    <div className="space-y-[2px] sm:space-y-[6px]">
+                      {seasonRating.hgt != null && (
+                        <StatRow
+                          label="Height"
+                          value={seasonRating.hgt}
+                          delta={getRatingChange(seasonRating.hgt, prevSeasonRating?.hgt)}
+                        />
+                      )}
+                      {seasonRating.stre != null && (
+                        <StatRow
+                          label="Strength"
+                          value={seasonRating.stre}
+                          delta={getRatingChange(seasonRating.stre, prevSeasonRating?.stre)}
+                        />
+                      )}
+                      {seasonRating.spd != null && (
+                        <StatRow
+                          label="Speed"
+                          value={seasonRating.spd}
+                          delta={getRatingChange(seasonRating.spd, prevSeasonRating?.spd)}
+                        />
+                      )}
+                      {seasonRating.endu != null && (
+                        <StatRow
+                          label="Endurance"
+                          value={seasonRating.endu}
+                          delta={getRatingChange(seasonRating.endu, prevSeasonRating?.endu)}
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Offense */}
+                  <div className="flex-shrink-0">
+                    <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2">Offense</div>
+                    <div className="space-y-[2px] sm:space-y-[6px]">
+                      {seasonRating.oiq != null && (
+                        <StatRow
+                          label="Offensive IQ"
+                          value={seasonRating.oiq}
+                          delta={getRatingChange(seasonRating.oiq, prevSeasonRating?.oiq)}
+                        />
+                      )}
+                      {seasonRating.pss != null && (
+                        <StatRow
+                          label="Passing"
+                          value={seasonRating.pss}
+                          delta={getRatingChange(seasonRating.pss, prevSeasonRating?.pss)}
+                        />
+                      )}
+                      {seasonRating.wst != null && (
+                        <StatRow
+                          label="Wristshot"
+                          value={seasonRating.wst}
+                          delta={getRatingChange(seasonRating.wst, prevSeasonRating?.wst)}
+                        />
+                      )}
+                      {seasonRating.sst != null && (
+                        <StatRow
+                          label="Slapshot"
+                          value={seasonRating.sst}
+                          delta={getRatingChange(seasonRating.sst, prevSeasonRating?.sst)}
+                        />
+                      )}
+                      {seasonRating.stk != null && (
+                        <StatRow
+                          label="Stickhandling"
+                          value={seasonRating.stk}
+                          delta={getRatingChange(seasonRating.stk, prevSeasonRating?.stk)}
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Defense */}
+                  <div className="flex-shrink-0">
+                    <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2">Defense</div>
+                    <div className="space-y-[2px] sm:space-y-[6px]">
+                      {seasonRating.diq != null && (
+                        <StatRow
+                          label="Defensive IQ"
+                          value={seasonRating.diq}
+                          delta={getRatingChange(seasonRating.diq, prevSeasonRating?.diq)}
+                        />
+                      )}
+                      {seasonRating.chk != null && (
+                        <StatRow
+                          label="Checking"
+                          value={seasonRating.chk}
+                          delta={getRatingChange(seasonRating.chk, prevSeasonRating?.chk)}
+                        />
+                      )}
+                      {seasonRating.blk != null && (
+                        <StatRow
+                          label="Shot Blocking"
+                          value={seasonRating.blk}
+                          delta={getRatingChange(seasonRating.blk, prevSeasonRating?.blk)}
+                        />
+                      )}
+                      {seasonRating.fcf != null && (
+                        <StatRow
+                          label="Faceoffs"
+                          value={seasonRating.fcf}
+                          delta={getRatingChange(seasonRating.fcf, prevSeasonRating?.fcf)}
+                        />
+                      )}
+                      {seasonRating.glk != null && (
+                        <StatRow
+                          label="Goalkeeping"
+                          value={seasonRating.glk}
+                          delta={getRatingChange(seasonRating.glk, prevSeasonRating?.glk)}
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+                )}
+
+                {/* Baseball: Three Column Ratings - Physical, Defense, Pitching */}
+                {sport === 'baseball' && (
+                <div className="flex gap-4 sm:gap-6">
+                  {/* Physical & Hitting */}
+                  <div className="flex-shrink-0">
+                    {/* Physical Section */}
+                    <div className="mb-3 sm:mb-4">
+                      <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2">Physical</div>
+                      <div className="space-y-[2px] sm:space-y-[6px]">
+                        {seasonRating.hgt != null && (
+                          <StatRow
+                            label="Height"
+                            value={seasonRating.hgt}
+                            delta={getRatingChange(seasonRating.hgt, prevSeasonRating?.hgt)}
+                          />
+                        )}
+                        {seasonRating.spd != null && (
+                          <StatRow
+                            label="Speed"
+                            value={seasonRating.spd}
+                            delta={getRatingChange(seasonRating.spd, prevSeasonRating?.spd)}
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Hitting Section */}
+                    <div>
+                      <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2">Hitting</div>
+                      <div className="space-y-[2px] sm:space-y-[6px]">
+                        {seasonRating.hpw != null && (
+                          <StatRow
+                            label="Power"
+                            value={seasonRating.hpw}
+                            delta={getRatingChange(seasonRating.hpw, prevSeasonRating?.hpw)}
+                          />
+                        )}
+                        {seasonRating.con != null && (
+                          <StatRow
+                            label="Contact"
+                            value={seasonRating.con}
+                            delta={getRatingChange(seasonRating.con, prevSeasonRating?.con)}
+                          />
+                        )}
+                        {seasonRating.eye != null && (
+                          <StatRow
+                            label="Eye"
+                            value={seasonRating.eye}
+                            delta={getRatingChange(seasonRating.eye, prevSeasonRating?.eye)}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Defense */}
+                  <div className="flex-shrink-0">
+                    <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2">Defense</div>
+                    <div className="space-y-[2px] sm:space-y-[6px]">
+                      {seasonRating.gnd != null && (
+                        <StatRow
+                          label="Ground Balls"
+                          value={seasonRating.gnd}
+                          delta={getRatingChange(seasonRating.gnd, prevSeasonRating?.gnd)}
+                        />
+                      )}
+                      {seasonRating.fly != null && (
+                        <StatRow
+                          label="Fly Balls"
+                          value={seasonRating.fly}
+                          delta={getRatingChange(seasonRating.fly, prevSeasonRating?.fly)}
+                        />
+                      )}
+                      {seasonRating.thr != null && (
+                        <StatRow
+                          label="Throwing"
+                          value={seasonRating.thr}
+                          delta={getRatingChange(seasonRating.thr, prevSeasonRating?.thr)}
+                        />
+                      )}
+                      {seasonRating.cat != null && (
+                        <StatRow
+                          label="Catcher"
+                          value={seasonRating.cat}
+                          delta={getRatingChange(seasonRating.cat, prevSeasonRating?.cat)}
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Pitching */}
+                  <div className="flex-shrink-0">
+                    <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2">Pitching</div>
+                    <div className="space-y-[2px] sm:space-y-[6px]">
+                      {seasonRating.ppw != null && (
+                        <StatRow
+                          label="Power"
+                          value={seasonRating.ppw}
+                          delta={getRatingChange(seasonRating.ppw, prevSeasonRating?.ppw)}
+                        />
+                      )}
+                      {seasonRating.ctl != null && (
+                        <StatRow
+                          label="Control"
+                          value={seasonRating.ctl}
+                          delta={getRatingChange(seasonRating.ctl, prevSeasonRating?.ctl)}
+                        />
+                      )}
+                      {seasonRating.mov != null && (
+                        <StatRow
+                          label="Movement"
+                          value={seasonRating.mov}
+                          delta={getRatingChange(seasonRating.mov, prevSeasonRating?.mov)}
+                        />
+                      )}
+                      {seasonRating.endu != null && (
+                        <StatRow
+                          label="Endurance"
+                          value={seasonRating.endu}
+                          delta={getRatingChange(seasonRating.endu, prevSeasonRating?.endu)}
+                        />
+                      )}
                     </div>
                   </div>
                 </div>
@@ -984,17 +1246,13 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
                         }}
                       >
                         <td className="py-3 px-4 text-sm whitespace-nowrap sticky left-0 z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>
-                          {onSeasonClick ? (
-                            <button
-                              onClick={() => onSeasonClick(stat.season)}
-                              className="hover:underline cursor-pointer"
-                              style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
-                            >
-                              {stat.season}
-                            </button>
-                          ) : (
-                            <span>{stat.season}</span>
-                          )}
+                          <button
+                            onClick={() => setModalSeason(stat.season)}
+                            className="hover:underline cursor-pointer"
+                            style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
+                          >
+                            {stat.season}
+                          </button>
                         </td>
                         <td className="py-3 px-2 text-sm whitespace-nowrap sticky left-[68px] z-20" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)', backgroundColor: primaryColor }}>
                           {onTeamClick ? (
@@ -1139,17 +1397,13 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
                           }}
                         >
                           <td className="py-3 px-4 text-sm whitespace-nowrap sticky left-0 z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>
-                            {onSeasonClick ? (
-                              <button
-                                onClick={() => onSeasonClick(stat.season)}
-                                className="hover:underline cursor-pointer"
-                                style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
-                              >
-                                {stat.season}
-                              </button>
-                            ) : (
-                              <span>{stat.season}</span>
-                            )}
+                            <button
+                              onClick={() => setModalSeason(stat.season)}
+                              className="hover:underline cursor-pointer"
+                              style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
+                            >
+                              {stat.season}
+                            </button>
                           </td>
                           <td className="py-3 px-2 text-sm whitespace-nowrap sticky left-[68px] z-20" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)', backgroundColor: primaryColor }}>
                             {onTeamClick ? (
@@ -1263,17 +1517,13 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
                           }}
                         >
                           <td className="py-3 px-4 text-sm whitespace-nowrap sticky left-0 z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>
-                            {onSeasonClick ? (
-                              <button
-                                onClick={() => onSeasonClick(rating.season)}
-                                className="hover:underline cursor-pointer"
-                                style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
-                              >
-                                {rating.season}
-                              </button>
-                            ) : (
-                              <span>{rating.season}</span>
-                            )}
+                            <button
+                              onClick={() => setModalSeason(rating.season)}
+                              className="hover:underline cursor-pointer"
+                              style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
+                            >
+                              {rating.season}
+                            </button>
                           </td>
                           <td className="py-3 px-2 text-sm whitespace-nowrap sticky left-[68px] z-20" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)', backgroundColor: primaryColor }}>
                             {onTeamClick && statForSeason ? (

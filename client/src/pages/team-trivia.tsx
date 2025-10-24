@@ -481,19 +481,35 @@ function calculateTeamStats(
   const wins = teamSeason.won || 0;
   const losses = teamSeason.lost || 0;
 
-  // Calculate average age weighted by minutes played
+  // Calculate average age weighted by minutes played (or games played for sports without minutes)
   let totalWeightedAge = 0;
-  let totalMinutes = 0;
+  let totalWeight = 0;
 
   roster.forEach(rp => {
-    if (rp.age && rp.stats?.mpg) {
-      const minutesPlayed = rp.stats.mpg * rp.gamesPlayed;
-      totalWeightedAge += rp.age * minutesPlayed;
-      totalMinutes += minutesPlayed;
+    if (rp.age != null) {
+      // Use minutes played if available (basketball, football, hockey)
+      // Otherwise use games played as the weight (baseball, or fallback)
+      let weight = 0;
+
+      // Check rawSeasonStats first (main roster), then stats (opponent roster)
+      const seasonStats = rp.rawSeasonStats || rp.stats;
+
+      if (seasonStats?.min != null && seasonStats.min > 0) {
+        // Basketball, hockey use 'min' for total minutes/time on ice
+        weight = seasonStats.min;
+      } else if (rp.gamesPlayed != null && rp.gamesPlayed > 0) {
+        // Fallback to games played for sports without minutes tracking
+        weight = rp.gamesPlayed;
+      }
+
+      if (weight > 0) {
+        totalWeightedAge += rp.age * weight;
+        totalWeight += weight;
+      }
     }
   });
 
-  const avgAge = totalMinutes > 0 ? totalWeightedAge / totalMinutes : 0;
+  const avgAge = totalWeight > 0 ? totalWeightedAge / totalWeight : 0;
 
   // Calculate team rating (average ovr)
   const team = leagueData.teams.find(t => t.tid === tid);
@@ -3982,7 +3998,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
           season={selectedSeason || undefined}
           onClose={() => setSelectedPlayerForPage(null)}
           onTeamClick={handleOpenOpponentTeam}
-          onSeasonClick={(season) => setSelectedSeason(season)}
         />
       </div>
     );

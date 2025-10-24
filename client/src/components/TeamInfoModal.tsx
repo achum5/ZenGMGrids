@@ -98,10 +98,7 @@ function PlayerImage({
     return () => { mounted = false; };
   }, [player.pid, player.imgURL, player.face, teams, sport, season]);
 
-  if (imageData.type === 'none') {
-    return null;
-  }
-
+  // Always render the container to maintain consistent layout and sizing
   return (
     <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center">
       {imageData.type === 'url' && (
@@ -166,82 +163,7 @@ const SPORT_STAT_COLUMNS: Record<string, Array<{ key: string; label: string; for
     { key: 'drb', label: 'DRB', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
     { key: 'per', label: 'PER', format: (v) => v?.toFixed(1) || '-' },
   ],
-  football: [
-    // Passing stats (QB)
-    { key: 'pssCmp', label: 'CMP', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'pss', label: 'ATT', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'cmpPct', label: 'CMP%', format: (v, stats) => {
-      const cmp = stats?.pssCmp ?? 0;
-      const att = stats?.pss ?? 0;
-      return att > 0 ? ((cmp / att) * 100).toFixed(1) : '-';
-    }},
-    { key: 'pssYds', label: 'YDS', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'pssTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'pssInt', label: 'INT', format: (v) => v != null ? v.toFixed(0) : '-' },
-    // Rushing stats
-    { key: 'rus', label: 'CAR', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'rusYds', label: 'RUSH YDS', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'rusYdsPerAtt', label: 'YPC', format: (v, stats) => {
-      const yds = stats?.rusYds ?? 0;
-      const att = stats?.rus ?? 0;
-      return att > 0 ? (yds / att).toFixed(1) : '-';
-    }},
-    { key: 'rusTD', label: 'RUSH TD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    // Receiving stats
-    { key: 'tgt', label: 'TGT', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'rec', label: 'REC', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'recYds', label: 'REC YDS', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'recYdsPerAtt', label: 'Y/R', format: (v, stats) => {
-      const yds = stats?.recYds ?? 0;
-      const rec = stats?.rec ?? 0;
-      return rec > 0 ? (yds / rec).toFixed(1) : '-';
-    }},
-    { key: 'recTD', label: 'REC TD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    // Defensive stats
-    { key: 'defTckSolo', label: 'SOLO', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defTckAst', label: 'AST', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defTckLoss', label: 'TFL', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defSk', label: 'SCK', format: (v, stats) => {
-      const sck = v ?? stats?.sks;
-      return sck != null ? sck.toFixed(1) : '-';
-    }},
-    { key: 'defInt', label: 'INT', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defIntYds', label: 'INT YDS', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defIntTD', label: 'INT TD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defPssDef', label: 'PD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defFmbFrc', label: 'FF', format: (v, stats) => {
-      const ff = v ?? stats?.ff;
-      return ff != null ? ff.toFixed(0) : '-';
-    }},
-    // Return stats
-    { key: 'prYds', label: 'PR YDS', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'krYds', label: 'KR YDS', format: (v) => v != null ? v.toFixed(0) : '-' },
-    // Kicking stats
-    { key: 'fg0', label: 'FG 0-19', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'fga0', label: 'FGA 0-19', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'fg20', label: 'FG 20-29', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'fga20', label: 'FGA 20-29', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'fg30', label: 'FG 30-39', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'fga30', label: 'FGA 30-39', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'fg40', label: 'FG 40-49', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'fga40', label: 'FGA 40-49', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'fg50', label: 'FG 50+', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'fga50', label: 'FGA 50+', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'fgLng', label: 'FG LONG', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'xp', label: 'XP', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'xpa', label: 'XPA', format: (v) => v != null ? v.toFixed(0) : '-' },
-    // Punting stats
-    { key: 'pnt', label: 'PNT', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'pntYds', label: 'PNT YDS', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'pntYdsPerAtt', label: 'PNT AVG', format: (v, stats) => {
-      const yds = stats?.pntYds ?? 0;
-      const pnt = stats?.pnt ?? 0;
-      return pnt > 0 ? (yds / pnt).toFixed(1) : '-';
-    }},
-    { key: 'pntIn20', label: 'PNT I20', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'pntTB', label: 'PNT TB', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'pntBlk', label: 'PNT BLK', format: (v) => v != null ? v.toFixed(0) : '-' },
-  ],
+  football: [], // Football uses position-specific columns defined below
   baseball: [
     // Batting stats
     { key: 'h', label: 'H', format: (v) => v != null ? v.toFixed(0) : '-' },
@@ -325,6 +247,380 @@ const SPORT_STAT_COLUMNS: Record<string, Array<{ key: string; label: string; for
     { key: 'so', label: 'SO', format: (v) => v != null ? v.toFixed(0) : '-' },
   ],
 };
+
+// Position-specific stat columns for football
+const FOOTBALL_POSITION_STAT_COLUMNS: Record<string, Array<{ key: string; label: string; format?: (val: any, stats?: any, gp?: number) => string }>> = {
+  QB: [
+    // Passing stats
+    { key: 'pssCmp', label: 'Cmp', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'pss', label: 'Att', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'pct', label: 'Pct', format: (v, stats) => {
+      const cmp = stats?.pssCmp ?? 0;
+      const att = stats?.pss ?? 0;
+      return att > 0 ? ((cmp / att) * 100).toFixed(1) : '-';
+    }},
+    { key: 'pssYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'pssTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'tdPct', label: 'TD%', format: (v, stats) => {
+      const td = stats?.pssTD ?? 0;
+      const att = stats?.pss ?? 0;
+      return att > 0 ? ((td / att) * 100).toFixed(1) : '-';
+    }},
+    { key: 'pssInt', label: 'Int', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'intPct', label: 'Int%', format: (v, stats) => {
+      const int = stats?.pssInt ?? 0;
+      const att = stats?.pss ?? 0;
+      return att > 0 ? ((int / att) * 100).toFixed(1) : '-';
+    }},
+    { key: 'pssLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'pssYdsPerAtt', label: 'Y/A', format: (v, stats) => {
+      const yds = stats?.pssYds ?? 0;
+      const att = stats?.pss ?? 0;
+      return att > 0 ? (yds / att).toFixed(1) : '-';
+    }},
+    { key: 'adjYdsPerAtt', label: 'AY/A', format: (v, stats) => {
+      const yds = stats?.pssYds ?? 0;
+      const td = stats?.pssTD ?? 0;
+      const int = stats?.pssInt ?? 0;
+      const att = stats?.pss ?? 0;
+      return att > 0 ? ((yds + 20 * td - 45 * int) / att).toFixed(1) : '-';
+    }},
+    { key: 'ydsPerCmp', label: 'Y/C', format: (v, stats) => {
+      const yds = stats?.pssYds ?? 0;
+      const cmp = stats?.pssCmp ?? 0;
+      return cmp > 0 ? (yds / cmp).toFixed(1) : '-';
+    }},
+    { key: 'pssYdsPerGame', label: 'Y/G', format: (v, stats, gp) => {
+      const yds = stats?.pssYds ?? 0;
+      return gp ? (yds / gp).toFixed(1) : '-';
+    }},
+    { key: 'qbRat', label: 'QBRat', format: (v) => v != null ? v.toFixed(1) : '-' },
+    { key: 'rusYds', label: 'RuYds', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'rusTD', label: 'RuTD', format: (v) => v != null ? v.toFixed(0) : '-' },
+  ],
+  RB: [
+    // Rushing stats
+    { key: 'rus', label: 'Rush', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'rusYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'rusTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'rusLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'rusYdsPerAtt', label: 'Y/A', format: (v, stats) => {
+      const yds = stats?.rusYds ?? 0;
+      const att = stats?.rus ?? 0;
+      return att > 0 ? (yds / att).toFixed(1) : '-';
+    }},
+    { key: 'rusYdsPerGame', label: 'Y/G', format: (v, stats, gp) => {
+      const yds = stats?.rusYds ?? 0;
+      return gp ? (yds / gp).toFixed(1) : '-';
+    }},
+    { key: 'rusPerGame', label: 'A/G', format: (v, stats, gp) => {
+      const rus = stats?.rus ?? 0;
+      return gp ? (rus / gp).toFixed(1) : '-';
+    }},
+    // Receiving stats
+    { key: 'tgt', label: 'Tgt', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'rec', label: 'Rec', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'recYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'recTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'recLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'recYdsPerRec', label: 'Y/R', format: (v, stats) => {
+      const yds = stats?.recYds ?? 0;
+      const rec = stats?.rec ?? 0;
+      return rec > 0 ? (yds / rec).toFixed(1) : '-';
+    }},
+    { key: 'recPerGame', label: 'R/G', format: (v, stats, gp) => {
+      const rec = stats?.rec ?? 0;
+      return gp ? (rec / gp).toFixed(1) : '-';
+    }},
+    { key: 'recYdsPerGame', label: 'Y/G', format: (v, stats, gp) => {
+      const yds = stats?.recYds ?? 0;
+      return gp ? (yds / gp).toFixed(1) : '-';
+    }},
+    { key: 'catchPct', label: 'Ctch%', format: (v, stats) => {
+      const rec = stats?.rec ?? 0;
+      const tgt = stats?.tgt ?? 0;
+      return tgt > 0 ? ((rec / tgt) * 100).toFixed(1) : '-';
+    }},
+    { key: 'touches', label: 'Tch', format: (v, stats) => {
+      const rus = stats?.rus ?? 0;
+      const rec = stats?.rec ?? 0;
+      return (rus + rec).toFixed(0);
+    }},
+    { key: 'ydsPerTouch', label: 'Y/Tch', format: (v, stats) => {
+      const rusYds = stats?.rusYds ?? 0;
+      const recYds = stats?.recYds ?? 0;
+      const rus = stats?.rus ?? 0;
+      const rec = stats?.rec ?? 0;
+      const touches = rus + rec;
+      return touches > 0 ? ((rusYds + recYds) / touches).toFixed(1) : '-';
+    }},
+    { key: 'yScm', label: 'YScm', format: (v, stats) => {
+      const rusYds = stats?.rusYds ?? 0;
+      const recYds = stats?.recYds ?? 0;
+      return (rusYds + recYds).toFixed(0);
+    }},
+    { key: 'allTD', label: 'RRTD', format: (v, stats) => {
+      const rusTD = stats?.rusTD ?? 0;
+      const recTD = stats?.recTD ?? 0;
+      return (rusTD + recTD).toFixed(0);
+    }},
+    { key: 'fmb', label: 'Fmb', format: (v) => v != null ? v.toFixed(0) : '-' },
+  ],
+  WR: [
+    // Receiving stats
+    { key: 'tgt', label: 'Tgt', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'rec', label: 'Rec', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'recYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'recTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'recLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'recYdsPerRec', label: 'Y/R', format: (v, stats) => {
+      const yds = stats?.recYds ?? 0;
+      const rec = stats?.rec ?? 0;
+      return rec > 0 ? (yds / rec).toFixed(1) : '-';
+    }},
+    { key: 'recPerGame', label: 'R/G', format: (v, stats, gp) => {
+      const rec = stats?.rec ?? 0;
+      return gp ? (rec / gp).toFixed(1) : '-';
+    }},
+    { key: 'recYdsPerGame', label: 'Y/G', format: (v, stats, gp) => {
+      const yds = stats?.recYds ?? 0;
+      return gp ? (yds / gp).toFixed(1) : '-';
+    }},
+    { key: 'catchPct', label: 'Ctch%', format: (v, stats) => {
+      const rec = stats?.rec ?? 0;
+      const tgt = stats?.tgt ?? 0;
+      return tgt > 0 ? ((rec / tgt) * 100).toFixed(1) : '-';
+    }},
+    // Rushing stats (some WRs rush)
+    { key: 'rus', label: 'Rush', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'rusYds', label: 'RuYds', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'rusTD', label: 'RuTD', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'touches', label: 'Tch', format: (v, stats) => {
+      const rus = stats?.rus ?? 0;
+      const rec = stats?.rec ?? 0;
+      return (rus + rec).toFixed(0);
+    }},
+    { key: 'ydsPerTouch', label: 'Y/Tch', format: (v, stats) => {
+      const rusYds = stats?.rusYds ?? 0;
+      const recYds = stats?.recYds ?? 0;
+      const rus = stats?.rus ?? 0;
+      const rec = stats?.rec ?? 0;
+      const touches = rus + rec;
+      return touches > 0 ? ((rusYds + recYds) / touches).toFixed(1) : '-';
+    }},
+    { key: 'yScm', label: 'YScm', format: (v, stats) => {
+      const rusYds = stats?.rusYds ?? 0;
+      const recYds = stats?.recYds ?? 0;
+      return (rusYds + recYds).toFixed(0);
+    }},
+    { key: 'allTD', label: 'RRTD', format: (v, stats) => {
+      const rusTD = stats?.rusTD ?? 0;
+      const recTD = stats?.recTD ?? 0;
+      return (rusTD + recTD).toFixed(0);
+    }},
+    { key: 'fmb', label: 'Fmb', format: (v) => v != null ? v.toFixed(0) : '-' },
+  ],
+  TE: [
+    // Receiving stats
+    { key: 'tgt', label: 'Tgt', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'rec', label: 'Rec', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'recYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'recTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'recLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'recYdsPerRec', label: 'Y/R', format: (v, stats) => {
+      const yds = stats?.recYds ?? 0;
+      const rec = stats?.rec ?? 0;
+      return rec > 0 ? (yds / rec).toFixed(1) : '-';
+    }},
+    { key: 'recPerGame', label: 'R/G', format: (v, stats, gp) => {
+      const rec = stats?.rec ?? 0;
+      return gp ? (rec / gp).toFixed(1) : '-';
+    }},
+    { key: 'recYdsPerGame', label: 'Y/G', format: (v, stats, gp) => {
+      const yds = stats?.recYds ?? 0;
+      return gp ? (yds / gp).toFixed(1) : '-';
+    }},
+    { key: 'catchPct', label: 'Ctch%', format: (v, stats) => {
+      const rec = stats?.rec ?? 0;
+      const tgt = stats?.tgt ?? 0;
+      return tgt > 0 ? ((rec / tgt) * 100).toFixed(1) : '-';
+    }},
+    // Rushing stats (rare for TEs)
+    { key: 'rus', label: 'Rush', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'rusYds', label: 'RuYds', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'rusTD', label: 'RuTD', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'touches', label: 'Tch', format: (v, stats) => {
+      const rus = stats?.rus ?? 0;
+      const rec = stats?.rec ?? 0;
+      return (rus + rec).toFixed(0);
+    }},
+    { key: 'ydsPerTouch', label: 'Y/Tch', format: (v, stats) => {
+      const rusYds = stats?.rusYds ?? 0;
+      const recYds = stats?.recYds ?? 0;
+      const rus = stats?.rus ?? 0;
+      const rec = stats?.rec ?? 0;
+      const touches = rus + rec;
+      return touches > 0 ? ((rusYds + recYds) / touches).toFixed(1) : '-';
+    }},
+    { key: 'yScm', label: 'YScm', format: (v, stats) => {
+      const rusYds = stats?.rusYds ?? 0;
+      const recYds = stats?.recYds ?? 0;
+      return (rusYds + recYds).toFixed(0);
+    }},
+    { key: 'allTD', label: 'RRTD', format: (v, stats) => {
+      const rusTD = stats?.rusTD ?? 0;
+      const recTD = stats?.recTD ?? 0;
+      return (rusTD + recTD).toFixed(0);
+    }},
+    { key: 'fmb', label: 'Fmb', format: (v) => v != null ? v.toFixed(0) : '-' },
+  ],
+  OL: [
+    // Offensive line - minimal stats, mostly game participation
+  ],
+  DL: [
+    // Defensive stats
+    { key: 'defInt', label: 'Int', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defIntYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defIntTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defIntLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defPssDef', label: 'PD', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defFmbFrc', label: 'FF', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defFmbRec', label: 'FR', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defFmbYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defFmbTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defFmbLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defSk', label: 'Sk', format: (v) => v != null ? v.toFixed(1) : '-' },
+    { key: 'defTck', label: 'Tck', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defTckSolo', label: 'Solo', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defTckAst', label: 'Ast', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defTckLoss', label: 'TFL', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defSft', label: 'Sfty', format: (v) => v != null ? v.toFixed(0) : '-' },
+  ],
+  LB: [
+    // Defensive stats
+    { key: 'defInt', label: 'Int', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defIntYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defIntTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defIntLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defPssDef', label: 'PD', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defFmbFrc', label: 'FF', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defFmbRec', label: 'FR', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defFmbYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defFmbTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defFmbLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defSk', label: 'Sk', format: (v) => v != null ? v.toFixed(1) : '-' },
+    { key: 'defTck', label: 'Tck', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defTckSolo', label: 'Solo', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defTckAst', label: 'Ast', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defTckLoss', label: 'TFL', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defSft', label: 'Sfty', format: (v) => v != null ? v.toFixed(0) : '-' },
+  ],
+  CB: [
+    // Defensive stats
+    { key: 'defInt', label: 'Int', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defIntYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defIntTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defIntLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defPssDef', label: 'PD', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defFmbFrc', label: 'FF', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defFmbRec', label: 'FR', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defFmbYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defFmbTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defFmbLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defSk', label: 'Sk', format: (v) => v != null ? v.toFixed(1) : '-' },
+    { key: 'defTck', label: 'Tck', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defTckSolo', label: 'Solo', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defTckAst', label: 'Ast', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defTckLoss', label: 'TFL', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defSft', label: 'Sfty', format: (v) => v != null ? v.toFixed(0) : '-' },
+  ],
+  S: [
+    // Defensive stats
+    { key: 'defInt', label: 'Int', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defIntYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defIntTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defIntLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defPssDef', label: 'PD', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defFmbFrc', label: 'FF', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defFmbRec', label: 'FR', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defFmbYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defFmbTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defFmbLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defSk', label: 'Sk', format: (v) => v != null ? v.toFixed(1) : '-' },
+    { key: 'defTck', label: 'Tck', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defTckSolo', label: 'Solo', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defTckAst', label: 'Ast', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defTckLoss', label: 'TFL', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defSft', label: 'Sfty', format: (v) => v != null ? v.toFixed(0) : '-' },
+  ],
+  K: [
+    // Kicking stats
+    { key: 'fg0', label: 'FG10', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'fga0', label: 'FGA10', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'fg20', label: 'FG20', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'fga20', label: 'FGA20', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'fg30', label: 'FG30', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'fga30', label: 'FGA30', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'fg40', label: 'FG40', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'fga40', label: 'FGA40', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'fg50', label: 'FG50', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'fga50', label: 'FGA50', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'fgLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'fg', label: 'FGM', format: (v, stats) => {
+      const fg = (stats?.fg0 ?? 0) + (stats?.fg20 ?? 0) + (stats?.fg30 ?? 0) + (stats?.fg40 ?? 0) + (stats?.fg50 ?? 0);
+      return fg.toFixed(0);
+    }},
+    { key: 'fga', label: 'FGA', format: (v, stats) => {
+      const fga = (stats?.fga0 ?? 0) + (stats?.fga20 ?? 0) + (stats?.fga30 ?? 0) + (stats?.fga40 ?? 0) + (stats?.fga50 ?? 0);
+      return fga.toFixed(0);
+    }},
+    { key: 'fgPct', label: 'Pct', format: (v, stats) => {
+      const fg = (stats?.fg0 ?? 0) + (stats?.fg20 ?? 0) + (stats?.fg30 ?? 0) + (stats?.fg40 ?? 0) + (stats?.fg50 ?? 0);
+      const fga = (stats?.fga0 ?? 0) + (stats?.fga20 ?? 0) + (stats?.fga30 ?? 0) + (stats?.fga40 ?? 0) + (stats?.fga50 ?? 0);
+      return fga > 0 ? ((fg / fga) * 100).toFixed(1) : '-';
+    }},
+    { key: 'xp', label: 'XPM', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'xpa', label: 'XPA', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'xpPct', label: 'Pct', format: (v, stats) => {
+      const xp = stats?.xp ?? 0;
+      const xpa = stats?.xpa ?? 0;
+      return xpa > 0 ? ((xp / xpa) * 100).toFixed(1) : '-';
+    }},
+    { key: 'kickingPts', label: 'Pts', format: (v, stats) => {
+      const fg = (stats?.fg0 ?? 0) + (stats?.fg20 ?? 0) + (stats?.fg30 ?? 0) + (stats?.fg40 ?? 0) + (stats?.fg50 ?? 0);
+      const xp = stats?.xp ?? 0;
+      return (fg * 3 + xp).toFixed(0);
+    }},
+  ],
+  P: [
+    // Punting stats
+    { key: 'pnt', label: 'Pnt', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'pntYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'pntLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'pntBlk', label: 'Blk', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'pntYdsPerAtt', label: 'Y/A', format: (v, stats) => {
+      const yds = stats?.pntYds ?? 0;
+      const pnt = stats?.pnt ?? 0;
+      return pnt > 0 ? (yds / pnt).toFixed(1) : '-';
+    }},
+    // Also show kicking stats for punters who kick
+    { key: 'fg', label: 'FGM', format: (v, stats) => {
+      const fg = (stats?.fg0 ?? 0) + (stats?.fg20 ?? 0) + (stats?.fg30 ?? 0) + (stats?.fg40 ?? 0) + (stats?.fg50 ?? 0);
+      return fg > 0 ? fg.toFixed(0) : '-';
+    }},
+    { key: 'fga', label: 'FGA', format: (v, stats) => {
+      const fga = (stats?.fga0 ?? 0) + (stats?.fga20 ?? 0) + (stats?.fga30 ?? 0) + (stats?.fga40 ?? 0) + (stats?.fga50 ?? 0);
+      return fga > 0 ? fga.toFixed(0) : '-';
+    }},
+    { key: 'xp', label: 'XPM', format: (v) => (v != null && v > 0) ? v.toFixed(0) : '-' },
+    { key: 'xpa', label: 'XPA', format: (v) => (v != null && v > 0) ? v.toFixed(0) : '-' },
+  ],
+};
+
+// Helper function to get stat columns for a football player based on position
+function getFootballStatColumns(position: string) {
+  return FOOTBALL_POSITION_STAT_COLUMNS[position] || [];
+}
 
 export function TeamInfoModal({
   open,
@@ -660,19 +956,35 @@ export function TeamInfoModal({
                 >
                   G
                 </th>
-                {statColumns.map((col) => (
+                {/* For football, show generic Stats header since each position has different stats */}
+                {sport === 'football' ? (
                   <th
-                    key={col.key}
-                    className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap"
+                    className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wide whitespace-nowrap"
                     style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
                   >
-                    {col.label}
+                    Stats (Position-Specific)
                   </th>
-                ))}
+                ) : (
+                  statColumns.map((col) => (
+                    <th
+                      key={col.key}
+                      className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap"
+                      style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
+                    >
+                      {col.label}
+                    </th>
+                  ))
+                )}
               </tr>
             </thead>
             <tbody>
-              {sortedPlayers.map((playerInfo, idx) => (
+              {sortedPlayers.map((playerInfo, idx) => {
+                // For football, get position-specific stat columns
+                const playerStatColumns = sport === 'football'
+                  ? getFootballStatColumns(playerInfo.position || '')
+                  : statColumns;
+
+                return (
                 <tr
                   key={playerInfo.player.pid}
                   onClick={() => onPlayerClick?.(playerInfo.player)}
@@ -747,8 +1059,8 @@ export function TeamInfoModal({
                     {playerInfo.gamesPlayed}
                   </td>
 
-                  {/* Dynamic stat columns */}
-                  {statColumns.map((col, colIdx) => (
+                  {/* Dynamic stat columns - position-specific for football */}
+                  {playerStatColumns.map((col, colIdx) => (
                     <td
                       key={col.key}
                       className={`text-center py-3 px-2 text-sm ${colIdx === 0 && sport === 'basketball' ? 'font-medium' : ''}`}
@@ -758,7 +1070,7 @@ export function TeamInfoModal({
                     </td>
                   ))}
                 </tr>
-              ))}
+              );})}
             </tbody>
           </table>
         </div>
