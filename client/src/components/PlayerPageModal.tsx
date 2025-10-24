@@ -212,7 +212,7 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
       >
       {/* Player Info Card */}
       <div
-        className="relative w-full max-w-6xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        className="relative w-full max-w-6xl max-h-[75vh] sm:max-h-[85vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col"
         style={{
           background: `linear-gradient(180deg, ${primaryColor} 0%, ${primaryColor} 100%)`,
           border: `2px solid ${secondaryColor}`,

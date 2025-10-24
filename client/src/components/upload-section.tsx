@@ -168,7 +168,7 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadP
             <div className="border-2 border-dashed border-border rounded-lg p-8">
               <div className="flex flex-col items-center space-y-4">
                 <Link className="h-12 w-12 text-muted-foreground" />
-                <h3 className="text-lg font-semibold text-foreground">Load a ZenGM League from URL</h3>
+                <h3 className="text-lg font-semibold text-foreground">Load a ZenGM League from URL                      </h3>
                 <div className="w-full space-y-2">
                   <div className="flex gap-2">
                     <Input

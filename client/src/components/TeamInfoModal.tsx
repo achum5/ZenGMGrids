@@ -165,7 +165,6 @@ const SPORT_STAT_COLUMNS: Record<string, Array<{ key: string; label: string; for
     { key: 'orb', label: 'ORB', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
     { key: 'drb', label: 'DRB', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
     { key: 'per', label: 'PER', format: (v) => v?.toFixed(1) || '-' },
-    { key: 'ews', label: 'EWS', format: (v) => v?.toFixed(1) || '-' },
   ],
   football: [
     // Passing stats (QB)
@@ -468,7 +467,7 @@ export function TeamInfoModal({
       >
       {/* Team Info Card */}
       <div
-        className="relative w-full max-w-6xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        className="relative w-full max-w-6xl max-h-[75vh] sm:max-h-[85vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col"
         style={{
           background: `linear-gradient(180deg, ${primaryColor} 0%, ${primaryColor} 100%)`,
           border: `2px solid ${secondaryColor}`,

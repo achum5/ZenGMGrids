@@ -238,27 +238,23 @@ export function CompactScoreCard({
             monoDetail
           />
 
-          {data.winsGuess && (
-            <ScoreRow
-              label="WINS"
-              detail={data.winsGuess.awarded ? 'Correct' : 'Incorrect'}
-              points={winsPoints}
-              textColor={textColor}
-              secondaryColor={secondaryColor}
-              icon="🎯"
-            />
-          )}
+          <ScoreRow
+            label="WINS"
+            detail={data.winsGuess ? (data.winsGuess.awarded ? 'Correct' : 'Incorrect') : 'Not attempted'}
+            points={winsPoints}
+            textColor={textColor}
+            secondaryColor={secondaryColor}
+            icon="🎯"
+          />
 
-          {data.playoffFinish && (
-            <ScoreRow
-              label="PLAYOFF"
-              detail={data.playoffFinish.correct ? 'Correct' : 'Incorrect'}
-              points={playoffPoints}
-              textColor={textColor}
-              secondaryColor={secondaryColor}
-              icon="🏆"
-            />
-          )}
+          <ScoreRow
+            label="PLAYOFF"
+            detail={data.playoffFinish ? (data.playoffFinish.correct ? 'Correct' : 'Incorrect') : 'Not attempted'}
+            points={playoffPoints}
+            textColor={textColor}
+            secondaryColor={secondaryColor}
+            icon="🏆"
+          />
         </div>
 
         {/* Total Section */}

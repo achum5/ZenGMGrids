@@ -600,6 +600,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<HTMLDivElement>(null);
   const tileRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const hasInitialized = useRef(false);
 
   // Get sport-specific round order
   const ROUND_ORDER = leagueData.sport === 'football' 
@@ -1727,11 +1728,14 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     setScore(0); // Reset score for new game
   }, [allSeasons, allTeams, buildRoster, leagueData.players, leagueData.teamSeasons, toast, yearRange]);
 
-  // Initialize on mount
+  // Initialize on mount - wait for yearRange to be set first
   useEffect(() => {
-    pickRandomTeamAndSeason();
+    if (yearRange !== null && !hasInitialized.current) {
+      hasInitialized.current = true;
+      pickRandomTeamAndSeason();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [yearRange]);
 
   // When season or team changes, rebuild roster
   useEffect(() => {
