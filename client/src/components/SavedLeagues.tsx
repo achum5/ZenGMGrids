@@ -263,12 +263,12 @@ export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: 
               </div>
             ) : (
               <>
-                {/* League info - minimal: name, years, size */}
+                {/* League info - mobile: name only, desktop: name + years + size */}
                 <div className="flex-1 min-w-0 flex items-center gap-2 text-sm overflow-hidden">
-                  <span className="font-semibold truncate" data-testid={`text-league-name-${league.id}`}>
-                    {league.name}
+                  <span className="font-semibold" data-testid={`text-league-name-${league.id}`}>
+                    {league.name.length > 14 ? `${league.name.substring(0, 14)}...` : league.name}
                   </span>
-                  <span className="flex items-center gap-2 text-muted-foreground flex-shrink-0 whitespace-nowrap text-xs">
+                  <span className="hidden sm:flex items-center gap-2 text-muted-foreground flex-shrink-0 whitespace-nowrap text-xs">
                     {league.seasons && (
                       <>
                         <span className="text-muted-foreground/50">•</span>
@@ -304,7 +304,9 @@ export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: 
                     </PopoverTrigger>
                     <PopoverContent className="w-64 text-sm" align="end">
                       <div className="space-y-2">
-                        <h4 className="font-semibold text-sm">{league.name}</h4>
+                        <h4 className="font-semibold text-sm truncate">
+                          {league.name}
+                        </h4>
                         <div className="space-y-1 text-xs text-muted-foreground">
                           <div className="flex justify-between">
                             <span>Players:</span>

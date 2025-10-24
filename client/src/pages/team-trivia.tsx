@@ -3128,11 +3128,11 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
                     )}
                   </div>
 
-                  {/* Age - Only visible during leader rounds */}
-                  {rp.age && currentRound && currentRound.includes('-leader') && (
+                  {/* Age - Visible during leader rounds, wins-guess, playoff-finish, and complete */}
+                  {rp.age && currentRound && (currentRound.includes('-leader') || currentRound === 'wins-guess' || currentRound === 'playoff-finish' || currentRound === 'complete') && (
                     <div className="w-full text-center text-[0.45rem] sm:text-[0.6rem] md:text-[0.7rem] leading-tight mt-1"
                       style={{ color: rp.teamColors?.[0] || 'hsl(var(--foreground))' }}>
-                      <p>Age: {rp.age}</p>
+                      <p className="mt-[-7px] mb-[-7px]">Age: {rp.age}</p>
                     </div>
                   )}
 
