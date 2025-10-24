@@ -131,19 +131,32 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
               )}
 
               {/* Draft */}
-              {player.draft && (player.draft.year || player.draft.round || player.draft.pick) && (
-                <div>
-                  <span className="font-semibold">Draft:</span>{' '}
-                  {player.draft.year && <span>{player.draft.year}</span>}
-                  {(player.draft.round || player.draft.pick) && (
-                    <>
-                      {player.draft.year && <span> - </span>}
-                      {player.draft.round && <span>Round {player.draft.round}</span>}
-                      {player.draft.pick && <span> (Pick {player.draft.pick})</span>}
-                    </>
-                  )}
-                </div>
-              )}
+              {(() => {
+                if (!player.draft || player.draft.tid == null || player.draft.tid < 0) {
+                  return (
+                    <div>
+                      <span className="font-semibold">Draft:</span> Undrafted
+                    </div>
+                  );
+                }
+
+                const draftTeam = teams?.find(t => t.tid === player.draft.tid);
+
+                return (
+                  <div>
+                    <span className="font-semibold">Draft:</span>{' '}
+                    {player.draft.year && <span>{player.draft.year}</span>}
+                    {(player.draft.round || player.draft.pick) && (
+                      <>
+                        {player.draft.year && <span> - </span>}
+                        {player.draft.round && <span>Round {player.draft.round}</span>}
+                        {player.draft.pick && <span> (Pick {player.draft.pick})</span>}
+                      </>
+                    )}
+                    {draftTeam && <span> by {draftTeam.abbrev}</span>}
+                  </div>
+                );
+              })()}
 
               {/* College */}
               <div>
