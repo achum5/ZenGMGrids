@@ -11,6 +11,7 @@ interface PlayerPageModalProps {
   season?: number;
   onClose: () => void;
   onTeamClick?: (tid: number, season: number) => void;
+  onSeasonClick?: (season: number) => void;
 }
 
 // Helper to check contrast and adjust text color
@@ -23,7 +24,7 @@ function getContrastColor(hexColor: string): 'white' | 'black' {
   return luminance > 0.5 ? 'black' : 'white';
 }
 
-export function PlayerPageModal({ player, sport, teams = [], season, onClose, onTeamClick }: PlayerPageModalProps) {
+export function PlayerPageModal({ player, sport, teams = [], season, onClose, onTeamClick, onSeasonClick }: PlayerPageModalProps) {
   const [imageKind, setImageKind] = useState<"url" | "svg" | "none">("none");
   const [imageData, setImageData] = useState("");
 
@@ -36,6 +37,12 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
         textColor: 'white' as const
       };
     }
+
+    // Check if this is a draft prospect year (first year in ratings)
+    const firstRatingYear = player.ratings && player.ratings.length > 0
+      ? Math.min(...player.ratings.map(r => r.season))
+      : null;
+    const isDraftProspect = firstRatingYear !== null && season === firstRatingYear;
 
     const seasonStats = player.stats?.find(s => s.season === season && !s.playoffs);
     const team = seasonStats ? teams.find(t => t.tid === seasonStats.tid) : null;
@@ -53,8 +60,66 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
       };
     }
 
+    // If no team for this season, check if player is retired
+    const isRetired = player.tid === -2 || player.tid === -3 || (player.retiredYear && player.retiredYear > 0);
+
+    // For draft prospects who are active, use their current team colors
+    if (isDraftProspect && player.tid >= 0) {
+      const currentTeam = teams.find(t => t.tid === player.tid);
+      if (currentTeam) {
+        const colors = currentTeam.colors || ['#1f2937', '#ffffff'];
+        const primary = colors[0] || '#1f2937';
+        const secondary = colors[1] || '#ffffff';
+
+        return {
+          primaryColor: primary,
+          secondaryColor: secondary,
+          textColor: getContrastColor(primary)
+        };
+      }
+    }
+
+    if (isRetired && player.stats && player.stats.length > 0) {
+      // For retired players, use the team they spent the most seasons with
+      const teamSeasonCounts = new Map<number, number>();
+
+      for (const stat of player.stats) {
+        if (!stat.playoffs && stat.gp && stat.gp > 0) {
+          const count = teamSeasonCounts.get(stat.tid) || 0;
+          teamSeasonCounts.set(stat.tid, count + 1);
+        }
+      }
+
+      // Find team with most seasons
+      let mostSeasonsTeamId = -1;
+      let maxSeasons = 0;
+
+      for (const [teamId, seasonCount] of teamSeasonCounts.entries()) {
+        if (seasonCount > maxSeasons) {
+          maxSeasons = seasonCount;
+          mostSeasonsTeamId = teamId;
+        }
+      }
+
+      if (mostSeasonsTeamId >= 0) {
+        const mostSeasonsTeam = teams.find(t => t.tid === mostSeasonsTeamId);
+        if (mostSeasonsTeam) {
+          const colors = mostSeasonsTeam.colors || ['#1f2937', '#ffffff'];
+          const primary = colors[0] || '#1f2937';
+          const secondary = colors[1] || '#ffffff';
+
+          return {
+            primaryColor: primary,
+            secondaryColor: secondary,
+            textColor: getContrastColor(primary)
+          };
+        }
+      }
+    }
+
+    // Free agent colors (gray, white, black)
     return {
-      primaryColor: '#1f2937',
+      primaryColor: '#4b5563', // gray-600
       secondaryColor: '#ffffff',
       textColor: 'white' as const
     };
@@ -135,9 +200,98 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
 
         {/* Header */}
         <div className="relative z-10 p-6 border-b" style={{ borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}` }}>
-          <h2 className="text-2xl font-bold tracking-tight" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>
-            {player.name}
-          </h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-bold tracking-tight" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>
+              {player.name}
+            </h2>
+            {onSeasonClick && player.ratings && player.ratings.length > 0 && (
+              <>
+                <span className="text-2xl font-bold" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }}>|</span>
+                <select
+                  value={season || ''}
+                  onChange={(e) => {
+                    const selectedSeason = parseInt(e.target.value);
+                    if (!isNaN(selectedSeason)) {
+                      onSeasonClick(selectedSeason);
+                    }
+                  }}
+                  className="text-lg font-semibold rounded px-2 py-1 cursor-pointer [&>option]:text-black [&>option]:bg-white"
+                  style={{
+                    backgroundColor: textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                    color: textColor === 'white' ? '#ffffff' : '#000000',
+                    border: `1px solid ${textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'}`,
+                  }}
+
+                >
+                  {(() => {
+                    // Get all unique seasons from ratings
+                    const uniqueSeasons = player.ratings
+                      ? Array.from(
+                          new Set(player.ratings.map(r => r.season))
+                        ).sort((a, b) => b - a) // Descending order
+                      : [];
+
+                    // Get current league year (max season from teams or player data)
+                    let currentYear = 0;
+                    if (teams && teams.length > 0) {
+                      // Find the maximum season from all teams
+                      currentYear = Math.max(
+                        ...teams.map(t =>
+                          t.seasons && t.seasons.length > 0
+                            ? Math.max(...t.seasons.map(s => s.season))
+                            : 0
+                        )
+                      );
+                    }
+
+                    // If we couldn't get it from teams, try player's latest rating or stat
+                    if (currentYear === 0) {
+                      const latestRating = uniqueSeasons.length > 0 ? uniqueSeasons[0] : 0;
+                      const latestStat = player.stats && player.stats.length > 0
+                        ? Math.max(...player.stats.map(s => s.season))
+                        : 0;
+                      currentYear = Math.max(latestRating, latestStat);
+                    }
+
+                    // Check if player has ratings for current year
+                    const hasCurrentYearRatings = uniqueSeasons.includes(currentYear);
+
+                    // Determine player status
+                    let statusLabel = '';
+                    if (!hasCurrentYearRatings && currentYear > 0) {
+                      if (player.tid === -2 || (player.retiredYear && player.retiredYear <= currentYear)) {
+                        statusLabel = 'Retired';
+                      } else if (player.tid === -1) {
+                        statusLabel = 'Free Agent';
+                      } else {
+                        statusLabel = 'Current';
+                      }
+                    }
+
+                    const options = [];
+
+                    // Add current year option if player doesn't have ratings for it
+                    if (!hasCurrentYearRatings && currentYear > 0 && statusLabel) {
+                      options.push(
+                        <option key={`current-${currentYear}`} value={currentYear}>
+                          {currentYear} ({statusLabel})
+                        </option>
+                      );
+                    }
+
+                    // Add all other seasons
+                    options.push(...uniqueSeasons.map(s => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    )));
+
+                    return options;
+                  })()}
+                </select>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Scrollable Content */}
@@ -179,7 +333,7 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
             {/* Player Details */}
             <div className="flex-1 min-w-0 space-y-2 overflow-hidden">
             <div className="space-y-1 w-full" style={{ fontSize: 'clamp(8px, 2.8vw, 14px)', color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
-              {/* Position, Team, and Jersey Number */}
+              {/* Position, Team/Status, and Jersey Number */}
               {season && (() => {
                 const seasonRating = player.ratings?.find(r => r.season === season);
                 const seasonStats = player.stats?.find(s => s.season === season && !s.playoffs);
@@ -187,33 +341,72 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
                 const team = seasonStats ? teams.find(t => t.tid === seasonStats.tid) : null;
                 const jerseyNumber = seasonStats?.jerseyNumber || player.jerseyNumber;
 
-                if (!position && !team && !jerseyNumber) return null;
+                // Check if this is a draft prospect year
+                const firstRatingYear = player.ratings && player.ratings.length > 0
+                  ? Math.min(...player.ratings.map(r => r.season))
+                  : null;
+                const isDraftProspect = firstRatingYear !== null && season === firstRatingYear;
+
+                // Determine player status if no team
+                let status = '';
+                if (isDraftProspect) {
+                  status = 'Draft Prospect';
+                } else if (!team) {
+                  // Get current league year
+                  let currentYear = 0;
+                  if (teams && teams.length > 0) {
+                    currentYear = Math.max(
+                      ...teams.map(t =>
+                        t.seasons && t.seasons.length > 0
+                          ? Math.max(...t.seasons.map(s => s.season))
+                          : 0
+                      )
+                    );
+                  }
+
+                  // Only show status for current year or later
+                  if (season >= currentYear) {
+                    if (player.tid === -2 || (player.retiredYear && player.retiredYear <= season)) {
+                      status = 'Retired';
+                    } else if (player.tid === -1) {
+                      status = 'Free Agent';
+                    } else if (player.tid === -3) {
+                      status = 'Deceased';
+                    }
+                  }
+                }
+
+                if (!position && !team && !jerseyNumber && !status) return null;
 
                 return (
-                  <div className="flex items-center gap-1">
-                    {position && <span className="font-semibold whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>{position}</span>}
-                    {position && (team || jerseyNumber) && <span className="whitespace-nowrap">,</span>}
+                  <div className="flex items-center flex-wrap">
+                    <span className="font-semibold" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>
+                      {position}
+                      {position && (team || status || jerseyNumber) && ', '}
+                    </span>
                     {team && (
-                      <>
-                        <button
-                          type="button"
-                          className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer bg-transparent border-0 p-0 font-inherit whitespace-nowrap"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            if (onTeamClick && season) {
-                              onTeamClick(team.tid, season);
-                            }
-                          }}
-                        >
-                          {team.region} {team.name}
-                        </button>
-                      </>
+                      <button
+                        type="button"
+                        className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer bg-transparent border-0 p-0 font-inherit"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (onTeamClick && season) {
+                            onTeamClick(team.tid, season);
+                          }
+                        }}
+                      >
+                         {team.region} {team.name}
+                      </button>
+                    )}
+                    {!team && status && (
+                      <span className="whitespace-nowrap">{status}</span>
                     )}
                     {jerseyNumber && (
                       <>
-                        {(position || team) && <span className="whitespace-nowrap">,</span>}
-                        <span className="whitespace-nowrap">#{jerseyNumber}</span>
+                        <span className="whitespace-nowrap">
+                          {(position || team || status) && ', '}#{jerseyNumber}
+                        </span>
                       </>
                     )}
                   </div>
@@ -239,12 +432,27 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
                 </div>
               )}
 
-              {/* Age (as of latest season) */}
-              {player.born?.year && season && (
-                <div className="whitespace-nowrap">
-                  <span className="font-semibold" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Age:</span> {season - player.born.year}
-                </div>
-              )}
+              {/* Age (as of latest season) or Death information */}
+              {(() => {
+                const isDeceased = player.tid === -3 || player.diedYear || player.died;
+                const deathYear = player.diedYear || player.died?.year;
+
+                if (isDeceased && deathYear && player.born?.year) {
+                  const ageAtDeath = deathYear - player.born.year;
+                  return (
+                    <div className="whitespace-nowrap">
+                      <span className="font-semibold" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Died:</span> {deathYear} ({ageAtDeath} years old)
+                    </div>
+                  );
+                } else if (player.born?.year && season) {
+                  return (
+                    <div className="whitespace-nowrap">
+                      <span className="font-semibold" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Age:</span> {season - player.born.year}
+                    </div>
+                  );
+                }
+                return null;
+              })()}
 
               {/* Draft */}
               {(() => {
@@ -256,7 +464,7 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
                   );
                 }
 
-                const draftTeam = teams?.find(t => t.tid === player.draft.tid);
+                const draftTeam = teams?.find(t => t.tid === player.draft?.tid);
 
                 return (
                   <div className="whitespace-nowrap">
@@ -297,10 +505,10 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
                 <div>
                   <span className="font-semibold" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Experience:</span>{' '}
                   {(() => {
-                    // Get unique seasons played
+                    // Get unique seasons played up to selected season
                     const seasonsPlayed = new Set(
                       player.stats
-                        .filter(s => !s.playoffs && s.gp && s.gp > 0)
+                        .filter(s => !s.playoffs && s.gp && s.gp > 0 && (!season || s.season <= season))
                         .map(s => s.season)
                     );
                     const years = seasonsPlayed.size;
@@ -576,7 +784,7 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
               <tbody>
                 {(() => {
                   const filteredStats = player.stats
-                    .filter(s => !s.playoffs && s.gp && s.gp > 0) // Regular season only with games played
+                    .filter(s => !s.playoffs && s.gp && s.gp > 0 && (!season || s.season <= season)) // Regular season only with games played, up to selected season
                     .sort((a, b) => b.season - a.season); // Descending by year
 
                   return filteredStats.map((stat, idx) => {
@@ -621,7 +829,19 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
                           borderBottomStyle: hasYearGap ? 'solid' : 'solid',
                         }}
                       >
-                        <td className="py-3 px-4 text-sm whitespace-nowrap sticky left-0 z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>{stat.season}</td>
+                        <td className="py-3 px-4 text-sm whitespace-nowrap sticky left-0 z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>
+                          {onSeasonClick ? (
+                            <button
+                              onClick={() => onSeasonClick(stat.season)}
+                              className="hover:underline cursor-pointer"
+                              style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
+                            >
+                              {stat.season}
+                            </button>
+                          ) : (
+                            <span>{stat.season}</span>
+                          )}
+                        </td>
                         <td className="py-3 px-2 text-sm whitespace-nowrap sticky left-[68px] z-20" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)', backgroundColor: primaryColor }}>
                           {onTeamClick ? (
                             <button
@@ -713,7 +933,7 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
                 <tbody>
                   {(() => {
                     const filteredStats = player.stats
-                      .filter(s => !s.playoffs && s.gp && s.gp > 0)
+                      .filter(s => !s.playoffs && s.gp && s.gp > 0 && (!season || s.season <= season))
                       .sort((a, b) => b.season - a.season);
 
                     return filteredStats.map((stat, idx) => {
@@ -763,7 +983,19 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
                             borderBottomStyle: hasYearGap ? 'solid' : 'solid',
                           }}
                         >
-                          <td className="py-3 px-4 text-sm whitespace-nowrap sticky left-0 z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>{stat.season}</td>
+                          <td className="py-3 px-4 text-sm whitespace-nowrap sticky left-0 z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>
+                            {onSeasonClick ? (
+                              <button
+                                onClick={() => onSeasonClick(stat.season)}
+                                className="hover:underline cursor-pointer"
+                                style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
+                              >
+                                {stat.season}
+                              </button>
+                            ) : (
+                              <span>{stat.season}</span>
+                            )}
+                          </td>
                           <td className="py-3 px-2 text-sm whitespace-nowrap sticky left-[68px] z-20" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)', backgroundColor: primaryColor }}>
                             {onTeamClick ? (
                               <button
@@ -797,6 +1029,128 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose, on
                           <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{stat.pm != null ? format(stat.pm) : '-'}</td>
                           <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{stat.ortg != null ? format(stat.ortg) : '-'}</td>
                           <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{stat.drtg != null ? format(stat.drtg) : '-'}</td>
+                        </tr>
+                      );
+                    });
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Ratings Table */}
+        {player.ratings && player.ratings.length > 0 && sport === 'basketball' && (
+          <div className="mt-8">
+            <h3 className="text-xl font-bold mb-4" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Ratings</h3>
+            <div className="overflow-auto">
+              <table style={{ width: 'max-content', minWidth: '100%' }}>
+                <thead
+                  className="sticky top-0 z-20"
+                  style={{
+                    backgroundColor: primaryColor,
+                    borderBottom: `2px solid ${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`,
+                  }}
+                >
+                  <tr>
+                    <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wide whitespace-nowrap sticky left-0 z-30" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>Year</th>
+                    <th className="text-left py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap sticky left-[68px] z-30" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>Team</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Age</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Pos</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Ovr</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Pot</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Hgt</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Str</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Spd</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Jmp</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>End</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Ins</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Dnk</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>FT</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>2Pt</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>3Pt</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>oIQ</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>dIQ</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Drb</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Pss</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Reb</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const filteredRatings = player.ratings
+                      .filter(r => !season || r.season <= season)
+                      .sort((a, b) => b.season - a.season);
+
+                    return filteredRatings.map((rating, idx) => {
+                      // Find the team from stats for this season
+                      const statForSeason = player.stats?.find(s => s.season === rating.season && !s.playoffs);
+                      const team = statForSeason ? teams.find(t => t.tid === statForSeason.tid) : null;
+                      const age = player.born?.year ? rating.season - player.born.year : null;
+                      const hasYearGap = idx < filteredRatings.length - 1 &&
+                                        rating.season - filteredRatings[idx + 1].season > 1;
+
+                      // Check if this is a draft prospect year (first year in ratings)
+                      const firstRatingYear = player.ratings && player.ratings.length > 0
+                        ? Math.min(...player.ratings.map(r => r.season))
+                        : null;
+                      const isDraftProspect = firstRatingYear !== null && rating.season === firstRatingYear;
+
+                      return (
+                        <tr
+                          key={`${rating.season}-${idx}`}
+                          className="border-b hover:bg-white/5 transition-colors"
+                          style={{
+                            borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                            borderBottomWidth: hasYearGap ? '3px' : '1px',
+                            borderBottomStyle: hasYearGap ? 'solid' : 'solid',
+                          }}
+                        >
+                          <td className="py-3 px-4 text-sm whitespace-nowrap sticky left-0 z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>
+                            {onSeasonClick ? (
+                              <button
+                                onClick={() => onSeasonClick(rating.season)}
+                                className="hover:underline cursor-pointer"
+                                style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
+                              >
+                                {rating.season}
+                              </button>
+                            ) : (
+                              <span>{rating.season}</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-2 text-sm whitespace-nowrap sticky left-[68px] z-20" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)', backgroundColor: primaryColor }}>
+                            {onTeamClick && statForSeason ? (
+                              <button
+                                onClick={() => onTeamClick(statForSeason.tid, rating.season)}
+                                className="hover:underline cursor-pointer"
+                                style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}
+                              >
+                                {team?.abbrev || (isDraftProspect ? 'DP' : 'FA')}
+                              </button>
+                            ) : (
+                              <span>{team?.abbrev || (isDraftProspect ? 'DP' : 'FA')}</span>
+                            )}
+                          </td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{age ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.pos || '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.ovr ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.pot ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.hgt ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.stre ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.spd ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.jmp ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.endu ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.ins ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.dnk ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.ft ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.fg ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.tp ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.oiq ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.diq ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.drb ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.pss ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.reb ?? '-'}</td>
                         </tr>
                       );
                     });

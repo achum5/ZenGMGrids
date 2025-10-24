@@ -366,12 +366,12 @@ export function TeamInfoModal({
     [textColor]
   );
 
-  // Sort players by contribution (games played * minutes)
+  // Sort players by total minutes played in the season
   const sortedPlayers = useMemo(() => {
     return [...players].sort((a, b) => {
-      const aContribution = (a.gamesPlayed || 0) * (a.stats?.mpg || 0);
-      const bContribution = (b.gamesPlayed || 0) * (b.stats?.mpg || 0);
-      return bContribution - aContribution;
+      const aMinutes = a.stats?.min || 0;
+      const bMinutes = b.stats?.min || 0;
+      return bMinutes - aMinutes;
     });
   }, [players]);
 

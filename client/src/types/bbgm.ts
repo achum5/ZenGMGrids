@@ -41,7 +41,9 @@ export interface Player {
   lastName?: string;
   pos?: string;
   born?: { year?: number; loc?: string | null };
-  draft?: { round?: number; pick?: number; year?: number };
+  died?: { year?: number; loc?: string | null };
+  diedYear?: number | null;
+  draft?: { round?: number; pick?: number; year?: number; tid?: number };
   weight?: number | null;
   hgt?: number | null;
   tid: number; // current team
@@ -51,7 +53,7 @@ export interface Player {
     tid: number;
     playoffs?: boolean;
     gp?: number;
-    gs?: number; // games started
+    gs?: number; // games started (basketball) / goalie starts (hockey)
     min?: number;
     orb?: number; // offensive rebounds
     drb?: number; // defensive rebounds
@@ -96,7 +98,7 @@ export interface Player {
     blkPct?: number; // Block Percentage
     tovPct?: number; // Turnover Percentage
     usgPct?: number; // Usage Percentage
-    pm?: number; // Plus/Minus
+    pm?: number; // Plus/Minus (general) / Plus/minus (hockey)
     onOff?: number; // On-Off differential
     ortg?: number; // Offensive Rating
     drtg?: number; // Defensive Rating
@@ -155,9 +157,7 @@ export interface Player {
     fow?: number; // Faceoffs won
     fol?: number; // Faceoffs lost
     pim?: number; // Penalty minutes
-    pm?: number; // Plus/minus
     ga?: number; // Goals against
-    gs?: number; // Goalie starts
     ppG?: number; // Power play goals
     ppA?: number; // Power play assists
     evG?: number; // Even strength goals

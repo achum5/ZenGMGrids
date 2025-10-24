@@ -3786,6 +3786,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
           season={selectedSeason || undefined}
           onClose={() => setSelectedPlayerForPage(null)}
           onTeamClick={handleOpenOpponentTeam}
+          onSeasonClick={(season) => setSelectedSeason(season)}
         />
       </div>
     );
