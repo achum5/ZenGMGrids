@@ -2787,17 +2787,22 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
               </div>
 
               {/* Right: Give Up & Home buttons */}
-              <div className="flex items-center justify-end space-x-1">
+              <div className="flex items-center justify-end space-x-1 shrink-0">
                 {/* Give Up button - only show before game is complete */}
                 {currentRound !== 'complete' && (
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     onClick={handleGiveUp}
-                    style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))' }}
-                    className="animate-on-click text-xs"
+                    style={{
+                      backgroundColor: teamDisplayInfo.colors[0] || 'hsl(var(--primary))',
+                      color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))',
+                      borderColor: teamDisplayInfo.colors[1] || 'hsl(var(--border))'
+                    }}
+                    className="animate-on-click text-xs px-1 sm:px-3 h-auto py-1 flex flex-col sm:flex-row leading-tight sm:gap-1"
                   >
-                    Give Up
+                    <span className="text-[10px] sm:text-xs">Give</span>
+                    <span className="text-[10px] sm:text-xs">Up</span>
                   </Button>
                 )}
                 {hasProgress ? (
