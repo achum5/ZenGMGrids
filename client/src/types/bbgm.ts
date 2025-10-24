@@ -51,6 +51,7 @@ export interface Player {
     tid: number;
     playoffs?: boolean;
     gp?: number;
+    gs?: number; // games started
     min?: number;
     orb?: number; // offensive rebounds
     drb?: number; // defensive rebounds
@@ -76,6 +77,29 @@ export interface Player {
     ftp?: number; // free throw percentage (0-1 or 0-100)
     ws?: number; // Win shares for determining career team
     jerseyNumber?: string;
+    // Advanced stats
+    per?: number; // Player Efficiency Rating
+    vorp?: number; // Value Over Replacement Player
+    bpm?: number; // Box Plus/Minus
+    obpm?: number; // Offensive Box Plus/Minus
+    dbpm?: number; // Defensive Box Plus/Minus
+    ows?: number; // Offensive Win Shares
+    dws?: number; // Defensive Win Shares
+    ws48?: number; // Win Shares per 48 minutes
+    ewa?: number; // Estimated Wins Added
+    tsPct?: number; // True Shooting Percentage
+    orbPct?: number; // Offensive Rebound Percentage
+    drbPct?: number; // Defensive Rebound Percentage
+    trbPct?: number; // Total Rebound Percentage
+    astPct?: number; // Assist Percentage
+    stlPct?: number; // Steal Percentage
+    blkPct?: number; // Block Percentage
+    tovPct?: number; // Turnover Percentage
+    usgPct?: number; // Usage Percentage
+    pm?: number; // Plus/Minus
+    onOff?: number; // On-Off differential
+    ortg?: number; // Offensive Rating
+    drtg?: number; // Defensive Rating
     // Game highs for feat detection
     ptsMax?: number; // highest points in a game this season
     trbMax?: number; // highest rebounds in a game this season

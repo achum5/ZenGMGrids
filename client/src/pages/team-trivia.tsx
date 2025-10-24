@@ -3690,7 +3690,10 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
             season={selectedSeason}
             teamName={teamDisplayInfo.name}
             teamAbbrev={selectedTeam.abbrev}
-            onPlayerClick={(player) => setSelectedPlayerForPage(player)}
+            onPlayerClick={(player) => {
+              setSelectedPlayerForPage(player);
+              setShowTeamInfo(false);
+            }}
             teamLogo={teamDisplayInfo.logo ? getTeamLogoUrl(teamDisplayInfo.logo, leagueData.sport) : undefined}
             teamColors={teamDisplayInfo.colors}
             players={roster.map(rp => ({
@@ -3766,7 +3769,10 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome }:
               playoffSeriesData={leagueData.playoffSeries?.find(ps => ps.season === opponentTeamInfo.season)}
               teamTid={opponentTeamInfo.tid}
               onOpenOpponentTeam={handleOpenOpponentTeam}
-              onPlayerClick={(player) => setSelectedPlayerForPage(player)}
+              onPlayerClick={(player) => {
+                setSelectedPlayerForPage(player);
+                setOpponentTeamInfo(null);
+              }}
             />
           );
         })()}
