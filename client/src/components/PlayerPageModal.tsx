@@ -226,7 +226,7 @@ export function PlayerPageModal({ player, sport, teams = [], season, onClose }: 
             );
 
             return (
-              <div className="p-[4px] sm:p-4 sm:ml-6 sm:mt-[-12px] sm:mb-[-12px] font-['system-ui'] tabular-nums mt-[-44px] mb-[-44px] ml-[83px] mr-[83px]">
+              <div className="p-[4px] sm:p-4 sm:ml-[83px] sm:mt-[-44px] sm:mb-[-44px] sm:mr-[83px] font-['system-ui'] tabular-nums">
                 {/* Header Row: Overall and Potential */}
                 <div className="flex justify-between mb-1.5 sm:mb-3">
                   <div className="font-semibold text-[clamp(16px,3.6vw,18px)]">
