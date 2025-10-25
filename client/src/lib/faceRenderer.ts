@@ -51,55 +51,67 @@ export async function getPlayerImage(p: PlayerLite): Promise<{type: "url" | "svg
     if (!facesLib) {
       facesLib = await import("facesjs");
     }
-    
+
     // Use the browser-compatible display method instead of faceToSvgString
     const { display } = facesLib;
-    
+
     if (!display) {
-      console.error('display function not found in facesjs');
+      console.error('[FaceRenderer] display function not found in facesjs');
       return { type: "none", data: "" };
     }
-    
+
     // Create a temporary container element
     const tempContainer = document.createElement('div');
     tempContainer.style.position = 'absolute';
     tempContainer.style.left = '-9999px';
     tempContainer.style.top = '-9999px';
+    tempContainer.style.width = '200px';
+    tempContainer.style.height = '200px';
+
+    // Ensure document.body exists before appending
+    if (!document.body) {
+      console.error('[FaceRenderer] document.body not available');
+      return { type: "none", data: "" };
+    }
+
     document.body.appendChild(tempContainer);
-    
+
     try {
       // Prepare face data with jersey info if available
       let faceToRender = p.face;
-      
+
       if (p.jerseyInfo && p.jerseyInfo.colors && p.jerseyInfo.colors.length > 0) {
         // Remove console logs for cleaner output
-        
+
         // Create a copy of the face data and apply jersey colors using teamColors array
         // Use team's jersey style if available, otherwise keep player's original
         faceToRender = {
           ...p.face,
-          teamColors: p.jerseyInfo.colors.length >= 3 
-            ? p.jerseyInfo.colors 
+          teamColors: p.jerseyInfo.colors.length >= 3
+            ? p.jerseyInfo.colors
             : [
                 p.jerseyInfo.colors[0] || "#89bfd3", // Primary team color
-                p.jerseyInfo.colors[1] || "#7a1319", // Secondary team color  
+                p.jerseyInfo.colors[1] || "#7a1319", // Secondary team color
                 p.jerseyInfo.colors[2] || p.jerseyInfo.colors[0] || "#07364f" // Third color or fallback
               ],
           // Always use team's jersey style if provided, fallback to player's original
-          jersey: p.jerseyInfo.jersey 
-            ? { id: p.jerseyInfo.jersey } 
+          jersey: p.jerseyInfo.jersey
+            ? { id: p.jerseyInfo.jersey }
             : p.face.jersey,
           // Preserve accessories (important for baseball caps)
           accessories: p.face.accessories || { id: "none" }
         };
-        
+
       }
-      
+
       // Render the face with jersey colors
       display(tempContainer, faceToRender);
-      
+
+      // Wait for next frame to ensure rendering is complete (important for mobile)
+      await new Promise(resolve => requestAnimationFrame(resolve));
+
       // Jersey colors should already be applied through the face data
-      
+
       // Extract the SVG element
       const svgElement = tempContainer.querySelector('svg');
       if (svgElement) {
@@ -107,24 +119,28 @@ export async function getPlayerImage(p: PlayerLite): Promise<{type: "url" | "svg
         svgElement.removeAttribute('x');
         svgElement.removeAttribute('y');
         svgElement.removeAttribute('style');
-        
+
         // Ensure the SVG will center properly
         svgElement.style.display = 'block';
         svgElement.style.margin = '0 auto';
         svgElement.style.transform = 'translateX(25%)';
-        
+
         const raw = svgElement.outerHTML;
         const svg = normalizeSvg(raw);
         svgCache.set(p.pid, svg);
         return { type: "svg", data: svg };
+      } else {
+        console.error('[FaceRenderer] No SVG element found after rendering for player', p.pid);
       }
     } finally {
       // Clean up the temporary element
-      document.body.removeChild(tempContainer);
+      if (tempContainer.parentNode) {
+        document.body.removeChild(tempContainer);
+      }
     }
-    
+
   } catch (error) {
-    // Silently handle face generation errors
+    console.error('[FaceRenderer] Error generating face for player', p.pid, error);
   }
   
   return { type: "none", data: "" };

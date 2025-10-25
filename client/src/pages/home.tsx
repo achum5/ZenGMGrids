@@ -1517,24 +1517,25 @@ export default function Home() {
   const [isHeaderHovered, setIsHeaderHovered] = useState(false);
 
   // Show upload section if no league data
-  if (!leagueData) {
+  // Show upload screen if no league data OR if league is loading but game mode not yet set
+  if (!leagueData || gameMode === null) {
     return (
       <div>
-        <header 
-          className="bg-card border-border" 
+        <header
+          className="bg-card border-border"
           onMouseEnter={() => setIsHeaderHovered(true)}
           onMouseLeave={() => setIsHeaderHovered(false)}
           style={{ position: 'relative' }}
         >
           <div className="max-w-6xl mx-auto px-6 py-4">
             <div className="relative flex items-center justify-start md:justify-center">
-              <div className="flex items-center space-x-3">
-                <img 
+              <div className="flex items-center space-x-3 pr-12">
+                <img
                   src={zengmGridsLogo}
-                  alt="ZenGM Grids logo with Basketball, Football, Hockey, and Baseball icons" 
+                  alt="ZenGM Grids logo with Basketball, Football, Hockey, and Baseball icons"
                   className="w-12 h-12 object-contain header-logo"
                 />
-                <h1 className="text-2xl header-title">ZenGM Grids & Team Trivia</h1>
+                <h1 className="header-title text-base sm:text-xl md:text-2xl">ZenGM Grids & Team Trivia</h1>
               </div>
               <div className="absolute right-0 flex items-center space-x-3">
                 <div>
@@ -1551,7 +1552,7 @@ export default function Home() {
             loadingLeagueId={loadingLeagueId}
             uploadProgress={uploadProgress}
           />
-          
+
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t" />
@@ -1562,8 +1563,8 @@ export default function Home() {
               </span>
             </div>
           </div>
-          
-          <UploadSection 
+
+          <UploadSection
             onFileUpload={handleFileUpload}
             onUrlUpload={handleUrlUpload}
             isProcessing={isProcessing}

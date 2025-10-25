@@ -151,16 +151,18 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadP
                     </span>
                   )}
                 </div>
-                {uploadProgress.loaded !== undefined && uploadProgress.total !== undefined && (
-                  <div className="w-full bg-secondary/50 rounded-full h-3 overflow-hidden shadow-lg">
+                <div className="w-full bg-secondary/50 rounded-full h-3 overflow-hidden shadow-lg">
+                  {uploadProgress.loaded !== undefined && uploadProgress.total !== undefined ? (
                     <div
                       className="h-3 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)] loading-bar-solid-blue"
                       style={{
                         width: `${(uploadProgress.loaded / uploadProgress.total) * 100}%`
                       }}
                     />
-                  </div>
-                )}
+                  ) : (
+                    <div className="h-3 rounded-full animate-pulse loading-bar-solid-blue w-full opacity-75" />
+                  )}
+                </div>
               </div>
             )}
             
@@ -168,7 +170,7 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadP
             <div className="border-2 border-dashed border-border rounded-lg p-8">
               <div className="flex flex-col items-center space-y-4">
                 <Link className="h-12 w-12 text-muted-foreground" />
-                <h3 className="text-lg font-semibold text-foreground">Load a ZenGM League from URL</h3>
+                <h3 className="text-lg font-semibold text-foreground">Load a ZenGM League from URL </h3>
                 <div className="w-full space-y-2">
                   <div className="flex gap-2">
                     <Input
@@ -230,16 +232,18 @@ export function UploadSection({ onFileUpload, onUrlUpload, isProcessing, uploadP
                   </span>
                 )}
               </div>
-              {uploadProgress.loaded !== undefined && uploadProgress.total !== undefined && (
-                <div className="w-full bg-secondary/50 rounded-full h-3 overflow-hidden shadow-lg">
+              <div className="w-full bg-secondary/50 rounded-full h-3 overflow-hidden shadow-lg">
+                {uploadProgress.loaded !== undefined && uploadProgress.total !== undefined ? (
                   <div
                     className="h-3 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)] loading-bar-solid-blue"
                     style={{
                       width: `${(uploadProgress.loaded / uploadProgress.total) * 100}%`
                     }}
                   />
-                </div>
-              )}
+                ) : (
+                  <div className="h-3 rounded-full animate-pulse loading-bar-solid-blue w-full opacity-75" />
+                )}
+              </div>
             </div>
           )}
         </CardContent>

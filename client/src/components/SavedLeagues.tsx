@@ -445,13 +445,9 @@ export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: 
           {/* Progress Bar - shown when loading */}
           {loadingLeagueId === league.id && uploadProgress && (
             <div className="mt-2 space-y-1 px-1">
-              <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2 text-xs">
+                <Loader2 className="w-3 h-3 animate-spin text-primary" />
                 <span className="text-muted-foreground font-medium">{uploadProgress.message}</span>
-                {uploadProgress.loaded !== undefined && uploadProgress.total !== undefined && (
-                  <span className="text-primary font-bold">
-                    {((uploadProgress.loaded / uploadProgress.total) * 100).toFixed(0)}%
-                  </span>
-                )}
               </div>
               {uploadProgress.loaded !== undefined && uploadProgress.total !== undefined && (
                 <div className="w-full bg-secondary/50 rounded-full h-2 overflow-hidden shadow-lg">

@@ -264,7 +264,7 @@ export function GridSection({
   const getCellContent = (rowIndex: number, colIndex: number) => {
     const key = `${rowIndex}-${colIndex}`;
     const cellState = cells[key];
-    
+
     // Default styles for empty/unrevealed cells
     let background = 'var(--muted)';
     let color = 'var(--muted-foreground)';
@@ -275,6 +275,7 @@ export function GridSection({
     let disabled = false;
     let showFace = false;
     let player = undefined;
+    let season = undefined;
 
     if (!cellState?.name) {
       return {
@@ -283,6 +284,7 @@ export function GridSection({
         disabled,
         showFace,
         player,
+        season,
         background,
         color,
         borderColor,
@@ -297,6 +299,25 @@ export function GridSection({
     showFace = true;
     player = cellState.player;
     disabled = false; // Allow clicks for read-only modal
+
+    // Determine the best season for jersey display
+    if (player) {
+      const rowConstraint = rows[rowIndex];
+      const colConstraint = cols[colIndex];
+
+      // Check if row or col is a team constraint
+      const teamConstraint = rowConstraint?.type === 'team' ? rowConstraint :
+                             colConstraint?.type === 'team' ? colConstraint : null;
+
+      if (teamConstraint && teamConstraint.tid !== undefined) {
+        // Find a season where the player played for this team
+        const teamSeasons = player.seasons?.filter(s => !s.playoffs && s.tid === teamConstraint.tid && s.gp > 0);
+        if (teamSeasons && teamSeasons.length > 0) {
+          // Use the most recent season with this team
+          season = Math.max(...teamSeasons.map(s => s.season));
+        }
+      }
+    }
 
     if (cellState.correct === true) {
       const rarityTier = getRarityTier(cellState.rarity || 0);
@@ -326,6 +347,7 @@ export function GridSection({
       disabled,
       showFace,
       player,
+      season,
       background,
       color,
       borderColor,
@@ -711,6 +733,7 @@ export function GridSection({
                                 player={cellContent.player}
                                 teams={teams}
                                 sport={sport}
+                                season={cellContent.season}
                               />
                               {(() => {
                                 // Use positional key format like home.tsx uses

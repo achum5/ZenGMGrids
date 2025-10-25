@@ -93,7 +93,7 @@ export default function ChooseGameMode({ onSelectMode, onBackToUpload }: ChooseG
             }}
           >
             <CardHeader>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center gap-3">
                 <div className={`p-3 rounded-lg ${
                   selectedMode === 'grids'
                     ? 'bg-primary text-primary-foreground'
@@ -101,7 +101,7 @@ export default function ChooseGameMode({ onSelectMode, onBackToUpload }: ChooseG
                 }`}>
                   <Grid3x3 className="h-8 w-8" />
                 </div>
-                <div className="flex-1">
+                <div>
                   <CardTitle className="text-2xl">Grids</CardTitle>
                 </div>
               </div>
@@ -128,7 +128,7 @@ export default function ChooseGameMode({ onSelectMode, onBackToUpload }: ChooseG
             }}
           >
             <CardHeader>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center gap-3">
                 <div className={`p-3 rounded-lg ${
                   selectedMode === 'team-trivia'
                     ? 'bg-primary text-primary-foreground'
@@ -136,7 +136,7 @@ export default function ChooseGameMode({ onSelectMode, onBackToUpload }: ChooseG
                 }`}>
                   <Users className="h-8 w-8" />
                 </div>
-                <div className="flex-1">
+                <div>
                   <CardTitle className="text-2xl">Team Trivia</CardTitle>
                 </div>
               </div>

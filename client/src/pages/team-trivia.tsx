@@ -3963,7 +3963,11 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
           const seasonInfo = opponentTeam.seasons?.find(s => s.season === opponentTeamInfo.season);
           const opponentLogo = seasonInfo?.imgURL || opponentTeam.imgURL;
           const opponentColors = seasonInfo?.colors || opponentTeam.colors || ['#000000', '#ffffff'];
-          const opponentName = seasonInfo?.name || opponentTeam.name || `Team ${opponentTeam.tid}`;
+
+          // Construct full team name with region and name
+          const opponentRegion = seasonInfo?.region || opponentTeam.region || '';
+          const opponentNickname = seasonInfo?.name || opponentTeam.name || `Team ${opponentTeam.tid}`;
+          const opponentName = opponentRegion ? `${opponentRegion} ${opponentNickname}` : opponentNickname;
 
           return (
             <TeamInfoModal

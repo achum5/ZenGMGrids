@@ -1,8 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { X, Info } from 'lucide-react';
 import type { Player, Team, PlayoffSeasonData } from '@/types/bbgm';
-import { getPlayerImage } from '@/lib/faceRenderer';
-import { getPlayerJerseyInfo } from '@/lib/jersey-utils';
+import { PlayerFace } from '@/components/PlayerFace';
 import {
   Popover,
   PopoverContent,
@@ -54,71 +53,6 @@ function getContrastColor(hexColor: string): 'white' | 'black' {
   return luminance > 0.5 ? 'black' : 'white';
 }
 
-// Component to render player image/face
-function PlayerImage({
-  player,
-  teams,
-  sport,
-  season
-}: {
-  player: Player;
-  teams: Team[];
-  sport: string;
-  season: number;
-}) {
-  const [imageData, setImageData] = useState<{ type: 'url' | 'svg' | 'none'; data: string }>({
-    type: 'none',
-    data: ''
-  });
-
-  useEffect(() => {
-    let mounted = true;
-
-    (async () => {
-      // Get jersey info for the player
-      const jerseyInfo = teams.length > 0
-        ? getPlayerJerseyInfo(player, teams, sport, season)
-        : undefined;
-
-      // Get player image (prefers imgURL, falls back to face)
-      const result = await getPlayerImage({
-        pid: player.pid,
-        name: player.name,
-        imgURL: player.imgURL,
-        face: player.face,
-        jerseyInfo,
-        season,
-      });
-
-      if (mounted) {
-        setImageData(result);
-      }
-    })();
-
-    return () => { mounted = false; };
-  }, [player.pid, player.imgURL, player.face, teams, sport, season]);
-
-  // Always render the container to maintain consistent layout and sizing
-  return (
-    <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center">
-      {imageData.type === 'url' && (
-        <img
-          src={imageData.data}
-          alt={player.name}
-          className="w-full h-full object-contain"
-          style={{ transform: 'translateX(2px)' }}
-        />
-      )}
-      {imageData.type === 'svg' && (
-        <div
-          className="w-full h-full flex items-center justify-center"
-          style={{ transform: 'translateX(-7px) scale(0.85)' }}
-          dangerouslySetInnerHTML={{ __html: imageData.data }}
-        />
-      )}
-    </div>
-  );
-}
 
 // Define stat columns by sport
 // Note: format function receives (value, stats, gp) where stats is the full stats object and gp is games played
@@ -996,12 +930,21 @@ export function TeamInfoModal({
                   {/* Player Name */}
                   <td className="py-3 px-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
-                      <PlayerImage
-                        player={playerInfo.player}
-                        teams={teams}
-                        sport={sport}
-                        season={season}
-                      />
+                      <div className="w-14 h-14 flex-shrink-0">
+                        <PlayerFace
+                          pid={playerInfo.player.pid}
+                          name={playerInfo.player.name}
+                          imgURL={playerInfo.player.imgURL}
+                          face={playerInfo.player.face}
+                          player={playerInfo.player}
+                          teams={teams}
+                          sport={sport}
+                          season={season}
+                          hideName={true}
+                          size={56}
+                          scale={1.0}
+                        />
+                      </div>
                       <span
                         className="text-sm font-medium"
                         style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
