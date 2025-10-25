@@ -300,7 +300,9 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
                     tied: season.tied,
                     otl: season.otl,
                     playoffs: season.playoffs || false,
-                    gp: season.gp
+                    gp: season.gp,
+                    pts: season.pts,
+                    oppPts: season.oppPts
                   });
                   teamSeasonCount++;
                 }
@@ -636,7 +638,9 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
                     tied: season.tied,
                     otl: season.otl,
                     playoffs: season.playoffs || false,
-                    gp: season.gp
+                    gp: season.gp,
+                    pts: season.pts,
+                    oppPts: season.oppPts
                   });
                   teamSeasonCount++;
                 }

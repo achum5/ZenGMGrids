@@ -657,7 +657,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
             );
 
             return (
-              <div className="p-[4px] mx-auto sm:mx-0 sm:p-2 sm:mt-[-8px] sm:mb-[-44px] font-['system-ui'] tabular-nums w-full sm:w-auto sm:max-w-[400px]">
+              <div className="p-[4px] mx-auto sm:ml-0 sm:mr-24 sm:p-2 sm:mt-[-14px] sm:mb-[-44px] font-['system-ui'] tabular-nums w-full sm:w-auto sm:max-w-[400px]">
                 {/* Header Row: Overall and Potential */}
                 <div className="flex justify-between mb-1.5 sm:mb-3 gap-3 sm:gap-3">
                   <div className="font-semibold text-[clamp(16px,3.6vw,18px)]">
@@ -690,7 +690,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
 
                 {/* Basketball: Three Column Ratings - Physical left, Shooting center, Skill right */}
                 {sport === 'basketball' && (
-                <div className="flex gap-4 sm:gap-1">
+                <div className="flex justify-between gap-0 sm:gap-1">
                   {/* Physical */}
                   <div className="flex-shrink-0">
                     <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2">Physical</div>
@@ -821,7 +821,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
 
                 {/* Football: Three Column Ratings - Physical/Blocking, Passing/Defense, Rush-Rec/Kicking */}
                 {sport === 'football' && (
-                <div className="grid grid-cols-3 gap-2 sm:gap-6">
+                <div className="flex justify-between gap-0 sm:gap-6">
                   {/* Column 1: Physical & Blocking */}
                   <div className="flex-1">
                     {/* Physical Section */}
@@ -898,7 +898,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
 
                 {/* Hockey: Three Column Ratings - Physical, Offense, Defense */}
                 {sport === 'hockey' && (
-                <div className="flex gap-4 sm:gap-6">
+                <div className="flex justify-between gap-0 sm:gap-6">
                   {/* Physical */}
                   <div className="flex-shrink-0">
                     <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2">Physical</div>
@@ -1022,7 +1022,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
 
                 {/* Baseball: Three Column Ratings - Physical, Defense, Pitching */}
                 {sport === 'baseball' && (
-                <div className="flex gap-4 sm:gap-6">
+                <div className="flex justify-between gap-0 sm:gap-6">
                   {/* Physical & Hitting */}
                   <div className="flex-shrink-0">
                     {/* Physical Section */}

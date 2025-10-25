@@ -21,7 +21,9 @@
       "WebFetch(domain:play.basketball-gm.com)",
       "WebSearch",
       "Bash(cat:*)",
-      "Bash(awk:*)"
+      "Bash(awk:*)",
+      "Bash(git log:*)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": []
