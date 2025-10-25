@@ -123,8 +123,12 @@ const SPORT_STAT_COLUMNS: Record<string, Array<{ key: string; label: string; for
     { key: 'era', label: 'ERA', format: (v) => v != null ? v.toFixed(2) : '-' },
     { key: 'whip', label: 'WHIP', format: (v) => v != null ? v.toFixed(2) : '-' },
   ],
-  hockey: [
-    // Skater stats
+  hockey: [], // Unused - hockey uses position-based groups (Skater/Goalie)
+};
+
+// Position-group stat columns for hockey
+const HOCKEY_GROUP_STAT_COLUMNS: Record<string, Array<{ key: string; label: string; format?: (val: any, stats?: any, gp?: number, gs?: number) => string }>> = {
+  Skater: [
     { key: 'g', label: 'G', format: (v) => v != null ? v.toFixed(0) : '-' },
     { key: 'a', label: 'A', format: (v, stats) => {
       const a = v ?? stats?.asts;
@@ -133,59 +137,48 @@ const SPORT_STAT_COLUMNS: Record<string, Array<{ key: string; label: string; for
     { key: 'pts', label: 'PTS', format: (v) => v != null ? v.toFixed(0) : '-' },
     { key: 'pm', label: '+/-', format: (v) => v != null ? (v >= 0 ? `+${v}` : `${v}`) : '-' },
     { key: 'pim', label: 'PIM', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'evG', label: 'EV G', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'evA', label: 'EV A', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'ppG', label: 'PP G', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'ppA', label: 'PP A', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'shG', label: 'SH G', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'shA', label: 'SH A', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'gwG', label: 'GW', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 's', label: 'SOG', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 's', label: 'S', format: (v) => v != null ? v.toFixed(0) : '-' },
     { key: 'sPct', label: 'S%', format: (v, stats) => {
       const g = stats?.g ?? 0;
       const s = stats?.s ?? 0;
       return s > 0 ? ((g / s) * 100).toFixed(1) : '-';
     }},
-    { key: 'fow', label: 'FOW', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'fol', label: 'FOL', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'foPct', label: 'FO%', format: (v, stats) => {
-      const fow = stats?.fow ?? 0;
-      const fol = stats?.fol ?? 0;
-      const total = fow + fol;
-      return total > 0 ? ((fow / total) * 100).toFixed(1) : '-';
-    }},
-    { key: 'hit', label: 'HIT', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'tk', label: 'TK', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'blk', label: 'BLK', format: (v) => v != null ? v.toFixed(0) : '-' },
     { key: 'min', label: 'TOI', format: (v) => v != null ? v.toFixed(0) : '-' },
-    // Goalie stats
-    { key: 'gpGoalie', label: 'GP G', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'gs', label: 'GS', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'gW', label: 'W', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'gL', label: 'L', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'gOTL', label: 'OTL', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'gMin', label: 'MIN', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'ga', label: 'GA', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'hit', label: 'HIT', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'blk', label: 'BLK', format: (v) => v != null ? v.toFixed(0) : '-' },
+  ],
+  Goalie: [
+    { key: 'rec', label: 'Rec', format: (v, stats) => {
+      const w = stats?.gW ?? 0;
+      const l = stats?.gL ?? 0;
+      const otl = stats?.gOTL ?? 0;
+      if (w === 0 && l === 0 && otl === 0) return '-';
+      return otl > 0 ? `${w}-${l}-${otl}` : `${w}-${l}`;
+    }},
     { key: 'gaa', label: 'GAA', format: (v, stats) => {
       const ga = stats?.ga ?? 0;
-      const gMin = stats?.gMin ?? 0;
-      return gMin > 0 ? ((ga * 60) / gMin).toFixed(2) : '-';
+      const min = stats?.gMin ?? 0;
+      return min > 0 ? ((ga * 60) / min).toFixed(2) : '-';
     }},
-    { key: 'sa', label: 'SA', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'sv', label: 'SV', format: (v) => v != null ? v.toFixed(0) : '-' },
     { key: 'svPct', label: 'SV%', format: (v, stats) => {
       const sv = stats?.sv ?? 0;
       const sa = stats?.sa ?? 0;
       return sa > 0 ? (sv / sa).toFixed(3) : '-';
     }},
     { key: 'so', label: 'SO', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'sa', label: 'SA', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'sv', label: 'SV', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'min', label: 'TOI', format: (v, stats) => {
+      const min = v ?? stats?.gMin;
+      return min != null ? min.toFixed(0) : '-';
+    }},
   ],
 };
 
-// Position-specific stat columns for football
-const FOOTBALL_POSITION_STAT_COLUMNS: Record<string, Array<{ key: string; label: string; format?: (val: any, stats?: any, gp?: number) => string }>> = {
+// Position-group stat columns for football
+const FOOTBALL_GROUP_STAT_COLUMNS: Record<string, Array<{ key: string; label: string; format?: (val: any, stats?: any, gp?: number, gs?: number) => string }>> = {
   QB: [
-    // Passing stats
+    { key: 'gs', label: 'GS', format: (v) => v != null ? v.toFixed(0) : '-' },
     { key: 'pssCmp', label: 'Cmp', format: (v) => v != null ? v.toFixed(0) : '-' },
     { key: 'pss', label: 'Att', format: (v) => v != null ? v.toFixed(0) : '-' },
     { key: 'pct', label: 'Pct', format: (v, stats) => {
@@ -195,365 +188,128 @@ const FOOTBALL_POSITION_STAT_COLUMNS: Record<string, Array<{ key: string; label:
     }},
     { key: 'pssYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
     { key: 'pssTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'tdPct', label: 'TD%', format: (v, stats) => {
-      const td = stats?.pssTD ?? 0;
-      const att = stats?.pss ?? 0;
-      return att > 0 ? ((td / att) * 100).toFixed(1) : '-';
-    }},
-    { key: 'pssInt', label: 'Int', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'intPct', label: 'Int%', format: (v, stats) => {
-      const int = stats?.pssInt ?? 0;
-      const att = stats?.pss ?? 0;
-      return att > 0 ? ((int / att) * 100).toFixed(1) : '-';
-    }},
-    { key: 'pssLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'pssInt', label: 'INT', format: (v) => v != null ? v.toFixed(0) : '-' },
     { key: 'pssYdsPerAtt', label: 'Y/A', format: (v, stats) => {
       const yds = stats?.pssYds ?? 0;
       const att = stats?.pss ?? 0;
       return att > 0 ? (yds / att).toFixed(1) : '-';
     }},
-    { key: 'adjYdsPerAtt', label: 'AY/A', format: (v, stats) => {
-      const yds = stats?.pssYds ?? 0;
-      const td = stats?.pssTD ?? 0;
-      const int = stats?.pssInt ?? 0;
-      const att = stats?.pss ?? 0;
-      return att > 0 ? ((yds + 20 * td - 45 * int) / att).toFixed(1) : '-';
+    { key: 'sk', label: 'Sk', format: (v, stats) => {
+      // Sacks taken by QB
+      const sacks = v ?? stats?.pssSk ?? stats?.qbRSk;
+      return sacks != null ? sacks.toFixed(0) : '-';
     }},
-    { key: 'ydsPerCmp', label: 'Y/C', format: (v, stats) => {
-      const yds = stats?.pssYds ?? 0;
-      const cmp = stats?.pssCmp ?? 0;
-      return cmp > 0 ? (yds / cmp).toFixed(1) : '-';
-    }},
-    { key: 'pssYdsPerGame', label: 'Y/G', format: (v, stats, gp) => {
-      const yds = stats?.pssYds ?? 0;
-      return gp ? (yds / gp).toFixed(1) : '-';
-    }},
-    { key: 'qbRat', label: 'QBRat', format: (v) => v != null ? v.toFixed(1) : '-' },
-    { key: 'rusYds', label: 'RuYds', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'rusTD', label: 'RuTD', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'av', label: 'AV', format: (v) => v != null ? v.toFixed(0) : '-' },
   ],
-  RB: [
-    // Rushing stats
+  Skill: [
+    { key: 'gs', label: 'GS', format: (v) => v != null ? v.toFixed(0) : '-' },
     { key: 'rus', label: 'Rush', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'rusYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'rusTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'rusLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'rusYds', label: 'Rush Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'rusTD', label: 'Rush TD', format: (v) => v != null ? v.toFixed(0) : '-' },
     { key: 'rusYdsPerAtt', label: 'Y/A', format: (v, stats) => {
       const yds = stats?.rusYds ?? 0;
       const att = stats?.rus ?? 0;
       return att > 0 ? (yds / att).toFixed(1) : '-';
     }},
-    { key: 'rusYdsPerGame', label: 'Y/G', format: (v, stats, gp) => {
-      const yds = stats?.rusYds ?? 0;
-      return gp ? (yds / gp).toFixed(1) : '-';
-    }},
-    { key: 'rusPerGame', label: 'A/G', format: (v, stats, gp) => {
-      const rus = stats?.rus ?? 0;
-      return gp ? (rus / gp).toFixed(1) : '-';
-    }},
-    // Receiving stats
     { key: 'tgt', label: 'Tgt', format: (v) => v != null ? v.toFixed(0) : '-' },
     { key: 'rec', label: 'Rec', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'recYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'recTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'recLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'recYds', label: 'Rec Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'recTD', label: 'Rec TD', format: (v) => v != null ? v.toFixed(0) : '-' },
     { key: 'recYdsPerRec', label: 'Y/R', format: (v, stats) => {
       const yds = stats?.recYds ?? 0;
       const rec = stats?.rec ?? 0;
       return rec > 0 ? (yds / rec).toFixed(1) : '-';
     }},
-    { key: 'recPerGame', label: 'R/G', format: (v, stats, gp) => {
-      const rec = stats?.rec ?? 0;
-      return gp ? (rec / gp).toFixed(1) : '-';
-    }},
-    { key: 'recYdsPerGame', label: 'Y/G', format: (v, stats, gp) => {
-      const yds = stats?.recYds ?? 0;
-      return gp ? (yds / gp).toFixed(1) : '-';
-    }},
-    { key: 'catchPct', label: 'Ctch%', format: (v, stats) => {
-      const rec = stats?.rec ?? 0;
-      const tgt = stats?.tgt ?? 0;
-      return tgt > 0 ? ((rec / tgt) * 100).toFixed(1) : '-';
-    }},
-    { key: 'touches', label: 'Tch', format: (v, stats) => {
-      const rus = stats?.rus ?? 0;
-      const rec = stats?.rec ?? 0;
-      return (rus + rec).toFixed(0);
-    }},
-    { key: 'ydsPerTouch', label: 'Y/Tch', format: (v, stats) => {
-      const rusYds = stats?.rusYds ?? 0;
-      const recYds = stats?.recYds ?? 0;
-      const rus = stats?.rus ?? 0;
-      const rec = stats?.rec ?? 0;
-      const touches = rus + rec;
-      return touches > 0 ? ((rusYds + recYds) / touches).toFixed(1) : '-';
-    }},
-    { key: 'yScm', label: 'YScm', format: (v, stats) => {
-      const rusYds = stats?.rusYds ?? 0;
-      const recYds = stats?.recYds ?? 0;
-      return (rusYds + recYds).toFixed(0);
-    }},
-    { key: 'allTD', label: 'RRTD', format: (v, stats) => {
-      const rusTD = stats?.rusTD ?? 0;
-      const recTD = stats?.recTD ?? 0;
-      return (rusTD + recTD).toFixed(0);
-    }},
     { key: 'fmb', label: 'Fmb', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'av', label: 'AV', format: (v) => v != null ? v.toFixed(0) : '-' },
   ],
-  WR: [
-    // Receiving stats
-    { key: 'tgt', label: 'Tgt', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'rec', label: 'Rec', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'recYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'recTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'recLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'recYdsPerRec', label: 'Y/R', format: (v, stats) => {
-      const yds = stats?.recYds ?? 0;
-      const rec = stats?.rec ?? 0;
-      return rec > 0 ? (yds / rec).toFixed(1) : '-';
+  Defense: [
+    { key: 'gs', label: 'GS', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defTck', label: 'Tackles', format: (v, stats) => {
+      // Total tackles - use stored value or calculate from solo + ast
+      const total = v ?? stats?.tck;
+      if (total != null) return total.toFixed(0);
+      const solo = stats?.defTckSolo ?? 0;
+      const ast = stats?.defTckAst ?? 0;
+      return solo + ast > 0 ? (solo + ast).toFixed(0) : '-';
     }},
-    { key: 'recPerGame', label: 'R/G', format: (v, stats, gp) => {
-      const rec = stats?.rec ?? 0;
-      return gp ? (rec / gp).toFixed(1) : '-';
-    }},
-    { key: 'recYdsPerGame', label: 'Y/G', format: (v, stats, gp) => {
-      const yds = stats?.recYds ?? 0;
-      return gp ? (yds / gp).toFixed(1) : '-';
-    }},
-    { key: 'catchPct', label: 'Ctch%', format: (v, stats) => {
-      const rec = stats?.rec ?? 0;
-      const tgt = stats?.tgt ?? 0;
-      return tgt > 0 ? ((rec / tgt) * 100).toFixed(1) : '-';
-    }},
-    // Rushing stats (some WRs rush)
-    { key: 'rus', label: 'Rush', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'rusYds', label: 'RuYds', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'rusTD', label: 'RuTD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'touches', label: 'Tch', format: (v, stats) => {
-      const rus = stats?.rus ?? 0;
-      const rec = stats?.rec ?? 0;
-      return (rus + rec).toFixed(0);
-    }},
-    { key: 'ydsPerTouch', label: 'Y/Tch', format: (v, stats) => {
-      const rusYds = stats?.rusYds ?? 0;
-      const recYds = stats?.recYds ?? 0;
-      const rus = stats?.rus ?? 0;
-      const rec = stats?.rec ?? 0;
-      const touches = rus + rec;
-      return touches > 0 ? ((rusYds + recYds) / touches).toFixed(1) : '-';
-    }},
-    { key: 'yScm', label: 'YScm', format: (v, stats) => {
-      const rusYds = stats?.rusYds ?? 0;
-      const recYds = stats?.recYds ?? 0;
-      return (rusYds + recYds).toFixed(0);
-    }},
-    { key: 'allTD', label: 'RRTD', format: (v, stats) => {
-      const rusTD = stats?.rusTD ?? 0;
-      const recTD = stats?.recTD ?? 0;
-      return (rusTD + recTD).toFixed(0);
-    }},
-    { key: 'fmb', label: 'Fmb', format: (v) => v != null ? v.toFixed(0) : '-' },
-  ],
-  TE: [
-    // Receiving stats
-    { key: 'tgt', label: 'Tgt', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'rec', label: 'Rec', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'recYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'recTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'recLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'recYdsPerRec', label: 'Y/R', format: (v, stats) => {
-      const yds = stats?.recYds ?? 0;
-      const rec = stats?.rec ?? 0;
-      return rec > 0 ? (yds / rec).toFixed(1) : '-';
-    }},
-    { key: 'recPerGame', label: 'R/G', format: (v, stats, gp) => {
-      const rec = stats?.rec ?? 0;
-      return gp ? (rec / gp).toFixed(1) : '-';
-    }},
-    { key: 'recYdsPerGame', label: 'Y/G', format: (v, stats, gp) => {
-      const yds = stats?.recYds ?? 0;
-      return gp ? (yds / gp).toFixed(1) : '-';
-    }},
-    { key: 'catchPct', label: 'Ctch%', format: (v, stats) => {
-      const rec = stats?.rec ?? 0;
-      const tgt = stats?.tgt ?? 0;
-      return tgt > 0 ? ((rec / tgt) * 100).toFixed(1) : '-';
-    }},
-    // Rushing stats (rare for TEs)
-    { key: 'rus', label: 'Rush', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'rusYds', label: 'RuYds', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'rusTD', label: 'RuTD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'touches', label: 'Tch', format: (v, stats) => {
-      const rus = stats?.rus ?? 0;
-      const rec = stats?.rec ?? 0;
-      return (rus + rec).toFixed(0);
-    }},
-    { key: 'ydsPerTouch', label: 'Y/Tch', format: (v, stats) => {
-      const rusYds = stats?.rusYds ?? 0;
-      const recYds = stats?.recYds ?? 0;
-      const rus = stats?.rus ?? 0;
-      const rec = stats?.rec ?? 0;
-      const touches = rus + rec;
-      return touches > 0 ? ((rusYds + recYds) / touches).toFixed(1) : '-';
-    }},
-    { key: 'yScm', label: 'YScm', format: (v, stats) => {
-      const rusYds = stats?.rusYds ?? 0;
-      const recYds = stats?.recYds ?? 0;
-      return (rusYds + recYds).toFixed(0);
-    }},
-    { key: 'allTD', label: 'RRTD', format: (v, stats) => {
-      const rusTD = stats?.rusTD ?? 0;
-      const recTD = stats?.recTD ?? 0;
-      return (rusTD + recTD).toFixed(0);
-    }},
-    { key: 'fmb', label: 'Fmb', format: (v) => v != null ? v.toFixed(0) : '-' },
-  ],
-  OL: [
-    // Offensive line - minimal stats, mostly game participation
-  ],
-  DL: [
-    // Defensive stats
-    { key: 'defInt', label: 'Int', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defIntYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defIntTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defIntLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defPssDef', label: 'PD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defFmbFrc', label: 'FF', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defFmbRec', label: 'FR', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defFmbYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defFmbTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defFmbLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defSk', label: 'Sk', format: (v) => v != null ? v.toFixed(1) : '-' },
-    { key: 'defTck', label: 'Tck', format: (v) => v != null ? v.toFixed(0) : '-' },
     { key: 'defTckSolo', label: 'Solo', format: (v) => v != null ? v.toFixed(0) : '-' },
     { key: 'defTckAst', label: 'Ast', format: (v) => v != null ? v.toFixed(0) : '-' },
     { key: 'defTckLoss', label: 'TFL', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defSft', label: 'Sfty', format: (v) => v != null ? v.toFixed(0) : '-' },
-  ],
-  LB: [
-    // Defensive stats
-    { key: 'defInt', label: 'Int', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defIntYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defIntTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defIntLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defSk', label: 'Sk', format: (v, stats) => {
+      // Defensive sacks - try multiple possible keys
+      const sacks = v ?? stats?.sks ?? stats?.sk;
+      return sacks != null ? sacks.toFixed(1) : '-';
+    }},
+    { key: 'defInt', label: 'INT', format: (v) => v != null ? v.toFixed(0) : '-' },
     { key: 'defPssDef', label: 'PD', format: (v) => v != null ? v.toFixed(0) : '-' },
     { key: 'defFmbFrc', label: 'FF', format: (v) => v != null ? v.toFixed(0) : '-' },
     { key: 'defFmbRec', label: 'FR', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defFmbYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defFmbTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defFmbLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defSk', label: 'Sk', format: (v) => v != null ? v.toFixed(1) : '-' },
-    { key: 'defTck', label: 'Tck', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defTckSolo', label: 'Solo', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defTckAst', label: 'Ast', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defTckLoss', label: 'TFL', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defSft', label: 'Sfty', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defTD', label: 'TD', format: (v, stats) => {
+      const intTD = stats?.defIntTD ?? 0;
+      const fmbTD = stats?.defFmbTD ?? 0;
+      return (intTD + fmbTD).toFixed(0);
+    }},
+    { key: 'av', label: 'AV', format: (v) => v != null ? v.toFixed(0) : '-' },
   ],
-  CB: [
-    // Defensive stats
-    { key: 'defInt', label: 'Int', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defIntYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defIntTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defIntLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defPssDef', label: 'PD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defFmbFrc', label: 'FF', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defFmbRec', label: 'FR', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defFmbYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defFmbTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defFmbLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defSk', label: 'Sk', format: (v) => v != null ? v.toFixed(1) : '-' },
-    { key: 'defTck', label: 'Tck', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defTckSolo', label: 'Solo', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defTckAst', label: 'Ast', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defTckLoss', label: 'TFL', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defSft', label: 'Sfty', format: (v) => v != null ? v.toFixed(0) : '-' },
-  ],
-  S: [
-    // Defensive stats
-    { key: 'defInt', label: 'Int', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defIntYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defIntTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defIntLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defPssDef', label: 'PD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defFmbFrc', label: 'FF', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defFmbRec', label: 'FR', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defFmbYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defFmbTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defFmbLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defSk', label: 'Sk', format: (v) => v != null ? v.toFixed(1) : '-' },
-    { key: 'defTck', label: 'Tck', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defTckSolo', label: 'Solo', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defTckAst', label: 'Ast', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defTckLoss', label: 'TFL', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defSft', label: 'Sfty', format: (v) => v != null ? v.toFixed(0) : '-' },
-  ],
-  K: [
-    // Kicking stats
-    { key: 'fg0', label: 'FG10', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'fga0', label: 'FGA10', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'fg20', label: 'FG20', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'fga20', label: 'FGA20', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'fg30', label: 'FG30', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'fga30', label: 'FGA30', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'fg40', label: 'FG40', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'fga40', label: 'FGA40', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'fg50', label: 'FG50', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'fga50', label: 'FGA50', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'fgLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'fg', label: 'FGM', format: (v, stats) => {
+  Kicker: [
+    { key: 'gs', label: 'GS', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'fgmfga', label: 'FGM/FGA', format: (v, stats) => {
       const fg = (stats?.fg0 ?? 0) + (stats?.fg20 ?? 0) + (stats?.fg30 ?? 0) + (stats?.fg40 ?? 0) + (stats?.fg50 ?? 0);
-      return fg.toFixed(0);
-    }},
-    { key: 'fga', label: 'FGA', format: (v, stats) => {
       const fga = (stats?.fga0 ?? 0) + (stats?.fga20 ?? 0) + (stats?.fga30 ?? 0) + (stats?.fga40 ?? 0) + (stats?.fga50 ?? 0);
-      return fga.toFixed(0);
+      return fga > 0 ? `${fg}/${fga}` : '-';
     }},
-    { key: 'fgPct', label: 'Pct', format: (v, stats) => {
+    { key: 'fgPct', label: 'FG%', format: (v, stats) => {
       const fg = (stats?.fg0 ?? 0) + (stats?.fg20 ?? 0) + (stats?.fg30 ?? 0) + (stats?.fg40 ?? 0) + (stats?.fg50 ?? 0);
       const fga = (stats?.fga0 ?? 0) + (stats?.fga20 ?? 0) + (stats?.fga30 ?? 0) + (stats?.fga40 ?? 0) + (stats?.fga50 ?? 0);
       return fga > 0 ? ((fg / fga) * 100).toFixed(1) : '-';
     }},
-    { key: 'xp', label: 'XPM', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'xpa', label: 'XPA', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'xpPct', label: 'Pct', format: (v, stats) => {
+    { key: 'fgLng', label: 'FG Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'xpmxpa', label: 'XPM/XPA', format: (v, stats) => {
+      const xp = stats?.xp ?? 0;
+      const xpa = stats?.xpa ?? 0;
+      return xpa > 0 ? `${xp}/${xpa}` : '-';
+    }},
+    { key: 'xpPct', label: 'XP%', format: (v, stats) => {
       const xp = stats?.xp ?? 0;
       const xpa = stats?.xpa ?? 0;
       return xpa > 0 ? ((xp / xpa) * 100).toFixed(1) : '-';
     }},
-    { key: 'kickingPts', label: 'Pts', format: (v, stats) => {
-      const fg = (stats?.fg0 ?? 0) + (stats?.fg20 ?? 0) + (stats?.fg30 ?? 0) + (stats?.fg40 ?? 0) + (stats?.fg50 ?? 0);
-      const xp = stats?.xp ?? 0;
-      return (fg * 3 + xp).toFixed(0);
-    }},
-  ],
-  P: [
-    // Punting stats
-    { key: 'pnt', label: 'Pnt', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'pntYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'pntLng', label: 'Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'pntBlk', label: 'Blk', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'pntYdsPerAtt', label: 'Y/A', format: (v, stats) => {
+    { key: 'pnt', label: 'Punts', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'pntYdsPerAtt', label: 'Punt Avg', format: (v, stats) => {
       const yds = stats?.pntYds ?? 0;
       const pnt = stats?.pnt ?? 0;
       return pnt > 0 ? (yds / pnt).toFixed(1) : '-';
     }},
-    // Also show kicking stats for punters who kick
-    { key: 'fg', label: 'FGM', format: (v, stats) => {
-      const fg = (stats?.fg0 ?? 0) + (stats?.fg20 ?? 0) + (stats?.fg30 ?? 0) + (stats?.fg40 ?? 0) + (stats?.fg50 ?? 0);
-      return fg > 0 ? fg.toFixed(0) : '-';
-    }},
-    { key: 'fga', label: 'FGA', format: (v, stats) => {
-      const fga = (stats?.fga0 ?? 0) + (stats?.fga20 ?? 0) + (stats?.fga30 ?? 0) + (stats?.fga40 ?? 0) + (stats?.fga50 ?? 0);
-      return fga > 0 ? fga.toFixed(0) : '-';
-    }},
-    { key: 'xp', label: 'XPM', format: (v) => (v != null && v > 0) ? v.toFixed(0) : '-' },
-    { key: 'xpa', label: 'XPA', format: (v) => (v != null && v > 0) ? v.toFixed(0) : '-' },
+    { key: 'pntLng', label: 'Punt Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'pntBlk', label: 'Blk', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'av', label: 'AV', format: (v) => v != null ? v.toFixed(0) : '-' },
   ],
 };
 
-// Helper function to get stat columns for a football player based on position
-function getFootballStatColumns(position: string) {
-  return FOOTBALL_POSITION_STAT_COLUMNS[position] || [];
+// Helper function to map football position to position group
+function getFootballPositionGroup(position: string): string {
+  if (position === 'QB') return 'QB';
+  if (['RB', 'WR', 'TE'].includes(position)) return 'Skill';
+  if (['DL', 'LB', 'CB', 'S'].includes(position)) return 'Defense';
+  if (['K', 'P'].includes(position)) return 'Kicker';
+  return 'Other'; // OL and other positions
+}
+
+// Helper function to get stat columns for a football position group
+function getFootballGroupStatColumns(group: string) {
+  return FOOTBALL_GROUP_STAT_COLUMNS[group] || [];
+}
+
+// Helper function to determine if hockey player is a goalie
+function getHockeyPositionGroup(position: string): string {
+  if (position === 'G') return 'Goalie';
+  return 'Skater'; // C, W, D, or any other position
+}
+
+// Helper function to get stat columns for a hockey position group
+function getHockeyGroupStatColumns(group: string) {
+  return HOCKEY_GROUP_STAT_COLUMNS[group] || [];
 }
 
 export function TeamInfoModal({
@@ -603,6 +359,43 @@ export function TeamInfoModal({
       return bMinutes - aMinutes;
     });
   }, [players]);
+
+  // Group football players by position group
+  const footballPlayerGroups = useMemo(() => {
+    if (sport !== 'football') return null;
+
+    const groups: Record<string, PlayerInfo[]> = {
+      QB: [],
+      Skill: [],
+      Defense: [],
+      Kicker: [],
+      Other: []
+    };
+
+    sortedPlayers.forEach(player => {
+      const group = getFootballPositionGroup(player.position || '');
+      groups[group].push(player);
+    });
+
+    return groups;
+  }, [sport, sortedPlayers]);
+
+  // Group hockey players by position group (Skater/Goalie)
+  const hockeyPlayerGroups = useMemo(() => {
+    if (sport !== 'hockey') return null;
+
+    const groups: Record<string, PlayerInfo[]> = {
+      Skater: [],
+      Goalie: []
+    };
+
+    sortedPlayers.forEach(player => {
+      const group = getHockeyPositionGroup(player.position || '');
+      groups[group].push(player);
+    });
+
+    return groups;
+  }, [sport, sortedPlayers]);
 
   // Extract playoff series info for this team
   const teamPlayoffSeries = useMemo(() => {
@@ -839,183 +632,200 @@ export function TeamInfoModal({
 
         {/* Table Container - Scrollable */}
         <div className="relative z-10 flex-1 overflow-auto">
-          <table style={{ width: 'max-content', minWidth: '100%' }}>
-            <thead
-              className="sticky top-0 z-20"
-              style={{
-                backgroundColor: primaryColor,
-                borderBottom: `2px solid ${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`,
-              }}
-            >
-              <tr>
-                <th
-                  className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wide whitespace-nowrap"
-                  style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
-                >
-                  Player
-                </th>
-                <th
-                  className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap"
-                  style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
-                >
-                  Pos
-                </th>
-                <th
-                  className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap"
-                  style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
-                >
-                  Age
-                </th>
-                <th
-                  className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap"
-                  style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
-                >
-                  Ovr
-                </th>
-                <th
-                  className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap"
-                  style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
-                >
-                  Pot
-                </th>
-                <th
-                  className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap"
-                  style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
-                >
-                  YWT
-                </th>
-                <th
-                  className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap"
-                  style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
-                >
-                  G
-                </th>
-                {/* For football, show generic Stats header since each position has different stats */}
-                {sport === 'football' ? (
-                  <th
-                    className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wide whitespace-nowrap"
-                    style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
-                  >
-                    Stats (Position-Specific)
-                  </th>
-                ) : (
-                  statColumns.map((col) => (
-                    <th
-                      key={col.key}
-                      className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap"
-                      style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
-                    >
-                      {col.label}
-                    </th>
-                  ))
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {sortedPlayers.map((playerInfo, idx) => {
-                // For football, get position-specific stat columns
-                const playerStatColumns = sport === 'football'
-                  ? getFootballStatColumns(playerInfo.position || '')
-                  : statColumns;
+          {sport === 'football' && footballPlayerGroups ? (
+            /* Football: Multiple tables grouped by position */
+            <div className="space-y-6">
+              {(['QB', 'Skill', 'Defense', 'Kicker'] as const).map(groupName => {
+                const groupPlayers = footballPlayerGroups[groupName];
+                if (!groupPlayers || groupPlayers.length === 0) return null;
+
+                const groupStatColumns = getFootballGroupStatColumns(groupName);
+                const groupTitle = groupName === 'Skill' ? 'Skill Players (RB/WR/TE)' :
+                                  groupName === 'Defense' ? 'Defense' :
+                                  groupName === 'Kicker' ? 'Kicker/Punter' : 'Quarterbacks';
 
                 return (
-                <tr
-                  key={playerInfo.player.pid}
-                  onClick={() => onPlayerClick?.(playerInfo.player)}
-                  className="border-b hover:bg-white/5 transition-colors cursor-pointer"
-                  style={{
-                    borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
-                  }}
-                >
-                  {/* Player Name */}
-                  <td className="py-3 px-4 whitespace-nowrap">
-                    <div className="flex items-center gap-3">
-                      <div className="w-14 h-14 flex-shrink-0">
-                        <PlayerFace
-                          pid={playerInfo.player.pid}
-                          name={playerInfo.player.name}
-                          imgURL={playerInfo.player.imgURL}
-                          face={playerInfo.player.face}
-                          player={playerInfo.player}
-                          teams={teams}
-                          sport={sport}
-                          season={season}
-                          hideName={true}
-                          size={56}
-                          scale={1.0}
-                        />
-                      </div>
-                      <span
-                        className="text-sm font-medium"
-                        style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
-                      >
-                        {playerInfo.player.name}
-                      </span>
-                    </div>
-                  </td>
-
-                  {/* Position */}
-                  <td
-                    className="text-center py-3 px-2 text-sm"
-                    style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}
-                  >
-                    {playerInfo.position || '-'}
-                  </td>
-
-                  {/* Age */}
-                  <td
-                    className="text-center py-3 px-2 text-sm"
-                    style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}
-                  >
-                    {playerInfo.age || '-'}
-                  </td>
-
-                  {/* Overall */}
-                  <td
-                    className="text-center py-3 px-1 text-sm font-medium"
-                    style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
-                  >
-                    {playerInfo.ovr || '-'}
-                  </td>
-
-                  {/* Potential */}
-                  <td
-                    className="text-center py-3 px-1 text-sm"
-                    style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}
-                  >
-                    {playerInfo.pot || '-'}
-                  </td>
-
-                  {/* Years With Team */}
-                  <td
-                    className="text-center py-3 px-2 text-sm"
-                    style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}
-                  >
-                    {playerInfo.yearsWithTeam}
-                  </td>
-
-                  {/* Games */}
-                  <td
-                    className="text-center py-3 px-2 text-sm"
-                    style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}
-                  >
-                    {playerInfo.gamesPlayed}
-                  </td>
-
-                  {/* Dynamic stat columns - position-specific for football */}
-                  {playerStatColumns.map((col, colIdx) => (
-                    <td
-                      key={col.key}
-                      className={`text-center py-3 px-2 text-sm ${colIdx === 0 && sport === 'basketball' ? 'font-medium' : ''}`}
-                      style={{ color: textColor === 'white' ? (colIdx === 0 && sport === 'basketball' ? '#ffffff' : 'rgba(255,255,255,0.9)') : (colIdx === 0 && sport === 'basketball' ? '#000000' : 'rgba(0,0,0,0.9)') }}
+                  <div key={groupName}>
+                    {/* Group Title */}
+                    <h3
+                      className="text-lg font-bold px-4 py-2 sticky top-0 z-20"
+                      style={{
+                        backgroundColor: primaryColor,
+                        color: textColor === 'white' ? '#ffffff' : '#000000'
+                      }}
                     >
-                      {col.format ? col.format(playerInfo.stats?.[col.key], playerInfo.stats, playerInfo.gamesPlayed) : (playerInfo.stats?.[col.key] || '-')}
-                    </td>
+                      {groupTitle}
+                    </h3>
+                    <table style={{ width: 'max-content', minWidth: '100%' }}>
+                      <thead
+                        className="sticky top-10 z-20"
+                        style={{
+                          backgroundColor: primaryColor,
+                          borderBottom: `2px solid ${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`,
+                        }}
+                      >
+                        <tr>
+                          <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Player</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Pos</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Age</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>G</th>
+                          {groupStatColumns.map((col) => (
+                            <th key={col.key} className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>
+                              {col.label}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {groupPlayers.map((playerInfo) => (
+                          <tr
+                            key={playerInfo.player.pid}
+                            onClick={() => onPlayerClick?.(playerInfo.player)}
+                            className="border-b hover:bg-white/5 transition-colors cursor-pointer"
+                            style={{ borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}` }}
+                          >
+                            <td className="py-3 px-4 whitespace-nowrap">
+                              <div className="flex items-center gap-3">
+                                <div className="w-14 h-14 flex-shrink-0">
+                                  <PlayerFace pid={playerInfo.player.pid} name={playerInfo.player.name} imgURL={playerInfo.player.imgURL} face={playerInfo.player.face} player={playerInfo.player} teams={teams} sport={sport} season={season} hideName={true} size={56} scale={1.0} />
+                                </div>
+                                <span className="text-sm font-medium" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>{playerInfo.player.name}</span>
+                              </div>
+                            </td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.position || '-'}</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.age || '-'}</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.gamesPlayed}</td>
+                            {groupStatColumns.map((col) => (
+                              <td key={col.key} className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                                {col.format ? col.format(playerInfo.stats?.[col.key], playerInfo.stats, playerInfo.gamesPlayed, playerInfo.stats?.gs) : (playerInfo.stats?.[col.key] || '-')}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })}
+            </div>
+          ) : sport === 'hockey' && hockeyPlayerGroups ? (
+            /* Hockey: Multiple tables grouped by position (Skater/Goalie) */
+            <div className="space-y-6">
+              {(['Skater', 'Goalie'] as const).map(groupName => {
+                const groupPlayers = hockeyPlayerGroups[groupName];
+                if (!groupPlayers || groupPlayers.length === 0) return null;
+
+                const groupStatColumns = getHockeyGroupStatColumns(groupName);
+                const groupTitle = groupName === 'Skater' ? 'Skaters (Forwards & Defensemen)' : 'Goalies';
+
+                return (
+                  <div key={groupName}>
+                    {/* Group Title */}
+                    <h3
+                      className="text-lg font-bold px-4 py-2 sticky top-0 z-20"
+                      style={{
+                        backgroundColor: primaryColor,
+                        color: textColor === 'white' ? '#ffffff' : '#000000'
+                      }}
+                    >
+                      {groupTitle}
+                    </h3>
+                    <table style={{ width: 'max-content', minWidth: '100%' }}>
+                      <thead
+                        className="sticky top-10 z-20"
+                        style={{
+                          backgroundColor: primaryColor,
+                          borderBottom: `2px solid ${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`,
+                        }}
+                      >
+                        <tr>
+                          <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Player</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Pos</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Age</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>G</th>
+                          {groupStatColumns.map((col) => (
+                            <th key={col.key} className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>
+                              {col.label}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {groupPlayers.map((playerInfo) => (
+                          <tr
+                            key={playerInfo.player.pid}
+                            onClick={() => onPlayerClick?.(playerInfo.player)}
+                            className="border-b hover:bg-white/5 transition-colors cursor-pointer"
+                            style={{ borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}` }}
+                          >
+                            <td className="py-3 px-4 whitespace-nowrap">
+                              <div className="flex items-center gap-3">
+                                <div className="w-14 h-14 flex-shrink-0">
+                                  <PlayerFace pid={playerInfo.player.pid} name={playerInfo.player.name} imgURL={playerInfo.player.imgURL} face={playerInfo.player.face} player={playerInfo.player} teams={teams} sport={sport} season={season} hideName={true} size={56} scale={1.0} />
+                                </div>
+                                <span className="text-sm font-medium" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>{playerInfo.player.name}</span>
+                              </div>
+                            </td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.position || '-'}</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.age || '-'}</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.gamesPlayed}</td>
+                            {groupStatColumns.map((col) => (
+                              <td key={col.key} className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                                {col.format ? col.format(playerInfo.stats?.[col.key], playerInfo.stats, playerInfo.gamesPlayed) : (playerInfo.stats?.[col.key] || '-')}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            /* Other sports: Single table */
+            <table style={{ width: 'max-content', minWidth: '100%' }}>
+              <thead className="sticky top-0 z-20" style={{ backgroundColor: primaryColor, borderBottom: `2px solid ${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}` }}>
+                <tr>
+                  <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Player</th>
+                  <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Pos</th>
+                  <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Age</th>
+                  <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Ovr</th>
+                  <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Pot</th>
+                  <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>YWT</th>
+                  <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>G</th>
+                  {statColumns.map((col) => (
+                    <th key={col.key} className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>{col.label}</th>
                   ))}
                 </tr>
-              );})}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {sortedPlayers.map((playerInfo) => (
+                  <tr key={playerInfo.player.pid} onClick={() => onPlayerClick?.(playerInfo.player)} className="border-b hover:bg-white/5 transition-colors cursor-pointer" style={{ borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}` }}>
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <div className="flex items-center gap-3">
+                        <div className="w-14 h-14 flex-shrink-0">
+                          <PlayerFace pid={playerInfo.player.pid} name={playerInfo.player.name} imgURL={playerInfo.player.imgURL} face={playerInfo.player.face} player={playerInfo.player} teams={teams} sport={sport} season={season} hideName={true} size={56} scale={1.0} />
+                        </div>
+                        <span className="text-sm font-medium" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>{playerInfo.player.name}</span>
+                      </div>
+                    </td>
+                    <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.position || '-'}</td>
+                    <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.age || '-'}</td>
+                    <td className="text-center py-3 px-1 text-sm font-medium" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>{playerInfo.ovr || '-'}</td>
+                    <td className="text-center py-3 px-1 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.pot || '-'}</td>
+                    <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.yearsWithTeam}</td>
+                    <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.gamesPlayed}</td>
+                    {statColumns.map((col, colIdx) => (
+                      <td key={col.key} className={`text-center py-3 px-2 text-sm ${colIdx === 0 && sport === 'basketball' ? 'font-medium' : ''}`} style={{ color: textColor === 'white' ? (colIdx === 0 && sport === 'basketball' ? '#ffffff' : 'rgba(255,255,255,0.9)') : (colIdx === 0 && sport === 'basketball' ? '#000000' : 'rgba(0,0,0,0.9)') }}>
+                        {col.format ? col.format(playerInfo.stats?.[col.key], playerInfo.stats, playerInfo.gamesPlayed) : (playerInfo.stats?.[col.key] || '-')}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>

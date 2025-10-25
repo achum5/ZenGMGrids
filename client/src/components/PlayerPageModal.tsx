@@ -1566,6 +1566,414 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
             </div>
           </div>
         )}
+
+        {/* Football Stats Table */}
+        {player.stats && player.stats.length > 0 && sport === 'football' && (() => {
+          // Determine position group from most recent rating
+          const latestRating = player.ratings && player.ratings.length > 0
+            ? player.ratings.reduce((latest, r) => r.season > latest.season ? r : latest)
+            : null;
+          const position = latestRating?.pos || '';
+
+          // Helper to get position group
+          const getPositionGroup = (pos: string): string => {
+            if (pos === 'QB') return 'QB';
+            if (['RB', 'WR', 'TE'].includes(pos)) return 'Skill';
+            if (['DL', 'LB', 'CB', 'S'].includes(pos)) return 'Defense';
+            if (['K', 'P'].includes(pos)) return 'Kicker';
+            return 'Other';
+          };
+
+          const positionGroup = getPositionGroup(position);
+          if (positionGroup === 'Other') return null; // Don't show stats for OL
+
+          return (
+            <div className="mt-8">
+              <h3 className="text-xl font-bold mb-4" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Stats</h3>
+              <div className="overflow-auto">
+                <table style={{ width: 'max-content', minWidth: '100%' }}>
+                  <thead
+                    className="sticky top-0 z-20"
+                    style={{
+                      backgroundColor: primaryColor,
+                      borderBottom: `2px solid ${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`,
+                    }}
+                  >
+                    <tr>
+                      <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wide whitespace-nowrap sticky left-0 z-30" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>Season</th>
+                      <th className="text-left py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap sticky left-[68px] z-30" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>Team</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Age</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>G</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>GS</th>
+
+                      {positionGroup === 'QB' && (
+                        <>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Cmp</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Att</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Pct</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Yds</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>TD</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>INT</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Y/A</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Sk</th>
+                        </>
+                      )}
+
+                      {positionGroup === 'Skill' && (
+                        <>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Rush</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Rush Yds</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Rush TD</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Y/A</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Tgt</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Rec</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Rec Yds</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Rec TD</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Y/R</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Fmb</th>
+                        </>
+                      )}
+
+                      {positionGroup === 'Defense' && (
+                        <>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Tackles</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Solo</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Ast</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>TFL</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Sk</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>INT</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>PD</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>FF</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>FR</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>TD</th>
+                        </>
+                      )}
+
+                      {positionGroup === 'Kicker' && (
+                        <>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>FGM/FGA</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>FG%</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>FG Lng</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>XPM/XPA</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>XP%</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Punts</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Punt Avg</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Punt Lng</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Blk</th>
+                        </>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const filteredStats = player.stats
+                        .filter(s => !s.playoffs && s.gp && s.gp > 0 && (!season || s.season <= season))
+                        .sort((a, b) => b.season - a.season);
+
+                      return filteredStats.map((stat, idx) => {
+                        const team = teams.find(t => t.tid === stat.tid);
+                        const teamInfo = team ? getTeamNameForSeason(team, stat.season) : null;
+                        const age = player.born?.year ? stat.season - player.born.year : null;
+
+                        const hasYearGap = idx < filteredStats.length - 1 &&
+                                          stat.season - filteredStats[idx + 1].season > 1;
+
+                        const gp = stat.gp || 0;
+
+                        return (
+                          <tr
+                            key={`${stat.season}-${stat.tid}-${idx}`}
+                            className="border-b hover:bg-white/5 transition-colors"
+                            style={{
+                              borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                              borderBottomWidth: hasYearGap ? '3px' : '1px',
+                            }}
+                          >
+                            <td className="py-3 px-4 text-sm whitespace-nowrap sticky left-0 z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>
+                              <button
+                                onClick={() => setModalSeason(stat.season)}
+                                className="hover:underline cursor-pointer"
+                                style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
+                              >
+                                {stat.season}
+                              </button>
+                            </td>
+                            <td className="py-3 px-2 text-sm whitespace-nowrap sticky left-[68px] z-20" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)', backgroundColor: primaryColor }}>
+                              {onTeamClick ? (
+                                <button
+                                  onClick={() => onTeamClick(stat.tid, stat.season)}
+                                  className="hover:underline cursor-pointer"
+                                  style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}
+                                >
+                                  {teamInfo?.abbrev || 'UNK'}
+                                </button>
+                              ) : (
+                                <span>{teamInfo?.abbrev || 'UNK'}</span>
+                              )}
+                            </td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{age ?? '-'}</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{gp}</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).gs ?? '-'}</td>
+
+                            {positionGroup === 'QB' && (
+                              <>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).pssCmp ?? '-'}</td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).pss ?? '-'}</td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                                  {(stat as any).pss > 0 ? (((stat as any).pssCmp / (stat as any).pss) * 100).toFixed(1) : '-'}
+                                </td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).pssYds ?? '-'}</td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).pssTD ?? '-'}</td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).pssInt ?? '-'}</td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                                  {(stat as any).pss > 0 ? ((stat as any).pssYds / (stat as any).pss).toFixed(1) : '-'}
+                                </td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).sk ?? (stat as any).pssSk ?? (stat as any).qbRSk ?? '-'}</td>
+                              </>
+                            )}
+
+                            {positionGroup === 'Skill' && (
+                              <>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).rus ?? '-'}</td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).rusYds ?? '-'}</td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).rusTD ?? '-'}</td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                                  {(stat as any).rus > 0 ? ((stat as any).rusYds / (stat as any).rus).toFixed(1) : '-'}
+                                </td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).tgt ?? '-'}</td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).rec ?? '-'}</td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).recYds ?? '-'}</td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).recTD ?? '-'}</td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                                  {(stat as any).rec > 0 ? ((stat as any).recYds / (stat as any).rec).toFixed(1) : '-'}
+                                </td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).fmb ?? '-'}</td>
+                              </>
+                            )}
+
+                            {positionGroup === 'Defense' && (
+                              <>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                                  {(stat as any).defTck ?? (stat as any).tck ?? (((stat as any).defTckSolo ?? 0) + ((stat as any).defTckAst ?? 0) || '-')}
+                                </td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).defTckSolo ?? '-'}</td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).defTckAst ?? '-'}</td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).defTckLoss ?? '-'}</td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                                  {(stat as any).defSk ?? (stat as any).sks ?? (stat as any).sk ?? '-'}
+                                </td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).defInt ?? '-'}</td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).defPssDef ?? '-'}</td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).defFmbFrc ?? '-'}</td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).defFmbRec ?? '-'}</td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                                  {((stat as any).defIntTD ?? 0) + ((stat as any).defFmbTD ?? 0) || '-'}
+                                </td>
+                              </>
+                            )}
+
+                            {positionGroup === 'Kicker' && (
+                              <>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                                  {(() => {
+                                    const fg = ((stat as any).fg0 ?? 0) + ((stat as any).fg20 ?? 0) + ((stat as any).fg30 ?? 0) + ((stat as any).fg40 ?? 0) + ((stat as any).fg50 ?? 0);
+                                    const fga = ((stat as any).fga0 ?? 0) + ((stat as any).fga20 ?? 0) + ((stat as any).fga30 ?? 0) + ((stat as any).fga40 ?? 0) + ((stat as any).fga50 ?? 0);
+                                    return fga > 0 ? `${fg}/${fga}` : '-';
+                                  })()}
+                                </td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                                  {(() => {
+                                    const fg = ((stat as any).fg0 ?? 0) + ((stat as any).fg20 ?? 0) + ((stat as any).fg30 ?? 0) + ((stat as any).fg40 ?? 0) + ((stat as any).fg50 ?? 0);
+                                    const fga = ((stat as any).fga0 ?? 0) + ((stat as any).fga20 ?? 0) + ((stat as any).fga30 ?? 0) + ((stat as any).fga40 ?? 0) + ((stat as any).fga50 ?? 0);
+                                    return fga > 0 ? ((fg / fga) * 100).toFixed(1) : '-';
+                                  })()}
+                                </td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).fgLng ?? '-'}</td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                                  {(stat as any).xpa > 0 ? `${(stat as any).xp ?? 0}/${(stat as any).xpa}` : '-'}
+                                </td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                                  {(stat as any).xpa > 0 ? (((stat as any).xp / (stat as any).xpa) * 100).toFixed(1) : '-'}
+                                </td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).pnt ?? '-'}</td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                                  {(stat as any).pnt > 0 ? ((stat as any).pntYds / (stat as any).pnt).toFixed(1) : '-'}
+                                </td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).pntLng ?? '-'}</td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).pntBlk ?? '-'}</td>
+                              </>
+                            )}
+                          </tr>
+                        );
+                      });
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Hockey Stats */}
+        {sport === 'hockey' && player.stats && player.stats.length > 0 && (() => {
+          const filteredStats = player.stats
+            .filter(s => !s.playoffs && s.gp && s.gp > 0 && (!season || s.season <= season))
+            .sort((a, b) => b.season - a.season);
+
+          if (filteredStats.length === 0) return null;
+
+          // Determine if player is a goalie based on latest rating
+          const latestRating = player.ratings?.find(r => (!season || r.season <= season));
+          const isGoalie = latestRating?.pos === 'G';
+
+          return (
+            <div className="mt-8">
+              <h3 className="text-xl font-bold mb-4" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Stats</h3>
+              <div className="overflow-auto">
+                <table style={{ width: 'max-content', minWidth: '100%' }}>
+                  <thead
+                    className="sticky top-0 z-20"
+                    style={{
+                      backgroundColor: primaryColor,
+                      borderBottom: `2px solid ${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`,
+                    }}
+                  >
+                    <tr>
+                      <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wide whitespace-nowrap sticky left-0 z-30" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>Year</th>
+                      <th className="text-left py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap sticky left-[68px] z-30" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>Team</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Age</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>GP</th>
+                      {isGoalie ? (
+                        <>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Rec</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>GAA</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>SV%</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>SO</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>SA</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>SV</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>TOI</th>
+                        </>
+                      ) : (
+                        <>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>G</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>A</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>PTS</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>+/-</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>PIM</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>S</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>S%</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>TOI</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>HIT</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>BLK</th>
+                        </>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredStats.map((stat, idx) => {
+                      const team = teams.find(t => t.tid === stat.tid);
+                      const teamInfo = team ? getTeamNameForSeason(team, stat.season) : null;
+                      const age = player.born?.year ? stat.season - player.born.year : null;
+
+                      // Check if there's a year gap between this row and the next row
+                      const hasYearGap = idx < filteredStats.length - 1 &&
+                                        stat.season - filteredStats[idx + 1].season > 1;
+
+                      return (
+                        <tr
+                          key={`${stat.season}-${stat.tid}-${idx}`}
+                          className="border-b hover:bg-white/5 transition-colors"
+                          style={{
+                            borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                            borderBottomWidth: hasYearGap ? '3px' : '1px',
+                            borderBottomStyle: hasYearGap ? 'solid' : 'solid',
+                          }}
+                        >
+                          <td className="py-3 px-4 text-sm whitespace-nowrap sticky left-0 z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>
+                            <button
+                              onClick={() => setModalSeason(stat.season)}
+                              className="hover:underline cursor-pointer"
+                              style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
+                            >
+                              {stat.season}
+                            </button>
+                          </td>
+                          <td className="py-3 px-2 text-sm whitespace-nowrap sticky left-[68px] z-20" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)', backgroundColor: primaryColor }}>
+                            {onTeamClick ? (
+                              <button
+                                onClick={() => onTeamClick(stat.tid, stat.season)}
+                                className="hover:underline cursor-pointer"
+                                style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}
+                              >
+                                {teamInfo?.abbrev || 'UNK'}
+                              </button>
+                            ) : (
+                              <span>{teamInfo?.abbrev || 'UNK'}</span>
+                            )}
+                          </td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{age ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{stat.gp ?? '-'}</td>
+                          {isGoalie ? (
+                            <>
+                              <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                                {(() => {
+                                  const w = (stat as any).gW ?? 0;
+                                  const l = (stat as any).gL ?? 0;
+                                  const otl = (stat as any).gOTL ?? 0;
+                                  if (w === 0 && l === 0 && otl === 0) return '-';
+                                  return otl > 0 ? `${w}-${l}-${otl}` : `${w}-${l}`;
+                                })()}
+                              </td>
+                              <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                                {(() => {
+                                  const ga = (stat as any).ga ?? 0;
+                                  const min = (stat as any).gMin ?? 0;
+                                  return min > 0 ? ((ga * 60) / min).toFixed(2) : '-';
+                                })()}
+                              </td>
+                              <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                                {(() => {
+                                  const sv = (stat as any).sv ?? 0;
+                                  const sa = (stat as any).sa ?? 0;
+                                  return sa > 0 ? (sv / sa).toFixed(3) : '-';
+                                })()}
+                              </td>
+                              <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).so ?? '-'}</td>
+                              <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).sa ?? '-'}</td>
+                              <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).sv ?? '-'}</td>
+                              <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{((stat as any).min ?? (stat as any).gMin)?.toFixed(0) ?? '-'}</td>
+                            </>
+                          ) : (
+                            <>
+                              <td className="text-center py-3 px-2 text-sm font-medium" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>{((stat as any).g ?? 0).toFixed(0)}</td>
+                              <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{((stat as any).a ?? (stat as any).asts ?? 0).toFixed(0)}</td>
+                              <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{((stat as any).pts ?? 0).toFixed(0)}</td>
+                              <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                                {(stat as any).pm != null ? ((stat as any).pm >= 0 ? `+${(stat as any).pm}` : `${(stat as any).pm}`) : '-'}
+                              </td>
+                              <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{((stat as any).pim ?? 0).toFixed(0)}</td>
+                              <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{((stat as any).s ?? 0).toFixed(0)}</td>
+                              <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                                {(() => {
+                                  const g = (stat as any).g ?? 0;
+                                  const s = (stat as any).s ?? 0;
+                                  return s > 0 ? ((g / s) * 100).toFixed(1) : '-';
+                                })()}
+                              </td>
+                              <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{((stat as any).min ?? 0).toFixed(0)}</td>
+                              <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{((stat as any).hit ?? 0).toFixed(0)}</td>
+                              <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{((stat as any).blk ?? 0).toFixed(0)}</td>
+                            </>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })()}
         </div>
       </div>
     </div>

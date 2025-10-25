@@ -443,12 +443,13 @@ function getTeamPlayoffResult(
   let finishLabel = 'Missed Playoffs';
   let finishValue = -1;
   let seriesScore: string | null = null;
+  let numRounds = 4; // Default to 4 rounds (traditional playoffs)
 
   const seasonPlayoffs = leagueData.playoffSeries?.find(ps => ps.season === season);
 
   if (seasonPlayoffs?.series) {
     const rounds = seasonPlayoffs.series;
-    const numRounds = rounds.length;
+    numRounds = rounds.length;
 
     let lastRoundFound = -1;
     let lastMatchup: any = null;
@@ -472,12 +473,28 @@ function getTeamPlayoffResult(
       const teamWins = teamSide?.won ?? 0;
       const oppWins = oppSide?.won ?? 0;
 
-      seriesScore = `${teamWins}–${oppWins}`;
+      // For single-game series, try to show the actual game score instead of 1-0
+      if (teamWins + oppWins === 1) {
+        // Check if we have game scores in the matchup
+        // BBGM sometimes stores scores as pts arrays in home/away
+        const teamPts = isHome ? lastMatchup.home?.pts : lastMatchup.away?.pts;
+        const oppPts = isHome ? lastMatchup.away?.pts : lastMatchup.home?.pts;
+
+        if (Array.isArray(teamPts) && Array.isArray(oppPts) && teamPts.length > 0 && oppPts.length > 0) {
+          // Use the first (and only) game's score
+          seriesScore = `${teamPts[0]}–${oppPts[0]}`;
+        } else {
+          // Fallback to series record
+          seriesScore = `${teamWins}–${oppWins}`;
+        }
+      } else {
+        seriesScore = `${teamWins}–${oppWins}`;
+      }
 
       // If they won the championship round
       if (lastRoundFound === numRounds - 1 && teamWins > oppWins) {
         finishLabel = 'Won Championship';
-        finishValue = 4;
+        finishValue = numRounds;
       } else if (teamWins < oppWins) {
         // They lost in this round
         finishValue = lastRoundFound;
@@ -510,7 +527,7 @@ function getTeamPlayoffResult(
   } else {
   }
 
-  return { label: finishLabel, value: finishValue, seriesScore };
+  return { label: finishLabel, value: finishValue, seriesScore, numRounds };
 }
 
 function calculateTeamStats(
@@ -823,7 +840,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
       return null;
     }
 
-    const { label: finishLabel, value: finishValue, seriesScore } = getTeamPlayoffResult(
+    const { label: finishLabel, value: finishValue, seriesScore, numRounds } = getTeamPlayoffResult(
       leagueData,
       selectedTeam.tid,
       selectedSeason
@@ -833,14 +850,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
       finishLabel,
       finishValue,
       seriesScore,
-      options: [
-        { label: 'Missed Playoffs', value: -1 },
-        { label: 'Lost First Round', value: 0 },
-        { label: 'Lost Second Round', value: 1 },
-        { label: 'Lost Conference Finals', value: 2 },
-        { label: 'Lost Finals', value: 3 },
-        { label: 'Won Championship', value: 4 }
-      ]
+      options: generatePlayoffOptions(numRounds)
     };
 
     return result;
