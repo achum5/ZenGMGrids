@@ -387,11 +387,59 @@ function getTeamMOV(
 }
 
 // Helper function to calculate team stats
+// Helper function to generate playoff finish options based on number of rounds
+function generatePlayoffOptions(numRounds: number): Array<{ label: string; value: number }> {
+  const options: Array<{ label: string; value: number }> = [
+    { label: 'Missed Playoffs', value: -1 }
+  ];
+
+  // Generate round labels based on number of rounds
+  for (let i = 0; i < numRounds; i++) {
+    let label: string;
+
+    if (numRounds === 4) {
+      // Traditional 4-round playoffs (16 teams)
+      if (i === 0) label = 'Lost First Round';
+      else if (i === 1) label = 'Lost Second Round';
+      else if (i === 2) label = 'Lost Conference Finals';
+      else label = 'Lost Finals';
+    } else if (numRounds === 3) {
+      // 3-round playoffs (8 teams)
+      if (i === 0) label = 'Lost First Round';
+      else if (i === 1) label = 'Lost Semi-Finals';
+      else label = 'Lost Finals';
+    } else if (numRounds === 2) {
+      // 2-round playoffs (4 teams)
+      if (i === 0) label = 'Lost Semi-Finals';
+      else label = 'Lost Finals';
+    } else if (numRounds === 1) {
+      // Single championship game (2 teams)
+      label = 'Lost Finals';
+    } else {
+      // Generic for any other number of rounds
+      if (i === numRounds - 1) {
+        label = 'Lost Finals';
+      } else if (i === numRounds - 2) {
+        label = 'Lost Semi-Finals';
+      } else {
+        label = `Lost Round ${i + 1}`;
+      }
+    }
+
+    options.push({ label, value: i });
+  }
+
+  // Add championship option
+  options.push({ label: 'Won Championship', value: numRounds });
+
+  return options;
+}
+
 function getTeamPlayoffResult(
   leagueData: LeagueData,
   tid: number,
   season: number
-): { label: string; value: number; seriesScore: string | null } {
+): { label: string; value: number; seriesScore: string | null; numRounds: number } {
   let finishLabel = 'Missed Playoffs';
   let finishValue = -1;
   let seriesScore: string | null = null;
