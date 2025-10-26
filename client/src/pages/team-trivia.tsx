@@ -5,7 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
 import { PlayerFace } from '@/components/PlayerFace';
 import { useToast } from '@/lib/hooks/use-toast';
-import { Shuffle, Home as HomeIcon, ArrowLeft, ChevronDown, ArrowRight, Info, Settings, Save } from 'lucide-react';
+import { Shuffle, Home as HomeIcon, ArrowLeft, ChevronDown, ArrowRight, Info, Settings, Save, HelpCircle } from 'lucide-react';
 import { updateYearRange } from '@/lib/league-storage';
 
 
@@ -2867,8 +2867,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
               >
           <div className="max-w-6xl mx-auto px-6 py-4">
             <div className="grid grid-cols-3 items-center gap-4">
-              {/* Left: Back button */}
-              <div className="flex items-center justify-start">
+              {/* Left: Back button & Give Up button */}
+              <div className="flex items-center justify-start space-x-1 shrink-0">
                 {hasProgress ? (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -2894,6 +2894,24 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                   <Button variant="ghost" size="sm" onClick={onBackToModeSelect} data-testid="button-back" style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))' }} className="animate-on-click">
                     <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
                     <span className="sr-only">Go back</span>
+                  </Button>
+                )}
+
+                {/* Give Up button - only show before game is complete */}
+                {currentRound !== 'complete' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGiveUp}
+                    style={{
+                      backgroundColor: teamDisplayInfo.colors[0] || 'hsl(var(--primary))',
+                      color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))',
+                      borderColor: teamDisplayInfo.colors[1] || 'hsl(var(--border))'
+                    }}
+                    className="animate-on-click text-xs px-1 sm:px-3 h-auto py-1 flex flex-col sm:flex-row leading-tight sm:gap-1"
+                  >
+                    <span className="text-[10px] sm:text-xs">Give</span>
+                    <span className="text-[10px] sm:text-xs">Up</span>
                   </Button>
                 )}
               </div>
@@ -2925,38 +2943,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                 </h1>
               </div>
 
-              {/* Right: Help, Give Up & Home buttons */}
+              {/* Right: Home & Help buttons */}
               <div className="flex items-center justify-end space-x-1 shrink-0">
-                {/* Help button */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowHelpModal(true)}
-                  style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))' }}
-                  className="animate-on-click"
-                  data-testid="button-help"
-                >
-                  <Info className="h-[1.2rem] w-[1.2rem]" />
-                  <span className="sr-only">Help</span>
-                </Button>
-
-                {/* Give Up button - only show before game is complete */}
-                {currentRound !== 'complete' && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleGiveUp}
-                    style={{
-                      backgroundColor: teamDisplayInfo.colors[0] || 'hsl(var(--primary))',
-                      color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))',
-                      borderColor: teamDisplayInfo.colors[1] || 'hsl(var(--border))'
-                    }}
-                    className="animate-on-click text-xs px-1 sm:px-3 h-auto py-1 flex flex-col sm:flex-row leading-tight sm:gap-1"
-                  >
-                    <span className="text-[10px] sm:text-xs">Give</span>
-                    <span className="text-[10px] sm:text-xs">Up</span>
-                  </Button>
-                )}
                 {hasProgress ? (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -2984,6 +2972,19 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                     <span className="sr-only">Go home</span>
                   </Button>
                 )}
+                
+                {/* Help button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowHelpModal(true)}
+                  style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))' }}
+                  className="animate-on-click"
+                  data-testid="button-help"
+                >
+                  <HelpCircle className="h-[1.2rem] w-[1.2rem]" />
+                  <span className="sr-only">Help</span>
+                </Button>
               </div>
             </div>
           </div>
