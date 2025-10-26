@@ -342,33 +342,34 @@ export function HintModal({
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent 
-        className="max-w-4xl w-full h-[80vh] flex flex-col p-0 gap-0 bg-card"
+      <DialogContent
+        className="max-w-4xl w-full max-h-[90vh] p-0 gap-0"
       >
-        <DialogTitle className="sr-only">Hint Mode</DialogTitle>
-        <DialogDescription className="sr-only">Select a player that matches both constraints</DialogDescription>
-        {/* Header */}
-        <div className="flex-none p-4">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-3xl font-bold text-foreground text-center w-full">Hint Mode</h2>
-          </div>
-          
-          {/* Constraints side by side - compact but prominent */}
-          <div className="grid grid-cols-2 gap-6 md:gap-8 items-center py-4 md:py-6">
-            <div className="flex justify-center">
-              {renderConstraint(rowConstraint)}
+        <div className="flex flex-col h-full max-h-[calc(90vh-4px)]">
+          <DialogTitle className="sr-only">Hint Mode</DialogTitle>
+          <DialogDescription className="sr-only">Select a player that matches both constraints</DialogDescription>
+          {/* Header */}
+          <div className="flex-none p-4 bg-card">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-3xl font-bold text-foreground text-center w-full">Hint Mode</h2>
             </div>
-            <div className="flex justify-center">
-              {renderConstraint(colConstraint)}
-            </div>
-          </div>
-        </div>
-        
-        {/* Animated rainbow border separator */}
-        <div className="rainbow-border h-[2px] mx-4" />
 
-        {/* Main content */}
-        <div className="flex-1 p-6 overflow-y-auto bg-background">
+            {/* Constraints side by side - compact but prominent */}
+            <div className="grid grid-cols-2 gap-6 md:gap-8 items-center py-4 md:py-6">
+              <div className="flex justify-center">
+                {renderConstraint(rowConstraint)}
+              </div>
+              <div className="flex justify-center">
+                {renderConstraint(colConstraint)}
+              </div>
+            </div>
+          </div>
+
+          {/* Animated rainbow border separator */}
+          <div className="rainbow-border h-[2px] mx-4 flex-none" />
+
+          {/* Main content */}
+          <div className="flex-1 p-6 overflow-y-auto bg-background min-h-0">
           {isGenerating ? (
             <div className="grid grid-cols-3 gap-3">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -418,6 +419,7 @@ export function HintModal({
               <div className="text-muted-foreground">No hint options available</div>
             </div>
           )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

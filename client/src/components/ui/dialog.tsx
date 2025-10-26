@@ -38,13 +38,13 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[2.5rem] z-50 w-full max-w-lg translate-x-[-50%] duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] max-h-[calc(100vh-6rem)] mb-[2.5rem]",
+        "fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
         className
       )}
       {...props}
     >
-      <div className="rainbow-border rounded-lg p-[2px] max-h-full flex flex-col ml-[0px] mr-[0px] pt-[2px] pb-[2px] mt-[-20px] mb-[-20px]">
-        <div className="grid gap-4 bg-background p-6 rounded-lg relative overflow-y-auto max-h-full">
+      <div className="rainbow-border rounded-lg p-[2px] max-h-[90vh] flex flex-col">
+        <div className="grid gap-4 bg-background p-6 rounded-lg relative overflow-y-auto">
           {children}
         </div>
       </div>

@@ -43,6 +43,7 @@ export interface Player {
   born?: { year?: number; loc?: string | null };
   died?: { year?: number; loc?: string | null };
   diedYear?: number | null;
+  deathYear?: number | null; // Legacy fallback for diedYear
   draft?: { round?: number; pick?: number; year?: number; tid?: number };
   weight?: number | null;
   hgt?: number | null;

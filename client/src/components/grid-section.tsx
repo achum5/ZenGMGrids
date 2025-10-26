@@ -116,6 +116,48 @@ function calculateScore(cells: Record<string, CellState>): number {
   }, 0);
 }
 
+// Give Up Dialog Component with controlled state for outside click
+function GiveUpDialog({ onGiveUp, isGenerating, hasEmptyCells }: { onGiveUp: () => void; isGenerating: boolean; hasEmptyCells: boolean }) {
+  const [open, setOpen] = useState(false);
+
+  const handleGiveUp = () => {
+    onGiveUp();
+    setOpen(false);
+  };
+
+  return (
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <AlertDialogTrigger asChild>
+        <Button
+          variant="ghost"
+          disabled={isGenerating || !hasEmptyCells}
+          className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner text-xs sm:text-sm h-8 px-2 sm:h-10 sm:px-4"
+          data-testid="button-give-up"
+        >
+          <Flag className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+          <span className="hidden xs:inline">Give Up</span>
+          <span className="xs:hidden">Give Up</span>
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent
+        onEscapeKeyDown={() => setOpen(false)}
+        {...({ onInteractOutside: () => setOpen(false) } as any)}
+      >
+        <AlertDialogHeader>
+          <AlertDialogTitle>Reveal remaining answers?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Your score won't change.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleGiveUp}>Reveal</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 type ScorePopupInfo = {
   id: number;
   amount: number;
@@ -389,32 +431,7 @@ export function GridSection({
               <span className="xs:hidden">Retry</span>
             </Button>
           ) : (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  disabled={isGenerating || !hasEmptyCells}
-                  className="dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner text-xs sm:text-sm h-8 px-2 sm:h-10 sm:px-4"
-                  data-testid="button-give-up"
-                >
-                  <Flag className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden xs:inline">Give Up</span>
-                  <span className="xs:hidden">Give Up</span>
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Reveal remaining answers?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Your score won't change.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={onGiveUp}>Reveal</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <GiveUpDialog onGiveUp={onGiveUp} isGenerating={isGenerating} hasEmptyCells={hasEmptyCells} />
           )}
 
           {/* Generate New Grid button on the right */}

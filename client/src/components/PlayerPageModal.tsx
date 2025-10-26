@@ -503,14 +503,26 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
 
               {/* Age (as of latest season) or Death information */}
               {(() => {
-                const isDeceased = player.tid === -3 || player.diedYear || player.died;
-                const deathYear = player.diedYear || player.died?.year;
+                // Detection helper: check all possible death year fields
+                const deathYear = (player as any).diedYear ?? (player as any).deathYear ?? (player as any).died?.year;
+                const isDeceased = Number.isFinite(deathYear) && deathYear > 0;
+                const ageAtDeath = isDeceased && player.born?.year ? deathYear - player.born.year : undefined;
 
-                if (isDeceased && deathYear && player.born?.year) {
-                  const ageAtDeath = deathYear - player.born.year;
+                // Debug log to verify data
+                console.log('🔍 [PLAYER BIO]', {
+                  pid: player?.pid,
+                  name: `${player?.firstName ?? ''} ${player?.lastName ?? ''}`.trim(),
+                  bornYear: player?.born?.year,
+                  diedYear: deathYear,
+                  isDeceased,
+                  ageAtDeath,
+                  rawPlayer: player
+                });
+
+                if (isDeceased && ageAtDeath !== undefined) {
                   return (
                     <div className="whitespace-nowrap">
-                      <span className="font-semibold" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Died:</span> {deathYear} ({ageAtDeath} years old)
+                      <span className="font-semibold" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Died:</span> {deathYear} ({Math.max(0, ageAtDeath)} years old)
                     </div>
                   );
                 } else if (player.born?.year && season) {
@@ -693,7 +705,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
                 <div className="flex justify-between gap-0 sm:gap-1">
                   {/* Physical */}
                   <div className="flex-shrink-0">
-                    <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2">Physical</div>
+                    <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2 pb-0.5 border-b border-current/20">Physical</div>
                     <div className="space-y-[2px] sm:space-y-[6px]">
                       {seasonRating.hgt != null && (
                         <StatRow
@@ -735,7 +747,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
 
                   {/* Shooting */}
                   <div className="flex-shrink-0">
-                    <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2">Shooting</div>
+                    <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2 pb-0.5 border-b border-current/20">Shooting</div>
                     <div className="space-y-[2px] sm:space-y-[6px]">
                       {seasonRating.ins != null && (
                         <StatRow
@@ -777,7 +789,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
 
                   {/* Skill */}
                   <div className="flex-shrink-0">
-                    <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2">Skill</div>
+                    <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2 pb-0.5 border-b border-current/20">Skill</div>
                     <div className="space-y-[2px] sm:space-y-[6px]">
                       {seasonRating.oiq != null && (
                         <StatRow
@@ -901,7 +913,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
                 <div className="flex justify-between gap-0 sm:gap-6">
                   {/* Physical */}
                   <div className="flex-shrink-0">
-                    <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2">Physical</div>
+                    <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2 pb-0.5 border-b border-current/20">Physical</div>
                     <div className="space-y-[2px] sm:space-y-[6px]">
                       {seasonRating.hgt != null && (
                         <StatRow
@@ -936,7 +948,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
 
                   {/* Offense */}
                   <div className="flex-shrink-0">
-                    <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2">Offense</div>
+                    <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2 pb-0.5 border-b border-current/20">Offense</div>
                     <div className="space-y-[2px] sm:space-y-[6px]">
                       {seasonRating.oiq != null && (
                         <StatRow
@@ -978,7 +990,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
 
                   {/* Defense */}
                   <div className="flex-shrink-0">
-                    <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2">Defense</div>
+                    <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2 pb-0.5 border-b border-current/20">Defense</div>
                     <div className="space-y-[2px] sm:space-y-[6px]">
                       {seasonRating.diq != null && (
                         <StatRow
@@ -1027,7 +1039,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
                   <div className="flex-shrink-0">
                     {/* Physical Section */}
                     <div className="mb-3 sm:mb-4">
-                      <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2">Physical</div>
+                      <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2 pb-0.5 border-b border-current/20">Physical</div>
                       <div className="space-y-[2px] sm:space-y-[6px]">
                         {seasonRating.hgt != null && (
                           <StatRow
@@ -1048,7 +1060,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
 
                     {/* Hitting Section */}
                     <div>
-                      <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2">Hitting</div>
+                      <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2 pb-0.5 border-b border-current/20">Hitting</div>
                       <div className="space-y-[2px] sm:space-y-[6px]">
                         {seasonRating.hpw != null && (
                           <StatRow
@@ -1077,7 +1089,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
 
                   {/* Defense */}
                   <div className="flex-shrink-0">
-                    <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2">Defense</div>
+                    <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2 pb-0.5 border-b border-current/20">Defense</div>
                     <div className="space-y-[2px] sm:space-y-[6px]">
                       {seasonRating.gnd != null && (
                         <StatRow
@@ -1112,7 +1124,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
 
                   {/* Pitching */}
                   <div className="flex-shrink-0">
-                    <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2">Pitching</div>
+                    <div className="font-semibold text-[clamp(12px,3.2vw,14px)] mb-0.5 sm:mb-2 pb-0.5 border-b border-current/20">Pitching</div>
                     <div className="space-y-[2px] sm:space-y-[6px]">
                       {seasonRating.ppw != null && (
                         <StatRow
@@ -1841,30 +1853,30 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
                     <tr>
                       <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wide whitespace-nowrap sticky left-0 z-30" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>Year</th>
                       <th className="text-left py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap sticky left-[68px] z-30" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>Team</th>
-                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Age</th>
-                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>GP</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Age">Age</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Games Played">GP</th>
                       {isGoalie ? (
                         <>
-                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Rec</th>
-                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>GAA</th>
-                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>SV%</th>
-                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>SO</th>
-                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>SA</th>
-                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>SV</th>
-                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>TOI</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Record (W-L-OTL)">Rec</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Goals Against Average">GAA</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Save Percentage">SV%</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Shutouts">SO</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Shots Against">SA</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Saves">SV</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Time on Ice">TOI</th>
                         </>
                       ) : (
                         <>
-                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>G</th>
-                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>A</th>
-                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>PTS</th>
-                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>+/-</th>
-                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>PIM</th>
-                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>S</th>
-                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>S%</th>
-                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>TOI</th>
-                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>HIT</th>
-                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>BLK</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Goals">G</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Assists">A</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Points">PTS</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Plus/Minus">+/-</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Penalty Minutes">PIM</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Shots on Goal">S</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Shooting Percentage">S%</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Time on Ice">TOI</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Hits">HIT</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Blocks">BLK</th>
                         </>
                       )}
                     </tr>
@@ -1945,9 +1957,41 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
                             </>
                           ) : (
                             <>
-                              <td className="text-center py-3 px-2 text-sm font-medium" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>{((stat as any).g ?? 0).toFixed(0)}</td>
-                              <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{((stat as any).a ?? (stat as any).asts ?? 0).toFixed(0)}</td>
-                              <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{((stat as any).pts ?? 0).toFixed(0)}</td>
+                              <td className="text-center py-3 px-2 text-sm font-medium" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>
+                                {(() => {
+                                  // Compute goals from even strength, power play, and short-handed
+                                  const evG = (stat as any).evG ?? 0;
+                                  const ppG = (stat as any).ppG ?? 0;
+                                  const shG = (stat as any).shG ?? 0;
+                                  const totalGoals = (stat as any).g ?? (evG + ppG + shG);
+                                  return totalGoals.toFixed(0);
+                                })()}
+                              </td>
+                              <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                                {(() => {
+                                  // Compute assists from even strength, power play, and short-handed
+                                  const evA = (stat as any).evA ?? 0;
+                                  const ppA = (stat as any).ppA ?? 0;
+                                  const shA = (stat as any).shA ?? 0;
+                                  const totalAssists = (stat as any).a ?? (stat as any).asts ?? (evA + ppA + shA);
+                                  return totalAssists.toFixed(0);
+                                })()}
+                              </td>
+                              <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                                {(() => {
+                                  // Compute points from goals + assists
+                                  const evG = (stat as any).evG ?? 0;
+                                  const ppG = (stat as any).ppG ?? 0;
+                                  const shG = (stat as any).shG ?? 0;
+                                  const evA = (stat as any).evA ?? 0;
+                                  const ppA = (stat as any).ppA ?? 0;
+                                  const shA = (stat as any).shA ?? 0;
+                                  const goals = (stat as any).g ?? (evG + ppG + shG);
+                                  const assists = (stat as any).a ?? (stat as any).asts ?? (evA + ppA + shA);
+                                  const totalPoints = (stat as any).pts ?? (goals + assists);
+                                  return totalPoints.toFixed(0);
+                                })()}
+                              </td>
                               <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
                                 {(stat as any).pm != null ? ((stat as any).pm >= 0 ? `+${(stat as any).pm}` : `${(stat as any).pm}`) : '-'}
                               </td>
@@ -1955,9 +1999,13 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
                               <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{((stat as any).s ?? 0).toFixed(0)}</td>
                               <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
                                 {(() => {
-                                  const g = (stat as any).g ?? 0;
+                                  // Compute goals for shooting percentage
+                                  const evG = (stat as any).evG ?? 0;
+                                  const ppG = (stat as any).ppG ?? 0;
+                                  const shG = (stat as any).shG ?? 0;
+                                  const g = (stat as any).g ?? (evG + ppG + shG);
                                   const s = (stat as any).s ?? 0;
-                                  return s > 0 ? ((g / s) * 100).toFixed(1) : '-';
+                                  return s > 0 ? `${((g / s) * 100).toFixed(1)}%` : '-';
                                 })()}
                               </td>
                               <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{((stat as any).min ?? 0).toFixed(0)}</td>
@@ -1965,6 +2013,164 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
                               <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{((stat as any).blk ?? 0).toFixed(0)}</td>
                             </>
                           )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Baseball Batting Stats */}
+        {sport === 'baseball' && player.stats && player.stats.length > 0 && (() => {
+          // Determine if player is a pitcher based on latest rating
+          const latestRating = player.ratings && player.ratings.length > 0
+            ? player.ratings
+                .filter(r => (!season || r.season <= season))
+                .reduce((latest, r) => r.season > latest.season ? r : latest)
+            : null;
+          const isPitcher = latestRating?.pos === 'P';
+
+          // Only show batting stats for non-pitchers
+          if (isPitcher) return null;
+
+          const filteredStats = player.stats
+            .filter(s => !s.playoffs && s.gp && s.gp > 0 && (!season || s.season <= season))
+            .sort((a, b) => b.season - a.season);
+
+          if (filteredStats.length === 0) return null;
+
+          return (
+            <div className="mt-8">
+              <h3 className="text-xl font-bold mb-4" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Batting Stats</h3>
+              <div className="overflow-auto">
+                <table style={{ width: 'max-content', minWidth: '100%' }}>
+                  <thead
+                    className="sticky top-0 z-20"
+                    style={{
+                      backgroundColor: primaryColor,
+                      borderBottom: `2px solid ${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`,
+                    }}
+                  >
+                    <tr>
+                      <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wide whitespace-nowrap sticky left-0 z-30" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }} title="Year">Year</th>
+                      <th className="text-left py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap sticky left-[68px] z-30" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }} title="Team">Team</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Age">Age</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Games Played">G</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Games Started">GS</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Plate Appearances">PA</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="At Bats">AB</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Batting Average">BA</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="On-Base Percentage">OBP</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Slugging Percentage">SLG</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="On-Base + Slugging Percentage">OPS</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Runs">R</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Hits">H</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Doubles">2B</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Triples">3B</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Home Runs">HR</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Runs Batted In">RBI</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Stolen Bases">SB</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Caught Stealing">CS</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Walks">BB</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Strikeouts">SO</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Total Bases">TB</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Double Plays Grounded Into">GDP</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Hit By Pitch">HBP</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Sacrifice Hits/Bunts">SH</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Sacrifice Flies">SF</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Intentional Walks">IBB</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredStats.map((stat, idx) => {
+                      const team = teams.find(t => t.tid === stat.tid);
+                      const teamInfo = team ? getTeamNameForSeason(team, stat.season) : null;
+                      const age = player.born?.year ? stat.season - player.born.year : null;
+
+                      const hasYearGap = idx < filteredStats.length - 1 &&
+                                        stat.season - filteredStats[idx + 1].season > 1;
+
+                      const pa = (stat as any).pa ?? (stat as any).plateAppearances ?? 0;
+                      const bb = (stat as any).bb ?? (stat as any).walks ?? 0;
+                      const hbp = (stat as any).hbp ?? (stat as any).hitByPitch ?? 0;
+                      const sh = (stat as any).sh ?? (stat as any).sacBunts ?? 0;
+                      const sf = (stat as any).sf ?? (stat as any).sacFlies ?? 0;
+                      const ibb = (stat as any).ibb ?? (stat as any).intentionalWalks ?? 0;
+
+                      // Calculate AB using the correct formula for ZenGM: AB = PA - BB - HBP - SH - SF - IBB
+                      const ab = pa - bb - hbp - sh - sf - ibb;
+
+                      const h = (stat as any).h ?? (stat as any).hits ?? 0;
+                      const doubles = (stat as any)['2b'] ?? (stat as any).doubles ?? 0;
+                      const triples = (stat as any)['3b'] ?? (stat as any).triples ?? 0;
+                      const hr = (stat as any).hr ?? (stat as any).homeRuns ?? 0;
+
+                      // Calculate BA, OBP, SLG, OPS
+                      const ba = ab > 0 ? (h / ab).toFixed(3).replace(/^0/, '') : '.000';
+                      const obp = pa > 0 ? ((h + bb + hbp) / pa).toFixed(3).replace(/^0/, '') : '.000';
+                      const tb = h + doubles + (triples * 2) + (hr * 3);
+                      const slg = ab > 0 ? (tb / ab).toFixed(3).replace(/^0/, '') : '.000';
+                      const ops = ((parseFloat(obp.replace(/^\./, '0.')) + parseFloat(slg.replace(/^\./, '0.')))).toFixed(3).replace(/^0/, '');
+
+                      return (
+                        <tr
+                          key={`${stat.season}-${stat.tid}-${idx}`}
+                          className="border-b hover:bg-white/5 transition-colors"
+                          style={{
+                            borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                            borderBottomWidth: hasYearGap ? '3px' : '1px',
+                          }}
+                        >
+                          <td className="py-3 px-4 text-sm whitespace-nowrap sticky left-0 z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>
+                            <button
+                              onClick={() => setModalSeason(stat.season)}
+                              className="hover:underline cursor-pointer"
+                              style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
+                            >
+                              {stat.season}
+                            </button>
+                          </td>
+                          <td className="py-3 px-2 text-sm whitespace-nowrap sticky left-[68px] z-20" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)', backgroundColor: primaryColor }}>
+                            {onTeamClick ? (
+                              <button
+                                onClick={() => onTeamClick(stat.tid, stat.season)}
+                                className="hover:underline cursor-pointer"
+                                style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}
+                              >
+                                {teamInfo?.abbrev || 'UNK'}
+                              </button>
+                            ) : (
+                              <span>{teamInfo?.abbrev || 'UNK'}</span>
+                            )}
+                          </td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{age ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{stat.gp ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).gs ?? (stat as any).gamesStarted ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{pa}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{ab}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{ba}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{obp}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{slg}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{ops}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).r ?? (stat as any).runs ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{h}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{doubles}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{triples}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{hr}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).rbi ?? (stat as any).runsBattedIn ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).sb ?? (stat as any).stolenBases ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).cs ?? (stat as any).caughtStealing ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{bb}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).so ?? (stat as any).strikeouts ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{tb}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).gdp ?? (stat as any).doublePlays ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{hbp}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{sh}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{sf}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{ibb}</td>
                         </tr>
                       );
                     })}

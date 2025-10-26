@@ -21,6 +21,13 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
   Command,
   CommandEmpty,
   CommandGroup,
@@ -646,6 +653,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
   const [yearToInput, setYearToInput] = useState<string>(''); // Local state for "To" input
   const [isSavingYearRange, setIsSavingYearRange] = useState(false); // Loading state for saving year range
   const [lastSavedYearRange, setLastSavedYearRange] = useState<[number, number] | null>(null); // Track last saved year range
+  const [showHelpModal, setShowHelpModal] = useState(false); // Help modal state
 
   // Detailed game tracking for new summary modal
   const [detailedGameData, setDetailedGameData] = useState<{
@@ -1679,13 +1687,40 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
           stats = {};
         }
 
+        // For hockey, augment raw season stats with computed totals for TeamInfoModal
+        let augmentedSeasonStats = seasonStats;
+        if (leagueData.sport === 'hockey') {
+          if (position === 'G') {
+            // Goalie stats - already have the right keys
+            augmentedSeasonStats = { ...seasonStats };
+          } else {
+            // Skater stats - compute totals from even strength, power play, and short-handed
+            const evG = seasonStats.evG ?? 0;
+            const ppG = seasonStats.ppG ?? 0;
+            const shG = seasonStats.shG ?? 0;
+            const evA = seasonStats.evA ?? 0;
+            const ppA = seasonStats.ppA ?? 0;
+            const shA = seasonStats.shA ?? 0;
+            const goals = evG + ppG + shG;
+            const assists = evA + ppA + shA;
+            const points = goals + assists;
+
+            augmentedSeasonStats = {
+              ...seasonStats,
+              g: goals,
+              a: assists,
+              pts: points,
+            };
+          }
+        }
+
         rosterPlayers.push({
           player,
           revealed: false,
           hintShown: false,
           gamesPlayed: seasonStats.gp,
           stats, // Calculated per-game stats for tile display
-          rawSeasonStats: seasonStats, // Raw season totals for TeamInfoModal
+          rawSeasonStats: augmentedSeasonStats, // Raw season totals for TeamInfoModal
           advancedStats,
           position,
           jerseyNumber,
@@ -1810,6 +1845,15 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [yearRange]);
+
+  // Auto-show help modal on first visit
+  useEffect(() => {
+    const hasSeenHelp = localStorage.getItem('team-trivia-help-seen');
+    if (!hasSeenHelp) {
+      setShowHelpModal(true);
+      localStorage.setItem('team-trivia-help-seen', 'true');
+    }
+  }, []);
 
   // When season or team changes, rebuild roster
   useEffect(() => {
@@ -2881,8 +2925,21 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                 </h1>
               </div>
 
-              {/* Right: Give Up & Home buttons */}
+              {/* Right: Help, Give Up & Home buttons */}
               <div className="flex items-center justify-end space-x-1 shrink-0">
+                {/* Help button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowHelpModal(true)}
+                  style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))' }}
+                  className="animate-on-click"
+                  data-testid="button-help"
+                >
+                  <Info className="h-[1.2rem] w-[1.2rem]" />
+                  <span className="sr-only">Help</span>
+                </Button>
+
                 {/* Give Up button - only show before game is complete */}
                 {currentRound !== 'complete' && (
                   <Button
@@ -3351,8 +3408,24 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                         {(() => {
                           const nameParts = rp.player.name.trim().split(' ');
                           const firstName = nameParts[0] || '';
-                          const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
-  
+
+                          // Check if the last part is a suffix (Jr., Sr., II, III, IV, etc.)
+                          const suffixPattern = /^(jr\.?|sr\.?|ii|iii|iv|v)$/i;
+                          let lastName = '';
+
+                          if (nameParts.length > 1) {
+                            const lastPart = nameParts[nameParts.length - 1];
+                            // If last part is a suffix and there are at least 3 parts, use second-to-last
+                            if (suffixPattern.test(lastPart) && nameParts.length > 2) {
+                              lastName = nameParts[nameParts.length - 2];
+                            } else if (!suffixPattern.test(lastPart)) {
+                              lastName = lastPart;
+                            } else {
+                              // Edge case: "John Jr." - use the suffix
+                              lastName = lastPart;
+                            }
+                          }
+
                           if (nameParts.length === 1) {
                             return (
                               <>
@@ -3806,32 +3879,43 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
 
                       {/* Desktop/Tablet: Button Grid (hidden on small screens) */}
                       <div className="hidden md:grid grid-cols-2 gap-2 max-w-2xl mx-auto px-4">
-                        {playoffFinishData.options.map((option) => (
-                          <button
-                            key={option.value}
-                            onClick={() => !playoffFinishSubmitted && setPlayoffFinishGuess(option.value)}
-                            disabled={playoffFinishSubmitted}
-                            className={`
-                              p-3 rounded-lg border-2 text-center font-semibold transition-all text-sm
-                              ${playoffFinishGuess === option.value
-                                ? 'border-primary bg-primary/20 text-white'
-                                : 'border-muted bg-muted/10 text-muted-foreground hover:border-primary/50 hover:bg-primary/10'
-                              }
-                              ${playoffFinishSubmitted && playoffFinishGuess !== null && option.value === playoffFinishGuess && option.value === playoffFinishData.finishValue
-                                ? 'border-green-500 bg-green-500/20 text-green-400'
-                                : ''
-                              }
-                              ${playoffFinishSubmitted && playoffFinishGuess !== null && option.value === playoffFinishGuess && option.value !== playoffFinishData.finishValue
-                                ? 'border-red-500 bg-red-500/20 text-red-400'
-                                : ''
-                              }
-                              ${playoffFinishSubmitted ? 'cursor-not-allowed' : 'cursor-pointer'}
-                            `}
-                            data-testid={`playoff-option-${option.value}`}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
+                        {playoffFinishData.options.map((option) => {
+                          // Only show result colors if: submitted, has guess, and the guess is a valid option in current game
+                          const isValidGuess = playoffFinishGuess !== null && playoffFinishData.options.some(opt => opt.value === playoffFinishGuess);
+                          const isCorrectGuess = isValidGuess && option.value === playoffFinishGuess && option.value === playoffFinishData.finishValue;
+                          const isIncorrectGuess = isValidGuess && option.value === playoffFinishGuess && option.value !== playoffFinishData.finishValue;
+
+                          return (
+                            <button
+                              key={option.value}
+                              onClick={() => !playoffFinishSubmitted && setPlayoffFinishGuess(option.value)}
+                              disabled={playoffFinishSubmitted}
+                              className={`
+                                p-3 rounded-lg border-2 text-center font-semibold transition-all text-sm
+                                ${playoffFinishGuess === option.value && !playoffFinishSubmitted
+                                  ? 'border-primary bg-primary/20 text-white'
+                                  : !playoffFinishSubmitted ? 'border-muted bg-muted/10 text-muted-foreground hover:border-primary/50 hover:bg-primary/10' : ''
+                                }
+                                ${playoffFinishSubmitted && isCorrectGuess
+                                  ? 'border-green-500 bg-green-500/20 text-green-400'
+                                  : ''
+                                }
+                                ${playoffFinishSubmitted && isIncorrectGuess
+                                  ? 'border-red-500 bg-red-500/20 text-red-400'
+                                  : ''
+                                }
+                                ${playoffFinishSubmitted && !isCorrectGuess && !isIncorrectGuess
+                                  ? 'border-muted bg-muted/10 text-muted-foreground'
+                                  : ''
+                                }
+                                ${playoffFinishSubmitted ? 'cursor-not-allowed' : 'cursor-pointer'}
+                              `}
+                              data-testid={`playoff-option-${option.value}`}
+                            >
+                              {option.label}
+                            </button>
+                          );
+                        })}
                       </div>
 
                       {/* Submit Button */}
@@ -4005,12 +4089,39 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
               const position = rating?.pos || player.pos || 'F';
               const age = player.born?.year ? opponentTeamInfo.season - player.born.year : undefined;
 
+              // For hockey, augment raw season stats with computed totals for TeamInfoModal
+              let augmentedSeasonStats = seasonStats;
+              if (leagueData.sport === 'hockey') {
+                if (position === 'G') {
+                  // Goalie stats - already have the right keys
+                  augmentedSeasonStats = { ...seasonStats };
+                } else {
+                  // Skater stats - compute totals from even strength, power play, and short-handed
+                  const evG = seasonStats.evG ?? 0;
+                  const ppG = seasonStats.ppG ?? 0;
+                  const shG = seasonStats.shG ?? 0;
+                  const evA = seasonStats.evA ?? 0;
+                  const ppA = seasonStats.ppA ?? 0;
+                  const shA = seasonStats.shA ?? 0;
+                  const goals = evG + ppG + shG;
+                  const assists = evA + ppA + shA;
+                  const points = goals + assists;
+
+                  augmentedSeasonStats = {
+                    ...seasonStats,
+                    g: goals,
+                    a: assists,
+                    pts: points,
+                  };
+                }
+              }
+
               opponentRoster.push({
                 player,
                 position,
                 age,
                 gamesPlayed: seasonStats.gp,
-                stats: seasonStats, // Pass raw season stats for TeamInfoModal to format
+                stats: augmentedSeasonStats, // Pass augmented season stats for TeamInfoModal to format
                 yearsWithTeam: calculateYearsWithTeam(player, opponentTeamInfo.tid, opponentTeamInfo.season),
                 ovr: getPlayerRating(player, opponentTeamInfo.season, 'ovr'),
                 pot: getPlayerRating(player, opponentTeamInfo.season, 'pot'),
@@ -4061,6 +4172,53 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
           onClose={() => setSelectedPlayerForPage(null)}
           onTeamClick={handleOpenOpponentTeam}
         />
+
+        {/* Help Modal */}
+        <Dialog open={showHelpModal} onOpenChange={setShowHelpModal}>
+          <DialogContent className="max-w-2xl max-h-[85vh]">
+            <DialogHeader>
+              <DialogDescription className="sr-only">Learn how to play Team Trivia mode</DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6 text-sm">
+              <section>
+                <h3 className="text-lg font-semibold mb-2">Rounds 1–2: Roster Recall</h3>
+                <div className="space-y-1 text-muted-foreground">
+                  <p><strong>Goal:</strong> type players' names to reveal that season's roster spots.</p>
+                  <p><strong>Guesses:</strong> unlimited, no penalty for wrong answers.</p>
+                  <p className="mt-2"><strong>Round 1 — No Hints:</strong> +15 per correct.</p>
+                  <p><strong>Round 2 — Initials Shown:</strong> first + last name initials appear for unrevealed players. +10 per correct.</p>
+                </div>
+              </section>
+
+              <section>
+                <h3 className="text-lg font-semibold mb-2">Stat Leaders (varies by sport)</h3>
+                <div className="space-y-1 text-muted-foreground">
+                  <p><strong>Goal:</strong> pick the team's leader in each category. One attempt per category.</p>
+                  <p><strong>Scoring:</strong> +10 per correct. Ties count as correct.</p>
+                </div>
+              </section>
+
+              <section>
+                <h3 className="text-lg font-semibold mb-2">Wins Guess</h3>
+                <div className="space-y-1 text-muted-foreground">
+                  <p><strong>Goal:</strong> guess how many regular-season wins the team had.</p>
+                  <p><strong>Attempts:</strong> one.</p>
+                  <p><strong>Scoring:</strong> +10 if you guess the total.</p>
+                </div>
+              </section>
+
+              <section>
+                <h3 className="text-lg font-semibold mb-2">Playoff Finish</h3>
+                <div className="space-y-1 text-muted-foreground">
+                  <p><strong>Goal:</strong> choose how far the team went (e.g., Missed Playoffs, Lost R1…Finals, Champion).</p>
+                  <p><strong>Attempts:</strong> one.</p>
+                  <p><strong>Scoring:</strong> +10 if correct.</p>
+                </div>
+              </section>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }

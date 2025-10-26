@@ -285,7 +285,20 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
           seasons.forEach(s => {
             if (s.season > 0) decadesPlayed.add(Math.floor(s.season / 10) * 10);
           });
-          
+
+          // Debug: log death data from raw player
+          const deathYear = rawPlayer.diedYear ?? rawPlayer.deathYear ?? rawPlayer.died?.year;
+          if (deathYear && deathYear > 0) {
+            console.log('💀 [INGEST] Found deceased player:', {
+              pid: rawPlayer.pid,
+              name: `${rawPlayer.firstName} ${rawPlayer.lastName}`,
+              diedYear: rawPlayer.diedYear,
+              deathYear: rawPlayer.deathYear,
+              died: rawPlayer.died,
+              computed: deathYear
+            });
+          }
+
           players.push({
             pid: rawPlayer.pid,
             name: `${rawPlayer.firstName || ''} ${rawPlayer.lastName || ''}`.trim() || 'Unknown Player',
@@ -305,6 +318,9 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
             stats: rawPlayer.stats || [],
             ratings: rawPlayer.ratings || [],
             retiredYear: rawPlayer.retiredYear,
+            diedYear: (rawPlayer as any).diedYear,
+            deathYear: (rawPlayer as any).deathYear,
+            died: (rawPlayer as any).died,
             contract: rawPlayer.contract,
             college: rawPlayer.college,
             injury: raw.injury,

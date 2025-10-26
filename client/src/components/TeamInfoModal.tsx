@@ -56,119 +56,119 @@ function getContrastColor(hexColor: string): 'white' | 'black' {
 
 // Define stat columns by sport
 // Note: format function receives (value, stats, gp) where stats is the full stats object and gp is games played
-const SPORT_STAT_COLUMNS: Record<string, Array<{ key: string; label: string; format?: (val: any, stats?: any, gp?: number) => string }>> = {
+const SPORT_STAT_COLUMNS: Record<string, Array<{ key: string; label: string; tooltip?: string; format?: (val: any, stats?: any, gp?: number) => string }>> = {
   basketball: [
-    { key: 'min', label: 'MIN', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
-    { key: 'pts', label: 'PTS', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
-    { key: 'trb', label: 'TRB', format: (v, stats, gp) => {
+    { key: 'min', label: 'MIN', tooltip: 'Minutes Per Game', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
+    { key: 'pts', label: 'PTS', tooltip: 'Points Per Game', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
+    { key: 'trb', label: 'TRB', tooltip: 'Total Rebounds Per Game', format: (v, stats, gp) => {
       const trb = v ?? ((stats?.orb ?? 0) + (stats?.drb ?? 0));
       return (trb != null && gp) ? (trb / gp).toFixed(1) : '-';
     }},
-    { key: 'ast', label: 'AST', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
-    { key: 'stl', label: 'STL', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
-    { key: 'blk', label: 'BLK', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
-    { key: 'tov', label: 'TOV', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
-    { key: 'pf', label: 'PF', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
-    { key: 'fg', label: 'FG', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
-    { key: 'fga', label: 'FGA', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
-    { key: 'fgp', label: 'FG%', format: (v, stats) => {
+    { key: 'ast', label: 'AST', tooltip: 'Assists Per Game', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
+    { key: 'stl', label: 'STL', tooltip: 'Steals Per Game', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
+    { key: 'blk', label: 'BLK', tooltip: 'Blocks Per Game', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
+    { key: 'tov', label: 'TOV', tooltip: 'Turnovers Per Game', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
+    { key: 'pf', label: 'PF', tooltip: 'Personal Fouls Per Game', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
+    { key: 'fg', label: 'FG', tooltip: 'Field Goals Made Per Game', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
+    { key: 'fga', label: 'FGA', tooltip: 'Field Goals Attempted Per Game', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
+    { key: 'fgp', label: 'FG%', tooltip: 'Field Goal Percentage', format: (v, stats) => {
       const fg = stats?.fg ?? 0;
       const fga = stats?.fga ?? 0;
       return fga > 0 ? ((fg / fga) * 100).toFixed(1) : '-';
     }},
-    { key: 'tp', label: '3P', format: (v, stats, gp) => {
+    { key: 'tp', label: '3P', tooltip: 'Three Pointers Made Per Game', format: (v, stats, gp) => {
       const tp = v ?? stats?.tpm ?? 0;
       return (tp != null && gp) ? (tp / gp).toFixed(1) : '-';
     }},
-    { key: 'tpa', label: '3PA', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
-    { key: 'tpp', label: '3P%', format: (v, stats) => {
+    { key: 'tpa', label: '3PA', tooltip: 'Three Pointers Attempted Per Game', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
+    { key: 'tpp', label: '3P%', tooltip: 'Three Point Percentage', format: (v, stats) => {
       const tp = stats?.tp ?? stats?.tpm ?? 0;
       const tpa = stats?.tpa ?? 0;
       return tpa > 0 ? ((tp / tpa) * 100).toFixed(1) : '-';
     }},
-    { key: 'ft', label: 'FT', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
-    { key: 'fta', label: 'FTA', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
-    { key: 'ftp', label: 'FT%', format: (v, stats) => {
+    { key: 'ft', label: 'FT', tooltip: 'Free Throws Made Per Game', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
+    { key: 'fta', label: 'FTA', tooltip: 'Free Throws Attempted Per Game', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
+    { key: 'ftp', label: 'FT%', tooltip: 'Free Throw Percentage', format: (v, stats) => {
       const ft = stats?.ft ?? 0;
       const fta = stats?.fta ?? 0;
       return fta > 0 ? ((ft / fta) * 100).toFixed(1) : '-';
     }},
-    { key: 'orb', label: 'ORB', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
-    { key: 'drb', label: 'DRB', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
-    { key: 'per', label: 'PER', format: (v) => v?.toFixed(1) || '-' },
+    { key: 'orb', label: 'ORB', tooltip: 'Offensive Rebounds Per Game', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
+    { key: 'drb', label: 'DRB', tooltip: 'Defensive Rebounds Per Game', format: (v, stats, gp) => (v != null && gp) ? (v / gp).toFixed(1) : '-' },
+    { key: 'per', label: 'PER', tooltip: 'Player Efficiency Rating', format: (v) => v?.toFixed(1) || '-' },
   ],
   football: [], // Football uses position-specific columns defined below
   baseball: [
     // Batting stats
-    { key: 'h', label: 'H', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'ab', label: 'AB', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'r', label: 'R', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'hr', label: 'HR', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'rbi', label: 'RBI', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'sb', label: 'SB', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'ba', label: 'AVG', format: (v, stats) => {
+    { key: 'h', label: 'H', tooltip: 'Hits', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'ab', label: 'AB', tooltip: 'At Bats', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'r', label: 'R', tooltip: 'Runs', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'hr', label: 'HR', tooltip: 'Home Runs', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'rbi', label: 'RBI', tooltip: 'Runs Batted In', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'sb', label: 'SB', tooltip: 'Stolen Bases', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'ba', label: 'AVG', tooltip: 'Batting Average', format: (v, stats) => {
       const h = stats?.h ?? 0;
       const ab = stats?.ab ?? 0;
       return ab > 0 ? (h / ab).toFixed(3) : '-';
     }},
-    { key: 'obp', label: 'OBP', format: (v) => v != null ? v.toFixed(3) : '-' },
-    { key: 'slg', label: 'SLG', format: (v) => v != null ? v.toFixed(3) : '-' },
-    { key: 'ops', label: 'OPS', format: (v) => v != null ? v.toFixed(3) : '-' },
+    { key: 'obp', label: 'OBP', tooltip: 'On Base Percentage', format: (v) => v != null ? v.toFixed(3) : '-' },
+    { key: 'slg', label: 'SLG', tooltip: 'Slugging Percentage', format: (v) => v != null ? v.toFixed(3) : '-' },
+    { key: 'ops', label: 'OPS', tooltip: 'On Base Plus Slugging', format: (v) => v != null ? v.toFixed(3) : '-' },
     // Pitching stats
-    { key: 'w', label: 'W', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'l', label: 'L', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'sv', label: 'SV', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'ip', label: 'IP', format: (v) => v != null ? v.toFixed(1) : '-' },
-    { key: 'soPit', label: 'SO', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'era', label: 'ERA', format: (v) => v != null ? v.toFixed(2) : '-' },
-    { key: 'whip', label: 'WHIP', format: (v) => v != null ? v.toFixed(2) : '-' },
+    { key: 'w', label: 'W', tooltip: 'Wins', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'l', label: 'L', tooltip: 'Losses', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'sv', label: 'SV', tooltip: 'Saves', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'ip', label: 'IP', tooltip: 'Innings Pitched', format: (v) => v != null ? v.toFixed(1) : '-' },
+    { key: 'soPit', label: 'SO', tooltip: 'Strikeouts', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'era', label: 'ERA', tooltip: 'Earned Run Average', format: (v) => v != null ? v.toFixed(2) : '-' },
+    { key: 'whip', label: 'WHIP', tooltip: 'Walks plus Hits per Inning Pitched', format: (v) => v != null ? v.toFixed(2) : '-' },
   ],
   hockey: [], // Unused - hockey uses position-based groups (Skater/Goalie)
 };
 
 // Position-group stat columns for hockey
-const HOCKEY_GROUP_STAT_COLUMNS: Record<string, Array<{ key: string; label: string; format?: (val: any, stats?: any, gp?: number, gs?: number) => string }>> = {
+const HOCKEY_GROUP_STAT_COLUMNS: Record<string, Array<{ key: string; label: string; tooltip?: string; format?: (val: any, stats?: any, gp?: number, gs?: number) => string }>> = {
   Skater: [
-    { key: 'g', label: 'G', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'a', label: 'A', format: (v, stats) => {
+    { key: 'g', label: 'G', tooltip: 'Goals', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'a', label: 'A', tooltip: 'Assists', format: (v, stats) => {
       const a = v ?? stats?.asts;
       return a != null ? a.toFixed(0) : '-';
     }},
-    { key: 'pts', label: 'PTS', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'pm', label: '+/-', format: (v) => v != null ? (v >= 0 ? `+${v}` : `${v}`) : '-' },
-    { key: 'pim', label: 'PIM', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 's', label: 'S', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'sPct', label: 'S%', format: (v, stats) => {
+    { key: 'pts', label: 'PTS', tooltip: 'Points', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'pm', label: '+/-', tooltip: 'Plus/Minus', format: (v) => v != null ? (v >= 0 ? `+${v}` : `${v}`) : '-' },
+    { key: 'pim', label: 'PIM', tooltip: 'Penalty Minutes', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 's', label: 'S', tooltip: 'Shots on Goal', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'sPct', label: 'S%', tooltip: 'Shooting Percentage', format: (v, stats) => {
       const g = stats?.g ?? 0;
       const s = stats?.s ?? 0;
-      return s > 0 ? ((g / s) * 100).toFixed(1) : '-';
+      return s > 0 ? `${((g / s) * 100).toFixed(1)}%` : '-';
     }},
-    { key: 'min', label: 'TOI', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'hit', label: 'HIT', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'blk', label: 'BLK', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'min', label: 'TOI', tooltip: 'Time on Ice', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'hit', label: 'HIT', tooltip: 'Hits', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'blk', label: 'BLK', tooltip: 'Blocks', format: (v) => v != null ? v.toFixed(0) : '-' },
   ],
   Goalie: [
-    { key: 'rec', label: 'Rec', format: (v, stats) => {
+    { key: 'rec', label: 'Rec', tooltip: 'Record (W-L-OTL)', format: (v, stats) => {
       const w = stats?.gW ?? 0;
       const l = stats?.gL ?? 0;
       const otl = stats?.gOTL ?? 0;
       if (w === 0 && l === 0 && otl === 0) return '-';
       return otl > 0 ? `${w}-${l}-${otl}` : `${w}-${l}`;
     }},
-    { key: 'gaa', label: 'GAA', format: (v, stats) => {
+    { key: 'gaa', label: 'GAA', tooltip: 'Goals Against Average', format: (v, stats) => {
       const ga = stats?.ga ?? 0;
       const min = stats?.gMin ?? 0;
       return min > 0 ? ((ga * 60) / min).toFixed(2) : '-';
     }},
-    { key: 'svPct', label: 'SV%', format: (v, stats) => {
+    { key: 'svPct', label: 'SV%', tooltip: 'Save Percentage', format: (v, stats) => {
       const sv = stats?.sv ?? 0;
       const sa = stats?.sa ?? 0;
       return sa > 0 ? (sv / sa).toFixed(3) : '-';
     }},
-    { key: 'so', label: 'SO', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'sa', label: 'SA', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'sv', label: 'SV', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'min', label: 'TOI', format: (v, stats) => {
+    { key: 'so', label: 'SO', tooltip: 'Shutouts', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'sa', label: 'SA', tooltip: 'Shots Against', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'sv', label: 'SV', tooltip: 'Saves', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'min', label: 'TOI', tooltip: 'Time on Ice', format: (v, stats) => {
       const min = v ?? stats?.gMin;
       return min != null ? min.toFixed(0) : '-';
     }},
@@ -176,56 +176,56 @@ const HOCKEY_GROUP_STAT_COLUMNS: Record<string, Array<{ key: string; label: stri
 };
 
 // Position-group stat columns for football
-const FOOTBALL_GROUP_STAT_COLUMNS: Record<string, Array<{ key: string; label: string; format?: (val: any, stats?: any, gp?: number, gs?: number) => string }>> = {
+const FOOTBALL_GROUP_STAT_COLUMNS: Record<string, Array<{ key: string; label: string; tooltip?: string; format?: (val: any, stats?: any, gp?: number, gs?: number) => string }>> = {
   QB: [
-    { key: 'gs', label: 'GS', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'pssCmp', label: 'Cmp', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'pss', label: 'Att', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'pct', label: 'Pct', format: (v, stats) => {
+    { key: 'gs', label: 'GS', tooltip: 'Games Started', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'pssCmp', label: 'Cmp', tooltip: 'Pass Completions', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'pss', label: 'Att', tooltip: 'Pass Attempts', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'pct', label: 'Pct', tooltip: 'Completion Percentage', format: (v, stats) => {
       const cmp = stats?.pssCmp ?? 0;
       const att = stats?.pss ?? 0;
       return att > 0 ? ((cmp / att) * 100).toFixed(1) : '-';
     }},
-    { key: 'pssYds', label: 'Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'pssTD', label: 'TD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'pssInt', label: 'INT', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'pssYdsPerAtt', label: 'Y/A', format: (v, stats) => {
+    { key: 'pssYds', label: 'Yds', tooltip: 'Passing Yards', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'pssTD', label: 'TD', tooltip: 'Passing Touchdowns', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'pssInt', label: 'INT', tooltip: 'Interceptions Thrown', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'pssYdsPerAtt', label: 'Y/A', tooltip: 'Yards Per Attempt', format: (v, stats) => {
       const yds = stats?.pssYds ?? 0;
       const att = stats?.pss ?? 0;
       return att > 0 ? (yds / att).toFixed(1) : '-';
     }},
-    { key: 'sk', label: 'Sk', format: (v, stats) => {
+    { key: 'sk', label: 'Sk', tooltip: 'Sacks Taken', format: (v, stats) => {
       // Sacks taken by QB
       const sacks = v ?? stats?.pssSk ?? stats?.qbRSk;
       return sacks != null ? sacks.toFixed(0) : '-';
     }},
-    { key: 'av', label: 'AV', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'av', label: 'AV', tooltip: 'Approximate Value', format: (v) => v != null ? v.toFixed(0) : '-' },
   ],
   Skill: [
-    { key: 'gs', label: 'GS', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'rus', label: 'Rush', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'rusYds', label: 'Rush Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'rusTD', label: 'Rush TD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'rusYdsPerAtt', label: 'Y/A', format: (v, stats) => {
+    { key: 'gs', label: 'GS', tooltip: 'Games Started', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'rus', label: 'Rush', tooltip: 'Rush Attempts', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'rusYds', label: 'Rush Yds', tooltip: 'Rushing Yards', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'rusTD', label: 'Rush TD', tooltip: 'Rushing Touchdowns', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'rusYdsPerAtt', label: 'Y/A', tooltip: 'Rushing Yards Per Attempt', format: (v, stats) => {
       const yds = stats?.rusYds ?? 0;
       const att = stats?.rus ?? 0;
       return att > 0 ? (yds / att).toFixed(1) : '-';
     }},
-    { key: 'tgt', label: 'Tgt', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'rec', label: 'Rec', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'recYds', label: 'Rec Yds', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'recTD', label: 'Rec TD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'recYdsPerRec', label: 'Y/R', format: (v, stats) => {
+    { key: 'tgt', label: 'Tgt', tooltip: 'Targets', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'rec', label: 'Rec', tooltip: 'Receptions', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'recYds', label: 'Rec Yds', tooltip: 'Receiving Yards', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'recTD', label: 'Rec TD', tooltip: 'Receiving Touchdowns', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'recYdsPerRec', label: 'Y/R', tooltip: 'Receiving Yards Per Reception', format: (v, stats) => {
       const yds = stats?.recYds ?? 0;
       const rec = stats?.rec ?? 0;
       return rec > 0 ? (yds / rec).toFixed(1) : '-';
     }},
-    { key: 'fmb', label: 'Fmb', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'av', label: 'AV', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'fmb', label: 'Fmb', tooltip: 'Fumbles', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'av', label: 'AV', tooltip: 'Approximate Value', format: (v) => v != null ? v.toFixed(0) : '-' },
   ],
   Defense: [
-    { key: 'gs', label: 'GS', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defTck', label: 'Tackles', format: (v, stats) => {
+    { key: 'gs', label: 'GS', tooltip: 'Games Started', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defTck', label: 'Tackles', tooltip: 'Total Tackles', format: (v, stats) => {
       // Total tackles - use stored value or calculate from solo + ast
       const total = v ?? stats?.tck;
       if (total != null) return total.toFixed(0);
@@ -233,57 +233,57 @@ const FOOTBALL_GROUP_STAT_COLUMNS: Record<string, Array<{ key: string; label: st
       const ast = stats?.defTckAst ?? 0;
       return solo + ast > 0 ? (solo + ast).toFixed(0) : '-';
     }},
-    { key: 'defTckSolo', label: 'Solo', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defTckAst', label: 'Ast', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defTckLoss', label: 'TFL', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defSk', label: 'Sk', format: (v, stats) => {
+    { key: 'defTckSolo', label: 'Solo', tooltip: 'Solo Tackles', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defTckAst', label: 'Ast', tooltip: 'Assisted Tackles', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defTckLoss', label: 'TFL', tooltip: 'Tackles For Loss', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defSk', label: 'Sk', tooltip: 'Sacks', format: (v, stats) => {
       // Defensive sacks - try multiple possible keys
       const sacks = v ?? stats?.sks ?? stats?.sk;
       return sacks != null ? sacks.toFixed(1) : '-';
     }},
-    { key: 'defInt', label: 'INT', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defPssDef', label: 'PD', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defFmbFrc', label: 'FF', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defFmbRec', label: 'FR', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'defTD', label: 'TD', format: (v, stats) => {
+    { key: 'defInt', label: 'INT', tooltip: 'Interceptions', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defPssDef', label: 'PD', tooltip: 'Passes Defended', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defFmbFrc', label: 'FF', tooltip: 'Forced Fumbles', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defFmbRec', label: 'FR', tooltip: 'Fumble Recoveries', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'defTD', label: 'TD', tooltip: 'Defensive Touchdowns', format: (v, stats) => {
       const intTD = stats?.defIntTD ?? 0;
       const fmbTD = stats?.defFmbTD ?? 0;
       return (intTD + fmbTD).toFixed(0);
     }},
-    { key: 'av', label: 'AV', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'av', label: 'AV', tooltip: 'Approximate Value', format: (v) => v != null ? v.toFixed(0) : '-' },
   ],
   Kicker: [
-    { key: 'gs', label: 'GS', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'fgmfga', label: 'FGM/FGA', format: (v, stats) => {
+    { key: 'gs', label: 'GS', tooltip: 'Games Started', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'fgmfga', label: 'FGM/FGA', tooltip: 'Field Goals Made/Attempted', format: (v, stats) => {
       const fg = (stats?.fg0 ?? 0) + (stats?.fg20 ?? 0) + (stats?.fg30 ?? 0) + (stats?.fg40 ?? 0) + (stats?.fg50 ?? 0);
       const fga = (stats?.fga0 ?? 0) + (stats?.fga20 ?? 0) + (stats?.fga30 ?? 0) + (stats?.fga40 ?? 0) + (stats?.fga50 ?? 0);
       return fga > 0 ? `${fg}/${fga}` : '-';
     }},
-    { key: 'fgPct', label: 'FG%', format: (v, stats) => {
+    { key: 'fgPct', label: 'FG%', tooltip: 'Field Goal Percentage', format: (v, stats) => {
       const fg = (stats?.fg0 ?? 0) + (stats?.fg20 ?? 0) + (stats?.fg30 ?? 0) + (stats?.fg40 ?? 0) + (stats?.fg50 ?? 0);
       const fga = (stats?.fga0 ?? 0) + (stats?.fga20 ?? 0) + (stats?.fga30 ?? 0) + (stats?.fga40 ?? 0) + (stats?.fga50 ?? 0);
       return fga > 0 ? ((fg / fga) * 100).toFixed(1) : '-';
     }},
-    { key: 'fgLng', label: 'FG Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'xpmxpa', label: 'XPM/XPA', format: (v, stats) => {
+    { key: 'fgLng', label: 'FG Lng', tooltip: 'Longest Field Goal', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'xpmxpa', label: 'XPM/XPA', tooltip: 'Extra Points Made/Attempted', format: (v, stats) => {
       const xp = stats?.xp ?? 0;
       const xpa = stats?.xpa ?? 0;
       return xpa > 0 ? `${xp}/${xpa}` : '-';
     }},
-    { key: 'xpPct', label: 'XP%', format: (v, stats) => {
+    { key: 'xpPct', label: 'XP%', tooltip: 'Extra Point Percentage', format: (v, stats) => {
       const xp = stats?.xp ?? 0;
       const xpa = stats?.xpa ?? 0;
       return xpa > 0 ? ((xp / xpa) * 100).toFixed(1) : '-';
     }},
-    { key: 'pnt', label: 'Punts', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'pntYdsPerAtt', label: 'Punt Avg', format: (v, stats) => {
+    { key: 'pnt', label: 'Punts', tooltip: 'Number of Punts', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'pntYdsPerAtt', label: 'Punt Avg', tooltip: 'Punt Average', format: (v, stats) => {
       const yds = stats?.pntYds ?? 0;
       const pnt = stats?.pnt ?? 0;
       return pnt > 0 ? (yds / pnt).toFixed(1) : '-';
     }},
-    { key: 'pntLng', label: 'Punt Lng', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'pntBlk', label: 'Blk', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'av', label: 'AV', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'pntLng', label: 'Punt Lng', tooltip: 'Longest Punt', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'pntBlk', label: 'Blk', tooltip: 'Blocked Punts', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'av', label: 'AV', tooltip: 'Approximate Value', format: (v) => v != null ? v.toFixed(0) : '-' },
   ],
 };
 
@@ -666,11 +666,11 @@ export function TeamInfoModal({
                       >
                         <tr>
                           <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Player</th>
-                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Pos</th>
-                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Age</th>
-                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>G</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Position">Pos</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Age">Age</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Games Played">GP</th>
                           {groupStatColumns.map((col) => (
-                            <th key={col.key} className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>
+                            <th key={col.key} className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title={col.tooltip}>
                               {col.label}
                             </th>
                           ))}
@@ -740,11 +740,11 @@ export function TeamInfoModal({
                       >
                         <tr>
                           <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Player</th>
-                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Pos</th>
-                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Age</th>
-                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>G</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Position">Pos</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Age">Age</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Games Played">GP</th>
                           {groupStatColumns.map((col) => (
-                            <th key={col.key} className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>
+                            <th key={col.key} className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title={col.tooltip}>
                               {col.label}
                             </th>
                           ))}
@@ -788,14 +788,14 @@ export function TeamInfoModal({
               <thead className="sticky top-0 z-20" style={{ backgroundColor: primaryColor, borderBottom: `2px solid ${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}` }}>
                 <tr>
                   <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Player</th>
-                  <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Pos</th>
-                  <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Age</th>
-                  <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Ovr</th>
-                  <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Pot</th>
-                  <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>YWT</th>
-                  <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>G</th>
+                  <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Position">Pos</th>
+                  <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Age">Age</th>
+                  <th className="text-right py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help sticky right-[75px] md:right-[80px] z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }} title="Overall Rating">Ovr</th>
+                  <th className="text-right py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help sticky right-[40px] md:right-[40px] z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }} title="Potential Rating">Pot</th>
+                  <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Years With Team">YWT</th>
+                  <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Games Played">GP</th>
                   {statColumns.map((col) => (
-                    <th key={col.key} className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>{col.label}</th>
+                    <th key={col.key} className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title={col.tooltip}>{col.label}</th>
                   ))}
                 </tr>
               </thead>
@@ -812,8 +812,8 @@ export function TeamInfoModal({
                     </td>
                     <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.position || '-'}</td>
                     <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.age || '-'}</td>
-                    <td className="text-center py-3 px-1 text-sm font-medium" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>{playerInfo.ovr || '-'}</td>
-                    <td className="text-center py-3 px-1 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.pot || '-'}</td>
+                    <td className="text-right py-3 px-2 text-sm font-medium sticky right-[75px] md:right-[80px] z-10" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>{playerInfo.ovr || '-'}</td>
+                    <td className="text-right py-3 px-2 text-sm sticky right-[40px] md:right-[40px] z-10" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)', backgroundColor: primaryColor }}>{playerInfo.pot || '-'}</td>
                     <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.yearsWithTeam}</td>
                     <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.gamesPlayed}</td>
                     {statColumns.map((col, colIdx) => (

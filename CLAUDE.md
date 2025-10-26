@@ -238,6 +238,11 @@ There are no automated tests in this codebase. When making changes:
 - **TypeScript paths**: Always use `@/` imports, not relative paths
 - **Worker modifications**: Remember to update both worker and main thread message handling
 - **IndexedDB**: Only used by Mobile (IndexedDB) parsing method, not for general app data
+- **League data caching**: **CRITICAL** - Uploaded leagues are cached in IndexedDB (`ZenGMGridsLeagues` database)
+  - If you modify `league-normalizer.ts` to preserve new player fields (like `diedYear`, `deathYear`, etc.), the cached league data will NOT reflect those changes
+  - Users must clear the cache to see changes: Run `indexedDB.deleteDatabase('ZenGMGridsLeagues')` in browser console, then refresh and re-upload
+  - Always instruct users to clear cache when making changes to the normalizer
+  - The cache persists across page refreshes and even hard refreshes (Ctrl+Shift+R)
 - **Achievement conflicts**: Some achievements are mutually exclusive (e.g., draft pick categories)
 - **Grid generation failures**: If grid generation fails, it will retry automatically up to 50 times
 - **Vercel deployment**: The Express server in `server/` is NOT used in production, only for Replit dev

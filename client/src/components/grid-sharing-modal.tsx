@@ -103,7 +103,7 @@ export function GridSharingModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] sm:max-w-md md:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-md md:max-w-2xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="text-base sm:text-lg">Share Grid</DialogTitle>
         </DialogHeader>
