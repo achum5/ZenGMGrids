@@ -124,6 +124,54 @@ const SPORT_STAT_COLUMNS: Record<string, Array<{ key: string; label: string; too
     { key: 'whip', label: 'WHIP', tooltip: 'Walks plus Hits per Inning Pitched', format: (v) => v != null ? v.toFixed(2) : '-' },
   ],
   hockey: [], // Unused - hockey uses position-based groups (Skater/Goalie)
+  // baseball: [], // Unused - baseball uses position-based groups (Hitters/Pitchers)
+};
+
+// Position-group stat columns for baseball
+const BASEBALL_GROUP_STAT_COLUMNS: Record<string, Array<{ key: string; label: string; tooltip?: string; format?: (val: any, stats?: any, gp?: number, gs?: number) => string }>> = {
+  Hitters: [
+    { key: 'h', label: 'H', tooltip: 'Hits', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'ab', label: 'AB', tooltip: 'At Bats', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'r', label: 'R', tooltip: 'Runs', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'hr', label: 'HR', tooltip: 'Home Runs', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'rbi', label: 'RBI', tooltip: 'Runs Batted In', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'sb', label: 'SB', tooltip: 'Stolen Bases', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'ba', label: 'AVG', tooltip: 'Batting Average', format: (v, stats) => {
+      const h = stats?.h ?? 0;
+      const ab = stats?.ab ?? 0;
+      return ab > 0 ? (h / ab).toFixed(3) : '-';
+    }},
+    { key: 'obp', label: 'OBP', tooltip: 'On Base Percentage', format: (v) => v != null ? v.toFixed(3) : '-' },
+    { key: 'slg', label: 'SLG', tooltip: 'Slugging Percentage', format: (v) => v != null ? v.toFixed(3) : '-' },
+    { key: 'ops', label: 'OPS', tooltip: 'On Base Plus Slugging', format: (v) => v != null ? v.toFixed(3) : '-' },
+  ],
+  Pitchers: [
+    { key: 'w', label: 'W', tooltip: 'Wins', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'l', label: 'L', tooltip: 'Losses', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'sv', label: 'SV', tooltip: 'Saves', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'ip', label: 'IP', tooltip: 'Innings Pitched', format: (v, stats) => {
+      // IP is stored as outs, convert to innings
+      const outs = stats?.outs ?? 0;
+      return (outs / 3).toFixed(1);
+    }},
+    { key: 'soPit', label: 'SO', tooltip: 'Strikeouts', format: (v, stats) => {
+      const so = stats?.soa ?? stats?.soPit ?? 0;
+      return so.toFixed(0);
+    }},
+    { key: 'era', label: 'ERA', tooltip: 'Earned Run Average', format: (v, stats) => {
+      const er = stats?.er ?? 0;
+      const outs = stats?.outs ?? 0;
+      const ip = outs / 3;
+      return ip > 0 ? ((er * 9) / ip).toFixed(2) : '0.00';
+    }},
+    { key: 'whip', label: 'WHIP', tooltip: 'Walks plus Hits per Inning Pitched', format: (v, stats) => {
+      const ha = stats?.ha ?? stats?.hitsAllowed ?? 0;
+      const bba = stats?.bba ?? stats?.walksAllowed ?? 0;
+      const outs = stats?.outs ?? 0;
+      const ip = outs / 3;
+      return ip > 0 ? ((ha + bba) / ip).toFixed(2) : '0.00';
+    }},
+  ],
 };
 
 // Position-group stat columns for hockey
@@ -301,6 +349,17 @@ function getFootballGroupStatColumns(group: string) {
   return FOOTBALL_GROUP_STAT_COLUMNS[group] || [];
 }
 
+// Helper function to determine if baseball player is a pitcher
+function getBaseballPositionGroup(position: string): string {
+  if (position === 'SP' || position === 'RP' || position === 'P') return 'Pitchers';
+  return 'Hitters'; // All other positions
+}
+
+// Helper function to get stat columns for a baseball position group
+function getBaseballGroupStatColumns(group: string) {
+  return BASEBALL_GROUP_STAT_COLUMNS[group] || [];
+}
+
 // Helper function to determine if hockey player is a goalie
 function getHockeyPositionGroup(position: string): string {
   if (position === 'G') return 'Goalie';
@@ -374,6 +433,23 @@ export function TeamInfoModal({
 
     sortedPlayers.forEach(player => {
       const group = getFootballPositionGroup(player.position || '');
+      groups[group].push(player);
+    });
+
+    return groups;
+  }, [sport, sortedPlayers]);
+
+  // Group baseball players by position group (Hitters/Pitchers)
+  const baseballPlayerGroups = useMemo(() => {
+    if (sport !== 'baseball') return null;
+
+    const groups: Record<string, PlayerInfo[]> = {
+      Hitters: [],
+      Pitchers: []
+    };
+
+    sortedPlayers.forEach(player => {
+      const group = getBaseballPositionGroup(player.position || '');
       groups[group].push(player);
     });
 
@@ -768,6 +844,78 @@ export function TeamInfoModal({
                             </td>
                             <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.position || '-'}</td>
                             <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.age || '-'}</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.gamesPlayed}</td>
+                            {groupStatColumns.map((col) => (
+                              <td key={col.key} className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                                {col.format ? col.format(playerInfo.stats?.[col.key], playerInfo.stats, playerInfo.gamesPlayed) : (playerInfo.stats?.[col.key] || '-')}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })}
+            </div>
+          ) : sport === 'baseball' && baseballPlayerGroups ? (
+            /* Baseball: Multiple tables grouped by position (Hitters/Pitchers) */
+            <div className="space-y-6">
+              {(['Hitters', 'Pitchers'] as const).map(groupName => {
+                const groupPlayers = baseballPlayerGroups[groupName];
+                if (!groupPlayers || groupPlayers.length === 0) return null;
+
+                const groupStatColumns = getBaseballGroupStatColumns(groupName);
+
+                return (
+                  <div key={groupName}>
+                    {/* Group Title */}
+                    <h3
+                      className="text-lg font-bold px-4 py-2 sticky top-0 z-20"
+                      style={{
+                        backgroundColor: primaryColor,
+                        color: textColor === 'white' ? '#ffffff' : '#000000'
+                      }}
+                    >
+                      {groupName}
+                    </h3>
+                    <table style={{ width: 'max-content', minWidth: '100%' }}>
+                      <thead
+                        className="sticky top-10 z-20"
+                        style={{
+                          backgroundColor: primaryColor,
+                          borderBottom: `2px solid ${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`,
+                        }}
+                      >
+                        <tr>
+                          <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Player</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Position">Pos</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Age">Age</th>
+                          <th className="text-right py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help sticky right-[75px] md:right-[80px] z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }} title="Overall Rating">Ovr</th>
+                          <th className="text-right py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help sticky right-[40px] md:right-[40px] z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }} title="Potential Rating">Pot</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Years With Team">YWT</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Games Played">GP</th>
+                          {groupStatColumns.map((col) => (
+                            <th key={col.key} className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title={col.tooltip}>{col.label}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {groupPlayers.map((playerInfo) => (
+                          <tr key={playerInfo.player.pid} onClick={() => onPlayerClick?.(playerInfo.player)} className="border-b hover:bg-white/5 transition-colors cursor-pointer" style={{ borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}` }}>
+                            <td className="py-3 px-4 whitespace-nowrap">
+                              <div className="flex items-center gap-3">
+                                <div className="w-14 h-14 flex-shrink-0">
+                                  <PlayerFace pid={playerInfo.player.pid} name={playerInfo.player.name} imgURL={playerInfo.player.imgURL} face={playerInfo.player.face} player={playerInfo.player} teams={teams} sport={sport} season={season} hideName={true} size={56} scale={1.0} />
+                                </div>
+                                <span className="text-sm font-medium" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>{playerInfo.player.name}</span>
+                              </div>
+                            </td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.position || '-'}</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.age || '-'}</td>
+                            <td className="text-right py-3 px-2 text-sm font-medium sticky right-[75px] md:right-[80px] z-10" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>{playerInfo.ovr || '-'}</td>
+                            <td className="text-right py-3 px-2 text-sm sticky right-[40px] md:right-[40px] z-10" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)', backgroundColor: primaryColor }}>{playerInfo.pot || '-'}</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.yearsWithTeam}</td>
                             <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.gamesPlayed}</td>
                             {groupStatColumns.map((col) => (
                               <td key={col.key} className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>

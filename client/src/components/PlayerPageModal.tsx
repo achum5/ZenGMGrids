@@ -1,8 +1,9 @@
-import { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { X } from 'lucide-react';
 import { getPlayerImage } from '@/lib/faceRenderer';
 import { getPlayerJerseyInfo } from '@/lib/jersey-utils';
 import type { Player, Team } from '@/types/bbgm';
+import { Badge } from '@/components/ui/badge';
 
 interface PlayerPageModalProps {
   player: Player | null;
@@ -1163,6 +1164,144 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
           })()}
         </div>
 
+        {/* Awards & Honors */}
+        {player.awards && player.awards.length > 0 && (
+          <div className="mt-8">
+            <div className="flex flex-wrap gap-2">
+              {(() => {
+                // Group and count awards
+                const awardCounts: Record<string, number> = {};
+                player.awards.forEach(award => {
+                  awardCounts[award.type] = (awardCounts[award.type] || 0) + 1;
+                });
+
+                // Create condensed award display
+                const condensedAwards: { text: string; isHallOfFame?: boolean }[] = [];
+
+                Object.entries(awardCounts).forEach(([type, count]) => {
+                  switch (type) {
+                    case "Inducted into the Hall of Fame":
+                      condensedAwards.push({ text: "Hall of Fame", isHallOfFame: true });
+                      break;
+                    case "Most Valuable Player":
+                      condensedAwards.push({ text: count > 1 ? `${count}x MVP` : "MVP" });
+                      break;
+                    case "Finals MVP":
+                      condensedAwards.push({ text: count > 1 ? `${count}x FMVP` : "FMVP" });
+                      break;
+                    case "Won Championship":
+                      condensedAwards.push({ text: count > 1 ? `${count}x Champion` : "Champion" });
+                      break;
+                    case "Rookie of the Year":
+                      condensedAwards.push({ text: "ROY" });
+                      break;
+                    case "All-Star MVP":
+                      condensedAwards.push({ text: count > 1 ? `${count}x All-Star MVP` : "All-Star MVP" });
+                      break;
+                    case "All-Star":
+                      condensedAwards.push({ text: count > 1 ? `${count}x All-Star` : "All-Star" });
+                      break;
+                    case "First Team All-League":
+                    case "Second Team All-League":
+                    case "Third Team All-League":
+                      // Count all All-League teams together
+                      if (!condensedAwards.some(award => award.text.includes("All-League"))) {
+                        const allLeagueCount = (player.awards || []).filter(a =>
+                          a.type.includes("All-League")
+                        ).length;
+                        condensedAwards.push({ text: allLeagueCount > 1 ? `${allLeagueCount}x All-League` : "All-League" });
+                      }
+                      break;
+                    case "First Team All-Defensive":
+                    case "Second Team All-Defensive":
+                      // Count all All-Defensive teams together
+                      if (!condensedAwards.some(award => award.text.includes("All-Defensive"))) {
+                        const allDefensiveCount = (player.awards || []).filter(a =>
+                          a.type.includes("All-Defensive")
+                        ).length;
+                        condensedAwards.push({ text: allDefensiveCount > 1 ? `${allDefensiveCount}x All-Defensive` : "All-Defensive" });
+                      }
+                      break;
+                    case "League Scoring Leader":
+                      condensedAwards.push({ text: count > 1 ? `${count}x Scoring Leader` : "Scoring Leader" });
+                      break;
+                    case "League Rebounding Leader":
+                      condensedAwards.push({ text: count > 1 ? `${count}x Rebounding Leader` : "Rebounding Leader" });
+                      break;
+                    case "League Assists Leader":
+                      condensedAwards.push({ text: count > 1 ? `${count}x Assists Leader` : "Assists Leader" });
+                      break;
+                    case "League Steals Leader":
+                      condensedAwards.push({ text: count > 1 ? `${count}x Steals Leader` : "Steals Leader" });
+                      break;
+                    case "League Blocks Leader":
+                      condensedAwards.push({ text: count > 1 ? `${count}x Blocks Leader` : "Blocks Leader" });
+                      break;
+                    default:
+                      // Handle dynamic decade achievements
+                      if (type.includes('playedIn') && type.endsWith('s')) {
+                        const decadeMatch = type.match(/playedIn(\d{4})s/);
+                        if (decadeMatch) {
+                          const decade = decadeMatch[1];
+                          condensedAwards.push({ text: `Played in the ${decade}s` });
+                          break;
+                        }
+                      }
+                      if (type.includes('debutedIn') && type.endsWith('s')) {
+                        const decadeMatch = type.match(/debutedIn(\d{4})s/);
+                        if (decadeMatch) {
+                          const decade = decadeMatch[1];
+                          condensedAwards.push({ text: `Debuted in the ${decade}s` });
+                          break;
+                        }
+                      }
+
+                      // Handle other achievement types with improved naming
+                      let displayText = type;
+
+                      // Handle age-related achievements
+                      if (type.includes('playedAt') && type.includes('Plus')) {
+                        const ageMatch = type.match(/playedAt(\d+)Plus/);
+                        if (ageMatch) {
+                          const age = ageMatch[1];
+                          displayText = `Played at Age ${age}+`;
+                        }
+                      }
+
+                      // Default case for unknown types
+                      condensedAwards.push({ text: count > 1 ? `${count}x ${displayText}` : displayText });
+                      break;
+                  }
+                });
+
+                if (player.achievements?.royLaterMVP) {
+                  condensedAwards.push({ text: "ROY, then MVP" });
+                }
+
+                // Sort to put Hall of Fame first
+                const sortedAwards = condensedAwards.sort((a, b) => {
+                  if (a.isHallOfFame && !b.isHallOfFame) return -1;
+                  if (!a.isHallOfFame && b.isHallOfFame) return 1;
+                  return 0;
+                });
+
+                return sortedAwards.map((award, idx) => (
+                  <Badge
+                    key={idx}
+                    variant="secondary"
+                    className={award.isHallOfFame
+                      ? "text-xs bg-gradient-to-r from-yellow-400 to-yellow-600 text-yellow-900 border-yellow-500 font-bold dark:from-yellow-500 dark:to-yellow-700 dark:text-yellow-100"
+                      : "text-xs bg-slate-500 text-white dark:bg-slate-600 dark:text-slate-100"
+                    }
+                  >
+                    {award.text}
+                  </Badge>
+                ));
+              })()}
+            </div>
+          </div>
+        )}
+
         {/* Career Stats Table */}
         {player.stats && player.stats.length > 0 && sport === 'basketball' && (
           <div className="mt-8">
@@ -2031,7 +2170,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
                 .filter(r => (!season || r.season <= season))
                 .reduce((latest, r) => r.season > latest.season ? r : latest)
             : null;
-          const isPitcher = latestRating?.pos === 'P';
+          const isPitcher = latestRating?.pos === 'SP' || latestRating?.pos === 'RP' || latestRating?.pos === 'P';
 
           // Only show batting stats for non-pitchers
           if (isPitcher) return null;
@@ -2180,6 +2319,499 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
             </div>
           );
         })()}
+
+        {/* Baseball Pitching Stats */}
+        {sport === 'baseball' && player.stats && player.stats.length > 0 && (() => {
+          // Determine if player is a pitcher based on latest rating
+          const latestRating = player.ratings && player.ratings.length > 0
+            ? player.ratings
+                .filter(r => (!season || r.season <= season))
+                .reduce((latest, r) => r.season > latest.season ? r : latest)
+            : null;
+          const isPitcher = latestRating?.pos === 'SP' || latestRating?.pos === 'RP' || latestRating?.pos === 'P';
+
+          // Only show pitching stats for pitchers
+          if (!isPitcher) return null;
+
+          const filteredStats = player.stats
+            .filter(s => !s.playoffs && s.gp && s.gp > 0 && (!season || s.season <= season))
+            .sort((a, b) => b.season - a.season);
+
+          if (filteredStats.length === 0) return null;
+
+          return (
+            <div className="mt-8">
+              <h3 className="text-xl font-bold mb-4" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Pitching Stats</h3>
+              <div className="overflow-auto">
+                <table style={{ width: 'max-content', minWidth: '100%' }}>
+                  <thead
+                    className="sticky top-0 z-20"
+                    style={{
+                      backgroundColor: primaryColor,
+                      borderBottom: `2px solid ${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`,
+                    }}
+                  >
+                    <tr>
+                      <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wide whitespace-nowrap sticky left-0 z-30" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }} title="Year">Year</th>
+                      <th className="text-left py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap sticky left-[68px] z-30" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }} title="Team">Team</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Age">Age</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Games Played">G</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Games Started">GS</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Innings Pitched">IP</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Wins-Losses">W–L</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Saves">SV</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Earned Run Average">ERA</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Walks + Hits per Inning Pitched">WHIP</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Hits Allowed">H</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Walks">BB</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Strikeouts">SO</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Home Runs Allowed">HR</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Strikeouts per 9 Innings">K/9</th>
+                      <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Walks per 9 Innings">BB/9</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredStats.map((stat, idx) => {
+                      const team = teams.find(t => t.tid === stat.tid);
+                      const teamInfo = team ? getTeamNameForSeason(team, stat.season) : null;
+                      const age = player.born?.year ? stat.season - player.born.year : null;
+
+                      const hasYearGap = idx < filteredStats.length - 1 &&
+                                        stat.season - filteredStats[idx + 1].season > 1;
+
+                      // Get pitching stats
+                      const gp = stat.gp || 0;
+                      const gs = (stat as any).gs ?? (stat as any).gamesStarted ?? 0;
+                      const ipOuts = (stat as any).outs ?? (stat as any).outsRecorded ?? 0;
+                      const ip = (ipOuts / 3).toFixed(1);
+                      const w = (stat as any).w ?? (stat as any).wins ?? 0;
+                      const l = (stat as any).l ?? (stat as any).losses ?? 0;
+                      const sv = (stat as any).sv ?? (stat as any).saves ?? 0;
+                      const er = (stat as any).er ?? (stat as any).earnedRuns ?? 0;
+                      const ha = (stat as any).ha ?? (stat as any).hitsAllowed ?? 0;
+                      const bba = (stat as any).bba ?? (stat as any).walksAllowed ?? 0;
+                      const soa = (stat as any).soa ?? (stat as any).strikeoutsThrown ?? 0;
+                      const hra = (stat as any).hra ?? (stat as any).homeRunsAllowed ?? 0;
+
+                      // Calculate ERA, WHIP, K/9, BB/9
+                      const ipNum = ipOuts / 3;
+                      const era = ipNum > 0 ? ((er * 9) / ipNum).toFixed(2) : '0.00';
+                      const whip = ipNum > 0 ? ((ha + bba) / ipNum).toFixed(2) : '0.00';
+                      const k9 = ipNum > 0 ? ((soa * 9) / ipNum).toFixed(1) : '0.0';
+                      const bb9 = ipNum > 0 ? ((bba * 9) / ipNum).toFixed(1) : '0.0';
+
+                      return (
+                        <tr
+                          key={`${stat.season}-${stat.tid}-${idx}`}
+                          className="border-b hover:bg-white/5 transition-colors"
+                          style={{
+                            borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                            borderBottomWidth: hasYearGap ? '3px' : '1px',
+                            borderBottomStyle: hasYearGap ? 'solid' : 'solid',
+                          }}
+                        >
+                          <td className="py-3 px-4 text-sm whitespace-nowrap sticky left-0 z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>
+                            <button
+                              onClick={() => onSeasonClick?.(stat.season)}
+                              className="hover:underline cursor-pointer"
+                              style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
+                            >
+                              {stat.season}
+                            </button>
+                          </td>
+                          <td className="py-3 px-2 text-sm whitespace-nowrap sticky left-[68px] z-20" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)', backgroundColor: primaryColor }}>
+                            {onTeamClick ? (
+                              <button
+                                onClick={() => onTeamClick(stat.tid, stat.season)}
+                                className="hover:underline cursor-pointer"
+                                style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}
+                              >
+                                {teamInfo?.abbrev || 'UNK'}
+                              </button>
+                            ) : (
+                              <span>{teamInfo?.abbrev || 'UNK'}</span>
+                            )}
+                          </td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{age ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{gp}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{gs}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{ip}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{w}–{l}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{sv}</td>
+                          <td className="text-center py-3 px-2 text-sm font-medium" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>{era}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{whip}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{ha}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{bba}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{soa}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{hra}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{k9}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{bb9}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Football Ratings Table */}
+        {player.ratings && player.ratings.length > 0 && sport === 'football' && (
+          <div className="mt-8">
+            <h3 className="text-xl font-bold mb-4" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Ratings</h3>
+            <div className="overflow-auto">
+              <table style={{ width: 'max-content', minWidth: '100%' }}>
+                <thead
+                  className="sticky top-0 z-20"
+                  style={{
+                    backgroundColor: primaryColor,
+                    borderBottom: `2px solid ${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`,
+                  }}
+                >
+                  <tr>
+                    <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wide whitespace-nowrap sticky left-0 z-30" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>Year</th>
+                    <th className="text-left py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap sticky left-[68px] z-30" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>Team</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Age</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Pos</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Ovr</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Pot</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Hgt</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Str</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Spd</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>End</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Vis</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>ThP</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>ThA</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>BSc</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Elu</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Rte</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Hnd</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>RBk</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>PBk</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>PCv</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Tck</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>PRs</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>RSt</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>KPw</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>KAc</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>PPw</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>PAc</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const filteredRatings = player.ratings
+                      .filter(r => !season || r.season <= season)
+                      .sort((a, b) => b.season - a.season);
+
+                    return filteredRatings.map((rating, idx) => {
+                      const statForSeason = player.stats?.find(s => s.season === rating.season && !s.playoffs);
+                      const team = statForSeason ? teams.find(t => t.tid === statForSeason.tid) : null;
+                      const teamInfo = team ? getTeamNameForSeason(team, rating.season) : null;
+                      const age = player.born?.year ? rating.season - player.born.year : null;
+                      const hasYearGap = idx < filteredRatings.length - 1 &&
+                                        rating.season - filteredRatings[idx + 1].season > 1;
+
+                      const firstRatingYear = player.ratings && player.ratings.length > 0
+                        ? Math.min(...player.ratings.map(r => r.season))
+                        : null;
+                      const isDraftProspect = firstRatingYear !== null && rating.season === firstRatingYear;
+
+                      return (
+                        <tr
+                          key={`${rating.season}-${idx}`}
+                          className="border-b hover:bg-white/5 transition-colors"
+                          style={{
+                            borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                            borderBottomWidth: hasYearGap ? '3px' : '1px',
+                            borderBottomStyle: hasYearGap ? 'solid' : 'solid',
+                          }}
+                        >
+                          <td className="py-3 px-4 text-sm whitespace-nowrap sticky left-0 z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>
+                            <button
+                              onClick={() => setModalSeason(rating.season)}
+                              className="hover:underline cursor-pointer"
+                              style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
+                            >
+                              {rating.season}
+                            </button>
+                          </td>
+                          <td className="py-3 px-2 text-sm whitespace-nowrap sticky left-[68px] z-20" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)', backgroundColor: primaryColor }}>
+                            {onTeamClick && statForSeason ? (
+                              <button
+                                onClick={() => onTeamClick(statForSeason.tid, rating.season)}
+                                className="hover:underline cursor-pointer"
+                                style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}
+                              >
+                                {teamInfo?.abbrev || (isDraftProspect ? 'DP' : 'FA')}
+                              </button>
+                            ) : (
+                              <span>{teamInfo?.abbrev || (isDraftProspect ? 'DP' : 'FA')}</span>
+                            )}
+                          </td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{age ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.pos || '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.ovr ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.pot ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).hgt ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).stre ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).spd ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).endu ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).vision ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).thp ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).tha ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).bsc ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).elu ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).rtr ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).hnd ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).rbk ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).pbk ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).pcv ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).tck ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).prs ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).rns ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).kpw ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).kac ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).ppw ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).pac ?? '-'}</td>
+                        </tr>
+                      );
+                    });
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Hockey Ratings Table */}
+        {player.ratings && player.ratings.length > 0 && sport === 'hockey' && (
+          <div className="mt-8">
+            <h3 className="text-xl font-bold mb-4" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Ratings</h3>
+            <div className="overflow-auto">
+              <table style={{ width: 'max-content', minWidth: '100%' }}>
+                <thead
+                  className="sticky top-0 z-20"
+                  style={{
+                    backgroundColor: primaryColor,
+                    borderBottom: `2px solid ${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`,
+                  }}
+                >
+                  <tr>
+                    <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wide whitespace-nowrap sticky left-0 z-30" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>Year</th>
+                    <th className="text-left py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap sticky left-[68px] z-30" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>Team</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Age</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Pos</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Ovr</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Pot</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Hgt</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Str</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Spd</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>End</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Pss</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>WSt</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>SSt</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Stk</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>oIQ</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>dIQ</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Chk</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Blk</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Fcf</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Glk</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const filteredRatings = player.ratings
+                      .filter(r => !season || r.season <= season)
+                      .sort((a, b) => b.season - a.season);
+
+                    return filteredRatings.map((rating, idx) => {
+                      const statForSeason = player.stats?.find(s => s.season === rating.season && !s.playoffs);
+                      const team = statForSeason ? teams.find(t => t.tid === statForSeason.tid) : null;
+                      const teamInfo = team ? getTeamNameForSeason(team, rating.season) : null;
+                      const age = player.born?.year ? rating.season - player.born.year : null;
+                      const hasYearGap = idx < filteredRatings.length - 1 &&
+                                        rating.season - filteredRatings[idx + 1].season > 1;
+
+                      const firstRatingYear = player.ratings && player.ratings.length > 0
+                        ? Math.min(...player.ratings.map(r => r.season))
+                        : null;
+                      const isDraftProspect = firstRatingYear !== null && rating.season === firstRatingYear;
+
+                      return (
+                        <tr
+                          key={`${rating.season}-${idx}`}
+                          className="border-b hover:bg-white/5 transition-colors"
+                          style={{
+                            borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                            borderBottomWidth: hasYearGap ? '3px' : '1px',
+                            borderBottomStyle: hasYearGap ? 'solid' : 'solid',
+                          }}
+                        >
+                          <td className="py-3 px-4 text-sm whitespace-nowrap sticky left-0 z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>
+                            <button
+                              onClick={() => setModalSeason(rating.season)}
+                              className="hover:underline cursor-pointer"
+                              style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
+                            >
+                              {rating.season}
+                            </button>
+                          </td>
+                          <td className="py-3 px-2 text-sm whitespace-nowrap sticky left-[68px] z-20" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)', backgroundColor: primaryColor }}>
+                            {onTeamClick && statForSeason ? (
+                              <button
+                                onClick={() => onTeamClick(statForSeason.tid, rating.season)}
+                                className="hover:underline cursor-pointer"
+                                style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}
+                              >
+                                {teamInfo?.abbrev || (isDraftProspect ? 'DP' : 'FA')}
+                              </button>
+                            ) : (
+                              <span>{teamInfo?.abbrev || (isDraftProspect ? 'DP' : 'FA')}</span>
+                            )}
+                          </td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{age ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.pos || '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.ovr ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.pot ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).hgt ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).stre ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).spd ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).endu ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).pss ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).wst ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).sst ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).stk ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).oiq ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).diq ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).chk ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).blk ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).fcf ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).glk ?? '-'}</td>
+                        </tr>
+                      );
+                    });
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Baseball Ratings Table */}
+        {player.ratings && player.ratings.length > 0 && sport === 'baseball' && (
+          <div className="mt-8">
+            <h3 className="text-xl font-bold mb-4" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Ratings</h3>
+            <div className="overflow-auto">
+              <table style={{ width: 'max-content', minWidth: '100%' }}>
+                <thead
+                  className="sticky top-0 z-20"
+                  style={{
+                    backgroundColor: primaryColor,
+                    borderBottom: `2px solid ${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`,
+                  }}
+                >
+                  <tr>
+                    <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wide whitespace-nowrap sticky left-0 z-30" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>Year</th>
+                    <th className="text-left py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap sticky left-[68px] z-30" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>Team</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Age</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Pos</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Ovr</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Pot</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Hgt</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Spd</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>HPw</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Con</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Eye</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Gnd</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Fly</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Thr</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Cat</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>PPw</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Ctl</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Mov</th>
+                    <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>End</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const filteredRatings = player.ratings
+                      .filter(r => !season || r.season <= season)
+                      .sort((a, b) => b.season - a.season);
+
+                    return filteredRatings.map((rating, idx) => {
+                      const statForSeason = player.stats?.find(s => s.season === rating.season && !s.playoffs);
+                      const team = statForSeason ? teams.find(t => t.tid === statForSeason.tid) : null;
+                      const teamInfo = team ? getTeamNameForSeason(team, rating.season) : null;
+                      const age = player.born?.year ? rating.season - player.born.year : null;
+                      const hasYearGap = idx < filteredRatings.length - 1 &&
+                                        rating.season - filteredRatings[idx + 1].season > 1;
+
+                      const firstRatingYear = player.ratings && player.ratings.length > 0
+                        ? Math.min(...player.ratings.map(r => r.season))
+                        : null;
+                      const isDraftProspect = firstRatingYear !== null && rating.season === firstRatingYear;
+
+                      return (
+                        <tr
+                          key={`${rating.season}-${idx}`}
+                          className="border-b hover:bg-white/5 transition-colors"
+                          style={{
+                            borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                            borderBottomWidth: hasYearGap ? '3px' : '1px',
+                            borderBottomStyle: hasYearGap ? 'solid' : 'solid',
+                          }}
+                        >
+                          <td className="py-3 px-4 text-sm whitespace-nowrap sticky left-0 z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>
+                            <button
+                              onClick={() => setModalSeason(rating.season)}
+                              className="hover:underline cursor-pointer"
+                              style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
+                            >
+                              {rating.season}
+                            </button>
+                          </td>
+                          <td className="py-3 px-2 text-sm whitespace-nowrap sticky left-[68px] z-20" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)', backgroundColor: primaryColor }}>
+                            {onTeamClick && statForSeason ? (
+                              <button
+                                onClick={() => onTeamClick(statForSeason.tid, rating.season)}
+                                className="hover:underline cursor-pointer"
+                                style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}
+                              >
+                                {teamInfo?.abbrev || (isDraftProspect ? 'DP' : 'FA')}
+                              </button>
+                            ) : (
+                              <span>{teamInfo?.abbrev || (isDraftProspect ? 'DP' : 'FA')}</span>
+                            )}
+                          </td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{age ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.pos || '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.ovr ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{rating.pot ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).hgt ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).spd ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).hpw ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).con ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).eye ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).gnd ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).fly ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).thr ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).cat ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).ppw ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).ctl ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).mov ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).endu ?? '-'}</td>
+                        </tr>
+                      );
+                    });
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
         </div>
       </div>
     </div>
