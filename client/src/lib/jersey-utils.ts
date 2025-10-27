@@ -24,17 +24,26 @@ export function getPlayerJerseyInfo(player: Player, teams: Team[], sport?: strin
   };
 
   // Check if this is a draft prospect year (first year in ratings)
-  // If so, use the jersey they wear in their current/retired state instead
-  const isDraftProspect = season !== undefined && season !== null && player.ratings && player.ratings.length > 0
-    ? season === Math.min(...player.ratings.map(r => r.season))
-    : false;
+  const firstRatingYear = player.ratings && player.ratings.length > 0
+    ? Math.min(...player.ratings.map(r => r.season))
+    : null;
+  const isDraftProspect = firstRatingYear !== null && season !== undefined && season !== null && season === firstRatingYear;
+
+  // Draft prospects should use hardcoded grey/black/white colors
+  if (isDraftProspect) {
+    return {
+      colors: ['#000000', '#6b7280', '#ffffff'], // black, grey, white
+      jersey: defaultJerseyStyle
+    };
+  }
 
   let targetTeam: Team | undefined;
   let targetSeasonInfo: any | undefined;
 
   // If a specific season is provided, try to find the team and its season-specific info
   if (season !== undefined && season !== null) {
-    const teamInSeason = player.seasons?.find(s => !s.playoffs && s.season === season && s.gp > 0);
+    // Remove the s.gp > 0 requirement - player might be on team but not played yet
+    const teamInSeason = player.seasons?.find(s => !s.playoffs && s.season === season);
     if (teamInSeason) {
       targetTeam = teamMap.get(teamInSeason.tid);
       targetSeasonInfo = targetTeam?.seasons?.find(s => s.season === season);
@@ -44,16 +53,22 @@ export function getPlayerJerseyInfo(player: Player, teams: Team[], sport?: strin
   // Fallback to current team if no season or season-specific team found
   if (!targetTeam && player.tid >= 0) {
     targetTeam = teamMap.get(player.tid);
-    // If current team, try to find its latest season info if no specific season was requested
-    if (targetTeam && (season === undefined || season === null)) {
-      targetSeasonInfo = targetTeam.seasons?.[targetTeam.seasons.length - 1]; // Latest season
+    // Try to find season info for the requested season or use latest
+    if (targetTeam) {
+      if (season !== undefined && season !== null) {
+        targetSeasonInfo = targetTeam.seasons?.find(s => s.season === season);
+      }
+      // If no season-specific info found, use latest season as fallback
+      if (!targetSeasonInfo && targetTeam.seasons && targetTeam.seasons.length > 0) {
+        targetSeasonInfo = targetTeam.seasons[targetTeam.seasons.length - 1];
+      }
     }
   }
 
-  // If a target team and season info is found, use its colors and jersey
-  if (targetTeam && targetSeasonInfo) {
-    const colors = targetSeasonInfo.colors || targetTeam.colors;
-    const jersey = targetSeasonInfo.jersey || targetTeam.jersey || defaultJerseyStyle;
+  // If a target team is found, use its colors (targetSeasonInfo is now optional)
+  if (targetTeam) {
+    const colors = targetSeasonInfo?.colors || targetTeam.colors;
+    const jersey = targetSeasonInfo?.jersey || targetTeam.jersey || defaultJerseyStyle;
     if (colors && colors.length > 0) {
       return {
         colors: colors,
@@ -108,19 +123,6 @@ export function getPlayerJerseyInfo(player: Player, teams: Team[], sport?: strin
               jersey: sport === 'baseball' ? 'baseball2' : jersey
             };
           }
-        }
-      }
-    } else if (isDraftProspect && player.tid >= 0) {
-      // For draft prospects who are still active, use their current team
-      const currentTeam = teamMap.get(player.tid);
-      if (currentTeam) {
-        const colors = currentTeam.colors;
-        const jersey = currentTeam.jersey || defaultJerseyStyle;
-        if (colors && colors.length > 0) {
-          return {
-            colors: colors,
-            jersey: sport === 'baseball' ? 'baseball2' : jersey
-          };
         }
       }
     }

@@ -36,13 +36,13 @@ export async function getPlayerImage(p: PlayerLite): Promise<{type: "url" | "svg
     return { type: "url", data: u };
   }
 
-  // Clear cache if we have new jersey info to apply different colors
-  if (p.jerseyInfo && svgCache.has(p.pid)) {
+  // Always clear cache if jersey info is provided to force re-render with new colors
+  if (p.jerseyInfo) {
     svgCache.delete(p.pid);
   }
 
-  // Else try faces.js
-  if (svgCache.has(p.pid)) return { type: "svg", data: svgCache.get(p.pid)! };
+  // Check cache only if no jersey info was provided
+  if (!p.jerseyInfo && svgCache.has(p.pid)) return { type: "svg", data: svgCache.get(p.pid)! };
   if (!p.face) {
     return { type: "none", data: "" };
   }
@@ -81,27 +81,34 @@ export async function getPlayerImage(p: PlayerLite): Promise<{type: "url" | "svg
       let faceToRender = p.face;
 
       if (p.jerseyInfo && p.jerseyInfo.colors && p.jerseyInfo.colors.length > 0) {
-        // Remove console logs for cleaner output
-
         // Create a copy of the face data and apply jersey colors using teamColors array
         // Use team's jersey style if available, otherwise keep player's original
+
+        // Prepare the team colors array
+        const teamColorsToApply = p.jerseyInfo.colors.length >= 3
+          ? p.jerseyInfo.colors
+          : [
+              p.jerseyInfo.colors[0] || "#89bfd3", // Primary team color
+              p.jerseyInfo.colors[1] || "#7a1319", // Secondary team color
+              p.jerseyInfo.colors[2] || p.jerseyInfo.colors[0] || "#07364f" // Third color or fallback
+            ];
+
+        // Use the player's original jersey style, but if they have "none", use the sport default
+        // This preserves the jersey variation while still showing a jersey for draft prospects
+        let jerseyToUse = p.face.jersey;
+        if (!jerseyToUse || jerseyToUse.id === "none") {
+          jerseyToUse = p.jerseyInfo.jersey
+            ? { id: p.jerseyInfo.jersey }
+            : { id: "modern" };
+        }
+
+        // Simple approach: spread the original face and only override what we need
         faceToRender = {
           ...p.face,
-          teamColors: p.jerseyInfo.colors.length >= 3
-            ? p.jerseyInfo.colors
-            : [
-                p.jerseyInfo.colors[0] || "#89bfd3", // Primary team color
-                p.jerseyInfo.colors[1] || "#7a1319", // Secondary team color
-                p.jerseyInfo.colors[2] || p.jerseyInfo.colors[0] || "#07364f" // Third color or fallback
-              ],
-          // Always use team's jersey style if provided, fallback to player's original
-          jersey: p.jerseyInfo.jersey
-            ? { id: p.jerseyInfo.jersey }
-            : p.face.jersey,
-          // Preserve accessories (important for baseball caps)
-          accessories: p.face.accessories || { id: "none" }
+          teamColors: teamColorsToApply,
+          jersey: jerseyToUse
+          // Keep the original body object as-is - don't strip any properties
         };
-
       }
 
       // Render the face with jersey colors

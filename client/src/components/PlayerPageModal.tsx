@@ -4,6 +4,7 @@ import { getPlayerImage } from '@/lib/faceRenderer';
 import { getPlayerJerseyInfo } from '@/lib/jersey-utils';
 import type { Player, Team } from '@/types/bbgm';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 
 interface PlayerPageModalProps {
   player: Player | null;
@@ -1167,75 +1168,105 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
         {/* Awards & Honors */}
         {player.awards && player.awards.length > 0 && (
           <div className="mt-8">
-            <div className="flex flex-wrap gap-2">
-              {(() => {
-                // Group and count awards
-                const awardCounts: Record<string, number> = {};
-                player.awards.forEach(award => {
-                  awardCounts[award.type] = (awardCounts[award.type] || 0) + 1;
-                });
+            <TooltipProvider>
+              <div className="flex flex-wrap gap-2">
+                {(() => {
+                  // Filter awards to only show those up to the current season
+                  const filteredAwards = player.awards.filter(award => {
+                    // If no season is set, show all awards (e.g., viewing current/latest season)
+                    if (!season) return true;
+                    // If award has no season data, don't show it when viewing historical seasons
+                    // (these are likely achievements that shouldn't be retroactively shown)
+                    if (!award.season) return false;
+                    // Only show awards from current season or earlier
+                    return award.season <= season;
+                  });
 
-                // Create condensed award display
-                const condensedAwards: { text: string; isHallOfFame?: boolean }[] = [];
+                  // Group awards by type and track years
+                  const awardData: Record<string, { count: number; years: number[] }> = {};
+                  filteredAwards.forEach(award => {
+                    if (!awardData[award.type]) {
+                      awardData[award.type] = { count: 0, years: [] };
+                    }
+                    awardData[award.type].count++;
+                    if (award.season) {
+                      awardData[award.type].years.push(award.season);
+                    }
+                  });
 
-                Object.entries(awardCounts).forEach(([type, count]) => {
+                  // Sort years for each award
+                  Object.values(awardData).forEach(data => {
+                    data.years.sort((a, b) => a - b);
+                  });
+
+                  // Create condensed award display
+                  const condensedAwards: { text: string; isHallOfFame?: boolean; years: number[] }[] = [];
+
+                Object.entries(awardData).forEach(([type, data]) => {
+                  const { count, years } = data;
                   switch (type) {
                     case "Inducted into the Hall of Fame":
-                      condensedAwards.push({ text: "Hall of Fame", isHallOfFame: true });
+                      condensedAwards.push({ text: "Hall of Fame", isHallOfFame: true, years });
                       break;
                     case "Most Valuable Player":
-                      condensedAwards.push({ text: count > 1 ? `${count}x MVP` : "MVP" });
+                      condensedAwards.push({ text: count > 1 ? `${count}x MVP` : "MVP", years });
                       break;
                     case "Finals MVP":
-                      condensedAwards.push({ text: count > 1 ? `${count}x FMVP` : "FMVP" });
+                      condensedAwards.push({ text: count > 1 ? `${count}x FMVP` : "FMVP", years });
                       break;
                     case "Won Championship":
-                      condensedAwards.push({ text: count > 1 ? `${count}x Champion` : "Champion" });
+                      condensedAwards.push({ text: count > 1 ? `${count}x Champion` : "Champion", years });
                       break;
                     case "Rookie of the Year":
-                      condensedAwards.push({ text: "ROY" });
+                      condensedAwards.push({ text: "ROY", years });
                       break;
                     case "All-Star MVP":
-                      condensedAwards.push({ text: count > 1 ? `${count}x All-Star MVP` : "All-Star MVP" });
+                      condensedAwards.push({ text: count > 1 ? `${count}x All-Star MVP` : "All-Star MVP", years });
                       break;
                     case "All-Star":
-                      condensedAwards.push({ text: count > 1 ? `${count}x All-Star` : "All-Star" });
+                      condensedAwards.push({ text: count > 1 ? `${count}x All-Star` : "All-Star", years });
                       break;
                     case "First Team All-League":
                     case "Second Team All-League":
                     case "Third Team All-League":
                       // Count all All-League teams together
                       if (!condensedAwards.some(award => award.text.includes("All-League"))) {
-                        const allLeagueCount = (player.awards || []).filter(a =>
-                          a.type.includes("All-League")
-                        ).length;
-                        condensedAwards.push({ text: allLeagueCount > 1 ? `${allLeagueCount}x All-League` : "All-League" });
+                        const allLeagueYears = filteredAwards
+                          .filter(a => a.type.includes("All-League"))
+                          .map(a => a.season)
+                          .filter((s): s is number => s !== undefined)
+                          .sort((a, b) => a - b);
+                        const allLeagueCount = allLeagueYears.length;
+                        condensedAwards.push({ text: allLeagueCount > 1 ? `${allLeagueCount}x All-League` : "All-League", years: allLeagueYears });
                       }
                       break;
                     case "First Team All-Defensive":
                     case "Second Team All-Defensive":
                       // Count all All-Defensive teams together
                       if (!condensedAwards.some(award => award.text.includes("All-Defensive"))) {
-                        const allDefensiveCount = (player.awards || []).filter(a =>
-                          a.type.includes("All-Defensive")
-                        ).length;
-                        condensedAwards.push({ text: allDefensiveCount > 1 ? `${allDefensiveCount}x All-Defensive` : "All-Defensive" });
+                        const allDefensiveYears = filteredAwards
+                          .filter(a => a.type.includes("All-Defensive"))
+                          .map(a => a.season)
+                          .filter((s): s is number => s !== undefined)
+                          .sort((a, b) => a - b);
+                        const allDefensiveCount = allDefensiveYears.length;
+                        condensedAwards.push({ text: allDefensiveCount > 1 ? `${allDefensiveCount}x All-Defensive` : "All-Defensive", years: allDefensiveYears });
                       }
                       break;
                     case "League Scoring Leader":
-                      condensedAwards.push({ text: count > 1 ? `${count}x Scoring Leader` : "Scoring Leader" });
+                      condensedAwards.push({ text: count > 1 ? `${count}x Scoring Leader` : "Scoring Leader", years });
                       break;
                     case "League Rebounding Leader":
-                      condensedAwards.push({ text: count > 1 ? `${count}x Rebounding Leader` : "Rebounding Leader" });
+                      condensedAwards.push({ text: count > 1 ? `${count}x Rebounding Leader` : "Rebounding Leader", years });
                       break;
                     case "League Assists Leader":
-                      condensedAwards.push({ text: count > 1 ? `${count}x Assists Leader` : "Assists Leader" });
+                      condensedAwards.push({ text: count > 1 ? `${count}x Assists Leader` : "Assists Leader", years });
                       break;
                     case "League Steals Leader":
-                      condensedAwards.push({ text: count > 1 ? `${count}x Steals Leader` : "Steals Leader" });
+                      condensedAwards.push({ text: count > 1 ? `${count}x Steals Leader` : "Steals Leader", years });
                       break;
                     case "League Blocks Leader":
-                      condensedAwards.push({ text: count > 1 ? `${count}x Blocks Leader` : "Blocks Leader" });
+                      condensedAwards.push({ text: count > 1 ? `${count}x Blocks Leader` : "Blocks Leader", years });
                       break;
                     default:
                       // Handle dynamic decade achievements
@@ -1243,7 +1274,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
                         const decadeMatch = type.match(/playedIn(\d{4})s/);
                         if (decadeMatch) {
                           const decade = decadeMatch[1];
-                          condensedAwards.push({ text: `Played in the ${decade}s` });
+                          condensedAwards.push({ text: `Played in the ${decade}s`, years });
                           break;
                         }
                       }
@@ -1251,7 +1282,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
                         const decadeMatch = type.match(/debutedIn(\d{4})s/);
                         if (decadeMatch) {
                           const decade = decadeMatch[1];
-                          condensedAwards.push({ text: `Debuted in the ${decade}s` });
+                          condensedAwards.push({ text: `Debuted in the ${decade}s`, years });
                           break;
                         }
                       }
@@ -1269,13 +1300,18 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
                       }
 
                       // Default case for unknown types
-                      condensedAwards.push({ text: count > 1 ? `${count}x ${displayText}` : displayText });
+                      condensedAwards.push({ text: count > 1 ? `${count}x ${displayText}` : displayText, years });
                       break;
                   }
                 });
 
+                // Only show "ROY, then MVP" if both awards have been earned by the current season
                 if (player.achievements?.royLaterMVP) {
-                  condensedAwards.push({ text: "ROY, then MVP" });
+                  const hasRoyBySeason = filteredAwards.some(a => a.type === "Rookie of the Year");
+                  const hasMvpBySeason = filteredAwards.some(a => a.type === "Most Valuable Player");
+                  if (hasRoyBySeason && hasMvpBySeason) {
+                    condensedAwards.push({ text: "ROY, then MVP", years: [] });
+                  }
                 }
 
                 // Sort to put Hall of Fame first
@@ -1285,20 +1321,35 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
                   return 0;
                 });
 
-                return sortedAwards.map((award, idx) => (
-                  <Badge
-                    key={idx}
-                    variant="secondary"
-                    className={award.isHallOfFame
-                      ? "text-xs bg-gradient-to-r from-yellow-400 to-yellow-600 text-yellow-900 border-yellow-500 font-bold dark:from-yellow-500 dark:to-yellow-700 dark:text-yellow-100"
-                      : "text-xs bg-slate-500 text-white dark:bg-slate-600 dark:text-slate-100"
-                    }
-                  >
-                    {award.text}
-                  </Badge>
-                ));
+                return sortedAwards.map((award, idx) => {
+                  const yearsText = award.years.length > 0
+                    ? award.years.join(', ')
+                    : 'Achievement unlocked';
+
+                  return (
+                    <Tooltip key={idx} delayDuration={300}>
+                      <TooltipTrigger asChild>
+                        <span className="inline-block cursor-help">
+                          <Badge
+                            variant="secondary"
+                            className={award.isHallOfFame
+                              ? "text-xs bg-gradient-to-r from-yellow-400 to-yellow-600 text-yellow-900 border-yellow-500 font-bold dark:from-yellow-500 dark:to-yellow-700 dark:text-yellow-100"
+                              : "text-xs bg-slate-500 text-white dark:bg-slate-600 dark:text-slate-100"
+                            }
+                          >
+                            {award.text}
+                          </Badge>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="z-[9999]">
+                        <p className="text-xs">{yearsText}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                });
               })()}
-            </div>
+              </div>
+            </TooltipProvider>
           </div>
         )}
 
