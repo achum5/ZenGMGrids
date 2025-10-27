@@ -29,10 +29,9 @@ export function PlayerFace({ pid, name, imgURL, face, size = 110, hideName = fal
       let jerseyInfo = undefined;
       if (player && teams.length > 0) {
         jerseyInfo = getPlayerJerseyInfo(player, teams, sport, season); // Pass season
-        console.log(`[PLAYERFACE TILE] ${name}, Season: ${season}, Jersey:`, jerseyInfo?.jersey);
       }
 
-      const res = await getPlayerImage({ pid, name, imgURL, face, jerseyInfo }, 'TILE');
+      const res = await getPlayerImage({ pid, name, imgURL, face, jerseyInfo });
       if (ok) { setKind(res.type); setData(res.data); }
     })();
     return () => { ok = false; };

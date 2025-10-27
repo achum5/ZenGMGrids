@@ -3377,19 +3377,12 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
   
                   {/* Headshot - Takes up most of the tile */}
                   <div className="w-full aspect-square">
-                    <PlayerFace
-                      pid={rp.player.pid}
-                      name={rp.player.name}
-                      imgURL={rp.player.imgURL ?? undefined}
-                      face={rp.player.face}
-                      size={104}
-                      hideName={true}
-                      player={rp.player}
-                      teams={leagueData.teams}
-                      sport={leagueData.sport}
-                      season={selectedSeason || undefined}
-                      scale={1.1}
-                    />
+                    {/* TEMPORARILY REMOVED - PlayerFace placeholder */}
+                    <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 rounded-xl flex items-center justify-center">
+                      <div className="text-4xl font-bold text-white/30">
+                        {rp.player.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                      </div>
+                    </div>
                   </div>
   
                   {/* Name - Compact */}
