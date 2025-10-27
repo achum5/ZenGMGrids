@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import { ChampionBanner } from './ChampionBanner';
+import { getAssetBaseUrl } from './TeamLogo';
 
 interface Championship {
   season: number;
@@ -9,22 +10,59 @@ interface Championship {
   abbrev: string;
 }
 
+// Check if a logo path is a default relative path that needs translation
+function isDefaultRelativePath(logoURL: string | null | undefined): boolean {
+  if (!logoURL) return false;
+  return logoURL.startsWith('/img/logos-');
+}
+
+// Build logo URL for a championship banner
+function buildChampionshipLogoURL(championship: Championship, sport: string | undefined): string | undefined {
+  const assetBase = getAssetBaseUrl(sport || 'basketball');
+
+  // If an explicit imgURL is provided
+  if (championship.logo) {
+    // If it's a default relative path, translate it to the correct absolute URL
+    if (isDefaultRelativePath(championship.logo)) {
+      const cleanPath = championship.logo.startsWith('/') ? championship.logo.substring(1) : championship.logo;
+      return `${assetBase}/${cleanPath}`;
+    }
+    // Otherwise, it's a full external URL for a custom logo
+    return championship.logo;
+  }
+
+  // Fall back to building URL from the team abbreviation
+  if (championship.abbrev) {
+    const abbrev = championship.abbrev.toUpperCase();
+    return `${assetBase}/img/logos-primary/${abbrev}.svg`;
+  }
+
+  return undefined;
+}
+
 interface ChampionshipsModalProps {
   open: boolean;
   onClose: () => void;
   championships: Championship[];
   teamName: string;
+  sport?: string;
 }
 
 export function ChampionshipsModal({
   open,
   onClose,
   championships,
-  teamName
+  teamName,
+  sport
 }: ChampionshipsModalProps) {
   if (!open) return null;
 
   const championshipCount = championships.length;
+
+  // Get logo for header (use first championship's logo)
+  const headerLogoURL = championships.length > 0
+    ? buildChampionshipLogoURL(championships[0], sport)
+    : undefined;
 
   return (
     <div
@@ -66,9 +104,18 @@ export function ChampionshipsModal({
 
         {/* Header */}
         <div className="relative z-10 p-6 border-b border-white/20">
-          <h2 className="text-3xl font-black tracking-tight text-white text-center">
-            {teamName} {championshipCount}x {championshipCount === 1 ? 'Champion' : 'Champions'}
-          </h2>
+          <div className="flex items-center justify-center gap-3">
+            <h2 className="text-3xl font-black tracking-tight text-white">
+              {championshipCount}x Champions
+            </h2>
+            {headerLogoURL && (
+              <img
+                src={headerLogoURL}
+                alt={teamName}
+                className="h-12 w-12 object-contain"
+              />
+            )}
+          </div>
         </div>
 
         {/* Championships Grid - Scrollable */}
@@ -85,7 +132,7 @@ export function ChampionshipsModal({
                     season={championship.season}
                     teamAbbrev={championship.abbrev}
                     teamColors={championship.colors}
-                    teamLogo={championship.logo}
+                    teamLogo={buildChampionshipLogoURL(championship, sport)}
                     className="w-28"
                     inModal={true}
                   />

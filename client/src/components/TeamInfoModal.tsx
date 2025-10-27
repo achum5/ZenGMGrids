@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { X, Info } from 'lucide-react';
 import type { Player, Team, PlayoffSeasonData } from '@/types/bbgm';
 import { PlayerFace } from '@/components/PlayerFace';
@@ -395,6 +395,10 @@ export function TeamInfoModal({
 }: TeamInfoModalProps) {
   const [playoffPopoverOpen, setPlayoffPopoverOpen] = useState(false);
   const [championshipsModalOpen, setChampionshipsModalOpen] = useState(false);
+  const [bannerPosition, setBannerPosition] = useState({ top: 0, left: 0, width: 0 });
+
+  const logoRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
 
   // Get stat columns for this sport
   const statColumns = SPORT_STAT_COLUMNS[sport] || SPORT_STAT_COLUMNS.basketball;
@@ -489,6 +493,46 @@ export function TeamInfoModal({
     if (!teamTid || !teams || teams.length === 0) return [];
     return getAllChampionships(teams, teamTid, allPlayoffSeries);
   }, [teams, teamTid, allPlayoffSeries]);
+
+  // Calculate banner position dynamically on mobile
+  useEffect(() => {
+    if (!isTeamChampion) return;
+
+    const calculatePosition = () => {
+      if (window.innerWidth >= 1024) return; // Only for mobile (< lg breakpoint)
+
+      const logo = logoRef.current;
+      const header = headerRef.current;
+
+      if (logo && header) {
+        const logoRect = logo.getBoundingClientRect();
+        const headerRect = header.getBoundingClientRect();
+
+        // Calculate available space between logo bottom and header bottom
+        const availableHeight = headerRect.bottom - logoRect.bottom;
+
+        // Position banner below logo with some padding
+        const top = logoRect.bottom - headerRect.top + 8;
+        const left = logoRect.left - headerRect.left + logoRect.width - 70;
+
+        // Size based on available height (aim for 60% of available space)
+        const width = Math.min(Math.max(availableHeight * 0.4, 32), 64);
+
+        setBannerPosition({ top, left, width });
+      }
+    };
+
+    calculatePosition();
+    window.addEventListener('resize', calculatePosition);
+
+    // Recalculate after a short delay to account for content loading
+    const timer = setTimeout(calculatePosition, 100);
+
+    return () => {
+      window.removeEventListener('resize', calculatePosition);
+      clearTimeout(timer);
+    };
+  }, [isTeamChampion, open]);
 
   // Extract playoff series info for this team
   const teamPlayoffSeries = useMemo(() => {
@@ -617,10 +661,10 @@ export function TeamInfoModal({
         )}
 
         {/* Header */}
-        <div className="relative z-10 p-6 border-b flex items-start gap-6" style={{ borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}` }}>
+        <div ref={headerRef} className="relative z-10 p-6 border-b flex items-start gap-6" style={{ borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}` }}>
           {/* Team Logo */}
           {teamLogo && (
-            <div className="flex-shrink-0 h-full flex items-center">
+            <div ref={logoRef} className="flex-shrink-0 h-full flex items-center">
               <img
                 src={teamLogo}
                 alt={teamName}
@@ -730,21 +774,28 @@ export function TeamInfoModal({
                 teamAbbrev={teamAbbrev}
                 teamColors={teamColors}
                 teamLogo={teamLogo}
-                className="w-24 xl:w-28"
+                className="w-20 xl:w-24"
                 onClick={() => setChampionshipsModalOpen(true)}
               />
             </div>
           )}
 
-          {/* Championship Banner - Mobile (Centered, smaller) */}
-          {isTeamChampion && (
-            <div className="lg:hidden absolute top-20 left-1/2 transform -translate-x-1/2 z-30">
+          {/* Championship Banner - Mobile (Dynamically sized and positioned) */}
+          {isTeamChampion && bannerPosition.width > 0 && (
+            <div
+              className="lg:hidden absolute z-30"
+              style={{
+                top: `${bannerPosition.top}px`,
+                left: `${bannerPosition.left}px`,
+                width: `${bannerPosition.width}px`
+              }}
+            >
               <ChampionBanner
                 season={season}
                 teamAbbrev={teamAbbrev}
                 teamColors={teamColors}
                 teamLogo={teamLogo}
-                className="w-20"
+                size="small"
                 onClick={() => setChampionshipsModalOpen(true)}
               />
             </div>
@@ -1028,6 +1079,7 @@ export function TeamInfoModal({
         onClose={() => setChampionshipsModalOpen(false)}
         championships={allChampionships}
         teamName={teamName}
+        sport={sport}
       />
     </div>
   );

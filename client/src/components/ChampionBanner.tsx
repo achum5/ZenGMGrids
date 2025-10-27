@@ -8,6 +8,7 @@ interface ChampionBannerProps {
   className?: string;
   onClick?: () => void;
   inModal?: boolean; // If true, use extra padding for modal display
+  size?: 'small' | 'default'; // Size variant for mobile vs desktop
 }
 
 // Helper to check contrast and adjust text color
@@ -36,7 +37,8 @@ export function ChampionBanner({
   teamLogo,
   className = '',
   onClick,
-  inModal = false
+  inModal = false,
+  size = 'default'
 }: ChampionBannerProps) {
   // Extract colors with fallbacks
   const [primaryColor, secondaryColor] = useMemo(() => {
@@ -133,10 +135,10 @@ export function ChampionBanner({
 
       {/* Content overlay - positioned absolutely over the SVG */}
       <div
-        className={`absolute inset-0 flex flex-col items-center justify-start pt-1 ${inModal ? 'sm:pt-4' : ''}`}
+        className={`absolute inset-0 flex flex-col items-center justify-start ${inModal ? 'pt-6 sm:pt-4' : 'pt-1'}`}
       >
         {/* Team Logo or Monogram - Proportionally Sized */}
-        <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mb-0 mt-0.5">
+        <div className={size === 'small' ? 'w-8 h-8 flex items-center justify-center mb-0 mt-0.5' : 'w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mb-0 mt-0.5'}>
           {teamLogo ? (
             <img
               src={teamLogo}
@@ -145,7 +147,7 @@ export function ChampionBanner({
             />
           ) : (
             <div
-              className="w-full h-full rounded-full flex items-center justify-center text-xl sm:text-2xl font-black"
+              className={size === 'small' ? 'w-full h-full rounded-full flex items-center justify-center text-xs font-black' : 'w-full h-full rounded-full flex items-center justify-center text-xl sm:text-2xl font-black'}
               style={{
                 backgroundColor: secondaryColor,
                 color: getContrastColor(secondaryColor) === 'white' ? '#ffffff' : '#000000'
@@ -158,23 +160,23 @@ export function ChampionBanner({
 
         {/* Decorative stars */}
         <div className="flex items-center gap-0.5 mb-0 -mt-1" style={{ color: secondaryColor }}>
-          <svg width="6" height="6" viewBox="0 0 24 24" fill="currentColor">
+          <svg width={size === 'small' ? '3' : '6'} height={size === 'small' ? '3' : '6'} viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
           </svg>
 
           {/* Season Year */}
-          <div className="text-sm sm:text-base font-black tracking-tight">
+          <div className={size === 'small' ? 'text-[0.4rem] font-black tracking-tight' : 'text-sm sm:text-base font-black tracking-tight'}>
             {season}
           </div>
 
-          <svg width="6" height="6" viewBox="0 0 24 24" fill="currentColor">
+          <svg width={size === 'small' ? '3' : '6'} height={size === 'small' ? '3' : '6'} viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
           </svg>
         </div>
 
         {/* CHAMPIONS text */}
         <div
-          className="text-[0.5rem] sm:text-xs font-black tracking-wider mt-0"
+          className={size === 'small' ? 'text-[0.25rem] font-black tracking-wider mt-0' : 'text-[0.5rem] sm:text-xs font-black tracking-wider mt-0'}
           style={{
             color: secondaryColor,
             textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
