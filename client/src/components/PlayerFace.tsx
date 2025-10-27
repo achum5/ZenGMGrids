@@ -65,8 +65,8 @@ export function PlayerFace({ pid, name, imgURL, face, size = 110, hideName = fal
 
         {kind === "svg" && (
           <div 
-            className="w-full h-full flex items-center justify-center translate-x-[10px] sm:-translate-x-[7px]" 
-            style={{ transform: `scale(${scale})` }}
+            className="w-full h-full flex items-center justify-center ml-[10px] sm:ml-0" 
+            style={{ transform: `translateX(-7px) scale(${scale})` }}
           >
             <div
               className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
