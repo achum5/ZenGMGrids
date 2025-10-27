@@ -4177,7 +4177,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
         {/* Help Modal */}
         <Dialog open={showHelpModal} onOpenChange={setShowHelpModal}>
           <DialogContent 
-            className="max-w-2xl max-h-[70vh] sm:max-h-[80vh] !z-[10000] top-[15vh] sm:top-[50%] translate-y-0 sm:translate-y-[-50%]" 
+            className="max-w-2xl max-h-[65vh] sm:max-h-[80vh] !z-[10000] top-[10vh] bottom-[10vh] sm:top-[50%] sm:bottom-auto translate-y-0 sm:translate-y-[-50%] mb-[10vh] sm:mb-0" 
             style={{ zIndex: 10000 }}
             overlayClassName="!z-[9999]"
             overlayStyle={{ zIndex: 9999 }}
@@ -4186,7 +4186,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
               <DialogDescription className="sr-only">Learn how to play Team Trivia mode</DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-6 text-sm">
+            <div className="space-y-6 text-sm overflow-y-auto max-h-[55vh] sm:max-h-[70vh]">
               <section>
                 <h3 className="text-lg font-semibold mb-2">Rounds 1–2: Roster Recall</h3>
                 <div className="space-y-1 text-muted-foreground">
