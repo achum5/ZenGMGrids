@@ -8,6 +8,7 @@ interface PlayerFaceSharedProps {
   teams: Team[];
   sport?: string;
   season?: number;
+  teamId?: number; // Optional team ID for accurate jersey lookup (important for mid-season trades)
   className?: string;
   svgClassName?: string; // Additional className only for SVG rendering
   svgStyle?: React.CSSProperties; // Additional inline style only for SVG rendering
@@ -18,7 +19,7 @@ interface PlayerFaceSharedProps {
  * Unified player face renderer used by BOTH tiles and modals.
  * This ensures identical rendering logic and caching.
  */
-export function PlayerFaceShared({ player, teams, sport, season, className = '', svgClassName = '', svgStyle, imgClassName = '' }: PlayerFaceSharedProps) {
+export function PlayerFaceShared({ player, teams, sport, season, teamId, className = '', svgClassName = '', svgStyle, imgClassName = '' }: PlayerFaceSharedProps) {
   const [imageType, setImageType] = useState<"url" | "svg" | "none">("none");
   const [imageData, setImageData] = useState("");
 
@@ -30,7 +31,7 @@ export function PlayerFaceShared({ player, teams, sport, season, className = '',
       // Get jersey info if teams are provided
       let jerseyInfo = undefined;
       if (teams.length > 0) {
-        jerseyInfo = getPlayerJerseyInfo(player, teams, sport, season);
+        jerseyInfo = getPlayerJerseyInfo(player, teams, sport, season, teamId);
       }
 
       const res = await getPlayerImage({
@@ -47,7 +48,7 @@ export function PlayerFaceShared({ player, teams, sport, season, className = '',
       }
     })();
     return () => { ok = false; };
-  }, [player, teams, season, sport]);
+  }, [player, teams, season, sport, teamId]);
 
   return (
     <div className={`w-full h-full flex items-center justify-center ${className}`}>

@@ -10,6 +10,7 @@ interface PlayerPageModalProps {
   sport: 'basketball' | 'football' | 'hockey' | 'baseball';
   teams?: Team[];
   season?: number;
+  teamId?: number;
   onClose: () => void;
   onTeamClick?: (tid: number, season: number) => void;
   onSeasonClick?: (season: number) => void;
@@ -25,7 +26,7 @@ function getContrastColor(hexColor: string): 'white' | 'black' {
   return luminance > 0.5 ? 'black' : 'white';
 }
 
-export function PlayerPageModal({ player, sport, teams = [], season: initialSeason, onClose, onTeamClick, onSeasonClick }: PlayerPageModalProps) {
+export function PlayerPageModal({ player, sport, teams = [], season: initialSeason, teamId, onClose, onTeamClick, onSeasonClick }: PlayerPageModalProps) {
   // Internal state for the selected season in the player modal (independent from game state)
   const [modalSeason, setModalSeason] = useState<number | undefined>(initialSeason);
 
@@ -36,6 +37,21 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
 
   // Use modalSeason for all internal rendering
   const season = modalSeason;
+
+  // Calculate the team ID for the current season (for jersey lookup)
+  const currentSeasonTeamId = useMemo(() => {
+    if (!player || !season) return undefined;
+
+    // If teamId was passed from parent, check if player played for that team in this season
+    if (teamId !== undefined) {
+      const teamStats = player.stats?.find(s => s.season === season && !s.playoffs && s.tid === teamId);
+      if (teamStats) return teamId;
+    }
+
+    // Otherwise, find any team the player played for in this season
+    const seasonStats = player.stats?.find(s => s.season === season && !s.playoffs);
+    return seasonStats?.tid;
+  }, [player, season, teamId]);
 
   // Helper function to get season-aligned team name
   const getTeamNameForSeason = (team: Team | undefined, seasonYear: number): { region: string; name: string; abbrev: string } => {
@@ -76,8 +92,8 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
       : null;
     const isDraftProspect = firstRatingYear !== null && season === firstRatingYear;
 
-    const seasonStats = player.stats?.find(s => s.season === season && !s.playoffs);
-    const team = seasonStats ? teams.find(t => t.tid === seasonStats.tid) : null;
+    // Use currentSeasonTeamId to get the correct team (handles mid-season trades)
+    const team = currentSeasonTeamId !== undefined ? teams.find(t => t.tid === currentSeasonTeamId) : null;
 
     if (team) {
       const seasonInfo = team.seasons?.find(s => s.season === season);
@@ -166,7 +182,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
       secondaryColor: '#ffffff',
       textColor: 'white' as const
     };
-  }, [player, season, teams]);
+  }, [player, season, teams, currentSeasonTeamId]);
 
   if (!player) return null;
 
@@ -346,6 +362,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
                   teams={teams}
                   sport={sport}
                   season={season}
+                  teamId={currentSeasonTeamId}
                   className="[&>img]:block [&>img]:w-full [&>img]:h-full [&>img]:object-contain overflow-visible"
                   svgClassName="scale-[0.85] translate-x-[-28%] translate-y-[5%] sm:translate-y-[-15%]"
                 />
@@ -358,9 +375,10 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
               {/* Position, Team/Status, and Jersey Number */}
               {season && (() => {
                 const seasonRating = player.ratings?.find(r => r.season === season);
-                const seasonStats = player.stats?.find(s => s.season === season && !s.playoffs);
                 const position = seasonRating?.pos || player.pos;
-                const team = seasonStats ? teams.find(t => t.tid === seasonStats.tid) : null;
+                // Use currentSeasonTeamId to get the correct team (handles mid-season trades)
+                const team = currentSeasonTeamId !== undefined ? teams.find(t => t.tid === currentSeasonTeamId) : null;
+                const seasonStats = player.stats?.find(s => s.season === season && !s.playoffs && s.tid === currentSeasonTeamId);
                 const jerseyNumber = seasonStats?.jerseyNumber || player.jerseyNumber;
 
                 // Check if this is a draft prospect year

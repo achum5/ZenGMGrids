@@ -3383,6 +3383,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                       teams={leagueData.teams}
                       sport={leagueData.sport}
                       season={selectedSeason ?? undefined}
+                      teamId={selectedTeam?.tid}
                     />
                   </div>
   
@@ -4166,6 +4167,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
           sport={leagueData.sport}
           teams={leagueData.teams}
           season={selectedSeason || undefined}
+          teamId={selectedTeam?.tid}
           onClose={() => setSelectedPlayerForPage(null)}
           onTeamClick={handleOpenOpponentTeam}
         />

@@ -8,7 +8,7 @@ export interface JerseyInfo {
 /**
  * Determines which team's jersey colors and style a player should wear
  */
-export function getPlayerJerseyInfo(player: Player, teams: Team[], sport?: string, season?: number | null): JerseyInfo {
+export function getPlayerJerseyInfo(player: Player, teams: Team[], sport?: string, season?: number | null, teamId?: number): JerseyInfo {
   const teamMap = new Map(teams.map(team => [team.tid, team]));
 
   // Sport-specific default jersey styles
@@ -42,8 +42,14 @@ export function getPlayerJerseyInfo(player: Player, teams: Team[], sport?: strin
 
   // If a specific season is provided, try to find the team and its season-specific info
   if (season !== undefined && season !== null) {
-    // Remove the s.gp > 0 requirement - player might be on team but not played yet
-    const teamInSeason = player.seasons?.find(s => !s.playoffs && s.season === season);
+    // If teamId is provided, use it to filter; otherwise find any team for that season
+    // Use player.stats instead of player.seasons for more accurate data
+    const teamInSeason = player.stats?.find(s => {
+      const matchesSeason = !s.playoffs && s.season === season;
+      const matchesTeam = teamId !== undefined ? s.tid === teamId : true;
+      return matchesSeason && matchesTeam;
+    });
+
     if (teamInSeason) {
       targetTeam = teamMap.get(teamInSeason.tid);
       targetSeasonInfo = targetTeam?.seasons?.find(s => s.season === season);
