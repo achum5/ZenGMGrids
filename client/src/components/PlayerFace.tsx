@@ -23,19 +23,29 @@ export function PlayerFace({ pid, name, imgURL, face, size = 110, hideName = fal
   const [data, setData] = React.useState("");
 
   React.useEffect(() => {
+    if (!player) return;
+
     let ok = true;
     (async () => {
-      // Get jersey info if player and teams are provided
+      // Get jersey info if player and teams are provided - EXACT SAME AS MODAL
       let jerseyInfo = undefined;
       if (player && teams.length > 0) {
-        jerseyInfo = getPlayerJerseyInfo(player, teams, sport, season); // Pass season
+        jerseyInfo = getPlayerJerseyInfo(player, teams, sport, season);
       }
 
-      const res = await getPlayerImage({ pid, name, imgURL, face, jerseyInfo });
+      // Use player object properties like the modal does - NOT separate props
+      const res = await getPlayerImage({
+        pid: player.pid,
+        name: player.name,
+        imgURL: player.imgURL,
+        face: player.face,
+        jerseyInfo
+      });
+
       if (ok) { setKind(res.type); setData(res.data); }
     })();
     return () => { ok = false; };
-  }, [pid, imgURL, face, player, teams, season, sport, name]);
+  }, [player, teams, season, sport]);
 
   return (
     <div className="flex h-full w-full flex-col items-center justify-center p-1 gap-1 pointer-events-none">

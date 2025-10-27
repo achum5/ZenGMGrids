@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { X } from 'lucide-react';
-import { getPlayerImage } from '@/lib/faceRenderer';
-import { getPlayerJerseyInfo } from '@/lib/jersey-utils';
+import { PlayerFaceShared } from '@/components/PlayerFaceShared';
 import type { Player, Team } from '@/types/bbgm';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
@@ -27,9 +26,6 @@ function getContrastColor(hexColor: string): 'white' | 'black' {
 }
 
 export function PlayerPageModal({ player, sport, teams = [], season: initialSeason, onClose, onTeamClick, onSeasonClick }: PlayerPageModalProps) {
-  const [imageKind, setImageKind] = useState<"url" | "svg" | "none">("none");
-  const [imageData, setImageData] = useState("");
-
   // Internal state for the selected season in the player modal (independent from game state)
   const [modalSeason, setModalSeason] = useState<number | undefined>(initialSeason);
 
@@ -171,34 +167,6 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
       textColor: 'white' as const
     };
   }, [player, season, teams]);
-
-  useEffect(() => {
-    if (!player) return;
-
-    let ok = true;
-    (async () => {
-      // Get jersey info if player and teams are provided
-      let jerseyInfo = undefined;
-      if (player && teams.length > 0) {
-        jerseyInfo = getPlayerJerseyInfo(player, teams, sport, season);
-        console.log(`[PLAYERPAGE MODAL] ${player.name}, Season: ${season}, Jersey:`, jerseyInfo?.jersey);
-      }
-
-      const res = await getPlayerImage({
-        pid: player.pid,
-        name: player.name,
-        imgURL: player.imgURL,
-        face: player.face,
-        jerseyInfo
-      }, 'MODAL');
-
-      if (ok) {
-        setImageKind(res.type);
-        setImageData(res.data);
-      }
-    })();
-    return () => { ok = false; };
-  }, [player, teams, season, sport]);
 
   if (!player) return null;
 
@@ -372,30 +340,15 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
           <div className="flex items-start gap-3 sm:gap-6 w-full sm:flex-1 sm:min-w-0">
             {/* Player Image */}
             <div className="flex-shrink-0 sm:mt-3">
-              <div className="w-24 h-24 sm:w-40 sm:h-40">
-                {imageKind === "url" && (
-                  <img
-                    src={imageData}
-                    alt={player.name}
-                    className="block w-full h-full object-contain"
-                    draggable={false}
-                  />
-                )}
-
-                {imageKind === "svg" && (
-                  <div className="w-full h-full flex items-center justify-center overflow-visible">
-                    <div
-                      className="w-full h-full flex items-center justify-center [&>svg]:w-[130%] [&>svg]:h-[130%] translate-x-[-15%] translate-y-[-12%] sm:translate-x-[-25%] sm:translate-y-[-15%]"
-                      dangerouslySetInnerHTML={{ __html: imageData }}
-                    />
-                  </div>
-                )}
-
-                {imageKind === "none" && (
-                  <div className="flex items-center justify-center w-full h-full text-sm text-muted-foreground">
-                    No image
-                  </div>
-                )}
+              <div className="w-24 h-24 sm:w-40 sm:h-40 overflow-visible">
+                <PlayerFaceShared
+                  player={player}
+                  teams={teams}
+                  sport={sport}
+                  season={season}
+                  className="[&>img]:block [&>img]:w-full [&>img]:h-full [&>img]:object-contain overflow-visible"
+                  svgClassName="scale-[0.85] translate-x-[-28%] translate-y-[5%] sm:translate-y-[-15%]"
+                />
               </div>
             </div>
 

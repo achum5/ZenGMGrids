@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
 import { PlayerFace } from '@/components/PlayerFace';
+import { PlayerFaceTile } from '@/components/PlayerFaceTile';
 import { useToast } from '@/lib/hooks/use-toast';
 import { Shuffle, Home as HomeIcon, ArrowLeft, ChevronDown, ArrowRight, Info, Settings, Save, HelpCircle } from 'lucide-react';
 import { updateYearRange } from '@/lib/league-storage';
@@ -3376,17 +3377,17 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                   )}
   
                   {/* Headshot - Takes up most of the tile */}
-                  <div className="w-full aspect-square">
-                    {/* TEMPORARILY REMOVED - PlayerFace placeholder */}
-                    <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 rounded-xl flex items-center justify-center">
-                      <div className="text-4xl font-bold text-white/30">
-                        {rp.player.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                      </div>
-                    </div>
+                  <div className="w-full aspect-square flex-shrink-0">
+                    <PlayerFaceTile
+                      player={rp.player}
+                      teams={leagueData.teams}
+                      sport={leagueData.sport}
+                      season={selectedSeason ?? undefined}
+                    />
                   </div>
   
                   {/* Name - Compact */}
-                  <div className="w-full text-center min-h-[1rem] sm:min-h-[2rem] flex items-center justify-center px-0.5">
+                  <div className="w-full text-center h-[2rem] sm:h-[3rem] flex items-center justify-center px-0.5 flex-shrink-0">
                     {rp.revealed ? (
                       <p
                         className="text-[0.5rem] sm:text-xs md:text-sm font-bold line-clamp-2 leading-tight"
