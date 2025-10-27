@@ -64,9 +64,19 @@ export function PlayerFace({ pid, name, imgURL, face, size = 110, hideName = fal
         )}
 
         {kind === "svg" && (
-          <div className="w-full h-full flex items-center justify-center" style={{ transform: `translateX(-7px) scale(${scale})` }}>
+          <div 
+            className="w-full h-full flex items-center justify-center overflow-visible" 
+            style={{ 
+              transform: `translateX(-7px) scale(${scale})`,
+              WebkitTransform: `translateX(-7px) scale(${scale})` // Add webkit prefix for mobile Safari
+            }}
+          >
             <div
-              className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
+              className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:max-w-full [&>svg]:max-h-full"
+              style={{ 
+                overflow: 'visible',
+                WebkitOverflowScrolling: 'touch' // Enable smooth scrolling on iOS
+              }}
               dangerouslySetInnerHTML={{ __html: data }}
             />
           </div>

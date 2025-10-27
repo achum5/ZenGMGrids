@@ -14,13 +14,15 @@ export type PlayerLite = {
 }; 
 
 export function normalizeSvg(svg: string) {
-  // Remove fixed sizing so it can scale with CSS; keep viewBox
-  let s = svg.replace(/\s(width|height)="[^"]*"/g, "");
-  
   // Remove any x and y positioning from the SVG tag itself
-  s = s.replace(/\s(x|y)="[^"]*"/g, "");
+  let s = svg.replace(/\s(x|y)="[^"]*"/g, "");
   
-  // Add centering attributes
+  // Ensure viewBox is present for proper scaling (critical for mobile)
+  if (!/viewBox=/.test(s)) {
+    s = s.replace("<svg", '<svg viewBox="0 0 400 600"');
+  }
+  
+  // Add centering attributes for mobile compatibility
   if (!/preserveAspectRatio=/.test(s)) {
     s = s.replace("<svg", '<svg preserveAspectRatio="xMidYMid meet"');
   }
@@ -124,8 +126,9 @@ export async function getPlayerImage(p: PlayerLite): Promise<{type: "url" | "svg
       });
       display(tempContainer, faceToRender);
 
-      // Wait for next frame to ensure rendering is complete (important for mobile)
+      // Wait for multiple frames to ensure rendering is complete (important for mobile)
       await new Promise(resolve => requestAnimationFrame(resolve));
+      await new Promise(resolve => setTimeout(resolve, 50)); // Extra delay for mobile browsers
 
       // Jersey colors should already be applied through the face data
 
@@ -135,12 +138,14 @@ export async function getPlayerImage(p: PlayerLite): Promise<{type: "url" | "svg
         // Remove any attributes that could cause positioning issues
         svgElement.removeAttribute('x');
         svgElement.removeAttribute('y');
-        svgElement.removeAttribute('style');
-
-        // Ensure the SVG will center properly
-        svgElement.style.display = 'block';
-        svgElement.style.margin = '0 auto';
-        svgElement.style.transform = 'translateX(25%)';
+        
+        // Ensure SVG has proper viewBox for scaling (critical for mobile)
+        if (!svgElement.hasAttribute('viewBox')) {
+          svgElement.setAttribute('viewBox', '0 0 400 600');
+        }
+        
+        // Set preserveAspectRatio for proper centering
+        svgElement.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
         const raw = svgElement.outerHTML;
         const svg = normalizeSvg(raw);
