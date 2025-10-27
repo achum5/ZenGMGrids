@@ -5,6 +5,34 @@ export interface JerseyInfo {
   jersey: string;
 }
 
+// Valid baseball jersey styles
+const VALID_BASEBALL_JERSEYS = ['baseball', 'baseball2', 'baseball3', 'baseball4'];
+
+// Validate and normalize jersey style - ONLY for baseball, pass through for other sports
+function normalizeJerseyStyle(jersey: string | undefined, sport: string | undefined): string {
+  // For baseball, validate and ensure it's one of the baseball styles
+  if (sport === 'baseball') {
+    if (!jersey) {
+      return 'baseball2'; // Default baseball style
+    }
+    // If it's a valid baseball style, use it
+    if (VALID_BASEBALL_JERSEYS.includes(jersey)) {
+      return jersey;
+    }
+    // If it's not a valid baseball style, default to baseball2
+    return 'baseball2';
+  }
+
+  // For all other sports, pass through whatever jersey style is provided
+  // Only default to 'modern' if no jersey is provided at all
+  if (!jersey) {
+    return 'modern';
+  }
+
+  // Return the jersey as-is for non-baseball sports
+  return jersey;
+}
+
 /**
  * Determines which team's jersey colors and style a player should wear
  */
@@ -12,10 +40,7 @@ export function getPlayerJerseyInfo(player: Player, teams: Team[], sport?: strin
   const teamMap = new Map(teams.map(team => [team.tid, team]));
 
   // Sport-specific default jersey styles
-  let defaultJerseyStyle = 'modern';
-  if (sport === 'baseball') {
-    defaultJerseyStyle = 'baseball2';
-  }
+  const defaultJerseyStyle = sport === 'baseball' ? 'baseball2' : 'modern';
 
   // Default fallback (Free Agent colors: gray, white, black)
   const defaultJersey: JerseyInfo = {
@@ -33,7 +58,7 @@ export function getPlayerJerseyInfo(player: Player, teams: Team[], sport?: strin
   if (isDraftProspect) {
     return {
       colors: ['#000000', '#6b7280', '#ffffff'], // black, grey, white
-      jersey: defaultJerseyStyle
+      jersey: normalizeJerseyStyle(defaultJerseyStyle, sport)
     };
   }
 
@@ -74,10 +99,23 @@ export function getPlayerJerseyInfo(player: Player, teams: Team[], sport?: strin
   // If a target team is found, use its colors (targetSeasonInfo is now optional)
   if (targetTeam) {
     const colors = targetSeasonInfo?.colors || targetTeam.colors;
-    const jersey = targetSeasonInfo?.jersey || targetTeam.jersey || defaultJerseyStyle;
+    const rawJersey = targetSeasonInfo?.jersey || targetTeam.jersey;
+    const jersey = normalizeJerseyStyle(rawJersey, sport);
+
+    console.log(`[JERSEY INFO] Player: ${player.name}, Team: ${targetTeam.abbrev}, Season: ${season}, Raw Jersey: ${rawJersey}, Normalized: ${jersey}, Colors: ${colors?.length || 0}, Sport: ${sport}`);
+
+    // If team has colors, use them; otherwise provide default colors based on team abbrev
     if (colors && colors.length > 0) {
       return {
         colors: colors,
+        jersey: jersey
+      };
+    } else {
+      // Team exists but has no colors - provide defaults based on abbreviation
+      // Use blue/white as generic defaults if we can't determine better colors
+      console.warn(`[JERSEY WARNING] Team ${targetTeam.abbrev} has no colors, using defaults`);
+      return {
+        colors: ['#1d4ed8', '#ffffff', '#3b82f6'], // blue, white, light blue
         jersey: jersey
       };
     }
@@ -122,10 +160,17 @@ export function getPlayerJerseyInfo(player: Player, teams: Team[], sport?: strin
 
           const teamSeasonInfo = mostSeasonsTeam.seasons?.find(s => s.season === latestSeasonWithTeam);
           const colors = teamSeasonInfo?.colors || mostSeasonsTeam.colors;
-          const jersey = teamSeasonInfo?.jersey || mostSeasonsTeam.jersey || defaultJerseyStyle;
+          const rawJersey = teamSeasonInfo?.jersey || mostSeasonsTeam.jersey;
+          const jersey = normalizeJerseyStyle(rawJersey, sport);
           if (colors && colors.length > 0) {
             return {
               colors: colors,
+              jersey: jersey
+            };
+          } else {
+            // Team exists but has no colors - provide defaults
+            return {
+              colors: ['#1d4ed8', '#ffffff', '#3b82f6'],
               jersey: jersey
             };
           }
@@ -173,10 +218,17 @@ export function getPlayerJerseyInfo(player: Player, teams: Team[], sport?: strin
 
           const teamSeasonInfo = mostSeasonsTeam.seasons?.find(s => s.season === latestSeasonWithTeam);
           const colors = teamSeasonInfo?.colors || mostSeasonsTeam.colors;
-          const jersey = teamSeasonInfo?.jersey || mostSeasonsTeam.jersey || defaultJerseyStyle;
+          const rawJersey = teamSeasonInfo?.jersey || mostSeasonsTeam.jersey;
+          const jersey = normalizeJerseyStyle(rawJersey, sport);
           if (colors && colors.length > 0) {
             return {
               colors: colors,
+              jersey: jersey
+            };
+          } else {
+            // Team exists but has no colors - provide defaults
+            return {
+              colors: ['#1d4ed8', '#ffffff', '#3b82f6'],
               jersey: jersey
             };
           }
@@ -199,10 +251,17 @@ export function getPlayerJerseyInfo(player: Player, teams: Team[], sport?: strin
         if (lastTeam) {
           const lastTeamSeasonInfo = lastTeam.seasons?.find(s => s.season === lastSeason);
           const colors = lastTeamSeasonInfo?.colors || lastTeam.colors;
-          const jersey = lastTeamSeasonInfo?.jersey || lastTeam.jersey || defaultJerseyStyle;
+          const rawJersey = lastTeamSeasonInfo?.jersey || lastTeam.jersey;
+          const jersey = normalizeJerseyStyle(rawJersey, sport);
           if (colors && colors.length > 0) {
             return {
               colors: colors,
+              jersey: jersey
+            };
+          } else {
+            // Team exists but has no colors - provide defaults
+            return {
+              colors: ['#1d4ed8', '#ffffff', '#3b82f6'],
               jersey: jersey
             };
           }

@@ -228,8 +228,11 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
     currentSeason = currentSeason || 2023;
   
     postProgress('Processing teams...');
+    // Sport-specific default jersey styles
+    const defaultJerseyStyle = sport === 'baseball' ? 'baseball2' : 'modern';
+
     const teams: Team[] = raw.teams?.map((team: any) => {
-      const teamJersey = team.jersey || 'modern';
+      const teamJersey = team.jersey || defaultJerseyStyle;
       return {
         tid: team.tid,
         abbrev: team.abbrev || team.region || 'UNK',
