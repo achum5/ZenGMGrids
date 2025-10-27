@@ -2943,8 +2943,21 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                 </h1>
               </div>
 
-              {/* Right: Home & Help buttons */}
+              {/* Right: Help & Home buttons */}
               <div className="flex items-center justify-end space-x-1 shrink-0">
+                {/* Help button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowHelpModal(true)}
+                  style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))' }}
+                  className="animate-on-click"
+                  data-testid="button-help"
+                >
+                  <HelpCircle className="h-[1.2rem] w-[1.2rem]" />
+                  <span className="sr-only">Help</span>
+                </Button>
+                
                 {hasProgress ? (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -2972,19 +2985,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                     <span className="sr-only">Go home</span>
                   </Button>
                 )}
-                
-                {/* Help button */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowHelpModal(true)}
-                  style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))' }}
-                  className="animate-on-click"
-                  data-testid="button-help"
-                >
-                  <HelpCircle className="h-[1.2rem] w-[1.2rem]" />
-                  <span className="sr-only">Help</span>
-                </Button>
               </div>
             </div>
           </div>
@@ -4176,7 +4176,12 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
 
         {/* Help Modal */}
         <Dialog open={showHelpModal} onOpenChange={setShowHelpModal}>
-          <DialogContent className="max-w-2xl max-h-[85vh]">
+          <DialogContent 
+            className="max-w-2xl max-h-[70vh] sm:max-h-[80vh] !z-[10000] top-[15vh] sm:top-[50%] translate-y-0 sm:translate-y-[-50%]" 
+            style={{ zIndex: 10000 }}
+            overlayClassName="!z-[9999]"
+            overlayStyle={{ zIndex: 9999 }}
+          >
             <DialogHeader>
               <DialogDescription className="sr-only">Learn how to play Team Trivia mode</DialogDescription>
             </DialogHeader>
