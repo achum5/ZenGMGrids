@@ -29,13 +29,14 @@ export function PlayerFace({ pid, name, imgURL, face, size = 110, hideName = fal
       let jerseyInfo = undefined;
       if (player && teams.length > 0) {
         jerseyInfo = getPlayerJerseyInfo(player, teams, sport, season); // Pass season
+        console.log(`[PLAYERFACE TILE] ${name}, Season: ${season}, Jersey:`, jerseyInfo?.jersey);
       }
-      
-      const res = await getPlayerImage({ pid, name, imgURL, face, jerseyInfo });
+
+      const res = await getPlayerImage({ pid, name, imgURL, face, jerseyInfo }, 'TILE');
       if (ok) { setKind(res.type); setData(res.data); }
     })();
     return () => { ok = false; };
-  }, [pid, imgURL, face, player, teams, season]);
+  }, [pid, imgURL, face, player, teams, season, sport, name]);
 
   return (
     <div className="flex h-full w-full flex-col items-center justify-center p-1 gap-1 pointer-events-none">

@@ -228,18 +228,24 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
     currentSeason = currentSeason || 2023;
   
     postProgress('Processing teams...');
-    const teams: Team[] = raw.teams?.map((team: any) => ({
-      tid: team.tid,
-      abbrev: team.abbrev || team.region || 'UNK',
-      name: team.name || 'Unknown',
-      region: team.region,
-      colors: team.colors || [],
-      jersey: team.jersey || 'modern',
-      imgURL: team.imgURL || null,
-      imgURLSmall: team.imgURLSmall || team.smallImgURL || null,
-      seasons: team.seasons || [],
-      disabled: team.disabled || false,
-    })) || [];
+    const teams: Team[] = raw.teams?.map((team: any) => {
+      const teamJersey = team.jersey || 'modern';
+      return {
+        tid: team.tid,
+        abbrev: team.abbrev || team.region || 'UNK',
+        name: team.name || 'Unknown',
+        region: team.region,
+        colors: team.colors || [],
+        jersey: teamJersey,
+        imgURL: team.imgURL || null,
+        imgURLSmall: team.imgURLSmall || team.smallImgURL || null,
+        seasons: team.seasons?.map((s: any) => ({
+          ...s,
+          jersey: s.jersey || teamJersey // Use season-specific jersey or fallback to team default
+        })) || [],
+        disabled: team.disabled || false,
+      };
+    }) || [];
 
     let minSeason = currentSeason;
     let maxSeason = currentSeason;

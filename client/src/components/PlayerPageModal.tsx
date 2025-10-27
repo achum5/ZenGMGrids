@@ -181,6 +181,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
       let jerseyInfo = undefined;
       if (player && teams.length > 0) {
         jerseyInfo = getPlayerJerseyInfo(player, teams, sport, season);
+        console.log(`[PLAYERPAGE MODAL] ${player.name}, Season: ${season}, Jersey:`, jerseyInfo?.jersey);
       }
 
       const res = await getPlayerImage({
@@ -189,7 +190,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
         imgURL: player.imgURL,
         face: player.face,
         jerseyInfo
-      });
+      }, 'MODAL');
 
       if (ok) {
         setImageKind(res.type);
@@ -509,17 +510,6 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
                 const deathYear = (player as any).diedYear ?? (player as any).deathYear ?? (player as any).died?.year;
                 const isDeceased = Number.isFinite(deathYear) && deathYear > 0;
                 const ageAtDeath = isDeceased && player.born?.year ? deathYear - player.born.year : undefined;
-
-                // Debug log to verify data
-                console.log('🔍 [PLAYER BIO]', {
-                  pid: player?.pid,
-                  name: `${player?.firstName ?? ''} ${player?.lastName ?? ''}`.trim(),
-                  bornYear: player?.born?.year,
-                  diedYear: deathYear,
-                  isDeceased,
-                  ageAtDeath,
-                  rawPlayer: player
-                });
 
                 if (isDeceased && ageAtDeath !== undefined) {
                   return (

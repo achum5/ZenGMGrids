@@ -28,7 +28,13 @@ export function normalizeSvg(svg: string) {
   return s;
 }
 
-export async function getPlayerImage(p: PlayerLite): Promise<{type: "url" | "svg" | "none"; data: string}> {
+export async function getPlayerImage(p: PlayerLite, context?: string): Promise<{type: "url" | "svg" | "none"; data: string}> {
+  console.log(`[GET PLAYER IMAGE START] ${p.name} [${context || 'unknown'}]:`, {
+    hasFace: !!p.face,
+    hasJerseyInfo: !!p.jerseyInfo,
+    originalFaceJerseyId: p.face?.jersey?.id,
+    jerseyInfoJersey: p.jerseyInfo?.jersey
+  });
   // Prefer a real photo URL if present
   if (p.imgURL && p.imgURL.trim()) {
     const u = p.imgURL.trim();
@@ -38,11 +44,18 @@ export async function getPlayerImage(p: PlayerLite): Promise<{type: "url" | "svg
 
   // Always clear cache if jersey info is provided to force re-render with new colors
   if (p.jerseyInfo) {
+    const hadSvgCache = svgCache.has(p.pid);
+    const hadUrlCache = urlCache.has(p.pid);
     svgCache.delete(p.pid);
+    urlCache.delete(p.pid);
+    console.log(`[CACHE CLEAR] ${p.name} [${context}]: Cleared SVG=${hadSvgCache}, URL=${hadUrlCache}`);
   }
 
   // Check cache only if no jersey info was provided
-  if (!p.jerseyInfo && svgCache.has(p.pid)) return { type: "svg", data: svgCache.get(p.pid)! };
+  if (!p.jerseyInfo && svgCache.has(p.pid)) {
+    console.log(`[CACHE HIT] ${p.name} [${context}]: Using cached SVG (no jerseyInfo)`);
+    return { type: "svg", data: svgCache.get(p.pid)! };
+  }
   if (!p.face) {
     return { type: "none", data: "" };
   }
@@ -93,25 +106,56 @@ export async function getPlayerImage(p: PlayerLite): Promise<{type: "url" | "svg
               p.jerseyInfo.colors[2] || p.jerseyInfo.colors[0] || "#07364f" // Third color or fallback
             ];
 
-        // Use the player's original jersey style, but if they have "none", use the sport default
-        // This preserves the jersey variation while still showing a jersey for draft prospects
-        let jerseyToUse = p.face.jersey;
-        if (!jerseyToUse || jerseyToUse.id === "none") {
-          jerseyToUse = p.jerseyInfo.jersey
-            ? { id: p.jerseyInfo.jersey }
-            : { id: "modern" };
-        }
+        // Always use the team's jersey style from jerseyInfo for season-alignment
+        // This ensures players wear the correct team jersey for the specific season
+        let jerseyToUse = p.jerseyInfo.jersey
+          ? { id: p.jerseyInfo.jersey }
+          : (p.face.jersey || { id: "modern" });
+
+        console.log(`[FACE RENDERER BEFORE] ${p.name}:`, {
+          jerseyInfoProvided: p.jerseyInfo.jersey,
+          originalFaceJersey: JSON.stringify(p.face.jersey),
+          jerseyToUseObject: JSON.stringify(jerseyToUse),
+          originalFaceBody: p.face.body,
+          entireFaceKeys: Object.keys(p.face)
+        });
 
         // Simple approach: spread the original face and only override what we need
         faceToRender = {
           ...p.face,
           teamColors: teamColorsToApply,
-          jersey: jerseyToUse
-          // Keep the original body object as-is - don't strip any properties
+          jersey: jerseyToUse,
+          // CRITICAL: Also update accessories if it exists, since faces.js might read jersey from there
+          accessories: p.face.accessories ? {
+            ...p.face.accessories,
+            jersey: jerseyToUse
+          } : undefined
+          // Keep body and all other properties as-is
         };
+
+        console.log(`[FACE RENDERER AFTER] ${p.name} applied jersey:`, JSON.stringify(faceToRender.jersey), 'body.jersey:', JSON.stringify(faceToRender.body?.jersey), 'faceToRenderKeys:', Object.keys(faceToRender));
       }
 
       // Render the face with jersey colors
+      console.log(`[FACE RENDERER DISPLAY] ${p.name} calling display() with jersey:`, JSON.stringify(faceToRender.jersey));
+
+      // Log EVERY property that mentions jersey to find the culprit
+      const allJerseyProps: any = {};
+      const checkObject = (obj: any, path: string) => {
+        if (!obj || typeof obj !== 'object') return;
+        for (const key in obj) {
+          const fullPath = path ? `${path}.${key}` : key;
+          if (key.toLowerCase().includes('jersey')) {
+            allJerseyProps[fullPath] = JSON.stringify(obj[key]);
+          }
+          if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key])) {
+            checkObject(obj[key], fullPath);
+          }
+        }
+      };
+      checkObject(faceToRender, '');
+      console.log(`[FACE RENDERER ALL JERSEY PROPS] ${p.name}:`, allJerseyProps);
+
       display(tempContainer, faceToRender);
 
       // Wait for next frame to ensure rendering is complete (important for mobile)
@@ -134,6 +178,15 @@ export async function getPlayerImage(p: PlayerLite): Promise<{type: "url" | "svg
 
         const raw = svgElement.outerHTML;
         const svg = normalizeSvg(raw);
+
+        // Log what jersey is in the actual generated SVG
+        const svgHash = svg.split('').reduce((a, b) => (((a << 5) - a) + b.charCodeAt(0)) | 0, 0);
+        console.log(`[CACHE SAVE] ${p.name} [${context}]: SVG Hash=${svgHash}, Length=${svg.length}`);
+
+        // Store for comparison
+        if (!window.svgDebug) window.svgDebug = {};
+        window.svgDebug[`${p.name}_${context}`] = svg;
+
         svgCache.set(p.pid, svg);
         return { type: "svg", data: svg };
       } else {

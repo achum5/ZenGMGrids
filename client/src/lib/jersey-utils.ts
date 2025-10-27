@@ -72,7 +72,7 @@ export function getPlayerJerseyInfo(player: Player, teams: Team[], sport?: strin
     if (colors && colors.length > 0) {
       return {
         colors: colors,
-        jersey: sport === 'baseball' ? 'baseball2' : jersey
+        jersey: jersey
       };
     }
   }
@@ -120,7 +120,7 @@ export function getPlayerJerseyInfo(player: Player, teams: Team[], sport?: strin
           if (colors && colors.length > 0) {
             return {
               colors: colors,
-              jersey: sport === 'baseball' ? 'baseball2' : jersey
+              jersey: jersey
             };
           }
         }
@@ -171,7 +171,7 @@ export function getPlayerJerseyInfo(player: Player, teams: Team[], sport?: strin
           if (colors && colors.length > 0) {
             return {
               colors: colors,
-              jersey: sport === 'baseball' ? 'baseball2' : jersey
+              jersey: jersey
             };
           }
         }
@@ -197,7 +197,7 @@ export function getPlayerJerseyInfo(player: Player, teams: Team[], sport?: strin
           if (colors && colors.length > 0) {
             return {
               colors: colors,
-              jersey: sport === 'baseball' ? 'baseball2' : jersey
+              jersey: jersey
             };
           }
         }
