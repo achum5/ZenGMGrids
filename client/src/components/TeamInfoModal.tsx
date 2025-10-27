@@ -7,6 +7,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { ChampionBanner } from '@/components/ChampionBanner';
+import { ChampionshipsModal } from '@/components/ChampionshipsModal';
+import { isChampion, getAllChampionships } from '@/lib/champion-utils';
 
 interface TeamInfoModalProps {
   open: boolean;
@@ -27,6 +30,7 @@ interface TeamInfoModalProps {
     playoffResult?: string;
   };
   playoffSeriesData?: PlayoffSeasonData;
+  allPlayoffSeries?: PlayoffSeasonData[]; // All playoff data across all seasons
   teamTid?: number;
   onOpenOpponentTeam?: (opponentTid: number, season: number) => void;
   onPlayerClick?: (player: Player) => void;
@@ -384,11 +388,13 @@ export function TeamInfoModal({
   teams = [],
   teamStats,
   playoffSeriesData,
+  allPlayoffSeries,
   teamTid,
   onOpenOpponentTeam,
   onPlayerClick,
 }: TeamInfoModalProps) {
   const [playoffPopoverOpen, setPlayoffPopoverOpen] = useState(false);
+  const [championshipsModalOpen, setChampionshipsModalOpen] = useState(false);
 
   // Get stat columns for this sport
   const statColumns = SPORT_STAT_COLUMNS[sport] || SPORT_STAT_COLUMNS.basketball;
@@ -472,6 +478,17 @@ export function TeamInfoModal({
 
     return groups;
   }, [sport, sortedPlayers]);
+
+  // Check if this team won the championship
+  const isTeamChampion = useMemo(() => {
+    return isChampion(playoffSeriesData, teamTid);
+  }, [playoffSeriesData, teamTid]);
+
+  // Get all championships for this team
+  const allChampionships = useMemo(() => {
+    if (!teamTid || !teams || teams.length === 0) return [];
+    return getAllChampionships(teams, teamTid, allPlayoffSeries);
+  }, [teams, teamTid, allPlayoffSeries]);
 
   // Extract playoff series info for this team
   const teamPlayoffSeries = useMemo(() => {
@@ -600,7 +617,7 @@ export function TeamInfoModal({
         )}
 
         {/* Header */}
-        <div className="relative z-10 p-6 border-b flex items-center gap-6" style={{ borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}` }}>
+        <div className="relative z-10 p-6 border-b flex items-start gap-6" style={{ borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}` }}>
           {/* Team Logo */}
           {teamLogo && (
             <div className="flex-shrink-0 h-full flex items-center">
@@ -704,6 +721,34 @@ export function TeamInfoModal({
               </ul>
             )}
           </div>
+
+          {/* Championship Banner - Positioned next to team info */}
+          {isTeamChampion && (
+            <div className="hidden lg:block absolute right-[28rem] xl:right-[34rem] top-4">
+              <ChampionBanner
+                season={season}
+                teamAbbrev={teamAbbrev}
+                teamColors={teamColors}
+                teamLogo={teamLogo}
+                className="w-24 xl:w-28"
+                onClick={() => setChampionshipsModalOpen(true)}
+              />
+            </div>
+          )}
+
+          {/* Championship Banner - Mobile (Centered, smaller) */}
+          {isTeamChampion && (
+            <div className="lg:hidden absolute -top-3 left-1/2 transform -translate-x-1/2 z-30">
+              <ChampionBanner
+                season={season}
+                teamAbbrev={teamAbbrev}
+                teamColors={teamColors}
+                teamLogo={teamLogo}
+                className="w-20"
+                onClick={() => setChampionshipsModalOpen(true)}
+              />
+            </div>
+          )}
         </div>
 
         {/* Table Container - Scrollable */}
@@ -976,6 +1021,14 @@ export function TeamInfoModal({
           )}
         </div>
       </div>
+
+      {/* Championships Modal */}
+      <ChampionshipsModal
+        open={championshipsModalOpen}
+        onClose={() => setChampionshipsModalOpen(false)}
+        championships={allChampionships}
+        teamName={teamName}
+      />
     </div>
   );
 }

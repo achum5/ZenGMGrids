@@ -4068,6 +4068,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
             playoffSeriesData={leagueData.playoffSeries?.find(ps => ps.season === selectedSeason)}
             teamTid={selectedTeam.tid}
             onOpenOpponentTeam={handleOpenOpponentTeam}
+            allPlayoffSeries={leagueData.playoffSeries}
           />
         )}
 
@@ -4155,6 +4156,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
               playoffSeriesData={leagueData.playoffSeries?.find(ps => ps.season === opponentTeamInfo.season)}
               teamTid={opponentTeamInfo.tid}
               onOpenOpponentTeam={handleOpenOpponentTeam}
+              allPlayoffSeries={leagueData.playoffSeries}
               onPlayerClick={(player) => {
                 setSelectedPlayerForPage(player);
                 setOpponentTeamInfo(null);
