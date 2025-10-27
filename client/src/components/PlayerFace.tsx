@@ -21,6 +21,14 @@ type Props = {
 export function PlayerFace({ pid, name, imgURL, face, size = 110, hideName = false, scale = 1, player, teams = [], sport, season }: Props) {
   const [kind, setKind] = React.useState<"url" | "svg" | "none">("none");
   const [data, setData] = React.useState("");
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   React.useEffect(() => {
     if (!player) return;
@@ -65,8 +73,8 @@ export function PlayerFace({ pid, name, imgURL, face, size = 110, hideName = fal
 
         {kind === "svg" && (
           <div 
-            className="w-full h-full flex items-center justify-center ml-[10px] sm:ml-0" 
-            style={{ transform: `translateX(-7px) scale(${scale})` }}
+            className="w-full h-full flex items-center justify-center" 
+            style={{ transform: `translateX(${isMobile ? '10px' : '-7px'}) scale(${scale})` }}
           >
             <div
               className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
