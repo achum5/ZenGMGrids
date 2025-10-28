@@ -4,13 +4,29 @@ let facesLib: any | null = null;
 const svgCache = new Map<number, string>();   // pid -> svg
 const urlCache = new Map<number, string>();   // pid -> url
 
-export type PlayerLite = { 
-  pid: number; 
-  name: string; 
-  imgURL?: string | null; 
+// Get asset base URL for the given sport (same as TeamLogo)
+function getAssetBaseUrl(sport: string = 'basketball'): string {
+  switch (sport) {
+    case 'baseball':
+      return "https://baseball.zengm.com";
+    case 'football':
+      return "https://play.football-gm.com";
+    case 'hockey':
+      return "https://hockey.zengm.com";
+    case 'basketball':
+    default:
+      return "https://play.basketball-gm.com";
+  }
+}
+
+export type PlayerLite = {
+  pid: number;
+  name: string;
+  imgURL?: string | null;
   face?: any | null;
   jerseyInfo?: JerseyInfo;
   season?: number; // Add season to PlayerLite
+  sport?: string; // Add sport to PlayerLite for asset URL resolution
 }; 
 
 export function normalizeSvg(svg: string) {
@@ -33,7 +49,16 @@ export function normalizeSvg(svg: string) {
 export async function getPlayerImage(p: PlayerLite): Promise<{type: "url" | "svg" | "none"; data: string}> {
   // Prefer a real photo URL if present
   if (p.imgURL && p.imgURL.trim()) {
-    const u = p.imgURL.trim();
+    let u = p.imgURL.trim();
+
+    // Check if this is a default BBGM relative path (like /img/blank-face.png)
+    if (u.startsWith('/img/')) {
+      const sport = p.sport || p.jerseyInfo?.sport || 'basketball';
+      const assetBase = getAssetBaseUrl(sport);
+      const cleanPath = u.startsWith('/') ? u.substring(1) : u;
+      u = `${assetBase}/${cleanPath}`;
+    }
+
     urlCache.set(p.pid, u);
     return { type: "url", data: u };
   }

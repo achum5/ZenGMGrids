@@ -364,7 +364,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
                   season={season}
                   teamId={currentSeasonTeamId}
                   className="[&>img]:block [&>img]:w-full [&>img]:h-full [&>img]:object-contain overflow-visible"
-                  svgClassName="scale-[0.85] translate-x-[-28%] translate-y-[5%] sm:translate-y-[-15%]"
+                  svgClassName="scale-[1.4] sm:scale-[1.25] translate-x-[-5%] translate-y-[5%] sm:translate-y-[-15%]"
                 />
               </div>
             </div>

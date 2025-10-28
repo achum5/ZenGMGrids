@@ -2880,14 +2880,14 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Go back to game selection?</AlertDialogTitle>
-                        <AlertDialogDescription>
+                        <AlertDialogTitle style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--foreground))' }}>Go back to game selection?</AlertDialogTitle>
+                        <AlertDialogDescription style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--muted-foreground))' }}>
                           Going back will lose your current progress. Are you sure?
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={onBackToModeSelect} className="animate-on-click">Go Back</AlertDialogAction>
+                        <AlertDialogCancel style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--foreground))', borderColor: teamDisplayInfo.colors[1] || 'hsl(var(--border))' }}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={onBackToModeSelect} className="animate-on-click" style={{ backgroundColor: teamDisplayInfo.colors[1] || 'hsl(var(--primary))', color: teamDisplayInfo.colors[0] || 'hsl(var(--primary-foreground))' }}>Go Back</AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
@@ -2900,20 +2900,52 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
 
                 {/* Give Up button - only show before game is complete */}
                 {currentRound !== 'complete' && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleGiveUp}
-                    style={{
-                      backgroundColor: teamDisplayInfo.colors[0] || 'hsl(var(--primary))',
-                      color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))',
-                      borderColor: teamDisplayInfo.colors[1] || 'hsl(var(--border))'
-                    }}
-                    className="animate-on-click text-xs px-1 sm:px-3 h-auto py-1 flex flex-col sm:flex-row leading-tight sm:gap-1"
-                  >
-                    <span className="text-[10px] sm:text-xs">Give</span>
-                    <span className="text-[10px] sm:text-xs">Up</span>
-                  </Button>
+                  hasProgress ? (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          style={{
+                            backgroundColor: teamDisplayInfo.colors[0] || 'hsl(var(--primary))',
+                            color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))',
+                            borderColor: teamDisplayInfo.colors[1] || 'hsl(var(--border))'
+                          }}
+                          className="animate-on-click text-xs px-1 sm:px-3 h-auto py-1 flex flex-col sm:flex-row leading-tight sm:gap-1"
+                        >
+                          <span className="text-[10px] sm:text-xs">Give</span>
+                          <span className="text-[10px] sm:text-xs">Up</span>
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--foreground))' }}>Give up this game?</AlertDialogTitle>
+                          <AlertDialogDescription style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--muted-foreground))' }}>
+                            This will end the game and reveal all answers. Your current score will be saved.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--foreground))', borderColor: teamDisplayInfo.colors[1] || 'hsl(var(--border))' }}>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleGiveUp} className="animate-on-click" style={{ backgroundColor: teamDisplayInfo.colors[1] || 'hsl(var(--primary))', color: teamDisplayInfo.colors[0] || 'hsl(var(--primary-foreground))' }}>Give Up</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGiveUp}
+                      style={{
+                        backgroundColor: teamDisplayInfo.colors[0] || 'hsl(var(--primary))',
+                        color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))',
+                        borderColor: teamDisplayInfo.colors[1] || 'hsl(var(--border))'
+                      }}
+                      className="animate-on-click text-xs px-1 sm:px-3 h-auto py-1 flex flex-col sm:flex-row leading-tight sm:gap-1"
+                    >
+                      <span className="text-[10px] sm:text-xs">Give</span>
+                      <span className="text-[10px] sm:text-xs">Up</span>
+                    </Button>
+                  )
                 )}
               </div>
 
@@ -2969,14 +3001,14 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Go home?</AlertDialogTitle>
-                        <AlertDialogDescription>
+                        <AlertDialogTitle style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--foreground))' }}>Go home?</AlertDialogTitle>
+                        <AlertDialogDescription style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--muted-foreground))' }}>
                           Going home will lose your current progress. Are you sure?
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={onGoHome} className="animate-on-click">Go Home</AlertDialogAction>
+                        <AlertDialogCancel style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--foreground))', borderColor: teamDisplayInfo.colors[1] || 'hsl(var(--border))' }}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={onGoHome} className="animate-on-click" style={{ backgroundColor: teamDisplayInfo.colors[1] || 'hsl(var(--primary))', color: teamDisplayInfo.colors[0] || 'hsl(var(--primary-foreground))' }}>Go Home</AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
@@ -4184,10 +4216,10 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
               <DialogDescription className="sr-only">Learn how to play Team Trivia mode</DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-6 text-sm overflow-y-auto max-h-[55vh] sm:max-h-[70vh]">
+            <div className="space-y-6 text-sm overflow-y-auto max-h-[55vh] sm:max-h-[70vh]" style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--foreground))' }}>
               <section>
                 <h3 className="text-lg font-semibold mb-2">Rounds 1–2: Roster Recall</h3>
-                <div className="space-y-1 text-muted-foreground">
+                <div className="space-y-1">
                   <p><strong>Goal:</strong> type players' names to reveal that season's roster spots.</p>
                   <p><strong>Guesses:</strong> unlimited, no penalty for wrong answers.</p>
                   <p className="mt-2"><strong>Round 1 — No Hints:</strong> +15 per correct.</p>
@@ -4197,7 +4229,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
 
               <section>
                 <h3 className="text-lg font-semibold mb-2">Stat Leaders (varies by sport)</h3>
-                <div className="space-y-1 text-muted-foreground">
+                <div className="space-y-1">
                   <p><strong>Goal:</strong> pick the team's leader in each category. One attempt per category.</p>
                   <p><strong>Scoring:</strong> +10 per correct. Ties count as correct.</p>
                 </div>
@@ -4205,7 +4237,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
 
               <section>
                 <h3 className="text-lg font-semibold mb-2">Wins Guess</h3>
-                <div className="space-y-1 text-muted-foreground">
+                <div className="space-y-1">
                   <p><strong>Goal:</strong> guess how many regular-season wins the team had.</p>
                   <p><strong>Attempts:</strong> one.</p>
                   <p><strong>Scoring:</strong> +10 if you guess the total.</p>
@@ -4214,7 +4246,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
 
               <section>
                 <h3 className="text-lg font-semibold mb-2">Playoff Finish</h3>
-                <div className="space-y-1 text-muted-foreground">
+                <div className="space-y-1">
                   <p><strong>Goal:</strong> choose how far the team went (e.g., Missed Playoffs, Lost R1…Finals, Champion).</p>
                   <p><strong>Attempts:</strong> one.</p>
                   <p><strong>Scoring:</strong> +10 if correct.</p>

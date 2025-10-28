@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { PlayerFace } from "@/components/PlayerFace";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, X } from "lucide-react";
 import { useMemo } from 'react';
 import type { Player, Team, CatTeam } from '@/types/bbgm';
 import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
@@ -265,6 +265,13 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg w-[92vw] max-h-[85vh] sm:max-h-[80vh] overflow-y-auto" data-testid="modal-player-details">
+        <button
+          onClick={() => onOpenChange(false)}
+          className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground z-50"
+        >
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </button>
         <DialogHeader>
           <div className="flex items-center gap-4">
                 <div className="shrink-0 w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40">

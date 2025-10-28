@@ -67,14 +67,14 @@ export function PlayerFace({ pid, name, imgURL, face, size = 110, hideName = fal
             alt={name}
             className="block w-full h-full object-contain"
             draggable={false}
-            style={{ transform: 'translateX(-7px)' }}
+            style={{ transform: `translateX(${isMobile ? '2px' : '-7px'})` }}
           />
         )}
 
         {kind === "svg" && (
           <div
             className="w-full h-full flex items-center justify-center"
-            style={{ transform: `translateX(${isMobile ? '35px' : '30px'}) scale(${scale})` }}
+            style={{ transform: `translateX(${isMobile ? '0px' : '-7px'}) scale(${scale})` }}
           >
             <div
               className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"

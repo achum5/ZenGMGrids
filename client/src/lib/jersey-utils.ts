@@ -3,6 +3,7 @@ import type { Player, Team } from '@/types/bbgm';
 export interface JerseyInfo {
   colors: string[];
   jersey: string;
+  sport?: string;
 }
 
 // Valid baseball jersey styles
@@ -45,7 +46,8 @@ export function getPlayerJerseyInfo(player: Player, teams: Team[], sport?: strin
   // Default fallback (Free Agent colors: gray, white, black)
   const defaultJersey: JerseyInfo = {
     colors: ['#4b5563', '#ffffff', '#1f2937'], // gray-600, white, gray-800
-    jersey: defaultJerseyStyle
+    jersey: defaultJerseyStyle,
+    sport
   };
 
   // Check if this is a draft prospect year (first year in ratings)
@@ -58,7 +60,8 @@ export function getPlayerJerseyInfo(player: Player, teams: Team[], sport?: strin
   if (isDraftProspect) {
     return {
       colors: ['#000000', '#6b7280', '#ffffff'], // black, grey, white
-      jersey: normalizeJerseyStyle(defaultJerseyStyle, sport)
+      jersey: normalizeJerseyStyle(defaultJerseyStyle, sport),
+      sport
     };
   }
 
@@ -108,7 +111,8 @@ export function getPlayerJerseyInfo(player: Player, teams: Team[], sport?: strin
     if (colors && colors.length > 0) {
       return {
         colors: colors,
-        jersey: jersey
+        jersey: jersey,
+        sport
       };
     } else {
       // Team exists but has no colors - provide defaults based on abbreviation
@@ -116,7 +120,8 @@ export function getPlayerJerseyInfo(player: Player, teams: Team[], sport?: strin
       console.warn(`[JERSEY WARNING] Team ${targetTeam.abbrev} has no colors, using defaults`);
       return {
         colors: ['#1d4ed8', '#ffffff', '#3b82f6'], // blue, white, light blue
-        jersey: jersey
+        jersey: jersey,
+        sport
       };
     }
   }
@@ -165,13 +170,15 @@ export function getPlayerJerseyInfo(player: Player, teams: Team[], sport?: strin
           if (colors && colors.length > 0) {
             return {
               colors: colors,
-              jersey: jersey
+              jersey: jersey,
+              sport
             };
           } else {
             // Team exists but has no colors - provide defaults
             return {
               colors: ['#1d4ed8', '#ffffff', '#3b82f6'],
-              jersey: jersey
+              jersey: jersey,
+              sport
             };
           }
         }
@@ -223,13 +230,15 @@ export function getPlayerJerseyInfo(player: Player, teams: Team[], sport?: strin
           if (colors && colors.length > 0) {
             return {
               colors: colors,
-              jersey: jersey
+              jersey: jersey,
+              sport
             };
           } else {
             // Team exists but has no colors - provide defaults
             return {
               colors: ['#1d4ed8', '#ffffff', '#3b82f6'],
-              jersey: jersey
+              jersey: jersey,
+              sport
             };
           }
         }

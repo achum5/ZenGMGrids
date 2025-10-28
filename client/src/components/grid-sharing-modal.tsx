@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Copy, Download, Upload, Check, Clipboard } from 'lucide-react';
+import { Copy, Download, Upload, Check, Clipboard, X } from 'lucide-react';
 import { useToast } from '@/lib/hooks/use-toast';
 import type { CatTeam, LeagueData } from '@/types/bbgm';
 import { exportGrid, importGrid, generateGridCode, parseGridCode, detectSport, type SharedGrid } from '@/lib/grid-sharing';
@@ -104,6 +104,13 @@ export function GridSharingModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[95vw] sm:max-w-md md:max-w-2xl max-h-[90vh]">
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground z-50"
+        >
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </button>
         <DialogHeader>
           <DialogTitle className="text-base sm:text-lg">Share Grid</DialogTitle>
         </DialogHeader>
