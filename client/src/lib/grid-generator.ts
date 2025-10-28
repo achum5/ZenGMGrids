@@ -1083,7 +1083,6 @@ function generateGridSeeded(leagueData: LeagueData): {
           
           if (hasConflictingDraft || hasConflictingSeasonLength) {
             if (hasConflictingSeasonLength) {
-              console.log(`⚠️ Skipping ${ach.label} - conflicts with existing season length achievement`);
             }
             continue;
           }
@@ -1129,7 +1128,6 @@ function generateGridSeeded(leagueData: LeagueData): {
               operator: achOperator,
             };
             
-            console.log(`     Selected achievement: ${flippedAch.label} (attempt ${attempt + 1})`);
             found = true;
             break;
           }
@@ -1142,7 +1140,6 @@ function generateGridSeeded(leagueData: LeagueData): {
     }
     
     if (!cols[i]) {
-      console.log(`   Filling empty col ${i} slot (type: ${layout.cols[i]})`);
       
       if (layout.cols[i] === 'T') {
         // Fill team slot - try up to 100 random teams
@@ -1185,7 +1182,6 @@ function generateGridSeeded(leagueData: LeagueData): {
               key: `team-${team.tid}`,
               test: (p: Player) => p.teamsPlayed.has(team.tid),
             };
-            console.log(`     Selected team: ${team.name || `Team ${team.tid}`} (attempt ${attempt + 1})`);
             found = true;
             break;
           }
@@ -1222,7 +1218,6 @@ function generateGridSeeded(leagueData: LeagueData): {
           
           if (hasConflictingDraft || hasConflictingSeasonLength) {
             if (hasConflictingSeasonLength) {
-              console.log(`⚠️ Skipping ${ach.label} - conflicts with existing season length achievement`);
             }
             continue;
           }
@@ -1268,7 +1263,6 @@ function generateGridSeeded(leagueData: LeagueData): {
               operator: achOperator,
             };
             
-            console.log(`     Selected achievement: ${flippedAch.label} (attempt ${attempt + 1})`);
             found = true;
             break;
           }
@@ -1281,9 +1275,6 @@ function generateGridSeeded(leagueData: LeagueData): {
     }
   }
   
-  console.log(`✅ Grid complete: ${layout.name}`);
-  console.log(`   Rows: ${rows.map(r => r.label).join(', ')}`);
-  console.log(`   Cols: ${cols.map(c => c.label).join(', ')}`);
   
   // Calculate all intersections
   const intersections: Record<string, number[]> = {};
@@ -1640,9 +1631,6 @@ function buildOppositeAxisForSeed(
     }
   }
 
-  console.log(`Grid structure verified: 3x3 with unique constraints`);
-  console.log(`Rows: ${rows.map(r => r.label).join(', ')}`);
-  console.log(`Cols: ${cols.map(c => c.label).join(', ')}`);
   
   // Calculate intersections using the evaluation system
   const intersections: Record<string, number[]> = {};
@@ -1749,7 +1737,6 @@ function buildOppositeAxisForSeed(
       }
       
       intersections[key] = eligiblePlayers.map(p => p.pid);
-      console.log(`Intersection ${rows[row].label} × ${cols[col].label}: ${eligiblePlayers.length} eligible players`);
       
       if (eligiblePlayers.length === 0) {
         throw new Error(`No eligible players for intersection ${rows[row].label} × ${cols[col].label}`);

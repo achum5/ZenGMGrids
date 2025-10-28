@@ -68,7 +68,6 @@ class SeasonIndexCache {
     // Cleanup old entries if cache is too large
     this.cleanupCache();
     
-    console.log(`[SeasonIndexCache] Computed new season index for ${sport} in ${computeTime.toFixed(2)}ms`);
     
     return seasonIndex;
   }
@@ -87,13 +86,11 @@ class SeasonIndexCache {
       this.cache.set(key, value);
     });
     
-    console.log(`[SeasonIndexCache] Cleaned up cache, keeping ${this.cache.size} entries`);
   }
   
   // Clear entire cache (useful for testing or forced refresh)
   clearCache(): void {
     this.cache.clear();
-    console.log('[SeasonIndexCache] Cache cleared');
   }
   
   // Get cache statistics for debugging

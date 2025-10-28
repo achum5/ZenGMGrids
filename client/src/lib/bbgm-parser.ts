@@ -16,7 +16,6 @@ export function parseLeagueFile(
   dbName?: string
 ): Promise<LeagueData & { sport: Sport; idbName?: string }> {
   return new Promise((resolve, reject) => {
-    console.log(`[MAIN] Creating worker for file: ${file.name} (method: ${method})`);
     
     // Vite-specific worker instantiation
     const worker = new Worker(new URL('./league-parser.worker.ts', import.meta.url), {
@@ -29,11 +28,9 @@ export function parseLeagueFile(
       if (type === 'progress') {
         onProgress?.(message, loaded, total);
       } else if (type === 'complete') {
-        console.log('[MAIN] Worker finished successfully.');
         worker.terminate();
         resolve(leagueData);
       } else if (type === 'complete-idb') {
-        console.log('[MAIN] Worker finished IDB import. Reading from IndexedDB...');
         worker.terminate();
         
         try {
@@ -83,7 +80,6 @@ function normalizeDownloadUrl(url: string): string {
         newUrl.hostname = 'dl.dropboxusercontent.com';
         newUrl.searchParams.set('dl', '1');
         const convertedUrl = newUrl.toString();
-        console.log(`🔄 Dropbox URL converted: ${url} → ${convertedUrl}`);
         return convertedUrl;
       }
       
@@ -93,7 +89,6 @@ function normalizeDownloadUrl(url: string): string {
         const newUrl = new URL(url);
         newUrl.searchParams.set('dl', '1');
         const convertedUrl = newUrl.toString();
-        console.log(`🔄 Legacy Dropbox URL converted: ${url} → ${convertedUrl}`);
         return convertedUrl;
       }
     }
@@ -120,7 +115,6 @@ export function parseLeagueUrl(
   dbName?: string
 ): Promise<LeagueData & { sport: Sport; idbName?: string }> {
   return new Promise((resolve, reject) => {
-    console.log(`[MAIN] Creating worker for URL: ${url} (method: ${method})`);
     
     // Normalize the URL for direct download
     const downloadUrl = normalizeDownloadUrl(url);
@@ -136,11 +130,9 @@ export function parseLeagueUrl(
       if (type === 'progress') {
         onProgress?.(message, loaded, total);
       } else if (type === 'complete') {
-        console.log('[MAIN] Worker finished successfully.');
         worker.terminate();
         resolve(leagueData);
       } else if (type === 'complete-idb') {
-        console.log('[MAIN] Worker finished IDB import. Reading from IndexedDB...');
         worker.terminate();
         
         try {

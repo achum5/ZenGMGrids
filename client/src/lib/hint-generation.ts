@@ -417,7 +417,6 @@ export function generateHintOptions(
       // CRITICAL FIX: Request enough distractors from this pool (aiming for ~3 from row pool)
       const filteredRow = filterPlayersWithStagedChronology(rawRowOnlyPlayers, colConstraint, colTargetDecade, 3);
       rowOnlyPlayers = filteredRow.players;
-      console.log(`🎯 [Row Filtering] Applied staged chronological filtering for column decade ${colTargetDecade}: ${filteredRow.stage} (${filteredRow.players.length} players)`);
     }
   }
   
@@ -428,7 +427,6 @@ export function generateHintOptions(
       // CRITICAL FIX: Request enough distractors from this pool (aiming for ~3 from col pool)  
       const filteredCol = filterPlayersWithStagedChronology(rawColOnlyPlayers, rowConstraint, rowTargetDecade, 3);
       colOnlyPlayers = filteredCol.players;
-      console.log(`🎯 [Col Filtering] Applied staged chronological filtering for row decade ${rowTargetDecade}: ${filteredCol.stage} (${filteredCol.players.length} players)`);
     }
   }
   
@@ -436,15 +434,10 @@ export function generateHintOptions(
   const correctPlayerProminence = calculatePlayerProminence(correctPlayer);
   
   // Apply staged chronological filtering to both pools
-  console.log(`🎯 [Distractor Generation] Row-only pool: ${rowOnlyPlayers.length}, Col-only pool: ${colOnlyPlayers.length}`);
   
   // Check if we need staged fallback for chronological filtering - Enhanced diagnostics
   const totalAvailable = rowOnlyPlayers.length + colOnlyPlayers.length;
-  console.log(`🎯 [Distractor Generation] Total available after chronological filtering: ${totalAvailable} (need 5 distractors)`);
   if (totalAvailable < 5) {
-    console.log(`🎯 [Distractor Generation] ⚠️  INSUFFICIENT DISTRACTORS: Only ${totalAvailable}/5 available after filtering`);
-    console.log(`🎯 [Distractor Generation] Row constraints: ${JSON.stringify({type: rowConstraint.type, achievementId: rowConstraint.achievementId, label: rowConstraint.label})}`);
-    console.log(`🎯 [Distractor Generation] Col constraints: ${JSON.stringify({type: colConstraint.type, achievementId: colConstraint.achievementId, label: colConstraint.label})}`);
   }
   
   // Filter and sort both pools by prominence and career similarity
@@ -553,11 +546,9 @@ export function generateHintOptions(
   const shuffledOptions = rng.shuffle(allOptions);
   
   // Debug: Log the options to verify correctness
-  console.log(`🎯 Hint options for ${cellKey}:`);
   shuffledOptions.forEach((option, i) => {
     const meetsRow = evaluateConstraint(option.player, rowConstraint, leagueData?.seasonIndex);
     const meetsCol = evaluateConstraint(option.player, colConstraint, leagueData?.seasonIndex);
-    console.log(`  ${i + 1}. ${option.player.name} - Row: ${meetsRow}, Col: ${meetsCol}, Correct: ${option.isCorrect}`);
   });
 
   const result: HintGenerationResult = {
@@ -802,7 +793,6 @@ function isCloseToCareerThreshold(player: Player, achievementId: string): boolea
 function extractDecadeFromAchievement(achievementId: string): number | null {
   if (!achievementId) return null;
   
-  console.log(`🎯 [Decade Detection] Checking achievement ID: "${achievementId}"`);
   
   // Enhanced regex pattern to handle:
   // - Basic: playedIn1990s, debutedIn2000s
@@ -816,7 +806,6 @@ function extractDecadeFromAchievement(achievementId: string): number | null {
   const robustMatch = achievementId.match(robustDecadeRegex);
   if (robustMatch) {
     const decade = parseInt(robustMatch[5] + '0'); // Extract 3-digit + add 0 (robustMatch[5] is the (\d{3}) group)
-    console.log(`🎯 [Decade Detection] ✅ Robust pattern matched: ${decade}`);
     return decade;
   }
   
@@ -828,13 +817,11 @@ function extractDecadeFromAchievement(achievementId: string): number | null {
     const decadeMatch = achievementId.match(standardDecadeRegex);
     if (decadeMatch) {
       const decade = parseInt(decadeMatch[1]);
-      console.log(`🎯 [Decade Detection] ✅ Standard pattern matched: ${decade}`);
       return decade;
     }
   }
   
   
-  console.log(`🎯 [Decade Detection] ❌ No decade pattern found in: "${achievementId}"`);
   return null;
 }
 
@@ -899,7 +886,6 @@ function filterPlayersWithStagedChronology(
   minDistractors: number = 5
 ): { players: Player[]; stage: string } {
   if (targetDecade === null) {
-    console.log(`🎯 [Staged Filtering] ❌ No target decade found for ${constraint.achievementId} - skipping chronological filtering`);
     return { players, stage: 'no-decade-filtering' };
   }
   
@@ -913,8 +899,6 @@ function filterPlayersWithStagedChronology(
     { range: Infinity, label: 'no-chronological-filter' }
   ];
   
-  console.log(`🎯 [Staged Filtering] ⚡ Starting chronological filtering for ${constraint.achievementId} (decade ${targetDecade})`);
-  console.log(`🎯 [Staged Filtering] Input: ${players.length} players, Need: ${minDistractors} distractors`);
   
   for (let i = 0; i < stages.length; i++) {
     const stage = stages[i];
@@ -923,26 +907,21 @@ function filterPlayersWithStagedChronology(
     if (stage.range === Infinity) {
       // Final fallback: no chronological filtering
       filteredPlayers = players;
-      console.log(`🎯 [Staged Filtering] Stage ${i+1}/${stages.length} "${stage.label}": ${filteredPlayers.length} players (FINAL FALLBACK)`);
     } else {
       // Apply chronological filtering with current range
       filteredPlayers = players.filter(player => 
         isChronologicallyPlausibleForDecade(player, constraint.achievementId!, targetDecade, stage.range)
       );
-      console.log(`🎯 [Staged Filtering] Stage ${i+1}/${stages.length} "${stage.label}": ${filteredPlayers.length}/${players.length} players passed filter`);
     }
     
     // If we have enough distractors, use this stage
     if (filteredPlayers.length >= minDistractors) {
-      console.log(`🎯 [Staged Filtering] ✅ SUCCESS: Found ${filteredPlayers.length} players with "${stage.label}" (≥${minDistractors} required)`);
       return { players: filteredPlayers, stage: stage.label };
     }
     
-    console.log(`🎯 [Staged Filtering] ⚠️  Stage insufficient: ${filteredPlayers.length}/${minDistractors} - trying next stage`);
   }
   
   // This should never happen due to the Infinity fallback, but just in case
-  console.log(`🎯 [Staged Filtering] 🚨 EMERGENCY FALLBACK: Using all ${players.length} players (no filtering)`);
   return { players, stage: 'emergency-fallback' };
 }
 

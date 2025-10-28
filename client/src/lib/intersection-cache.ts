@@ -118,16 +118,6 @@ function buildPlayersByAchievement(
   
   // DEBUG: Log specific achievement sizes
   const played15Count = achievementMap.get('played15PlusSeasons')?.size || 0;
-  if (played15Count === 0) {
-    console.log('🐛 [buildPlayersByAchievement] played15PlusSeasons has 0 players!');
-    console.log('🐛 Sample player achievements:', players.slice(0, 3).map(p => ({ 
-      pid: p.pid, 
-      name: p.name, 
-      achievements: p.achievements ? Object.keys(p.achievements).filter(k => (p.achievements as any)[k]) : 'NO_ACHIEVEMENTS'
-    })));
-  } else {
-    // console.log(`🐛 [buildPlayersByAchievement] played15PlusSeasons has ${played15Count} players`);
-  }
   
   // Cache the result keyed by playersHash
   playersByAchievementCache.set(playersHash, achievementMap);

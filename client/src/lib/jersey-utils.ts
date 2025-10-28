@@ -105,8 +105,6 @@ export function getPlayerJerseyInfo(player: Player, teams: Team[], sport?: strin
     const rawJersey = targetSeasonInfo?.jersey || targetTeam.jersey;
     const jersey = normalizeJerseyStyle(rawJersey, sport);
 
-    console.log(`[JERSEY INFO] Player: ${player.name}, Team: ${targetTeam.abbrev}, Season: ${season}, Raw Jersey: ${rawJersey}, Normalized: ${jersey}, Colors: ${colors?.length || 0}, Sport: ${sport}`);
-
     // If team has colors, use them; otherwise provide default colors based on team abbrev
     if (colors && colors.length > 0) {
       return {
@@ -117,7 +115,6 @@ export function getPlayerJerseyInfo(player: Player, teams: Team[], sport?: strin
     } else {
       // Team exists but has no colors - provide defaults based on abbreviation
       // Use blue/white as generic defaults if we can't determine better colors
-      console.warn(`[JERSEY WARNING] Team ${targetTeam.abbrev} has no colors, using defaults`);
       return {
         colors: ['#1d4ed8', '#ffffff', '#3b82f6'], // blue, white, light blue
         jersey: jersey,

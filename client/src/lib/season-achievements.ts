@@ -1133,7 +1133,6 @@ export function buildSeasonIndex(
         const { pssYds, rusYds, rec, defSk, defTckSolo, defTckAst, defInt, pssTD, recYds, recTD, rusTD, prYds, krYds, defTckLoss, teams } = aggregatedStats;
         
         if (player.name === "[PLAYER_NAME_HERE]") {
-            console.log(`DEBUG: ${player.name} Season ${season} rusYds: ${rusYds}`);
         }
 
         // Pre-compute values once

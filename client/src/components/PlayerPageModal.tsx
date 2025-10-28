@@ -2404,18 +2404,20 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
                                         stat.season - filteredStats[idx + 1].season > 1;
 
                       // Get pitching stats
+                      // IMPORTANT: Check pitching-specific fields (hPit, bbPit, etc) BEFORE batting fields (h, bb, etc)
+                      // because pitchers have both batting and pitching stats, and batting stats are usually 0
                       const gp = stat.gp || 0;
-                      const gs = (stat as any).gs ?? (stat as any).gamesStarted ?? 0;
+                      const gs = (stat as any).gsPit ?? (stat as any).gs ?? (stat as any).gamesStarted ?? 0;
                       const ipOuts = (stat as any).outs ?? (stat as any).outsRecorded ?? 0;
                       const ip = (ipOuts / 3).toFixed(1);
                       const w = (stat as any).w ?? (stat as any).wins ?? 0;
                       const l = (stat as any).l ?? (stat as any).losses ?? 0;
                       const sv = (stat as any).sv ?? (stat as any).saves ?? 0;
                       const er = (stat as any).er ?? (stat as any).earnedRuns ?? 0;
-                      const ha = (stat as any).ha ?? (stat as any).hitsAllowed ?? (stat as any).h ?? 0;
-                      const bba = (stat as any).bba ?? (stat as any).walksAllowed ?? (stat as any).bb ?? 0;
-                      const soa = (stat as any).soa ?? (stat as any).strikeoutsThrown ?? (stat as any).so ?? (stat as any).soPit ?? 0;
-                      const hra = (stat as any).hra ?? (stat as any).homeRunsAllowed ?? (stat as any).hr ?? 0;
+                      const ha = (stat as any).hPit ?? (stat as any).ha ?? (stat as any).hitsAllowed ?? (stat as any).h ?? 0;
+                      const bba = (stat as any).bbPit ?? (stat as any).bba ?? (stat as any).walksAllowed ?? (stat as any).bb ?? 0;
+                      const soa = (stat as any).soPit ?? (stat as any).soa ?? (stat as any).strikeoutsThrown ?? (stat as any).so ?? 0;
+                      const hra = (stat as any).hrPit ?? (stat as any).hra ?? (stat as any).homeRunsAllowed ?? (stat as any).hr ?? 0;
 
                       // Calculate ERA, WHIP, K/9, BB/9
                       const ipNum = ipOuts / 3;

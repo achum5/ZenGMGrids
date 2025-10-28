@@ -252,7 +252,6 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
         
         // Debug logging for playoff series
         if (keyString.includes('playoff')) {
-          console.log('[Streaming DEBUG] Playoff key:', keyString, 'topLevelKey:', topLevelKey, 'isArrayIndex:', isArrayIndex);
         }
         
         if (isArrayIndex) {
@@ -336,7 +335,6 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
             // Capture entire playoffSeries object/array
             playoffSeries = value.value;
             const seriesCount = Array.isArray(playoffSeries) ? playoffSeries.length : Object.keys(playoffSeries || {}).length;
-            console.log('[Streaming] Captured playoff series data:', seriesCount, 'seasons');
           }
           currentArraySection = null;
         }
@@ -363,25 +361,13 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
 
 
     // Store metadata (include playoffSeries if we found any)
-    console.log('[Streaming] Preparing to store metadata. playoffSeries:', {
-      hasPlayoffSeries: !!playoffSeries,
-      type: typeof playoffSeries,
-      isArray: Array.isArray(playoffSeries),
-      keysOrLength: playoffSeries ? (Array.isArray(playoffSeries) ? playoffSeries.length : Object.keys(playoffSeries).slice(0, 5)) : null
-    });
-
     const metaData: any = { sport, playerCount, teamCount, teamSeasonCount, version, startingSeason, gameAttributes, meta };
     if (playoffSeries) {
       metaData.playoffSeries = playoffSeries;
-      const seriesCount = Array.isArray(playoffSeries) ? playoffSeries.length : Object.keys(playoffSeries).length;
-      console.log('[Streaming] Stored playoff series data:', seriesCount, 'seasons');
-    } else {
-      console.log('[Streaming] No playoff series data to store');
     }
     await db.put('meta', metaData, 'importMeta');
 
     postProgress('Import complete', 100, 100);
-    console.log('[Streaming] Import complete:', { players: playerCount, teams: teamCount, teamSeasons: teamSeasonCount });
     db.close();
     
     return 'idb-stored';
@@ -590,7 +576,6 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
         
         // Debug logging for playoff series
         if (keyString.includes('playoff')) {
-          console.log('[Streaming DEBUG] Playoff key:', keyString, 'topLevelKey:', topLevelKey, 'isArrayIndex:', isArrayIndex);
         }
         
         if (isArrayIndex) {
@@ -674,7 +659,6 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
             // Capture entire playoffSeries object/array
             playoffSeries = value.value;
             const seriesCount = Array.isArray(playoffSeries) ? playoffSeries.length : Object.keys(playoffSeries || {}).length;
-            console.log('[Streaming] Captured playoff series data:', seriesCount, 'seasons');
           }
           currentArraySection = null;
         }
@@ -703,32 +687,15 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
     const verifyTx = db.transaction('teamSeasons', 'readonly');
     const actualCount = await verifyTx.store.count();
     await verifyTx.done;
-    console.log('[Streaming URL] TeamSeasons verification:', {
-      countedDuringImport: teamSeasonCount,
-      actuallyInDB: actualCount,
-      difference: teamSeasonCount - actualCount
-    });
 
     // Store metadata (include playoffSeries if we found any)
-    console.log('[Streaming URL] Preparing to store metadata. playoffSeries:', {
-      hasPlayoffSeries: !!playoffSeries,
-      type: typeof playoffSeries,
-      isArray: Array.isArray(playoffSeries),
-      keysOrLength: playoffSeries ? (Array.isArray(playoffSeries) ? playoffSeries.length : Object.keys(playoffSeries).slice(0, 5)) : null
-    });
-
     const metaData: any = { sport, playerCount, teamCount, teamSeasonCount, version, startingSeason, gameAttributes, meta };
     if (playoffSeries) {
       metaData.playoffSeries = playoffSeries;
-      const seriesCount = Array.isArray(playoffSeries) ? playoffSeries.length : Object.keys(playoffSeries).length;
-      console.log('[Streaming URL] Stored playoff series data:', seriesCount, 'seasons');
-    } else {
-      console.log('[Streaming URL] No playoff series data to store');
     }
     await db.put('meta', metaData, 'importMeta');
 
     postProgress('Import complete', 100, 100);
-    console.log('[Streaming URL] Import complete:', { players: playerCount, teams: teamCount, teamSeasons: teamSeasonCount });
     db.close();
     
     return 'idb-stored';

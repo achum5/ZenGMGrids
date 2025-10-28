@@ -118,7 +118,6 @@ function checkConstraint(
     );
 
     if (achievement) {
-      console.log(`DEBUG: checkConstraint - Achievement found for ${baseAchievementId}`);
       let teamIdForAchievement: number | undefined;
 
       const CAREER_ACHIEVEMENTS = [
@@ -1057,7 +1056,6 @@ function formatNumber(num: number): string {
  * Handles dynamic decade achievements, Season* achievements, and other patterns
  */
 function getHumanReadableAchievementText(achievementId: string): string {
-  console.log('getHumanReadableAchievementText called with:', achievementId);
   const parsedCustom = parseCustomAchievementId(achievementId);
   if (parsedCustom) {
     // Use a default sport since we don't have the context here, but it's mostly for parsing structure.
@@ -1463,7 +1461,7 @@ function getNegativeSeasonStatMessage(player: Player, achievementId: string): st
 // Helper function to get baseball career stats
 function getBaseballCareerStats(player: Player) {
   const careerStats = {
-    h: 0, hr: 0, rbi: 0, sb: 0, r: 0, w: 0, soPit: 0, sv: 0,
+    h: 0, hr: 0, rbi: 0, sb: 0, r: 0, w: 0, so: 0, sv: 0,
   };
   if (!player.stats) return careerStats;
   player.stats.forEach((season) => {
@@ -1474,7 +1472,7 @@ function getBaseballCareerStats(player: Player) {
     careerStats.sb += (season as any).sb || 0;
     careerStats.r += (season as any).r || 0;
     careerStats.w += (season as any).w || 0;
-    careerStats.soPit += (season as any).soPit || 0;
+    careerStats.so += (season as any).soPit || 0;
     careerStats.sv += (season as any).sv || 0;
   });
   return careerStats;
@@ -1637,7 +1635,6 @@ function getHockeySeasonBests(player: Player) {
 }
 
 function getStatInfoForAchievement(baseId: string): StatInfo | null {
-    console.log('getStatInfoForAchievement called with:', baseId);
     const statMap: Record<string, StatInfo> = {
         // Basketball Career
         career20kPoints: { key: 'pts', name: 'career points', type: 'career' },
@@ -1739,7 +1736,7 @@ function getNegativeMessageForCustomAchievement(player: Player, achievementId: s
     let year: number | undefined;
 
     if (sport === 'basketball') {
-      const careerStats = getBaseballCareerStats(player);
+      const careerStats = getBasketballCareerStats(player);
       const seasonBests = getBasketballSeasonBests(player);
       if (statInfo.type === 'career') {
         actualValue = careerStats[statInfo.key as keyof typeof careerStats];

@@ -502,7 +502,6 @@ function calculateCategoryStrength(player: Player, cache: PlayerCache, achieveme
   }
   if (achievementId === 'ledAstAny') {
     const bestAPG = getBestSeasonValue(cache, 'apg', 0); // Get best assists per game
-    console.log(`${player.name} - ledAstAny strength: ${bestAPG.toFixed(3)} (best season APG)`);
     return bestAPG;
   }
   if (achievementId === 'ledStlAny') {

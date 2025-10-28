@@ -76,7 +76,6 @@ export function getAchievementOptions(
   seasonIndex?: SeasonIndex,
   leagueYears?: { minSeason: number; maxSeason: number }
 ): AchievementOption[] {
-  console.log(`🔧 [ACHIEVEMENT OPTIONS] Called with sport: ${sport}, cache version: v2`);
   const achievements = getAllAchievements(sport as any, seasonIndex, leagueYears);
   return achievements
     .filter(achievement => {

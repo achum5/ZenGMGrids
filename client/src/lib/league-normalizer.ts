@@ -295,18 +295,8 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
             if (s.season > 0) decadesPlayed.add(Math.floor(s.season / 10) * 10);
           });
 
-          // Debug: log death data from raw player
+          // Check for death data from raw player
           const deathYear = rawPlayer.diedYear ?? rawPlayer.deathYear ?? rawPlayer.died?.year;
-          if (deathYear && deathYear > 0) {
-            console.log('💀 [INGEST] Found deceased player:', {
-              pid: rawPlayer.pid,
-              name: `${rawPlayer.firstName} ${rawPlayer.lastName}`,
-              diedYear: rawPlayer.diedYear,
-              deathYear: rawPlayer.deathYear,
-              died: rawPlayer.died,
-              computed: deathYear
-            });
-          }
 
           players.push({
             pid: rawPlayer.pid,
@@ -370,9 +360,6 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
     postProgress('Processing team season records...');
 
     // Debug: Log what keys are available in raw
-    console.log('[League Normalizer] Available keys in raw:', Object.keys(raw));
-    console.log('[League Normalizer] raw.teamSeasons exists?', !!raw.teamSeasons);
-    console.log('[League Normalizer] raw.teamStats exists?', !!raw.teamStats);
 
     let teamSeasons: any[] = [];
 
@@ -380,8 +367,6 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
     let rawTeamSeasons = raw.teamSeasons || raw.teamStats;
 
     if (rawTeamSeasons) {
-      console.log('[League Normalizer] Found team data at:', raw.teamSeasons ? 'teamSeasons' : 'teamStats');
-      console.log('[League Normalizer] Sample raw record:', rawTeamSeasons[0]);
 
       teamSeasons = rawTeamSeasons.map((ts: any) => ({
         tid: ts.tid,
@@ -401,30 +386,17 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
 
       // First, identify which tids are completely missing from teamSeasons
       const tidsInTeamSeasons = new Set(teamSeasons.map(ts => ts.tid));
-      console.log('[League Normalizer] Checking for missing teams...', {
-        totalTeams: raw.teams?.length || 0,
-        tidsInTeamSeasons: tidsInTeamSeasons.size,
-        uniqueTidsInTeamSeasons: Array.from(tidsInTeamSeasons).sort((a, b) => a - b)
-      });
 
       const teamsWithoutData = raw.teams?.filter((team: any) => {
         const missing = !team.disabled && !tidsInTeamSeasons.has(team.tid) && team.seasons && Array.isArray(team.seasons);
-        if (missing) {
-          console.log('[League Normalizer] Team missing from teamSeasons:', team.abbrev, 'tid:', team.tid, 'disabled:', team.disabled, 'has seasons:', !!team.seasons);
-        }
         return missing;
       }) || [];
 
-      console.log('[League Normalizer] Teams without data count:', teamsWithoutData.length);
 
       if (teamsWithoutData.length > 0) {
-        console.log('[League Normalizer] Found teams missing from raw.teamSeasons:',
-          teamsWithoutData.map((t: any) => `${t.abbrev} (tid: ${t.tid})`));
-
         // Extract their season data from teams[].seasons
         const beforeCount = teamSeasons.length;
         for (const team of teamsWithoutData) {
-          console.log('[League Normalizer] Extracting seasons for', team.abbrev, 'seasons count:', team.seasons.length);
           for (const season of team.seasons) {
             teamSeasons.push({
               tid: team.tid,
@@ -440,11 +412,6 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
             });
           }
         }
-        console.log('[League Normalizer] Added',
-          teamSeasons.length - beforeCount,
-          'season records from teams[].seasons');
-      } else {
-        console.log('[League Normalizer] No teams missing from raw.teamSeasons');
       }
 
       // Note: The worker may have already extracted some data from teams[].seasons
@@ -452,26 +419,18 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
       // all records, so we don't need to deduplicate here.
     } else {
       // Alternative: Extract from teams[].seasons if raw.teamSeasons doesn't exist
-      console.log('[League Normalizer] No raw.teamSeasons found, extracting from teams[].seasons');
 
       if (raw.teams) {
-        console.log('[League Normalizer] Number of teams:', raw.teams.length);
 
         // Log first team structure
         if (raw.teams.length > 0) {
           const firstTeam = raw.teams[0];
-          console.log('[League Normalizer] First team keys:', Object.keys(firstTeam));
-          console.log('[League Normalizer] First team.seasons exists?', !!firstTeam.seasons);
-          console.log('[League Normalizer] First team.seasons type:', Array.isArray(firstTeam.seasons) ? 'array' : typeof firstTeam.seasons);
           if (firstTeam.seasons) {
-            console.log('[League Normalizer] First team.seasons length:', firstTeam.seasons.length);
             if (firstTeam.seasons.length > 0) {
-              console.log('[League Normalizer] First team.seasons[0]:', firstTeam.seasons[0]);
             }
           }
 
           // Also check the processed teams array
-          console.log('[League Normalizer] Processed teams[0].seasons:', teams[0]?.seasons);
         }
 
         for (const team of raw.teams) {
@@ -492,50 +451,26 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
             }
           }
         }
-        console.log('[League Normalizer] Extracted from teams[].seasons:', teamSeasons.length, 'records');
-        if (teamSeasons.length > 0) {
-          console.log('[League Normalizer] Sample record:', teamSeasons[0]);
-        }
       }
-    }
-
-    console.log('[League Normalizer] Final teamSeasons count:', teamSeasons.length, 'records');
-    if (teamSeasons.length > 0) {
-      console.log('[League Normalizer] Sample teamSeason:', teamSeasons[0]);
-    } else {
-      console.warn('[League Normalizer] No teamSeasons found in raw data');
     }
 
     // Extract playoff series data
     postProgress('Processing playoff data...');
-    console.log('[League Normalizer] Checking for playoff series in raw data...', {
-      hasPlayoffSeries: !!raw.playoffSeries,
-      typeOfPlayoffSeries: typeof raw.playoffSeries,
-      isArray: Array.isArray(raw.playoffSeries),
-      keys: raw.playoffSeries ? Object.keys(raw.playoffSeries).slice(0, 5) : null
-    });
     let playoffSeries: any[] | undefined = undefined;
     if (raw.playoffSeries) {
       // Handle both array and object formats
       if (Array.isArray(raw.playoffSeries)) {
-        console.log('[League Normalizer] Found playoff series data (array format):', raw.playoffSeries.length, 'seasons');
         playoffSeries = raw.playoffSeries.map((ps: any) => ({
           season: ps.season,
           series: ps.series || [],
         }));
       } else if (typeof raw.playoffSeries === 'object') {
         // Convert object keyed by season to array
-        console.log('[League Normalizer] Found playoff series data (object format):', Object.keys(raw.playoffSeries).length, 'seasons');
         playoffSeries = Object.keys(raw.playoffSeries).map(season => ({
           season: parseInt(season),
           series: raw.playoffSeries[season].series || raw.playoffSeries[season] || [],
         }));
       }
-      if (playoffSeries) {
-        console.log('[League Normalizer] Processed playoff series for', playoffSeries.length, 'seasons');
-      }
-    } else {
-      console.log('[League Normalizer] No playoff series data found in raw');
     }
 
     return { players, teams, sport, teamOverlaps, seasonIndex, leagueYears, teamSeasons, playoffSeries: playoffSeries || undefined };

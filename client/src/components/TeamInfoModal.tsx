@@ -153,27 +153,21 @@ const BASEBALL_GROUP_STAT_COLUMNS: Record<string, Array<{ key: string; label: st
     { key: 'w', label: 'W', tooltip: 'Wins', format: (v) => v != null ? v.toFixed(0) : '-' },
     { key: 'l', label: 'L', tooltip: 'Losses', format: (v) => v != null ? v.toFixed(0) : '-' },
     { key: 'sv', label: 'SV', tooltip: 'Saves', format: (v) => v != null ? v.toFixed(0) : '-' },
-    { key: 'ip', label: 'IP', tooltip: 'Innings Pitched', format: (v, stats) => {
-      // IP is stored as outs, convert to innings
-      const outs = stats?.outs ?? 0;
-      return (outs / 3).toFixed(1);
-    }},
-    { key: 'soPit', label: 'SO', tooltip: 'Strikeouts', format: (v, stats) => {
-      const so = stats?.soa ?? stats?.soPit ?? 0;
-      return so.toFixed(0);
-    }},
+    { key: 'ip', label: 'IP', tooltip: 'Innings Pitched', format: (v) => v != null && v > 0 ? v.toFixed(1) : '-' },
+    { key: 'h', label: 'H', tooltip: 'Hits Allowed', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'bb', label: 'BB', tooltip: 'Walks', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'so', label: 'SO', tooltip: 'Strikeouts', format: (v) => v != null ? v.toFixed(0) : '-' },
+    { key: 'hr', label: 'HR', tooltip: 'Home Runs Allowed', format: (v) => v != null ? v.toFixed(0) : '-' },
     { key: 'era', label: 'ERA', tooltip: 'Earned Run Average', format: (v, stats) => {
       const er = stats?.er ?? 0;
-      const outs = stats?.outs ?? 0;
-      const ip = outs / 3;
-      return ip > 0 ? ((er * 9) / ip).toFixed(2) : '0.00';
+      const ip = stats?.ip ?? 0;
+      return ip > 0 ? ((er * 9) / ip).toFixed(2) : '-';
     }},
     { key: 'whip', label: 'WHIP', tooltip: 'Walks plus Hits per Inning Pitched', format: (v, stats) => {
-      const ha = stats?.ha ?? stats?.hitsAllowed ?? stats?.h ?? 0;
-      const bba = stats?.bba ?? stats?.walksAllowed ?? stats?.bb ?? 0;
-      const outs = stats?.outs ?? 0;
-      const ip = outs / 3;
-      return ip > 0 ? ((ha + bba) / ip).toFixed(2) : '0.00';
+      const h = stats?.h ?? 0;
+      const bb = stats?.bb ?? 0;
+      const ip = stats?.ip ?? 0;
+      return ip > 0 ? ((h + bb) / ip).toFixed(2) : '-';
     }},
   ],
 };
@@ -511,12 +505,13 @@ export function TeamInfoModal({
         // Calculate available space between logo bottom and header bottom
         const availableHeight = headerRect.bottom - logoRect.bottom;
 
-        // Position banner below logo with some padding
-        const top = logoRect.bottom - headerRect.top + 8;
-        const left = logoRect.left - headerRect.left + logoRect.width - 70;
+        // Size based on available height - increased for mobile to make banner, logo, and text larger
+        // Minimum 64px, maximum 96px (was 32-64px)
+        const width = Math.min(Math.max(availableHeight * 0.7, 64), 96);
 
-        // Size based on available height (aim for 60% of available space)
-        const width = Math.min(Math.max(availableHeight * 0.4, 32), 64);
+        // Position banner below logo - fine-tuned positioning
+        const top = logoRect.bottom - headerRect.top - 12; // Moved further up
+        const left = logoRect.left - headerRect.left + logoRect.width - width - 13; // Moved 2px right from -15
 
         setBannerPosition({ top, left, width });
       }
@@ -768,13 +763,13 @@ export function TeamInfoModal({
 
           {/* Championship Banner - Positioned next to team info */}
           {isTeamChampion && (
-            <div className="hidden lg:block absolute right-[28rem] xl:right-[34rem] top-4">
+            <div className="hidden lg:block absolute right-[28rem] xl:right-[34rem] top-2">
               <ChampionBanner
                 season={season}
                 teamAbbrev={teamAbbrev}
                 teamColors={teamColors}
                 teamLogo={teamLogo}
-                className="w-20 xl:w-24"
+                className="w-24 xl:w-28"
                 onClick={() => setChampionshipsModalOpen(true)}
               />
             </div>
@@ -795,7 +790,7 @@ export function TeamInfoModal({
                 teamAbbrev={teamAbbrev}
                 teamColors={teamColors}
                 teamLogo={teamLogo}
-                size="small"
+                size="default"
                 onClick={() => setChampionshipsModalOpen(true)}
               />
             </div>

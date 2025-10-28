@@ -106,7 +106,6 @@ export function computeRarityForGuess(opts: {
         });
         return result.finalRarity;
       } catch (error) {
-        console.warn('Cell-aware rarity calculation failed, falling back to enhanced system:', error);
       }
     }
   }

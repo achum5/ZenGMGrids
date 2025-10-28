@@ -1418,7 +1418,6 @@ export function playerMeetsAchievement(
         const teamData = seasonData[teamId];
         if (teamData) {
           const result = teamData[achievementId as keyof typeof teamData]?.has(player.pid) || false;
-          if (DEBUG) console.log(`🐛 [playerMeetsAchievement] Specific season/team check for ${achievementId}, Season: ${season}, Team: ${teamId}, Result: ${result}`);
           return result;
         }
       }
@@ -1429,7 +1428,6 @@ export function playerMeetsAchievement(
         const seasonData = seasonIndex[parseInt(seasonStr)];
         const teamData = seasonData[teamId];
         if (teamData && teamData[achievementId as keyof typeof teamData]?.has(player.pid)) {
-          if (DEBUG) console.log(`🐛 [playerMeetsAchievement] Team-only check for ${achievementId}, Team: ${teamId}, Found in season: ${seasonStr}, Result: true`);
           return true;
         }
       }
@@ -1440,7 +1438,6 @@ export function playerMeetsAchievement(
         const seasonData = seasonIndex[parseInt(seasonStr)];
         for (const teamData of Object.values(seasonData)) {
           if (teamData[achievementId as keyof typeof teamData]?.has(player.pid)) {
-            if (DEBUG) console.log(`🐛 [playerMeetsAchievement] General statistical check for ${achievementId}, Found in season: ${seasonStr}, Result: true`);
             return true;
           }
         }
@@ -1597,8 +1594,6 @@ export function debugIndividualAchievements(players: Player[], seasonIndex?: Sea
   const DEBUG = import.meta.env.VITE_DEBUG === 'true';
   if (!DEBUG) return;
   
-  console.log(`🧪 [DEBUG] Testing individual achievements`);
-  console.log(`   Players: ${players.length}, SeasonIndex: ${!!seasonIndex}`);
   
   // Only run detailed analysis if explicitly debugging - removed verbose loops for performance
 }
@@ -2486,9 +2481,7 @@ export function getViableAchievements(
     const DEBUG = import.meta.env.VITE_DEBUG === 'true';
     if (DEBUG) {
       if (hasEnough) {
-        console.log(`✓ ${achievement.id}: ${qualifyingPlayers.length} players`);
       } else {
-        console.log(`✗ ${achievement.id}: only ${qualifyingPlayers.length} players (need ${Math.max(minCount, achievement.minPlayers)})`);
       }
     }
     

@@ -147,7 +147,6 @@ export async function deleteLeague(id: string): Promise<void> {
   if (league?.isMetadataOnly && league.idbName) {
     try {
       await deleteLeagueIDB(league.idbName);
-      console.log(`[Storage] Deleted league-specific database: ${league.idbName}`);
     } catch (error) {
       console.error(`[Storage] Failed to delete league database ${league.idbName}:`, error);
     }
@@ -254,7 +253,6 @@ export async function bulkDeleteLeagues(ids: string[]): Promise<number> {
       if (league?.isMetadataOnly && league.idbName) {
         try {
           await deleteLeagueIDB(league.idbName);
-          console.log(`[Storage] Deleted league-specific database: ${league.idbName}`);
         } catch (error) {
           console.error(`[Storage] Failed to delete league database ${league.idbName}:`, error);
         }

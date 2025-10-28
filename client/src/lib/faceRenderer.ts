@@ -144,11 +144,6 @@ export async function getPlayerImage(p: PlayerLite): Promise<{type: "url" | "svg
       }
 
       // Render the face with jersey colors
-      console.log(`[RENDER FACE] ${p.name}: Passing to faces.js:`, {
-        jersey: faceToRender.jersey,
-        accessoriesJersey: faceToRender.accessories?.jersey,
-        teamColors: faceToRender.teamColors
-      });
       display(tempContainer, faceToRender);
 
       // Wait for multiple frames to ensure rendering is complete (important for mobile)

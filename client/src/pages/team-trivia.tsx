@@ -447,7 +447,12 @@ function getTeamPlayoffResult(
   leagueData: LeagueData,
   tid: number,
   season: number
-): { label: string; value: number; seriesScore: string | null; numRounds: number } {
+): { label: string; value: number; seriesScore: string | null; numRounds: number } | null {
+  // Check if any playoff data exists in the league at all
+  if (!leagueData.playoffSeries || leagueData.playoffSeries.length === 0) {
+    return null;
+  }
+
   let finishLabel = 'Missed Playoffs';
   let finishValue = -1;
   let seriesScore: string | null = null;
@@ -543,7 +548,7 @@ function calculateTeamStats(
   tid: number,
   season: number,
   roster: any[]
-): { wins: number; losses: number; teamRating: number; avgAge: number; playoffResult: string } | undefined {
+): { wins: number; losses: number; teamRating: number; avgAge: number; playoffResult?: string } | undefined {
   // Get team season record
   const teamSeason = leagueData.teamSeasons?.find(
     ts => ts.tid === tid && ts.season === season && !ts.playoffs
@@ -606,14 +611,15 @@ function calculateTeamStats(
     }
   }
 
-  const playoffResult = getTeamPlayoffResult(leagueData, tid, season).label;
+  const playoffData = getTeamPlayoffResult(leagueData, tid, season);
+  const playoffResult = playoffData?.label;
 
   return {
     wins,
     losses,
     teamRating,
     avgAge,
-    playoffResult,
+    ...(playoffResult ? { playoffResult } : {}),
   };
 }
 
@@ -693,13 +699,19 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
   const hasInitialized = useRef(false);
 
   // Get sport-specific round order
-  const ROUND_ORDER = leagueData.sport === 'football' 
-    ? FOOTBALL_ROUND_ORDER 
+  const baseRoundOrder = leagueData.sport === 'football'
+    ? FOOTBALL_ROUND_ORDER
     : leagueData.sport === 'baseball'
     ? BASEBALL_ROUND_ORDER
     : leagueData.sport === 'hockey'
     ? HOCKEY_ROUND_ORDER
     : BASKETBALL_ROUND_ORDER;
+
+  // Filter out playoff-finish round if no playoffs exist in the league
+  const hasPlayoffs = leagueData.playoffSeries && leagueData.playoffSeries.length > 0;
+  const ROUND_ORDER = hasPlayoffs
+    ? baseRoundOrder
+    : baseRoundOrder.filter(round => round !== 'playoff-finish');
 
   // Get sport-specific instructions
   const getRoundInstruction = (round: RoundType): string => {
@@ -849,11 +861,18 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
       return null;
     }
 
-    const { label: finishLabel, value: finishValue, seriesScore, numRounds } = getTeamPlayoffResult(
+    const playoffResult = getTeamPlayoffResult(
       leagueData,
       selectedTeam.tid,
       selectedSeason
     );
+
+    // If no playoffs exist in the league, return null
+    if (!playoffResult) {
+      return null;
+    }
+
+    const { label: finishLabel, value: finishValue, seriesScore, numRounds } = playoffResult;
 
     const result = {
       finishLabel,
@@ -1688,7 +1707,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
           stats = {};
         }
 
-        // For hockey, augment raw season stats with computed totals for TeamInfoModal
+        // For hockey and baseball, augment raw season stats with computed totals for TeamInfoModal
         let augmentedSeasonStats = seasonStats;
         if (leagueData.sport === 'hockey') {
           if (position === 'G') {
@@ -1712,6 +1731,44 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
               a: assists,
               pts: points,
             };
+          }
+        } else if (leagueData.sport === 'baseball') {
+          const isPitcher = position === 'SP' || position === 'RP' || position === 'P';
+
+          // Check if this is a pitching row by looking for outs or ip
+          const hasOuts = seasonStats.outs != null && seasonStats.outs > 0;
+          const hasIp = seasonStats.ip != null && seasonStats.ip > 0;
+
+          if (isPitcher && (hasOuts || hasIp)) {
+            // Pitcher stats - convert outs to IP if needed, and normalize field names
+            let ip: number;
+            if (hasOuts) {
+              const outs = seasonStats.outs ?? 0;
+              const ipWhole = Math.floor(outs / 3);
+              const ipRemainder = outs % 3;
+              ip = ipWhole + (ipRemainder / 10); // Convert to decimal (e.g., 125.1)
+            } else {
+              ip = seasonStats.ip; // IP already provided
+            }
+
+            // Baseball GM stores both batting and pitching stats in same object
+            // For pitchers, use the "Pit" suffix versions (hPit, bbPit, soPit, hrPit)
+            const h = seasonStats.hPit ?? seasonStats.h;
+            const bb = seasonStats.bbPit ?? seasonStats.bb;
+            const so = seasonStats.soPit ?? seasonStats.so;
+            const hr = seasonStats.hrPit ?? seasonStats.hr;
+
+            augmentedSeasonStats = {
+              ...seasonStats,
+              ip: ip,
+              h: h ?? 0,
+              bb: bb ?? 0,
+              so: so ?? 0,
+              hr: hr ?? 0,
+            };
+          } else {
+            // Hitter stats - already have the right keys
+            augmentedSeasonStats = { ...seasonStats };
           }
         }
 
