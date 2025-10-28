@@ -449,9 +449,6 @@ function generateTestFunction(
         const thresholdDecimal = newThreshold / 100;
         return (player: Player) => checkSeasonPercentage(player, 'faceoffPct', thresholdDecimal, operator, 1, 1, sport);
       }
-      if (baseAchievement.id === 'HKSeason22TOI') {
-        return (player: Player) => checkSeasonAverage(player, 'toi', newThreshold, operator, 1, sport);
-      }
       if (baseAchievement.id === 'HKSeason920SavePct') {
         const thresholdDecimal = newThreshold / 1000; // Save percentage is usually .920, so divide by 1000
         return (player: Player) => checkSeasonPercentage(player, 'savePct', thresholdDecimal, operator, 1, 1, sport);

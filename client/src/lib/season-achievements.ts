@@ -98,7 +98,6 @@ export type SeasonAchievementId =
   | 'HKSeason3SHGoals'
   | 'HKSeason7GWGoals'
   | 'HKSeason55FaceoffPct'
-  | 'HKSeason22TOI'
   | 'HKSeason70PIM'
   | 'HKSeason920SavePct'
   | 'HKSeason260GAA'
@@ -1371,12 +1370,7 @@ export function buildSeasonIndex(
         if (faceoffTotal >= 600 && faceoffPct >= 0.55) {
           addAchievement('HKSeason55FaceoffPct');
         }
-        
-        // Check for 22:00+ TOI per game achievement
-        if (toiPerGame >= 22) {
-          addAchievement('HKSeason22TOI');
-        }
-        
+
         // Check for 70+ PIM achievement
         if (pim >= 70) {
           addAchievement('HKSeason70PIM');
@@ -1986,12 +1980,6 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
   {
     id: 'HKSeason55FaceoffPct',
     label: '55%+ Faceoff Win Rate (Season)',
-    isSeasonSpecific: true,
-    minPlayers: 3
-  },
-  {
-    id: 'HKSeason22TOI',
-    label: '22:00+ TOI per Game (Season)',
     isSeasonSpecific: true,
     minPlayers: 3
   },

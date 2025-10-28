@@ -1,7 +1,7 @@
 {
   "name": "ZenGM Grids",
   "short_name": "Grids",
-  "description": "Play the Immaculate Grid game with your ZenGM league files",
+  "description": "Grids & Team Trivia mini-games for ZenGM (zengm.com)—upload your league files and play across all four sports.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0b2a5b",

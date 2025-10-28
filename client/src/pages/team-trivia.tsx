@@ -2924,9 +2924,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                 style={{ position: 'relative', backgroundColor: teamDisplayInfo.colors[0] || 'hsl(var(--card))' }}
               >
           <div className="max-w-6xl mx-auto px-6 py-4">
-            <div className="grid grid-cols-3 items-center gap-4">
+            <div className="grid grid-cols-3 items-center gap-2 sm:gap-4">
               {/* Left: Back button & Give Up button */}
-              <div className="flex items-center justify-start space-x-1 shrink-0">
+              <div className="flex items-center justify-start space-x-1 shrink-0 min-w-0">
                 {hasProgress ? (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -3007,9 +3007,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
               </div>
 
               {/* Center: Logo + Title */}
-              <div className="flex items-center justify-center space-x-3 min-w-0">
+              <div className="flex items-center justify-center space-x-1 sm:space-x-2 md:space-x-3 min-w-0">
                 <div
-                  className="w-8 h-8 sm:w-10 sm:h-10 shrink-0"
+                  className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 shrink-0"
                   style={{
                     backgroundColor: teamDisplayInfo.colors[1] || 'hsl(var(--primary))',
                     maskImage: `url(${sportIcon})`,
@@ -3023,7 +3023,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                   }}
                 />
                 <h1
-                  className="text-sm sm:text-base md:text-lg lg:text-2xl font-bold whitespace-nowrap"
+                  className="text-xs sm:text-sm md:text-base lg:text-lg xl:text-2xl font-bold whitespace-nowrap overflow-hidden text-ellipsis min-w-0"
                   style={{
                     color: teamDisplayInfo.colors[1] || 'hsl(var(--primary))',
                     letterSpacing: '-0.02em'
@@ -3034,7 +3034,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
               </div>
 
               {/* Right: Help & Home buttons */}
-              <div className="flex items-center justify-end space-x-1 shrink-0">
+              <div className="flex items-center justify-end space-x-1 shrink-0 min-w-0">
                 {/* Help button */}
                 <Button
                   variant="ghost"

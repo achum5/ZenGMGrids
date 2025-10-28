@@ -169,13 +169,15 @@ function attemptGridGenerationOldRandom(leagueData: LeagueData): {
     .filter(achievement => achievement.id !== 'bornOutsideUS50DC') // Temporarily remove born outside US achievement
     .map(achievement => {
       const { achievement: flippedAchievement, operator } = maybeFlipAchievementOperator(achievement);
+      // Convert Unicode operator to ASCII for playerMeetsAchievement
+      const asciiOperator = operator === '≤' ? '<=' : '>=';
       return {
         key: `achievement-${flippedAchievement.id}`,
         label: flippedAchievement.label,
         achievementId: flippedAchievement.id,
         achv: mapAchievementToAchv(flippedAchievement),
         type: 'achievement' as const,
-        test: (p: Player) => playerMeetsAchievement(p, flippedAchievement.id, seasonIndex),
+        test: (p: Player) => playerMeetsAchievement(p, flippedAchievement.id, seasonIndex, asciiOperator),
         operator,
       };
     });

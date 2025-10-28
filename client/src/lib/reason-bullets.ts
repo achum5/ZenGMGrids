@@ -100,7 +100,6 @@ const SEASON_ACHIEVEMENT_LABELS: Partial<Record<SeasonAchievementId, string>> = 
   HKSeason3SHGoals: '3+ Short-Handed Goals (Season)',
   HKSeason7GWGoals: '7+ Game-Winning Goals (Season)',
   HKSeason55FaceoffPct: '55%+ Faceoff Win Rate (Season)',
-  HKSeason22TOI: '22:00+ TOI per Game (Season)',
   HKSeason70PIM: '70+ PIM (Season)',
   HKSeason920SavePct: '.920+ Save Percentage (Season)',
   HKSeason260GAA: '≤2.60 GAA (Season)',
@@ -427,11 +426,6 @@ export function getSeasonsForSeasonStatAchievement(player: Player, achievementId
         const faceoffTotal = fow + fol;
         const faceoffPct = faceoffTotal > 0 ? fow / faceoffTotal : 0;
         if (faceoffTotal >= 600 && check(faceoffPct, customThreshold !== undefined ? customThreshold / 100 : 0.55, customOperator || '≥')) qualifyingSeasons.push(season);
-        break;
-      }
-      case 'HKSeason22TOI': {
-        const toiPerGame = gp > 0 ? min / gp : 0;
-        if (check(toiPerGame, customThreshold !== undefined ? customThreshold : 22, customOperator || '≥')) qualifyingSeasons.push(season);
         break;
       }
       case 'HKSeason70PIM':

@@ -681,12 +681,6 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     verbTeam: 'had a 55%+ faceoff win rate in a season',
     verbGeneric: 'had a 55%+ faceoff win rate in a season'
   },
-  HKSeason22TOI: {
-    label: '22:00+ TOI per Game (Season)',
-    short: '22:00+ TOI/Game',
-    verbTeam: 'averaged 22:00+ TOI per game in a season',
-    verbGeneric: 'averaged 22:00+ TOI per game in a season'
-  },
   HKSeason70PIM: {
     label: '70+ PIM (Season)',
     short: '70+ PIM',
@@ -913,7 +907,6 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     HKSeason3SHGoals: ['3+ SH Goals', '3 short-handed goals'],
     HKSeason7GWGoals: ['7+ GW Goals', '7 game-winning goals'],
     HKSeason55FaceoffPct: ['55%+ Faceoff %', '55% faceoff'],
-    HKSeason22TOI: ['22+ TOI/GP', '22 minutes time on ice'],
     HKSeason70PIM: ['70+ PIM', '70 penalty minutes'],
     HKSeason920SavePct: ['.920+ Save %', '920 save percentage'],
     HKSeason260GAA: ['2.60- GAA', '2.60 goals against'],

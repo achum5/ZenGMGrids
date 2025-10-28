@@ -1610,8 +1610,8 @@ export default function Home() {
         style={{ position: 'relative' }}
       >
         <div className="max-w-6xl mx-auto px-6 py-4">
-          <div className="relative flex items-center justify-start md:justify-center">
-            <div className="absolute left-0 flex items-center space-x-1">
+          <div className="relative flex items-center justify-center">
+            <div className="absolute left-0 flex items-center space-x-1 z-10">
               {hasGuesses ? (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -1640,8 +1640,8 @@ export default function Home() {
                 </Button>
               )}
             </div>
-            <div className="flex items-center space-x-3">
-              <img 
+            <div className="flex items-center space-x-2 sm:space-x-3 max-w-[calc(100%-8rem)] sm:max-w-none min-w-0">
+              <img
                 src={
                   leagueData?.sport === 'basketball' ? basketballIcon :
                   leagueData?.sport === 'football' ? footballIcon :
@@ -1649,17 +1649,17 @@ export default function Home() {
                   leagueData?.sport === 'baseball' ? baseballIcon :
                   zengmGridsLogo
                 }
-                alt={`${leagueData?.sport || 'Sports'} icon`} 
-                className="w-10 h-10 object-contain header-logo"
+                alt={`${leagueData?.sport || 'Sports'} icon`}
+                className="w-8 h-8 sm:w-10 sm:h-10 object-contain header-logo shrink-0"
               />
-              <h1 className="text-base sm:text-lg md:text-2xl header-title">
+              <h1 className="text-sm sm:text-base md:text-lg lg:text-2xl header-title whitespace-nowrap overflow-hidden text-ellipsis min-w-0">
                 {leagueData?.sport === 'basketball' && 'Basketball GM Grids'}
                 {leagueData?.sport === 'football' && 'Football GM Grids'}
                 {leagueData?.sport === 'hockey' && 'ZenGM Hockey Grids'}
                 {leagueData?.sport === 'baseball' && 'ZenGM Baseball Grids'}
               </h1>
             </div>
-            <div className="absolute right-0 flex items-center space-x-1">
+            <div className="absolute right-0 flex items-center space-x-1 z-10">
               <div>
                 <RulesModal sport={leagueData?.sport} />
               </div>
