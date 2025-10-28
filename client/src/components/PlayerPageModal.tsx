@@ -1128,7 +1128,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
 
         {/* Awards & Honors */}
         {player.awards && player.awards.length > 0 && (
-          <div className="mt-8">
+          <div className="mt-8 sm:max-w-[60%]">
             <TooltipProvider>
               <div className="flex flex-wrap gap-2">
                 {(() => {
@@ -1266,15 +1266,6 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
                   }
                 });
 
-                // Only show "ROY, then MVP" if both awards have been earned by the current season
-                if (player.achievements?.royLaterMVP) {
-                  const hasRoyBySeason = filteredAwards.some(a => a.type === "Rookie of the Year");
-                  const hasMvpBySeason = filteredAwards.some(a => a.type === "Most Valuable Player");
-                  if (hasRoyBySeason && hasMvpBySeason) {
-                    condensedAwards.push({ text: "ROY, then MVP", years: [] });
-                  }
-                }
-
                 // Sort to put Hall of Fame first
                 const sortedAwards = condensedAwards.sort((a, b) => {
                   if (a.isHallOfFame && !b.isHallOfFame) return -1;
@@ -1283,9 +1274,30 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
                 });
 
                 return sortedAwards.map((award, idx) => {
-                  const yearsText = award.years.length > 0
-                    ? award.years.join(', ')
-                    : 'Achievement unlocked';
+                  // Format consecutive years with hyphens (e.g., 2020-2023 instead of 2020, 2021, 2022, 2023)
+                  const formatYears = (years: number[]): string => {
+                    if (years.length === 0) return 'Achievement unlocked';
+                    if (years.length === 1) return years[0].toString();
+
+                    const ranges: string[] = [];
+                    let rangeStart = years[0];
+                    let rangeEnd = years[0];
+
+                    for (let i = 1; i < years.length; i++) {
+                      if (years[i] === rangeEnd + 1) {
+                        rangeEnd = years[i];
+                      } else {
+                        ranges.push(rangeStart === rangeEnd ? `${rangeStart}` : `${rangeStart}-${rangeEnd}`);
+                        rangeStart = years[i];
+                        rangeEnd = years[i];
+                      }
+                    }
+                    ranges.push(rangeStart === rangeEnd ? `${rangeStart}` : `${rangeStart}-${rangeEnd}`);
+
+                    return ranges.join(', ');
+                  };
+
+                  const yearsText = formatYears(award.years);
 
                   return (
                     <Tooltip key={idx} delayDuration={300}>
@@ -1302,7 +1314,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
                           </Badge>
                         </span>
                       </TooltipTrigger>
-                      <TooltipContent side="top" className="z-[9999]">
+                      <TooltipContent side="top" sideOffset={8}>
                         <p className="text-xs">{yearsText}</p>
                       </TooltipContent>
                     </Tooltip>
