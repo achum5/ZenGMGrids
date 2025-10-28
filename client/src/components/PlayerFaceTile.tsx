@@ -23,7 +23,7 @@ export function PlayerFaceTile({ player, teams, sport, season, teamId }: PlayerF
       season={season}
       teamId={teamId}
       className="h-full"
-      svgClassName="translate-x-[-20px] scale-90 sm:translate-x-[-24px]"
+      svgClassName="translate-x-0 scale-90 sm:translate-x-0"
     />
   );
 }
