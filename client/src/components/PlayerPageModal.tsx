@@ -2412,10 +2412,10 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
                       const l = (stat as any).l ?? (stat as any).losses ?? 0;
                       const sv = (stat as any).sv ?? (stat as any).saves ?? 0;
                       const er = (stat as any).er ?? (stat as any).earnedRuns ?? 0;
-                      const ha = (stat as any).ha ?? (stat as any).hitsAllowed ?? 0;
-                      const bba = (stat as any).bba ?? (stat as any).walksAllowed ?? 0;
-                      const soa = (stat as any).soa ?? (stat as any).strikeoutsThrown ?? 0;
-                      const hra = (stat as any).hra ?? (stat as any).homeRunsAllowed ?? 0;
+                      const ha = (stat as any).ha ?? (stat as any).hitsAllowed ?? (stat as any).h ?? 0;
+                      const bba = (stat as any).bba ?? (stat as any).walksAllowed ?? (stat as any).bb ?? 0;
+                      const soa = (stat as any).soa ?? (stat as any).strikeoutsThrown ?? (stat as any).so ?? (stat as any).soPit ?? 0;
+                      const hra = (stat as any).hra ?? (stat as any).homeRunsAllowed ?? (stat as any).hr ?? 0;
 
                       // Calculate ERA, WHIP, K/9, BB/9
                       const ipNum = ipOuts / 3;

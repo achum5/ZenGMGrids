@@ -2886,7 +2886,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--foreground))', borderColor: teamDisplayInfo.colors[1] || 'hsl(var(--border))' }}>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel style={{ backgroundColor: teamDisplayInfo.colors[0] || 'hsl(var(--background))', color: teamDisplayInfo.colors[1] || 'hsl(var(--foreground))', borderColor: teamDisplayInfo.colors[1] || 'hsl(var(--border))' }}>Cancel</AlertDialogCancel>
                         <AlertDialogAction onClick={onBackToModeSelect} className="animate-on-click" style={{ backgroundColor: teamDisplayInfo.colors[1] || 'hsl(var(--primary))', color: teamDisplayInfo.colors[0] || 'hsl(var(--primary-foreground))' }}>Go Back</AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -2925,7 +2925,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--foreground))', borderColor: teamDisplayInfo.colors[1] || 'hsl(var(--border))' }}>Cancel</AlertDialogCancel>
+                          <AlertDialogCancel style={{ backgroundColor: teamDisplayInfo.colors[0] || 'hsl(var(--background))', color: teamDisplayInfo.colors[1] || 'hsl(var(--foreground))', borderColor: teamDisplayInfo.colors[1] || 'hsl(var(--border))' }}>Cancel</AlertDialogCancel>
                           <AlertDialogAction onClick={handleGiveUp} className="animate-on-click" style={{ backgroundColor: teamDisplayInfo.colors[1] || 'hsl(var(--primary))', color: teamDisplayInfo.colors[0] || 'hsl(var(--primary-foreground))' }}>Give Up</AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
@@ -3007,7 +3007,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--foreground))', borderColor: teamDisplayInfo.colors[1] || 'hsl(var(--border))' }}>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel style={{ backgroundColor: teamDisplayInfo.colors[0] || 'hsl(var(--background))', color: teamDisplayInfo.colors[1] || 'hsl(var(--foreground))', borderColor: teamDisplayInfo.colors[1] || 'hsl(var(--border))' }}>Cancel</AlertDialogCancel>
                         <AlertDialogAction onClick={onGoHome} className="animate-on-click" style={{ backgroundColor: teamDisplayInfo.colors[1] || 'hsl(var(--primary))', color: teamDisplayInfo.colors[0] || 'hsl(var(--primary-foreground))' }}>Go Home</AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -3369,12 +3369,12 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                     onClick={() => {
                       if (isLeaderRound) {
                         handleTileClick(rp.player.pid);
-                      } else if (rp.revealed) {
+                      } else if (rp.revealed && currentRound === 'complete') {
                         setSelectedPlayerForPage(rp.player);
                       }
                     }}
                     className={`relative flex flex-col items-center gap-0.5 p-1 sm:p-2 md:p-3 rounded sm:rounded-md md:rounded-lg transition-all hover:scale-[1.02] ${
-                      isLeaderRound || rp.revealed ? 'cursor-pointer' : ''
+                      isLeaderRound || (rp.revealed && currentRound === 'complete') ? 'cursor-pointer' : ''
                     } ${
                       rp.revealed
                         ? 'neon-glow-success shadow-lg shadow-green-500/50'

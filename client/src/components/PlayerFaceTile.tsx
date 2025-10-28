@@ -24,6 +24,7 @@ export function PlayerFaceTile({ player, teams, sport, season, teamId }: PlayerF
       teamId={teamId}
       className="h-full"
       svgClassName="translate-x-0 scale-90 sm:translate-x-0"
+      imgClassName="object-contain mt-[21px]"
     />
   );
 }

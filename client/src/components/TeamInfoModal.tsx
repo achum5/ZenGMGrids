@@ -169,8 +169,8 @@ const BASEBALL_GROUP_STAT_COLUMNS: Record<string, Array<{ key: string; label: st
       return ip > 0 ? ((er * 9) / ip).toFixed(2) : '0.00';
     }},
     { key: 'whip', label: 'WHIP', tooltip: 'Walks plus Hits per Inning Pitched', format: (v, stats) => {
-      const ha = stats?.ha ?? stats?.hitsAllowed ?? 0;
-      const bba = stats?.bba ?? stats?.walksAllowed ?? 0;
+      const ha = stats?.ha ?? stats?.hitsAllowed ?? stats?.h ?? 0;
+      const bba = stats?.bba ?? stats?.walksAllowed ?? stats?.bb ?? 0;
       const outs = stats?.outs ?? 0;
       const ip = outs / 3;
       return ip > 0 ? ((ha + bba) / ip).toFixed(2) : '0.00';

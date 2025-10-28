@@ -179,13 +179,26 @@ export interface Player {
     asts?: number; // Assists (alternative field name)
 
     // Baseball-specific stats
-    h?: number; // Hits
-    hr?: number; // Home runs
+    h?: number; // Hits (batting)
+    hr?: number; // Home runs (batting)
     rbi?: number; // Runs batted in
     sb?: number; // Stolen bases
     r?: number; // Runs
+    ab?: number; // At bats
+    bb?: number; // Walks (batting)
+    so?: number; // Strikeouts (batting)
+    // Baseball pitching stats
     w?: number; // Wins (pitcher)
-    soPit?: number; // Strikeouts (pitcher)
+    l?: number; // Losses (pitcher)
+    sv?: number; // Saves (pitcher)
+    soPit?: number; // Strikeouts (pitcher) - alternative field
+    gs?: number; // Games started (pitcher)
+    outs?: number; // Outs recorded (innings pitched * 3)
+    er?: number; // Earned runs
+    ha?: number; // Hits allowed
+    bba?: number; // Walks allowed (bases on balls)
+    soa?: number; // Strikeouts allowed/thrown
+    hra?: number; // Home runs allowed
   }>;
   achievements?: Record<string, boolean | any>;
   // New: Season-specific data for same-season alignment

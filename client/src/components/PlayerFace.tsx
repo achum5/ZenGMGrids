@@ -59,7 +59,7 @@ export function PlayerFace({ pid, name, imgURL, face, size = 110, hideName = fal
     <div className="flex h-full w-full flex-col items-center justify-center p-1 gap-1 pointer-events-none">
       {/* Face box: square that scales with tile; leaves room for the name */}
       <div
-        className="w-full max-h-[90%] aspect-square overflow-hidden rounded-xl bg-transparent"
+        className={`w-full max-h-[90%] aspect-square overflow-hidden rounded-xl bg-transparent ${kind === "url" ? 'flex items-center justify-center' : ''}`}
       >
         {kind === "url" && (
           <img
@@ -67,7 +67,10 @@ export function PlayerFace({ pid, name, imgURL, face, size = 110, hideName = fal
             alt={name}
             className="block w-full h-full object-contain"
             draggable={false}
-            style={{ transform: `translateX(${isMobile ? '2px' : '-7px'})` }}
+            style={{
+              transform: `translateX(${isMobile ? '2px' : '-7px'}) translateY(15%)`,
+              objectPosition: 'center'
+            }}
           />
         )}
 
