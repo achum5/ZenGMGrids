@@ -389,7 +389,6 @@ export function TeamInfoModal({
 }: TeamInfoModalProps) {
   const [playoffPopoverOpen, setPlayoffPopoverOpen] = useState(false);
   const [championshipsModalOpen, setChampionshipsModalOpen] = useState(false);
-  const [bannerPosition, setBannerPosition] = useState({ top: 0, left: 0, width: 0 });
 
   const logoRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -487,47 +486,6 @@ export function TeamInfoModal({
     if (!teamTid || !teams || teams.length === 0) return [];
     return getAllChampionships(teams, teamTid, allPlayoffSeries);
   }, [teams, teamTid, allPlayoffSeries]);
-
-  // Calculate banner position dynamically on mobile
-  useEffect(() => {
-    if (!isTeamChampion) return;
-
-    const calculatePosition = () => {
-      if (window.innerWidth >= 1024) return; // Only for mobile (< lg breakpoint)
-
-      const logo = logoRef.current;
-      const header = headerRef.current;
-
-      if (logo && header) {
-        const logoRect = logo.getBoundingClientRect();
-        const headerRect = header.getBoundingClientRect();
-
-        // Calculate available space between logo bottom and header bottom
-        const availableHeight = headerRect.bottom - logoRect.bottom;
-
-        // Size based on available height - small banner for mobile
-        // Minimum 40px, maximum 60px
-        const width = Math.min(Math.max(availableHeight * 0.5, 40), 60);
-
-        // Position banner below logo - fine-tuned positioning
-        const top = logoRect.bottom - headerRect.top - 12; // Moved further up
-        const left = logoRect.left - headerRect.left + logoRect.width - width - 13; // Moved 2px right from -15
-
-        setBannerPosition({ top, left, width });
-      }
-    };
-
-    calculatePosition();
-    window.addEventListener('resize', calculatePosition);
-
-    // Recalculate after a short delay to account for content loading
-    const timer = setTimeout(calculatePosition, 100);
-
-    return () => {
-      window.removeEventListener('resize', calculatePosition);
-      clearTimeout(timer);
-    };
-  }, [isTeamChampion, open]);
 
   // Extract playoff series info for this team
   const teamPlayoffSeries = useMemo(() => {
@@ -766,6 +724,25 @@ export function TeamInfoModal({
                             }))
                           }
                         </div>
+
+                        {/* Championship Banner - Mobile only */}
+                        {isTeamChampion && (
+                          <div className="lg:hidden mt-4 flex justify-center">
+                            <div className="w-20">
+                              <ChampionBanner
+                                season={season}
+                                teamAbbrev={teamAbbrev}
+                                teamColors={teamColors}
+                                teamLogo={teamLogo}
+                                size="small"
+                                onClick={() => {
+                                  setPlayoffPopoverOpen(false);
+                                  setChampionshipsModalOpen(true);
+                                }}
+                              />
+                            </div>
+                          </div>
+                        )}
                       </PopoverContent>
                     </Popover>
                     )}
@@ -781,7 +758,7 @@ export function TeamInfoModal({
             )}
           </div>
 
-          {/* Championship Banner - Positioned next to team info */}
+          {/* Championship Banner - Desktop only (Positioned next to team info) */}
           {isTeamChampion && (
             <div className="hidden lg:block absolute right-[28rem] xl:right-[34rem] top-2">
               <ChampionBanner
@@ -790,27 +767,6 @@ export function TeamInfoModal({
                 teamColors={teamColors}
                 teamLogo={teamLogo}
                 className="w-20 xl:w-24"
-                onClick={() => setChampionshipsModalOpen(true)}
-              />
-            </div>
-          )}
-
-          {/* Championship Banner - Mobile (Dynamically sized and positioned) */}
-          {isTeamChampion && bannerPosition.width > 0 && (
-            <div
-              className="lg:hidden absolute z-30"
-              style={{
-                top: `${bannerPosition.top}px`,
-                left: `${bannerPosition.left}px`,
-                width: `${bannerPosition.width}px`
-              }}
-            >
-              <ChampionBanner
-                season={season}
-                teamAbbrev={teamAbbrev}
-                teamColors={teamColors}
-                teamLogo={teamLogo}
-                size="small"
                 onClick={() => setChampionshipsModalOpen(true)}
               />
             </div>
