@@ -28,8 +28,10 @@ export interface StoredLeague extends LeagueMetadata {
   leagueData?: LeagueData;
 }
 
+let migrationPromise: Promise<void> | null = null;
+
 async function getDB(): Promise<IDBPDatabase> {
-  return openDB(DB_NAME, DB_VERSION, {
+  const db = await openDB(DB_NAME, DB_VERSION, {
     upgrade(db, oldVersion) {
       // Create new stores if they don't exist
       if (!db.objectStoreNames.contains(METADATA_STORE)) {
@@ -39,34 +41,48 @@ async function getDB(): Promise<IDBPDatabase> {
         db.createObjectStore(LEAGUE_DATA_STORE, { keyPath: 'id' });
       }
 
-      // Migrate from v1 to v2: split leagues store into metadata + leagueData
-      if (oldVersion < 2 && db.objectStoreNames.contains('leagues')) {
-        // Migration happens in a separate async function after upgrade
-        console.log('[Storage] Will migrate from v1 to v2 after database opens');
+      // Delete old store if it exists
+      if (db.objectStoreNames.contains('leagues')) {
+        db.deleteObjectStore('leagues');
       }
     },
   });
+  
+  // Wait for migration to complete if it's running
+  if (migrationPromise) {
+    await migrationPromise;
+  }
+  
+  return db;
 }
 
 // Perform migration after database is ready
 async function migrateV1ToV2() {
   try {
-    // Open with old version to check if migration needed
-    const checkDb = await openDB(DB_NAME);
+    // Open database to check if migration is needed
+    const checkDb = await openDB(DB_NAME, 1);
     if (!checkDb.objectStoreNames.contains('leagues')) {
       checkDb.close();
-      return; // Already migrated
+      return; // No old store, nothing to migrate
     }
+    
+    // Get all old leagues before upgrading
+    const tx = checkDb.transaction('leagues', 'readonly');
+    const allLeagues = await tx.objectStore('leagues').getAll();
+    await tx.done;
     checkDb.close();
 
-    // Perform migration
-    const db = await getDB();
-    const tx = db.transaction(['leagues', METADATA_STORE, LEAGUE_DATA_STORE], 'readwrite');
-    const oldStore = tx.objectStore('leagues');
-    const metadataStore = tx.objectStore(METADATA_STORE);
-    const leagueDataStore = tx.objectStore(LEAGUE_DATA_STORE);
+    if (allLeagues.length === 0) {
+      return; // Nothing to migrate
+    }
 
-    const allLeagues = await oldStore.getAll();
+    // Now upgrade to v2, which will delete the old store and create new ones
+    const db = await openDB(DB_NAME, DB_VERSION);
+    
+    // Migrate data to new stores
+    const writeTx = db.transaction([METADATA_STORE, LEAGUE_DATA_STORE], 'readwrite');
+    const metadataStore = writeTx.objectStore(METADATA_STORE);
+    const leagueDataStore = writeTx.objectStore(LEAGUE_DATA_STORE);
 
     for (const league of allLeagues) {
       // Split into metadata and league data
@@ -94,26 +110,22 @@ async function migrateV1ToV2() {
       }
     }
 
-    await tx.done;
-
-    // Delete old store
-    const deleteDb = await openDB(DB_NAME, 3, {
-      upgrade(db) {
-        if (db.objectStoreNames.contains('leagues')) {
-          db.deleteObjectStore('leagues');
-        }
-      },
-    });
-    deleteDb.close();
+    await writeTx.done;
+    db.close();
 
     console.log(`[Storage] Migrated ${allLeagues.length} leagues from v1 to v2`);
   } catch (error) {
-    console.error('[Storage] Migration failed:', error);
+    // Ignore errors - likely means old store doesn't exist or already migrated
+    if (error instanceof Error && !error.message.includes('VersionError')) {
+      console.error('[Storage] Migration failed:', error);
+    }
   }
 }
 
-// Call migration on module load
-migrateV1ToV2();
+// Call migration on module load (runs once, doesn't block)
+migrationPromise = migrateV1ToV2().finally(() => {
+  migrationPromise = null;
+});
 
 export async function saveLeague(
   name: string,
