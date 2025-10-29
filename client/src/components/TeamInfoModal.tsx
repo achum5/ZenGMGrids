@@ -810,7 +810,7 @@ export function TeamInfoModal({
                 teamAbbrev={teamAbbrev}
                 teamColors={teamColors}
                 teamLogo={teamLogo}
-                size="default"
+                size="small"
                 onClick={() => setChampionshipsModalOpen(true)}
               />
             </div>
