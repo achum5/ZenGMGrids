@@ -59,8 +59,19 @@ async function getDB(): Promise<IDBPDatabase> {
 // Perform migration after database is ready
 async function migrateV1ToV2() {
   try {
-    // Open database to check if migration is needed
+    // First, check current database version
+    const dbs = await indexedDB.databases();
+    const existingDb = dbs.find(db => db.name === DB_NAME);
+    
+    // If database doesn't exist or is already v2+, no migration needed
+    if (!existingDb || !existingDb.version || existingDb.version >= DB_VERSION) {
+      return;
+    }
+
+    // Open at v1 to check for old data
     const checkDb = await openDB(DB_NAME, 1);
+    
+    // Check if old 'leagues' store exists
     if (!checkDb.objectStoreNames.contains('leagues')) {
       checkDb.close();
       return; // No old store, nothing to migrate
@@ -115,9 +126,10 @@ async function migrateV1ToV2() {
 
     console.log(`[Storage] Migrated ${allLeagues.length} leagues from v1 to v2`);
   } catch (error) {
-    // Ignore errors - likely means old store doesn't exist or already migrated
-    if (error instanceof Error && !error.message.includes('VersionError')) {
-      console.error('[Storage] Migration failed:', error);
+    // Silently fail - likely means no migration needed
+    // Only log if it's not a version error
+    if (error instanceof Error && !error.message.includes('VersionError') && !error.message.includes('version')) {
+      console.error('[Storage] Migration error:', error);
     }
   }
 }
