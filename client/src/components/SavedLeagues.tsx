@@ -39,6 +39,11 @@ export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: 
       setLeagues(allLeagues);
     } catch (error) {
       console.error('Error loading leagues:', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown',
+        stack: error instanceof Error ? error.stack : undefined,
+        error
+      });
     } finally {
       setLoading(false);
     }

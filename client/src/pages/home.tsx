@@ -878,6 +878,11 @@ export default function Home() {
         });
       } catch (error) {
         console.error('Error saving league:', error);
+        console.error('Error details:', {
+          message: error instanceof Error ? error.message : 'Unknown',
+          stack: error instanceof Error ? error.stack : undefined,
+          error
+        });
         // Don't show error toast - saving is optional
       }
     }

@@ -2,7 +2,7 @@ import { openDB, type IDBPDatabase } from 'idb';
 import type { LeagueData } from '@/types/bbgm';
 
 const DB_NAME = 'ZenGMGridsLeagues';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = 'leagues';
 
 export interface StoredLeague {
