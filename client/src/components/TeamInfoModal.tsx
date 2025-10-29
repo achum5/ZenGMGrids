@@ -505,9 +505,9 @@ export function TeamInfoModal({
         // Calculate available space between logo bottom and header bottom
         const availableHeight = headerRect.bottom - logoRect.bottom;
 
-        // Size based on available height - increased for mobile to make banner, logo, and text larger
-        // Minimum 64px, maximum 96px (was 32-64px)
-        const width = Math.min(Math.max(availableHeight * 0.7, 64), 96);
+        // Size based on available height - small banner for mobile
+        // Minimum 40px, maximum 60px
+        const width = Math.min(Math.max(availableHeight * 0.5, 40), 60);
 
         // Position banner below logo - fine-tuned positioning
         const top = logoRect.bottom - headerRect.top - 12; // Moved further up
