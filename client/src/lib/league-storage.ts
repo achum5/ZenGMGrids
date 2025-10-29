@@ -171,29 +171,59 @@ export async function deleteLeagueIDB(dbName: string): Promise<void> {
 
 export async function updateLeagueName(id: string, newName: string): Promise<void> {
   const db = await getDB();
-  const league = await db.get(STORE_NAME, id);
-  if (league) {
+  
+  // Use a transaction with cursor to update in-place without loading full leagueData
+  const tx = db.transaction(STORE_NAME, 'readwrite');
+  const store = tx.objectStore(STORE_NAME);
+  
+  // Open a cursor to get the record
+  const cursor = await store.openCursor(id);
+  
+  if (cursor) {
+    const league = cursor.value;
     league.name = newName;
-    await db.put(STORE_NAME, league);
+    await cursor.update(league);
   }
+  
+  await tx.done;
 }
 
 export async function updateLastPlayed(id: string): Promise<void> {
   const db = await getDB();
-  const league = await db.get(STORE_NAME, id);
-  if (league) {
+  
+  // Use a transaction with cursor to update in-place without loading full leagueData
+  const tx = db.transaction(STORE_NAME, 'readwrite');
+  const store = tx.objectStore(STORE_NAME);
+  
+  // Open a cursor to get the record
+  const cursor = await store.openCursor(id);
+  
+  if (cursor) {
+    const league = cursor.value;
     league.lastPlayed = Date.now();
-    await db.put(STORE_NAME, league);
+    await cursor.update(league);
   }
+  
+  await tx.done;
 }
 
 export async function updateYearRange(id: string, yearRange: [number, number]): Promise<void> {
   const db = await getDB();
-  const league = await db.get(STORE_NAME, id);
-  if (league) {
+  
+  // Use a transaction with cursor to update in-place without loading full leagueData
+  const tx = db.transaction(STORE_NAME, 'readwrite');
+  const store = tx.objectStore(STORE_NAME);
+  
+  // Open a cursor to get the record
+  const cursor = await store.openCursor(id);
+  
+  if (cursor) {
+    const league = cursor.value;
     league.yearRange = yearRange;
-    await db.put(STORE_NAME, league);
+    await cursor.update(league);
   }
+  
+  await tx.done;
 }
 
 export function formatFileSize(bytes: number | undefined): string {
@@ -226,11 +256,21 @@ export function formatDate(timestamp: number): string {
  */
 export async function toggleLeagueStarred(id: string): Promise<void> {
   const db = await getDB();
-  const league = await db.get(STORE_NAME, id);
-  if (league) {
+  
+  // Use a transaction with cursor to update in-place without loading full leagueData
+  const tx = db.transaction(STORE_NAME, 'readwrite');
+  const store = tx.objectStore(STORE_NAME);
+  
+  // Open a cursor to get the record
+  const cursor = await store.openCursor(id);
+  
+  if (cursor) {
+    const league = cursor.value;
     league.starred = !league.starred;
-    await db.put(STORE_NAME, league);
+    await cursor.update(league);
   }
+  
+  await tx.done;
 }
 
 /**
