@@ -789,7 +789,7 @@ export function TeamInfoModal({
                 teamAbbrev={teamAbbrev}
                 teamColors={teamColors}
                 teamLogo={teamLogo}
-                className="w-24 xl:w-28"
+                className="w-20 xl:w-24"
                 onClick={() => setChampionshipsModalOpen(true)}
               />
             </div>
