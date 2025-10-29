@@ -473,8 +473,8 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
       }
     }
 
-    return { players, teams, sport, teamOverlaps, seasonIndex, leagueYears, teamSeasons, playoffSeries: playoffSeries || undefined };
-  
+    return { players, teams, sport, teamOverlaps, seasonIndex, leagueYears, teamSeasons, playoffSeries: playoffSeries || undefined, meta: raw.meta };
+
   } catch (error) {
     console.error('Error in normalizeLeague:', error);
     throw error;

@@ -308,11 +308,14 @@ export interface PlayoffSeriesTeam {
   seed?: number;
   won: number;
   lost?: number;
+  pts?: number; // Points scored in a single-game playoff
 }
 
 export interface PlayoffSeriesMatchup {
   home: PlayoffSeriesTeam;
   away: PlayoffSeriesTeam;
+  gids?: number[]; // Game IDs for this series
+  [key: string]: any; // Allow other fields from BBGM
 }
 
 export interface PlayoffSeasonData {
@@ -333,6 +336,7 @@ export interface LeagueData {
   leagueYears?: { minSeason: number; maxSeason: number };
   gameAttributes?: any; // Add gameAttributes here
   playoffSeries?: PlayoffSeasonData[]; // Playoff bracket data by season
+  meta?: any; // League metadata from the raw file (includes name, etc.)
 }
 
 import type { Achv } from '@/lib/types';

@@ -818,18 +818,37 @@ export default function Home() {
       try {
         setUploadProgress({ message: 'Saving league...', loaded: 95, total: 100 });
 
-        // Extract league name from gameAttributes
-        // gameAttributes is an array of {key, value} pairs
-        let leagueName = '';
-        if (Array.isArray(data.gameAttributes)) {
-          const leagueNameEntry = data.gameAttributes.find(attr => attr.key === 'leagueName');
-          if (leagueNameEntry) {
-            leagueName = leagueNameEntry.value;
-          }
-        }
+        // Extract league name from meta.name in the uploaded file
+        // Fallback to cleaned filename if no meta.name found
+        let leagueName = data.meta?.name || '';
 
         // Fallback to cleaned filename if no league name found
-        const cleanName = leagueName || fileName.replace(/\.(json|gz)$/gi, '').replace(/\./g, ' ');
+        let extractedName = '';
+        if (!leagueName) {
+          // Remove file extensions and URL parameters first
+          let cleanedName = fileName.split('?')[0].replace(/\.(json|gz)$/gi, '');
+
+          // Remove sport prefixes (BBGM_, FBGM_, ZGMH_, ZGMB_)
+          cleanedName = cleanedName.replace(/^(?:BBGM|FBGM|ZGMH|ZGMB)_/i, '');
+
+          // Remove year patterns with surrounding separators
+          // Matches: _2025_, -2025-, _2025, -2025, etc.
+          cleanedName = cleanedName.replace(/[-_]\d{4}[-_]/g, ' ');
+          cleanedName = cleanedName.replace(/[-_]\d{4}$/g, '');
+
+          // Remove common suffixes
+          cleanedName = cleanedName.replace(/[-_](preseason|playoffs|regular[-_]?season|postseason|draft[-_]?update|season)$/gi, '');
+
+          // Replace underscores and dashes with spaces
+          cleanedName = cleanedName.replace(/[_-]+/g, ' ');
+
+          // Clean up multiple spaces and dots
+          cleanedName = cleanedName.replace(/\.+/g, ' ').replace(/\s+/g, ' ').trim();
+
+          extractedName = cleanedName;
+        }
+
+        const cleanName = leagueName || extractedName;
 
         // MOBILE FIX: Use lightweight metadata-only save for large files on mobile
         if (isMobile && isHugeFile && data.idbName) {

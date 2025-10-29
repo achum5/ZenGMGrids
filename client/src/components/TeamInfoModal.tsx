@@ -560,12 +560,19 @@ export function TeamInfoModal({
       opponentWon: number;
       opponentLost: number;
       won: boolean;
+      teamPts?: number; // Actual points scored (for single-game playoffs)
+      opponentPts?: number; // Opponent's points scored (for single-game playoffs)
     }> = [];
 
     playoffSeriesData.series.forEach((round, roundIndex) => {
       round.forEach(matchup => {
         // Safety check: ensure matchup has home and away data
         if (!matchup?.home || !matchup?.away) return;
+
+        // Debug: Log first matchup to see available data
+        if (roundIndex === 0 && series.length === 0) {
+          console.log('[TeamInfoModal] Playoff matchup data sample:', matchup);
+        }
 
         if (matchup.home.tid === teamTid) {
           const opponentTeam = teams.find(t => t.tid === matchup.away.tid);
@@ -579,6 +586,8 @@ export function TeamInfoModal({
             opponentWon: matchup.away.won,
             opponentLost: matchup.away.lost || 0,
             won: matchup.home.won > matchup.away.won,
+            teamPts: matchup.home.pts,
+            opponentPts: matchup.away.pts,
           });
         } else if (matchup.away.tid === teamTid) {
           const opponentTeam = teams.find(t => t.tid === matchup.home.tid);
@@ -592,6 +601,8 @@ export function TeamInfoModal({
             opponentWon: matchup.home.won,
             opponentLost: matchup.home.lost || 0,
             won: matchup.away.won > matchup.home.won,
+            teamPts: matchup.away.pts,
+            opponentPts: matchup.home.pts,
           });
         }
       });
@@ -716,9 +727,18 @@ export function TeamInfoModal({
                           ) : (
                             teamPlayoffSeries.map((s, idx) => {
                             const isSingleGame = s.teamWon + s.teamLost === 1 && s.opponentWon + s.opponentLost === 1;
-                            const higherScore = Math.max(s.teamWon, s.opponentWon);
-                            const lowerScore = Math.min(s.teamWon, s.opponentWon);
-                            const scoreDisplay = `${s.won ? 'W' : 'L'} ${higherScore}-${lowerScore}`;
+
+                            // For single-game playoffs, use actual game scores if available
+                            let scoreDisplay: string;
+                            if (isSingleGame && s.teamPts !== undefined && s.opponentPts !== undefined) {
+                              // Use actual game scores
+                              scoreDisplay = `${s.won ? 'W' : 'L'} ${s.teamPts}-${s.opponentPts}`;
+                            } else {
+                              // Use series wins/losses (for multi-game series)
+                              const higherScore = Math.max(s.teamWon, s.opponentWon);
+                              const lowerScore = Math.min(s.teamWon, s.opponentWon);
+                              scoreDisplay = `${s.won ? 'W' : 'L'} ${higherScore}-${lowerScore}`;
+                            }
 
                               return (
                                 <button
@@ -835,6 +855,8 @@ export function TeamInfoModal({
                           <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Player</th>
                           <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Position">Pos</th>
                           <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Age">Age</th>
+                          <th className="text-right py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Overall Rating">Ovr</th>
+                          <th className="text-right py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Potential Rating">Pot</th>
                           <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Games Played">GP</th>
                           {groupStatColumns.map((col) => (
                             <th key={col.key} className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title={col.tooltip}>
@@ -861,6 +883,8 @@ export function TeamInfoModal({
                             </td>
                             <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.position || '-'}</td>
                             <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.age || '-'}</td>
+                            <td className="text-right py-3 px-2 text-sm font-medium" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>{playerInfo.ovr || '-'}</td>
+                            <td className="text-right py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.pot || '-'}</td>
                             <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.gamesPlayed}</td>
                             {groupStatColumns.map((col) => (
                               <td key={col.key} className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
@@ -909,6 +933,8 @@ export function TeamInfoModal({
                           <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Player</th>
                           <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Position">Pos</th>
                           <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Age">Age</th>
+                          <th className="text-right py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Overall Rating">Ovr</th>
+                          <th className="text-right py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Potential Rating">Pot</th>
                           <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Games Played">GP</th>
                           {groupStatColumns.map((col) => (
                             <th key={col.key} className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title={col.tooltip}>
@@ -935,6 +961,8 @@ export function TeamInfoModal({
                             </td>
                             <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.position || '-'}</td>
                             <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.age || '-'}</td>
+                            <td className="text-right py-3 px-2 text-sm font-medium" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>{playerInfo.ovr || '-'}</td>
+                            <td className="text-right py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.pot || '-'}</td>
                             <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.gamesPlayed}</td>
                             {groupStatColumns.map((col) => (
                               <td key={col.key} className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
@@ -982,8 +1010,8 @@ export function TeamInfoModal({
                           <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Player</th>
                           <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Position">Pos</th>
                           <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Age">Age</th>
-                          <th className="text-right py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help sticky right-[75px] md:right-[80px] z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }} title="Overall Rating">Ovr</th>
-                          <th className="text-right py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help sticky right-[40px] md:right-[40px] z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }} title="Potential Rating">Pot</th>
+                          <th className="text-right py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Overall Rating">Ovr</th>
+                          <th className="text-right py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Potential Rating">Pot</th>
                           <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Years With Team">YWT</th>
                           <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Games Played">GP</th>
                           {groupStatColumns.map((col) => (
@@ -1004,8 +1032,8 @@ export function TeamInfoModal({
                             </td>
                             <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.position || '-'}</td>
                             <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.age || '-'}</td>
-                            <td className="text-right py-3 px-2 text-sm font-medium sticky right-[75px] md:right-[80px] z-10" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>{playerInfo.ovr || '-'}</td>
-                            <td className="text-right py-3 px-2 text-sm sticky right-[40px] md:right-[40px] z-10" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)', backgroundColor: primaryColor }}>{playerInfo.pot || '-'}</td>
+                            <td className="text-right py-3 px-2 text-sm font-medium" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>{playerInfo.ovr || '-'}</td>
+                            <td className="text-right py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.pot || '-'}</td>
                             <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.yearsWithTeam}</td>
                             <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.gamesPlayed}</td>
                             {groupStatColumns.map((col) => (
@@ -1029,8 +1057,8 @@ export function TeamInfoModal({
                   <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Player</th>
                   <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Position">Pos</th>
                   <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Age">Age</th>
-                  <th className="text-right py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help sticky right-[75px] md:right-[80px] z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }} title="Overall Rating">Ovr</th>
-                  <th className="text-right py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help sticky right-[40px] md:right-[40px] z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }} title="Potential Rating">Pot</th>
+                  <th className="text-right py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Overall Rating">Ovr</th>
+                  <th className="text-right py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Potential Rating">Pot</th>
                   <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Years With Team">YWT</th>
                   <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Games Played">GP</th>
                   {statColumns.map((col) => (
@@ -1051,8 +1079,8 @@ export function TeamInfoModal({
                     </td>
                     <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.position || '-'}</td>
                     <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.age || '-'}</td>
-                    <td className="text-right py-3 px-2 text-sm font-medium sticky right-[75px] md:right-[80px] z-10" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>{playerInfo.ovr || '-'}</td>
-                    <td className="text-right py-3 px-2 text-sm sticky right-[40px] md:right-[40px] z-10" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)', backgroundColor: primaryColor }}>{playerInfo.pot || '-'}</td>
+                    <td className="text-right py-3 px-2 text-sm font-medium" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>{playerInfo.ovr || '-'}</td>
+                    <td className="text-right py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.pot || '-'}</td>
                     <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.yearsWithTeam}</td>
                     <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.gamesPlayed}</td>
                     {statColumns.map((col, colIdx) => (
