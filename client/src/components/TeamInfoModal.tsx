@@ -734,7 +734,7 @@ export function TeamInfoModal({
                                 teamAbbrev={teamAbbrev}
                                 teamColors={teamColors}
                                 teamLogo={teamLogo}
-                                size="small"
+                                size="default"
                                 onClick={() => {
                                   setPlayoffPopoverOpen(false);
                                   setChampionshipsModalOpen(true);
