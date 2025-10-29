@@ -583,9 +583,6 @@ export default function Home() {
         await processLeagueData(data);
       } else {
         // Normal save with full league data - process without saving (already saved)
-        if (!storedLeague.leagueData) {
-          throw new Error('League data not found');
-        }
         await processLeagueData(storedLeague.leagueData);
       }
 

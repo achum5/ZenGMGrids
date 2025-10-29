@@ -29,7 +29,7 @@ export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
-  const [actionLoading, setActionLoading] = useState<{ id: string; action: 'delete' } | null>(null);
+  const [actionLoading, setActionLoading] = useState<{ id: string; action: 'star' | 'delete' | 'rename' } | null>(null);
   const { toast } = useToast();
 
   const loadLeagues = async () => {
@@ -71,20 +71,22 @@ export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: 
 
   const handleSaveEdit = async (id: string) => {
     if (editName.trim()) {
-      // Optimistically update UI (no loading state needed - instant operation)
-      setLeagues(prev => prev.map(l =>
-        l.id === id ? { ...l, name: editName.trim() } : l
-      ));
-      setEditingId(null);
-      setEditName('');
-
-      // Update in background - now only touches metadata (instant)
+      setActionLoading({ id, action: 'rename' });
       try {
+        // Optimistically update UI
+        setLeagues(prev => prev.map(l =>
+          l.id === id ? { ...l, name: editName.trim() } : l
+        ));
+        setEditingId(null);
+        setEditName('');
+        // Update in background
         await updateLeagueName(id, editName.trim());
       } catch (error) {
         console.error('Error updating league name:', error);
         // On error, reload to restore correct state
         await loadLeagues();
+      } finally {
+        setActionLoading(null);
       }
     } else {
       setEditingId(null);
@@ -98,18 +100,20 @@ export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: 
   };
 
   const handleToggleStar = async (id: string) => {
-    // Optimistically update UI (no loading state needed - instant operation)
-    setLeagues(prev => prev.map(l =>
-      l.id === id ? { ...l, starred: !l.starred } : l
-    ));
-
-    // Update in background - now only touches metadata (instant)
+    setActionLoading({ id, action: 'star' });
     try {
+      // Optimistically update UI
+      setLeagues(prev => prev.map(l =>
+        l.id === id ? { ...l, starred: !l.starred } : l
+      ));
+      // Update in background
       await toggleLeagueStarred(id);
     } catch (error) {
       console.error('Error toggling star:', error);
       // On error, reload to restore correct state
       await loadLeagues();
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -357,14 +361,19 @@ export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: 
                     className="h-7 w-7 p-0"
                     data-testid={`button-star-${league.id}`}
                     aria-label={league.starred ? 'Unstar league' : 'Star league'}
+                    disabled={actionLoading?.id === league.id && actionLoading?.action === 'star'}
                   >
-                    <Star
-                      className={`w-3 h-3 ${
-                        league.starred
-                          ? 'fill-yellow-400 text-yellow-400'
-                          : 'text-muted-foreground'
-                      }`}
-                    />
+                    {actionLoading?.id === league.id && actionLoading?.action === 'star' ? (
+                      <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+                    ) : (
+                      <Star
+                        className={`w-3 h-3 ${
+                          league.starred
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'text-muted-foreground'
+                        }`}
+                      />
+                    )}
                   </Button>
 
                   <Button
@@ -373,8 +382,13 @@ export function SavedLeagues({ onLoadLeague, loadingLeagueId, uploadProgress }: 
                     onClick={() => handleStartEdit(league)}
                     className="h-7 w-7 p-0"
                     data-testid={`button-edit-${league.id}`}
+                    disabled={actionLoading?.id === league.id && actionLoading?.action === 'rename'}
                   >
-                    <Edit2 className="w-3 h-3" />
+                    {actionLoading?.id === league.id && actionLoading?.action === 'rename' ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Edit2 className="w-3 h-3" />
+                    )}
                   </Button>
 
                   <Button

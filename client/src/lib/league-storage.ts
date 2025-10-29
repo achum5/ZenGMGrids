@@ -2,142 +2,35 @@ import { openDB, type IDBPDatabase } from 'idb';
 import type { LeagueData } from '@/types/bbgm';
 
 const DB_NAME = 'ZenGMGridsLeagues';
-const DB_VERSION = 2; // Incremented for metadata/data separation
-const METADATA_STORE = 'metadata';
-const LEAGUE_DATA_STORE = 'leagueData';
+const DB_VERSION = 1;
+const STORE_NAME = 'leagues';
 
-// Metadata only - lightweight for UI operations
-export interface LeagueMetadata {
+export interface StoredLeague {
   id: string;
   name: string;
   sport: 'basketball' | 'football' | 'hockey' | 'baseball';
   savedAt: number;
-  lastPlayed?: number;
+  lastPlayed?: number; // Last time this league was loaded/played
+  leagueData: LeagueData;
   fileSize?: number;
   numPlayers?: number;
   numTeams?: number;
   seasons?: { min: number; max: number };
   isMetadataOnly?: boolean; // Flag for lightweight saves that reference separate IDB
   idbName?: string; // Name of the IndexedDB database storing the actual data (for metadata-only saves)
-  starred?: boolean;
-  yearRange?: [number, number];
+  starred?: boolean; // Flag for favorited/starred leagues
+  yearRange?: [number, number]; // Year range setting for team trivia randomizer
 }
-
-// For backward compatibility - includes league data when loaded
-export interface StoredLeague extends LeagueMetadata {
-  leagueData?: LeagueData;
-}
-
-let migrationPromise: Promise<void> | null = null;
 
 async function getDB(): Promise<IDBPDatabase> {
-  const db = await openDB(DB_NAME, DB_VERSION, {
-    upgrade(db, oldVersion) {
-      // Create new stores if they don't exist
-      if (!db.objectStoreNames.contains(METADATA_STORE)) {
-        db.createObjectStore(METADATA_STORE, { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains(LEAGUE_DATA_STORE)) {
-        db.createObjectStore(LEAGUE_DATA_STORE, { keyPath: 'id' });
-      }
-
-      // Delete old store if it exists
-      if (db.objectStoreNames.contains('leagues')) {
-        db.deleteObjectStore('leagues');
+  return openDB(DB_NAME, DB_VERSION, {
+    upgrade(db) {
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
       }
     },
   });
-  
-  // Wait for migration to complete if it's running
-  if (migrationPromise) {
-    await migrationPromise;
-  }
-  
-  return db;
 }
-
-// Perform migration after database is ready
-async function migrateV1ToV2() {
-  try {
-    // First, check current database version
-    const dbs = await indexedDB.databases();
-    const existingDb = dbs.find(db => db.name === DB_NAME);
-    
-    // If database doesn't exist or is already v2+, no migration needed
-    if (!existingDb || !existingDb.version || existingDb.version >= DB_VERSION) {
-      return;
-    }
-
-    // Open at v1 to check for old data
-    const checkDb = await openDB(DB_NAME, 1);
-    
-    // Check if old 'leagues' store exists
-    if (!checkDb.objectStoreNames.contains('leagues')) {
-      checkDb.close();
-      return; // No old store, nothing to migrate
-    }
-    
-    // Get all old leagues before upgrading
-    const tx = checkDb.transaction('leagues', 'readonly');
-    const allLeagues = await tx.objectStore('leagues').getAll();
-    await tx.done;
-    checkDb.close();
-
-    if (allLeagues.length === 0) {
-      return; // Nothing to migrate
-    }
-
-    // Now upgrade to v2, which will delete the old store and create new ones
-    const db = await openDB(DB_NAME, DB_VERSION);
-    
-    // Migrate data to new stores
-    const writeTx = db.transaction([METADATA_STORE, LEAGUE_DATA_STORE], 'readwrite');
-    const metadataStore = writeTx.objectStore(METADATA_STORE);
-    const leagueDataStore = writeTx.objectStore(LEAGUE_DATA_STORE);
-
-    for (const league of allLeagues) {
-      // Split into metadata and league data
-      const metadata: LeagueMetadata = {
-        id: league.id,
-        name: league.name,
-        sport: league.sport,
-        savedAt: league.savedAt,
-        lastPlayed: league.lastPlayed,
-        fileSize: league.fileSize,
-        numPlayers: league.numPlayers,
-        numTeams: league.numTeams,
-        seasons: league.seasons,
-        isMetadataOnly: league.isMetadataOnly,
-        idbName: league.idbName,
-        starred: league.starred,
-        yearRange: league.yearRange,
-      };
-
-      await metadataStore.put(metadata);
-
-      // Only store league data if not metadata-only
-      if (!league.isMetadataOnly && league.leagueData) {
-        await leagueDataStore.put({ id: league.id, leagueData: league.leagueData });
-      }
-    }
-
-    await writeTx.done;
-    db.close();
-
-    console.log(`[Storage] Migrated ${allLeagues.length} leagues from v1 to v2`);
-  } catch (error) {
-    // Silently fail - likely means no migration needed
-    // Only log if it's not a version error
-    if (error instanceof Error && !error.message.includes('VersionError') && !error.message.includes('version')) {
-      console.error('[Storage] Migration error:', error);
-    }
-  }
-}
-
-// Call migration on module load (runs once, doesn't block)
-migrationPromise = migrateV1ToV2().finally(() => {
-  migrationPromise = null;
-});
 
 export async function saveLeague(
   name: string,
@@ -146,14 +39,14 @@ export async function saveLeague(
   fileSize?: number
 ): Promise<string> {
   const db = await getDB();
-
+  
   // Generate unique ID based on timestamp
   const id = `league_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
+  
   // Calculate metadata
   const numPlayers = leagueData.players?.length || 0;
   const numTeams = leagueData.teams?.length || 0;
-
+  
   // Find season range
   let seasons: { min: number; max: number } | undefined;
   if (leagueData.players && leagueData.players.length > 0) {
@@ -170,24 +63,20 @@ export async function saveLeague(
       seasons = { min: seasonArr[0], max: seasonArr[seasonArr.length - 1] };
     }
   }
-
-  // Save metadata
-  const metadata: LeagueMetadata = {
+  
+  const storedLeague: StoredLeague = {
     id,
     name,
     sport,
     savedAt: Date.now(),
+    leagueData,
     fileSize,
     numPlayers,
     numTeams,
     seasons,
   };
-
-  const tx = db.transaction([METADATA_STORE, LEAGUE_DATA_STORE], 'readwrite');
-  await tx.objectStore(METADATA_STORE).put(metadata);
-  await tx.objectStore(LEAGUE_DATA_STORE).put({ id, leagueData });
-  await tx.done;
-
+  
+  await db.put(STORE_NAME, storedLeague);
   return id;
 }
 
@@ -205,16 +94,17 @@ export async function saveLeagueMetadata(
   seasons?: { min: number; max: number }
 ): Promise<string> {
   const db = await getDB();
-
+  
   // Generate unique ID based on timestamp
   const id = `league_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
+  
   // Store only metadata - the actual data is in a league-specific IDB
-  const metadata: LeagueMetadata = {
+  const storedLeague: StoredLeague = {
     id,
     name,
     sport,
     savedAt: Date.now(),
+    leagueData: {} as LeagueData, // Empty placeholder
     fileSize,
     numPlayers,
     numTeams,
@@ -222,17 +112,17 @@ export async function saveLeagueMetadata(
     isMetadataOnly: true, // Flag indicating this references separate IDB
     idbName, // The database name where the actual data is stored
   };
-
-  await db.put(METADATA_STORE, metadata);
+  
+  await db.put(STORE_NAME, storedLeague);
   return id;
 }
 
 export async function getAllLeagues(): Promise<StoredLeague[]> {
   const db = await getDB();
-  const metadata = await db.getAll(METADATA_STORE);
+  const leagues = await db.getAll(STORE_NAME);
 
   // Sort by lastPlayed descending (most recently played first), fallback to savedAt
-  return metadata.sort((a, b) => {
+  return leagues.sort((a, b) => {
     const aTime = a.lastPlayed || a.savedAt;
     const bTime = b.lastPlayed || b.savedAt;
     return bTime - aTime;
@@ -241,41 +131,24 @@ export async function getAllLeagues(): Promise<StoredLeague[]> {
 
 export async function getLeague(id: string): Promise<StoredLeague | undefined> {
   const db = await getDB();
-
-  // Get metadata
-  const metadata = await db.get(METADATA_STORE, id);
-  if (!metadata) return undefined;
-
-  // If metadata-only (league data in separate IDB), return just metadata
-  if (metadata.isMetadataOnly) {
-    return metadata;
-  }
-
-  // Get league data
-  const dataEntry = await db.get(LEAGUE_DATA_STORE, id);
-  return {
-    ...metadata,
-    leagueData: dataEntry?.leagueData,
-  };
+  return db.get(STORE_NAME, id);
 }
 
 export async function deleteLeague(id: string): Promise<void> {
   const db = await getDB();
-
-  // Get metadata to check if it has an associated IDB database
-  const metadata = await db.get(METADATA_STORE, id);
-
-  const tx = db.transaction([METADATA_STORE, LEAGUE_DATA_STORE], 'readwrite');
-  await tx.objectStore(METADATA_STORE).delete(id);
-  await tx.objectStore(LEAGUE_DATA_STORE).delete(id);
-  await tx.done;
-
+  
+  // Get the league to check if it has an associated IDB database
+  const league = await db.get(STORE_NAME, id);
+  
+  // Delete the metadata entry
+  await db.delete(STORE_NAME, id);
+  
   // If this was a metadata-only save with a dedicated IDB, delete that database too
-  if (metadata?.isMetadataOnly && metadata.idbName) {
+  if (league?.isMetadataOnly && league.idbName) {
     try {
-      await deleteLeagueIDB(metadata.idbName);
+      await deleteLeagueIDB(league.idbName);
     } catch (error) {
-      console.error(`[Storage] Failed to delete league database ${metadata.idbName}:`, error);
+      console.error(`[Storage] Failed to delete league database ${league.idbName}:`, error);
     }
   }
 }
@@ -298,28 +171,28 @@ export async function deleteLeagueIDB(dbName: string): Promise<void> {
 
 export async function updateLeagueName(id: string, newName: string): Promise<void> {
   const db = await getDB();
-  const metadata = await db.get(METADATA_STORE, id);
-  if (metadata) {
-    metadata.name = newName;
-    await db.put(METADATA_STORE, metadata);
+  const league = await db.get(STORE_NAME, id);
+  if (league) {
+    league.name = newName;
+    await db.put(STORE_NAME, league);
   }
 }
 
 export async function updateLastPlayed(id: string): Promise<void> {
   const db = await getDB();
-  const metadata = await db.get(METADATA_STORE, id);
-  if (metadata) {
-    metadata.lastPlayed = Date.now();
-    await db.put(METADATA_STORE, metadata);
+  const league = await db.get(STORE_NAME, id);
+  if (league) {
+    league.lastPlayed = Date.now();
+    await db.put(STORE_NAME, league);
   }
 }
 
 export async function updateYearRange(id: string, yearRange: [number, number]): Promise<void> {
   const db = await getDB();
-  const metadata = await db.get(METADATA_STORE, id);
-  if (metadata) {
-    metadata.yearRange = yearRange;
-    await db.put(METADATA_STORE, metadata);
+  const league = await db.get(STORE_NAME, id);
+  if (league) {
+    league.yearRange = yearRange;
+    await db.put(STORE_NAME, league);
   }
 }
 
@@ -353,10 +226,10 @@ export function formatDate(timestamp: number): string {
  */
 export async function toggleLeagueStarred(id: string): Promise<void> {
   const db = await getDB();
-  const metadata = await db.get(METADATA_STORE, id);
-  if (metadata) {
-    metadata.starred = !metadata.starred;
-    await db.put(METADATA_STORE, metadata);
+  const league = await db.get(STORE_NAME, id);
+  if (league) {
+    league.starred = !league.starred;
+    await db.put(STORE_NAME, league);
   }
 }
 
@@ -369,23 +242,19 @@ export async function bulkDeleteLeagues(ids: string[]): Promise<number> {
 
   for (const id of ids) {
     try {
-      // Get metadata to check if it has an associated IDB database
-      const metadata = await db.get(METADATA_STORE, id);
+      // Get the league to check if it has an associated IDB database
+      const league = await db.get(STORE_NAME, id);
 
-      // Delete from both stores
-      const tx = db.transaction([METADATA_STORE, LEAGUE_DATA_STORE], 'readwrite');
-      await tx.objectStore(METADATA_STORE).delete(id);
-      await tx.objectStore(LEAGUE_DATA_STORE).delete(id);
-      await tx.done;
-
+      // Delete the metadata entry
+      await db.delete(STORE_NAME, id);
       deletedCount++;
 
       // If this was a metadata-only save with a dedicated IDB, delete that database too
-      if (metadata?.isMetadataOnly && metadata.idbName) {
+      if (league?.isMetadataOnly && league.idbName) {
         try {
-          await deleteLeagueIDB(metadata.idbName);
+          await deleteLeagueIDB(league.idbName);
         } catch (error) {
-          console.error(`[Storage] Failed to delete league database ${metadata.idbName}:`, error);
+          console.error(`[Storage] Failed to delete league database ${league.idbName}:`, error);
         }
       }
     } catch (error) {
