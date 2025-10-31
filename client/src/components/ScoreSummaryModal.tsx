@@ -2,10 +2,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { Users as UsersIcon, TrendingUp, Target, Flag, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PlayerFace } from '@/components/PlayerFace';
-import {
-  Dialog,
-  DialogContent,
-} from '@/components/ui/dialog';
 import { CompactScoreCard } from '@/components/CompactScoreCard';
 import type { Player } from '@/types/bbgm';
 
@@ -64,7 +60,10 @@ export interface ScoreSummaryData {
 
 interface ScoreSummaryModalProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onOpenChange?: (open: boolean) => void; // Deprecated: use onCloseTop and onCloseAll instead
+  onCloseTop?: () => void; // Close only this modal (X button)
+  onCloseAll?: () => void; // Close all modals (backdrop)
+  stackIndex?: number; // Position in modal stack for z-index layering
   data: ScoreSummaryData;
   onPlayAgain: () => void;
   onNewSeason: () => void;
@@ -164,12 +163,19 @@ function getContrastColor(hexColor: string): 'white' | 'black' {
 export function ScoreSummaryModal({
   open,
   onOpenChange,
+  onCloseTop,
+  onCloseAll,
+  stackIndex = 0,
   data,
   onPlayAgain,
   onNewSeason,
   onShare,
   onPlayerClick,
 }: ScoreSummaryModalProps) {
+  // Support backward compatibility: if onOpenChange is provided but not onCloseTop/onCloseAll, use onOpenChange for both
+  const handleCloseTop = onCloseTop ?? (() => onOpenChange?.(false));
+  const handleCloseAll = onCloseAll ?? (() => onOpenChange?.(false));
+
   const [viewMode, setViewMode] = useState<'detailed' | 'spoilerFree'>('detailed');
   const [cardsVisible, setCardsVisible] = useState(false);
 
@@ -570,44 +576,39 @@ export function ScoreSummaryModal({
     </div>
   );
 
+  if (!open) return null;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} modal={true}>
-      <style>{`
-        [data-state="open"] .rainbow-border {
-          background: ${secondaryColor} !important;
-          padding: 2px !important;
-        }
-        /* Force primary color background on all modal inner elements */
-        [data-state="open"] .rainbow-border > div {
-          background: ${primaryColor} !important;
-        }
-        /* Hide default close button */
-        [data-radix-dialog-content] button[data-radix-dialog-close] {
-          display: none !important;
-        }
-        /* Force modal overlay and content above footer */
-        [data-radix-dialog-overlay] {
-          z-index: 50000 !important;
-          backdrop-filter: blur(12px) !important;
-          -webkit-backdrop-filter: blur(12px) !important;
-          background-color: rgba(0, 0, 0, 0.1) !important;
-          position: fixed !important;
-          inset: 0 !important;
-        }
-        [data-radix-dialog-content] {
-          z-index: 50001 !important;
-        }
-      `}</style>
-      <DialogContent
-        className="max-w-5xl max-h-[calc(100vh-8rem)] w-[calc(100vw-2rem)] p-0 !z-[50001]"
-        aria-describedby="score-summary-description"
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 100000 + (stackIndex * 10),
+        backdropFilter: 'blur(12px) brightness(0.8)',
+        WebkitBackdropFilter: 'blur(12px) brightness(0.8)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem',
+        pointerEvents: 'auto'
+      }}
+      onClick={handleCloseAll}
+    >
+      {/* Modal Content */}
+      <div
+        className="relative max-w-5xl max-h-[calc(100vh-8rem)] w-[calc(100vw-2rem)] rounded-2xl shadow-2xl overflow-hidden flex flex-col"
         style={{
           backgroundColor: primaryColor,
+          border: `2px solid ${secondaryColor}`,
         }}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Custom Close Button - Fixed */}
         <button
-          onClick={() => onOpenChange(false)}
+          onClick={handleCloseTop}
           className="absolute right-4 top-4 z-[10001] rounded-lg p-2.5 transition-all duration-200 hover:scale-110 hover:rotate-90 shadow-lg bg-background ml-[43px] mr-[43px]"
           style={{
             backgroundColor: `${secondaryColor}40`,
@@ -712,7 +713,7 @@ export function ScoreSummaryModal({
             {viewMode === 'detailed' ? detailedContent : spoilerContent}
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }

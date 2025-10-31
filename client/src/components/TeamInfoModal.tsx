@@ -13,7 +13,10 @@ import { isChampion, getAllChampionships } from '@/lib/champion-utils';
 
 interface TeamInfoModalProps {
   open: boolean;
-  onClose: () => void;
+  onClose?: () => void; // Deprecated: use onCloseTop and onCloseAll instead
+  onCloseTop?: () => void; // Close only this modal (X button)
+  onCloseAll?: () => void; // Close all modals (backdrop)
+  stackIndex?: number; // Position in modal stack for z-index layering
   season: number;
   teamName: string;
   teamAbbrev: string;
@@ -372,6 +375,9 @@ function getHockeyGroupStatColumns(group: string) {
 export function TeamInfoModal({
   open,
   onClose,
+  onCloseTop,
+  onCloseAll,
+  stackIndex = 0,
   season,
   teamName,
   teamAbbrev,
@@ -387,6 +393,10 @@ export function TeamInfoModal({
   onOpenOpponentTeam,
   onPlayerClick,
 }: TeamInfoModalProps) {
+  // Support backward compatibility: if onClose is provided but not onCloseTop/onCloseAll, use onClose for both
+  const handleCloseTop = onCloseTop ?? onClose ?? (() => {});
+  const handleCloseAll = onCloseAll ?? onClose ?? (() => {});
+
   const [playoffPopoverOpen, setPlayoffPopoverOpen] = useState(false);
   const [championshipsModalOpen, setChampionshipsModalOpen] = useState(false);
 
@@ -579,7 +589,7 @@ export function TeamInfoModal({
           left: 0,
           right: 0,
           bottom: 0,
-          zIndex: 100000,
+          zIndex: 100000 + (stackIndex * 10),
           backdropFilter: 'blur(10px) brightness(0.8)',
           WebkitBackdropFilter: 'blur(10px) brightness(0.8)',
           display: 'flex',
@@ -587,7 +597,7 @@ export function TeamInfoModal({
           justifyContent: 'center',
           padding: '1rem'
         }}
-        onClick={onClose}
+        onClick={handleCloseAll}
       >
       {/* Team Info Card */}
       <div
@@ -600,7 +610,7 @@ export function TeamInfoModal({
       >
         {/* Close Button */}
         <button
-          onClick={onClose}
+          onClick={handleCloseTop}
           className="absolute top-4 right-4 z-20 rounded-full p-2 transition-all hover:scale-110 hover:rotate-90"
           style={{
             backgroundColor: `${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`,
@@ -725,10 +735,10 @@ export function TeamInfoModal({
                           }
                         </div>
 
-                        {/* Championship Banner - Mobile only */}
+                        {/* Championship Banner - Always visible in playoff dropdown */}
                         {isTeamChampion && (
-                          <div className="lg:hidden mt-4 flex justify-center">
-                            <div className="w-20">
+                          <div className="mt-4 flex justify-center">
+                            <div className="w-20 lg:w-28 xl:w-32">
                               <ChampionBanner
                                 season={season}
                                 teamAbbrev={teamAbbrev}
@@ -758,19 +768,6 @@ export function TeamInfoModal({
             )}
           </div>
 
-          {/* Championship Banner - Desktop only (Positioned next to team info) */}
-          {isTeamChampion && (
-            <div className="hidden lg:block absolute right-[28rem] xl:right-[34rem] top-2">
-              <ChampionBanner
-                season={season}
-                teamAbbrev={teamAbbrev}
-                teamColors={teamColors}
-                teamLogo={teamLogo}
-                className="w-20 xl:w-24"
-                onClick={() => setChampionshipsModalOpen(true)}
-              />
-            </div>
-          )}
         </div>
 
         {/* Table Container - Scrollable */}
@@ -1059,6 +1056,12 @@ export function TeamInfoModal({
         championships={allChampionships}
         teamName={teamName}
         sport={sport}
+        onBannerClick={(season) => {
+          setChampionshipsModalOpen(false);
+          if (onOpenOpponentTeam && teamTid !== undefined) {
+            onOpenOpponentTeam(teamTid, season);
+          }
+        }}
       />
     </div>
   );

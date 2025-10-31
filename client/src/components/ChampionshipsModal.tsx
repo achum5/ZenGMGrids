@@ -46,6 +46,7 @@ interface ChampionshipsModalProps {
   championships: Championship[];
   teamName: string;
   sport?: string;
+  onBannerClick?: (season: number) => void; // Callback when a banner is clicked
 }
 
 export function ChampionshipsModal({
@@ -53,7 +54,8 @@ export function ChampionshipsModal({
   onClose,
   championships,
   teamName,
-  sport
+  sport,
+  onBannerClick
 }: ChampionshipsModalProps) {
   if (!open) return null;
 
@@ -135,6 +137,10 @@ export function ChampionshipsModal({
                     teamLogo={buildChampionshipLogoURL(championship, sport)}
                     className="w-28"
                     inModal={true}
+                    onClick={onBannerClick ? () => {
+                      onBannerClick(championship.season);
+                      onClose(); // Close the championships modal after clicking
+                    } : undefined}
                   />
                 </div>
               ))}

@@ -11,7 +11,10 @@ interface PlayerPageModalProps {
   teams?: Team[];
   season?: number;
   teamId?: number;
-  onClose: () => void;
+  onClose?: () => void; // Deprecated: use onCloseTop and onCloseAll instead
+  onCloseTop?: () => void; // Close only this modal (X button)
+  onCloseAll?: () => void; // Close all modals (backdrop)
+  stackIndex?: number; // Position in modal stack for z-index layering
   onTeamClick?: (tid: number, season: number) => void;
   onSeasonClick?: (season: number) => void;
 }
@@ -26,7 +29,22 @@ function getContrastColor(hexColor: string): 'white' | 'black' {
   return luminance > 0.5 ? 'black' : 'white';
 }
 
-export function PlayerPageModal({ player, sport, teams = [], season: initialSeason, teamId, onClose, onTeamClick, onSeasonClick }: PlayerPageModalProps) {
+export function PlayerPageModal({
+  player,
+  sport,
+  teams = [],
+  season: initialSeason,
+  teamId,
+  onClose,
+  onCloseTop,
+  onCloseAll,
+  stackIndex = 0,
+  onTeamClick,
+  onSeasonClick
+}: PlayerPageModalProps) {
+  // Support backward compatibility: if onClose is provided but not onCloseTop/onCloseAll, use onClose for both
+  const handleCloseTop = onCloseTop ?? onClose ?? (() => {});
+  const handleCloseAll = onCloseAll ?? onClose ?? (() => {});
   // Internal state for the selected season in the player modal (independent from game state)
   const [modalSeason, setModalSeason] = useState<number | undefined>(initialSeason);
 
@@ -197,7 +215,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
           left: 0,
           right: 0,
           bottom: 0,
-          zIndex: 80000,
+          zIndex: 100000 + (stackIndex * 10),
           backdropFilter: 'blur(10px) brightness(0.8)',
           WebkitBackdropFilter: 'blur(10px) brightness(0.8)',
           display: 'flex',
@@ -206,7 +224,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
           padding: '1rem',
           pointerEvents: 'auto'
         }}
-        onClick={onClose}
+        onClick={handleCloseAll}
       >
       {/* Player Info Card */}
       <div
@@ -219,7 +237,7 @@ export function PlayerPageModal({ player, sport, teams = [], season: initialSeas
       >
         {/* Close Button */}
         <button
-          onClick={onClose}
+          onClick={handleCloseTop}
           className="absolute top-4 right-4 z-20 rounded-full p-2 transition-all hover:scale-110 hover:rotate-90"
           style={{
             backgroundColor: `${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`,

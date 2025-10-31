@@ -135,7 +135,7 @@ export function ChampionBanner({
 
       {/* Content overlay - positioned absolutely over the SVG */}
       <div
-        className={`absolute inset-0 flex flex-col items-center justify-start ${inModal ? 'pt-6 sm:pt-4' : 'pt-1'}`}
+        className={`absolute inset-0 flex flex-col items-center justify-start ${inModal ? 'pt-6 sm:pt-4' : 'pt-1 lg:pt-3'}`}
       >
         {/* Team Logo or Monogram - Proportionally Sized */}
         <div className={size === 'small' ? 'w-8 h-8 flex items-center justify-center mb-0 mt-0.5' : 'w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mb-0 mt-0.5'}>

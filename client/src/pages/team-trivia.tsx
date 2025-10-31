@@ -96,6 +96,12 @@ interface RoundScore {
   details: string;
 }
 
+// Modal stack types for player, team, and breakdown modals
+type ModalStackItem =
+  | { type: 'player'; player: Player; season?: number; teamId?: number }
+  | { type: 'team'; tid: number; season: number }
+  | { type: 'breakdown' };
+
 // Normalize name for matching
 function normalizeName(name: string): string {
   return name
@@ -649,10 +655,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
   const [playoffFinishGuess, setPlayoffFinishGuess] = useState<number | null>(null); // Selected playoff finish option
   const [playoffFinishSubmitted, setPlayoffFinishSubmitted] = useState(false); // Whether user has submitted playoff finish guess
   const [scoreBreakdown, setScoreBreakdown] = useState<RoundScore[]>([]); // Track score per round
-  const [showBreakdownModal, setShowBreakdownModal] = useState(false); // Show breakdown dialog
-  const [selectedPlayerForPage, setSelectedPlayerForPage] = useState<Player | null>(null); // Player page modal
-  const [showTeamInfo, setShowTeamInfo] = useState(false); // Show team info modal
-  const [opponentTeamInfo, setOpponentTeamInfo] = useState<{ tid: number; season: number } | null>(null); // Opponent team modal state
+  const [modalStack, setModalStack] = useState<ModalStackItem[]>([]); // Stack of open modals (player/team/breakdown)
   const [logoError, setLogoError] = useState(false); // Track if team logo failed to load
   const [yearRangeOpen, setYearRangeOpen] = useState(false); // Year range settings popover
   const [yearRange, setYearRange] = useState<[number, number] | null>(null); // Year range for randomizer [from, to]
@@ -692,6 +695,19 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     playerGuesses: [],
     leaderResults: [],
   });
+
+  // Modal stack management functions
+  const pushModal = useCallback((modal: ModalStackItem) => {
+    setModalStack(prev => [...prev, modal]);
+  }, []);
+
+  const popModal = useCallback(() => {
+    setModalStack(prev => prev.slice(0, -1));
+  }, []);
+
+  const clearModals = useCallback(() => {
+    setModalStack([]);
+  }, []);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<HTMLDivElement>(null);
@@ -1822,8 +1838,62 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
 
   // Handler for opening opponent team modal
   const handleOpenOpponentTeam = useCallback((opponentTid: number, season: number) => {
-    setOpponentTeamInfo({ tid: opponentTid, season });
-  }, []);
+    pushModal({ type: 'team', tid: opponentTid, season });
+  }, [pushModal]);
+
+  // Helper function to build team roster data for modals
+  const buildTeamRosterForModal = useCallback((tid: number, season: number) => {
+    const rosterData: any[] = [];
+    leagueData.players.forEach(player => {
+      const seasonStats = player.stats?.find(
+        s => !s.playoffs && s.season === season && s.tid === tid
+      );
+
+      if (seasonStats && seasonStats.gp && seasonStats.gp > 0) {
+        const rating = player.ratings?.find(r => r.season === season);
+        const position = rating?.pos || player.pos || 'F';
+        const age = player.born?.year ? season - player.born.year : undefined;
+
+        // For hockey, augment raw season stats with computed totals for TeamInfoModal
+        let augmentedSeasonStats = seasonStats;
+        if (leagueData.sport === 'hockey') {
+          if (position === 'G') {
+            augmentedSeasonStats = { ...seasonStats };
+          } else {
+            const evG = seasonStats.evG ?? 0;
+            const ppG = seasonStats.ppG ?? 0;
+            const shG = seasonStats.shG ?? 0;
+            const evA = seasonStats.evA ?? 0;
+            const ppA = seasonStats.ppA ?? 0;
+            const shA = seasonStats.shA ?? 0;
+            const goals = evG + ppG + shG;
+            const assists = evA + ppA + shA;
+            const points = goals + assists;
+
+            augmentedSeasonStats = {
+              ...seasonStats,
+              g: goals,
+              a: assists,
+              pts: points,
+            };
+          }
+        }
+
+        rosterData.push({
+          player,
+          position,
+          age,
+          gamesPlayed: seasonStats.gp,
+          stats: augmentedSeasonStats,
+          yearsWithTeam: calculateYearsWithTeam(player, tid, season),
+          ovr: getPlayerRating(player, season, 'ovr'),
+          pot: getPlayerRating(player, season, 'pot'),
+          contract: formatContract(player, season),
+        });
+      }
+    });
+    return rosterData;
+  }, [leagueData.players, leagueData.sport]);
 
   // Pick random season and team
   const pickRandomTeamAndSeason = useCallback(() => {
@@ -3248,7 +3318,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                   </PopoverTrigger>
                   <PopoverContent className="w-[200px] p-0" align="start">
                     <Command>
-                      <CommandInput placeholder="Search year..." />
+                      <CommandInput
+                        placeholder="Search year..."
+                      />
                       <CommandList>
                         <CommandEmpty>No year found.</CommandEmpty>
                         <CommandGroup>
@@ -3396,7 +3468,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setShowTeamInfo(true)}
+                  onClick={() => selectedTeam && selectedSeason && pushModal({ type: 'team', tid: selectedTeam.tid, season: selectedSeason })}
                   className="animate-on-click"
                   style={{
                     color: teamDisplayInfo.colors[1] || 'hsl(var(--primary))'
@@ -3427,7 +3499,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                       if (isLeaderRound) {
                         handleTileClick(rp.player.pid);
                       } else if (rp.revealed && currentRound === 'complete') {
-                        setSelectedPlayerForPage(rp.player);
+                        pushModal({ type: 'player', player: rp.player, season: selectedSeason || undefined, teamId: selectedTeam?.tid });
                       }
                     }}
                     className={`relative flex flex-col items-center gap-0.5 p-1 sm:p-2 md:p-3 rounded sm:rounded-md md:rounded-lg transition-all hover:scale-[1.02] ${
@@ -3703,7 +3775,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
         </div>
 
         {/* Bottom Actions - Hide when breakdown modal is open */}
-        {!showBreakdownModal && (
+        {!modalStack.some(m => m.type === 'breakdown') && (
           <div className="shrink-0 bg-background/95 border-t neon-border-subtle relative z-[100]">
           <div className="max-w-4xl mx-auto px-6 py-4">
             <div className="flex items-center gap-3">
@@ -3720,6 +3792,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                     className="text-sm sm:text-lg py-6 neon-input placeholder:text-xs sm:placeholder:text-sm"
                     autoFocus
                     autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
                     data-testid="input-player-guess"
                   />
 
@@ -4039,7 +4114,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                     </p>
                   </div>
                   <Button
-                    onClick={() => setShowBreakdownModal(true)}
+                    onClick={() => pushModal({ type: 'breakdown' })}
                     className="neon-button animate-on-click"
                     data-testid="button-show-breakdown"
                   >
@@ -4103,163 +4178,92 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
         </div>
         )}
 
-        {/* Score Summary Modal - Shown when breakdown modal is open */}
-        {scoreSummaryData && (
-          <ScoreSummaryModal
-            open={showBreakdownModal}
-            onOpenChange={setShowBreakdownModal}
-            data={scoreSummaryData}
-            onPlayerClick={(player) => setSelectedPlayerForPage(player)}
-            onPlayAgain={() => {
-              setShowBreakdownModal(false);
-              handleNewYearSameTeam();
-            }}
-            onNewSeason={() => {
-              setShowBreakdownModal(false);
-              handleNew();
-            }}
-          />
-        )}
-
-        {/* Team Info Modal */}
-        {showTeamInfo && (
-          <TeamInfoModal
-            open={showTeamInfo}
-            onClose={() => setShowTeamInfo(false)}
-            season={selectedSeason}
-            teamName={teamDisplayInfo.name}
-            teamAbbrev={selectedTeam.abbrev}
-            onPlayerClick={(player) => {
-              setSelectedPlayerForPage(player);
-              setShowTeamInfo(false);
-            }}
-            teamLogo={teamDisplayInfo.logo ? getTeamLogoUrl(teamDisplayInfo.logo, leagueData.sport) : undefined}
-            teamColors={teamDisplayInfo.colors}
-            players={roster.map(rp => ({
-              player: rp.player,
-              position: rp.position,
-              age: rp.age,
-              gamesPlayed: rp.gamesPlayed,
-              stats: rp.rawSeasonStats || rp.stats, // Use raw season stats for TeamInfoModal
-              yearsWithTeam: calculateYearsWithTeam(rp.player, selectedTeam.tid, selectedSeason),
-              ovr: getPlayerRating(rp.player, selectedSeason, 'ovr'),
-              pot: getPlayerRating(rp.player, selectedSeason, 'pot'),
-              contract: formatContract(rp.player, selectedSeason),
-            }))}
-            sport={leagueData.sport}
-            teams={leagueData.teams}
-            teamStats={calculateTeamStats(leagueData, selectedTeam.tid, selectedSeason, roster)}
-            playoffSeriesData={leagueData.playoffSeries?.find(ps => ps.season === selectedSeason)}
-            teamTid={selectedTeam.tid}
-            onOpenOpponentTeam={handleOpenOpponentTeam}
-            allPlayoffSeries={leagueData.playoffSeries}
-          />
-        )}
-
-        {/* Opponent Team Info Modal */}
-        {opponentTeamInfo && (() => {
-          const opponentTeam = leagueData.teams.find(t => t.tid === opponentTeamInfo.tid);
-          if (!opponentTeam) {
-            return null;
-          }
-
-          // Build opponent roster
-          const opponentRoster: any[] = [];
-          leagueData.players.forEach(player => {
-            const seasonStats = player.stats?.find(
-              s => !s.playoffs && s.season === opponentTeamInfo.season && s.tid === opponentTeamInfo.tid
+        {/* Render modal stack */}
+        {modalStack.map((modal, index) => {
+          if (modal.type === 'player') {
+            return (
+              <PlayerPageModal
+                key={`player-${index}`}
+                player={modal.player}
+                sport={leagueData.sport || 'basketball'}
+                teams={leagueData.teams}
+                season={modal.season}
+                teamId={modal.teamId}
+                onCloseTop={popModal}
+                onCloseAll={clearModals}
+                stackIndex={index}
+                onTeamClick={handleOpenOpponentTeam}
+              />
             );
+          } else if (modal.type === 'team') {
+            try {
+              const team = leagueData.teams.find(t => t.tid === modal.tid);
+              if (!team) return null;
 
-            if (seasonStats && seasonStats.gp && seasonStats.gp > 0) {
-              const rating = player.ratings?.find(r => r.season === opponentTeamInfo.season);
-              const position = rating?.pos || player.pos || 'F';
-              const age = player.born?.year ? opponentTeamInfo.season - player.born.year : undefined;
+              const teamRoster = buildTeamRosterForModal(modal.tid, modal.season);
+              const seasonInfo = team.seasons?.find(s => s.season === modal.season);
+              const teamLogo = seasonInfo?.imgURL || team.imgURL;
+              const teamColors = seasonInfo?.colors || team.colors || ['#000000', '#ffffff'];
+              const teamRegion = seasonInfo?.region || team.region || '';
+              const teamNickname = seasonInfo?.name || team.name || `Team ${team.tid}`;
+              const teamName = teamRegion ? `${teamRegion} ${teamNickname}` : teamNickname;
+              const teamAbbrev = seasonInfo?.abbrev || team.abbrev || '';
 
-              // For hockey, augment raw season stats with computed totals for TeamInfoModal
-              let augmentedSeasonStats = seasonStats;
-              if (leagueData.sport === 'hockey') {
-                if (position === 'G') {
-                  // Goalie stats - already have the right keys
-                  augmentedSeasonStats = { ...seasonStats };
-                } else {
-                  // Skater stats - compute totals from even strength, power play, and short-handed
-                  const evG = seasonStats.evG ?? 0;
-                  const ppG = seasonStats.ppG ?? 0;
-                  const shG = seasonStats.shG ?? 0;
-                  const evA = seasonStats.evA ?? 0;
-                  const ppA = seasonStats.ppA ?? 0;
-                  const shA = seasonStats.shA ?? 0;
-                  const goals = evG + ppG + shG;
-                  const assists = evA + ppA + shA;
-                  const points = goals + assists;
+              const teamStats = calculateTeamStats(leagueData, modal.tid, modal.season, teamRoster);
 
-                  augmentedSeasonStats = {
-                    ...seasonStats,
-                    g: goals,
-                    a: assists,
-                    pts: points,
-                  };
-                }
-              }
-
-              opponentRoster.push({
-                player,
-                position,
-                age,
-                gamesPlayed: seasonStats.gp,
-                stats: augmentedSeasonStats, // Pass augmented season stats for TeamInfoModal to format
-                yearsWithTeam: calculateYearsWithTeam(player, opponentTeamInfo.tid, opponentTeamInfo.season),
-                ovr: getPlayerRating(player, opponentTeamInfo.season, 'ovr'),
-                pot: getPlayerRating(player, opponentTeamInfo.season, 'pot'),
-              });
+              return (
+                <TeamInfoModal
+                  key={`team-${index}`}
+                  open={true}
+                  onCloseTop={popModal}
+                  onCloseAll={clearModals}
+                  stackIndex={index}
+                  season={modal.season}
+                  teamName={teamName}
+                  teamAbbrev={teamAbbrev}
+                  teamLogo={teamLogo ? getTeamLogoUrl(teamLogo, leagueData.sport || 'basketball') : undefined}
+                  teamColors={teamColors}
+                  players={teamRoster}
+                  sport={leagueData.sport || 'basketball'}
+                  teams={leagueData.teams}
+                  teamStats={teamStats}
+                  playoffSeriesData={leagueData.playoffSeries?.find(ps => ps.season === modal.season)}
+                  teamTid={modal.tid}
+                  onOpenOpponentTeam={handleOpenOpponentTeam}
+                  allPlayoffSeries={leagueData.playoffSeries}
+                  onPlayerClick={(player) => pushModal({ type: 'player', player, season: modal.season, teamId: modal.tid })}
+                />
+              );
+            } catch (error) {
+              console.error('Error rendering team modal:', error);
+              return null;
             }
-          });
+          } else if (modal.type === 'breakdown') {
+            if (!scoreSummaryData) return null;
 
-          const seasonInfo = opponentTeam.seasons?.find(s => s.season === opponentTeamInfo.season);
-          const opponentLogo = seasonInfo?.imgURL || opponentTeam.imgURL;
-          const opponentColors = seasonInfo?.colors || opponentTeam.colors || ['#000000', '#ffffff'];
-
-          // Construct full team name with region and name
-          const opponentRegion = seasonInfo?.region || opponentTeam.region || '';
-          const opponentNickname = seasonInfo?.name || opponentTeam.name || `Team ${opponentTeam.tid}`;
-          const opponentName = opponentRegion ? `${opponentRegion} ${opponentNickname}` : opponentNickname;
-
-          return (
-            <TeamInfoModal
-              open={true}
-              onClose={() => setOpponentTeamInfo(null)}
-              season={opponentTeamInfo.season}
-              teamName={opponentName}
-              teamAbbrev={seasonInfo?.abbrev || opponentTeam.abbrev || ''}
-              teamLogo={opponentLogo ? getTeamLogoUrl(opponentLogo, leagueData.sport) : undefined}
-              teamColors={opponentColors}
-              players={opponentRoster}
-              sport={leagueData.sport}
-              teams={leagueData.teams}
-              teamStats={calculateTeamStats(leagueData, opponentTeamInfo.tid, opponentTeamInfo.season, opponentRoster)}
-              playoffSeriesData={leagueData.playoffSeries?.find(ps => ps.season === opponentTeamInfo.season)}
-              teamTid={opponentTeamInfo.tid}
-              onOpenOpponentTeam={handleOpenOpponentTeam}
-              allPlayoffSeries={leagueData.playoffSeries}
-              onPlayerClick={(player) => {
-                setSelectedPlayerForPage(player);
-                setOpponentTeamInfo(null);
-              }}
-            />
-          );
-        })()}
+            return (
+              <ScoreSummaryModal
+                key={`breakdown-${index}`}
+                open={true}
+                onCloseTop={popModal}
+                onCloseAll={clearModals}
+                stackIndex={index}
+                data={scoreSummaryData}
+                onPlayerClick={(player) => pushModal({ type: 'player', player, season: selectedSeason || undefined, teamId: selectedTeam?.tid })}
+                onPlayAgain={() => {
+                  clearModals();
+                  handleNewYearSameTeam();
+                }}
+                onNewSeason={() => {
+                  clearModals();
+                  handleNew();
+                }}
+              />
+            );
+          }
+          return null;
+        })}
           </>
-
-        {/* Player Page Modal */}
-        <PlayerPageModal
-          player={selectedPlayerForPage}
-          sport={leagueData.sport}
-          teams={leagueData.teams}
-          season={selectedSeason || undefined}
-          teamId={selectedTeam?.tid}
-          onClose={() => setSelectedPlayerForPage(null)}
-          onTeamClick={handleOpenOpponentTeam}
-        />
 
         {/* Help Modal */}
         <Dialog open={showHelpModal} onOpenChange={setShowHelpModal}>
