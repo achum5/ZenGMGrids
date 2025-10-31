@@ -588,69 +588,191 @@ export function PlayerPageModal({
 
           {/* Player Summary Stats Table */}
           {sport === 'basketball' && season && player.stats && (() => {
-            // Get regular season stats for selected season
-            // First try to find pre-aggregated season totals (tid = -1)
-            let seasonStats = player.stats.find(s => s.season === season && !s.playoffs && s.tid === -1);
+            // Use the EXACT same filtering as the Career Stats table below
+            // IMPORTANT: Exclude tid=-1 rows to avoid double-counting when a player had multiple teams
+            const filteredStats = player.stats.filter(s => !s.playoffs && s.gp && s.gp > 0 && (!season || s.season <= season));
 
-            // If not found, aggregate stats for that season across all teams
+            // For season: Use pre-aggregated row (tid=-1) for correct PER value
+            // If no pre-aggregated row, aggregate counting stats but PER will be undefined
+            let seasonStats = filteredStats.find(s => s.season === season && s.tid === -1);
+
             if (!seasonStats) {
-              const seasonStatsArray = player.stats.filter(s => s.season === season && !s.playoffs);
+              // No pre-aggregated row exists, so check individual team stints
+              const seasonStatsArray = filteredStats.filter(s => s.season === season && s.tid !== -1);
               if (seasonStatsArray.length > 0) {
-                seasonStats = seasonStatsArray.reduce((acc, s) => ({
-                  season: season,
-                  tid: -1,
-                  playoffs: false,
-                  gp: (acc.gp || 0) + (s.gp || 0),
-                  min: (acc.min || 0) + (s.min || 0),
-                  pts: (acc.pts || 0) + (s.pts || 0),
-                  trb: (acc.trb || 0) + (s.trb || 0),
-                  ast: (acc.ast || 0) + (s.ast || 0),
-                  fg: (acc.fg || 0) + (s.fg || 0),
-                  fga: (acc.fga || 0) + (s.fga || 0),
-                  tp: (acc.tp || 0) + (s.tp || 0),
-                  tpa: (acc.tpa || 0) + (s.tpa || 0),
-                  ft: (acc.ft || 0) + (s.ft || 0),
-                  fta: (acc.fta || 0) + (s.fta || 0),
-                  ws: (acc.ws || 0) + (s.ws || 0),
-                  per: undefined, // PER can't be aggregated
-                }), { season: season, tid: -1, playoffs: false, gp: 0, min: 0, pts: 0, trb: 0, ast: 0, fg: 0, fga: 0, tp: 0, tpa: 0, ft: 0, fta: 0, ws: 0 });
+                // If only one team, use that team's stats directly (including PER)
+                if (seasonStatsArray.length === 1) {
+                  const singleTeamStat = seasonStatsArray[0];
+                  const tpm = (singleTeamStat as any).tpm || singleTeamStat.tp || 0;
+                  const totalReb = singleTeamStat.trb || ((singleTeamStat as any).orb || 0) + ((singleTeamStat as any).drb || 0);
+                  // Calculate WS from ows + dws if ws is not directly available
+                  const ows = (singleTeamStat as any).ows ?? 0;
+                  const dws = (singleTeamStat as any).dws ?? 0;
+                  const ws = singleTeamStat.ws ?? (ows + dws);
+                  seasonStats = {
+                    ...singleTeamStat,
+                    season: singleTeamStat.season,
+                    tid: -1,
+                    gp: singleTeamStat.gp || 0,
+                    min: singleTeamStat.min || 0,
+                    pts: singleTeamStat.pts || 0,
+                    trb: totalReb,
+                    ast: singleTeamStat.ast || 0,
+                    fg: singleTeamStat.fg || 0,
+                    fga: singleTeamStat.fga || 0,
+                    tp: tpm,
+                    tpa: singleTeamStat.tpa || 0,
+                    ft: singleTeamStat.ft || 0,
+                    fta: singleTeamStat.fta || 0,
+                    ws: ws,
+                  };
+                } else {
+                  // Multiple teams, aggregate counting stats and calculate minutes-weighted PER
+                  const aggregated = seasonStatsArray.reduce((acc, stat) => {
+                    const tpm = (stat as any).tpm || stat.tp || 0;
+                    const totalReb = stat.trb || ((stat as any).orb || 0) + ((stat as any).drb || 0);
+                    // Calculate WS from ows + dws if ws is not directly available
+                    const ows = (stat as any).ows ?? 0;
+                    const dws = (stat as any).dws ?? 0;
+                    const statWs = stat.ws ?? (ows + dws);
+
+                    // Track PER * minutes for weighted average
+                    const perValue = (stat as any).per;
+                    const statMin = stat.min || 0;
+                    const weightedPER = (perValue != null && typeof perValue === 'number' && isFinite(perValue) && statMin > 0)
+                      ? perValue * statMin
+                      : 0;
+                    const validMinutes = (perValue != null && typeof perValue === 'number' && isFinite(perValue) && statMin > 0)
+                      ? statMin
+                      : 0;
+
+                    const accAny = acc as any;
+                    return {
+                      season: stat.season,
+                      tid: -1, // Aggregated stats
+                      gp: (acc.gp || 0) + (stat.gp || 0),
+                      min: (acc.min || 0) + (stat.min || 0),
+                      pts: (acc.pts || 0) + (stat.pts || 0),
+                      trb: (acc.trb || 0) + totalReb,
+                      ast: (acc.ast || 0) + (stat.ast || 0),
+                      fg: (acc.fg || 0) + (stat.fg || 0),
+                      fga: (acc.fga || 0) + (stat.fga || 0),
+                      tp: (acc.tp || 0) + tpm,
+                      tpa: (acc.tpa || 0) + (stat.tpa || 0),
+                      ft: (acc.ft || 0) + (stat.ft || 0),
+                      fta: (acc.fta || 0) + (stat.fta || 0),
+                      ws: (acc.ws || 0) + statWs,
+                      weightedPER: (accAny.weightedPER || 0) + weightedPER,
+                      validMinutes: (accAny.validMinutes || 0) + validMinutes,
+                    };
+                  }, { season, tid: -1, gp: 0, min: 0, pts: 0, trb: 0, ast: 0, fg: 0, fga: 0, tp: 0, tpa: 0, ft: 0, fta: 0, ws: 0, weightedPER: 0, validMinutes: 0 });
+
+                  // Calculate final PER as minutes-weighted average
+                  const finalPER = (aggregated as any).validMinutes > 0
+                    ? (aggregated as any).weightedPER / (aggregated as any).validMinutes
+                    : undefined;
+
+                  seasonStats = {
+                    ...aggregated,
+                    per: finalPER,
+                  };
+                  // Remove temporary calculation fields
+                  delete (seasonStats as any).weightedPER;
+                  delete (seasonStats as any).validMinutes;
+                }
               }
             }
 
-            // Calculate career totals
-            // First try to use pre-aggregated totals (tid = -1), otherwise aggregate all regular season stats
-            const preAggregatedTotals = player.stats.filter(s => !s.playoffs && s.tid === -1);
-            const careerTotals = preAggregatedTotals.length > 0
-              ? preAggregatedTotals.reduce((acc, s) => ({
-                  gp: (acc.gp || 0) + (s.gp || 0),
-                  min: (acc.min || 0) + (s.min || 0),
-                  pts: (acc.pts || 0) + (s.pts || 0),
-                  trb: (acc.trb || 0) + (s.trb || 0),
-                  ast: (acc.ast || 0) + (s.ast || 0),
-                  fg: (acc.fg || 0) + (s.fg || 0),
-                  fga: (acc.fga || 0) + (s.fga || 0),
-                  tp: (acc.tp || 0) + (s.tp || 0),
-                  tpa: (acc.tpa || 0) + (s.tpa || 0),
-                  ft: (acc.ft || 0) + (s.ft || 0),
-                  fta: (acc.fta || 0) + (s.fta || 0),
-                  ws: (acc.ws || 0) + (s.ws || 0),
-                }), { gp: 0, min: 0, pts: 0, trb: 0, ast: 0, fg: 0, fga: 0, tp: 0, tpa: 0, ft: 0, fta: 0, ws: 0 })
-              : player.stats
-                  .filter(s => !s.playoffs) // All regular season stats regardless of team
-                  .reduce((acc, s) => ({
-                    gp: (acc.gp || 0) + (s.gp || 0),
-                    min: (acc.min || 0) + (s.min || 0),
-                    pts: (acc.pts || 0) + (s.pts || 0),
-                    trb: (acc.trb || 0) + (s.trb || 0),
-                    ast: (acc.ast || 0) + (s.ast || 0),
-                    fg: (acc.fg || 0) + (s.fg || 0),
-                    fga: (acc.fga || 0) + (s.fga || 0),
-                    tp: (acc.tp || 0) + (s.tp || 0),
-                    tpa: (acc.tpa || 0) + (s.tpa || 0),
-                    ft: (acc.ft || 0) + (s.ft || 0),
-                    fta: (acc.fta || 0) + (s.fta || 0),
-                    ws: (acc.ws || 0) + (s.ws || 0),
-                  }), { gp: 0, min: 0, pts: 0, trb: 0, ast: 0, fg: 0, fga: 0, tp: 0, tpa: 0, ft: 0, fta: 0, ws: 0 });
+            // For career: Use pre-aggregated season totals (tid=-1) if they exist, otherwise use team stints
+            const hasPreAggregated = filteredStats.some(s => s.tid === -1);
+            const careerStatsArray = hasPreAggregated
+              ? filteredStats.filter(s => s.tid === -1)  // Use only pre-aggregated rows
+              : filteredStats.filter(s => s.tid !== -1);  // Use only team-specific rows
+
+            const careerStats = careerStatsArray.length > 0 ? careerStatsArray.reduce((acc, stat) => {
+              const tpm = (stat as any).tpm || stat.tp || 0;
+              const totalReb = stat.trb || ((stat as any).orb || 0) + ((stat as any).drb || 0);
+              // Calculate WS from ows + dws if ws is not directly available
+              const ows = (stat as any).ows ?? 0;
+              const dws = (stat as any).dws ?? 0;
+              const statWs = stat.ws ?? (ows + dws);
+              return {
+                gp: (acc.gp || 0) + (stat.gp || 0),
+                min: (acc.min || 0) + (stat.min || 0),
+                pts: (acc.pts || 0) + (stat.pts || 0),
+                trb: (acc.trb || 0) + totalReb,
+                ast: (acc.ast || 0) + (stat.ast || 0),
+                fg: (acc.fg || 0) + (stat.fg || 0),
+                fga: (acc.fga || 0) + (stat.fga || 0),
+                tp: (acc.tp || 0) + tpm,
+                tpa: (acc.tpa || 0) + (stat.tpa || 0),
+                ft: (acc.ft || 0) + (stat.ft || 0),
+                fta: (acc.fta || 0) + (stat.fta || 0),
+                ws: (acc.ws || 0) + statWs,
+              };
+            }, { gp: 0, min: 0, pts: 0, trb: 0, ast: 0, fg: 0, fga: 0, tp: 0, tpa: 0, ft: 0, fta: 0, ws: 0 }) : null;
+
+            // Calculate career PER as minutes-weighted average of season PER values
+            // For each season, calculate PER (either from pre-aggregated row or from team rows)
+            const seasonMap = new Map<number, typeof filteredStats>();
+            filteredStats.forEach(s => {
+              const seasonStats = seasonMap.get(s.season) || [];
+              seasonStats.push(s);
+              seasonMap.set(s.season, seasonStats);
+            });
+
+            // Build array of season PER values with their minutes
+            const seasonPERData: Array<{ per: number; min: number }> = [];
+
+            seasonMap.forEach((stats, seasonNum) => {
+              // First, try to find pre-aggregated row (tid=-1) with valid PER
+              const preAggregated = stats.find(s => s.tid === -1);
+              const preAggPER = preAggregated ? (preAggregated as any).per : null;
+              const preAggMin = preAggregated ? (preAggregated.min || 0) : 0;
+
+              if (preAggPER != null && typeof preAggPER === 'number' && isFinite(preAggPER) && preAggMin > 0) {
+                // Use pre-aggregated PER
+                seasonPERData.push({ per: preAggPER, min: preAggMin });
+              } else {
+                // No valid pre-aggregated PER, so calculate from individual team rows
+                const teamRows = stats.filter(s => s.tid !== -1);
+
+                if (teamRows.length > 0) {
+                  // Calculate minutes-weighted PER for this season
+                  let totalWeightedPER = 0;
+                  let totalMinutes = 0;
+
+                  teamRows.forEach(teamStat => {
+                    const perValue = (teamStat as any).per;
+                    const minutes = teamStat.min || 0;
+
+                    if (perValue != null && typeof perValue === 'number' && isFinite(perValue) && minutes > 0) {
+                      totalWeightedPER += perValue * minutes;
+                      totalMinutes += minutes;
+                    }
+                  });
+
+                  if (totalMinutes > 0) {
+                    const seasonPER = totalWeightedPER / totalMinutes;
+                    seasonPERData.push({ per: seasonPER, min: totalMinutes });
+                  }
+                }
+              }
+            });
+
+            // Calculate final career PER from all seasons
+            let careerPER: number | undefined = undefined;
+            if (seasonPERData.length > 0) {
+              const totalWeightedPER = seasonPERData.reduce((sum, data) =>
+                sum + (data.per * data.min), 0
+              );
+              const totalMinutes = seasonPERData.reduce((sum, data) =>
+                sum + data.min, 0
+              );
+              if (totalMinutes > 0) {
+                careerPER = totalWeightedPER / totalMinutes;
+              }
+            }
 
             const formatStat = (val: number | undefined | null) => val != null ? val.toFixed(1) : '—';
             const formatPct = (made: number, attempted: number) => attempted > 0 ? (made / attempted * 100).toFixed(1) : '—';
@@ -660,87 +782,228 @@ export function PlayerPageModal({
             };
 
             // Season row
-            const seasonRow = seasonStats && seasonStats.gp && seasonStats.gp > 0 ? {
-              g: seasonStats.gp,
-              mp: formatStat((seasonStats.min || 0) / seasonStats.gp),
-              pts: formatStat((seasonStats.pts || 0) / seasonStats.gp),
-              trb: formatStat((seasonStats.trb || 0) / seasonStats.gp),
-              ast: formatStat((seasonStats.ast || 0) / seasonStats.gp),
-              fgPct: formatPct(seasonStats.fg || 0, seasonStats.fga || 0),
-              tpPct: formatPct(seasonStats.tp || 0, seasonStats.tpa || 0),
-              ftPct: formatPct(seasonStats.ft || 0, seasonStats.fta || 0),
-              tsPct: formatTS(seasonStats.pts || 0, seasonStats.fga || 0, seasonStats.fta || 0),
-              per: formatStat(seasonStats.per),
-              ws: formatStat(seasonStats.ws),
-            } : null;
+            const seasonRow = seasonStats && seasonStats.gp && seasonStats.gp > 0 ? (() => {
+              // Calculate WS from ows + dws if ws is not directly available
+              const ows = (seasonStats as any).ows ?? 0;
+              const dws = (seasonStats as any).dws ?? 0;
+              const ws = seasonStats.ws ?? (ows + dws);
+              return {
+                g: seasonStats.gp,
+                mp: formatStat((seasonStats.min || 0) / seasonStats.gp),
+                pts: formatStat((seasonStats.pts || 0) / seasonStats.gp),
+                trb: formatStat((seasonStats.trb || 0) / seasonStats.gp),
+                ast: formatStat((seasonStats.ast || 0) / seasonStats.gp),
+                fgPct: formatPct(seasonStats.fg || 0, seasonStats.fga || 0),
+                tpPct: formatPct(seasonStats.tp || 0, seasonStats.tpa || 0),
+                ftPct: formatPct(seasonStats.ft || 0, seasonStats.fta || 0),
+                tsPct: formatTS(seasonStats.pts || 0, seasonStats.fga || 0, seasonStats.fta || 0),
+                per: formatStat((seasonStats as any).per),
+                ws: formatStat(ws), // WS is a cumulative total, not per-game
+              };
+            })() : null;
 
             // Career row
-            const careerRow = careerTotals.gp > 0 ? {
-              g: careerTotals.gp,
-              mp: formatStat(careerTotals.min / careerTotals.gp),
-              pts: formatStat(careerTotals.pts / careerTotals.gp),
-              trb: formatStat(careerTotals.trb / careerTotals.gp),
-              ast: formatStat(careerTotals.ast / careerTotals.gp),
-              fgPct: formatPct(careerTotals.fg, careerTotals.fga),
-              tpPct: formatPct(careerTotals.tp, careerTotals.tpa),
-              ftPct: formatPct(careerTotals.ft, careerTotals.fta),
-              tsPct: formatTS(careerTotals.pts, careerTotals.fga, careerTotals.fta),
-              per: '—', // Career PER would need special calculation
-              ws: formatStat(careerTotals.ws),
+            const careerRow = careerStats && careerStats.gp > 0 ? {
+              g: careerStats.gp,
+              mp: formatStat(careerStats.min / careerStats.gp),
+              pts: formatStat(careerStats.pts / careerStats.gp),
+              trb: formatStat(careerStats.trb / careerStats.gp),
+              ast: formatStat(careerStats.ast / careerStats.gp),
+              fgPct: formatPct(careerStats.fg, careerStats.fga),
+              tpPct: formatPct(careerStats.tp, careerStats.tpa),
+              ftPct: formatPct(careerStats.ft, careerStats.fta),
+              tsPct: formatTS(careerStats.pts, careerStats.fga, careerStats.fta),
+              per: formatStat(careerPER), // Minutes-weighted average of season PER values
+              ws: formatStat(careerStats.ws), // WS is a cumulative total, not per-game
             } : null;
 
-            if (!seasonRow && !careerRow) return null;
+            // Peak row (for retired players only, and only when viewing their final/retired season)
+            const isRetired = player.tid === -2 || player.tid === -3 || (player.retiredYear && player.retiredYear > 0);
+
+            // Determine if we're viewing the player's retirement/final season
+            // Use ALL stats (not filtered) to get the actual last season they played
+            const allRegularSeasonStats = player.stats.filter(s => !s.playoffs && s.gp && s.gp > 0);
+            const lastPlayedSeason = allRegularSeasonStats.length > 0
+              ? Math.max(...allRegularSeasonStats.map(s => s.season))
+              : 0;
+            // Only show peak when viewing AFTER their last played season (their retired years)
+            const isViewingRetiredSeason = isRetired && season && season > lastPlayedSeason;
+
+            let peakRow = null;
+
+            if (isViewingRetiredSeason && player.ratings) {
+              // Find the season with the highest overall rating
+              const ratingsWithOvr = player.ratings.filter(r => r.ovr != null && r.ovr > 0);
+
+              if (ratingsWithOvr.length > 0) {
+                const peakRating = ratingsWithOvr.reduce((max, r) =>
+                  (r.ovr ?? 0) > (max.ovr ?? 0) ? r : max
+                );
+                const peakSeason = peakRating.season;
+
+                // Get stats for peak season (same logic as seasonStats)
+                let peakSeasonStats = filteredStats.find(s => s.season === peakSeason && s.tid === -1);
+
+                if (!peakSeasonStats) {
+                  const peakSeasonStatsArray = filteredStats.filter(s => s.season === peakSeason && s.tid !== -1);
+                  if (peakSeasonStatsArray.length > 0) {
+                    if (peakSeasonStatsArray.length === 1) {
+                      const singleTeamStat = peakSeasonStatsArray[0];
+                      const tpm = (singleTeamStat as any).tpm || singleTeamStat.tp || 0;
+                      const totalReb = singleTeamStat.trb || ((singleTeamStat as any).orb || 0) + ((singleTeamStat as any).drb || 0);
+                      const ows = (singleTeamStat as any).ows ?? 0;
+                      const dws = (singleTeamStat as any).dws ?? 0;
+                      const ws = singleTeamStat.ws ?? (ows + dws);
+                      peakSeasonStats = {
+                        ...singleTeamStat,
+                        season: singleTeamStat.season,
+                        tid: -1,
+                        gp: singleTeamStat.gp || 0,
+                        min: singleTeamStat.min || 0,
+                        pts: singleTeamStat.pts || 0,
+                        trb: totalReb,
+                        ast: singleTeamStat.ast || 0,
+                        fg: singleTeamStat.fg || 0,
+                        fga: singleTeamStat.fga || 0,
+                        tp: tpm,
+                        tpa: singleTeamStat.tpa || 0,
+                        ft: singleTeamStat.ft || 0,
+                        fta: singleTeamStat.fta || 0,
+                        ws: ws,
+                      };
+                    } else {
+                      // Multiple teams - aggregate with PER calculation
+                      const aggregated = peakSeasonStatsArray.reduce((acc, stat) => {
+                        const tpm = (stat as any).tpm || stat.tp || 0;
+                        const totalReb = stat.trb || ((stat as any).orb || 0) + ((stat as any).drb || 0);
+                        const ows = (stat as any).ows ?? 0;
+                        const dws = (stat as any).dws ?? 0;
+                        const statWs = stat.ws ?? (ows + dws);
+                        const perValue = (stat as any).per;
+                        const statMin = stat.min || 0;
+                        const weightedPER = (perValue != null && typeof perValue === 'number' && isFinite(perValue) && statMin > 0) ? perValue * statMin : 0;
+                        const validMinutes = (perValue != null && typeof perValue === 'number' && isFinite(perValue) && statMin > 0) ? statMin : 0;
+
+                        const accAny = acc as any;
+                        return {
+                          season: stat.season,
+                          tid: -1,
+                          gp: (acc.gp || 0) + (stat.gp || 0),
+                          min: (acc.min || 0) + (stat.min || 0),
+                          pts: (acc.pts || 0) + (stat.pts || 0),
+                          trb: (acc.trb || 0) + totalReb,
+                          ast: (acc.ast || 0) + (stat.ast || 0),
+                          fg: (acc.fg || 0) + (stat.fg || 0),
+                          fga: (acc.fga || 0) + (stat.fga || 0),
+                          tp: (acc.tp || 0) + tpm,
+                          tpa: (acc.tpa || 0) + (stat.tpa || 0),
+                          ft: (acc.ft || 0) + (stat.ft || 0),
+                          fta: (acc.fta || 0) + (stat.fta || 0),
+                          ws: (acc.ws || 0) + statWs,
+                          weightedPER: (accAny.weightedPER || 0) + weightedPER,
+                          validMinutes: (accAny.validMinutes || 0) + validMinutes,
+                        };
+                      }, { season: peakSeason, tid: -1, gp: 0, min: 0, pts: 0, trb: 0, ast: 0, fg: 0, fga: 0, tp: 0, tpa: 0, ft: 0, fta: 0, ws: 0, weightedPER: 0, validMinutes: 0 });
+
+                      const finalPER = (aggregated as any).validMinutes > 0 ? (aggregated as any).weightedPER / (aggregated as any).validMinutes : undefined;
+                      peakSeasonStats = { ...aggregated, per: finalPER };
+                      delete (peakSeasonStats as any).weightedPER;
+                      delete (peakSeasonStats as any).validMinutes;
+                    }
+                  }
+                }
+
+                // Format peak row
+                if (peakSeasonStats && peakSeasonStats.gp && peakSeasonStats.gp > 0) {
+                  const ows = (peakSeasonStats as any).ows ?? 0;
+                  const dws = (peakSeasonStats as any).dws ?? 0;
+                  const ws = peakSeasonStats.ws ?? (ows + dws);
+
+                  peakRow = {
+                    g: peakSeasonStats.gp,
+                    mp: formatStat((peakSeasonStats.min || 0) / peakSeasonStats.gp),
+                    pts: formatStat((peakSeasonStats.pts || 0) / peakSeasonStats.gp),
+                    trb: formatStat((peakSeasonStats.trb || 0) / peakSeasonStats.gp),
+                    ast: formatStat((peakSeasonStats.ast || 0) / peakSeasonStats.gp),
+                    fgPct: formatPct(peakSeasonStats.fg || 0, peakSeasonStats.fga || 0),
+                    tpPct: formatPct(peakSeasonStats.tp || 0, peakSeasonStats.tpa || 0),
+                    ftPct: formatPct(peakSeasonStats.ft || 0, peakSeasonStats.fta || 0),
+                    tsPct: formatTS(peakSeasonStats.pts || 0, peakSeasonStats.fga || 0, peakSeasonStats.fta || 0),
+                    per: formatStat((peakSeasonStats as any).per),
+                    ws: formatStat(ws),
+                  };
+                }
+              }
+            }
+
+            if (!seasonRow && !careerRow && !peakRow) return null;
 
             return (
-              <div className="w-full mt-4 overflow-x-auto">
-                <table className="text-[13px]" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+              <div className="w-full mt-4 overflow-auto">
+                <table className="table-auto text-[clamp(8px,2.5vw,10px)] sm:text-[13px]" style={{ width: 'max-content', minWidth: '100%', color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
                   <thead>
-                    <tr style={{ borderBottom: `1px solid ${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}` }}>
-                      <th className="text-left px-2 py-1 font-semibold">Summary</th>
-                      <th className="text-right px-1 py-1">G</th>
-                      <th className="text-right px-1 py-1">MP</th>
-                      <th className="text-right px-1 py-1">PTS</th>
-                      <th className="text-right px-1 py-1">TRB</th>
-                      <th className="text-right px-1 py-1">AST</th>
-                      <th className="text-right px-1 py-1">FG%</th>
-                      <th className="text-right px-1 py-1">3P%</th>
-                      <th className="text-right px-1 py-1">FT%</th>
-                      <th className="text-right px-1 py-1">TS%</th>
-                      <th className="text-right px-1 py-1">PER</th>
-                      <th className="text-right px-1 py-1">WS</th>
+                    <tr>
+                      <th className="text-left pl-1 pr-1 py-0.5 font-semibold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Summary</th>
+                      <th className="text-right pl-1 pr-0.5 py-0.5">G</th>
+                      <th className="text-right px-0.5 py-0.5">MP</th>
+                      <th className="text-right px-0.5 py-0.5">PTS</th>
+                      <th className="text-right px-0.5 py-0.5">TRB</th>
+                      <th className="text-right pl-0.5 pr-2 py-0.5 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>AST</th>
+                      <th className="text-right pl-0.5 pr-0.5 py-0.5">FG%</th>
+                      <th className="text-right px-0.5 py-0.5">3P%</th>
+                      <th className="text-right px-0.5 py-0.5">FT%</th>
+                      <th className="text-right pl-0.5 pr-2 py-0.5 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>TS%</th>
+                      <th className="text-right pl-0.5 pr-0.5 py-0.5">PER</th>
+                      <th className="text-right px-0.5 py-0.5">WS</th>
                     </tr>
                   </thead>
                   <tbody>
                     {seasonRow && (
-                      <tr style={{ backgroundColor: textColor === 'white' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
-                        <td className="text-left px-2 py-1 font-bold">{season}</td>
-                        <td className="text-right px-1 py-1">{(seasonRow.g || 0).toLocaleString()}</td>
-                        <td className="text-right px-1 py-1">{seasonRow.mp}</td>
-                        <td className="text-right px-1 py-1">{seasonRow.pts}</td>
-                        <td className="text-right px-1 py-1">{seasonRow.trb}</td>
-                        <td className="text-right px-1 py-1">{seasonRow.ast}</td>
-                        <td className="text-right px-1 py-1">{seasonRow.fgPct}</td>
-                        <td className="text-right px-1 py-1">{seasonRow.tpPct}</td>
-                        <td className="text-right px-1 py-1">{seasonRow.ftPct}</td>
-                        <td className="text-right px-1 py-1">{seasonRow.tsPct}</td>
-                        <td className="text-right px-1 py-1">{seasonRow.per}</td>
-                        <td className="text-right px-1 py-1">{seasonRow.ws}</td>
+                      <tr>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{season}</td>
+                        <td className="text-right pl-1 pr-0.5 py-0.5">{(seasonRow.g || 0).toLocaleString()}</td>
+                        <td className="text-right px-0.5 py-0.5">{seasonRow.mp}</td>
+                        <td className="text-right px-0.5 py-0.5">{seasonRow.pts}</td>
+                        <td className="text-right px-0.5 py-0.5">{seasonRow.trb}</td>
+                        <td className="text-right pl-0.5 pr-2 py-0.5 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.ast}</td>
+                        <td className="text-right pl-0.5 pr-0.5 py-0.5">{seasonRow.fgPct}</td>
+                        <td className="text-right px-0.5 py-0.5">{seasonRow.tpPct}</td>
+                        <td className="text-right px-0.5 py-0.5">{seasonRow.ftPct}</td>
+                        <td className="text-right pl-0.5 pr-2 py-0.5 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.tsPct}</td>
+                        <td className="text-right pl-0.5 pr-0.5 py-0.5">{seasonRow.per}</td>
+                        <td className="text-right px-0.5 py-0.5">{seasonRow.ws}</td>
+                      </tr>
+                    )}
+                    {peakRow && (
+                      <tr>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Peak</td>
+                        <td className="text-right pl-1 pr-0.5 py-0.5">{(peakRow.g || 0).toLocaleString()}</td>
+                        <td className="text-right px-0.5 py-0.5">{peakRow.mp}</td>
+                        <td className="text-right px-0.5 py-0.5">{peakRow.pts}</td>
+                        <td className="text-right px-0.5 py-0.5">{peakRow.trb}</td>
+                        <td className="text-right pl-0.5 pr-2 py-0.5 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.ast}</td>
+                        <td className="text-right pl-0.5 pr-0.5 py-0.5">{peakRow.fgPct}</td>
+                        <td className="text-right px-0.5 py-0.5">{peakRow.tpPct}</td>
+                        <td className="text-right px-0.5 py-0.5">{peakRow.ftPct}</td>
+                        <td className="text-right pl-0.5 pr-2 py-0.5 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.tsPct}</td>
+                        <td className="text-right pl-0.5 pr-0.5 py-0.5">{peakRow.per}</td>
+                        <td className="text-right px-0.5 py-0.5">{peakRow.ws}</td>
                       </tr>
                     )}
                     {careerRow && (
                       <tr>
-                        <td className="text-left px-2 py-1 font-bold">Career</td>
-                        <td className="text-right px-1 py-1">{careerRow.g.toLocaleString()}</td>
-                        <td className="text-right px-1 py-1">{careerRow.mp}</td>
-                        <td className="text-right px-1 py-1">{careerRow.pts}</td>
-                        <td className="text-right px-1 py-1">{careerRow.trb}</td>
-                        <td className="text-right px-1 py-1">{careerRow.ast}</td>
-                        <td className="text-right px-1 py-1">{careerRow.fgPct}</td>
-                        <td className="text-right px-1 py-1">{careerRow.tpPct}</td>
-                        <td className="text-right px-1 py-1">{careerRow.ftPct}</td>
-                        <td className="text-right px-1 py-1">{careerRow.tsPct}</td>
-                        <td className="text-right px-1 py-1">{careerRow.per}</td>
-                        <td className="text-right px-1 py-1">{careerRow.ws}</td>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Career</td>
+                        <td className="text-right pl-1 pr-0.5 py-0.5">{careerRow.g.toLocaleString()}</td>
+                        <td className="text-right px-0.5 py-0.5">{careerRow.mp}</td>
+                        <td className="text-right px-0.5 py-0.5">{careerRow.pts}</td>
+                        <td className="text-right px-0.5 py-0.5">{careerRow.trb}</td>
+                        <td className="text-right pl-0.5 pr-2 py-0.5 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.ast}</td>
+                        <td className="text-right pl-0.5 pr-0.5 py-0.5">{careerRow.fgPct}</td>
+                        <td className="text-right px-0.5 py-0.5">{careerRow.tpPct}</td>
+                        <td className="text-right px-0.5 py-0.5">{careerRow.ftPct}</td>
+                        <td className="text-right pl-0.5 pr-2 py-0.5 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.tsPct}</td>
+                        <td className="text-right pl-0.5 pr-0.5 py-0.5">{careerRow.per}</td>
+                        <td className="text-right px-0.5 py-0.5">{careerRow.ws}</td>
                       </tr>
                     )}
                   </tbody>
@@ -1562,7 +1825,129 @@ export function PlayerPageModal({
                     .filter(s => !s.playoffs && s.gp && s.gp > 0 && (!season || s.season <= season)) // Regular season only with games played, up to selected season
                     .sort((a, b) => b.season - a.season); // Descending by year
 
-                  return filteredStats.map((stat, idx) => {
+                  // Group by season to detect multi-team seasons
+                  const seasonGroups = new Map<number, typeof filteredStats>();
+                  filteredStats.forEach(stat => {
+                    const seasonStats = seasonGroups.get(stat.season) || [];
+                    seasonStats.push(stat);
+                    seasonGroups.set(stat.season, seasonStats);
+                  });
+
+                  const rows: JSX.Element[] = [];
+                  let globalIdx = 0;
+
+                  filteredStats.forEach((stat, idx) => {
+                    const seasonStats = seasonGroups.get(stat.season) || [];
+                    const isMultiTeamSeason = seasonStats.length > 1;
+
+                    // Check if this is the first occurrence of this season in the list
+                    const isFirstOfSeason = idx === 0 || filteredStats[idx - 1].season !== stat.season;
+
+                    // If multi-team season and first occurrence, add TOT row first
+                    if (isMultiTeamSeason && isFirstOfSeason) {
+                      // Aggregate stats for TOT row
+                      const totStats = seasonStats.reduce((acc, s) => {
+                        const tpm = (s as any).tpm || s.tp || 0;
+                        const trb = s.trb || ((s as any).orb || 0) + ((s as any).drb || 0);
+                        return {
+                          season: stat.season,
+                          tid: -1,
+                          playoffs: false,
+                          gp: (acc.gp || 0) + (s.gp || 0),
+                          gs: ((acc as any).gs || 0) + ((s as any).gs || 0),
+                          min: (acc.min || 0) + (s.min || 0),
+                          pts: (acc.pts || 0) + (s.pts || 0),
+                          trb: (acc.trb || 0) + trb,
+                          ast: (acc.ast || 0) + (s.ast || 0),
+                          fg: (acc.fg || 0) + (s.fg || 0),
+                          fga: (acc.fga || 0) + (s.fga || 0),
+                          tp: (acc.tp || 0) + tpm,
+                          tpa: (acc.tpa || 0) + (s.tpa || 0),
+                          ft: (acc.ft || 0) + (s.ft || 0),
+                          fta: (acc.fta || 0) + (s.fta || 0),
+                          orb: ((acc as any).orb || 0) + ((s as any).orb || 0),
+                          drb: ((acc as any).drb || 0) + ((s as any).drb || 0),
+                          tov: ((acc as any).tov || 0) + ((s as any).tov || 0),
+                          stl: (acc.stl || 0) + (s.stl || 0),
+                          blk: (acc.blk || 0) + (s.blk || 0),
+                          ba: ((acc as any).ba || 0) + ((s as any).ba || 0),
+                          pf: ((acc as any).pf || 0) + ((s as any).pf || 0),
+                        };
+                      }, { gp: 0, gs: 0, min: 0, pts: 0, trb: 0, ast: 0, fg: 0, fga: 0, tp: 0, tpa: 0, ft: 0, fta: 0, orb: 0, drb: 0, tov: 0, stl: 0, blk: 0, ba: 0, pf: 0 });
+
+                      // Render TOT row
+                      const totGp = totStats.gp || 0;
+                      const totPerGame = (val?: number) => totGp > 0 && val != null ? (val / totGp).toFixed(1) : '-';
+                      const totPct = (made?: number, attempted?: number) => {
+                        if (attempted != null && attempted > 0 && made != null) {
+                          return ((made / attempted) * 100).toFixed(1);
+                        }
+                        return '-';
+                      };
+                      const totTotalReb = totStats.trb;
+                      const totFg = totStats.fg || 0;
+                      const totFga = totStats.fga || 0;
+                      const totTpm = totStats.tp || 0;
+                      const totTpa = totStats.tpa || 0;
+                      const totTwoPM = totFg - totTpm;
+                      const totTwoPA = totFga - totTpa;
+                      const totEfgPct = totFga > 0 ? (((totFg + 0.5 * totTpm) / totFga) * 100).toFixed(1) : '-';
+                      const age = player.born?.year ? stat.season - player.born.year : null;
+
+                      rows.push(
+                        <tr
+                          key={`${stat.season}-TOT-${globalIdx}`}
+                          className="border-b hover:bg-white/5 transition-colors"
+                          style={{
+                            borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                          }}
+                        >
+                          <td className="py-3 px-4 text-sm whitespace-nowrap sticky left-0 z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>
+                            <button
+                              onClick={() => setModalSeason(stat.season)}
+                              className="hover:underline cursor-pointer"
+                              style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
+                            >
+                              {stat.season}
+                            </button>
+                          </td>
+                          <td className="py-3 px-2 text-sm whitespace-nowrap sticky left-[68px] z-20 font-bold" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)', backgroundColor: primaryColor }}>
+                            TOT
+                          </td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{age ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totGp}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totStats.gs ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totPerGame(totStats.min)}</td>
+                          <td className="text-center py-3 px-2 text-sm font-medium" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>{totPerGame(totStats.pts)}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totPerGame(totTotalReb)}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totPerGame(totStats.ast)}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totPerGame(totStats.fg)}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totPerGame(totStats.fga)}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totPct(totStats.fg, totStats.fga)}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totPerGame(totTpm)}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totPerGame(totStats.tpa)}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totPct(totTpm, totStats.tpa)}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totGp > 0 ? (totTwoPM / totGp).toFixed(1) : '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totGp > 0 ? (totTwoPA / totGp).toFixed(1) : '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totPct(totTwoPM, totTwoPA)}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totEfgPct}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totPerGame(totStats.ft)}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totPerGame(totStats.fta)}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totPct(totStats.ft, totStats.fta)}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totPerGame(totStats.orb)}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totPerGame(totStats.drb)}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totPerGame(totStats.tov)}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totPerGame(totStats.stl)}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totPerGame(totStats.blk)}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totPerGame(totStats.ba)}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totPerGame(totStats.pf)}</td>
+                        </tr>
+                      );
+                      globalIdx++;
+                    }
+
+                    // Now render the actual team row (with greyed text if multi-team season)
+                    const greyedOpacity = isMultiTeamSeason ? 0.5 : 0.9;
                     const team = teams.find(t => t.tid === stat.tid);
                     const teamInfo = team ? getTeamNameForSeason(team, stat.season) : null;
                     const age = player.born?.year ? stat.season - player.born.year : null;
@@ -1595,9 +1980,9 @@ export function PlayerPageModal({
                     // Calculate eFG%
                     const efgPct = fga > 0 ? (((fg + 0.5 * tpm) / fga) * 100).toFixed(1) : '-';
 
-                    return (
+                    rows.push(
                       <tr
-                        key={`${stat.season}-${stat.tid}-${idx}`}
+                        key={`${stat.season}-${stat.tid}-${globalIdx}`}
                         className="border-b hover:bg-white/5 transition-colors"
                         style={{
                           borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
@@ -1605,21 +1990,21 @@ export function PlayerPageModal({
                           borderBottomStyle: hasYearGap ? 'solid' : 'solid',
                         }}
                       >
-                        <td className="py-3 px-4 text-sm whitespace-nowrap sticky left-0 z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>
+                        <td className="py-3 px-4 text-sm whitespace-nowrap sticky left-0 z-20" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})`, backgroundColor: primaryColor }}>
                           <button
                             onClick={() => setModalSeason(stat.season)}
                             className="hover:underline cursor-pointer"
-                            style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
+                            style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}
                           >
                             {stat.season}
                           </button>
                         </td>
-                        <td className="py-3 px-2 text-sm whitespace-nowrap sticky left-[68px] z-20" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)', backgroundColor: primaryColor }}>
+                        <td className="py-3 px-2 text-sm whitespace-nowrap sticky left-[68px] z-20" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})`, backgroundColor: primaryColor }}>
                           {onTeamClick ? (
                             <button
                               onClick={() => onTeamClick(stat.tid, stat.season)}
                               className="hover:underline cursor-pointer"
-                              style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}
+                              style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}
                             >
                               {teamInfo?.abbrev || 'UNK'}
                             </button>
@@ -1627,36 +2012,39 @@ export function PlayerPageModal({
                             <span>{teamInfo?.abbrev || 'UNK'}</span>
                           )}
                         </td>
-                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{age ?? '-'}</td>
-                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{gp}</td>
-                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).gs ?? '-'}</td>
-                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{perGame(stat.min)}</td>
-                        <td className="text-center py-3 px-2 text-sm font-medium" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>{perGame(stat.pts)}</td>
-                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{perGame(totalReb)}</td>
-                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{perGame(stat.ast)}</td>
-                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{perGame(stat.fg)}</td>
-                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{perGame(stat.fga)}</td>
-                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{pct(stat.fg, stat.fga)}</td>
-                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{perGame(tpm)}</td>
-                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{perGame(stat.tpa)}</td>
-                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{pct(tpm, stat.tpa)}</td>
-                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{gp > 0 ? (twoPM / gp).toFixed(1) : '-'}</td>
-                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{gp > 0 ? (twoPA / gp).toFixed(1) : '-'}</td>
-                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{pct(twoPM, twoPA)}</td>
-                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{efgPct}</td>
-                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{perGame(stat.ft)}</td>
-                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{perGame(stat.fta)}</td>
-                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{pct(stat.ft, stat.fta)}</td>
-                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{perGame(stat.orb)}</td>
-                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{perGame(stat.drb)}</td>
-                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{perGame((stat as any).tov)}</td>
-                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{perGame(stat.stl)}</td>
-                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{perGame(stat.blk)}</td>
-                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{perGame((stat as any).ba)}</td>
-                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{perGame((stat as any).pf)}</td>
+                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{age ?? '-'}</td>
+                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{gp}</td>
+                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{(stat as any).gs ?? '-'}</td>
+                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{perGame(stat.min)}</td>
+                        <td className="text-center py-3 px-2 text-sm font-medium" style={{ color: textColor === 'white' ? (isMultiTeamSeason ? `rgba(255,255,255,${greyedOpacity})` : '#ffffff') : (isMultiTeamSeason ? `rgba(0,0,0,${greyedOpacity})` : '#000000') }}>{perGame(stat.pts)}</td>
+                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{perGame(totalReb)}</td>
+                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{perGame(stat.ast)}</td>
+                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{perGame(stat.fg)}</td>
+                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{perGame(stat.fga)}</td>
+                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{pct(stat.fg, stat.fga)}</td>
+                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{perGame(tpm)}</td>
+                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{perGame(stat.tpa)}</td>
+                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{pct(tpm, stat.tpa)}</td>
+                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{gp > 0 ? (twoPM / gp).toFixed(1) : '-'}</td>
+                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{gp > 0 ? (twoPA / gp).toFixed(1) : '-'}</td>
+                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{pct(twoPM, twoPA)}</td>
+                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{efgPct}</td>
+                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{perGame(stat.ft)}</td>
+                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{perGame(stat.fta)}</td>
+                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{pct(stat.ft, stat.fta)}</td>
+                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{perGame(stat.orb)}</td>
+                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{perGame(stat.drb)}</td>
+                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{perGame((stat as any).tov)}</td>
+                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{perGame(stat.stl)}</td>
+                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{perGame(stat.blk)}</td>
+                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{perGame((stat as any).ba)}</td>
+                        <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{perGame((stat as any).pf)}</td>
                       </tr>
                     );
+                    globalIdx++;
                   });
+
+                  return rows;
                 })()}
               </tbody>
             </table>
@@ -1708,7 +2096,116 @@ export function PlayerPageModal({
                       .filter(s => !s.playoffs && s.gp && s.gp > 0 && (!season || s.season <= season))
                       .sort((a, b) => b.season - a.season);
 
-                    return filteredStats.map((stat, idx) => {
+                    // Group by season to detect multi-team seasons
+                    const seasonGroups = new Map<number, typeof filteredStats>();
+                    filteredStats.forEach(stat => {
+                      const seasonStats = seasonGroups.get(stat.season) || [];
+                      seasonStats.push(stat);
+                      seasonGroups.set(stat.season, seasonStats);
+                    });
+
+                    const rows: JSX.Element[] = [];
+                    let globalIdx = 0;
+
+                    filteredStats.forEach((stat, idx) => {
+                      const seasonStats = seasonGroups.get(stat.season) || [];
+                      const isMultiTeamSeason = seasonStats.length > 1;
+
+                      // Check if this is the first occurrence of this season in the list
+                      const isFirstOfSeason = idx === 0 || filteredStats[idx - 1].season !== stat.season;
+
+                      // If multi-team season and first occurrence, add TOT row first
+                      if (isMultiTeamSeason && isFirstOfSeason) {
+                        // Aggregate stats for TOT row
+                        const totStats = seasonStats.reduce((acc, s) => ({
+                          gp: (acc.gp || 0) + (s.gp || 0),
+                          gs: (acc.gs || 0) + ((s as any).gs || 0),
+                          min: (acc.min || 0) + (s.min || 0),
+                          ws: (acc.ws || 0) + (s.ws || 0),
+                          ows: (acc.ows || 0) + ((s as any).ows || 0),
+                          dws: (acc.dws || 0) + ((s as any).dws || 0),
+                          ewa: (acc.ewa || 0) + ((s as any).ewa || 0),
+                          vorp: (acc.vorp || 0) + ((s as any).vorp || 0),
+                          fga: (acc.fga || 0) + (s.fga || 0),
+                          tpa: (acc.tpa || 0) + (s.tpa || 0),
+                          ft: (acc.ft || 0) + (s.ft || 0),
+                          fta: (acc.fta || 0) + (s.fta || 0),
+                          pts: (acc.pts || 0) + (s.pts || 0),
+                        }), { gp: 0, gs: 0, min: 0, ws: 0, ows: 0, dws: 0, ewa: 0, vorp: 0, fga: 0, tpa: 0, ft: 0, fta: 0, pts: 0 });
+
+                        // Render TOT row
+                        const totGp = totStats.gp || 0;
+                        const totMin = totStats.min || 0;
+                        const totPerGame = (val?: number) => totGp > 0 && val != null ? (val / totGp).toFixed(1) : '-';
+                        const totFormat = (val?: number, decimals = 1) => val != null ? val.toFixed(decimals) : '-';
+
+                        // Calculate TOT ratios
+                        const totFga = totStats.fga || 0;
+                        const totTpa = totStats.tpa || 0;
+                        const totFt = totStats.ft || 0;
+                        const totFta = totStats.fta || 0;
+                        const totPts = totStats.pts || 0;
+                        const totTpaPerFga = totFga > 0 ? (totTpa / totFga).toFixed(3) : '-';
+                        const totFtPerFga = totFga > 0 ? (totFt / totFga).toFixed(3) : '-';
+
+                        const totWs = totStats.ws || 0;
+                        const totOws = totStats.ows || 0;
+                        const totDws = totStats.dws || 0;
+                        const totWs48 = totMin > 0 ? (totWs * 48 * 60) / totMin : null;
+
+                        // TS% = PTS / (2 * (FGA + 0.44 * FTA))
+                        const totTsDenom = 2 * (totFga + 0.44 * totFta);
+                        const totTsPct = totTsDenom > 0 ? totPts / totTsDenom : null;
+
+                        const age = player.born?.year ? stat.season - player.born.year : null;
+
+                        rows.push(
+                          <tr
+                            key={`${stat.season}-TOT-ADV-${globalIdx}`}
+                            className="border-b hover:bg-white/5 transition-colors"
+                            style={{
+                              borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                            }}
+                          >
+                            <td className="py-3 px-4 text-sm whitespace-nowrap sticky left-0 z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>
+                              <button
+                                onClick={() => setModalSeason(stat.season)}
+                                className="hover:underline cursor-pointer"
+                                style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
+                              >
+                                {stat.season}
+                              </button>
+                            </td>
+                            <td className="py-3 px-2 text-sm whitespace-nowrap sticky left-[68px] z-20 font-bold" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)', backgroundColor: primaryColor }}>
+                              TOT
+                            </td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{age ?? '-'}</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totGp}</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totStats.gs ?? '-'}</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totPerGame(totStats.min)}</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>-</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totFormat(totStats.vorp)}</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>-</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>-</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>-</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totWs !== 0 ? totFormat(totWs) : '-'}</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totOws !== 0 ? totFormat(totOws) : '-'}</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totDws !== 0 ? totFormat(totDws) : '-'}</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totWs48 !== null ? totFormat(totWs48, 3) : '-'}</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totFormat(totStats.ewa)}</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totTsPct !== null ? (totTsPct * 100).toFixed(1) : '-'}</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totTpaPerFga}</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totFtPerFga}</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>-</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>-</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>-</td>
+                          </tr>
+                        );
+                        globalIdx++;
+                      }
+
+                      // Now render the actual team row (with greyed text if multi-team season)
+                      const greyedOpacity = isMultiTeamSeason ? 0.5 : 0.9;
                       const team = teams.find(t => t.tid === stat.tid);
                       const teamInfo = team ? getTeamNameForSeason(team, stat.season) : null;
                       const age = player.born?.year ? stat.season - player.born.year : null;
@@ -1746,9 +2243,9 @@ export function PlayerPageModal({
                       const tsDenom = 2 * (fga + 0.44 * fta);
                       const tsPct = tsDenom > 0 ? pts / tsDenom : null;
 
-                      return (
+                      rows.push(
                         <tr
-                          key={`${stat.season}-${stat.tid}-${idx}`}
+                          key={`${stat.season}-${stat.tid}-${globalIdx}`}
                           className="border-b hover:bg-white/5 transition-colors"
                           style={{
                             borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
@@ -1756,21 +2253,21 @@ export function PlayerPageModal({
                             borderBottomStyle: hasYearGap ? 'solid' : 'solid',
                           }}
                         >
-                          <td className="py-3 px-4 text-sm whitespace-nowrap sticky left-0 z-20" style={{ color: textColor === 'white' ? '#ffffff' : '#000000', backgroundColor: primaryColor }}>
+                          <td className="py-3 px-4 text-sm whitespace-nowrap sticky left-0 z-20" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})`, backgroundColor: primaryColor }}>
                             <button
                               onClick={() => setModalSeason(stat.season)}
                               className="hover:underline cursor-pointer"
-                              style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
+                              style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}
                             >
                               {stat.season}
                             </button>
                           </td>
-                          <td className="py-3 px-2 text-sm whitespace-nowrap sticky left-[68px] z-20" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)', backgroundColor: primaryColor }}>
+                          <td className="py-3 px-2 text-sm whitespace-nowrap sticky left-[68px] z-20" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})`, backgroundColor: primaryColor }}>
                             {onTeamClick ? (
                               <button
                                 onClick={() => onTeamClick(stat.tid, stat.season)}
                                 className="hover:underline cursor-pointer"
-                                style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}
+                                style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}
                               >
                                 {teamInfo?.abbrev || 'UNK'}
                               </button>
@@ -1778,29 +2275,32 @@ export function PlayerPageModal({
                               <span>{teamInfo?.abbrev || 'UNK'}</span>
                             )}
                           </td>
-                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{age ?? '-'}</td>
-                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{gp}</td>
-                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{stat.gs ?? '-'}</td>
-                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{perGame(stat.min)}</td>
-                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{format(stat.per)}</td>
-                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{format(stat.vorp)}</td>
-                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{bpm !== 0 ? format(bpm) : '-'}</td>
-                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{obpm !== 0 ? format(obpm) : '-'}</td>
-                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{dbpm !== 0 ? format(dbpm) : '-'}</td>
-                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{ws !== 0 ? format(ws) : '-'}</td>
-                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{ows !== 0 ? format(ows) : '-'}</td>
-                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{dws !== 0 ? format(dws) : '-'}</td>
-                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{ws48 !== null ? format(ws48, 3) : '-'}</td>
-                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{format(stat.ewa)}</td>
-                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{tsPct !== null ? (tsPct * 100).toFixed(1) : '-'}</td>
-                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{tpaPerFga}</td>
-                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{ftPerFga}</td>
-                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{stat.pm != null ? format(stat.pm) : '-'}</td>
-                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{stat.ortg != null ? format(stat.ortg) : '-'}</td>
-                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{stat.drtg != null ? format(stat.drtg) : '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{age ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{gp}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{stat.gs ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{perGame(stat.min)}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{format(stat.per)}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{format(stat.vorp)}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{bpm !== 0 ? format(bpm) : '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{obpm !== 0 ? format(obpm) : '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{dbpm !== 0 ? format(dbpm) : '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{ws !== 0 ? format(ws) : '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{ows !== 0 ? format(ows) : '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{dws !== 0 ? format(dws) : '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{ws48 !== null ? format(ws48, 3) : '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{format(stat.ewa)}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{tsPct !== null ? (tsPct * 100).toFixed(1) : '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{tpaPerFga}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{ftPerFga}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{stat.pm != null ? format(stat.pm) : '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{stat.ortg != null ? format(stat.ortg) : '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? `rgba(255,255,255,${greyedOpacity})` : `rgba(0,0,0,${greyedOpacity})` }}>{stat.drtg != null ? format(stat.drtg) : '-'}</td>
                         </tr>
                       );
+                      globalIdx++;
                     });
+
+                    return rows;
                   })()}
                 </tbody>
               </table>
