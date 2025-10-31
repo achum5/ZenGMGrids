@@ -650,10 +650,85 @@ export function TeamInfoModal({
           {/* Text Content */}
           <div className="flex-1">
             <h2
-              className="text-2xl font-bold tracking-tight"
+              className="text-2xl font-bold tracking-tight flex items-center gap-3 flex-wrap"
               style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
             >
-              {season} {teamName}
+              {/* Team active seasons dropdown */}
+              {(() => {
+                // Get all seasons where this team was active
+                const team = teams.find(t => t.tid === teamTid);
+                const availableSeasons = team?.seasons
+                  ? Array.from(new Set(team.seasons.map(s => s.season))).sort((a, b) => b - a)
+                  : [season];
+
+                return (
+                  <select
+                    value={season}
+                    onChange={(e) => {
+                      const selectedSeason = parseInt(e.target.value);
+                      if (!isNaN(selectedSeason) && onOpenOpponentTeam && teamTid !== undefined) {
+                        onOpenOpponentTeam(teamTid, selectedSeason);
+                      }
+                    }}
+                    className="text-2xl font-bold rounded px-2 py-1 cursor-pointer [&>option]:text-black [&>option]:bg-white"
+                    style={{
+                      backgroundColor: textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                      color: textColor === 'white' ? '#ffffff' : '#000000',
+                      border: `1px solid ${textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'}`,
+                    }}
+                  >
+                    {availableSeasons.map(s => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                );
+              })()}
+              {/* Team dropdown */}
+              {(() => {
+                // Get only teams that were active in the current season
+                const activeTeams = teams.filter(t => {
+                  // Check if team has season data for the current season
+                  return t.seasons && t.seasons.some(s => s.season === season);
+                }).map(t => {
+                  // Get the team's name for the specific season (handles rebrands)
+                  const seasonData = t.seasons?.find(s => s.season === season);
+                  const seasonRegion = seasonData?.region || t.region || '';
+                  const seasonName = seasonData?.name || t.name || `Team ${t.tid}`;
+                  const displayName = seasonRegion ? `${seasonRegion} ${seasonName}` : seasonName;
+
+                  return {
+                    tid: t.tid,
+                    displayName
+                  };
+                }).sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+                return (
+                  <select
+                    value={teamTid}
+                    onChange={(e) => {
+                      const selectedTid = parseInt(e.target.value);
+                      if (!isNaN(selectedTid) && onOpenOpponentTeam) {
+                        // Open the selected team for the current season
+                        onOpenOpponentTeam(selectedTid, season);
+                      }
+                    }}
+                    className="text-2xl font-bold rounded px-2 py-1 cursor-pointer [&>option]:text-black [&>option]:bg-white max-w-[300px]"
+                    style={{
+                      backgroundColor: textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                      color: textColor === 'white' ? '#ffffff' : '#000000',
+                      border: `1px solid ${textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'}`,
+                    }}
+                  >
+                    {activeTeams.map(t => (
+                      <option key={t.tid} value={t.tid}>
+                        {t.displayName}
+                      </option>
+                    ))}
+                  </select>
+                );
+              })()}
             </h2>
             {teamStats && (
               <ul className="mt-2 space-y-1 text-sm">

@@ -371,7 +371,8 @@ export function PlayerPageModal({
         {/* Player Header Section */}
         <div className="flex flex-col sm:flex-row items-start gap-6 pt-0 sm:pt-0">
           {/* Left Side: Image + Details */}
-          <div className="flex items-start gap-3 sm:gap-6 w-full sm:flex-1 sm:min-w-0">
+          <div className="flex flex-col w-full sm:flex-1 sm:min-w-0">
+            <div className="flex items-start gap-3 sm:gap-6">
             {/* Player Image */}
             <div className="flex-shrink-0 sm:mt-3">
               <div className="w-24 h-24 sm:w-40 sm:h-40 overflow-visible">
@@ -582,10 +583,175 @@ export function PlayerPageModal({
                 </div>
               )}
             </div>
-          </div>
+            </div>
+            </div>
+
+          {/* Player Summary Stats Table */}
+          {sport === 'basketball' && season && player.stats && (() => {
+            // Get regular season stats for selected season
+            // First try to find pre-aggregated season totals (tid = -1)
+            let seasonStats = player.stats.find(s => s.season === season && !s.playoffs && s.tid === -1);
+
+            // If not found, aggregate stats for that season across all teams
+            if (!seasonStats) {
+              const seasonStatsArray = player.stats.filter(s => s.season === season && !s.playoffs);
+              if (seasonStatsArray.length > 0) {
+                seasonStats = seasonStatsArray.reduce((acc, s) => ({
+                  season: season,
+                  tid: -1,
+                  playoffs: false,
+                  gp: (acc.gp || 0) + (s.gp || 0),
+                  min: (acc.min || 0) + (s.min || 0),
+                  pts: (acc.pts || 0) + (s.pts || 0),
+                  trb: (acc.trb || 0) + (s.trb || 0),
+                  ast: (acc.ast || 0) + (s.ast || 0),
+                  fg: (acc.fg || 0) + (s.fg || 0),
+                  fga: (acc.fga || 0) + (s.fga || 0),
+                  tp: (acc.tp || 0) + (s.tp || 0),
+                  tpa: (acc.tpa || 0) + (s.tpa || 0),
+                  ft: (acc.ft || 0) + (s.ft || 0),
+                  fta: (acc.fta || 0) + (s.fta || 0),
+                  ws: (acc.ws || 0) + (s.ws || 0),
+                  per: undefined, // PER can't be aggregated
+                }), { season: season, tid: -1, playoffs: false, gp: 0, min: 0, pts: 0, trb: 0, ast: 0, fg: 0, fga: 0, tp: 0, tpa: 0, ft: 0, fta: 0, ws: 0 });
+              }
+            }
+
+            // Calculate career totals
+            // First try to use pre-aggregated totals (tid = -1), otherwise aggregate all regular season stats
+            const preAggregatedTotals = player.stats.filter(s => !s.playoffs && s.tid === -1);
+            const careerTotals = preAggregatedTotals.length > 0
+              ? preAggregatedTotals.reduce((acc, s) => ({
+                  gp: (acc.gp || 0) + (s.gp || 0),
+                  min: (acc.min || 0) + (s.min || 0),
+                  pts: (acc.pts || 0) + (s.pts || 0),
+                  trb: (acc.trb || 0) + (s.trb || 0),
+                  ast: (acc.ast || 0) + (s.ast || 0),
+                  fg: (acc.fg || 0) + (s.fg || 0),
+                  fga: (acc.fga || 0) + (s.fga || 0),
+                  tp: (acc.tp || 0) + (s.tp || 0),
+                  tpa: (acc.tpa || 0) + (s.tpa || 0),
+                  ft: (acc.ft || 0) + (s.ft || 0),
+                  fta: (acc.fta || 0) + (s.fta || 0),
+                  ws: (acc.ws || 0) + (s.ws || 0),
+                }), { gp: 0, min: 0, pts: 0, trb: 0, ast: 0, fg: 0, fga: 0, tp: 0, tpa: 0, ft: 0, fta: 0, ws: 0 })
+              : player.stats
+                  .filter(s => !s.playoffs) // All regular season stats regardless of team
+                  .reduce((acc, s) => ({
+                    gp: (acc.gp || 0) + (s.gp || 0),
+                    min: (acc.min || 0) + (s.min || 0),
+                    pts: (acc.pts || 0) + (s.pts || 0),
+                    trb: (acc.trb || 0) + (s.trb || 0),
+                    ast: (acc.ast || 0) + (s.ast || 0),
+                    fg: (acc.fg || 0) + (s.fg || 0),
+                    fga: (acc.fga || 0) + (s.fga || 0),
+                    tp: (acc.tp || 0) + (s.tp || 0),
+                    tpa: (acc.tpa || 0) + (s.tpa || 0),
+                    ft: (acc.ft || 0) + (s.ft || 0),
+                    fta: (acc.fta || 0) + (s.fta || 0),
+                    ws: (acc.ws || 0) + (s.ws || 0),
+                  }), { gp: 0, min: 0, pts: 0, trb: 0, ast: 0, fg: 0, fga: 0, tp: 0, tpa: 0, ft: 0, fta: 0, ws: 0 });
+
+            const formatStat = (val: number | undefined | null) => val != null ? val.toFixed(1) : '—';
+            const formatPct = (made: number, attempted: number) => attempted > 0 ? (made / attempted * 100).toFixed(1) : '—';
+            const formatTS = (pts: number, fga: number, fta: number) => {
+              const denominator = 2 * (fga + 0.44 * fta);
+              return denominator > 0 ? ((pts / denominator) * 100).toFixed(1) : '—';
+            };
+
+            // Season row
+            const seasonRow = seasonStats && seasonStats.gp && seasonStats.gp > 0 ? {
+              g: seasonStats.gp,
+              mp: formatStat((seasonStats.min || 0) / seasonStats.gp),
+              pts: formatStat((seasonStats.pts || 0) / seasonStats.gp),
+              trb: formatStat((seasonStats.trb || 0) / seasonStats.gp),
+              ast: formatStat((seasonStats.ast || 0) / seasonStats.gp),
+              fgPct: formatPct(seasonStats.fg || 0, seasonStats.fga || 0),
+              tpPct: formatPct(seasonStats.tp || 0, seasonStats.tpa || 0),
+              ftPct: formatPct(seasonStats.ft || 0, seasonStats.fta || 0),
+              tsPct: formatTS(seasonStats.pts || 0, seasonStats.fga || 0, seasonStats.fta || 0),
+              per: formatStat(seasonStats.per),
+              ws: formatStat(seasonStats.ws),
+            } : null;
+
+            // Career row
+            const careerRow = careerTotals.gp > 0 ? {
+              g: careerTotals.gp,
+              mp: formatStat(careerTotals.min / careerTotals.gp),
+              pts: formatStat(careerTotals.pts / careerTotals.gp),
+              trb: formatStat(careerTotals.trb / careerTotals.gp),
+              ast: formatStat(careerTotals.ast / careerTotals.gp),
+              fgPct: formatPct(careerTotals.fg, careerTotals.fga),
+              tpPct: formatPct(careerTotals.tp, careerTotals.tpa),
+              ftPct: formatPct(careerTotals.ft, careerTotals.fta),
+              tsPct: formatTS(careerTotals.pts, careerTotals.fga, careerTotals.fta),
+              per: '—', // Career PER would need special calculation
+              ws: formatStat(careerTotals.ws),
+            } : null;
+
+            if (!seasonRow && !careerRow) return null;
+
+            return (
+              <div className="w-full mt-4 overflow-x-auto">
+                <table className="text-[13px]" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                  <thead>
+                    <tr style={{ borderBottom: `1px solid ${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}` }}>
+                      <th className="text-left px-2 py-1 font-semibold">Summary</th>
+                      <th className="text-right px-1 py-1">G</th>
+                      <th className="text-right px-1 py-1">MP</th>
+                      <th className="text-right px-1 py-1">PTS</th>
+                      <th className="text-right px-1 py-1">TRB</th>
+                      <th className="text-right px-1 py-1">AST</th>
+                      <th className="text-right px-1 py-1">FG%</th>
+                      <th className="text-right px-1 py-1">3P%</th>
+                      <th className="text-right px-1 py-1">FT%</th>
+                      <th className="text-right px-1 py-1">TS%</th>
+                      <th className="text-right px-1 py-1">PER</th>
+                      <th className="text-right px-1 py-1">WS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {seasonRow && (
+                      <tr style={{ backgroundColor: textColor === 'white' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
+                        <td className="text-left px-2 py-1 font-bold">{season}</td>
+                        <td className="text-right px-1 py-1">{(seasonRow.g || 0).toLocaleString()}</td>
+                        <td className="text-right px-1 py-1">{seasonRow.mp}</td>
+                        <td className="text-right px-1 py-1">{seasonRow.pts}</td>
+                        <td className="text-right px-1 py-1">{seasonRow.trb}</td>
+                        <td className="text-right px-1 py-1">{seasonRow.ast}</td>
+                        <td className="text-right px-1 py-1">{seasonRow.fgPct}</td>
+                        <td className="text-right px-1 py-1">{seasonRow.tpPct}</td>
+                        <td className="text-right px-1 py-1">{seasonRow.ftPct}</td>
+                        <td className="text-right px-1 py-1">{seasonRow.tsPct}</td>
+                        <td className="text-right px-1 py-1">{seasonRow.per}</td>
+                        <td className="text-right px-1 py-1">{seasonRow.ws}</td>
+                      </tr>
+                    )}
+                    {careerRow && (
+                      <tr>
+                        <td className="text-left px-2 py-1 font-bold">Career</td>
+                        <td className="text-right px-1 py-1">{careerRow.g.toLocaleString()}</td>
+                        <td className="text-right px-1 py-1">{careerRow.mp}</td>
+                        <td className="text-right px-1 py-1">{careerRow.pts}</td>
+                        <td className="text-right px-1 py-1">{careerRow.trb}</td>
+                        <td className="text-right px-1 py-1">{careerRow.ast}</td>
+                        <td className="text-right px-1 py-1">{careerRow.fgPct}</td>
+                        <td className="text-right px-1 py-1">{careerRow.tpPct}</td>
+                        <td className="text-right px-1 py-1">{careerRow.ftPct}</td>
+                        <td className="text-right px-1 py-1">{careerRow.tsPct}</td>
+                        <td className="text-right px-1 py-1">{careerRow.per}</td>
+                        <td className="text-right px-1 py-1">{careerRow.ws}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
           </div>
 
           {/* Right Side: Ratings */}
+          <div>
           {season && player.ratings && (() => {
             const seasonRating = player.ratings.find(r => r.season === season);
             const prevSeasonRating = player.ratings.find(r => r.season === season - 1);
@@ -1142,6 +1308,7 @@ export function PlayerPageModal({
               </div>
             );
           })()}
+          </div>
         </div>
 
         {/* Awards & Honors */}
