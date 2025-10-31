@@ -749,6 +749,9 @@ export function TeamInfoModal({
                   </div>
                 </li>
                 <li style={{ color: statTextColor }}>
+                  Team rating: {teamStats.teamRating}/100
+                </li>
+                <li style={{ color: statTextColor }}>
                   Average age: {teamStats.avgAge.toFixed(1)}
                 </li>
               </ul>
