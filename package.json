@@ -49,6 +49,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^3.6.0",
+    "drizzle-kit": "^0.31.6",
     "express": "^4.21.2",
     "express-session": "^1.18.1",
     "facesjs": "^5.0.2",
