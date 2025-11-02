@@ -1024,26 +1024,42 @@ export function PlayerPageModal({
 
             const filteredStats = player.stats.filter(s => !s.playoffs && s.gp && s.gp > 0 && (!season || s.season <= season));
 
+            // Helper to parse qbRec string like "12-4" or "10-5-1" into components
+            const parseQBRec = (qbRec: any) => {
+              if (typeof qbRec === 'string' && qbRec.includes('-')) {
+                const parts = qbRec.split('-').map(Number);
+                return {
+                  wins: parts[0] || 0,
+                  losses: parts[1] || 0,
+                  ties: parts[2] || 0
+                };
+              }
+              return null;
+            };
+
             // Season stats
             let seasonStats = filteredStats.find(s => s.season === season && s.tid === -1);
             if (!seasonStats) {
               const seasonStatsArray = filteredStats.filter(s => s.season === season && s.tid !== -1);
               if (seasonStatsArray.length > 0) {
-                seasonStats = seasonStatsArray.reduce((acc, stat) => ({
-                  ...acc,
-                  season: stat.season,
-                  tid: -1,
-                  gp: (acc.gp || 0) + (stat.gp || 0),
-                  pss: (acc.pss || 0) + (stat.pss || 0),
-                  pssCmp: (acc.pssCmp || 0) + (stat.pssCmp || 0),
-                  pssYds: (acc.pssYds || 0) + (stat.pssYds || 0),
-                  pssTD: (acc.pssTD || 0) + (stat.pssTD || 0),
-                  pssInt: (acc.pssInt || 0) + (stat.pssInt || 0),
-                  av: (acc.av || 0) + (stat.av || 0),
-                  qbWins: (acc.qbWins || 0) + (stat.qbWins || 0),
-                  qbLosses: (acc.qbLosses || 0) + (stat.qbLosses || 0),
-                  qbTies: (acc.qbTies || 0) + (stat.qbTies || 0),
-                }), { season, tid: -1, gp: 0, pss: 0, pssCmp: 0, pssYds: 0, pssTD: 0, pssInt: 0, av: 0, qbWins: 0, qbLosses: 0, qbTies: 0 });
+                seasonStats = seasonStatsArray.reduce((acc, stat) => {
+                  const parsed = parseQBRec((stat as any).qbRec);
+                  return {
+                    ...acc,
+                    season: stat.season,
+                    tid: -1,
+                    gp: (acc.gp || 0) + (stat.gp || 0),
+                    pss: (acc.pss || 0) + (stat.pss || 0),
+                    pssCmp: (acc.pssCmp || 0) + (stat.pssCmp || 0),
+                    pssYds: (acc.pssYds || 0) + (stat.pssYds || 0),
+                    pssTD: (acc.pssTD || 0) + (stat.pssTD || 0),
+                    pssInt: (acc.pssInt || 0) + (stat.pssInt || 0),
+                    av: (acc.av || 0) + (stat.av || 0),
+                    qbWins: (acc.qbWins || 0) + (parsed?.wins || (stat as any).qbWins || 0),
+                    qbLosses: (acc.qbLosses || 0) + (parsed?.losses || (stat as any).qbLosses || 0),
+                    qbTies: (acc.qbTies || 0) + (parsed?.ties || (stat as any).qbTies || 0),
+                  };
+                }, { season, tid: -1, gp: 0, pss: 0, pssCmp: 0, pssYds: 0, pssTD: 0, pssInt: 0, av: 0, qbWins: 0, qbLosses: 0, qbTies: 0 });
               }
             }
 
@@ -1053,18 +1069,21 @@ export function PlayerPageModal({
               ? filteredStats.filter(s => s.tid === -1)
               : filteredStats.filter(s => s.tid !== -1);
 
-            const careerStats = careerStatsArray.length > 0 ? careerStatsArray.reduce((acc, stat) => ({
-              gp: (acc.gp || 0) + (stat.gp || 0),
-              pss: (acc.pss || 0) + (stat.pss || 0),
-              pssCmp: (acc.pssCmp || 0) + (stat.pssCmp || 0),
-              pssYds: (acc.pssYds || 0) + (stat.pssYds || 0),
-              pssTD: (acc.pssTD || 0) + (stat.pssTD || 0),
-              pssInt: (acc.pssInt || 0) + (stat.pssInt || 0),
-              av: (acc.av || 0) + (stat.av || 0),
-              qbWins: (acc.qbWins || 0) + (stat.qbWins || 0),
-              qbLosses: (acc.qbLosses || 0) + (stat.qbLosses || 0),
-              qbTies: (acc.qbTies || 0) + (stat.qbTies || 0),
-            }), { gp: 0, pss: 0, pssCmp: 0, pssYds: 0, pssTD: 0, pssInt: 0, av: 0, qbWins: 0, qbLosses: 0, qbTies: 0 }) : null;
+            const careerStats = careerStatsArray.length > 0 ? careerStatsArray.reduce((acc, stat) => {
+              const parsed = parseQBRec((stat as any).qbRec);
+              return {
+                gp: (acc.gp || 0) + (stat.gp || 0),
+                pss: (acc.pss || 0) + (stat.pss || 0),
+                pssCmp: (acc.pssCmp || 0) + (stat.pssCmp || 0),
+                pssYds: (acc.pssYds || 0) + (stat.pssYds || 0),
+                pssTD: (acc.pssTD || 0) + (stat.pssTD || 0),
+                pssInt: (acc.pssInt || 0) + (stat.pssInt || 0),
+                av: (acc.av || 0) + (stat.av || 0),
+                qbWins: (acc.qbWins || 0) + (parsed?.wins || (stat as any).qbWins || 0),
+                qbLosses: (acc.qbLosses || 0) + (parsed?.losses || (stat as any).qbLosses || 0),
+                qbTies: (acc.qbTies || 0) + (parsed?.ties || (stat as any).qbTies || 0),
+              };
+            }, { gp: 0, pss: 0, pssCmp: 0, pssYds: 0, pssTD: 0, pssInt: 0, av: 0, qbWins: 0, qbLosses: 0, qbTies: 0 }) : null;
 
             // Peak stats (for retired players)
             const isRetired = player.tid === -2 || player.tid === -3 || (player.retiredYear && player.retiredYear > 0);
@@ -1085,21 +1104,24 @@ export function PlayerPageModal({
                 if (!peakSeasonStats) {
                   const peakSeasonStatsArray = filteredStats.filter(s => s.season === peakSeason && s.tid !== -1);
                   if (peakSeasonStatsArray.length > 0) {
-                    peakSeasonStats = peakSeasonStatsArray.reduce((acc, stat) => ({
-                      ...acc,
-                      season: stat.season,
-                      tid: -1,
-                      gp: (acc.gp || 0) + (stat.gp || 0),
-                      pss: (acc.pss || 0) + (stat.pss || 0),
-                      pssCmp: (acc.pssCmp || 0) + (stat.pssCmp || 0),
-                      pssYds: (acc.pssYds || 0) + (stat.pssYds || 0),
-                      pssTD: (acc.pssTD || 0) + (stat.pssTD || 0),
-                      pssInt: (acc.pssInt || 0) + (stat.pssInt || 0),
-                      av: (acc.av || 0) + (stat.av || 0),
-                      qbWins: (acc.qbWins || 0) + (stat.qbWins || 0),
-                      qbLosses: (acc.qbLosses || 0) + (stat.qbLosses || 0),
-                      qbTies: (acc.qbTies || 0) + (stat.qbTies || 0),
-                    }), { season: peakSeason, tid: -1, gp: 0, pss: 0, pssCmp: 0, pssYds: 0, pssTD: 0, pssInt: 0, av: 0, qbWins: 0, qbLosses: 0, qbTies: 0 });
+                    peakSeasonStats = peakSeasonStatsArray.reduce((acc, stat) => {
+                      const parsed = parseQBRec((stat as any).qbRec);
+                      return {
+                        ...acc,
+                        season: stat.season,
+                        tid: -1,
+                        gp: (acc.gp || 0) + (stat.gp || 0),
+                        pss: (acc.pss || 0) + (stat.pss || 0),
+                        pssCmp: (acc.pssCmp || 0) + (stat.pssCmp || 0),
+                        pssYds: (acc.pssYds || 0) + (stat.pssYds || 0),
+                        pssTD: (acc.pssTD || 0) + (stat.pssTD || 0),
+                        pssInt: (acc.pssInt || 0) + (stat.pssInt || 0),
+                        av: (acc.av || 0) + (stat.av || 0),
+                        qbWins: (acc.qbWins || 0) + (parsed?.wins || (stat as any).qbWins || 0),
+                        qbLosses: (acc.qbLosses || 0) + (parsed?.losses || (stat as any).qbLosses || 0),
+                        qbTies: (acc.qbTies || 0) + (parsed?.ties || (stat as any).qbTies || 0),
+                      };
+                    }, { season: peakSeason, tid: -1, gp: 0, pss: 0, pssCmp: 0, pssYds: 0, pssTD: 0, pssInt: 0, av: 0, qbWins: 0, qbLosses: 0, qbTies: 0 });
                   }
                 }
                 if (peakSeasonStats && peakSeasonStats.gp && peakSeasonStats.gp > 0) {
