@@ -774,7 +774,7 @@ export function PlayerPageModal({
               }
             }
 
-            const formatStat = (val: number | undefined | null) => val != null ? val.toFixed(1) : '—';
+            const formatStat = (val: number | undefined | null) => val != null ? Number(val.toFixed(1)).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '—';
             const formatPct = (made: number, attempted: number) => attempted > 0 ? (made / attempted * 100).toFixed(1) : '—';
             const formatTS = (pts: number, fga: number, fta: number) => {
               const denominator = 2 * (fga + 0.44 * fta);
@@ -1040,7 +1040,10 @@ export function PlayerPageModal({
                   pssTD: (acc.pssTD || 0) + (stat.pssTD || 0),
                   pssInt: (acc.pssInt || 0) + (stat.pssInt || 0),
                   av: (acc.av || 0) + (stat.av || 0),
-                }), { season, tid: -1, gp: 0, pss: 0, pssCmp: 0, pssYds: 0, pssTD: 0, pssInt: 0, av: 0 });
+                  qbWins: (acc.qbWins || 0) + (stat.qbWins || 0),
+                  qbLosses: (acc.qbLosses || 0) + (stat.qbLosses || 0),
+                  qbTies: (acc.qbTies || 0) + (stat.qbTies || 0),
+                }), { season, tid: -1, gp: 0, pss: 0, pssCmp: 0, pssYds: 0, pssTD: 0, pssInt: 0, av: 0, qbWins: 0, qbLosses: 0, qbTies: 0 });
               }
             }
 
@@ -1058,7 +1061,10 @@ export function PlayerPageModal({
               pssTD: (acc.pssTD || 0) + (stat.pssTD || 0),
               pssInt: (acc.pssInt || 0) + (stat.pssInt || 0),
               av: (acc.av || 0) + (stat.av || 0),
-            }), { gp: 0, pss: 0, pssCmp: 0, pssYds: 0, pssTD: 0, pssInt: 0, av: 0 }) : null;
+              qbWins: (acc.qbWins || 0) + (stat.qbWins || 0),
+              qbLosses: (acc.qbLosses || 0) + (stat.qbLosses || 0),
+              qbTies: (acc.qbTies || 0) + (stat.qbTies || 0),
+            }), { gp: 0, pss: 0, pssCmp: 0, pssYds: 0, pssTD: 0, pssInt: 0, av: 0, qbWins: 0, qbLosses: 0, qbTies: 0 }) : null;
 
             // Peak stats (for retired players)
             const isRetired = player.tid === -2 || player.tid === -3 || (player.retiredYear && player.retiredYear > 0);
@@ -1090,7 +1096,10 @@ export function PlayerPageModal({
                       pssTD: (acc.pssTD || 0) + (stat.pssTD || 0),
                       pssInt: (acc.pssInt || 0) + (stat.pssInt || 0),
                       av: (acc.av || 0) + (stat.av || 0),
-                    }), { season: peakSeason, tid: -1, gp: 0, pss: 0, pssCmp: 0, pssYds: 0, pssTD: 0, pssInt: 0, av: 0 });
+                      qbWins: (acc.qbWins || 0) + (stat.qbWins || 0),
+                      qbLosses: (acc.qbLosses || 0) + (stat.qbLosses || 0),
+                      qbTies: (acc.qbTies || 0) + (stat.qbTies || 0),
+                    }), { season: peakSeason, tid: -1, gp: 0, pss: 0, pssCmp: 0, pssYds: 0, pssTD: 0, pssInt: 0, av: 0, qbWins: 0, qbLosses: 0, qbTies: 0 });
                   }
                 }
                 if (peakSeasonStats && peakSeasonStats.gp && peakSeasonStats.gp > 0) {
@@ -1099,7 +1108,7 @@ export function PlayerPageModal({
               }
             }
 
-            const formatStat = (val: number | undefined | null) => val != null ? val.toFixed(1) : '—';
+            const formatStat = (val: number | undefined | null) => val != null ? Number(val.toFixed(1)).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '—';
             const formatInt = (val: number | undefined | null) => val != null ? val.toLocaleString() : '—';
             const formatAV = (val: number | undefined | null) => val != null ? Math.round(val).toString() : '—';
             const formatPct = (cmp: number, att: number) => att > 0 ? ((cmp / att) * 100).toFixed(1) : '—';
@@ -1334,7 +1343,7 @@ export function PlayerPageModal({
               }
             }
 
-            const formatStat = (val: number | undefined | null) => val != null ? val.toFixed(1) : '—';
+            const formatStat = (val: number | undefined | null) => val != null ? Number(val.toFixed(1)).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '—';
             const formatInt = (val: number | undefined | null) => val != null ? val.toLocaleString() : '—';
             const formatAV = (val: number | undefined | null) => val != null ? Math.round(val).toString() : '—';
             const formatYPA = (yds: number, att: number) => att > 0 ? (yds / att).toFixed(1) : '—';
@@ -1504,7 +1513,7 @@ export function PlayerPageModal({
               }
             }
 
-            const formatStat = (val: number | undefined | null) => val != null ? val.toFixed(1) : '—';
+            const formatStat = (val: number | undefined | null) => val != null ? Number(val.toFixed(1)).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '—';
             const formatInt = (val: number | undefined | null) => val != null ? val.toLocaleString() : '—';
             const formatAV = (val: number | undefined | null) => val != null ? Math.round(val).toString() : '—';
             const formatYPR = (yds: number, rec: number) => rec > 0 ? (yds / rec).toFixed(1) : '—';
@@ -1810,7 +1819,7 @@ export function PlayerPageModal({
               }
             }
 
-            const formatStat = (val: number | undefined | null) => val != null ? val.toFixed(1) : '—';
+            const formatStat = (val: number | undefined | null) => val != null ? Number(val.toFixed(1)).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '—';
             const formatInt = (val: number | undefined | null) => val != null ? val.toLocaleString() : '—';
             const formatAV = (val: number | undefined | null) => val != null ? Math.round(val).toString() : '—';
 
@@ -2003,7 +2012,7 @@ export function PlayerPageModal({
               }
             }
 
-            const formatStat = (val: number | undefined | null) => val != null ? val.toFixed(1) : '—';
+            const formatStat = (val: number | undefined | null) => val != null ? Number(val.toFixed(1)).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '—';
             const formatInt = (val: number | undefined | null) => val != null ? val.toLocaleString() : '—';
             const formatAV = (val: number | undefined | null) => val != null ? Math.round(val).toString() : '—';
 
@@ -2173,7 +2182,7 @@ export function PlayerPageModal({
               }
             }
 
-            const formatStat = (val: number | undefined | null) => val != null ? val.toFixed(1) : '—';
+            const formatStat = (val: number | undefined | null) => val != null ? Number(val.toFixed(1)).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '—';
             const formatInt = (val: number | undefined | null) => val != null ? val.toLocaleString() : '—';
             const formatAV = (val: number | undefined | null) => val != null ? Math.round(val).toString() : '—';
             const formatYPA = (yds: number, punts: number) => punts > 0 ? (yds / punts).toFixed(1) : '—';
@@ -2612,7 +2621,7 @@ export function PlayerPageModal({
               }
             }
 
-            const formatStat = (val: number | undefined | null) => val != null ? val.toFixed(1) : '—';
+            const formatStat = (val: number | undefined | null) => val != null ? Number(val.toFixed(1)).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '—';
             const formatInt = (val: number | undefined | null) => val != null ? val.toLocaleString() : '—';
             const formatIP = (outs: number) => {
               const ipWhole = Math.floor(outs / 3);
