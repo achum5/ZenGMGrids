@@ -653,9 +653,9 @@ export function TeamInfoModal({
           )}
 
           {/* Text Content */}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <h2
-              className="text-2xl font-bold tracking-tight flex items-center gap-3 flex-wrap"
+              className="text-lg sm:text-2xl font-bold tracking-tight flex items-center gap-2 sm:gap-3 flex-wrap"
               style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}
             >
               {/* Team active seasons dropdown */}
@@ -675,7 +675,7 @@ export function TeamInfoModal({
                         onOpenOpponentTeam(teamTid, selectedSeason);
                       }
                     }}
-                    className="text-2xl font-bold rounded px-2 py-1 cursor-pointer [&>option]:text-black [&>option]:bg-white"
+                    className="text-lg sm:text-2xl font-bold rounded px-2 py-1 cursor-pointer [&>option]:text-black [&>option]:bg-white"
                     style={{
                       backgroundColor: textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
                       color: textColor === 'white' ? '#ffffff' : '#000000',
@@ -719,7 +719,7 @@ export function TeamInfoModal({
                         onOpenOpponentTeam(selectedTid, season);
                       }
                     }}
-                    className="text-2xl font-bold rounded px-2 py-1 cursor-pointer [&>option]:text-black [&>option]:bg-white max-w-[300px]"
+                    className="text-lg sm:text-2xl font-bold rounded px-2 py-1 cursor-pointer [&>option]:text-black [&>option]:bg-white max-w-[150px] sm:max-w-[300px] truncate"
                     style={{
                       backgroundColor: textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
                       color: textColor === 'white' ? '#ffffff' : '#000000',
@@ -736,7 +736,7 @@ export function TeamInfoModal({
               })()}
             </h2>
             {teamStats && (
-              <ul className="mt-2 space-y-1 text-sm">
+              <ul className="mt-2 space-y-1 text-xs sm:text-sm">
                 <li style={{ color: statTextColor }}>
                   <div className="flex items-center gap-1 flex-wrap">
                     <span>
