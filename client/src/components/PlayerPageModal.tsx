@@ -944,66 +944,2216 @@ export function PlayerPageModal({
                   <thead>
                     <tr>
                       <th className="text-left pl-1 pr-1 py-0.5 font-semibold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Summary</th>
-                      <th className="text-right pl-1 pr-0.5 py-0.5">G</th>
-                      <th className="text-right px-0.5 py-0.5">MP</th>
-                      <th className="text-right px-0.5 py-0.5">PTS</th>
-                      <th className="text-right px-0.5 py-0.5">TRB</th>
-                      <th className="text-right pl-0.5 pr-2 py-0.5 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>AST</th>
-                      <th className="text-right pl-0.5 pr-0.5 py-0.5">FG%</th>
-                      <th className="text-right px-0.5 py-0.5">3P%</th>
-                      <th className="text-right px-0.5 py-0.5">FT%</th>
-                      <th className="text-right pl-0.5 pr-2 py-0.5 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>TS%</th>
-                      <th className="text-right pl-0.5 pr-0.5 py-0.5">PER</th>
-                      <th className="text-right px-0.5 py-0.5">WS</th>
+                      <th className="text-right pl-4 pr-2 py-1">G</th>
+                      <th className="text-right px-2 py-1">MP</th>
+                      <th className="text-right px-2 py-1">PTS</th>
+                      <th className="text-right px-2 py-1">TRB</th>
+                      <th className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>AST</th>
+                      <th className="text-right pl-4 pr-2 py-1">FG%</th>
+                      <th className="text-right px-2 py-1">3P%</th>
+                      <th className="text-right px-2 py-1">FT%</th>
+                      <th className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>TS%</th>
+                      <th className="text-right pl-4 pr-2 py-1">PER</th>
+                      <th className="text-right px-2 py-1">WS</th>
                     </tr>
                   </thead>
                   <tbody>
                     {seasonRow && (
                       <tr>
                         <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{season}</td>
-                        <td className="text-right pl-1 pr-0.5 py-0.5">{(seasonRow.g || 0).toLocaleString()}</td>
-                        <td className="text-right px-0.5 py-0.5">{seasonRow.mp}</td>
-                        <td className="text-right px-0.5 py-0.5">{seasonRow.pts}</td>
-                        <td className="text-right px-0.5 py-0.5">{seasonRow.trb}</td>
-                        <td className="text-right pl-0.5 pr-2 py-0.5 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.ast}</td>
-                        <td className="text-right pl-0.5 pr-0.5 py-0.5">{seasonRow.fgPct}</td>
-                        <td className="text-right px-0.5 py-0.5">{seasonRow.tpPct}</td>
-                        <td className="text-right px-0.5 py-0.5">{seasonRow.ftPct}</td>
-                        <td className="text-right pl-0.5 pr-2 py-0.5 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.tsPct}</td>
-                        <td className="text-right pl-0.5 pr-0.5 py-0.5">{seasonRow.per}</td>
-                        <td className="text-right px-0.5 py-0.5">{seasonRow.ws}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{(seasonRow.g || 0).toLocaleString()}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.mp}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.pts}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.trb}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.ast}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{seasonRow.fgPct}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.tpPct}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.ftPct}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.tsPct}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{seasonRow.per}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.ws}</td>
                       </tr>
                     )}
                     {peakRow && (
                       <tr>
                         <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Peak</td>
-                        <td className="text-right pl-1 pr-0.5 py-0.5">{(peakRow.g || 0).toLocaleString()}</td>
-                        <td className="text-right px-0.5 py-0.5">{peakRow.mp}</td>
-                        <td className="text-right px-0.5 py-0.5">{peakRow.pts}</td>
-                        <td className="text-right px-0.5 py-0.5">{peakRow.trb}</td>
-                        <td className="text-right pl-0.5 pr-2 py-0.5 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.ast}</td>
-                        <td className="text-right pl-0.5 pr-0.5 py-0.5">{peakRow.fgPct}</td>
-                        <td className="text-right px-0.5 py-0.5">{peakRow.tpPct}</td>
-                        <td className="text-right px-0.5 py-0.5">{peakRow.ftPct}</td>
-                        <td className="text-right pl-0.5 pr-2 py-0.5 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.tsPct}</td>
-                        <td className="text-right pl-0.5 pr-0.5 py-0.5">{peakRow.per}</td>
-                        <td className="text-right px-0.5 py-0.5">{peakRow.ws}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{(peakRow.g || 0).toLocaleString()}</td>
+                        <td className="text-right px-2 py-1">{peakRow.mp}</td>
+                        <td className="text-right px-2 py-1">{peakRow.pts}</td>
+                        <td className="text-right px-2 py-1">{peakRow.trb}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.ast}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{peakRow.fgPct}</td>
+                        <td className="text-right px-2 py-1">{peakRow.tpPct}</td>
+                        <td className="text-right px-2 py-1">{peakRow.ftPct}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.tsPct}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{peakRow.per}</td>
+                        <td className="text-right px-2 py-1">{peakRow.ws}</td>
                       </tr>
                     )}
                     {careerRow && (
                       <tr>
                         <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Career</td>
-                        <td className="text-right pl-1 pr-0.5 py-0.5">{careerRow.g.toLocaleString()}</td>
-                        <td className="text-right px-0.5 py-0.5">{careerRow.mp}</td>
-                        <td className="text-right px-0.5 py-0.5">{careerRow.pts}</td>
-                        <td className="text-right px-0.5 py-0.5">{careerRow.trb}</td>
-                        <td className="text-right pl-0.5 pr-2 py-0.5 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.ast}</td>
-                        <td className="text-right pl-0.5 pr-0.5 py-0.5">{careerRow.fgPct}</td>
-                        <td className="text-right px-0.5 py-0.5">{careerRow.tpPct}</td>
-                        <td className="text-right px-0.5 py-0.5">{careerRow.ftPct}</td>
-                        <td className="text-right pl-0.5 pr-2 py-0.5 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.tsPct}</td>
-                        <td className="text-right pl-0.5 pr-0.5 py-0.5">{careerRow.per}</td>
-                        <td className="text-right px-0.5 py-0.5">{careerRow.ws}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{careerRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1">{careerRow.mp}</td>
+                        <td className="text-right px-2 py-1">{careerRow.pts}</td>
+                        <td className="text-right px-2 py-1">{careerRow.trb}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.ast}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{careerRow.fgPct}</td>
+                        <td className="text-right px-2 py-1">{careerRow.tpPct}</td>
+                        <td className="text-right px-2 py-1">{careerRow.ftPct}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.tsPct}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{careerRow.per}</td>
+                        <td className="text-right px-2 py-1">{careerRow.ws}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
+
+          {/* Football QB Summary Stats Table */}
+          {sport === 'football' && season && player.stats && (() => {
+            // Determine if player is a QB
+            const latestRating = player.ratings && player.ratings.length > 0
+              ? player.ratings.reduce((latest, r) => r.season > latest.season ? r : latest)
+              : null;
+            const position = latestRating?.pos || '';
+
+            if (position !== 'QB') return null;
+
+            const filteredStats = player.stats.filter(s => !s.playoffs && s.gp && s.gp > 0 && (!season || s.season <= season));
+
+            // Season stats
+            let seasonStats = filteredStats.find(s => s.season === season && s.tid === -1);
+            if (!seasonStats) {
+              const seasonStatsArray = filteredStats.filter(s => s.season === season && s.tid !== -1);
+              if (seasonStatsArray.length > 0) {
+                seasonStats = seasonStatsArray.reduce((acc, stat) => ({
+                  ...acc,
+                  season: stat.season,
+                  tid: -1,
+                  gp: (acc.gp || 0) + (stat.gp || 0),
+                  pss: (acc.pss || 0) + (stat.pss || 0),
+                  pssCmp: (acc.pssCmp || 0) + (stat.pssCmp || 0),
+                  pssYds: (acc.pssYds || 0) + (stat.pssYds || 0),
+                  pssTD: (acc.pssTD || 0) + (stat.pssTD || 0),
+                  pssInt: (acc.pssInt || 0) + (stat.pssInt || 0),
+                  av: (acc.av || 0) + (stat.av || 0),
+                }), { season, tid: -1, gp: 0, pss: 0, pssCmp: 0, pssYds: 0, pssTD: 0, pssInt: 0, av: 0 });
+              }
+            }
+
+            // Career stats
+            const hasPreAggregated = filteredStats.some(s => s.tid === -1);
+            const careerStatsArray = hasPreAggregated
+              ? filteredStats.filter(s => s.tid === -1)
+              : filteredStats.filter(s => s.tid !== -1);
+
+            const careerStats = careerStatsArray.length > 0 ? careerStatsArray.reduce((acc, stat) => ({
+              gp: (acc.gp || 0) + (stat.gp || 0),
+              pss: (acc.pss || 0) + (stat.pss || 0),
+              pssCmp: (acc.pssCmp || 0) + (stat.pssCmp || 0),
+              pssYds: (acc.pssYds || 0) + (stat.pssYds || 0),
+              pssTD: (acc.pssTD || 0) + (stat.pssTD || 0),
+              pssInt: (acc.pssInt || 0) + (stat.pssInt || 0),
+              av: (acc.av || 0) + (stat.av || 0),
+            }), { gp: 0, pss: 0, pssCmp: 0, pssYds: 0, pssTD: 0, pssInt: 0, av: 0 }) : null;
+
+            // Peak stats (for retired players)
+            const isRetired = player.tid === -2 || player.tid === -3 || (player.retiredYear && player.retiredYear > 0);
+            const allRegularSeasonStats = player.stats.filter(s => !s.playoffs && s.gp && s.gp > 0);
+            const lastPlayedSeason = allRegularSeasonStats.length > 0
+              ? Math.max(...allRegularSeasonStats.map(s => s.season))
+              : 0;
+            const isViewingRetiredSeason = isRetired && season && season > lastPlayedSeason;
+
+            let peakStats = null;
+            if (isViewingRetiredSeason && player.ratings) {
+              const ratingsWithOvr = player.ratings.filter(r => r.ovr != null && r.ovr > 0);
+              if (ratingsWithOvr.length > 0) {
+                const peakRating = ratingsWithOvr.reduce((max, r) => (r.ovr ?? 0) > (max.ovr ?? 0) ? r : max);
+                const peakSeason = peakRating.season;
+
+                let peakSeasonStats = filteredStats.find(s => s.season === peakSeason && s.tid === -1);
+                if (!peakSeasonStats) {
+                  const peakSeasonStatsArray = filteredStats.filter(s => s.season === peakSeason && s.tid !== -1);
+                  if (peakSeasonStatsArray.length > 0) {
+                    peakSeasonStats = peakSeasonStatsArray.reduce((acc, stat) => ({
+                      ...acc,
+                      season: stat.season,
+                      tid: -1,
+                      gp: (acc.gp || 0) + (stat.gp || 0),
+                      pss: (acc.pss || 0) + (stat.pss || 0),
+                      pssCmp: (acc.pssCmp || 0) + (stat.pssCmp || 0),
+                      pssYds: (acc.pssYds || 0) + (stat.pssYds || 0),
+                      pssTD: (acc.pssTD || 0) + (stat.pssTD || 0),
+                      pssInt: (acc.pssInt || 0) + (stat.pssInt || 0),
+                      av: (acc.av || 0) + (stat.av || 0),
+                    }), { season: peakSeason, tid: -1, gp: 0, pss: 0, pssCmp: 0, pssYds: 0, pssTD: 0, pssInt: 0, av: 0 });
+                  }
+                }
+                if (peakSeasonStats && peakSeasonStats.gp && peakSeasonStats.gp > 0) {
+                  peakStats = peakSeasonStats;
+                }
+              }
+            }
+
+            const formatStat = (val: number | undefined | null) => val != null ? val.toFixed(1) : '—';
+            const formatInt = (val: number | undefined | null) => val != null ? val.toLocaleString() : '—';
+            const formatAV = (val: number | undefined | null) => val != null ? Math.round(val).toString() : '—';
+            const formatPct = (cmp: number, att: number) => att > 0 ? ((cmp / att) * 100).toFixed(1) : '—';
+            const formatYPA = (yds: number, att: number) => att > 0 ? (yds / att).toFixed(1) : '—';
+
+            // Format QB Record from stats
+            const formatQBRec = (stat: any): string => {
+              // Primary: Check for precomputed qbRec string
+              if (stat.qbRec) {
+                return stat.qbRec;
+              }
+
+              // Secondary: Format from qbWins/Losses/Ties
+              if (stat.qbWins != null || stat.qbLosses != null) {
+                const wins = stat.qbWins || 0;
+                const losses = stat.qbLosses || 0;
+                const ties = stat.qbTies || 0;
+
+                if (ties > 0) {
+                  return `${wins}-${losses}-${ties}`;
+                }
+                return `${wins}-${losses}`;
+              }
+
+              // Fallback: no record data available
+              return '—';
+            };
+
+            // Build rows
+            const seasonRow = seasonStats && seasonStats.gp && seasonStats.gp > 0 ? {
+              g: seasonStats.gp,
+              av: formatAV(seasonStats.av),
+              qbRec: formatQBRec(seasonStats),
+              pct: formatPct(seasonStats.pssCmp || 0, seasonStats.pss || 0),
+              yds: formatInt(seasonStats.pssYds),
+              ypa: formatYPA(seasonStats.pssYds || 0, seasonStats.pss || 0),
+              td: formatInt(seasonStats.pssTD),
+              int: formatInt(seasonStats.pssInt),
+            } : null;
+
+            // Career row: sum qbWins/Losses/Ties across all seasons
+            const careerQBRec = (() => {
+              if (!careerStatsArray || careerStatsArray.length === 0) return '—';
+
+              let totalWins = 0;
+              let totalLosses = 0;
+              let totalTies = 0;
+              let hasAnyRecord = false;
+
+              careerStatsArray.forEach(stat => {
+                const s = stat as any;
+                if (s.qbWins != null || s.qbLosses != null || s.qbRec) {
+                  hasAnyRecord = true;
+                  totalWins += s.qbWins || 0;
+                  totalLosses += s.qbLosses || 0;
+                  totalTies += s.qbTies || 0;
+                }
+              });
+
+              if (!hasAnyRecord) return '—';
+
+              if (totalTies > 0) {
+                return `${totalWins}-${totalLosses}-${totalTies}`;
+              }
+              return `${totalWins}-${totalLosses}`;
+            })();
+
+            const careerRow = careerStats && careerStats.gp > 0 ? {
+              g: careerStats.gp,
+              av: formatAV(careerStats.av),
+              qbRec: careerQBRec,
+              pct: formatPct(careerStats.pssCmp || 0, careerStats.pss || 0),
+              yds: formatInt(careerStats.pssYds),
+              ypa: formatYPA(careerStats.pssYds || 0, careerStats.pss || 0),
+              td: formatInt(careerStats.pssTD),
+              int: formatInt(careerStats.pssInt),
+            } : null;
+
+            const peakRow = peakStats && peakStats.gp && peakStats.gp > 0 ? {
+              g: peakStats.gp,
+              av: formatAV(peakStats.av),
+              qbRec: formatQBRec(peakStats),
+              pct: formatPct(peakStats.pssCmp || 0, peakStats.pss || 0),
+              yds: formatInt(peakStats.pssYds),
+              ypa: formatYPA(peakStats.pssYds || 0, peakStats.pss || 0),
+              td: formatInt(peakStats.pssTD),
+              int: formatInt(peakStats.pssInt),
+            } : null;
+
+            if (!seasonRow && !careerRow && !peakRow) return null;
+
+            return (
+              <div className="w-full mt-4 overflow-auto">
+                <table className="table-auto text-[clamp(8px,2.5vw,10px)] sm:text-[13px]" style={{ width: 'max-content', minWidth: '100%', color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                  <thead>
+                    <tr>
+                      <th className="text-left pl-1 pr-1 py-0.5 font-semibold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Summary</th>
+                      <th className="text-right pl-4 pr-2 py-1">G</th>
+                      <th className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>AV</th>
+                      <th className="text-right pl-4 pr-2 py-1">QBRec</th>
+                      <th className="text-right px-2 py-1">Pct</th>
+                      <th className="text-right px-2 py-1">Yds</th>
+                      <th className="text-right px-2 py-1">Y/A</th>
+                      <th className="text-right px-2 py-1">TD</th>
+                      <th className="text-right px-2 py-1">Int</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {seasonRow && (
+                      <tr>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{season}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{seasonRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.av}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{seasonRow.qbRec}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.pct}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.yds}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.ypa}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.td}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.int}</td>
+                      </tr>
+                    )}
+                    {peakRow && (
+                      <tr>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Peak</td>
+                        <td className="text-right pl-4 pr-2 py-1">{peakRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.av}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{peakRow.qbRec}</td>
+                        <td className="text-right px-2 py-1">{peakRow.pct}</td>
+                        <td className="text-right px-2 py-1">{peakRow.yds}</td>
+                        <td className="text-right px-2 py-1">{peakRow.ypa}</td>
+                        <td className="text-right px-2 py-1">{peakRow.td}</td>
+                        <td className="text-right px-2 py-1">{peakRow.int}</td>
+                      </tr>
+                    )}
+                    {careerRow && (
+                      <tr>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Career</td>
+                        <td className="text-right pl-4 pr-2 py-1">{careerRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.av}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{careerRow.qbRec}</td>
+                        <td className="text-right px-2 py-1">{careerRow.pct}</td>
+                        <td className="text-right px-2 py-1">{careerRow.yds}</td>
+                        <td className="text-right px-2 py-1">{careerRow.ypa}</td>
+                        <td className="text-right px-2 py-1">{careerRow.td}</td>
+                        <td className="text-right px-2 py-1">{careerRow.int}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
+
+          {/* Football RB Summary Stats Table */}
+          {sport === 'football' && season && player.stats && (() => {
+            // Determine if player is a RB
+            const latestRating = player.ratings && player.ratings.length > 0
+              ? player.ratings.reduce((latest, r) => r.season > latest.season ? r : latest)
+              : null;
+            const position = latestRating?.pos || '';
+
+            if (position !== 'RB') return null;
+
+            const filteredStats = player.stats.filter(s => !s.playoffs && s.gp && s.gp > 0 && (!season || s.season <= season));
+
+            // Season stats
+            let seasonStats = filteredStats.find(s => s.season === season && s.tid === -1);
+            if (!seasonStats) {
+              const seasonStatsArray = filteredStats.filter(s => s.season === season && s.tid !== -1);
+              if (seasonStatsArray.length > 0) {
+                seasonStats = seasonStatsArray.reduce((acc, stat) => ({
+                  ...acc,
+                  season: stat.season,
+                  tid: -1,
+                  gp: (acc.gp || 0) + (stat.gp || 0),
+                  rus: (acc.rus || 0) + (stat.rus || 0),
+                  rusYds: (acc.rusYds || 0) + (stat.rusYds || 0),
+                  rusTD: (acc.rusTD || 0) + (stat.rusTD || 0),
+                  av: (acc.av || 0) + (stat.av || 0),
+                }), { season, tid: -1, gp: 0, rus: 0, rusYds: 0, rusTD: 0, av: 0 });
+              }
+            }
+
+            // Career stats
+            const hasPreAggregated = filteredStats.some(s => s.tid === -1);
+            const careerStatsArray = hasPreAggregated
+              ? filteredStats.filter(s => s.tid === -1)
+              : filteredStats.filter(s => s.tid !== -1);
+
+            const careerStats = careerStatsArray.length > 0 ? careerStatsArray.reduce((acc, stat) => ({
+              gp: (acc.gp || 0) + (stat.gp || 0),
+              rus: (acc.rus || 0) + (stat.rus || 0),
+              rusYds: (acc.rusYds || 0) + (stat.rusYds || 0),
+              rusTD: (acc.rusTD || 0) + (stat.rusTD || 0),
+              av: (acc.av || 0) + (stat.av || 0),
+            }), { gp: 0, rus: 0, rusYds: 0, rusTD: 0, av: 0 }) : null;
+
+            // Peak stats (for retired players)
+            const isRetired = player.tid === -2 || player.tid === -3 || (player.retiredYear && player.retiredYear > 0);
+            const allRegularSeasonStats = player.stats.filter(s => !s.playoffs && s.gp && s.gp > 0);
+            const lastPlayedSeason = allRegularSeasonStats.length > 0
+              ? Math.max(...allRegularSeasonStats.map(s => s.season))
+              : 0;
+            const isViewingRetiredSeason = isRetired && season && season > lastPlayedSeason;
+
+            let peakStats = null;
+            if (isViewingRetiredSeason && player.ratings) {
+              const ratingsWithOvr = player.ratings.filter(r => r.ovr != null && r.ovr > 0);
+              if (ratingsWithOvr.length > 0) {
+                const peakRating = ratingsWithOvr.reduce((max, r) => (r.ovr ?? 0) > (max.ovr ?? 0) ? r : max);
+                const peakSeason = peakRating.season;
+
+                let peakSeasonStats = filteredStats.find(s => s.season === peakSeason && s.tid === -1);
+                if (!peakSeasonStats) {
+                  const peakSeasonStatsArray = filteredStats.filter(s => s.season === peakSeason && s.tid !== -1);
+                  if (peakSeasonStatsArray.length > 0) {
+                    peakSeasonStats = peakSeasonStatsArray.reduce((acc, stat) => ({
+                      ...acc,
+                      season: stat.season,
+                      tid: -1,
+                      gp: (acc.gp || 0) + (stat.gp || 0),
+                      rus: (acc.rus || 0) + (stat.rus || 0),
+                      rusYds: (acc.rusYds || 0) + (stat.rusYds || 0),
+                      rusTD: (acc.rusTD || 0) + (stat.rusTD || 0),
+                      av: (acc.av || 0) + (stat.av || 0),
+                    }), { season: peakSeason, tid: -1, gp: 0, rus: 0, rusYds: 0, rusTD: 0, av: 0 });
+                  }
+                }
+                if (peakSeasonStats && peakSeasonStats.gp && peakSeasonStats.gp > 0) {
+                  peakStats = peakSeasonStats;
+                }
+              }
+            }
+
+            const formatStat = (val: number | undefined | null) => val != null ? val.toFixed(1) : '—';
+            const formatInt = (val: number | undefined | null) => val != null ? val.toLocaleString() : '—';
+            const formatAV = (val: number | undefined | null) => val != null ? Math.round(val).toString() : '—';
+            const formatYPA = (yds: number, att: number) => att > 0 ? (yds / att).toFixed(1) : '—';
+
+            // Build rows
+            const seasonRow = seasonStats && seasonStats.gp && seasonStats.gp > 0 ? {
+              g: seasonStats.gp,
+              av: formatAV(seasonStats.av),
+              rush: formatInt(seasonStats.rus),
+              yds: formatInt(seasonStats.rusYds),
+              ypa: formatYPA(seasonStats.rusYds || 0, seasonStats.rus || 0),
+              td: formatInt(seasonStats.rusTD),
+            } : null;
+
+            const careerRow = careerStats && careerStats.gp > 0 ? {
+              g: careerStats.gp,
+              av: formatAV(careerStats.av),
+              rush: formatInt(careerStats.rus),
+              yds: formatInt(careerStats.rusYds),
+              ypa: formatYPA(careerStats.rusYds || 0, careerStats.rus || 0),
+              td: formatInt(careerStats.rusTD),
+            } : null;
+
+            const peakRow = peakStats && peakStats.gp && peakStats.gp > 0 ? {
+              g: peakStats.gp,
+              av: formatAV(peakStats.av),
+              rush: formatInt(peakStats.rus),
+              yds: formatInt(peakStats.rusYds),
+              ypa: formatYPA(peakStats.rusYds || 0, peakStats.rus || 0),
+              td: formatInt(peakStats.rusTD),
+            } : null;
+
+            if (!seasonRow && !careerRow && !peakRow) return null;
+
+            return (
+              <div className="w-full mt-4 overflow-auto">
+                <table className="table-auto text-[clamp(8px,2.5vw,10px)] sm:text-[13px]" style={{ width: 'max-content', minWidth: '100%', color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                  <thead>
+                    <tr>
+                      <th className="text-left pl-1 pr-1 py-0.5 font-semibold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Summary</th>
+                      <th className="text-right pl-4 pr-2 py-1">G</th>
+                      <th className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>AV</th>
+                      <th className="text-right pl-4 pr-2 py-1">Rush</th>
+                      <th className="text-right px-2 py-1">Yds</th>
+                      <th className="text-right px-2 py-1">Y/A</th>
+                      <th className="text-right px-2 py-1">TD</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {seasonRow && (
+                      <tr>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{season}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{seasonRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.av}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{seasonRow.rush}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.yds}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.ypa}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.td}</td>
+                      </tr>
+                    )}
+                    {peakRow && (
+                      <tr>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Peak</td>
+                        <td className="text-right pl-4 pr-2 py-1">{peakRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.av}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{peakRow.rush}</td>
+                        <td className="text-right px-2 py-1">{peakRow.yds}</td>
+                        <td className="text-right px-2 py-1">{peakRow.ypa}</td>
+                        <td className="text-right px-2 py-1">{peakRow.td}</td>
+                      </tr>
+                    )}
+                    {careerRow && (
+                      <tr>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Career</td>
+                        <td className="text-right pl-4 pr-2 py-1">{careerRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.av}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{careerRow.rush}</td>
+                        <td className="text-right px-2 py-1">{careerRow.yds}</td>
+                        <td className="text-right px-2 py-1">{careerRow.ypa}</td>
+                        <td className="text-right px-2 py-1">{careerRow.td}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
+
+          {/* Football WR/TE Summary Stats Table */}
+          {sport === 'football' && season && player.stats && (() => {
+            // Determine if player is a WR or TE
+            const latestRating = player.ratings && player.ratings.length > 0
+              ? player.ratings.reduce((latest, r) => r.season > latest.season ? r : latest)
+              : null;
+            const position = latestRating?.pos || '';
+
+            if (position !== 'WR' && position !== 'TE') return null;
+
+            const filteredStats = player.stats.filter(s => !s.playoffs && s.gp && s.gp > 0 && (!season || s.season <= season));
+
+            // Season stats
+            let seasonStats = filteredStats.find(s => s.season === season && s.tid === -1);
+            if (!seasonStats) {
+              const seasonStatsArray = filteredStats.filter(s => s.season === season && s.tid !== -1);
+              if (seasonStatsArray.length > 0) {
+                seasonStats = seasonStatsArray.reduce((acc, stat) => ({
+                  ...acc,
+                  season: stat.season,
+                  tid: -1,
+                  gp: (acc.gp || 0) + (stat.gp || 0),
+                  rec: (acc.rec || 0) + (stat.rec || 0),
+                  recYds: (acc.recYds || 0) + (stat.recYds || 0),
+                  recTD: (acc.recTD || 0) + (stat.recTD || 0),
+                  av: (acc.av || 0) + (stat.av || 0),
+                }), { season, tid: -1, gp: 0, rec: 0, recYds: 0, recTD: 0, av: 0 });
+              }
+            }
+
+            // Career stats
+            const hasPreAggregated = filteredStats.some(s => s.tid === -1);
+            const careerStatsArray = hasPreAggregated
+              ? filteredStats.filter(s => s.tid === -1)
+              : filteredStats.filter(s => s.tid !== -1);
+
+            const careerStats = careerStatsArray.length > 0 ? careerStatsArray.reduce((acc, stat) => ({
+              gp: (acc.gp || 0) + (stat.gp || 0),
+              rec: (acc.rec || 0) + (stat.rec || 0),
+              recYds: (acc.recYds || 0) + (stat.recYds || 0),
+              recTD: (acc.recTD || 0) + (stat.recTD || 0),
+              av: (acc.av || 0) + (stat.av || 0),
+            }), { gp: 0, rec: 0, recYds: 0, recTD: 0, av: 0 }) : null;
+
+            // Peak stats (for retired players)
+            const isRetired = player.tid === -2 || player.tid === -3 || (player.retiredYear && player.retiredYear > 0);
+            const allRegularSeasonStats = player.stats.filter(s => !s.playoffs && s.gp && s.gp > 0);
+            const lastPlayedSeason = allRegularSeasonStats.length > 0
+              ? Math.max(...allRegularSeasonStats.map(s => s.season))
+              : 0;
+            const isViewingRetiredSeason = isRetired && season && season > lastPlayedSeason;
+
+            let peakStats = null;
+            if (isViewingRetiredSeason && player.ratings) {
+              const ratingsWithOvr = player.ratings.filter(r => r.ovr != null && r.ovr > 0);
+              if (ratingsWithOvr.length > 0) {
+                const peakRating = ratingsWithOvr.reduce((max, r) => (r.ovr ?? 0) > (max.ovr ?? 0) ? r : max);
+                const peakSeason = peakRating.season;
+
+                let peakSeasonStats = filteredStats.find(s => s.season === peakSeason && s.tid === -1);
+                if (!peakSeasonStats) {
+                  const peakSeasonStatsArray = filteredStats.filter(s => s.season === peakSeason && s.tid !== -1);
+                  if (peakSeasonStatsArray.length > 0) {
+                    peakSeasonStats = peakSeasonStatsArray.reduce((acc, stat) => ({
+                      ...acc,
+                      season: stat.season,
+                      tid: -1,
+                      gp: (acc.gp || 0) + (stat.gp || 0),
+                      rec: (acc.rec || 0) + (stat.rec || 0),
+                      recYds: (acc.recYds || 0) + (stat.recYds || 0),
+                      recTD: (acc.recTD || 0) + (stat.recTD || 0),
+                      av: (acc.av || 0) + (stat.av || 0),
+                    }), { season: peakSeason, tid: -1, gp: 0, rec: 0, recYds: 0, recTD: 0, av: 0 });
+                  }
+                }
+                if (peakSeasonStats && peakSeasonStats.gp && peakSeasonStats.gp > 0) {
+                  peakStats = peakSeasonStats;
+                }
+              }
+            }
+
+            const formatStat = (val: number | undefined | null) => val != null ? val.toFixed(1) : '—';
+            const formatInt = (val: number | undefined | null) => val != null ? val.toLocaleString() : '—';
+            const formatAV = (val: number | undefined | null) => val != null ? Math.round(val).toString() : '—';
+            const formatYPR = (yds: number, rec: number) => rec > 0 ? (yds / rec).toFixed(1) : '—';
+
+            // Build rows
+            const seasonRow = seasonStats && seasonStats.gp && seasonStats.gp > 0 ? {
+              g: seasonStats.gp,
+              av: formatAV(seasonStats.av),
+              rec: formatInt(seasonStats.rec),
+              yds: formatInt(seasonStats.recYds),
+              ypr: formatYPR(seasonStats.recYds || 0, seasonStats.rec || 0),
+              td: formatInt(seasonStats.recTD),
+            } : null;
+
+            const careerRow = careerStats && careerStats.gp > 0 ? {
+              g: careerStats.gp,
+              av: formatAV(careerStats.av),
+              rec: formatInt(careerStats.rec),
+              yds: formatInt(careerStats.recYds),
+              ypr: formatYPR(careerStats.recYds || 0, careerStats.rec || 0),
+              td: formatInt(careerStats.recTD),
+            } : null;
+
+            const peakRow = peakStats && peakStats.gp && peakStats.gp > 0 ? {
+              g: peakStats.gp,
+              av: formatAV(peakStats.av),
+              rec: formatInt(peakStats.rec),
+              yds: formatInt(peakStats.recYds),
+              ypr: formatYPR(peakStats.recYds || 0, peakStats.rec || 0),
+              td: formatInt(peakStats.recTD),
+            } : null;
+
+            if (!seasonRow && !careerRow && !peakRow) return null;
+
+            return (
+              <div className="w-full mt-4 overflow-auto">
+                <table className="table-auto text-[clamp(8px,2.5vw,10px)] sm:text-[13px]" style={{ width: 'max-content', minWidth: '100%', color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                  <thead>
+                    <tr>
+                      <th className="text-left pl-1 pr-1 py-0.5 font-semibold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Summary</th>
+                      <th className="text-right pl-4 pr-2 py-1">G</th>
+                      <th className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>AV</th>
+                      <th className="text-right pl-4 pr-2 py-1">Rec</th>
+                      <th className="text-right px-2 py-1">Yds</th>
+                      <th className="text-right px-2 py-1">Y/R</th>
+                      <th className="text-right px-2 py-1">TD</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {seasonRow && (
+                      <tr>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{season}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{seasonRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.av}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{seasonRow.rec}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.yds}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.ypr}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.td}</td>
+                      </tr>
+                    )}
+                    {peakRow && (
+                      <tr>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Peak</td>
+                        <td className="text-right pl-4 pr-2 py-1">{peakRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.av}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{peakRow.rec}</td>
+                        <td className="text-right px-2 py-1">{peakRow.yds}</td>
+                        <td className="text-right px-2 py-1">{peakRow.ypr}</td>
+                        <td className="text-right px-2 py-1">{peakRow.td}</td>
+                      </tr>
+                    )}
+                    {careerRow && (
+                      <tr>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Career</td>
+                        <td className="text-right pl-4 pr-2 py-1">{careerRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.av}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{careerRow.rec}</td>
+                        <td className="text-right px-2 py-1">{careerRow.yds}</td>
+                        <td className="text-right px-2 py-1">{careerRow.ypr}</td>
+                        <td className="text-right px-2 py-1">{careerRow.td}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
+
+          {/* Football OL Summary Stats Table */}
+          {sport === 'football' && season && player.stats && (() => {
+            // Determine if player is an OL
+            const latestRating = player.ratings && player.ratings.length > 0
+              ? player.ratings.reduce((latest, r) => r.season > latest.season ? r : latest)
+              : null;
+            const position = latestRating?.pos || '';
+
+            if (position !== 'OL' && position !== 'C' && position !== 'G' && position !== 'T') return null;
+
+            const filteredStats = player.stats.filter(s => !s.playoffs && s.gp && s.gp > 0 && (!season || s.season <= season));
+
+            // Season stats
+            let seasonStats = filteredStats.find(s => s.season === season && s.tid === -1);
+            if (!seasonStats) {
+              const seasonStatsArray = filteredStats.filter(s => s.season === season && s.tid !== -1);
+              if (seasonStatsArray.length > 0) {
+                seasonStats = seasonStatsArray.reduce((acc, stat) => ({
+                  ...acc,
+                  season: stat.season,
+                  tid: -1,
+                  gp: (acc.gp || 0) + (stat.gp || 0),
+                  av: (acc.av || 0) + (stat.av || 0),
+                }), { season, tid: -1, gp: 0, av: 0 });
+              }
+            }
+
+            // Career stats
+            const hasPreAggregated = filteredStats.some(s => s.tid === -1);
+            const careerStatsArray = hasPreAggregated
+              ? filteredStats.filter(s => s.tid === -1)
+              : filteredStats.filter(s => s.tid !== -1);
+
+            const careerStats = careerStatsArray.length > 0 ? careerStatsArray.reduce((acc, stat) => ({
+              gp: (acc.gp || 0) + (stat.gp || 0),
+              av: (acc.av || 0) + (stat.av || 0),
+            }), { gp: 0, av: 0 }) : null;
+
+            // Peak stats (for retired players)
+            const isRetired = player.tid === -2 || player.tid === -3 || (player.retiredYear && player.retiredYear > 0);
+            const allRegularSeasonStats = player.stats.filter(s => !s.playoffs && s.gp && s.gp > 0);
+            const lastPlayedSeason = allRegularSeasonStats.length > 0
+              ? Math.max(...allRegularSeasonStats.map(s => s.season))
+              : 0;
+            const isViewingRetiredSeason = isRetired && season && season > lastPlayedSeason;
+
+            let peakStats = null;
+            if (isViewingRetiredSeason && player.ratings) {
+              const ratingsWithOvr = player.ratings.filter(r => r.ovr != null && r.ovr > 0);
+              if (ratingsWithOvr.length > 0) {
+                const peakRating = ratingsWithOvr.reduce((max, r) => (r.ovr ?? 0) > (max.ovr ?? 0) ? r : max);
+                const peakSeason = peakRating.season;
+
+                let peakSeasonStats = filteredStats.find(s => s.season === peakSeason && s.tid === -1);
+                if (!peakSeasonStats) {
+                  const peakSeasonStatsArray = filteredStats.filter(s => s.season === peakSeason && s.tid !== -1);
+                  if (peakSeasonStatsArray.length > 0) {
+                    peakSeasonStats = peakSeasonStatsArray.reduce((acc, stat) => ({
+                      ...acc,
+                      season: stat.season,
+                      tid: -1,
+                      gp: (acc.gp || 0) + (stat.gp || 0),
+                      av: (acc.av || 0) + (stat.av || 0),
+                    }), { season: peakSeason, tid: -1, gp: 0, av: 0 });
+                  }
+                }
+                if (peakSeasonStats && peakSeasonStats.gp && peakSeasonStats.gp > 0) {
+                  peakStats = peakSeasonStats;
+                }
+              }
+            }
+
+            const formatAV = (val: number | undefined | null) => val != null ? Math.round(val).toString() : '—';
+
+            // Build rows
+            const seasonRow = seasonStats && seasonStats.gp && seasonStats.gp > 0 ? {
+              g: seasonStats.gp,
+              av: formatAV(seasonStats.av),
+            } : null;
+
+            const careerRow = careerStats && careerStats.gp > 0 ? {
+              g: careerStats.gp,
+              av: formatAV(careerStats.av),
+            } : null;
+
+            const peakRow = peakStats && peakStats.gp && peakStats.gp > 0 ? {
+              g: peakStats.gp,
+              av: formatAV(peakStats.av),
+            } : null;
+
+            if (!seasonRow && !careerRow && !peakRow) return null;
+
+            return (
+              <div className="w-full mt-4 overflow-auto">
+                <table className="table-auto text-[clamp(8px,2.5vw,10px)] sm:text-[13px]" style={{ width: 'max-content', minWidth: '100%', color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                  <thead>
+                    <tr>
+                      <th className="text-left pl-1 pr-1 py-0.5 font-semibold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Summary</th>
+                      <th className="text-right pl-4 pr-2 py-1">G</th>
+                      <th className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>AV</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {seasonRow && (
+                      <tr>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{season}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{seasonRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.av}</td>
+                      </tr>
+                    )}
+                    {peakRow && (
+                      <tr>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Peak</td>
+                        <td className="text-right pl-4 pr-2 py-1">{peakRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.av}</td>
+                      </tr>
+                    )}
+                    {careerRow && (
+                      <tr>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Career</td>
+                        <td className="text-right pl-4 pr-2 py-1">{careerRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.av}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
+
+          {/* Football Defense Summary Stats Table */}
+          {sport === 'football' && season && player.stats && (() => {
+            // Determine if player is a defensive player
+            const latestRating = player.ratings && player.ratings.length > 0
+              ? player.ratings.reduce((latest, r) => r.season > latest.season ? r : latest)
+              : null;
+            const position = latestRating?.pos || '';
+
+            if (position !== 'DL' && position !== 'LB' && position !== 'CB' && position !== 'S') return null;
+
+            const filteredStats = player.stats.filter(s => !s.playoffs && s.gp && s.gp > 0 && (!season || s.season <= season));
+
+            // Season stats
+            let seasonStats = filteredStats.find(s => s.season === season && s.tid === -1);
+            if (!seasonStats) {
+              const seasonStatsArray = filteredStats.filter(s => s.season === season && s.tid !== -1);
+              if (seasonStatsArray.length > 0) {
+                seasonStats = seasonStatsArray.reduce((acc, stat) => ({
+                  ...acc,
+                  season: stat.season,
+                  tid: -1,
+                  gp: (acc.gp || 0) + (stat.gp || 0),
+                  defTckSolo: (acc.defTckSolo || 0) + (stat.defTckSolo || 0),
+                  defTckAst: (acc.defTckAst || 0) + (stat.defTckAst || 0),
+                  defSk: (acc.defSk || 0) + (stat.defSk || 0),
+                  defFmbFrc: (acc.defFmbFrc || 0) + (stat.defFmbFrc || 0),
+                  defInt: (acc.defInt || 0) + (stat.defInt || 0),
+                  av: (acc.av || 0) + (stat.av || 0),
+                }), { season, tid: -1, gp: 0, defTckSolo: 0, defTckAst: 0, defSk: 0, defFmbFrc: 0, defInt: 0, av: 0 });
+              }
+            }
+
+            // Career stats
+            const hasPreAggregated = filteredStats.some(s => s.tid === -1);
+            const careerStatsArray = hasPreAggregated
+              ? filteredStats.filter(s => s.tid === -1)
+              : filteredStats.filter(s => s.tid !== -1);
+
+            const careerStats = careerStatsArray.length > 0 ? careerStatsArray.reduce((acc, stat) => ({
+              gp: (acc.gp || 0) + (stat.gp || 0),
+              defTckSolo: (acc.defTckSolo || 0) + (stat.defTckSolo || 0),
+              defTckAst: (acc.defTckAst || 0) + (stat.defTckAst || 0),
+              defSk: (acc.defSk || 0) + (stat.defSk || 0),
+              defFmbFrc: (acc.defFmbFrc || 0) + (stat.defFmbFrc || 0),
+              defInt: (acc.defInt || 0) + (stat.defInt || 0),
+              av: (acc.av || 0) + (stat.av || 0),
+            }), { gp: 0, defTckSolo: 0, defTckAst: 0, defSk: 0, defFmbFrc: 0, defInt: 0, av: 0 }) : null;
+
+            // Peak stats (for retired players)
+            const isRetired = player.tid === -2 || player.tid === -3 || (player.retiredYear && player.retiredYear > 0);
+            const allRegularSeasonStats = player.stats.filter(s => !s.playoffs && s.gp && s.gp > 0);
+            const lastPlayedSeason = allRegularSeasonStats.length > 0
+              ? Math.max(...allRegularSeasonStats.map(s => s.season))
+              : 0;
+            const isViewingRetiredSeason = isRetired && season && season > lastPlayedSeason;
+
+            let peakStats = null;
+            if (isViewingRetiredSeason && player.ratings) {
+              const ratingsWithOvr = player.ratings.filter(r => r.ovr != null && r.ovr > 0);
+              if (ratingsWithOvr.length > 0) {
+                const peakRating = ratingsWithOvr.reduce((max, r) => (r.ovr ?? 0) > (max.ovr ?? 0) ? r : max);
+                const peakSeason = peakRating.season;
+
+                let peakSeasonStats = filteredStats.find(s => s.season === peakSeason && s.tid === -1);
+                if (!peakSeasonStats) {
+                  const peakSeasonStatsArray = filteredStats.filter(s => s.season === peakSeason && s.tid !== -1);
+                  if (peakSeasonStatsArray.length > 0) {
+                    peakSeasonStats = peakSeasonStatsArray.reduce((acc, stat) => ({
+                      ...acc,
+                      season: stat.season,
+                      tid: -1,
+                      gp: (acc.gp || 0) + (stat.gp || 0),
+                      defTckSolo: (acc.defTckSolo || 0) + (stat.defTckSolo || 0),
+                      defTckAst: (acc.defTckAst || 0) + (stat.defTckAst || 0),
+                      defSk: (acc.defSk || 0) + (stat.defSk || 0),
+                      defFmbFrc: (acc.defFmbFrc || 0) + (stat.defFmbFrc || 0),
+                      defInt: (acc.defInt || 0) + (stat.defInt || 0),
+                      av: (acc.av || 0) + (stat.av || 0),
+                    }), { season: peakSeason, tid: -1, gp: 0, defTckSolo: 0, defTckAst: 0, defSk: 0, defFmbFrc: 0, defInt: 0, av: 0 });
+                  }
+                }
+                if (peakSeasonStats && peakSeasonStats.gp && peakSeasonStats.gp > 0) {
+                  peakStats = peakSeasonStats;
+                }
+              }
+            }
+
+            const formatStat = (val: number | undefined | null) => val != null ? val.toFixed(1) : '—';
+            const formatInt = (val: number | undefined | null) => val != null ? val.toLocaleString() : '—';
+            const formatAV = (val: number | undefined | null) => val != null ? Math.round(val).toString() : '—';
+
+            // Build rows
+            const seasonRow = seasonStats && seasonStats.gp && seasonStats.gp > 0 ? {
+              g: seasonStats.gp,
+              av: formatAV(seasonStats.av),
+              tck: formatInt((seasonStats.defTckSolo || 0) + (seasonStats.defTckAst || 0)),
+              sk: formatStat(seasonStats.defSk),
+              fr: formatInt(seasonStats.defFmbFrc), // Using forced fumbles as FR
+              int: formatInt(seasonStats.defInt),
+            } : null;
+
+            const careerRow = careerStats && careerStats.gp > 0 ? {
+              g: careerStats.gp,
+              av: formatAV(careerStats.av),
+              tck: formatInt((careerStats.defTckSolo || 0) + (careerStats.defTckAst || 0)),
+              sk: formatStat(careerStats.defSk),
+              fr: formatInt(careerStats.defFmbFrc),
+              int: formatInt(careerStats.defInt),
+            } : null;
+
+            const peakRow = peakStats && peakStats.gp && peakStats.gp > 0 ? {
+              g: peakStats.gp,
+              av: formatAV(peakStats.av),
+              tck: formatInt((peakStats.defTckSolo || 0) + (peakStats.defTckAst || 0)),
+              sk: formatStat(peakStats.defSk),
+              fr: formatInt(peakStats.defFmbFrc),
+              int: formatInt(peakStats.defInt),
+            } : null;
+
+            if (!seasonRow && !careerRow && !peakRow) return null;
+
+            return (
+              <div className="w-full mt-4 overflow-auto">
+                <table className="table-auto text-[clamp(8px,2.5vw,10px)] sm:text-[13px]" style={{ width: 'max-content', minWidth: '100%', color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                  <thead>
+                    <tr>
+                      <th className="text-left pl-1 pr-1 py-0.5 font-semibold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Summary</th>
+                      <th className="text-right pl-4 pr-2 py-1">G</th>
+                      <th className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>AV</th>
+                      <th className="text-right pl-4 pr-2 py-1">Tck</th>
+                      <th className="text-right px-2 py-1">Sk</th>
+                      <th className="text-right px-2 py-1">FR</th>
+                      <th className="text-right px-2 py-1">Int</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {seasonRow && (
+                      <tr>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{season}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{seasonRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.av}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{seasonRow.tck}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.sk}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.fr}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.int}</td>
+                      </tr>
+                    )}
+                    {peakRow && (
+                      <tr>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Peak</td>
+                        <td className="text-right pl-4 pr-2 py-1">{peakRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.av}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{peakRow.tck}</td>
+                        <td className="text-right px-2 py-1">{peakRow.sk}</td>
+                        <td className="text-right px-2 py-1">{peakRow.fr}</td>
+                        <td className="text-right px-2 py-1">{peakRow.int}</td>
+                      </tr>
+                    )}
+                    {careerRow && (
+                      <tr>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Career</td>
+                        <td className="text-right pl-4 pr-2 py-1">{careerRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.av}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{careerRow.tck}</td>
+                        <td className="text-right px-2 py-1">{careerRow.sk}</td>
+                        <td className="text-right px-2 py-1">{careerRow.fr}</td>
+                        <td className="text-right px-2 py-1">{careerRow.int}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
+
+          {/* Football Kicker Summary Stats Table */}
+          {sport === 'football' && season && player.stats && (() => {
+            // Determine if player is a kicker
+            const latestRating = player.ratings && player.ratings.length > 0
+              ? player.ratings.reduce((latest, r) => r.season > latest.season ? r : latest)
+              : null;
+            const position = latestRating?.pos || '';
+
+            if (position !== 'K') return null;
+
+            const filteredStats = player.stats.filter(s => !s.playoffs && s.gp && s.gp > 0 && (!season || s.season <= season));
+
+            // Season stats
+            let seasonStats = filteredStats.find(s => s.season === season && s.tid === -1);
+            if (!seasonStats) {
+              const seasonStatsArray = filteredStats.filter(s => s.season === season && s.tid !== -1);
+              if (seasonStatsArray.length > 0) {
+                seasonStats = seasonStatsArray.reduce((acc, stat) => ({
+                  ...acc,
+                  season: stat.season,
+                  tid: -1,
+                  gp: (acc.gp || 0) + (stat.gp || 0),
+                  fg0: (acc.fg0 || 0) + (stat.fg0 || 0),
+                  fg20: (acc.fg20 || 0) + (stat.fg20 || 0),
+                  fg30: (acc.fg30 || 0) + (stat.fg30 || 0),
+                  fg40: (acc.fg40 || 0) + (stat.fg40 || 0),
+                  fg50: (acc.fg50 || 0) + (stat.fg50 || 0),
+                  fga0: (acc.fga0 || 0) + (stat.fga0 || 0),
+                  fga20: (acc.fga20 || 0) + (stat.fga20 || 0),
+                  fga30: (acc.fga30 || 0) + (stat.fga30 || 0),
+                  fga40: (acc.fga40 || 0) + (stat.fga40 || 0),
+                  fga50: (acc.fga50 || 0) + (stat.fga50 || 0),
+                  xp: (acc.xp || 0) + (stat.xp || 0),
+                  av: (acc.av || 0) + (stat.av || 0),
+                }), { season, tid: -1, gp: 0, fg0: 0, fg20: 0, fg30: 0, fg40: 0, fg50: 0, fga0: 0, fga20: 0, fga30: 0, fga40: 0, fga50: 0, xp: 0, av: 0 });
+              }
+            }
+
+            // Career stats
+            const hasPreAggregated = filteredStats.some(s => s.tid === -1);
+            const careerStatsArray = hasPreAggregated
+              ? filteredStats.filter(s => s.tid === -1)
+              : filteredStats.filter(s => s.tid !== -1);
+
+            const careerStats = careerStatsArray.length > 0 ? careerStatsArray.reduce((acc, stat) => ({
+              gp: (acc.gp || 0) + (stat.gp || 0),
+              fg0: (acc.fg0 || 0) + (stat.fg0 || 0),
+              fg20: (acc.fg20 || 0) + (stat.fg20 || 0),
+              fg30: (acc.fg30 || 0) + (stat.fg30 || 0),
+              fg40: (acc.fg40 || 0) + (stat.fg40 || 0),
+              fg50: (acc.fg50 || 0) + (stat.fg50 || 0),
+              fga0: (acc.fga0 || 0) + (stat.fga0 || 0),
+              fga20: (acc.fga20 || 0) + (stat.fga20 || 0),
+              fga30: (acc.fga30 || 0) + (stat.fga30 || 0),
+              fga40: (acc.fga40 || 0) + (stat.fga40 || 0),
+              fga50: (acc.fga50 || 0) + (stat.fga50 || 0),
+              xp: (acc.xp || 0) + (stat.xp || 0),
+              av: (acc.av || 0) + (stat.av || 0),
+            }), { gp: 0, fg0: 0, fg20: 0, fg30: 0, fg40: 0, fg50: 0, fga0: 0, fga20: 0, fga30: 0, fga40: 0, fga50: 0, xp: 0, av: 0 }) : null;
+
+            // Peak stats (for retired players)
+            const isRetired = player.tid === -2 || player.tid === -3 || (player.retiredYear && player.retiredYear > 0);
+            const allRegularSeasonStats = player.stats.filter(s => !s.playoffs && s.gp && s.gp > 0);
+            const lastPlayedSeason = allRegularSeasonStats.length > 0
+              ? Math.max(...allRegularSeasonStats.map(s => s.season))
+              : 0;
+            const isViewingRetiredSeason = isRetired && season && season > lastPlayedSeason;
+
+            let peakStats = null;
+            if (isViewingRetiredSeason && player.ratings) {
+              const ratingsWithOvr = player.ratings.filter(r => r.ovr != null && r.ovr > 0);
+              if (ratingsWithOvr.length > 0) {
+                const peakRating = ratingsWithOvr.reduce((max, r) => (r.ovr ?? 0) > (max.ovr ?? 0) ? r : max);
+                const peakSeason = peakRating.season;
+
+                let peakSeasonStats = filteredStats.find(s => s.season === peakSeason && s.tid === -1);
+                if (!peakSeasonStats) {
+                  const peakSeasonStatsArray = filteredStats.filter(s => s.season === peakSeason && s.tid !== -1);
+                  if (peakSeasonStatsArray.length > 0) {
+                    peakSeasonStats = peakSeasonStatsArray.reduce((acc, stat) => ({
+                      ...acc,
+                      season: stat.season,
+                      tid: -1,
+                      gp: (acc.gp || 0) + (stat.gp || 0),
+                      fg0: (acc.fg0 || 0) + (stat.fg0 || 0),
+                      fg20: (acc.fg20 || 0) + (stat.fg20 || 0),
+                      fg30: (acc.fg30 || 0) + (stat.fg30 || 0),
+                      fg40: (acc.fg40 || 0) + (stat.fg40 || 0),
+                      fg50: (acc.fg50 || 0) + (stat.fg50 || 0),
+                      fga0: (acc.fga0 || 0) + (stat.fga0 || 0),
+                      fga20: (acc.fga20 || 0) + (stat.fga20 || 0),
+                      fga30: (acc.fga30 || 0) + (stat.fga30 || 0),
+                      fga40: (acc.fga40 || 0) + (stat.fga40 || 0),
+                      fga50: (acc.fga50 || 0) + (stat.fga50 || 0),
+                      xp: (acc.xp || 0) + (stat.xp || 0),
+                      av: (acc.av || 0) + (stat.av || 0),
+                    }), { season: peakSeason, tid: -1, gp: 0, fg0: 0, fg20: 0, fg30: 0, fg40: 0, fg50: 0, fga0: 0, fga20: 0, fga30: 0, fga40: 0, fga50: 0, xp: 0, av: 0 });
+                  }
+                }
+                if (peakSeasonStats && peakSeasonStats.gp && peakSeasonStats.gp > 0) {
+                  peakStats = peakSeasonStats;
+                }
+              }
+            }
+
+            const formatStat = (val: number | undefined | null) => val != null ? val.toFixed(1) : '—';
+            const formatInt = (val: number | undefined | null) => val != null ? val.toLocaleString() : '—';
+            const formatAV = (val: number | undefined | null) => val != null ? Math.round(val).toString() : '—';
+
+            // Calculate total FG made and attempted - need to handle case where xp might not have corresponding xpa
+            const calcFGM = (s: any) => (s.fg0 || 0) + (s.fg20 || 0) + (s.fg30 || 0) + (s.fg40 || 0) + (s.fg50 || 0);
+            const calcFGA = (s: any) => (s.fga0 || 0) + (s.fga20 || 0) + (s.fga30 || 0) + (s.fga40 || 0) + (s.fga50 || 0);
+
+            // Build rows - assume XPA = XP for display (most leagues don't track XP attempts separately)
+            const seasonRow = seasonStats && seasonStats.gp && seasonStats.gp > 0 ? {
+              g: seasonStats.gp,
+              av: formatAV(seasonStats.av),
+              fgm: formatInt(calcFGM(seasonStats)),
+              fga: formatInt(calcFGA(seasonStats)),
+              xpm: formatInt(seasonStats.xp),
+              xpa: formatInt(seasonStats.xp), // Assuming XPA = XPM
+            } : null;
+
+            const careerRow = careerStats && careerStats.gp > 0 ? {
+              g: careerStats.gp,
+              av: formatAV(careerStats.av),
+              fgm: formatInt(calcFGM(careerStats)),
+              fga: formatInt(calcFGA(careerStats)),
+              xpm: formatInt(careerStats.xp),
+              xpa: formatInt(careerStats.xp),
+            } : null;
+
+            const peakRow = peakStats && peakStats.gp && peakStats.gp > 0 ? {
+              g: peakStats.gp,
+              av: formatAV(peakStats.av),
+              fgm: formatInt(calcFGM(peakStats)),
+              fga: formatInt(calcFGA(peakStats)),
+              xpm: formatInt(peakStats.xp),
+              xpa: formatInt(peakStats.xp),
+            } : null;
+
+            if (!seasonRow && !careerRow && !peakRow) return null;
+
+            return (
+              <div className="w-full mt-4 overflow-auto">
+                <table className="table-auto text-[clamp(8px,2.5vw,10px)] sm:text-[13px]" style={{ width: 'max-content', minWidth: '100%', color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                  <thead>
+                    <tr>
+                      <th className="text-left pl-1 pr-1 py-0.5 font-semibold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Summary</th>
+                      <th className="text-right pl-4 pr-2 py-1">G</th>
+                      <th className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>AV</th>
+                      <th className="text-right pl-4 pr-2 py-1">FGM</th>
+                      <th className="text-right px-2 py-1">FGA</th>
+                      <th className="text-right px-2 py-1">XPM</th>
+                      <th className="text-right px-2 py-1">XPA</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {seasonRow && (
+                      <tr>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{season}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{seasonRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.av}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{seasonRow.fgm}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.fga}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.xpm}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.xpa}</td>
+                      </tr>
+                    )}
+                    {peakRow && (
+                      <tr>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Peak</td>
+                        <td className="text-right pl-4 pr-2 py-1">{peakRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.av}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{peakRow.fgm}</td>
+                        <td className="text-right px-2 py-1">{peakRow.fga}</td>
+                        <td className="text-right px-2 py-1">{peakRow.xpm}</td>
+                        <td className="text-right px-2 py-1">{peakRow.xpa}</td>
+                      </tr>
+                    )}
+                    {careerRow && (
+                      <tr>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Career</td>
+                        <td className="text-right pl-4 pr-2 py-1">{careerRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.av}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{careerRow.fgm}</td>
+                        <td className="text-right px-2 py-1">{careerRow.fga}</td>
+                        <td className="text-right px-2 py-1">{careerRow.xpm}</td>
+                        <td className="text-right px-2 py-1">{careerRow.xpa}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
+
+          {/* Football Punter Summary Stats Table */}
+          {sport === 'football' && season && player.stats && (() => {
+            // Determine if player is a punter
+            const latestRating = player.ratings && player.ratings.length > 0
+              ? player.ratings.reduce((latest, r) => r.season > latest.season ? r : latest)
+              : null;
+            const position = latestRating?.pos || '';
+
+            if (position !== 'P') return null;
+
+            const filteredStats = player.stats.filter(s => !s.playoffs && s.gp && s.gp > 0 && (!season || s.season <= season));
+
+            // Season stats
+            let seasonStats = filteredStats.find(s => s.season === season && s.tid === -1);
+            if (!seasonStats) {
+              const seasonStatsArray = filteredStats.filter(s => s.season === season && s.tid !== -1);
+              if (seasonStatsArray.length > 0) {
+                seasonStats = seasonStatsArray.reduce((acc, stat) => ({
+                  ...acc,
+                  season: stat.season,
+                  tid: -1,
+                  gp: (acc.gp || 0) + (stat.gp || 0),
+                  pnt: (acc.pnt || 0) + (stat.pnt || 0),
+                  pntYds: (acc.pntYds || 0) + (stat.pntYds || 0),
+                  av: (acc.av || 0) + (stat.av || 0),
+                }), { season, tid: -1, gp: 0, pnt: 0, pntYds: 0, av: 0 });
+              }
+            }
+
+            // Career stats
+            const hasPreAggregated = filteredStats.some(s => s.tid === -1);
+            const careerStatsArray = hasPreAggregated
+              ? filteredStats.filter(s => s.tid === -1)
+              : filteredStats.filter(s => s.tid !== -1);
+
+            const careerStats = careerStatsArray.length > 0 ? careerStatsArray.reduce((acc, stat) => ({
+              gp: (acc.gp || 0) + (stat.gp || 0),
+              pnt: (acc.pnt || 0) + (stat.pnt || 0),
+              pntYds: (acc.pntYds || 0) + (stat.pntYds || 0),
+              av: (acc.av || 0) + (stat.av || 0),
+            }), { gp: 0, pnt: 0, pntYds: 0, av: 0 }) : null;
+
+            // Peak stats (for retired players)
+            const isRetired = player.tid === -2 || player.tid === -3 || (player.retiredYear && player.retiredYear > 0);
+            const allRegularSeasonStats = player.stats.filter(s => !s.playoffs && s.gp && s.gp > 0);
+            const lastPlayedSeason = allRegularSeasonStats.length > 0
+              ? Math.max(...allRegularSeasonStats.map(s => s.season))
+              : 0;
+            const isViewingRetiredSeason = isRetired && season && season > lastPlayedSeason;
+
+            let peakStats = null;
+            if (isViewingRetiredSeason && player.ratings) {
+              const ratingsWithOvr = player.ratings.filter(r => r.ovr != null && r.ovr > 0);
+              if (ratingsWithOvr.length > 0) {
+                const peakRating = ratingsWithOvr.reduce((max, r) => (r.ovr ?? 0) > (max.ovr ?? 0) ? r : max);
+                const peakSeason = peakRating.season;
+
+                let peakSeasonStats = filteredStats.find(s => s.season === peakSeason && s.tid === -1);
+                if (!peakSeasonStats) {
+                  const peakSeasonStatsArray = filteredStats.filter(s => s.season === peakSeason && s.tid !== -1);
+                  if (peakSeasonStatsArray.length > 0) {
+                    peakSeasonStats = peakSeasonStatsArray.reduce((acc, stat) => ({
+                      ...acc,
+                      season: stat.season,
+                      tid: -1,
+                      gp: (acc.gp || 0) + (stat.gp || 0),
+                      pnt: (acc.pnt || 0) + (stat.pnt || 0),
+                      pntYds: (acc.pntYds || 0) + (stat.pntYds || 0),
+                      av: (acc.av || 0) + (stat.av || 0),
+                    }), { season: peakSeason, tid: -1, gp: 0, pnt: 0, pntYds: 0, av: 0 });
+                  }
+                }
+                if (peakSeasonStats && peakSeasonStats.gp && peakSeasonStats.gp > 0) {
+                  peakStats = peakSeasonStats;
+                }
+              }
+            }
+
+            const formatStat = (val: number | undefined | null) => val != null ? val.toFixed(1) : '—';
+            const formatInt = (val: number | undefined | null) => val != null ? val.toLocaleString() : '—';
+            const formatAV = (val: number | undefined | null) => val != null ? Math.round(val).toString() : '—';
+            const formatYPA = (yds: number, punts: number) => punts > 0 ? (yds / punts).toFixed(1) : '—';
+
+            // Build rows
+            const seasonRow = seasonStats && seasonStats.gp && seasonStats.gp > 0 ? {
+              g: seasonStats.gp,
+              av: formatAV(seasonStats.av),
+              pnt: formatInt(seasonStats.pnt),
+              yds: formatInt(seasonStats.pntYds),
+              ypa: formatYPA(seasonStats.pntYds || 0, seasonStats.pnt || 0),
+            } : null;
+
+            const careerRow = careerStats && careerStats.gp > 0 ? {
+              g: careerStats.gp,
+              av: formatAV(careerStats.av),
+              pnt: formatInt(careerStats.pnt),
+              yds: formatInt(careerStats.pntYds),
+              ypa: formatYPA(careerStats.pntYds || 0, careerStats.pnt || 0),
+            } : null;
+
+            const peakRow = peakStats && peakStats.gp && peakStats.gp > 0 ? {
+              g: peakStats.gp,
+              av: formatAV(peakStats.av),
+              pnt: formatInt(peakStats.pnt),
+              yds: formatInt(peakStats.pntYds),
+              ypa: formatYPA(peakStats.pntYds || 0, peakStats.pnt || 0),
+            } : null;
+
+            if (!seasonRow && !careerRow && !peakRow) return null;
+
+            return (
+              <div className="w-full mt-4 overflow-auto">
+                <table className="table-auto text-[clamp(8px,2.5vw,10px)] sm:text-[13px]" style={{ width: 'max-content', minWidth: '100%', color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                  <thead>
+                    <tr>
+                      <th className="text-left pl-1 pr-1 py-0.5 font-semibold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Summary</th>
+                      <th className="text-right pl-4 pr-2 py-1">G</th>
+                      <th className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>AV</th>
+                      <th className="text-right pl-4 pr-2 py-1">Pnt</th>
+                      <th className="text-right px-2 py-1">Yds</th>
+                      <th className="text-right px-2 py-1">Y/A</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {seasonRow && (
+                      <tr>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{season}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{seasonRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.av}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{seasonRow.pnt}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.yds}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.ypa}</td>
+                      </tr>
+                    )}
+                    {peakRow && (
+                      <tr>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Peak</td>
+                        <td className="text-right pl-4 pr-2 py-1">{peakRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.av}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{peakRow.pnt}</td>
+                        <td className="text-right px-2 py-1">{peakRow.yds}</td>
+                        <td className="text-right px-2 py-1">{peakRow.ypa}</td>
+                      </tr>
+                    )}
+                    {careerRow && (
+                      <tr>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Career</td>
+                        <td className="text-right pl-4 pr-2 py-1">{careerRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.av}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{careerRow.pnt}</td>
+                        <td className="text-right px-2 py-1">{careerRow.yds}</td>
+                        <td className="text-right px-2 py-1">{careerRow.ypa}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
+
+          {/* Baseball Batter Summary Stats Table */}
+          {sport === 'baseball' && season && player.stats && player.ratings && (() => {
+            // Determine if player is a batter (not a pitcher)
+            const latestRating = player.ratings && player.ratings.length > 0
+              ? player.ratings.reduce((latest, r) => r.season > latest.season ? r : latest)
+              : null;
+            const position = latestRating?.pos || '';
+
+            // Skip this table for pitchers
+            if (position === 'SP' || position === 'RP' || position === 'P') return null;
+
+            const filteredStats = player.stats.filter(s => !s.playoffs && s.gp && s.gp > 0 && (!season || s.season <= season));
+
+            // Helper functions for batting stats
+            const formatBA = (h: number, ab: number) => ab > 0 ? (h / ab).toFixed(3) : '.000';
+            const calcPA = (ab: number, bb: number) => ab + bb; // Simplified: PA = AB + BB
+            const formatOBP = (h: number, bb: number, ab: number) => {
+              const pa = ab + bb; // Simplified: PA = AB + BB (ignoring HBP, SF, etc)
+              return pa > 0 ? ((h + bb) / pa).toFixed(3) : '.000';
+            };
+            const formatSLG = (h: number, hr: number, ab: number) => {
+              // Simplified SLG calculation without doubles/triples data
+              // This is an approximation
+              if (ab === 0) return '.000';
+              const totalBases = h + (hr * 3); // Estimate: singles + HR*4 - HR = h + 3*HR
+              return (totalBases / ab).toFixed(3);
+            };
+            const formatOPS = (obp: string, slg: string) => {
+              const obpNum = parseFloat(obp);
+              const slgNum = parseFloat(slg);
+              return (obpNum + slgNum).toFixed(3);
+            };
+
+            // Season stats
+            let seasonStats = filteredStats.find(s => s.season === season && s.tid === -1);
+            if (!seasonStats) {
+              const seasonStatsArray = filteredStats.filter(s => s.season === season && s.tid !== -1);
+              if (seasonStatsArray.length > 0) {
+                seasonStats = seasonStatsArray.reduce((acc, stat) => ({
+                  ...acc,
+                  season: stat.season,
+                  tid: -1,
+                  gp: (acc.gp || 0) + (stat.gp || 0),
+                  ab: (acc.ab || 0) + (stat.ab || 0),
+                  h: (acc.h || 0) + (stat.h || 0),
+                  hr: (acc.hr || 0) + (stat.hr || 0),
+                  rbi: (acc.rbi || 0) + (stat.rbi || 0),
+                  r: (acc.r || 0) + (stat.r || 0),
+                  bb: (acc.bb || 0) + (stat.bb || 0),
+                  so: (acc.so || 0) + (stat.so || 0),
+                  sb: (acc.sb || 0) + (stat.sb || 0),
+                  war: ((acc as any).war || 0) + ((stat as any).war || 0),
+                }), { season, tid: -1, gp: 0, ab: 0, h: 0, hr: 0, rbi: 0, r: 0, bb: 0, so: 0, sb: 0, war: 0 });
+              }
+            }
+
+            // Career stats
+            const hasPreAggregated = filteredStats.some(s => s.tid === -1);
+            const careerStatsArray = hasPreAggregated
+              ? filteredStats.filter(s => s.tid === -1)
+              : filteredStats.filter(s => s.tid !== -1);
+
+            const careerStats = careerStatsArray.length > 0 ? careerStatsArray.reduce((acc, stat) => ({
+              gp: (acc.gp || 0) + (stat.gp || 0),
+              ab: (acc.ab || 0) + (stat.ab || 0),
+              h: (acc.h || 0) + (stat.h || 0),
+              hr: (acc.hr || 0) + (stat.hr || 0),
+              rbi: (acc.rbi || 0) + (stat.rbi || 0),
+              r: (acc.r || 0) + (stat.r || 0),
+              bb: (acc.bb || 0) + (stat.bb || 0),
+              so: (acc.so || 0) + (stat.so || 0),
+              sb: (acc.sb || 0) + (stat.sb || 0),
+              war: ((acc as any).war || 0) + ((stat as any).war || 0),
+            }), { gp: 0, ab: 0, h: 0, hr: 0, rbi: 0, r: 0, bb: 0, so: 0, sb: 0, war: 0 }) : null;
+
+            // Peak stats (for retired players)
+            const isRetired = player.tid === -2 || player.tid === -3 || (player.retiredYear && player.retiredYear > 0);
+            const allRegularSeasonStats = player.stats.filter(s => !s.playoffs && s.gp && s.gp > 0);
+            const lastPlayedSeason = allRegularSeasonStats.length > 0
+              ? Math.max(...allRegularSeasonStats.map(s => s.season))
+              : 0;
+            const isViewingRetiredSeason = isRetired && season && season > lastPlayedSeason;
+
+            let peakStats = null;
+            if (isViewingRetiredSeason && player.ratings) {
+              const ratingsWithOvr = player.ratings.filter(r => r.ovr != null && r.ovr > 0);
+              if (ratingsWithOvr.length > 0) {
+                const peakRating = ratingsWithOvr.reduce((max, r) => (r.ovr ?? 0) > (max.ovr ?? 0) ? r : max);
+                const peakSeason = peakRating.season;
+
+                let peakSeasonStats = filteredStats.find(s => s.season === peakSeason && s.tid === -1);
+                if (!peakSeasonStats) {
+                  const peakSeasonStatsArray = filteredStats.filter(s => s.season === peakSeason && s.tid !== -1);
+                  if (peakSeasonStatsArray.length > 0) {
+                    peakSeasonStats = peakSeasonStatsArray.reduce((acc, stat) => ({
+                      ...acc,
+                      season: stat.season,
+                      tid: -1,
+                      gp: (acc.gp || 0) + (stat.gp || 0),
+                      ab: (acc.ab || 0) + (stat.ab || 0),
+                      h: (acc.h || 0) + (stat.h || 0),
+                      hr: (acc.hr || 0) + (stat.hr || 0),
+                      rbi: (acc.rbi || 0) + (stat.rbi || 0),
+                      r: (acc.r || 0) + (stat.r || 0),
+                      bb: (acc.bb || 0) + (stat.bb || 0),
+                      so: (acc.so || 0) + (stat.so || 0),
+                      sb: (acc.sb || 0) + (stat.sb || 0),
+                      war: ((acc as any).war || 0) + ((stat as any).war || 0),
+                    }), { season: peakSeason, tid: -1, gp: 0, ab: 0, h: 0, hr: 0, rbi: 0, r: 0, bb: 0, so: 0, sb: 0, war: 0 });
+                  }
+                }
+                if (peakSeasonStats && peakSeasonStats.gp && peakSeasonStats.gp > 0) {
+                  peakStats = peakSeasonStats;
+                }
+              }
+            }
+
+            // Build display rows
+            const rows = [];
+            if (seasonStats && seasonStats.gp && seasonStats.gp > 0) {
+              const ba = formatBA(seasonStats.h || 0, seasonStats.ab || 0);
+              const obp = formatOBP(seasonStats.h || 0, seasonStats.bb || 0, seasonStats.ab || 0);
+              const slg = formatSLG(seasonStats.h || 0, seasonStats.hr || 0, seasonStats.ab || 0);
+              rows.push({
+                label: `${seasonStats.season}`,
+                war: ((seasonStats as any).war || 0).toFixed(1),
+                pa: calcPA(seasonStats.ab || 0, seasonStats.bb || 0),
+                h: seasonStats.h || 0,
+                hr: seasonStats.hr || 0,
+                ba,
+                r: seasonStats.r || 0,
+                rbi: seasonStats.rbi || 0,
+                sb: seasonStats.sb || 0,
+                obp,
+                slg,
+                ops: formatOPS(obp, slg),
+              });
+            }
+            if (peakStats && peakStats.gp && peakStats.gp > 0) {
+              const ba = formatBA(peakStats.h || 0, peakStats.ab || 0);
+              const obp = formatOBP(peakStats.h || 0, peakStats.bb || 0, peakStats.ab || 0);
+              const slg = formatSLG(peakStats.h || 0, peakStats.hr || 0, peakStats.ab || 0);
+              rows.push({
+                label: `Peak (${peakStats.season})`,
+                war: ((peakStats as any).war || 0).toFixed(1),
+                pa: calcPA(peakStats.ab || 0, peakStats.bb || 0),
+                h: peakStats.h || 0,
+                hr: peakStats.hr || 0,
+                ba,
+                r: peakStats.r || 0,
+                rbi: peakStats.rbi || 0,
+                sb: peakStats.sb || 0,
+                obp,
+                slg,
+                ops: formatOPS(obp, slg),
+              });
+            }
+            if (careerStats && careerStats.gp && careerStats.gp > 0) {
+              const ba = formatBA(careerStats.h || 0, careerStats.ab || 0);
+              const obp = formatOBP(careerStats.h || 0, careerStats.bb || 0, careerStats.ab || 0);
+              const slg = formatSLG(careerStats.h || 0, careerStats.hr || 0, careerStats.ab || 0);
+              rows.push({
+                label: 'Career',
+                war: ((careerStats as any).war || 0).toFixed(1),
+                pa: calcPA(careerStats.ab || 0, careerStats.bb || 0),
+                h: careerStats.h || 0,
+                hr: careerStats.hr || 0,
+                ba,
+                r: careerStats.r || 0,
+                rbi: careerStats.rbi || 0,
+                sb: careerStats.sb || 0,
+                obp,
+                slg,
+                ops: formatOPS(obp, slg),
+              });
+            }
+
+            if (rows.length === 0) return null;
+
+            const seasonRow = rows.find(r => r.label === `${season}`);
+            const peakRow = rows.find(r => r.label.startsWith('Peak'));
+            const careerRow = rows.find(r => r.label === 'Career');
+
+            return (
+              <div className="mt-6">
+                <h3 className="font-semibold mb-2">Career Stats</h3>
+                <table className="text-xs w-full" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+                  <thead>
+                    <tr>
+                      <th className="text-left px-2 py-1 font-semibold">Summary</th>
+                      <th className="text-right px-0.5 py-0.5 font-semibold">WAR</th>
+                      <th className="text-right px-0.5 py-0.5 font-semibold">PA</th>
+                      <th className="text-right px-0.5 py-0.5 font-semibold">H</th>
+                      <th className="text-right px-0.5 py-0.5 font-semibold">HR</th>
+                      <th className="text-right pl-0.5 pr-2 py-0.5 font-semibold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>BA</th>
+                      <th className="text-right pl-0.5 pr-0.5 py-0.5 font-semibold">R</th>
+                      <th className="text-right px-0.5 py-0.5 font-semibold">RBI</th>
+                      <th className="text-right pl-0.5 pr-2 py-0.5 font-semibold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>SB</th>
+                      <th className="text-right pl-0.5 pr-0.5 py-0.5 font-semibold">OBP</th>
+                      <th className="text-right px-0.5 py-0.5 font-semibold">SLG</th>
+                      <th className="text-right px-0.5 py-0.5 font-semibold">OPS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {seasonRow && (
+                      <tr>
+                        <td className="px-0.5 py-0.5 font-medium">{seasonRow.label}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.war}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.pa.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.h}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.hr}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.ba}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{seasonRow.r}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.rbi}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.sb}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{seasonRow.obp}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.slg}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.ops}</td>
+                      </tr>
+                    )}
+                    {peakRow && (
+                      <tr>
+                        <td className="px-0.5 py-0.5 font-medium">{peakRow.label}</td>
+                        <td className="text-right px-2 py-1">{peakRow.war}</td>
+                        <td className="text-right px-2 py-1">{peakRow.pa.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1">{peakRow.h}</td>
+                        <td className="text-right px-2 py-1">{peakRow.hr}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.ba}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{peakRow.r}</td>
+                        <td className="text-right px-2 py-1">{peakRow.rbi}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.sb}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{peakRow.obp}</td>
+                        <td className="text-right px-2 py-1">{peakRow.slg}</td>
+                        <td className="text-right px-2 py-1">{peakRow.ops}</td>
+                      </tr>
+                    )}
+                    {careerRow && (
+                      <tr>
+                        <td className="px-0.5 py-0.5 font-medium">{careerRow.label}</td>
+                        <td className="text-right px-2 py-1">{careerRow.war}</td>
+                        <td className="text-right px-2 py-1">{careerRow.pa.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1">{careerRow.h}</td>
+                        <td className="text-right px-2 py-1">{careerRow.hr}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.ba}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{careerRow.r}</td>
+                        <td className="text-right px-2 py-1">{careerRow.rbi}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.sb}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{careerRow.obp}</td>
+                        <td className="text-right px-2 py-1">{careerRow.slg}</td>
+                        <td className="text-right px-2 py-1">{careerRow.ops}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
+
+          {/* Baseball Pitcher Summary Stats Table */}
+          {sport === 'baseball' && season && player.stats && (() => {
+            // Determine if player is a pitcher
+            const latestRating = player.ratings && player.ratings.length > 0
+              ? player.ratings.reduce((latest, r) => r.season > latest.season ? r : latest)
+              : null;
+            const position = latestRating?.pos || '';
+
+            if (position !== 'SP' && position !== 'RP' && position !== 'P') return null;
+
+            const filteredStats = player.stats.filter(s => !s.playoffs && s.gp && s.gp > 0 && (!season || s.season <= season));
+
+            // Season stats
+            let seasonStats = filteredStats.find(s => s.season === season && s.tid === -1);
+            if (!seasonStats) {
+              const seasonStatsArray = filteredStats.filter(s => s.season === season && s.tid !== -1);
+              if (seasonStatsArray.length > 0) {
+                seasonStats = seasonStatsArray.reduce((acc, stat) => ({
+                  ...acc,
+                  season: stat.season,
+                  tid: -1,
+                  gp: (acc.gp || 0) + (stat.gp || 0),
+                  gs: (acc.gs || 0) + (stat.gs || 0),
+                  w: (acc.w || 0) + ((stat as any).w || 0),
+                  l: (acc.l || 0) + ((stat as any).l || 0),
+                  sv: (acc.sv || 0) + (stat.sv || 0),
+                  outs: (acc.outs || 0) + (stat.outs || 0),
+                  so: (acc.so || 0) + (stat.so || 0),
+                  er: (acc.er || 0) + (stat.er || 0),
+                  ha: (acc.ha || 0) + (stat.ha || 0),
+                  bb: (acc.bb || 0) + (stat.bb || 0),
+                  war: ((acc as any).war || 0) + ((stat as any).war || 0),
+                }), { season, tid: -1, gp: 0, gs: 0, w: 0, l: 0, sv: 0, outs: 0, so: 0, er: 0, ha: 0, bb: 0, war: 0 });
+              }
+            }
+
+            // Career stats
+            const hasPreAggregated = filteredStats.some(s => s.tid === -1);
+            const careerStatsArray = hasPreAggregated
+              ? filteredStats.filter(s => s.tid === -1)
+              : filteredStats.filter(s => s.tid !== -1);
+
+            const careerStats = careerStatsArray.length > 0 ? careerStatsArray.reduce((acc, stat) => ({
+              gp: (acc.gp || 0) + (stat.gp || 0),
+              gs: (acc.gs || 0) + (stat.gs || 0),
+              w: (acc.w || 0) + ((stat as any).w || 0),
+              l: (acc.l || 0) + ((stat as any).l || 0),
+              sv: (acc.sv || 0) + (stat.sv || 0),
+              outs: (acc.outs || 0) + (stat.outs || 0),
+              so: (acc.so || 0) + (stat.so || 0),
+              er: (acc.er || 0) + (stat.er || 0),
+              ha: (acc.ha || 0) + (stat.ha || 0),
+              bb: (acc.bb || 0) + (stat.bb || 0),
+              war: ((acc as any).war || 0) + ((stat as any).war || 0),
+            }), { gp: 0, gs: 0, w: 0, l: 0, sv: 0, outs: 0, so: 0, er: 0, ha: 0, bb: 0, war: 0 }) : null;
+
+            // Peak stats (for retired players)
+            const isRetired = player.tid === -2 || player.tid === -3 || (player.retiredYear && player.retiredYear > 0);
+            const allRegularSeasonStats = player.stats.filter(s => !s.playoffs && s.gp && s.gp > 0);
+            const lastPlayedSeason = allRegularSeasonStats.length > 0
+              ? Math.max(...allRegularSeasonStats.map(s => s.season))
+              : 0;
+            const isViewingRetiredSeason = isRetired && season && season > lastPlayedSeason;
+
+            let peakStats = null;
+            if (isViewingRetiredSeason && player.ratings) {
+              const ratingsWithOvr = player.ratings.filter(r => r.ovr != null && r.ovr > 0);
+              if (ratingsWithOvr.length > 0) {
+                const peakRating = ratingsWithOvr.reduce((max, r) => (r.ovr ?? 0) > (max.ovr ?? 0) ? r : max);
+                const peakSeason = peakRating.season;
+
+                let peakSeasonStats = filteredStats.find(s => s.season === peakSeason && s.tid === -1);
+                if (!peakSeasonStats) {
+                  const peakSeasonStatsArray = filteredStats.filter(s => s.season === peakSeason && s.tid !== -1);
+                  if (peakSeasonStatsArray.length > 0) {
+                    peakSeasonStats = peakSeasonStatsArray.reduce((acc, stat) => ({
+                      ...acc,
+                      season: stat.season,
+                      tid: -1,
+                      gp: (acc.gp || 0) + (stat.gp || 0),
+                      gs: (acc.gs || 0) + (stat.gs || 0),
+                      w: (acc.w || 0) + ((stat as any).w || 0),
+                      l: (acc.l || 0) + ((stat as any).l || 0),
+                      sv: (acc.sv || 0) + (stat.sv || 0),
+                      outs: (acc.outs || 0) + (stat.outs || 0),
+                      so: (acc.so || 0) + (stat.so || 0),
+                      er: (acc.er || 0) + (stat.er || 0),
+                      ha: (acc.ha || 0) + (stat.ha || 0),
+                      bb: (acc.bb || 0) + (stat.bb || 0),
+                      war: ((acc as any).war || 0) + ((stat as any).war || 0),
+                    }), { season: peakSeason, tid: -1, gp: 0, gs: 0, w: 0, l: 0, sv: 0, outs: 0, so: 0, er: 0, ha: 0, bb: 0, war: 0 });
+                  }
+                }
+                if (peakSeasonStats && peakSeasonStats.gp && peakSeasonStats.gp > 0) {
+                  peakStats = peakSeasonStats;
+                }
+              }
+            }
+
+            const formatStat = (val: number | undefined | null) => val != null ? val.toFixed(1) : '—';
+            const formatInt = (val: number | undefined | null) => val != null ? val.toLocaleString() : '—';
+            const formatIP = (outs: number) => {
+              const ipWhole = Math.floor(outs / 3);
+              const ipRemainder = outs % 3;
+              return ipRemainder > 0 ? `${ipWhole}.${ipRemainder}` : ipWhole.toString();
+            };
+            const formatERA = (er: number, outs: number) => outs > 0 ? ((er * 27) / outs).toFixed(2) : '—';
+            const formatWHIP = (ha: number, bb: number, outs: number) => {
+              const ip = outs / 3;
+              return ip > 0 ? ((ha + bb) / ip).toFixed(2) : '—';
+            };
+
+            // Build rows
+            const seasonRow = seasonStats && seasonStats.gp && seasonStats.gp > 0 ? {
+              war: formatStat((seasonStats as any).war),
+              w: formatInt((seasonStats as any).w),
+              l: formatInt((seasonStats as any).l),
+              era: formatERA(seasonStats.er || 0, seasonStats.outs || 0),
+              gp: seasonStats.gp,
+              gs: formatInt(seasonStats.gs),
+              sv: formatInt(seasonStats.sv),
+              ip: formatIP(seasonStats.outs || 0),
+              so: formatInt(seasonStats.so),
+              whip: formatWHIP(seasonStats.ha || 0, seasonStats.bb || 0, seasonStats.outs || 0),
+            } : null;
+
+            const careerRow = careerStats && careerStats.gp > 0 ? {
+              war: formatStat((careerStats as any).war),
+              w: formatInt((careerStats as any).w),
+              l: formatInt((careerStats as any).l),
+              era: formatERA(careerStats.er || 0, careerStats.outs || 0),
+              gp: careerStats.gp,
+              gs: formatInt(careerStats.gs),
+              sv: formatInt(careerStats.sv),
+              ip: formatIP(careerStats.outs || 0),
+              so: formatInt(careerStats.so),
+              whip: formatWHIP(careerStats.ha || 0, careerStats.bb || 0, careerStats.outs || 0),
+            } : null;
+
+            const peakRow = peakStats && peakStats.gp && peakStats.gp > 0 ? {
+              war: formatStat((peakStats as any).war),
+              w: formatInt((peakStats as any).w),
+              l: formatInt((peakStats as any).l),
+              era: formatERA(peakStats.er || 0, peakStats.outs || 0),
+              gp: peakStats.gp,
+              gs: formatInt(peakStats.gs),
+              sv: formatInt(peakStats.sv),
+              ip: formatIP(peakStats.outs || 0),
+              so: formatInt(peakStats.so),
+              whip: formatWHIP(peakStats.ha || 0, peakStats.bb || 0, peakStats.outs || 0),
+            } : null;
+
+            if (!seasonRow && !careerRow && !peakRow) return null;
+
+            return (
+              <div className="w-full mt-4 overflow-auto">
+                <table className="table-auto text-[clamp(8px,2.5vw,10px)] sm:text-[13px]" style={{ width: 'max-content', minWidth: '100%', color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                  <thead>
+                    <tr>
+                      <th className="text-left pl-1 pr-1 py-0.5 font-semibold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Summary</th>
+                      <th className="text-right pl-4 pr-2 py-1">WAR</th>
+                      <th className="text-right px-2 py-1">W</th>
+                      <th className="text-right px-2 py-1">L</th>
+                      <th className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>ERA</th>
+                      <th className="text-right pl-4 pr-2 py-1">GP</th>
+                      <th className="text-right px-2 py-1">GS</th>
+                      <th className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>SV</th>
+                      <th className="text-right pl-4 pr-2 py-1">IP</th>
+                      <th className="text-right px-2 py-1">SO</th>
+                      <th className="text-right px-2 py-1">WHIP</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {seasonRow && (
+                      <tr>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{season}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{seasonRow.war}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.w}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.l}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.era}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{seasonRow.gp.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.gs}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.sv}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{seasonRow.ip}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.so}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.whip}</td>
+                      </tr>
+                    )}
+                    {peakRow && (
+                      <tr>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Peak</td>
+                        <td className="text-right pl-4 pr-2 py-1">{peakRow.war}</td>
+                        <td className="text-right px-2 py-1">{peakRow.w}</td>
+                        <td className="text-right px-2 py-1">{peakRow.l}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.era}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{peakRow.gp.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1">{peakRow.gs}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.sv}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{peakRow.ip}</td>
+                        <td className="text-right px-2 py-1">{peakRow.so}</td>
+                        <td className="text-right px-2 py-1">{peakRow.whip}</td>
+                      </tr>
+                    )}
+                    {careerRow && (
+                      <tr>
+                        <td className="text-left pl-1 pr-1 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Career</td>
+                        <td className="text-right pl-4 pr-2 py-1">{careerRow.war}</td>
+                        <td className="text-right px-2 py-1">{careerRow.w}</td>
+                        <td className="text-right px-2 py-1">{careerRow.l}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.era}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{careerRow.gp.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1">{careerRow.gs}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.sv}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{careerRow.ip}</td>
+                        <td className="text-right px-2 py-1">{careerRow.so}</td>
+                        <td className="text-right px-2 py-1">{careerRow.whip}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
+
+          {/* Hockey Skaters Summary Stats */}
+          {sport === 'hockey' && season && player.stats && player.ratings && (() => {
+            const latestRating = player.ratings && player.ratings.length > 0
+              ? player.ratings.reduce((latest, r) => r.season > latest.season ? r : latest)
+              : null;
+            const position = latestRating?.pos || '';
+            // Skaters (all non-goalie positions)
+            if (position === 'G') return null;
+
+            const filteredStats = player.stats.filter(s => !s.playoffs && s.gp && s.gp > 0 && (!season || s.season <= season));
+
+            // Season stats
+            let seasonStats = filteredStats.find(s => s.season === season && s.tid === -1);
+            if (!seasonStats) {
+              const seasonStatsArray = filteredStats.filter(s => s.season === season && s.tid !== -1);
+              if (seasonStatsArray.length > 0) {
+                seasonStats = seasonStatsArray.reduce((acc, stat) => ({
+                  ...acc,
+                  season: stat.season,
+                  tid: -1,
+                  gp: (acc.gp || 0) + (stat.gp || 0),
+                  min: (acc.min || 0) + (stat.min || 0),
+                  g: (acc.g || 0) + (stat.g || 0),
+                  a: (acc.a || 0) + (stat.a || 0),
+                  pm: (acc.pm || 0) + (stat.pm || 0),
+                  pim: (acc.pim || 0) + (stat.pim || 0),
+                  hit: ((acc as any).hit || 0) + ((stat as any).hit || 0),
+                  blk: ((acc as any).blk || 0) + ((stat as any).blk || 0),
+                  ows: ((acc as any).ows || 0) + ((stat as any).ows || 0),
+                  dws: ((acc as any).dws || 0) + ((stat as any).dws || 0),
+                  gws: ((acc as any).gws || 0) + ((stat as any).gws || 0),
+                  dps: ((acc as any).dps || 0) + ((stat as any).dps || 0),
+                  ps: ((acc as any).ps || 0) + ((stat as any).ps || 0),
+                }), { season, tid: -1, gp: 0, min: 0, g: 0, a: 0, pm: 0, pim: 0, hit: 0, blk: 0, ows: 0, dws: 0, gws: 0, dps: 0, ps: 0 });
+              }
+            }
+
+            // Career stats
+            const hasPreAggregated = filteredStats.some(s => s.tid === -1);
+            const careerStatsArray = hasPreAggregated
+              ? filteredStats.filter(s => s.tid === -1)
+              : filteredStats.filter(s => s.tid !== -1);
+
+            const careerStats = careerStatsArray.length > 0 ? careerStatsArray.reduce((acc, stat) => ({
+              gp: (acc.gp || 0) + (stat.gp || 0),
+              min: (acc.min || 0) + (stat.min || 0),
+              g: (acc.g || 0) + (stat.g || 0),
+              a: (acc.a || 0) + (stat.a || 0),
+              pm: (acc.pm || 0) + (stat.pm || 0),
+              pim: (acc.pim || 0) + (stat.pim || 0),
+              hit: ((acc as any).hit || 0) + ((stat as any).hit || 0),
+              blk: ((acc as any).blk || 0) + ((stat as any).blk || 0),
+              ows: ((acc as any).ows || 0) + ((stat as any).ows || 0),
+              dws: ((acc as any).dws || 0) + ((stat as any).dws || 0),
+              gws: ((acc as any).gws || 0) + ((stat as any).gws || 0),
+              dps: ((acc as any).dps || 0) + ((stat as any).dps || 0),
+              ps: ((acc as any).ps || 0) + ((stat as any).ps || 0),
+            }), { gp: 0, min: 0, g: 0, a: 0, pm: 0, pim: 0, hit: 0, blk: 0, ows: 0, dws: 0, gws: 0, dps: 0, ps: 0 }) : null;
+
+            // Peak stats (for retired players)
+            const isRetired = player.tid === -2 || player.tid === -3 || (player.retiredYear && player.retiredYear > 0);
+            const allRegularSeasonStats = player.stats.filter(s => !s.playoffs && s.gp && s.gp > 0);
+            const lastPlayedSeason = allRegularSeasonStats.length > 0
+              ? Math.max(...allRegularSeasonStats.map(s => s.season))
+              : 0;
+            const isViewingRetiredSeason = isRetired && season && season > lastPlayedSeason;
+
+            let peakStats = null;
+            if (isViewingRetiredSeason && player.ratings) {
+              const ratingsWithOvr = player.ratings.filter(r => r.ovr != null && r.ovr > 0);
+              if (ratingsWithOvr.length > 0) {
+                const peakRating = ratingsWithOvr.reduce((max, r) => (r.ovr ?? 0) > (max.ovr ?? 0) ? r : max);
+                const peakSeason = peakRating.season;
+
+                let peakSeasonStats = filteredStats.find(s => s.season === peakSeason && s.tid === -1);
+                if (!peakSeasonStats) {
+                  const peakSeasonStatsArray = filteredStats.filter(s => s.season === peakSeason && s.tid !== -1);
+                  if (peakSeasonStatsArray.length > 0) {
+                    peakSeasonStats = peakSeasonStatsArray.reduce((acc, stat) => ({
+                      ...acc,
+                      season: stat.season,
+                      tid: -1,
+                      gp: (acc.gp || 0) + (stat.gp || 0),
+                      min: (acc.min || 0) + (stat.min || 0),
+                      g: (acc.g || 0) + (stat.g || 0),
+                      a: (acc.a || 0) + (stat.a || 0),
+                      pm: (acc.pm || 0) + (stat.pm || 0),
+                      pim: (acc.pim || 0) + (stat.pim || 0),
+                      hit: ((acc as any).hit || 0) + ((stat as any).hit || 0),
+                      blk: ((acc as any).blk || 0) + ((stat as any).blk || 0),
+                      ows: ((acc as any).ows || 0) + ((stat as any).ows || 0),
+                      dws: ((acc as any).dws || 0) + ((stat as any).dws || 0),
+                      gws: ((acc as any).gws || 0) + ((stat as any).gws || 0),
+                      dps: ((acc as any).dps || 0) + ((stat as any).dps || 0),
+                      ps: ((acc as any).ps || 0) + ((stat as any).ps || 0),
+                    }), { season: peakSeason, tid: -1, gp: 0, min: 0, g: 0, a: 0, pm: 0, pim: 0, hit: 0, blk: 0, ows: 0, dws: 0, gws: 0, dps: 0, ps: 0 });
+                  }
+                }
+                if (peakSeasonStats && peakSeasonStats.gp && peakSeasonStats.gp > 0) {
+                  peakStats = peakSeasonStats;
+                }
+              }
+            }
+
+            // Build display rows
+            const rows = [];
+            if (seasonStats && seasonStats.gp && seasonStats.gp > 0) {
+              rows.push({
+                label: `${seasonStats.season}`,
+                gp: seasonStats.gp || 0,
+                g: seasonStats.g || 0,
+                a: seasonStats.a || 0,
+                pts: (seasonStats.g || 0) + (seasonStats.a || 0),
+                pm: seasonStats.pm != null ? (seasonStats.pm >= 0 ? `+${seasonStats.pm}` : seasonStats.pm.toString()) : '—',
+                ops: ((seasonStats as any).ows || 0) + ((seasonStats as any).dws || 0) + ((seasonStats as any).gws || 0),
+                dps: ((seasonStats as any).dps || 0),
+                ps: ((seasonStats as any).ps || 0),
+              });
+            }
+            if (peakStats && peakStats.gp && peakStats.gp > 0) {
+              rows.push({
+                label: `Peak (${peakStats.season})`,
+                gp: peakStats.gp || 0,
+                g: peakStats.g || 0,
+                a: peakStats.a || 0,
+                pts: (peakStats.g || 0) + (peakStats.a || 0),
+                pm: peakStats.pm != null ? (peakStats.pm >= 0 ? `+${peakStats.pm}` : peakStats.pm.toString()) : '—',
+                ops: ((peakStats as any).ows || 0) + ((peakStats as any).dws || 0) + ((peakStats as any).gws || 0),
+                dps: ((peakStats as any).dps || 0),
+                ps: ((peakStats as any).ps || 0),
+              });
+            }
+            if (careerStats && careerStats.gp && careerStats.gp > 0) {
+              rows.push({
+                label: 'Career',
+                gp: careerStats.gp || 0,
+                g: careerStats.g || 0,
+                a: careerStats.a || 0,
+                pts: (careerStats.g || 0) + (careerStats.a || 0),
+                pm: careerStats.pm != null ? (careerStats.pm >= 0 ? `+${careerStats.pm}` : careerStats.pm.toString()) : '—',
+                ops: ((careerStats as any).ows || 0) + ((careerStats as any).dws || 0) + ((careerStats as any).gws || 0),
+                dps: ((careerStats as any).dps || 0),
+                ps: ((careerStats as any).ps || 0),
+              });
+            }
+
+            if (rows.length === 0) return null;
+
+            const seasonRow = rows.find(r => r.label === `${season}`);
+            const peakRow = rows.find(r => r.label.startsWith('Peak'));
+            const careerRow = rows.find(r => r.label === 'Career');
+
+            return (
+              <div className="mt-6">
+                <h3 className="font-semibold mb-2">Career Stats</h3>
+                <table className="text-xs w-full" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+                  <thead>
+                    <tr>
+                      <th className="text-left px-2 py-1 font-semibold">Summary</th>
+                      <th className="text-right px-0.5 py-0.5 font-semibold">GP</th>
+                      <th className="text-right px-0.5 py-0.5 font-semibold">G</th>
+                      <th className="text-right px-0.5 py-0.5 font-semibold">A</th>
+                      <th className="text-right px-0.5 py-0.5 font-semibold">PTS</th>
+                      <th className="text-right pl-0.5 pr-2 py-0.5 font-semibold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>+/-</th>
+                      <th className="text-right pl-0.5 pr-0.5 py-0.5 font-semibold">OPS</th>
+                      <th className="text-right px-0.5 py-0.5 font-semibold">DPS</th>
+                      <th className="text-right px-0.5 py-0.5 font-semibold">PS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {seasonRow && (
+                      <tr>
+                        <td className="px-0.5 py-0.5 font-medium">{seasonRow.label}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.gp.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.g}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.a}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.pts}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.pm}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{seasonRow.ops.toFixed(1)}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.dps.toFixed(1)}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.ps.toFixed(1)}</td>
+                      </tr>
+                    )}
+                    {peakRow && (
+                      <tr>
+                        <td className="px-0.5 py-0.5 font-medium">{peakRow.label}</td>
+                        <td className="text-right px-2 py-1">{peakRow.gp.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1">{peakRow.g}</td>
+                        <td className="text-right px-2 py-1">{peakRow.a}</td>
+                        <td className="text-right px-2 py-1">{peakRow.pts}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.pm}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{peakRow.ops.toFixed(1)}</td>
+                        <td className="text-right px-2 py-1">{peakRow.dps.toFixed(1)}</td>
+                        <td className="text-right px-2 py-1">{peakRow.ps.toFixed(1)}</td>
+                      </tr>
+                    )}
+                    {careerRow && (
+                      <tr>
+                        <td className="px-0.5 py-0.5 font-medium">{careerRow.label}</td>
+                        <td className="text-right px-2 py-1">{careerRow.gp.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1">{careerRow.g}</td>
+                        <td className="text-right px-2 py-1">{careerRow.a}</td>
+                        <td className="text-right px-2 py-1">{careerRow.pts}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.pm}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{careerRow.ops.toFixed(1)}</td>
+                        <td className="text-right px-2 py-1">{careerRow.dps.toFixed(1)}</td>
+                        <td className="text-right px-2 py-1">{careerRow.ps.toFixed(1)}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
+
+          {/* Hockey Goalies Summary Stats */}
+          {sport === 'hockey' && season && player.stats && player.ratings && (() => {
+            const latestRating = player.ratings && player.ratings.length > 0
+              ? player.ratings.reduce((latest, r) => r.season > latest.season ? r : latest)
+              : null;
+            const position = latestRating?.pos || '';
+            // Goalies only
+            if (position !== 'G') return null;
+
+            const filteredStats = player.stats.filter(s => !s.playoffs && s.gp && s.gp > 0 && (!season || s.season <= season));
+
+            // Helper to format SV%
+            const formatSVPct = (sv: number, sa: number) => {
+              if (sa === 0) return '—';
+              return ((sv / sa) * 100).toFixed(1);
+            };
+
+            // Season stats
+            let seasonStats = filteredStats.find(s => s.season === season && s.tid === -1);
+            if (!seasonStats) {
+              const seasonStatsArray = filteredStats.filter(s => s.season === season && s.tid !== -1);
+              if (seasonStatsArray.length > 0) {
+                seasonStats = seasonStatsArray.reduce((acc, stat) => ({
+                  ...acc,
+                  season: stat.season,
+                  tid: -1,
+                  gp: (acc.gp || 0) + (stat.gp || 0),
+                  gMin: (acc.gMin || 0) + (stat.gMin || 0),
+                  gW: (acc.gW || 0) + (stat.gW || 0),
+                  gL: (acc.gL || 0) + (stat.gL || 0),
+                  gOTL: (acc.gOTL || 0) + (stat.gOTL || 0),
+                  ga: (acc.ga || 0) + (stat.ga || 0),
+                  sa: (acc.sa || 0) + (stat.sa || 0),
+                  sv: (acc.sv || 0) + (stat.sv || 0),
+                  so: (acc.so || 0) + (stat.so || 0),
+                  gps: ((acc as any).gps || 0) + ((stat as any).gps || 0),
+                }), { season, tid: -1, gp: 0, gMin: 0, gW: 0, gL: 0, gOTL: 0, ga: 0, sa: 0, sv: 0, so: 0, gps: 0 });
+              }
+            }
+
+            // Career stats
+            const hasPreAggregated = filteredStats.some(s => s.tid === -1);
+            const careerStatsArray = hasPreAggregated
+              ? filteredStats.filter(s => s.tid === -1)
+              : filteredStats.filter(s => s.tid !== -1);
+
+            const careerStats = careerStatsArray.length > 0 ? careerStatsArray.reduce((acc, stat) => ({
+              gp: (acc.gp || 0) + (stat.gp || 0),
+              gMin: (acc.gMin || 0) + (stat.gMin || 0),
+              gW: (acc.gW || 0) + (stat.gW || 0),
+              gL: (acc.gL || 0) + (stat.gL || 0),
+              gOTL: (acc.gOTL || 0) + (stat.gOTL || 0),
+              ga: (acc.ga || 0) + (stat.ga || 0),
+              sa: (acc.sa || 0) + (stat.sa || 0),
+              sv: (acc.sv || 0) + (stat.sv || 0),
+              so: (acc.so || 0) + (stat.so || 0),
+              gps: ((acc as any).gps || 0) + ((stat as any).gps || 0),
+            }), { gp: 0, gMin: 0, gW: 0, gL: 0, gOTL: 0, ga: 0, sa: 0, sv: 0, so: 0, gps: 0 }) : null;
+
+            // Peak stats (for retired players)
+            const isRetired = player.tid === -2 || player.tid === -3 || (player.retiredYear && player.retiredYear > 0);
+            const allRegularSeasonStats = player.stats.filter(s => !s.playoffs && s.gp && s.gp > 0);
+            const lastPlayedSeason = allRegularSeasonStats.length > 0
+              ? Math.max(...allRegularSeasonStats.map(s => s.season))
+              : 0;
+            const isViewingRetiredSeason = isRetired && season && season > lastPlayedSeason;
+
+            let peakStats = null;
+            if (isViewingRetiredSeason && player.ratings) {
+              const ratingsWithOvr = player.ratings.filter(r => r.ovr != null && r.ovr > 0);
+              if (ratingsWithOvr.length > 0) {
+                const peakRating = ratingsWithOvr.reduce((max, r) => (r.ovr ?? 0) > (max.ovr ?? 0) ? r : max);
+                const peakSeason = peakRating.season;
+
+                let peakSeasonStats = filteredStats.find(s => s.season === peakSeason && s.tid === -1);
+                if (!peakSeasonStats) {
+                  const peakSeasonStatsArray = filteredStats.filter(s => s.season === peakSeason && s.tid !== -1);
+                  if (peakSeasonStatsArray.length > 0) {
+                    peakSeasonStats = peakSeasonStatsArray.reduce((acc, stat) => ({
+                      ...acc,
+                      season: stat.season,
+                      tid: -1,
+                      gp: (acc.gp || 0) + (stat.gp || 0),
+                      gMin: (acc.gMin || 0) + (stat.gMin || 0),
+                      gW: (acc.gW || 0) + (stat.gW || 0),
+                      gL: (acc.gL || 0) + (stat.gL || 0),
+                      gOTL: (acc.gOTL || 0) + (stat.gOTL || 0),
+                      ga: (acc.ga || 0) + (stat.ga || 0),
+                      sa: (acc.sa || 0) + (stat.sa || 0),
+                      sv: (acc.sv || 0) + (stat.sv || 0),
+                      so: (acc.so || 0) + (stat.so || 0),
+                      gps: ((acc as any).gps || 0) + ((stat as any).gps || 0),
+                    }), { season: peakSeason, tid: -1, gp: 0, gMin: 0, gW: 0, gL: 0, gOTL: 0, ga: 0, sa: 0, sv: 0, so: 0, gps: 0 });
+                  }
+                }
+                if (peakSeasonStats && peakSeasonStats.gp && peakSeasonStats.gp > 0) {
+                  peakStats = peakSeasonStats;
+                }
+              }
+            }
+
+            // Helper to format GAA (Goals Against Average)
+            const formatGAA = (ga: number, gMin: number) => {
+              if (gMin === 0) return '—';
+              return ((ga * 60) / gMin).toFixed(2);
+            };
+
+            // Helper to format Record (W-L-OTL)
+            const formatRecord = (w: number, l: number, otl: number) => {
+              if (w === 0 && l === 0 && otl === 0) return '—';
+              return otl > 0 ? `${w}-${l}-${otl}` : `${w}-${l}`;
+            };
+
+            // Build display rows
+            const rows = [];
+            if (seasonStats && seasonStats.gp && seasonStats.gp > 0) {
+              rows.push({
+                label: `${seasonStats.season}`,
+                gp: seasonStats.gp || 0,
+                rec: formatRecord(seasonStats.gW || 0, seasonStats.gL || 0, seasonStats.gOTL || 0),
+                so: seasonStats.so || 0,
+                gaa: formatGAA(seasonStats.ga || 0, seasonStats.gMin || 0),
+                svPct: formatSVPct(seasonStats.sv || 0, seasonStats.sa || 0),
+                gps: ((seasonStats as any).gps || 0),
+              });
+            }
+            if (peakStats && peakStats.gp && peakStats.gp > 0) {
+              rows.push({
+                label: `Peak (${peakStats.season})`,
+                gp: peakStats.gp || 0,
+                rec: formatRecord(peakStats.gW || 0, peakStats.gL || 0, peakStats.gOTL || 0),
+                so: peakStats.so || 0,
+                gaa: formatGAA(peakStats.ga || 0, peakStats.gMin || 0),
+                svPct: formatSVPct(peakStats.sv || 0, peakStats.sa || 0),
+                gps: ((peakStats as any).gps || 0),
+              });
+            }
+            if (careerStats && careerStats.gp && careerStats.gp > 0) {
+              rows.push({
+                label: 'Career',
+                gp: careerStats.gp || 0,
+                rec: formatRecord(careerStats.gW || 0, careerStats.gL || 0, careerStats.gOTL || 0),
+                so: careerStats.so || 0,
+                gaa: formatGAA(careerStats.ga || 0, careerStats.gMin || 0),
+                svPct: formatSVPct(careerStats.sv || 0, careerStats.sa || 0),
+                gps: ((careerStats as any).gps || 0),
+              });
+            }
+
+            if (rows.length === 0) return null;
+
+            const seasonRow = rows.find(r => r.label === `${season}`);
+            const peakRow = rows.find(r => r.label.startsWith('Peak'));
+            const careerRow = rows.find(r => r.label === 'Career');
+
+            return (
+              <div className="mt-6">
+                <h3 className="font-semibold mb-2">Career Stats</h3>
+                <table className="text-xs w-full" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+                  <thead>
+                    <tr>
+                      <th className="text-left px-2 py-1 font-semibold">Summary</th>
+                      <th className="text-right px-0.5 py-0.5 font-semibold">GP</th>
+                      <th className="text-right px-0.5 py-0.5 font-semibold">Rec</th>
+                      <th className="text-right pl-0.5 pr-2 py-0.5 font-semibold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>SO</th>
+                      <th className="text-right pl-0.5 pr-0.5 py-0.5 font-semibold">GAA</th>
+                      <th className="text-right px-0.5 py-0.5 font-semibold">SV%</th>
+                      <th className="text-right px-0.5 py-0.5 font-semibold">GPS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {seasonRow && (
+                      <tr>
+                        <td className="px-0.5 py-0.5 font-medium">{seasonRow.label}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.gp.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.rec}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.so}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{seasonRow.gaa}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.svPct}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.gps.toFixed(1)}</td>
+                      </tr>
+                    )}
+                    {peakRow && (
+                      <tr>
+                        <td className="px-0.5 py-0.5 font-medium">{peakRow.label}</td>
+                        <td className="text-right px-2 py-1">{peakRow.gp.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1">{peakRow.rec}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.so}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{peakRow.gaa}</td>
+                        <td className="text-right px-2 py-1">{peakRow.svPct}</td>
+                        <td className="text-right px-2 py-1">{peakRow.gps.toFixed(1)}</td>
+                      </tr>
+                    )}
+                    {careerRow && (
+                      <tr>
+                        <td className="px-0.5 py-0.5 font-medium">{careerRow.label}</td>
+                        <td className="text-right px-2 py-1">{careerRow.gp.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1">{careerRow.rec}</td>
+                        <td className="text-right px-2 pr-4 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.so}</td>
+                        <td className="text-right pl-4 pr-2 py-1">{careerRow.gaa}</td>
+                        <td className="text-right px-2 py-1">{careerRow.svPct}</td>
+                        <td className="text-right px-2 py-1">{careerRow.gps.toFixed(1)}</td>
                       </tr>
                     )}
                   </tbody>
@@ -1019,7 +3169,10 @@ export function PlayerPageModal({
             const seasonRating = player.ratings.find(r => r.season === season);
             const prevSeasonRating = player.ratings.find(r => r.season === season - 1);
 
-            if (!seasonRating) return null;
+            if (!seasonRating) {
+              // Return invisible placeholder to maintain layout when ratings are not available
+              return <div className="w-full sm:w-[400px]" aria-hidden="true" />;
+            }
 
             const getRatingChange = (current?: number, previous?: number) => {
               if (current == null || previous == null) return null;
@@ -2476,6 +4629,7 @@ export function PlayerPageModal({
                           <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>INT</th>
                           <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Y/A</th>
                           <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Sk</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>AV</th>
                         </>
                       )}
 
@@ -2491,6 +4645,7 @@ export function PlayerPageModal({
                           <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Rec TD</th>
                           <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Y/R</th>
                           <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Fmb</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>AV</th>
                         </>
                       )}
 
@@ -2506,6 +4661,7 @@ export function PlayerPageModal({
                           <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>FF</th>
                           <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>FR</th>
                           <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>TD</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>AV</th>
                         </>
                       )}
 
@@ -2520,6 +4676,7 @@ export function PlayerPageModal({
                           <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Punt Avg</th>
                           <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Punt Lng</th>
                           <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Blk</th>
+                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>AV</th>
                         </>
                       )}
                     </tr>
@@ -2589,6 +4746,7 @@ export function PlayerPageModal({
                                   {(stat as any).pss > 0 ? ((stat as any).pssYds / (stat as any).pss).toFixed(1) : '-'}
                                 </td>
                                 <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).sk ?? (stat as any).pssSk ?? (stat as any).qbRSk ?? '-'}</td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).av != null ? Math.round((stat as any).av) : '-'}</td>
                               </>
                             )}
 
@@ -2608,6 +4766,7 @@ export function PlayerPageModal({
                                   {(stat as any).rec > 0 ? ((stat as any).recYds / (stat as any).rec).toFixed(1) : '-'}
                                 </td>
                                 <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).fmb ?? '-'}</td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).av != null ? Math.round((stat as any).av) : '-'}</td>
                               </>
                             )}
 
@@ -2629,6 +4788,7 @@ export function PlayerPageModal({
                                 <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
                                   {((stat as any).defIntTD ?? 0) + ((stat as any).defFmbTD ?? 0) || '-'}
                                 </td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).av != null ? Math.round((stat as any).av) : '-'}</td>
                               </>
                             )}
 
@@ -2661,6 +4821,7 @@ export function PlayerPageModal({
                                 </td>
                                 <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).pntLng ?? '-'}</td>
                                 <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).pntBlk ?? '-'}</td>
+                                <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(stat as any).av != null ? Math.round((stat as any).av) : '-'}</td>
                               </>
                             )}
                           </tr>
@@ -3269,7 +5430,7 @@ export function PlayerPageModal({
                           <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).stre ?? '-'}</td>
                           <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).spd ?? '-'}</td>
                           <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).endu ?? '-'}</td>
-                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).vision ?? '-'}</td>
+                          <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).thv ?? '-'}</td>
                           <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).thp ?? '-'}</td>
                           <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).tha ?? '-'}</td>
                           <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{(rating as any).bsc ?? '-'}</td>

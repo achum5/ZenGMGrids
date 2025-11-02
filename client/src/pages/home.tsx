@@ -851,14 +851,15 @@ export default function Home() {
         const cleanName = leagueName || extractedName;
 
         // MOBILE FIX: Use lightweight metadata-only save for large files on mobile
+        let savedLeagueId: string;
         if (isMobile && isHugeFile && data.idbName) {
           const { saveLeagueMetadata } = await import('@/lib/league-storage');
-          const seasons = data.leagueYears ? { 
-            min: data.leagueYears.minSeason, 
-            max: data.leagueYears.maxSeason 
+          const seasons = data.leagueYears ? {
+            min: data.leagueYears.minSeason,
+            max: data.leagueYears.maxSeason
           } : undefined;
-          
-          await saveLeagueMetadata(
+
+          savedLeagueId = await saveLeagueMetadata(
             cleanName,
             data.sport,
             playerCount,
@@ -869,9 +870,12 @@ export default function Home() {
           );
         } else {
           // Normal save for desktop or smaller files
-          await saveLeague(cleanName, data, data.sport, fileSize);
+          savedLeagueId = await saveLeague(cleanName, data, data.sport, fileSize);
         }
-        
+
+        // Set the current league ID so year range saves work on first load
+        setCurrentLeagueId(savedLeagueId);
+
         toast({
           title: 'League saved',
           description: 'Your league has been saved and will be available the next time you visit.',

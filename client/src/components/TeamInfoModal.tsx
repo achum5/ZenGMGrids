@@ -334,6 +334,9 @@ const FOOTBALL_GROUP_STAT_COLUMNS: Record<string, Array<{ key: string; label: st
     { key: 'pntBlk', label: 'Blk', tooltip: 'Blocked Punts', format: (v) => v != null ? v.toFixed(0) : '-' },
     { key: 'av', label: 'AV', tooltip: 'Approximate Value', format: (v) => v != null ? v.toFixed(0) : '-' },
   ],
+  OL: [
+    { key: 'av', label: 'AV', tooltip: 'Approximate Value', format: (v) => v != null ? v.toFixed(0) : '-' },
+  ],
 };
 
 // Helper function to map football position to position group
@@ -342,7 +345,8 @@ function getFootballPositionGroup(position: string): string {
   if (['RB', 'WR', 'TE'].includes(position)) return 'Skill';
   if (['DL', 'LB', 'CB', 'S'].includes(position)) return 'Defense';
   if (['K', 'P'].includes(position)) return 'Kicker';
-  return 'Other'; // OL and other positions
+  if (['OL', 'C', 'G', 'T', 'OT', 'OG'].includes(position)) return 'OL';
+  return 'Other'; // Other positions
 }
 
 // Helper function to get stat columns for a football position group
@@ -439,6 +443,7 @@ export function TeamInfoModal({
     const groups: Record<string, PlayerInfo[]> = {
       QB: [],
       Skill: [],
+      OL: [],
       Defense: [],
       Kicker: [],
       Other: []
@@ -834,9 +839,6 @@ export function TeamInfoModal({
                   </div>
                 </li>
                 <li style={{ color: statTextColor }}>
-                  Team rating: {teamStats.teamRating}/100
-                </li>
-                <li style={{ color: statTextColor }}>
                   Average age: {teamStats.avgAge.toFixed(1)}
                 </li>
               </ul>
@@ -850,12 +852,13 @@ export function TeamInfoModal({
           {sport === 'football' && footballPlayerGroups ? (
             /* Football: Multiple tables grouped by position */
             <div className="space-y-6">
-              {(['QB', 'Skill', 'Defense', 'Kicker'] as const).map(groupName => {
+              {(['QB', 'Skill', 'OL', 'Defense', 'Kicker'] as const).map(groupName => {
                 const groupPlayers = footballPlayerGroups[groupName];
                 if (!groupPlayers || groupPlayers.length === 0) return null;
 
                 const groupStatColumns = getFootballGroupStatColumns(groupName);
                 const groupTitle = groupName === 'Skill' ? 'Skill Players (RB/WR/TE)' :
+                                  groupName === 'OL' ? 'Offensive Line' :
                                   groupName === 'Defense' ? 'Defense' :
                                   groupName === 'Kicker' ? 'Kicker/Punter' : 'Quarterbacks';
 
@@ -871,26 +874,27 @@ export function TeamInfoModal({
                     >
                       {groupTitle}
                     </h3>
-                    <table style={{ width: 'max-content', minWidth: '100%' }}>
-                      <thead
-                        className="sticky top-10 z-20"
-                        style={{
-                          backgroundColor: primaryColor,
-                          borderBottom: `2px solid ${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`,
-                        }}
-                      >
-                        <tr>
-                          <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Player</th>
-                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Position">Pos</th>
-                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Age">Age</th>
-                          <th className="text-right py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Overall Rating">Ovr</th>
-                          <th className="text-right py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Potential Rating">Pot</th>
-                          <th className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Games Played">GP</th>
-                          {groupStatColumns.map((col) => (
-                            <th key={col.key} className="text-center py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title={col.tooltip}>
-                              {col.label}
-                            </th>
-                          ))}
+                    <div style={groupName === 'OL' ? { display: 'flex', justifyContent: 'flex-start' } : {}}>
+                      <table style={groupName === 'OL' ? { width: 'auto' } : { width: 'max-content', minWidth: '100%' }}>
+                        <thead
+                          className="sticky top-10 z-20"
+                          style={{
+                            backgroundColor: primaryColor,
+                            borderBottom: `2px solid ${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`,
+                          }}
+                        >
+                          <tr>
+                            <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Player</th>
+                            <th className={`${groupName === 'OL' ? 'text-left' : 'text-center'} py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help`} style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Position">Pos</th>
+                            <th className={`${groupName === 'OL' ? 'text-left' : 'text-center'} py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help`} style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Age">Age</th>
+                            <th className={`${groupName === 'OL' ? 'text-left' : 'text-right'} py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help`} style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Overall Rating">Ovr</th>
+                            <th className={`${groupName === 'OL' ? 'text-left' : 'text-right'} py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help`} style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Potential Rating">Pot</th>
+                            <th className={`${groupName === 'OL' ? 'text-left' : 'text-center'} py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help`} style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title="Games Played">GP</th>
+                            {groupStatColumns.map((col) => (
+                              <th key={col.key} className={`${groupName === 'OL' ? 'text-left' : 'text-center'} py-3 px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap cursor-help`} style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }} title={col.tooltip}>
+                                {col.label}
+                              </th>
+                            ))}
                         </tr>
                       </thead>
                       <tbody>
@@ -909,13 +913,13 @@ export function TeamInfoModal({
                                 <span className="text-sm font-medium" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>{playerInfo.player.name}</span>
                               </div>
                             </td>
-                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.position || '-'}</td>
-                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.age || '-'}</td>
-                            <td className="text-right py-3 px-2 text-sm font-medium" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>{playerInfo.ovr || '-'}</td>
-                            <td className="text-right py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.pot || '-'}</td>
-                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.gamesPlayed}</td>
+                            <td className={`${groupName === 'OL' ? 'text-left' : 'text-center'} py-3 px-2 text-sm`} style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.position || '-'}</td>
+                            <td className={`${groupName === 'OL' ? 'text-left' : 'text-center'} py-3 px-2 text-sm`} style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.age || '-'}</td>
+                            <td className={`${groupName === 'OL' ? 'text-left' : 'text-right'} py-3 px-2 text-sm font-medium`} style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>{playerInfo.ovr || '-'}</td>
+                            <td className={`${groupName === 'OL' ? 'text-left' : 'text-right'} py-3 px-2 text-sm`} style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.pot || '-'}</td>
+                            <td className={`${groupName === 'OL' ? 'text-left' : 'text-center'} py-3 px-2 text-sm`} style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{playerInfo.gamesPlayed}</td>
                             {groupStatColumns.map((col) => (
-                              <td key={col.key} className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
+                              <td key={col.key} className={`${groupName === 'OL' ? 'text-left' : 'text-center'} py-3 px-2 text-sm`} style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>
                                 {col.format ? col.format(playerInfo.stats?.[col.key], playerInfo.stats, playerInfo.gamesPlayed, playerInfo.stats?.gs) : (playerInfo.stats?.[col.key] || '-')}
                               </td>
                             ))}
@@ -923,6 +927,7 @@ export function TeamInfoModal({
                         ))}
                       </tbody>
                     </table>
+                    </div>
                   </div>
                 );
               })}
