@@ -944,66 +944,66 @@ export function PlayerPageModal({
                   <thead>
                     <tr>
                       <th className="text-left pl-1 pr-2 py-0.5 font-semibold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Summary</th>
-                      <th className="text-right px-3 py-1">G</th>
-                      <th className="text-right px-3 py-1">MP</th>
-                      <th className="text-right px-3 py-1">PTS</th>
-                      <th className="text-right px-3 py-1">TRB</th>
-                      <th className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>AST</th>
-                      <th className="text-right px-3 py-1">FG%</th>
-                      <th className="text-right px-3 py-1">3P%</th>
-                      <th className="text-right px-3 py-1">FT%</th>
-                      <th className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>TS%</th>
-                      <th className="text-right px-3 py-1">PER</th>
-                      <th className="text-right px-3 py-1">WS</th>
+                      <th className="text-right px-2 py-1">G</th>
+                      <th className="text-right px-2 py-1">MP</th>
+                      <th className="text-right px-2 py-1">PTS</th>
+                      <th className="text-right px-2 py-1">TRB</th>
+                      <th className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>AST</th>
+                      <th className="text-right px-2 py-1">FG%</th>
+                      <th className="text-right px-2 py-1">3P%</th>
+                      <th className="text-right px-2 py-1">FT%</th>
+                      <th className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>TS%</th>
+                      <th className="text-right px-2 py-1">PER</th>
+                      <th className="text-right px-2 py-1">WS</th>
                     </tr>
                   </thead>
                   <tbody>
                     {seasonRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{season}</td>
-                        <td className="text-right px-3 py-1">{(seasonRow.g || 0).toLocaleString()}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.mp}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.pts}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.trb}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.ast}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.fgPct}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.tpPct}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.ftPct}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.tsPct}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.per}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.ws}</td>
+                        <td className="text-right px-2 py-1">{(seasonRow.g || 0).toLocaleString()}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.mp}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.pts}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.trb}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.ast}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.fgPct}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.tpPct}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.ftPct}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.tsPct}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.per}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.ws}</td>
                       </tr>
                     )}
                     {peakRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Peak</td>
-                        <td className="text-right px-3 py-1">{(peakRow.g || 0).toLocaleString()}</td>
-                        <td className="text-right px-3 py-1">{peakRow.mp}</td>
-                        <td className="text-right px-3 py-1">{peakRow.pts}</td>
-                        <td className="text-right px-3 py-1">{peakRow.trb}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.ast}</td>
-                        <td className="text-right px-3 py-1">{peakRow.fgPct}</td>
-                        <td className="text-right px-3 py-1">{peakRow.tpPct}</td>
-                        <td className="text-right px-3 py-1">{peakRow.ftPct}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.tsPct}</td>
-                        <td className="text-right px-3 py-1">{peakRow.per}</td>
-                        <td className="text-right px-3 py-1">{peakRow.ws}</td>
+                        <td className="text-right px-2 py-1">{(peakRow.g || 0).toLocaleString()}</td>
+                        <td className="text-right px-2 py-1">{peakRow.mp}</td>
+                        <td className="text-right px-2 py-1">{peakRow.pts}</td>
+                        <td className="text-right px-2 py-1">{peakRow.trb}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.ast}</td>
+                        <td className="text-right px-2 py-1">{peakRow.fgPct}</td>
+                        <td className="text-right px-2 py-1">{peakRow.tpPct}</td>
+                        <td className="text-right px-2 py-1">{peakRow.ftPct}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.tsPct}</td>
+                        <td className="text-right px-2 py-1">{peakRow.per}</td>
+                        <td className="text-right px-2 py-1">{peakRow.ws}</td>
                       </tr>
                     )}
                     {careerRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Career</td>
-                        <td className="text-right px-3 py-1">{careerRow.g.toLocaleString()}</td>
-                        <td className="text-right px-3 py-1">{careerRow.mp}</td>
-                        <td className="text-right px-3 py-1">{careerRow.pts}</td>
-                        <td className="text-right px-3 py-1">{careerRow.trb}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.ast}</td>
-                        <td className="text-right px-3 py-1">{careerRow.fgPct}</td>
-                        <td className="text-right px-3 py-1">{careerRow.tpPct}</td>
-                        <td className="text-right px-3 py-1">{careerRow.ftPct}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.tsPct}</td>
-                        <td className="text-right px-3 py-1">{careerRow.per}</td>
-                        <td className="text-right px-3 py-1">{careerRow.ws}</td>
+                        <td className="text-right px-2 py-1">{careerRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1">{careerRow.mp}</td>
+                        <td className="text-right px-2 py-1">{careerRow.pts}</td>
+                        <td className="text-right px-2 py-1">{careerRow.trb}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.ast}</td>
+                        <td className="text-right px-2 py-1">{careerRow.fgPct}</td>
+                        <td className="text-right px-2 py-1">{careerRow.tpPct}</td>
+                        <td className="text-right px-2 py-1">{careerRow.ftPct}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.tsPct}</td>
+                        <td className="text-right px-2 py-1">{careerRow.per}</td>
+                        <td className="text-right px-2 py-1">{careerRow.ws}</td>
                       </tr>
                     )}
                   </tbody>
@@ -1197,9 +1197,9 @@ export function PlayerPageModal({
                   <thead>
                     <tr>
                       <th className="text-left pl-1 pr-2 py-0.5 font-semibold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Summary</th>
-                      <th className="text-right px-3 py-1">G</th>
-                      <th className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>AV</th>
-                      <th className="text-right px-3 py-1">QBRec</th>
+                      <th className="text-right px-2 py-1">G</th>
+                      <th className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>AV</th>
+                      <th className="text-right px-2 py-1">QBRec</th>
                       <th className="text-right px-2 py-1">Pct</th>
                       <th className="text-right px-2 py-1">Yds</th>
                       <th className="text-right px-2 py-1">Y/A</th>
@@ -1211,9 +1211,9 @@ export function PlayerPageModal({
                     {seasonRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{season}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.g.toLocaleString()}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.av}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.qbRec}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.av}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.qbRec}</td>
                         <td className="text-right px-2 py-1">{seasonRow.pct}</td>
                         <td className="text-right px-2 py-1">{seasonRow.yds}</td>
                         <td className="text-right px-2 py-1">{seasonRow.ypa}</td>
@@ -1224,9 +1224,9 @@ export function PlayerPageModal({
                     {peakRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Peak</td>
-                        <td className="text-right px-3 py-1">{peakRow.g.toLocaleString()}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.av}</td>
-                        <td className="text-right px-3 py-1">{peakRow.qbRec}</td>
+                        <td className="text-right px-2 py-1">{peakRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.av}</td>
+                        <td className="text-right px-2 py-1">{peakRow.qbRec}</td>
                         <td className="text-right px-2 py-1">{peakRow.pct}</td>
                         <td className="text-right px-2 py-1">{peakRow.yds}</td>
                         <td className="text-right px-2 py-1">{peakRow.ypa}</td>
@@ -1237,9 +1237,9 @@ export function PlayerPageModal({
                     {careerRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Career</td>
-                        <td className="text-right px-3 py-1">{careerRow.g.toLocaleString()}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.av}</td>
-                        <td className="text-right px-3 py-1">{careerRow.qbRec}</td>
+                        <td className="text-right px-2 py-1">{careerRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.av}</td>
+                        <td className="text-right px-2 py-1">{careerRow.qbRec}</td>
                         <td className="text-right px-2 py-1">{careerRow.pct}</td>
                         <td className="text-right px-2 py-1">{careerRow.yds}</td>
                         <td className="text-right px-2 py-1">{careerRow.ypa}</td>
@@ -1375,9 +1375,9 @@ export function PlayerPageModal({
                   <thead>
                     <tr>
                       <th className="text-left pl-1 pr-2 py-0.5 font-semibold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Summary</th>
-                      <th className="text-right px-3 py-1">G</th>
-                      <th className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>AV</th>
-                      <th className="text-right px-3 py-1">Rush</th>
+                      <th className="text-right px-2 py-1">G</th>
+                      <th className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>AV</th>
+                      <th className="text-right px-2 py-1">Rush</th>
                       <th className="text-right px-2 py-1">Yds</th>
                       <th className="text-right px-2 py-1">Y/A</th>
                       <th className="text-right px-2 py-1">TD</th>
@@ -1387,9 +1387,9 @@ export function PlayerPageModal({
                     {seasonRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{season}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.g.toLocaleString()}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.av}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.rush}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.av}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.rush}</td>
                         <td className="text-right px-2 py-1">{seasonRow.yds}</td>
                         <td className="text-right px-2 py-1">{seasonRow.ypa}</td>
                         <td className="text-right px-2 py-1">{seasonRow.td}</td>
@@ -1398,9 +1398,9 @@ export function PlayerPageModal({
                     {peakRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Peak</td>
-                        <td className="text-right px-3 py-1">{peakRow.g.toLocaleString()}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.av}</td>
-                        <td className="text-right px-3 py-1">{peakRow.rush}</td>
+                        <td className="text-right px-2 py-1">{peakRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.av}</td>
+                        <td className="text-right px-2 py-1">{peakRow.rush}</td>
                         <td className="text-right px-2 py-1">{peakRow.yds}</td>
                         <td className="text-right px-2 py-1">{peakRow.ypa}</td>
                         <td className="text-right px-2 py-1">{peakRow.td}</td>
@@ -1409,9 +1409,9 @@ export function PlayerPageModal({
                     {careerRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Career</td>
-                        <td className="text-right px-3 py-1">{careerRow.g.toLocaleString()}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.av}</td>
-                        <td className="text-right px-3 py-1">{careerRow.rush}</td>
+                        <td className="text-right px-2 py-1">{careerRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.av}</td>
+                        <td className="text-right px-2 py-1">{careerRow.rush}</td>
                         <td className="text-right px-2 py-1">{careerRow.yds}</td>
                         <td className="text-right px-2 py-1">{careerRow.ypa}</td>
                         <td className="text-right px-2 py-1">{careerRow.td}</td>
@@ -1545,9 +1545,9 @@ export function PlayerPageModal({
                   <thead>
                     <tr>
                       <th className="text-left pl-1 pr-2 py-0.5 font-semibold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Summary</th>
-                      <th className="text-right px-3 py-1">G</th>
-                      <th className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>AV</th>
-                      <th className="text-right px-3 py-1">Rec</th>
+                      <th className="text-right px-2 py-1">G</th>
+                      <th className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>AV</th>
+                      <th className="text-right px-2 py-1">Rec</th>
                       <th className="text-right px-2 py-1">Yds</th>
                       <th className="text-right px-2 py-1">Y/R</th>
                       <th className="text-right px-2 py-1">TD</th>
@@ -1557,9 +1557,9 @@ export function PlayerPageModal({
                     {seasonRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{season}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.g.toLocaleString()}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.av}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.rec}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.av}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.rec}</td>
                         <td className="text-right px-2 py-1">{seasonRow.yds}</td>
                         <td className="text-right px-2 py-1">{seasonRow.ypr}</td>
                         <td className="text-right px-2 py-1">{seasonRow.td}</td>
@@ -1568,9 +1568,9 @@ export function PlayerPageModal({
                     {peakRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Peak</td>
-                        <td className="text-right px-3 py-1">{peakRow.g.toLocaleString()}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.av}</td>
-                        <td className="text-right px-3 py-1">{peakRow.rec}</td>
+                        <td className="text-right px-2 py-1">{peakRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.av}</td>
+                        <td className="text-right px-2 py-1">{peakRow.rec}</td>
                         <td className="text-right px-2 py-1">{peakRow.yds}</td>
                         <td className="text-right px-2 py-1">{peakRow.ypr}</td>
                         <td className="text-right px-2 py-1">{peakRow.td}</td>
@@ -1579,9 +1579,9 @@ export function PlayerPageModal({
                     {careerRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Career</td>
-                        <td className="text-right px-3 py-1">{careerRow.g.toLocaleString()}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.av}</td>
-                        <td className="text-right px-3 py-1">{careerRow.rec}</td>
+                        <td className="text-right px-2 py-1">{careerRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.av}</td>
+                        <td className="text-right px-2 py-1">{careerRow.rec}</td>
                         <td className="text-right px-2 py-1">{careerRow.yds}</td>
                         <td className="text-right px-2 py-1">{careerRow.ypr}</td>
                         <td className="text-right px-2 py-1">{careerRow.td}</td>
@@ -1691,30 +1691,30 @@ export function PlayerPageModal({
                   <thead>
                     <tr>
                       <th className="text-left pl-1 pr-2 py-0.5 font-semibold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Summary</th>
-                      <th className="text-right px-3 py-1">G</th>
-                      <th className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>AV</th>
+                      <th className="text-right px-2 py-1">G</th>
+                      <th className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>AV</th>
                     </tr>
                   </thead>
                   <tbody>
                     {seasonRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{season}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.g.toLocaleString()}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.av}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.av}</td>
                       </tr>
                     )}
                     {peakRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Peak</td>
-                        <td className="text-right px-3 py-1">{peakRow.g.toLocaleString()}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.av}</td>
+                        <td className="text-right px-2 py-1">{peakRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.av}</td>
                       </tr>
                     )}
                     {careerRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Career</td>
-                        <td className="text-right px-3 py-1">{careerRow.g.toLocaleString()}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.av}</td>
+                        <td className="text-right px-2 py-1">{careerRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.av}</td>
                       </tr>
                     )}
                   </tbody>
@@ -1850,9 +1850,9 @@ export function PlayerPageModal({
                   <thead>
                     <tr>
                       <th className="text-left pl-1 pr-2 py-0.5 font-semibold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Summary</th>
-                      <th className="text-right px-3 py-1">G</th>
-                      <th className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>AV</th>
-                      <th className="text-right px-3 py-1">Tck</th>
+                      <th className="text-right px-2 py-1">G</th>
+                      <th className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>AV</th>
+                      <th className="text-right px-2 py-1">Tck</th>
                       <th className="text-right px-2 py-1">Sk</th>
                       <th className="text-right px-2 py-1">FR</th>
                       <th className="text-right px-2 py-1">Int</th>
@@ -1862,9 +1862,9 @@ export function PlayerPageModal({
                     {seasonRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{season}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.g.toLocaleString()}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.av}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.tck}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.av}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.tck}</td>
                         <td className="text-right px-2 py-1">{seasonRow.sk}</td>
                         <td className="text-right px-2 py-1">{seasonRow.fr}</td>
                         <td className="text-right px-2 py-1">{seasonRow.int}</td>
@@ -1873,9 +1873,9 @@ export function PlayerPageModal({
                     {peakRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Peak</td>
-                        <td className="text-right px-3 py-1">{peakRow.g.toLocaleString()}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.av}</td>
-                        <td className="text-right px-3 py-1">{peakRow.tck}</td>
+                        <td className="text-right px-2 py-1">{peakRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.av}</td>
+                        <td className="text-right px-2 py-1">{peakRow.tck}</td>
                         <td className="text-right px-2 py-1">{peakRow.sk}</td>
                         <td className="text-right px-2 py-1">{peakRow.fr}</td>
                         <td className="text-right px-2 py-1">{peakRow.int}</td>
@@ -1884,9 +1884,9 @@ export function PlayerPageModal({
                     {careerRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Career</td>
-                        <td className="text-right px-3 py-1">{careerRow.g.toLocaleString()}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.av}</td>
-                        <td className="text-right px-3 py-1">{careerRow.tck}</td>
+                        <td className="text-right px-2 py-1">{careerRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.av}</td>
+                        <td className="text-right px-2 py-1">{careerRow.tck}</td>
                         <td className="text-right px-2 py-1">{careerRow.sk}</td>
                         <td className="text-right px-2 py-1">{careerRow.fr}</td>
                         <td className="text-right px-2 py-1">{careerRow.int}</td>
@@ -2047,9 +2047,9 @@ export function PlayerPageModal({
                   <thead>
                     <tr>
                       <th className="text-left pl-1 pr-2 py-0.5 font-semibold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Summary</th>
-                      <th className="text-right px-3 py-1">G</th>
-                      <th className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>AV</th>
-                      <th className="text-right px-3 py-1">FGM</th>
+                      <th className="text-right px-2 py-1">G</th>
+                      <th className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>AV</th>
+                      <th className="text-right px-2 py-1">FGM</th>
                       <th className="text-right px-2 py-1">FGA</th>
                       <th className="text-right px-2 py-1">XPM</th>
                       <th className="text-right px-2 py-1">XPA</th>
@@ -2059,9 +2059,9 @@ export function PlayerPageModal({
                     {seasonRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{season}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.g.toLocaleString()}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.av}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.fgm}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.av}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.fgm}</td>
                         <td className="text-right px-2 py-1">{seasonRow.fga}</td>
                         <td className="text-right px-2 py-1">{seasonRow.xpm}</td>
                         <td className="text-right px-2 py-1">{seasonRow.xpa}</td>
@@ -2070,9 +2070,9 @@ export function PlayerPageModal({
                     {peakRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Peak</td>
-                        <td className="text-right px-3 py-1">{peakRow.g.toLocaleString()}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.av}</td>
-                        <td className="text-right px-3 py-1">{peakRow.fgm}</td>
+                        <td className="text-right px-2 py-1">{peakRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.av}</td>
+                        <td className="text-right px-2 py-1">{peakRow.fgm}</td>
                         <td className="text-right px-2 py-1">{peakRow.fga}</td>
                         <td className="text-right px-2 py-1">{peakRow.xpm}</td>
                         <td className="text-right px-2 py-1">{peakRow.xpa}</td>
@@ -2081,9 +2081,9 @@ export function PlayerPageModal({
                     {careerRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Career</td>
-                        <td className="text-right px-3 py-1">{careerRow.g.toLocaleString()}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.av}</td>
-                        <td className="text-right px-3 py-1">{careerRow.fgm}</td>
+                        <td className="text-right px-2 py-1">{careerRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.av}</td>
+                        <td className="text-right px-2 py-1">{careerRow.fgm}</td>
                         <td className="text-right px-2 py-1">{careerRow.fga}</td>
                         <td className="text-right px-2 py-1">{careerRow.xpm}</td>
                         <td className="text-right px-2 py-1">{careerRow.xpa}</td>
@@ -2211,9 +2211,9 @@ export function PlayerPageModal({
                   <thead>
                     <tr>
                       <th className="text-left pl-1 pr-2 py-0.5 font-semibold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Summary</th>
-                      <th className="text-right px-3 py-1">G</th>
-                      <th className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>AV</th>
-                      <th className="text-right px-3 py-1">Pnt</th>
+                      <th className="text-right px-2 py-1">G</th>
+                      <th className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>AV</th>
+                      <th className="text-right px-2 py-1">Pnt</th>
                       <th className="text-right px-2 py-1">Yds</th>
                       <th className="text-right px-2 py-1">Y/A</th>
                     </tr>
@@ -2222,9 +2222,9 @@ export function PlayerPageModal({
                     {seasonRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{season}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.g.toLocaleString()}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.av}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.pnt}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.av}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.pnt}</td>
                         <td className="text-right px-2 py-1">{seasonRow.yds}</td>
                         <td className="text-right px-2 py-1">{seasonRow.ypa}</td>
                       </tr>
@@ -2232,9 +2232,9 @@ export function PlayerPageModal({
                     {peakRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Peak</td>
-                        <td className="text-right px-3 py-1">{peakRow.g.toLocaleString()}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.av}</td>
-                        <td className="text-right px-3 py-1">{peakRow.pnt}</td>
+                        <td className="text-right px-2 py-1">{peakRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.av}</td>
+                        <td className="text-right px-2 py-1">{peakRow.pnt}</td>
                         <td className="text-right px-2 py-1">{peakRow.yds}</td>
                         <td className="text-right px-2 py-1">{peakRow.ypa}</td>
                       </tr>
@@ -2242,9 +2242,9 @@ export function PlayerPageModal({
                     {careerRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Career</td>
-                        <td className="text-right px-3 py-1">{careerRow.g.toLocaleString()}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.av}</td>
-                        <td className="text-right px-3 py-1">{careerRow.pnt}</td>
+                        <td className="text-right px-2 py-1">{careerRow.g.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.av}</td>
+                        <td className="text-right px-2 py-1">{careerRow.pnt}</td>
                         <td className="text-right px-2 py-1">{careerRow.yds}</td>
                         <td className="text-right px-2 py-1">{careerRow.ypa}</td>
                       </tr>
@@ -2466,11 +2466,11 @@ export function PlayerPageModal({
                         <td className="text-right px-2 py-1">{seasonRow.pa.toLocaleString()}</td>
                         <td className="text-right px-2 py-1">{seasonRow.h}</td>
                         <td className="text-right px-2 py-1">{seasonRow.hr}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.ba}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.r}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.ba}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.r}</td>
                         <td className="text-right px-2 py-1">{seasonRow.rbi}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.sb}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.obp}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.sb}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.obp}</td>
                         <td className="text-right px-2 py-1">{seasonRow.slg}</td>
                         <td className="text-right px-2 py-1">{seasonRow.ops}</td>
                       </tr>
@@ -2482,11 +2482,11 @@ export function PlayerPageModal({
                         <td className="text-right px-2 py-1">{peakRow.pa.toLocaleString()}</td>
                         <td className="text-right px-2 py-1">{peakRow.h}</td>
                         <td className="text-right px-2 py-1">{peakRow.hr}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.ba}</td>
-                        <td className="text-right px-3 py-1">{peakRow.r}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.ba}</td>
+                        <td className="text-right px-2 py-1">{peakRow.r}</td>
                         <td className="text-right px-2 py-1">{peakRow.rbi}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.sb}</td>
-                        <td className="text-right px-3 py-1">{peakRow.obp}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.sb}</td>
+                        <td className="text-right px-2 py-1">{peakRow.obp}</td>
                         <td className="text-right px-2 py-1">{peakRow.slg}</td>
                         <td className="text-right px-2 py-1">{peakRow.ops}</td>
                       </tr>
@@ -2498,11 +2498,11 @@ export function PlayerPageModal({
                         <td className="text-right px-2 py-1">{careerRow.pa.toLocaleString()}</td>
                         <td className="text-right px-2 py-1">{careerRow.h}</td>
                         <td className="text-right px-2 py-1">{careerRow.hr}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.ba}</td>
-                        <td className="text-right px-3 py-1">{careerRow.r}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.ba}</td>
+                        <td className="text-right px-2 py-1">{careerRow.r}</td>
                         <td className="text-right px-2 py-1">{careerRow.rbi}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.sb}</td>
-                        <td className="text-right px-3 py-1">{careerRow.obp}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.sb}</td>
+                        <td className="text-right px-2 py-1">{careerRow.obp}</td>
                         <td className="text-right px-2 py-1">{careerRow.slg}</td>
                         <td className="text-right px-2 py-1">{careerRow.ops}</td>
                       </tr>
@@ -2673,14 +2673,14 @@ export function PlayerPageModal({
                   <thead>
                     <tr>
                       <th className="text-left pl-1 pr-2 py-0.5 font-semibold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Summary</th>
-                      <th className="text-right px-3 py-1">WAR</th>
+                      <th className="text-right px-2 py-1">WAR</th>
                       <th className="text-right px-2 py-1">W</th>
                       <th className="text-right px-2 py-1">L</th>
-                      <th className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>ERA</th>
-                      <th className="text-right px-3 py-1">GP</th>
+                      <th className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>ERA</th>
+                      <th className="text-right px-2 py-1">GP</th>
                       <th className="text-right px-2 py-1">GS</th>
-                      <th className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>SV</th>
-                      <th className="text-right px-3 py-1">IP</th>
+                      <th className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>SV</th>
+                      <th className="text-right px-2 py-1">IP</th>
                       <th className="text-right px-2 py-1">SO</th>
                       <th className="text-right px-2 py-1">WHIP</th>
                     </tr>
@@ -2689,14 +2689,14 @@ export function PlayerPageModal({
                     {seasonRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{season}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.war}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.war}</td>
                         <td className="text-right px-2 py-1">{seasonRow.w}</td>
                         <td className="text-right px-2 py-1">{seasonRow.l}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.era}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.gp.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.era}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.gp.toLocaleString()}</td>
                         <td className="text-right px-2 py-1">{seasonRow.gs}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.sv}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.ip}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.sv}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.ip}</td>
                         <td className="text-right px-2 py-1">{seasonRow.so}</td>
                         <td className="text-right px-2 py-1">{seasonRow.whip}</td>
                       </tr>
@@ -2704,14 +2704,14 @@ export function PlayerPageModal({
                     {peakRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Peak</td>
-                        <td className="text-right px-3 py-1">{peakRow.war}</td>
+                        <td className="text-right px-2 py-1">{peakRow.war}</td>
                         <td className="text-right px-2 py-1">{peakRow.w}</td>
                         <td className="text-right px-2 py-1">{peakRow.l}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.era}</td>
-                        <td className="text-right px-3 py-1">{peakRow.gp.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.era}</td>
+                        <td className="text-right px-2 py-1">{peakRow.gp.toLocaleString()}</td>
                         <td className="text-right px-2 py-1">{peakRow.gs}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.sv}</td>
-                        <td className="text-right px-3 py-1">{peakRow.ip}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.sv}</td>
+                        <td className="text-right px-2 py-1">{peakRow.ip}</td>
                         <td className="text-right px-2 py-1">{peakRow.so}</td>
                         <td className="text-right px-2 py-1">{peakRow.whip}</td>
                       </tr>
@@ -2719,14 +2719,14 @@ export function PlayerPageModal({
                     {careerRow && (
                       <tr>
                         <td className="text-left pl-1 pr-2 py-0.5 font-bold border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>Career</td>
-                        <td className="text-right px-3 py-1">{careerRow.war}</td>
+                        <td className="text-right px-2 py-1">{careerRow.war}</td>
                         <td className="text-right px-2 py-1">{careerRow.w}</td>
                         <td className="text-right px-2 py-1">{careerRow.l}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.era}</td>
-                        <td className="text-right px-3 py-1">{careerRow.gp.toLocaleString()}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.era}</td>
+                        <td className="text-right px-2 py-1">{careerRow.gp.toLocaleString()}</td>
                         <td className="text-right px-2 py-1">{careerRow.gs}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.sv}</td>
-                        <td className="text-right px-3 py-1">{careerRow.ip}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.sv}</td>
+                        <td className="text-right px-2 py-1">{careerRow.ip}</td>
                         <td className="text-right px-2 py-1">{careerRow.so}</td>
                         <td className="text-right px-2 py-1">{careerRow.whip}</td>
                       </tr>
@@ -2914,8 +2914,8 @@ export function PlayerPageModal({
                         <td className="text-right px-2 py-1">{seasonRow.g}</td>
                         <td className="text-right px-2 py-1">{seasonRow.a}</td>
                         <td className="text-right px-2 py-1">{seasonRow.pts}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.pm}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.ops.toFixed(1)}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.pm}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.ops.toFixed(1)}</td>
                         <td className="text-right px-2 py-1">{seasonRow.dps.toFixed(1)}</td>
                         <td className="text-right px-2 py-1">{seasonRow.ps.toFixed(1)}</td>
                       </tr>
@@ -2927,8 +2927,8 @@ export function PlayerPageModal({
                         <td className="text-right px-2 py-1">{peakRow.g}</td>
                         <td className="text-right px-2 py-1">{peakRow.a}</td>
                         <td className="text-right px-2 py-1">{peakRow.pts}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.pm}</td>
-                        <td className="text-right px-3 py-1">{peakRow.ops.toFixed(1)}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.pm}</td>
+                        <td className="text-right px-2 py-1">{peakRow.ops.toFixed(1)}</td>
                         <td className="text-right px-2 py-1">{peakRow.dps.toFixed(1)}</td>
                         <td className="text-right px-2 py-1">{peakRow.ps.toFixed(1)}</td>
                       </tr>
@@ -2940,8 +2940,8 @@ export function PlayerPageModal({
                         <td className="text-right px-2 py-1">{careerRow.g}</td>
                         <td className="text-right px-2 py-1">{careerRow.a}</td>
                         <td className="text-right px-2 py-1">{careerRow.pts}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.pm}</td>
-                        <td className="text-right px-3 py-1">{careerRow.ops.toFixed(1)}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.pm}</td>
+                        <td className="text-right px-2 py-1">{careerRow.ops.toFixed(1)}</td>
                         <td className="text-right px-2 py-1">{careerRow.dps.toFixed(1)}</td>
                         <td className="text-right px-2 py-1">{careerRow.ps.toFixed(1)}</td>
                       </tr>
@@ -3128,8 +3128,8 @@ export function PlayerPageModal({
                         <td className="px-0.5 py-0.5 font-medium">{seasonRow.label}</td>
                         <td className="text-right px-2 py-1">{seasonRow.gp.toLocaleString()}</td>
                         <td className="text-right px-2 py-1">{seasonRow.rec}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.so}</td>
-                        <td className="text-right px-3 py-1">{seasonRow.gaa}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.so}</td>
+                        <td className="text-right px-2 py-1">{seasonRow.gaa}</td>
                         <td className="text-right px-2 py-1">{seasonRow.svPct}</td>
                         <td className="text-right px-2 py-1">{seasonRow.gps.toFixed(1)}</td>
                       </tr>
@@ -3139,8 +3139,8 @@ export function PlayerPageModal({
                         <td className="px-0.5 py-0.5 font-medium">{peakRow.label}</td>
                         <td className="text-right px-2 py-1">{peakRow.gp.toLocaleString()}</td>
                         <td className="text-right px-2 py-1">{peakRow.rec}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.so}</td>
-                        <td className="text-right px-3 py-1">{peakRow.gaa}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.so}</td>
+                        <td className="text-right px-2 py-1">{peakRow.gaa}</td>
                         <td className="text-right px-2 py-1">{peakRow.svPct}</td>
                         <td className="text-right px-2 py-1">{peakRow.gps.toFixed(1)}</td>
                       </tr>
@@ -3150,8 +3150,8 @@ export function PlayerPageModal({
                         <td className="px-0.5 py-0.5 font-medium">{careerRow.label}</td>
                         <td className="text-right px-2 py-1">{careerRow.gp.toLocaleString()}</td>
                         <td className="text-right px-2 py-1">{careerRow.rec}</td>
-                        <td className="text-right px-3 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.so}</td>
-                        <td className="text-right px-3 py-1">{careerRow.gaa}</td>
+                        <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.so}</td>
+                        <td className="text-right px-2 py-1">{careerRow.gaa}</td>
                         <td className="text-right px-2 py-1">{careerRow.svPct}</td>
                         <td className="text-right px-2 py-1">{careerRow.gps.toFixed(1)}</td>
                       </tr>
