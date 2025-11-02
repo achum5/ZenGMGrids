@@ -3164,7 +3164,7 @@ export function PlayerPageModal({
           </div>
 
           {/* Right Side: Ratings */}
-          <div>
+          <div className="w-full sm:w-auto">
           {season && player.ratings && (() => {
             const seasonRating = player.ratings.find(r => r.season === season);
             const prevSeasonRating = player.ratings.find(r => r.season === season - 1);
