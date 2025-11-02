@@ -3232,7 +3232,7 @@ export function PlayerPageModal({
             );
 
             return (
-              <div className="p-[4px] mx-auto sm:ml-0 sm:mr-24 sm:p-2 sm:mt-[-14px] sm:mb-[-44px] font-['system-ui'] tabular-nums w-full sm:w-auto sm:max-w-[400px]">
+              <div className="px-3 py-1 sm:ml-0 sm:mr-24 sm:p-2 sm:mt-[-14px] sm:mb-[-44px] font-['system-ui'] tabular-nums w-full sm:w-auto sm:max-w-[400px]">
                 {/* Header Row: Overall and Potential */}
                 <div className="flex justify-between mb-1.5 sm:mb-3 gap-3 sm:gap-3">
                   <div className="font-semibold text-[clamp(16px,3.6vw,18px)]">
