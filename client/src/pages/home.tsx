@@ -121,6 +121,7 @@ export default function Home() {
   } | null>(null);
   const [loadingLeagueId, setLoadingLeagueId] = useState<string | null>(null);
   const [currentLeagueId, setCurrentLeagueId] = useState<string | null>(null); // Track currently loaded league ID
+  const [currentFingerprintId, setCurrentFingerprintId] = useState<string | null>(null); // Track league fingerprint ID for history
   const [savedYearRange, setSavedYearRange] = useState<[number, number] | null>(null); // Saved year range from loaded league
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [currentCellKey, setCurrentCellKey] = useState<string | null>(null);
@@ -567,6 +568,7 @@ export default function Home() {
       setCurrentFileName(storedLeague.name);
       setCurrentFileSize(storedLeague.fileSize);
       setCurrentLeagueId(storedLeague.id);
+      setCurrentFingerprintId(storedLeague.fingerprintId || null);
       setSavedYearRange(storedLeague.yearRange || null);
 
       // Check if this is a metadata-only save (large file on mobile)
@@ -852,6 +854,10 @@ export default function Home() {
 
         // MOBILE FIX: Use lightweight metadata-only save for large files on mobile
         let savedLeagueId: string;
+        let isUpdate = false;
+        let previousName: string | undefined;
+        let fingerprintId: string | undefined;
+
         if (isMobile && isHugeFile && data.idbName) {
           const { saveLeagueMetadata } = await import('@/lib/league-storage');
           const seasons = data.leagueYears ? {
@@ -868,17 +874,29 @@ export default function Home() {
             fileSize,
             seasons
           );
+          // Note: metadata-only saves don't support fingerprinting yet
         } else {
           // Normal save for desktop or smaller files
-          savedLeagueId = await saveLeague(cleanName, data, data.sport, fileSize);
+          const result = await saveLeague(cleanName, data, data.sport, fileSize);
+          savedLeagueId = result.id;
+          isUpdate = result.isUpdate;
+          previousName = result.previousName;
+
+          // Get the fingerprint ID from the saved league
+          const { getLeague } = await import('@/lib/league-storage');
+          const savedLeague = await getLeague(savedLeagueId);
+          fingerprintId = savedLeague?.fingerprintId;
         }
 
-        // Set the current league ID so year range saves work on first load
+        // Set the current league ID and fingerprint so they're available
         setCurrentLeagueId(savedLeagueId);
+        setCurrentFingerprintId(fingerprintId || null);
 
         toast({
-          title: 'League saved',
-          description: 'Your league has been saved and will be available the next time you visit.',
+          title: isUpdate ? 'League updated' : 'League saved',
+          description: isUpdate && previousName
+            ? `Detected as an update to "${previousName}". Your game history has been preserved.`
+            : 'Your league has been saved and will be available the next time you visit.',
         });
       } catch (error) {
         console.error('Error saving league:', error);
@@ -1623,6 +1641,7 @@ export default function Home() {
         onBackToModeSelect={handleBackToModeSelect}
         onGoHome={handleGoHome}
         leagueId={currentLeagueId}
+        leagueFingerprintId={currentFingerprintId}
         initialYearRange={savedYearRange}
       />
     );

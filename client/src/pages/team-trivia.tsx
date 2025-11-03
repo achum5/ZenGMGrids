@@ -87,6 +87,7 @@ interface TeamTriviaProps {
   onBackToModeSelect: () => void;
   onGoHome: () => void;
   leagueId: string | null;
+  leagueFingerprintId?: string | null;
   initialYearRange?: [number, number] | null;
 }
 
@@ -637,7 +638,7 @@ function calculateTeamStats(
   };
 }
 
-export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, leagueId, initialYearRange }: TeamTriviaProps) {
+export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, leagueId, leagueFingerprintId, initialYearRange }: TeamTriviaProps) {
   const { toast } = useToast();
   const [guess, setGuess] = useState('');
   const [roster, setRoster] = useState<RosterPlayer[]>([]);
@@ -3149,11 +3150,12 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
         sport: leagueData.sport || 'basketball',
         score,
         summaryData: scoreSummaryData,
+        leagueFingerprintId: leagueFingerprintId || undefined,
       });
       // Reload history after saving
       setGameHistory(loadGameHistory());
     }
-  }, [currentRound, scoreSummaryData, selectedTeam, selectedSeason, teamDisplayInfo, leagueData.sport, score]);
+  }, [currentRound, scoreSummaryData, selectedTeam, selectedSeason, teamDisplayInfo, leagueData.sport, score, leagueFingerprintId]);
 
     return (
       <div className="h-full flex flex-col bg-background overflow-hidden">

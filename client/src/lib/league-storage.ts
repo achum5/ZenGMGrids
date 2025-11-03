@@ -1,9 +1,11 @@
 import { openDB, type IDBPDatabase } from 'idb';
 import type { LeagueData } from '@/types/bbgm';
+import { generateLeagueFingerprint, type LeagueFingerprint, findMatchingLeague } from './league-fingerprint';
 
 const DB_NAME = 'ZenGMGridsLeagues';
-const DB_VERSION = 6;
+const DB_VERSION = 7; // Bumped for new fingerprints store
 const STORE_NAME = 'leagues';
+const FINGERPRINTS_STORE = 'fingerprints'; // Persistent fingerprints that survive league deletion
 
 export interface StoredLeague {
   id: string;
@@ -20,6 +22,14 @@ export interface StoredLeague {
   idbName?: string; // Name of the IndexedDB database storing the actual data (for metadata-only saves)
   starred?: boolean; // Flag for favorited/starred leagues
   yearRange?: [number, number]; // Year range setting for team trivia randomizer
+  fingerprintId?: string; // Stable fingerprint ID for league matching
+}
+
+export interface StoredFingerprint {
+  id: string; // The fingerprint ID
+  fingerprint: LeagueFingerprint;
+  createdAt: number;
+  lastSeenAt: number; // Last time a league with this fingerprint was uploaded
 }
 
 async function getDB(): Promise<IDBPDatabase> {
@@ -27,6 +37,9 @@ async function getDB(): Promise<IDBPDatabase> {
     upgrade(db) {
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(FINGERPRINTS_STORE)) {
+        db.createObjectStore(FINGERPRINTS_STORE, { keyPath: 'id' });
       }
     },
   });
@@ -37,16 +50,13 @@ export async function saveLeague(
   leagueData: LeagueData,
   sport: 'basketball' | 'football' | 'hockey' | 'baseball',
   fileSize?: number
-): Promise<string> {
+): Promise<{ id: string; isUpdate: boolean; previousName?: string }> {
   const db = await getDB();
-  
-  // Generate unique ID based on timestamp
-  const id = `league_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
+
   // Calculate metadata
   const numPlayers = leagueData.players?.length || 0;
   const numTeams = leagueData.teams?.length || 0;
-  
+
   // Find season range
   let seasons: { min: number; max: number } | undefined;
   if (leagueData.players && leagueData.players.length > 0) {
@@ -63,21 +73,108 @@ export async function saveLeague(
       seasons = { min: seasonArr[0], max: seasonArr[seasonArr.length - 1] };
     }
   }
-  
-  const storedLeague: StoredLeague = {
-    id,
-    name,
-    sport,
-    savedAt: Date.now(),
-    leagueData,
-    fileSize,
-    numPlayers,
-    numTeams,
-    seasons,
-  };
-  
-  await db.put(STORE_NAME, storedLeague);
-  return id;
+
+  // Generate fingerprint for this league
+  const newFingerprint = generateLeagueFingerprint(leagueData);
+
+  // Get all existing fingerprints
+  const allFingerprints = await db.getAll(FINGERPRINTS_STORE);
+  const fingerprintMap = new Map<string, LeagueFingerprint>(
+    allFingerprints.map(sf => [sf.id, sf.fingerprint])
+  );
+
+  // Check if this league matches an existing one
+  const matchingFingerprintId = findMatchingLeague(newFingerprint, fingerprintMap);
+
+  let id: string;
+  let isUpdate = false;
+  let previousName: string | undefined;
+
+  if (matchingFingerprintId) {
+    // Found a matching league! Check if it's currently saved
+    const existingLeagues = await db.getAll(STORE_NAME);
+    const existingLeague = existingLeagues.find(l => l.fingerprintId === matchingFingerprintId);
+
+    if (existingLeague) {
+      // Update the existing saved league
+      console.log(`[Storage] Detected league update: ${existingLeague.name} -> ${name}`);
+      id = existingLeague.id;
+      previousName = existingLeague.name;
+      isUpdate = true;
+
+      // Preserve starred status and year range
+      const storedLeague: StoredLeague = {
+        ...existingLeague,
+        name, // Update name
+        leagueData, // Update data
+        savedAt: Date.now(),
+        fileSize,
+        numPlayers,
+        numTeams,
+        seasons,
+        fingerprintId: matchingFingerprintId,
+      };
+
+      await db.put(STORE_NAME, storedLeague);
+    } else {
+      // Fingerprint exists but league was deleted - create new with same fingerprint
+      console.log(`[Storage] Re-uploading previously deleted league (fingerprint: ${matchingFingerprintId})`);
+      id = `league_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      isUpdate = true; // Mark as update since we're reconnecting to history
+
+      const storedLeague: StoredLeague = {
+        id,
+        name,
+        sport,
+        savedAt: Date.now(),
+        leagueData,
+        fileSize,
+        numPlayers,
+        numTeams,
+        seasons,
+        fingerprintId: matchingFingerprintId,
+      };
+
+      await db.put(STORE_NAME, storedLeague);
+    }
+
+    // Update fingerprint's lastSeenAt
+    const storedFingerprint = allFingerprints.find(sf => sf.id === matchingFingerprintId);
+    if (storedFingerprint) {
+      storedFingerprint.lastSeenAt = Date.now();
+      await db.put(FINGERPRINTS_STORE, storedFingerprint);
+    }
+  } else {
+    // New league - create new entry and store fingerprint
+    console.log(`[Storage] Saving new league with fingerprint: ${newFingerprint.id}`);
+    id = `league_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    const storedLeague: StoredLeague = {
+      id,
+      name,
+      sport,
+      savedAt: Date.now(),
+      leagueData,
+      fileSize,
+      numPlayers,
+      numTeams,
+      seasons,
+      fingerprintId: newFingerprint.id,
+    };
+
+    await db.put(STORE_NAME, storedLeague);
+
+    // Store the fingerprint (survives league deletion)
+    const storedFingerprint: StoredFingerprint = {
+      id: newFingerprint.id,
+      fingerprint: newFingerprint,
+      createdAt: Date.now(),
+      lastSeenAt: Date.now(),
+    };
+    await db.put(FINGERPRINTS_STORE, storedFingerprint);
+  }
+
+  return { id, isUpdate, previousName };
 }
 
 /**

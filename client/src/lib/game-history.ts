@@ -14,6 +14,7 @@ export interface HistoryEntry {
   sport: string;
   score: number;
   summaryData: ScoreSummaryData; // Full breakdown data
+  leagueFingerprintId?: string; // Stable league fingerprint ID for matching across uploads
 }
 
 /**
