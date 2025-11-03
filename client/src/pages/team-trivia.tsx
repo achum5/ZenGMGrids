@@ -6,7 +6,7 @@ import { Slider } from '@/components/ui/slider';
 import { PlayerFace } from '@/components/PlayerFace';
 import { PlayerFaceTile } from '@/components/PlayerFaceTile';
 import { useToast } from '@/lib/hooks/use-toast';
-import { Shuffle, Home as HomeIcon, ArrowLeft, ChevronDown, ArrowRight, Info, Settings, Save, HelpCircle } from 'lucide-react';
+import { Shuffle, Home as HomeIcon, ArrowLeft, ChevronDown, ArrowRight, Info, Settings, Save, HelpCircle, History } from 'lucide-react';
 import { updateYearRange } from '@/lib/league-storage';
 
 
@@ -53,6 +53,8 @@ import { CompactScoreCard } from '@/components/CompactScoreCard';
 import { TeamInfoModal } from '@/components/TeamInfoModal';
 import { ScoreSummaryModal, type ScoreSummaryData } from '@/components/ScoreSummaryModal';
 import { PlayerPageModal } from '@/components/PlayerPageModal';
+import { HistoryModal } from '@/components/HistoryModal';
+import { loadGameHistory, saveGameToHistory, type HistoryEntry } from '@/lib/game-history';
 import type { LeagueData, Player, Team } from '@/types/bbgm';
 
 // Type for ScoreCategory
@@ -670,6 +672,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
   const [isSavingYearRange, setIsSavingYearRange] = useState(false); // Loading state for saving year range
   const [lastSavedYearRange, setLastSavedYearRange] = useState<[number, number] | null>(null); // Track last saved year range
   const [showHelpModal, setShowHelpModal] = useState(false); // Help modal state
+  const [showHistoryModal, setShowHistoryModal] = useState(false); // History modal state
+  const [gameHistory, setGameHistory] = useState<HistoryEntry[]>([]); // Game history
 
   // Detailed game tracking for new summary modal
   const [detailedGameData, setDetailedGameData] = useState<{
@@ -2003,6 +2007,11 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     setScore(0); // Reset score for new game
   }, [allSeasons, allTeams, buildRoster, leagueData.players, leagueData.teamSeasons, toast, yearRange]);
 
+  // Load game history on mount
+  useEffect(() => {
+    setGameHistory(loadGameHistory());
+  }, []);
+
   // Initialize on mount - wait for yearRange to be set first
   useEffect(() => {
     if (yearRange !== null && !hasInitialized.current) {
@@ -3128,6 +3137,24 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     };
   }, [selectedTeam, selectedSeason, teamDisplayInfo, leagueData.sport, score, scoreBreakdown, detailedGameData]);
 
+  // Save game to history when it completes
+  useEffect(() => {
+    if (currentRound === 'complete' && scoreSummaryData && selectedTeam && selectedSeason) {
+      saveGameToHistory({
+        season: selectedSeason,
+        teamName: teamDisplayInfo.name,
+        teamAbbrev: teamDisplayInfo.abbrev,
+        teamLogo: teamDisplayInfo.logoUrl,
+        teamColors: teamDisplayInfo.colors,
+        sport: leagueData.sport || 'basketball',
+        score,
+        summaryData: scoreSummaryData,
+      });
+      // Reload history after saving
+      setGameHistory(loadGameHistory());
+    }
+  }, [currentRound, scoreSummaryData, selectedTeam, selectedSeason, teamDisplayInfo, leagueData.sport, score]);
+
     return (
       <div className="h-full flex flex-col bg-background overflow-hidden">
           <>
@@ -3248,8 +3275,21 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                 </h1>
               </div>
 
-              {/* Right: Help & Home buttons */}
+              {/* Right: History, Help & Home buttons */}
               <div className="flex items-center justify-end space-x-1 shrink-0 min-w-0">
+                {/* History button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowHistoryModal(true)}
+                  style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))' }}
+                  className="animate-on-click"
+                  data-testid="button-history"
+                >
+                  <History className="h-[1.2rem] w-[1.2rem]" />
+                  <span className="sr-only">History</span>
+                </Button>
+
                 {/* Help button */}
                 <Button
                   variant="ghost"
@@ -4413,6 +4453,17 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
           return null;
         })}
           </>
+
+        {/* History Modal */}
+        <HistoryModal
+          open={showHistoryModal}
+          onClose={() => setShowHistoryModal(false)}
+          history={gameHistory}
+          onPlayerClick={(player) => {
+            setShowHistoryModal(false);
+            pushModal({ type: 'player', player, season: selectedSeason || undefined, teamId: selectedTeam?.tid });
+          }}
+        />
 
         {/* Help Modal */}
         <Dialog open={showHelpModal} onOpenChange={setShowHelpModal}>
