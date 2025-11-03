@@ -4440,6 +4440,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                 onCloseAll={clearModals}
                 stackIndex={index}
                 data={scoreSummaryData}
+                teams={leagueData.teams}
+                sport={leagueData.sport || 'basketball'}
                 onPlayerClick={(player) => pushModal({ type: 'player', player, season: selectedSeason || undefined, teamId: selectedTeam?.tid })}
                 onPlayAgain={() => {
                   clearModals();

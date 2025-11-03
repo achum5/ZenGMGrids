@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Users as UsersIcon, TrendingUp, Target, Flag, X } from 'lucide-react';
+import { Users as UsersIcon, TrendingUp, Target, Flag, X, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PlayerFace } from '@/components/PlayerFace';
 import { CompactScoreCard } from '@/components/CompactScoreCard';
-import type { Player } from '@/types/bbgm';
+import { TeamInfoModal } from '@/components/TeamInfoModal';
+import type { Player, Team } from '@/types/bbgm';
 
 interface ScoreCategory {
   name: string;
@@ -71,6 +72,8 @@ interface ScoreSummaryModalProps {
   onNewSeason: () => void;
   onShare?: () => void;
   onPlayerClick?: (player: Player) => void;
+  teams?: Team[]; // Teams data for TeamInfoModal
+  sport?: string; // Sport for TeamInfoModal
 }
 
 function PointsPill({
@@ -173,6 +176,8 @@ export function ScoreSummaryModal({
   onNewSeason,
   onShare,
   onPlayerClick,
+  teams = [],
+  sport,
 }: ScoreSummaryModalProps) {
   // Support backward compatibility: if onOpenChange is provided but not onCloseTop/onCloseAll, use onOpenChange for both
   const handleCloseTop = onCloseTop ?? (() => onOpenChange?.(false));
@@ -180,6 +185,8 @@ export function ScoreSummaryModal({
 
   const [viewMode, setViewMode] = useState<'detailed' | 'spoilerFree'>('detailed');
   const [cardsVisible, setCardsVisible] = useState(false);
+  const [teamInfoOpen, setTeamInfoOpen] = useState(false);
+  const [selectedTeamForInfo, setSelectedTeamForInfo] = useState<Team | undefined>();
 
   useEffect(() => {
     if (open) {
@@ -192,6 +199,17 @@ export function ScoreSummaryModal({
 
   const animatedScore = useCountUp(data.finalScore, 600, cardsVisible);
   const progress = data.finalScore > 0 ? (animatedScore / data.finalScore) * 100 : 0;
+
+  // Find team by abbreviation for team info modal
+  const handleOpenTeamInfo = () => {
+    if (teams.length > 0 && data.teamAbbrev) {
+      const team = teams.find(t => t.abbrev === data.teamAbbrev);
+      if (team) {
+        setSelectedTeamForInfo(team);
+        setTeamInfoOpen(true);
+      }
+    }
+  };
 
   // Team colors
   const teamColors = useMemo(() => {
@@ -719,14 +737,29 @@ export function ScoreSummaryModal({
                     className="h-12 w-12 object-contain mt-[8px] mb-[8px]"
                   />
                 )}
-                <h2
-                  className="text-2xl font-bold"
-                  style={{
-                    color: secondaryColor
-                  }}
-                >
-                  {data.season} {data.teamName}
-                </h2>
+                <div className="flex items-center gap-2">
+                  <h2
+                    className="text-2xl font-bold"
+                    style={{
+                      color: secondaryColor
+                    }}
+                  >
+                    {data.season} {data.teamName}
+                  </h2>
+                  {teams.length > 0 && data.teamAbbrev && (
+                    <button
+                      onClick={handleOpenTeamInfo}
+                      className="p-1.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                      aria-label="View team info"
+                      data-testid="button-team-info"
+                      style={{
+                        color: secondaryColor
+                      }}
+                    >
+                      <Info className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
@@ -734,6 +767,16 @@ export function ScoreSummaryModal({
           </div>
         </div>
       </div>
+      {/* Team Info Modal */}
+      {teamInfoOpen && selectedTeamForInfo && (
+        <TeamInfoModal
+          team={selectedTeamForInfo}
+          teams={teams}
+          sport={sport || data.sport}
+          season={data.season}
+          onClose={() => setTeamInfoOpen(false)}
+        />
+      )}
     </div>
   );
 }
