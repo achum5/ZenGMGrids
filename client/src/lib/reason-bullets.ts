@@ -1363,6 +1363,48 @@ function generateCareerAchievementBullet(player: Player, achievementId: string, 
       text: `Played ${seasonsPlayedCount} Seasons`,
       type: 'longevity'
     };
+  } else if (baseAchievementId === 'played5PlusFranchises') {
+    const franchisesPlayedCount = new Set(player.stats?.filter(s => s.tid !== -1).map(s => s.tid)).size;
+    return {
+      text: `Played for ${franchisesPlayedCount} Franchise${franchisesPlayedCount === 1 ? '' : 's'}`,
+      type: 'longevity'
+    };
+  } else if (baseAchievementId.includes('playedAtAge') || (constraintLabel && constraintLabel.toLowerCase().includes('played at age'))) {
+    // Handle age-related achievements
+    const regularSeasonStats = player.stats?.filter(s => !s.playoffs && (s.gp || 0) > 0) || [];
+    const birthYear = player.born?.year;
+
+    if (regularSeasonStats.length > 0 && birthYear) {
+      const seasons = regularSeasonStats.map(s => s.season).sort((a, b) => a - b);
+      const firstSeason = seasons[0];
+      const lastSeason = seasons[seasons.length - 1];
+      const startAge = firstSeason - birthYear;
+      const endAge = lastSeason - birthYear;
+
+      // Check if it's a "younger" achievement (≤ operator)
+      const isYoungerAchievement = customOperator === '≤' ||
+                                    (constraintLabel && constraintLabel.toLowerCase().includes('younger'));
+
+      if (isYoungerAchievement) {
+        // For "or younger" achievements, show starting age
+        return {
+          text: `Started his career at age ${startAge}`,
+          type: 'longevity'
+        };
+      } else {
+        // For "Plus" or "≥" achievements, show ending age
+        return {
+          text: `Played until age ${endAge}`,
+          type: 'longevity'
+        };
+      }
+    }
+
+    // Fallback if we can't calculate age
+    return {
+      text: constraintLabel || baseAchievementId,
+      type: 'longevity'
+    };
   } else if (baseAchievementId.startsWith('debutedIn') && baseAchievementId.endsWith('s')) {
     // Handle "Debuted in the yyyys" - show actual debut year
     const regularSeasonStats = player.stats?.filter(s => !s.playoffs && (s.gp || 0) > 0) || [];

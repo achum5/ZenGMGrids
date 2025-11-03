@@ -23,6 +23,8 @@ interface LeaderRound {
   correctPlayer: Player;
   userCorrect: boolean;
   userSelectedPlayer?: Player;
+  userStatValue?: string | number;
+  showTotalsNote?: boolean;
 }
 
 interface WinsGuessData {
@@ -327,8 +329,10 @@ export function ScoreSummaryModal({
               />
             </div>
             <div>
-              <p className="text-sm font-medium" style={{ color: textColor }}>{correctPlayer.name}</p>
-              {leader.statValue ? <p className="text-xs" style={{ color: `${textColor}aa` }}>{leader.statValue}</p> : null}
+              <p className="text-sm font-medium" style={{ color: textColor }}>
+                {correctPlayer.name}
+                {leader.statValue && ` (${leader.statValue})`}
+              </p>
             </div>
           </div>
         ) : (
@@ -355,7 +359,10 @@ export function ScoreSummaryModal({
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: `${textColor}aa` }}>Your guess</p>
-                <p className="text-sm font-medium" style={{ color: textColor }}>{guessedPlayer ? guessedPlayer.name : 'No selection'}</p>
+                <p className="text-sm font-medium" style={{ color: textColor }}>
+                  {guessedPlayer ? guessedPlayer.name : 'No selection'}
+                  {guessedPlayer && leader.userStatValue && ` (${leader.userStatValue})`}
+                </p>
               </div>
             </div>
             <div
@@ -376,10 +383,23 @@ export function ScoreSummaryModal({
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: `${textColor}aa` }}>Correct</p>
-                <p className="text-sm font-medium" style={{ color: textColor }}>{correctPlayer.name}</p>
-                {leader.statValue ? <p className="text-xs" style={{ color: `${textColor}aa` }}>{leader.statValue}</p> : null}
+                <p className="text-sm font-medium" style={{ color: textColor }}>
+                  {correctPlayer.name}
+                  {leader.statValue && ` (${leader.statValue})`}
+                </p>
               </div>
             </div>
+            {leader.showTotalsNote && (
+              <div
+                className="text-xs italic p-2 rounded"
+                style={{
+                  backgroundColor: `${secondaryColor}20`,
+                  color: `${textColor}aa`
+                }}
+              >
+                Note: Leaders are determined by season totals, not per-game averages
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -638,7 +658,7 @@ export function ScoreSummaryModal({
           }}
         >
           {/* Fixed buttons at top */}
-          <div className="px-6 pt-6 flex flex-wrap items-center justify-center gap-2 shrink-0">
+          <div className="px-6 pt-6 flex flex-col sm:flex-row items-center justify-center gap-2 shrink-0">
             <Button
               variant="outline"
               size="sm"

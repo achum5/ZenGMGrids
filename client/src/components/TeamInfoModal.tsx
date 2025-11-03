@@ -763,6 +763,7 @@ export function TeamInfoModal({
                           zIndex: 110000,
                         }}
                         onClick={(e) => e.stopPropagation()}
+                        onInteractOutside={() => setPlayoffPopoverOpen(false)}
                       >
                         <h4 className="text-sm font-semibold mb-3" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>
                           Playoff Series

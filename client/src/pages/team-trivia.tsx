@@ -270,12 +270,18 @@ const HOCKEY_ROUND_INSTRUCTIONS: Record<HockeyRoundType, string> = {
 function calculateYearsWithTeam(player: Player, tid: number, season: number): number {
   if (!player.stats || player.stats.length === 0) return 0;
 
-  // Count seasons with this team up to and including the selected season
-  const seasonsWithTeam = player.stats.filter(stat =>
-    stat.tid === tid && stat.season <= season
-  );
+  // Find all seasons with this team up to and including the selected season
+  const seasonsWithTeam = player.stats
+    .filter(stat => stat.tid === tid && stat.season <= season)
+    .map(stat => stat.season)
+    .sort((a, b) => a - b);
 
-  return seasonsWithTeam.length;
+  if (seasonsWithTeam.length === 0) return 0;
+
+  // Calculate years as: current_season - first_season_with_team + 1
+  // +1 because if they joined in 2010 and it's 2010, that's their 1st year, not 0th
+  const firstSeason = seasonsWithTeam[0];
+  return season - firstSeason + 1;
 }
 
 // Helper function to get player rating for a specific season
@@ -676,6 +682,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
       correctPlayer: Player;
       userCorrect: boolean;
       userSelectedPlayer?: Player;
+      userStatValue?: string | number;
+      showTotalsNote?: boolean; // Show note that leader is determined by totals, not per-game
     }>;
     winsGuessData?: {
       G: number;
@@ -1170,18 +1178,48 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
         goalieWins: goalieWinsLeader.player.pid,
       };
     } else {
-      // Basketball stat leaders
-      const pointsLeader = roster.reduce((leader, rp) =>
-        rp.stats.ppg > leader.stats.ppg ? rp : leader
-      );
+      // Basketball stat leaders - use totals for consistency with other sports
+      const pointsLeader = roster.reduce((leader, rp) => {
+        const leaderSeasonStats = leader.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const rpSeasonStats = rp.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
 
-      const reboundsLeader = roster.reduce((leader, rp) =>
-        rp.stats.rpg > leader.stats.rpg ? rp : leader
-      );
+        const leaderPts = leaderSeasonStats?.pts || 0;
+        const rpPts = rpSeasonStats?.pts || 0;
 
-      const assistsLeader = roster.reduce((leader, rp) =>
-        rp.stats.apg > leader.stats.apg ? rp : leader
-      );
+        return rpPts > leaderPts ? rp : leader;
+      });
+
+      const reboundsLeader = roster.reduce((leader, rp) => {
+        const leaderSeasonStats = leader.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const rpSeasonStats = rp.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+
+        const leaderTrb = leaderSeasonStats?.trb || ((leaderSeasonStats?.orb || 0) + (leaderSeasonStats?.drb || 0));
+        const rpTrb = rpSeasonStats?.trb || ((rpSeasonStats?.orb || 0) + (rpSeasonStats?.drb || 0));
+
+        return rpTrb > leaderTrb ? rp : leader;
+      });
+
+      const assistsLeader = roster.reduce((leader, rp) => {
+        const leaderSeasonStats = leader.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+        const rpSeasonStats = rp.player.stats?.find(
+          s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+        );
+
+        const leaderAst = leaderSeasonStats?.ast || 0;
+        const rpAst = rpSeasonStats?.ast || 0;
+
+        return rpAst > leaderAst ? rp : leader;
+      });
 
       const stealsLeader = roster.reduce((leader, rp) => {
         const leaderSeasonStats = leader.player.stats?.find(
@@ -2416,6 +2454,105 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     setLeaderGuessLocked(false);
   }, [currentRound]);
 
+  // Helper function to get stat value for a player based on current round
+  const getPlayerStatValue = useCallback((player: Player, round: RoundType): string => {
+    const rosterPlayer = roster.find(rp => rp.player.pid === player.pid);
+    if (!rosterPlayer) return 'N/A';
+
+    const seasonStats = player.stats?.find(
+      s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
+    );
+
+    const stats = rosterPlayer.stats;
+
+    switch (round) {
+      // Basketball rounds - display per game stats (prettier), but leader is determined by totals
+      case 'points-leader':
+        return stats?.ppg ? `${stats.ppg.toFixed(1)} PPG` : 'N/A';
+      case 'rebounds-leader':
+        return stats?.rpg ? `${stats.rpg.toFixed(1)} RPG` : 'N/A';
+      case 'assists-leader':
+        return stats?.apg ? `${stats.apg.toFixed(1)} APG` : 'N/A';
+      case 'steals-leader':
+        return stats?.spg ? `${stats.spg.toFixed(1)} SPG` : 'N/A';
+      case 'blocks-leader':
+        return stats?.bpg ? `${stats.bpg.toFixed(1)} BPG` : 'N/A';
+      // Football rounds
+      case 'passing-yards-leader':
+        return seasonStats?.pssYds ? `${Math.round(seasonStats.pssYds)} Yards` : 'N/A';
+      case 'rushing-yards-leader':
+        return seasonStats?.rusYds ? `${Math.round(seasonStats.rusYds)} Yards` : 'N/A';
+      case 'receiving-yards-leader':
+        return seasonStats?.recYds ? `${Math.round(seasonStats.recYds)} Yards` : 'N/A';
+      case 'tackles-leader':
+        const tackles = ((seasonStats as any)?.defTckSolo || 0) + ((seasonStats as any)?.defTckAst || 0);
+        return tackles > 0 ? `${tackles} Tackles` : 'N/A';
+      case 'sacks-leader':
+        const sacks = (seasonStats as any)?.defSk || (seasonStats as any)?.sks || 0;
+        return sacks > 0 ? `${sacks.toFixed(1)} Sacks` : 'N/A';
+      case 'interceptions-leader':
+        const ints = (seasonStats as any)?.defInt || 0;
+        return ints > 0 ? `${ints} INT` : 'N/A';
+      // Baseball rounds
+      case 'hits-leader':
+        return seasonStats?.h ? `${seasonStats.h} H` : 'N/A';
+      case 'home-runs-leader':
+        return seasonStats?.hr ? `${seasonStats.hr} HR` : 'N/A';
+      case 'rbis-leader':
+        return seasonStats?.rbi ? `${seasonStats.rbi} RBI` : 'N/A';
+      case 'stolen-bases-leader':
+        return seasonStats?.sb ? `${seasonStats.sb} SB` : 'N/A';
+      case 'strikeouts-leader':
+        const strikeouts = (seasonStats as any)?.so || (seasonStats as any)?.k || 0;
+        return strikeouts > 0 ? `${strikeouts} K` : 'N/A';
+      case 'wins-leader':
+        return seasonStats?.w ? `${seasonStats.w} W` : 'N/A';
+      // Hockey rounds
+      case 'points-leader':
+        const points = ((seasonStats as any)?.evG || 0) + ((seasonStats as any)?.ppG || 0) + ((seasonStats as any)?.shG || 0) + ((seasonStats as any)?.evA || 0) + ((seasonStats as any)?.ppA || 0) + ((seasonStats as any)?.shA || 0);
+        return points > 0 ? `${points} PTS` : 'N/A';
+      case 'goals-leader':
+        const goals = ((seasonStats as any)?.evG || 0) + ((seasonStats as any)?.ppG || 0) + ((seasonStats as any)?.shG || 0);
+        return goals > 0 ? `${goals} G` : 'N/A';
+      case 'assists-leader':
+        const assists = ((seasonStats as any)?.evA || 0) + ((seasonStats as any)?.ppA || 0) + ((seasonStats as any)?.shA || 0);
+        return assists > 0 ? `${assists} A` : 'N/A';
+      case 'goalie-wins-leader':
+        return (seasonStats as any)?.gW ? `${(seasonStats as any).gW} W` : 'N/A';
+      default:
+        return 'N/A';
+    }
+  }, [roster, selectedSeason, selectedTeam]);
+
+  // Helper function to check if user's player had better per-game stat than correct player (for basketball)
+  const shouldShowTotalsNote = useCallback((userPlayer: Player, correctPlayer: Player, round: RoundType): boolean => {
+    // Only for basketball rounds
+    const basketballRounds = ['points-leader', 'rebounds-leader', 'assists-leader', 'steals-leader', 'blocks-leader'];
+    if (!basketballRounds.includes(round)) return false;
+
+    const userRosterPlayer = roster.find(rp => rp.player.pid === userPlayer.pid);
+    const correctRosterPlayer = roster.find(rp => rp.player.pid === correctPlayer.pid);
+    if (!userRosterPlayer || !correctRosterPlayer) return false;
+
+    const userStats = userRosterPlayer.stats;
+    const correctStats = correctRosterPlayer.stats;
+
+    switch (round) {
+      case 'points-leader':
+        return (userStats?.ppg || 0) > (correctStats?.ppg || 0);
+      case 'rebounds-leader':
+        return (userStats?.rpg || 0) > (correctStats?.rpg || 0);
+      case 'assists-leader':
+        return (userStats?.apg || 0) > (correctStats?.apg || 0);
+      case 'steals-leader':
+        return (userStats?.spg || 0) > (correctStats?.spg || 0);
+      case 'blocks-leader':
+        return (userStats?.bpg || 0) > (correctStats?.bpg || 0);
+      default:
+        return false;
+    }
+  }, [roster]);
+
   // Handle tile click during leader selection rounds
   const handleTileClick = useCallback((pid: number) => {
     const isLeaderRound = currentRound.endsWith('-leader');
@@ -2597,13 +2734,14 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
 
       // Track leader result for detailed game data
       if (correctRosterPlayer) {
+        const statValue = getPlayerStatValue(correctRosterPlayer.player, currentRound);
         setDetailedGameData(prev => ({
           ...prev,
           leaderResults: [...prev.leaderResults, {
             round: currentRound,
             label: formatStatLabel(getRoundInstruction(currentRound)),
             statLabel: formatStatLabel(getRoundInstruction(currentRound)),
-            statValue: 0, // Will be populated later with actual stat value
+            statValue,
             correctPlayer: correctRosterPlayer.player,
             userCorrect: true,
           }]
@@ -2625,16 +2763,21 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
 
       // Track leader result for detailed game data
       if (correctRosterPlayer && userSelectedPlayer) {
+        const correctStatValue = getPlayerStatValue(correctRosterPlayer.player, currentRound);
+        const userStatValue = getPlayerStatValue(userSelectedPlayer, currentRound);
+        const showTotalsNote = shouldShowTotalsNote(userSelectedPlayer, correctRosterPlayer.player, currentRound);
         setDetailedGameData(prev => ({
           ...prev,
           leaderResults: [...prev.leaderResults, {
             round: currentRound,
             label: formatStatLabel(getRoundInstruction(currentRound)),
             statLabel: formatStatLabel(getRoundInstruction(currentRound)),
-            statValue: 0, // Will be populated later with actual stat value
+            statValue: correctStatValue,
             correctPlayer: correctRosterPlayer.player,
             userCorrect: false,
             userSelectedPlayer,
+            userStatValue,
+            showTotalsNote,
           }]
         }));
       }
@@ -2978,6 +3121,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
         correctPlayer: lr.correctPlayer,
         userCorrect: lr.userCorrect,
         userSelectedPlayer: lr.userSelectedPlayer,
+        userStatValue: lr.userStatValue,
+        showTotalsNote: lr.showTotalsNote,
       })),
       winsGuess: detailedGameData.winsGuessData,
     };
@@ -3350,6 +3495,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                                 setFoundCount(0);
                                 setScore(0);
                                 setSelectedLeader(null);
+                                setScoreBreakdown([]); // Reset score breakdown
+                                setDetailedGameData({ playerGuesses: [], leaderResults: [] }); // Reset detailed game data
                               }}
                               data-testid={`option-year-${season}`}
                             >
@@ -3411,6 +3558,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                                   setFoundCount(0);
                                   setScore(0);
                                   setSelectedLeader(null);
+                                  setScoreBreakdown([]); // Reset score breakdown
+                                  setDetailedGameData({ playerGuesses: [], leaderResults: [] }); // Reset detailed game data
                                 }}
                                 className="flex items-center gap-2"
                                 data-testid={`option-team-${team.tid}`}

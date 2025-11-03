@@ -4294,21 +4294,85 @@ export function PlayerPageModal({
                       // If multi-team season and first occurrence, add TOT row first
                       if (isMultiTeamSeason && isFirstOfSeason) {
                         // Aggregate stats for TOT row
-                        const totStats = seasonStats.reduce((acc, s) => ({
-                          gp: (acc.gp || 0) + (s.gp || 0),
-                          gs: (acc.gs || 0) + ((s as any).gs || 0),
-                          min: (acc.min || 0) + (s.min || 0),
-                          ws: (acc.ws || 0) + (s.ws || 0),
-                          ows: (acc.ows || 0) + ((s as any).ows || 0),
-                          dws: (acc.dws || 0) + ((s as any).dws || 0),
-                          ewa: (acc.ewa || 0) + ((s as any).ewa || 0),
-                          vorp: (acc.vorp || 0) + ((s as any).vorp || 0),
-                          fga: (acc.fga || 0) + (s.fga || 0),
-                          tpa: (acc.tpa || 0) + (s.tpa || 0),
-                          ft: (acc.ft || 0) + (s.ft || 0),
-                          fta: (acc.fta || 0) + (s.fta || 0),
-                          pts: (acc.pts || 0) + (s.pts || 0),
-                        }), { gp: 0, gs: 0, min: 0, ws: 0, ows: 0, dws: 0, ewa: 0, vorp: 0, fga: 0, tpa: 0, ft: 0, fta: 0, pts: 0 });
+                        const totStats = seasonStats.reduce((acc, s) => {
+                          const statMin = s.min || 0;
+
+                          // Helper function to add weighted value for rate stats
+                          const addWeighted = (value: any, accField: string) => {
+                            const val = value != null && typeof value === 'number' && isFinite(value) && statMin > 0 ? value * statMin : 0;
+                            return val;
+                          };
+
+                          // Track weighted averages for rate stats (PER, BPM, OBPM, DBPM, +/-, ORtg, DRtg)
+                          const perValue = (s as any).per;
+                          const bpmValue = (s as any).bpm;
+                          const obpmValue = (s as any).obpm;
+                          const dbpmValue = (s as any).dbpm;
+                          const pmValue = (s as any).pm;
+                          const ortgValue = (s as any).ortg;
+                          const drtgValue = (s as any).drtg;
+
+                          const weightedPER = addWeighted(perValue, 'weightedPER');
+                          const weightedBPM = addWeighted(bpmValue, 'weightedBPM');
+                          const weightedOBPM = addWeighted(obpmValue, 'weightedOBPM');
+                          const weightedDBPM = addWeighted(dbpmValue, 'weightedDBPM');
+                          const weightedPM = addWeighted(pmValue, 'weightedPM');
+                          const weightedORtg = addWeighted(ortgValue, 'weightedORtg');
+                          const weightedDRtg = addWeighted(drtgValue, 'weightedDRtg');
+
+                          // Track valid minutes for each stat (some stats may be undefined for some stints)
+                          const validMinPER = (perValue != null && typeof perValue === 'number' && isFinite(perValue) && statMin > 0) ? statMin : 0;
+                          const validMinBPM = (bpmValue != null && typeof bpmValue === 'number' && isFinite(bpmValue) && statMin > 0) ? statMin : 0;
+                          const validMinOBPM = (obpmValue != null && typeof obpmValue === 'number' && isFinite(obpmValue) && statMin > 0) ? statMin : 0;
+                          const validMinDBPM = (dbpmValue != null && typeof dbpmValue === 'number' && isFinite(dbpmValue) && statMin > 0) ? statMin : 0;
+                          const validMinPM = (pmValue != null && typeof pmValue === 'number' && isFinite(pmValue) && statMin > 0) ? statMin : 0;
+                          const validMinORtg = (ortgValue != null && typeof ortgValue === 'number' && isFinite(ortgValue) && statMin > 0) ? statMin : 0;
+                          const validMinDRtg = (drtgValue != null && typeof drtgValue === 'number' && isFinite(drtgValue) && statMin > 0) ? statMin : 0;
+
+                          const accAny = acc as any;
+                          return {
+                            gp: (acc.gp || 0) + (s.gp || 0),
+                            gs: (acc.gs || 0) + ((s as any).gs || 0),
+                            min: (acc.min || 0) + (s.min || 0),
+                            ws: (acc.ws || 0) + (s.ws || 0),
+                            ows: (acc.ows || 0) + ((s as any).ows || 0),
+                            dws: (acc.dws || 0) + ((s as any).dws || 0),
+                            ewa: (acc.ewa || 0) + ((s as any).ewa || 0),
+                            vorp: (acc.vorp || 0) + ((s as any).vorp || 0),
+                            fga: (acc.fga || 0) + (s.fga || 0),
+                            tpa: (acc.tpa || 0) + (s.tpa || 0),
+                            ft: (acc.ft || 0) + (s.ft || 0),
+                            fta: (acc.fta || 0) + (s.fta || 0),
+                            pts: (acc.pts || 0) + (s.pts || 0),
+                            weightedPER: (accAny.weightedPER || 0) + weightedPER,
+                            weightedBPM: (accAny.weightedBPM || 0) + weightedBPM,
+                            weightedOBPM: (accAny.weightedOBPM || 0) + weightedOBPM,
+                            weightedDBPM: (accAny.weightedDBPM || 0) + weightedDBPM,
+                            weightedPM: (accAny.weightedPM || 0) + weightedPM,
+                            weightedORtg: (accAny.weightedORtg || 0) + weightedORtg,
+                            weightedDRtg: (accAny.weightedDRtg || 0) + weightedDRtg,
+                            validMinPER: (accAny.validMinPER || 0) + validMinPER,
+                            validMinBPM: (accAny.validMinBPM || 0) + validMinBPM,
+                            validMinOBPM: (accAny.validMinOBPM || 0) + validMinOBPM,
+                            validMinDBPM: (accAny.validMinDBPM || 0) + validMinDBPM,
+                            validMinPM: (accAny.validMinPM || 0) + validMinPM,
+                            validMinORtg: (accAny.validMinORtg || 0) + validMinORtg,
+                            validMinDRtg: (accAny.validMinDRtg || 0) + validMinDRtg,
+                          };
+                        }, {
+                          gp: 0, gs: 0, min: 0, ws: 0, ows: 0, dws: 0, ewa: 0, vorp: 0, fga: 0, tpa: 0, ft: 0, fta: 0, pts: 0,
+                          weightedPER: 0, weightedBPM: 0, weightedOBPM: 0, weightedDBPM: 0, weightedPM: 0, weightedORtg: 0, weightedDRtg: 0,
+                          validMinPER: 0, validMinBPM: 0, validMinOBPM: 0, validMinDBPM: 0, validMinPM: 0, validMinORtg: 0, validMinDRtg: 0
+                        });
+
+                        // Calculate final values as minutes-weighted averages
+                        const totPER = (totStats as any).validMinPER > 0 ? (totStats as any).weightedPER / (totStats as any).validMinPER : undefined;
+                        const totBPM = (totStats as any).validMinBPM > 0 ? (totStats as any).weightedBPM / (totStats as any).validMinBPM : undefined;
+                        const totOBPM = (totStats as any).validMinOBPM > 0 ? (totStats as any).weightedOBPM / (totStats as any).validMinOBPM : undefined;
+                        const totDBPM = (totStats as any).validMinDBPM > 0 ? (totStats as any).weightedDBPM / (totStats as any).validMinDBPM : undefined;
+                        const totPM = (totStats as any).validMinPM > 0 ? (totStats as any).weightedPM / (totStats as any).validMinPM : undefined;
+                        const totORtg = (totStats as any).validMinORtg > 0 ? (totStats as any).weightedORtg / (totStats as any).validMinORtg : undefined;
+                        const totDRtg = (totStats as any).validMinDRtg > 0 ? (totStats as any).weightedDRtg / (totStats as any).validMinDRtg : undefined;
 
                         // Render TOT row
                         const totGp = totStats.gp || 0;
@@ -4360,11 +4424,11 @@ export function PlayerPageModal({
                             <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totGp}</td>
                             <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totStats.gs ?? '-'}</td>
                             <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totPerGame(totStats.min)}</td>
-                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>-</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totPER !== undefined ? totFormat(totPER) : '-'}</td>
                             <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totFormat(totStats.vorp)}</td>
-                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>-</td>
-                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>-</td>
-                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>-</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totBPM !== undefined ? totFormat(totBPM) : '-'}</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totOBPM !== undefined ? totFormat(totOBPM) : '-'}</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totDBPM !== undefined ? totFormat(totDBPM) : '-'}</td>
                             <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totWs !== 0 ? totFormat(totWs) : '-'}</td>
                             <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totOws !== 0 ? totFormat(totOws) : '-'}</td>
                             <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totDws !== 0 ? totFormat(totDws) : '-'}</td>
@@ -4373,9 +4437,9 @@ export function PlayerPageModal({
                             <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totTsPct !== null ? (totTsPct * 100).toFixed(1) : '-'}</td>
                             <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totTpaPerFga}</td>
                             <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totFtPerFga}</td>
-                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>-</td>
-                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>-</td>
-                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>-</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totPM !== undefined ? totFormat(totPM) : '-'}</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totORtg !== undefined ? totFormat(totORtg) : '-'}</td>
+                            <td className="text-center py-3 px-2 text-sm" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)' }}>{totDRtg !== undefined ? totFormat(totDRtg) : '-'}</td>
                           </tr>
                         );
                         globalIdx++;
