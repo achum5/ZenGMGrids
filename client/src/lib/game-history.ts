@@ -82,3 +82,61 @@ export function deleteGameFromHistory(id: string): void {
     console.error('Failed to delete game from history:', error);
   }
 }
+
+/**
+ * Delete all games from a specific league
+ */
+export function deleteLeagueHistory(leagueFingerprintId: string): void {
+  try {
+    const history = loadGameHistory();
+    const filtered = history.filter(entry => entry.leagueFingerprintId !== leagueFingerprintId);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(filtered));
+  } catch (error) {
+    console.error('Failed to delete league history:', error);
+  }
+}
+
+/**
+ * Delete games from a specific league below a score threshold
+ */
+export function deleteLeagueHistoryBelowThreshold(leagueFingerprintId: string, threshold: number): void {
+  try {
+    const history = loadGameHistory();
+    const filtered = history.filter(entry => {
+      // Keep entries that are either from a different league OR meet the score threshold
+      return entry.leagueFingerprintId !== leagueFingerprintId || entry.score >= threshold;
+    });
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(filtered));
+  } catch (error) {
+    console.error('Failed to delete league history below threshold:', error);
+  }
+}
+
+/**
+ * Load filter threshold for a specific league
+ */
+export function loadLeagueFilterThreshold(leagueFingerprintId: string): number {
+  try {
+    const key = `history-filter-${leagueFingerprintId}`;
+    const stored = localStorage.getItem(key);
+    if (!stored) return 0;
+
+    const threshold = parseInt(stored, 10);
+    return isNaN(threshold) ? 0 : Math.max(0, threshold);
+  } catch (error) {
+    console.error('Failed to load filter threshold:', error);
+    return 0;
+  }
+}
+
+/**
+ * Save filter threshold for a specific league
+ */
+export function saveLeagueFilterThreshold(leagueFingerprintId: string, threshold: number): void {
+  try {
+    const key = `history-filter-${leagueFingerprintId}`;
+    localStorage.setItem(key, threshold.toString());
+  } catch (error) {
+    console.error('Failed to save filter threshold:', error);
+  }
+}

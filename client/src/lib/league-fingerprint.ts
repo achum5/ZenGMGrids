@@ -19,37 +19,49 @@ interface PlayerSample {
 }
 
 /**
- * Generate a stable fingerprint for a league by sampling player data
- * from early seasons (which won't change as league progresses)
+ * Generate a stable fingerprint for a league by sampling 100 random player PIDs.
+ *
+ * This approach:
+ * 1. Picks 100 random PIDs from the ENTIRE league (all players, all seasons)
+ * 2. Stores those specific PIDs with stable player data (name, bornYear, draftYear, college)
+ * 3. When comparing leagues, searches for those exact PIDs
+ * 4. If 90+ out of 100 PIDs match → Same league!
+ *
+ * Why this works:
+ * - Real player leagues share real NBA PIDs (LeBron = PID 5)
+ * - But generated players have UNIQUE PIDs per league simulation
+ * - Different leagues = Different generated PIDs (even with same starting roster)
+ * - Same league progressed (2050 → 2080) = Same PIDs still exist
+ * - Persists even if league deleted and re-uploaded years later
  */
 export function generateLeagueFingerprint(league: LeagueData): LeagueFingerprint {
-  // Get players from the earliest seasons (these are stable)
+  if (!league.players || league.players.length === 0) {
+    // Fallback for empty league
+    return {
+      id: generateSimpleHash(JSON.stringify({ sport: league.sport, startSeason: 2000 })),
+      samples: [],
+      sport: league.sport || 'basketball',
+      startSeason: 2000,
+    };
+  }
+
+  // Get start season
   const allSeasons = [...new Set(league.players.flatMap((p: Player) =>
     p.stats?.map(s => s.season) || []
   ))].sort((a: number, b: number) => a - b);
-
   const startSeason: number = allSeasons[0] || 2000;
-  const earlySeasons = allSeasons.slice(0, Math.min(3, allSeasons.length)); // First 3 seasons
 
-  // Get players who played in early seasons, sorted by total minutes/games for consistency
-  const earlyPlayers = league.players
-    .filter((p: Player) => {
-      const playedInEarlySeasons = p.stats?.some(s => earlySeasons.includes(s.season));
-      return playedInEarlySeasons;
-    })
-    .map((p: Player) => {
-      const earlyStats = p.stats?.filter(s => earlySeasons.includes(s.season)) || [];
-      const totalMinutes = earlyStats.reduce((sum: number, s) => sum + (s.min || s.gp || 0), 0);
-      return { player: p, totalMinutes };
-    })
-    .sort((a: { player: Player; totalMinutes: number }, b: { player: Player; totalMinutes: number }) => b.totalMinutes - a.totalMinutes);
+  // Sort all players by PID and take the first 100
+  // This is DETERMINISTIC and STABLE - the same 100 PIDs regardless of league size
+  // Even if league progresses from 5000 to 6000 players, first 100 by PID stay the same
+  const sortedPlayers = [...league.players].sort((a, b) => a.pid - b.pid);
 
-  // Take top 20 players (or all if less than 20) for fingerprint
-  const sampleSize = Math.min(20, earlyPlayers.length);
-  const sampledPlayers = earlyPlayers.slice(0, sampleSize);
+  // Take first 100 players (or all if less than 100)
+  const sampleSize = Math.min(100, sortedPlayers.length);
+  const sampledPlayers = sortedPlayers.slice(0, sampleSize);
 
   // Create stable samples (these attributes won't change as league progresses)
-  const samples: PlayerSample[] = sampledPlayers.map(({ player }: { player: Player; totalMinutes: number }) => ({
+  const samples: PlayerSample[] = sampledPlayers.map((player: Player) => ({
     pid: player.pid,
     name: player.name,
     bornYear: player.born?.year,
@@ -76,29 +88,31 @@ export function generateLeagueFingerprint(league: LeagueData): LeagueFingerprint
 
 /**
  * Compare two fingerprints to determine if they're from the same league
+ * Searches for specific PIDs from the existing fingerprint in the new fingerprint
  * Returns a confidence score (0-1) where 1 = definitely the same league
  */
-export function compareFingerprints(fp1: LeagueFingerprint, fp2: LeagueFingerprint): number {
+export function compareFingerprints(existingFp: LeagueFingerprint, newFp: LeagueFingerprint): number {
   // Different sports = different leagues
-  if (fp1.sport !== fp2.sport) return 0;
+  if (existingFp.sport !== newFp.sport) return 0;
 
   // Different start seasons = likely different leagues
-  if (fp1.startSeason !== fp2.startSeason) return 0;
+  if (existingFp.startSeason !== newFp.startSeason) return 0;
 
-  // Compare player samples
-  const matchingPlayers = fp1.samples.filter(s1 => {
-    return fp2.samples.some(s2 =>
-      s1.pid === s2.pid &&
-      s1.name === s2.name &&
-      s1.bornYear === s2.bornYear &&
-      s1.draftYear === s2.draftYear
+  // Search for each PID from existing fingerprint in the new fingerprint
+  // This allows matching even if the league has progressed many years
+  const matchingPlayers = existingFp.samples.filter(existingSample => {
+    return newFp.samples.some(newSample =>
+      existingSample.pid === newSample.pid &&
+      existingSample.name === newSample.name &&
+      existingSample.bornYear === newSample.bornYear &&
+      existingSample.draftYear === newSample.draftYear
     );
   });
 
-  // If we have at least 10 samples and 80%+ match, it's the same league
-  const matchRate = matchingPlayers.length / Math.max(fp1.samples.length, fp2.samples.length);
+  // Calculate match rate based on existing fingerprint size
+  // We expect to find most of the PIDs from the existing fingerprint in the new upload
+  const matchRate = matchingPlayers.length / existingFp.samples.length;
 
-  // Require high match rate to avoid false positives
   return matchRate;
 }
 
@@ -107,10 +121,13 @@ export function compareFingerprints(fp1: LeagueFingerprint, fp2: LeagueFingerpri
  * Returns true if this is likely an updated version of the same league
  */
 export function isMatchingLeague(newFingerprint: LeagueFingerprint, existingFingerprint: LeagueFingerprint): boolean {
-  const confidence = compareFingerprints(newFingerprint, existingFingerprint);
+  // Search for PIDs from existing fingerprint in the new fingerprint
+  const confidence = compareFingerprints(existingFingerprint, newFingerprint);
 
-  // Require 80% match confidence to consider it the same league
-  return confidence >= 0.8;
+  // Require 90% match confidence to avoid false positives with real player leagues
+  // By 20 seasons, even leagues with same starting rosters have diverged significantly
+  // due to injuries, trades, draft variations, and player development differences
+  return confidence >= 0.9;
 }
 
 /**

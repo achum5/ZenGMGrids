@@ -72,6 +72,7 @@ interface ScoreSummaryModalProps {
   onNewSeason: () => void;
   onShare?: () => void;
   onPlayerClick?: (player: Player) => void;
+  onTeamInfoClick?: () => void; // Callback to open team info modal
   teams?: Team[]; // Teams data for TeamInfoModal
   sport?: string; // Sport for TeamInfoModal
 }
@@ -176,6 +177,7 @@ export function ScoreSummaryModal({
   onNewSeason,
   onShare,
   onPlayerClick,
+  onTeamInfoClick,
   teams = [],
   sport,
 }: ScoreSummaryModalProps) {
@@ -185,8 +187,6 @@ export function ScoreSummaryModal({
 
   const [viewMode, setViewMode] = useState<'detailed' | 'spoilerFree'>('detailed');
   const [cardsVisible, setCardsVisible] = useState(false);
-  const [teamInfoOpen, setTeamInfoOpen] = useState(false);
-  const [selectedTeamForInfo, setSelectedTeamForInfo] = useState<Team | undefined>();
 
   useEffect(() => {
     if (open) {
@@ -200,15 +200,9 @@ export function ScoreSummaryModal({
   const animatedScore = useCountUp(data.finalScore, 600, cardsVisible);
   const progress = data.finalScore > 0 ? (animatedScore / data.finalScore) * 100 : 0;
 
-  // Find team by abbreviation for team info modal
+  // Open team info modal via callback
   const handleOpenTeamInfo = () => {
-    if (teams.length > 0 && data.teamAbbrev) {
-      const team = teams.find(t => t.abbrev === data.teamAbbrev);
-      if (team) {
-        setSelectedTeamForInfo(team);
-        setTeamInfoOpen(true);
-      }
-    }
+    onTeamInfoClick?.();
   };
 
   // Team colors
@@ -647,7 +641,7 @@ export function ScoreSummaryModal({
         {/* Custom Close Button - Fixed */}
         <button
           onClick={handleCloseTop}
-          className="absolute right-4 top-4 z-[10001] rounded-lg p-2.5 transition-all duration-200 hover:scale-110 hover:rotate-90 shadow-lg bg-background ml-[43px] mr-[43px]"
+          className="absolute right-4 sm:right-4 max-sm:translate-x-5 top-4 z-[10001] rounded-lg p-2.5 transition-all duration-200 hover:scale-110 hover:rotate-90 shadow-lg bg-background ml-[43px] mr-[43px]"
           style={{
             backgroundColor: `${secondaryColor}40`,
             color: secondaryColor,
@@ -681,7 +675,7 @@ export function ScoreSummaryModal({
               variant="outline"
               size="sm"
               onClick={() => setViewMode('detailed')}
-              className="px-4 transition-all duration-150"
+              className="px-4 transition-all duration-150 flex items-center gap-2"
               style={viewMode === 'detailed' ? {
                 backgroundColor: primaryColor,
                 color: secondaryColor,
@@ -698,7 +692,7 @@ export function ScoreSummaryModal({
                 boxShadow: `0 4px 0 ${secondaryColor}`,
               }}
             >
-              Detailed Breakdown
+              <span>Detailed Breakdown</span>
             </Button>
             <Button
               variant="outline"
@@ -746,7 +740,7 @@ export function ScoreSummaryModal({
                   >
                     {data.season} {data.teamName}
                   </h2>
-                  {teams.length > 0 && data.teamAbbrev && (
+                  {onTeamInfoClick && (
                     <button
                       onClick={handleOpenTeamInfo}
                       className="p-1.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
@@ -767,16 +761,6 @@ export function ScoreSummaryModal({
           </div>
         </div>
       </div>
-      {/* Team Info Modal */}
-      {teamInfoOpen && selectedTeamForInfo && (
-        <TeamInfoModal
-          team={selectedTeamForInfo}
-          teams={teams}
-          sport={sport || data.sport}
-          season={data.season}
-          onClose={() => setTeamInfoOpen(false)}
-        />
-      )}
     </div>
   );
 }

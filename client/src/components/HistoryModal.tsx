@@ -1,10 +1,17 @@
-import { useState } from 'react';
-import { X, History, Trophy } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, History, Trophy, Filter, Trash2, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ScoreSummaryModal, type ScoreSummaryData } from '@/components/ScoreSummaryModal';
+import { Input } from '@/components/ui/input';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import type { ScoreSummaryData } from '@/components/ScoreSummaryModal';
 import type { Player } from '@/types/bbgm';
+import { loadLeagueFilterThreshold, saveLeagueFilterThreshold } from '@/lib/game-history';
 
-interface HistoryEntry {
+export interface HistoryEntry {
   id: string; // Unique ID (timestamp)
   date: string; // ISO date string
   season: number;
@@ -19,9 +26,17 @@ interface HistoryEntry {
 
 interface HistoryModalProps {
   open: boolean;
-  onClose: () => void;
+  onClose?: () => void; // Deprecated: use onCloseTop and onCloseAll instead
+  onCloseTop?: () => void; // Close only this modal (X button)
+  onCloseAll?: () => void; // Close all modals (backdrop)
+  stackIndex?: number; // Position in modal stack for z-index layering
   history: HistoryEntry[];
+  onGameClick?: (entry: HistoryEntry) => void; // Callback when a game is selected
   onPlayerClick?: (player: Player) => void;
+  onTeamInfoClick?: (season: number, sport: string) => void;
+  onDeleteHistory?: () => void; // Callback to delete all history for current league
+  onDeleteBelowThreshold?: (threshold: number) => void; // Callback to delete history below score threshold
+  leagueFingerprintId?: string; // League fingerprint ID for saving filter settings per league
 }
 
 // Helper to get contrast color
@@ -35,49 +50,74 @@ function getContrastColor(hexColor: string): 'white' | 'black' {
   return luminance > 0.5 ? 'black' : 'white';
 }
 
-export function HistoryModal({ open, onClose, history, onPlayerClick }: HistoryModalProps) {
-  const [selectedGame, setSelectedGame] = useState<HistoryEntry | null>(null);
+export function HistoryModal({
+  open,
+  onClose,
+  onCloseTop,
+  onCloseAll,
+  stackIndex = 0,
+  history,
+  onGameClick,
+  onPlayerClick,
+  onTeamInfoClick,
+  onDeleteHistory,
+  onDeleteBelowThreshold,
+  leagueFingerprintId
+}: HistoryModalProps) {
+  const [scoreThreshold, setScoreThreshold] = useState(0);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showExpandedDelete, setShowExpandedDelete] = useState(false);
+  const [deleteThreshold, setDeleteThreshold] = useState(50);
+  const [showThresholdDeleteConfirm, setShowThresholdDeleteConfirm] = useState(false);
+
+  // Load saved filter threshold for this league on mount
+  useEffect(() => {
+    if (leagueFingerprintId) {
+      const savedThreshold = loadLeagueFilterThreshold(leagueFingerprintId);
+      setScoreThreshold(savedThreshold);
+    }
+  }, [leagueFingerprintId]);
+
+  // Save filter threshold when it changes
+  useEffect(() => {
+    if (leagueFingerprintId) {
+      saveLeagueFilterThreshold(leagueFingerprintId, scoreThreshold);
+    }
+  }, [scoreThreshold, leagueFingerprintId]);
+
+  // Handle backward compatibility
+  const handleCloseTop = onCloseTop || onClose || (() => {});
+  const handleCloseAll = onCloseAll || onClose || (() => {});
 
   if (!open) return null;
 
-  // If a game is selected, show its breakdown
-  if (selectedGame) {
-    return (
-      <ScoreSummaryModal
-        open={true}
-        onCloseTop={() => setSelectedGame(null)}
-        onCloseAll={() => {
-          setSelectedGame(null);
-          onClose();
-        }}
-        stackIndex={1}
-        data={selectedGame.summaryData}
-        onPlayAgain={() => {
-          // Not applicable for history
-        }}
-        onNewSeason={() => {
-          // Not applicable for history
-        }}
-        onShare={() => {
-          // Could implement sharing from history
-        }}
-        onPlayerClick={onPlayerClick}
-      />
-    );
-  }
-
-  // Sort history by date (most recent first)
-  const sortedHistory = [...history].sort((a, b) =>
-    new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  // Sort history by date (most recent first) and filter by score threshold
+  const sortedHistory = [...history]
+    .filter(entry => entry.score >= scoreThreshold)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
-      onClick={onClose}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 100000 + (stackIndex * 10),
+        backdropFilter: 'blur(10px) brightness(0.8)',
+        WebkitBackdropFilter: 'blur(10px) brightness(0.8)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem',
+      }}
+      onClick={handleCloseAll}
     >
       <div
-        className="relative w-full max-w-2xl max-h-[90vh] bg-card rounded-lg shadow-xl flex flex-col overflow-hidden"
+        className="relative w-full max-w-2xl bg-card rounded-lg shadow-xl flex flex-col overflow-hidden"
+        style={{ height: '80vh', maxHeight: '700px' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -86,13 +126,218 @@ export function HistoryModal({ open, onClose, history, onPlayerClick }: HistoryM
             <History className="h-6 w-6 text-primary" />
             <h2 className="text-2xl font-bold">Game History</h2>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-accent rounded-lg transition-colors"
-            aria-label="Close history"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Filter Button */}
+            <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  className="p-2 hover:bg-accent rounded-lg transition-colors relative"
+                  aria-label="Filter history"
+                >
+                  <Filter className="h-5 w-5" />
+                  {scoreThreshold > 0 && (
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                      <span className="text-[10px] text-primary-foreground font-bold">
+                        {scoreThreshold}
+                      </span>
+                    </div>
+                  )}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-80"
+                style={{ zIndex: 100000 + (stackIndex * 10) + 50 }}
+                align="end"
+                side="bottom"
+              >
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-semibold mb-2">Filter by Score</h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">
+                        Minimum Score:
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          min="0"
+                          value={scoreThreshold}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || 0;
+                            setScoreThreshold(Math.max(0, val));
+                          }}
+                          className="w-24 h-8 text-center [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                          style={{ MozAppearance: 'textfield' } as React.CSSProperties}
+                        />
+                        <div className="flex flex-col gap-0.5">
+                          <button
+                            onClick={() => setScoreThreshold(prev => prev + 5)}
+                            className="p-0.5 hover:bg-accent rounded transition-colors"
+                            aria-label="Increment by 5"
+                          >
+                            <ChevronUp className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={() => setScoreThreshold(prev => Math.max(0, prev - 5))}
+                            className="p-0.5 hover:bg-accent rounded transition-colors"
+                            aria-label="Decrement by 5"
+                          >
+                            <ChevronDown className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {onDeleteHistory && (
+                    <div className="pt-2 border-t space-y-2">
+                      {!showDeleteConfirm ? (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setShowDeleteConfirm(true)}
+                            className="flex-1"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete All History
+                          </Button>
+                          {onDeleteBelowThreshold && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => setShowExpandedDelete(!showExpandedDelete)}
+                              className="px-2"
+                            >
+                              {showExpandedDelete ? (
+                                <ChevronUp className="h-4 w-4" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4" />
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowDeleteConfirm(false)}
+                            className="flex-1"
+                          >
+                            <X className="h-4 w-4 mr-2 text-destructive" />
+                            Cancel
+                          </Button>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => {
+                              onDeleteHistory();
+                              setShowDeleteConfirm(false);
+                              setFilterOpen(false);
+                            }}
+                            className="flex-1 bg-green-600 hover:bg-green-700"
+                          >
+                            <Check className="h-4 w-4 mr-2" />
+                            Confirm
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Expanded delete options */}
+                      {showExpandedDelete && onDeleteBelowThreshold && (
+                        <div className="space-y-2 pt-2 border-t">
+                          {!showThresholdDeleteConfirm ? (
+                            <>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                                  Delete below:
+                                </span>
+                                <div className="flex items-center gap-1">
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    value={deleteThreshold}
+                                    onChange={(e) => {
+                                      const val = parseInt(e.target.value) || 0;
+                                      setDeleteThreshold(Math.max(0, val));
+                                    }}
+                                    className="w-24 h-8 text-center [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                    style={{ MozAppearance: 'textfield' } as React.CSSProperties}
+                                  />
+                                  <div className="flex flex-col gap-0.5">
+                                    <button
+                                      onClick={() => setDeleteThreshold(prev => prev + 5)}
+                                      className="p-0.5 hover:bg-accent rounded transition-colors"
+                                      aria-label="Increment by 5"
+                                    >
+                                      <ChevronUp className="h-3 w-3" />
+                                    </button>
+                                    <button
+                                      onClick={() => setDeleteThreshold(prev => Math.max(0, prev - 5))}
+                                      className="p-0.5 hover:bg-accent rounded transition-colors"
+                                      aria-label="Decrement by 5"
+                                    >
+                                      <ChevronDown className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                </div>
+                                <span className="text-sm text-muted-foreground">pts</span>
+                              </div>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => setShowThresholdDeleteConfirm(true)}
+                                className="w-full"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete Below {deleteThreshold}
+                              </Button>
+                            </>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowThresholdDeleteConfirm(false)}
+                                className="flex-1"
+                              >
+                                <X className="h-4 w-4 mr-2 text-destructive" />
+                                Cancel
+                              </Button>
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => {
+                                  onDeleteBelowThreshold(deleteThreshold);
+                                  setShowThresholdDeleteConfirm(false);
+                                  setShowExpandedDelete(false);
+                                  setFilterOpen(false);
+                                }}
+                                className="flex-1 bg-green-600 hover:bg-green-700"
+                              >
+                                <Check className="h-4 w-4 mr-2" />
+                                Confirm
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Close Button */}
+            <button
+              onClick={handleCloseTop}
+              className="p-2 hover:bg-accent rounded-lg transition-colors"
+              aria-label="Close history"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -100,10 +345,21 @@ export function HistoryModal({ open, onClose, history, onPlayerClick }: HistoryM
           {sortedHistory.length === 0 ? (
             <div className="text-center py-12">
               <Trophy className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-lg text-muted-foreground">No games played yet</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Complete a game to see it here!
-              </p>
+              {history.length === 0 ? (
+                <>
+                  <p className="text-lg text-muted-foreground">No games played yet</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Complete a game to see it here!
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-lg text-muted-foreground">No games match filter</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Try lowering the score threshold
+                  </p>
+                </>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
@@ -111,15 +367,18 @@ export function HistoryModal({ open, onClose, history, onPlayerClick }: HistoryM
                 const primaryColor = entry.teamColors?.[0] || '#1d4ed8';
                 const secondaryColor = entry.teamColors?.[1] || '#3b82f6';
                 const textColor = getContrastColor(primaryColor);
+                // Extract nickname (last word of team name)
+                const teamNickname = entry.teamName.split(' ').pop() || entry.teamName;
 
                 return (
                   <button
                     key={entry.id}
-                    onClick={() => setSelectedGame(entry)}
-                    className="w-full text-left rounded-xl border p-4 transition-all hover:scale-[1.02] hover:shadow-lg"
+                    onClick={() => onGameClick?.(entry)}
+                    className="w-full text-left rounded-xl border-2 p-4 transition-all hover:scale-[1.02] hover:shadow-lg"
                     style={{
-                      backgroundColor: `${primaryColor}15`,
-                      borderColor: `${secondaryColor}60`,
+                      backgroundColor: primaryColor,
+                      borderColor: secondaryColor,
+                      color: secondaryColor,
                     }}
                   >
                     <div className="flex items-center justify-between gap-4">
@@ -133,10 +392,20 @@ export function HistoryModal({ open, onClose, history, onPlayerClick }: HistoryM
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-bold text-lg">{entry.season}</span>
-                            <span className="font-medium truncate">{entry.teamName}</span>
+                            <span className="font-bold text-lg" style={{ color: secondaryColor }}>
+                              {entry.season}
+                            </span>
+                            <span className="font-bold text-lg" style={{ color: secondaryColor }}>
+                              {teamNickname}
+                            </span>
                           </div>
-                          <p className="text-sm text-muted-foreground">
+                          <p
+                            className="text-sm"
+                            style={{
+                              color: secondaryColor,
+                              opacity: 0.7
+                            }}
+                          >
                             {new Date(entry.date).toLocaleDateString(undefined, {
                               year: 'numeric',
                               month: 'short',
@@ -148,10 +417,21 @@ export function HistoryModal({ open, onClose, history, onPlayerClick }: HistoryM
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        <div className="text-2xl font-bold" style={{ color: primaryColor }}>
+                        <div
+                          className="text-2xl font-bold"
+                          style={{ color: secondaryColor }}
+                        >
                           {entry.score}
                         </div>
-                        <div className="text-xs text-muted-foreground">points</div>
+                        <div
+                          className="text-xs"
+                          style={{
+                            color: secondaryColor,
+                            opacity: 0.7
+                          }}
+                        >
+                          points
+                        </div>
                       </div>
                     </div>
                   </button>

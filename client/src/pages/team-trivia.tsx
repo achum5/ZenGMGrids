@@ -53,8 +53,8 @@ import { CompactScoreCard } from '@/components/CompactScoreCard';
 import { TeamInfoModal } from '@/components/TeamInfoModal';
 import { ScoreSummaryModal, type ScoreSummaryData } from '@/components/ScoreSummaryModal';
 import { PlayerPageModal } from '@/components/PlayerPageModal';
-import { HistoryModal } from '@/components/HistoryModal';
-import { loadGameHistory, saveGameToHistory, type HistoryEntry } from '@/lib/game-history';
+import { HistoryModal, type HistoryEntry } from '@/components/HistoryModal';
+import { loadGameHistory, saveGameToHistory, deleteLeagueHistory, deleteLeagueHistoryBelowThreshold } from '@/lib/game-history';
 import type { LeagueData, Player, Team } from '@/types/bbgm';
 
 // Type for ScoreCategory
@@ -99,11 +99,12 @@ interface RoundScore {
   details: string;
 }
 
-// Modal stack types for player, team, and breakdown modals
+// Modal stack types for player, team, breakdown, and history modals
 type ModalStackItem =
   | { type: 'player'; player: Player; season?: number; teamId?: number }
   | { type: 'team'; tid: number; season: number }
-  | { type: 'breakdown' };
+  | { type: 'breakdown'; historyEntry?: HistoryEntry }
+  | { type: 'history' };
 
 // Normalize name for matching
 function normalizeName(name: string): string {
@@ -673,7 +674,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
   const [isSavingYearRange, setIsSavingYearRange] = useState(false); // Loading state for saving year range
   const [lastSavedYearRange, setLastSavedYearRange] = useState<[number, number] | null>(null); // Track last saved year range
   const [showHelpModal, setShowHelpModal] = useState(false); // Help modal state
-  const [showHistoryModal, setShowHistoryModal] = useState(false); // History modal state
   const [gameHistory, setGameHistory] = useState<HistoryEntry[]>([]); // Game history
 
   // Detailed game tracking for new summary modal
@@ -2008,10 +2008,15 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     setScore(0); // Reset score for new game
   }, [allSeasons, allTeams, buildRoster, leagueData.players, leagueData.teamSeasons, toast, yearRange]);
 
-  // Load game history on mount
+  // Load game history on mount and filter by current league
   useEffect(() => {
-    setGameHistory(loadGameHistory());
-  }, []);
+    const allHistory = loadGameHistory();
+    // Filter to only show games from the current league
+    const filteredHistory = leagueFingerprintId
+      ? allHistory.filter(entry => entry.leagueFingerprintId === leagueFingerprintId)
+      : allHistory;
+    setGameHistory(filteredHistory);
+  }, [leagueFingerprintId]);
 
   // Initialize on mount - wait for yearRange to be set first
   useEffect(() => {
@@ -3080,6 +3085,13 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     leagueData.sport === 'baseball' ? 'ZenGM Baseball' :
     'ZenGM';
 
+  const sportTitleAbbr =
+    leagueData.sport === 'basketball' ? 'BBGM' :
+    leagueData.sport === 'football' ? 'FBGM' :
+    leagueData.sport === 'hockey' ? 'ZGMH' :
+    leagueData.sport === 'baseball' ? 'ZGMB' :
+    'ZenGM';
+
   const sportIcon =
     leagueData.sport === 'basketball' ? basketballIcon :
     leagueData.sport === 'football' ? footballIcon :
@@ -3141,21 +3153,39 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
   // Save game to history when it completes
   useEffect(() => {
     if (currentRound === 'complete' && scoreSummaryData && selectedTeam && selectedSeason) {
-      saveGameToHistory({
-        season: selectedSeason,
-        teamName: teamDisplayInfo.name,
-        teamAbbrev: teamDisplayInfo.abbrev,
-        teamLogo: teamDisplayInfo.logoUrl,
-        teamColors: teamDisplayInfo.colors,
-        sport: leagueData.sport || 'basketball',
-        score,
-        summaryData: scoreSummaryData,
-        leagueFingerprintId: leagueFingerprintId || undefined,
-      });
-      // Reload history after saving
-      setGameHistory(loadGameHistory());
+      // Only save if the user made meaningful progress:
+      // - Either earned at least some points (score > 0)
+      // - OR completed at least one round (scoreBreakdown.length > 0)
+      // This prevents saving when user clicks "Give Up" immediately with no progress
+      const hasCompletedRounds = scoreBreakdown.length > 0;
+      const shouldSave = score > 0 || hasCompletedRounds;
+
+      if (shouldSave) {
+        // Get small logo for history card (fallback to regular logo)
+        const seasonInfo = selectedTeam.seasons?.find(s => s.season === selectedSeason);
+        const smallLogo = seasonInfo?.imgURLSmall || seasonInfo?.imgURL || selectedTeam.imgURLSmall || selectedTeam.imgURL;
+        const smallLogoUrl = getTeamLogoUrl(smallLogo, leagueData.sport);
+
+        saveGameToHistory({
+          season: selectedSeason,
+          teamName: teamDisplayInfo.name,
+          teamAbbrev: teamDisplayInfo.abbrev,
+          teamLogo: smallLogoUrl,
+          teamColors: teamDisplayInfo.colors,
+          sport: leagueData.sport || 'basketball',
+          score,
+          summaryData: scoreSummaryData,
+          leagueFingerprintId: leagueFingerprintId || undefined,
+        });
+        // Reload history after saving and filter by current league
+        const allHistory = loadGameHistory();
+        const filteredHistory = leagueFingerprintId
+          ? allHistory.filter(entry => entry.leagueFingerprintId === leagueFingerprintId)
+          : allHistory;
+        setGameHistory(filteredHistory);
+      }
     }
-  }, [currentRound, scoreSummaryData, selectedTeam, selectedSeason, teamDisplayInfo, leagueData.sport, score, leagueFingerprintId]);
+  }, [currentRound, scoreSummaryData, selectedTeam, selectedSeason, teamDisplayInfo, leagueData.sport, score, leagueFingerprintId, scoreBreakdown]);
 
     return (
       <div className="h-full flex flex-col bg-background overflow-hidden">
@@ -3168,9 +3198,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                 style={{ position: 'relative', backgroundColor: teamDisplayInfo.colors[0] || 'hsl(var(--card))' }}
               >
           <div className="max-w-6xl mx-auto px-6 py-4">
-            <div className="grid grid-cols-3 items-center gap-2 sm:gap-4">
+            <div className="relative sm:grid sm:grid-cols-3 items-center gap-2 sm:gap-4 flex justify-between">
               {/* Left: Back button & Give Up button */}
-              <div className="flex items-center justify-start space-x-1 shrink-0 min-w-0">
+              <div className="flex items-center justify-start space-x-1 shrink-0 min-w-0 z-10">
                 {hasProgress ? (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -3251,7 +3281,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
               </div>
 
               {/* Center: Logo + Title */}
-              <div className="flex items-center justify-center space-x-1 sm:space-x-2 md:space-x-3 min-w-0">
+              <div className="absolute left-1/2 -translate-x-1/2 sm:relative sm:left-auto sm:translate-x-0 flex items-center justify-center space-x-1 sm:space-x-2 md:space-x-3 min-w-0">
                 <div
                   className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 shrink-0"
                   style={{
@@ -3273,17 +3303,18 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                     letterSpacing: '-0.02em'
                   }}
                 >
-                  {sportTitle} Trivia
+                  <span className="sm:hidden">{sportTitleAbbr} Trivia</span>
+                  <span className="hidden sm:inline">{sportTitle} Trivia</span>
                 </h1>
               </div>
 
               {/* Right: History, Help & Home buttons */}
-              <div className="flex items-center justify-end space-x-1 shrink-0 min-w-0">
+              <div className="flex items-center justify-end space-x-1 shrink-0 min-w-0 z-10">
                 {/* History button */}
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setShowHistoryModal(true)}
+                  onClick={() => pushModal({ type: 'history' })}
                   style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--primary-foreground))' }}
                   className="animate-on-click"
                   data-testid="button-history"
@@ -4430,7 +4461,14 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
               return null;
             }
           } else if (modal.type === 'breakdown') {
-            if (!scoreSummaryData) return null;
+            // Use history entry data if available, otherwise use current game data
+            const breakdownData = modal.historyEntry?.summaryData || scoreSummaryData;
+            const breakdownSeason = modal.historyEntry?.season || selectedSeason;
+            const breakdownTeam = modal.historyEntry
+              ? leagueData.teams.find(t => t.abbrev === modal.historyEntry!.teamAbbrev)
+              : selectedTeam;
+
+            if (!breakdownData) return null;
 
             return (
               <ScoreSummaryModal
@@ -4439,10 +4477,11 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                 onCloseTop={popModal}
                 onCloseAll={clearModals}
                 stackIndex={index}
-                data={scoreSummaryData}
+                data={breakdownData}
                 teams={leagueData.teams}
                 sport={leagueData.sport || 'basketball'}
-                onPlayerClick={(player) => pushModal({ type: 'player', player, season: selectedSeason || undefined, teamId: selectedTeam?.tid })}
+                onPlayerClick={(player) => pushModal({ type: 'player', player, season: breakdownSeason || undefined, teamId: breakdownTeam?.tid })}
+                onTeamInfoClick={() => breakdownTeam && breakdownSeason && pushModal({ type: 'team', tid: breakdownTeam.tid, season: breakdownSeason })}
                 onPlayAgain={() => {
                   clearModals();
                   handleNewYearSameTeam();
@@ -4453,21 +4492,53 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                 }}
               />
             );
+          } else if (modal.type === 'history') {
+            return (
+              <HistoryModal
+                key={`history-${index}`}
+                open={true}
+                onCloseTop={popModal}
+                onCloseAll={clearModals}
+                stackIndex={index}
+                history={gameHistory}
+                leagueFingerprintId={leagueFingerprintId ?? undefined}
+                onGameClick={(entry) => {
+                  pushModal({ type: 'breakdown', historyEntry: entry });
+                }}
+                onPlayerClick={(player) => {
+                  pushModal({ type: 'player', player, season: selectedSeason || undefined, teamId: selectedTeam?.tid });
+                }}
+                onTeamInfoClick={(season) => {
+                  // Find the team by abbrev from the selected history entry
+                  const historyEntry = gameHistory.find(h => h.season === season);
+                  if (historyEntry) {
+                    const team = leagueData.teams.find(t => t.abbrev === historyEntry.teamAbbrev);
+                    if (team) {
+                      pushModal({ type: 'team', tid: team.tid, season });
+                    }
+                  }
+                }}
+                onDeleteHistory={() => {
+                  if (leagueFingerprintId) {
+                    deleteLeagueHistory(leagueFingerprintId);
+                    setGameHistory([]);
+                  }
+                }}
+                onDeleteBelowThreshold={(threshold) => {
+                  if (leagueFingerprintId) {
+                    deleteLeagueHistoryBelowThreshold(leagueFingerprintId, threshold);
+                    // Reload and filter history
+                    const allHistory = loadGameHistory();
+                    const filteredHistory = allHistory.filter(entry => entry.leagueFingerprintId === leagueFingerprintId);
+                    setGameHistory(filteredHistory);
+                  }
+                }}
+              />
+            );
           }
           return null;
         })}
           </>
-
-        {/* History Modal */}
-        <HistoryModal
-          open={showHistoryModal}
-          onClose={() => setShowHistoryModal(false)}
-          history={gameHistory}
-          onPlayerClick={(player) => {
-            setShowHistoryModal(false);
-            pushModal({ type: 'player', player, season: selectedSeason || undefined, teamId: selectedTeam?.tid });
-          }}
-        />
 
         {/* Help Modal */}
         <Dialog open={showHelpModal} onOpenChange={setShowHelpModal}>
