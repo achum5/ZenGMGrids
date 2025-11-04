@@ -31,8 +31,6 @@ export function PlayerSearchModal({
   const [activeIndex, setActiveIndex] = useState(-1);
   const [inputRef, setInputRef] = useState<HTMLInputElement | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const isScrollingRef = useRef(false);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Use optimized search with debouncing and memoization
   const {
@@ -83,64 +81,6 @@ export function PlayerSearchModal({
       setActiveIndex(-1);
     }
   }, [filteredPlayers]);
-
-  // Prevent keyboard from closing when scrolling outside the modal
-  useEffect(() => {
-    if (!isOpen || !inputRef) return;
-
-    const handleTouchStart = () => {
-      // Mark that a touch has started
-      isScrollingRef.current = false;
-    };
-
-    const handleTouchMove = () => {
-      // Mark that scrolling is in progress
-      isScrollingRef.current = true;
-    };
-
-    const handleScroll = () => {
-      // Mark that scrolling is in progress
-      isScrollingRef.current = true;
-
-      // Clear any existing timeout
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-
-      // Reset scroll flag after scrolling stops
-      scrollTimeoutRef.current = setTimeout(() => {
-        isScrollingRef.current = false;
-      }, 150);
-    };
-
-    const handleInputBlur = (e: FocusEvent) => {
-      // If blur happened during scrolling, refocus the input
-      if (isScrollingRef.current && inputRef === e.target) {
-        e.preventDefault();
-        requestAnimationFrame(() => {
-          inputRef.focus();
-        });
-      }
-    };
-
-    // Add event listeners
-    document.addEventListener('touchstart', handleTouchStart, { passive: true });
-    document.addEventListener('touchmove', handleTouchMove, { passive: true });
-    document.addEventListener('scroll', handleScroll, { passive: true, capture: true });
-    inputRef.addEventListener('blur', handleInputBlur as EventListener);
-
-    return () => {
-      // Clean up event listeners
-      document.removeEventListener('touchstart', handleTouchStart);
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('scroll', handleScroll, true);
-      inputRef?.removeEventListener('blur', handleInputBlur as EventListener);
-
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-    };
-  }, [isOpen, inputRef]);
 
   const handleSelectPlayer = (searchablePlayer: SearchablePlayer) => {
     const player = byPid[searchablePlayer.pid];
