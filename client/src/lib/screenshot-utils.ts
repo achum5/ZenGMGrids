@@ -31,13 +31,46 @@ export async function captureElementAsBlob(
   const backgroundColor = options.backgroundColor ?? 'transparent';
 
   try {
+    // ZENGM domains that don't support CORS
+    const zengmDomains = [
+      'play.basketball-gm.com',
+      'basketball.zengm.com',
+      'play.football-gm.com',
+      'football.zengm.com',
+      'hockey.zengm.com',
+      'play.hockey-gm.com',
+      'baseball.zengm.com',
+      'play.baseball-gm.com',
+    ];
+
     // Use html-to-image to convert the element to a PNG data URL
     const dataUrl = await toPng(element, {
       quality,
       pixelRatio,
       backgroundColor,
-      cacheBust: true, // Prevent caching issues
+      cacheBust: true,
       skipFonts: true, // Skip external fonts to avoid CORS errors
+      // Filter out ZENGM images that don't support CORS
+      filter: (node) => {
+        // Allow all non-image nodes
+        if (!(node instanceof HTMLImageElement)) {
+          return true;
+        }
+
+        // Allow data URLs
+        if (node.src.startsWith('data:')) {
+          return true;
+        }
+
+        // Filter out ZENGM images (they don't support CORS)
+        // All other external images (like Imgur) will work fine
+        try {
+          const imgUrl = new URL(node.src);
+          return !zengmDomains.some(domain => imgUrl.hostname === domain);
+        } catch {
+          return true;
+        }
+      },
       style: {
         // Ensure element renders correctly
         transform: 'none',
@@ -74,12 +107,45 @@ export async function captureElementAsDataUrl(
   const backgroundColor = options.backgroundColor ?? 'transparent';
 
   try {
+    // ZENGM domains that don't support CORS
+    const zengmDomains = [
+      'play.basketball-gm.com',
+      'basketball.zengm.com',
+      'play.football-gm.com',
+      'football.zengm.com',
+      'hockey.zengm.com',
+      'play.hockey-gm.com',
+      'baseball.zengm.com',
+      'play.baseball-gm.com',
+    ];
+
     return await toPng(element, {
       quality,
       pixelRatio,
       backgroundColor,
       cacheBust: true,
       skipFonts: true, // Skip external fonts to avoid CORS errors
+      // Filter out ZENGM images that don't support CORS
+      filter: (node) => {
+        // Allow all non-image nodes
+        if (!(node instanceof HTMLImageElement)) {
+          return true;
+        }
+
+        // Allow data URLs
+        if (node.src.startsWith('data:')) {
+          return true;
+        }
+
+        // Filter out ZENGM images (they don't support CORS)
+        // All other external images (like Imgur) will work fine
+        try {
+          const imgUrl = new URL(node.src);
+          return !zengmDomains.some(domain => imgUrl.hostname === domain);
+        } catch {
+          return true;
+        }
+      },
     });
   } catch (error) {
     console.error('Failed to capture screenshot:', error);

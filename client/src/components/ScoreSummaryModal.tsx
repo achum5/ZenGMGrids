@@ -227,30 +227,37 @@ export function ScoreSummaryModal({
       setScreenshotUrl('');
       setShowWatermark(true);
 
-      // Store original styles
+      // Store original styles for BOTH elements
+      const modalElement = modalContentRef.current;
       const scrollableElement = scrollableRef.current;
-      const originalOverflowY = scrollableElement.style.overflowY;
-      const originalMaxHeight = scrollableElement.style.maxHeight;
-      const originalMinHeight = scrollableElement.style.minHeight;
 
-      // Temporarily remove scrolling and height constraints to show all content
+      const originalModalMaxHeight = modalElement.style.maxHeight;
+      const originalScrollOverflowY = scrollableElement.style.overflowY;
+      const originalScrollMaxHeight = scrollableElement.style.maxHeight;
+      const originalScrollMinHeight = scrollableElement.style.minHeight;
+
+      // Temporarily remove height and overflow constraints
+      // Keep the modal's overflow-hidden to maintain rounded corners and styling
+      modalElement.style.maxHeight = 'none';
       scrollableElement.style.overflowY = 'visible';
       scrollableElement.style.maxHeight = 'none';
       scrollableElement.style.minHeight = 'auto';
 
-      // Small delay to allow layout to update
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Longer delay to ensure all content is rendered and laid out
+      await new Promise(resolve => setTimeout(resolve, 300));
 
-      // Capture the entire modal content
+      // Capture the entire modal content at full height
       const imageBlob = await captureElementAsBlob(modalContentRef.current, {
         pixelRatio: 2,
         quality: 0.95,
+        backgroundColor: primaryColor, // Explicitly set background color
       });
 
-      // Restore original styles
-      scrollableElement.style.overflowY = originalOverflowY;
-      scrollableElement.style.maxHeight = originalMaxHeight;
-      scrollableElement.style.minHeight = originalMinHeight;
+      // Restore original styles for BOTH elements
+      modalElement.style.maxHeight = originalModalMaxHeight;
+      scrollableElement.style.overflowY = originalScrollOverflowY;
+      scrollableElement.style.maxHeight = originalScrollMaxHeight;
+      scrollableElement.style.minHeight = originalScrollMinHeight;
       setShowWatermark(false);
 
       // Upload to ImgBB
@@ -284,7 +291,10 @@ export function ScoreSummaryModal({
         }, 5000);
       }
     } catch (error) {
-      // Restore styles on error
+      // Restore styles on error for BOTH elements
+      if (modalContentRef.current) {
+        modalContentRef.current.style.maxHeight = '';
+      }
       if (scrollableRef.current) {
         scrollableRef.current.style.overflowY = '';
         scrollableRef.current.style.maxHeight = '';
@@ -743,7 +753,7 @@ export function ScoreSummaryModal({
           <button
             onClick={handleScreenshotClick}
             disabled={screenshotStatus === 'uploading'}
-            className="absolute left-4 sm:left-4 top-4 sm:top-4 max-sm:-translate-x-[20px] max-sm:translate-y-[5px] z-[10001] rounded-lg p-2.5 transition-all duration-200 hover:scale-110 shadow-lg bg-background disabled:opacity-50 disabled:cursor-not-allowed ml-[22px] mr-[22px]"
+            className="absolute left-4 sm:left-4 top-4 sm:top-4 max-sm:-translate-x-[20px] max-sm:translate-y-[5px] z-[10001] rounded-lg p-2.5 transition-all duration-200 hover:scale-110 active:scale-95 shadow-lg bg-background disabled:opacity-50 disabled:cursor-not-allowed ml-[22px] mr-[22px] group"
             style={{
               backgroundColor: `${secondaryColor}40`,
               color: secondaryColor,
@@ -761,33 +771,45 @@ export function ScoreSummaryModal({
             aria-label="Take screenshot"
             title="Screenshot and upload to ImgBB"
           >
-            {screenshotStatus === 'idle' && <Camera className="h-6 w-6" />}
+            {screenshotStatus === 'idle' && (
+              <Camera className="h-6 w-6 transition-all duration-200 group-hover:scale-110 group-active:animate-[cameraFlash_0.3s_ease-in-out]" />
+            )}
             {screenshotStatus === 'uploading' && <Loader2 className="h-6 w-6 animate-spin" />}
             {screenshotStatus === 'success' && <Check className="h-6 w-6 text-green-500" />}
             {screenshotStatus === 'error' && <AlertCircle className="h-6 w-6 text-red-500" />}
           </button>
         )}
 
-        {/* Custom Close Button - Fixed */}
-        <button
-          onClick={handleCloseTop}
-          className="absolute right-4 sm:right-4 max-sm:translate-x-5 top-4 z-[10001] rounded-lg p-2.5 transition-all duration-200 hover:scale-110 hover:rotate-90 shadow-lg bg-background ml-[43px] mr-[43px]"
-          style={{
-            backgroundColor: `${secondaryColor}40`,
-            color: secondaryColor,
-            border: `2px solid ${secondaryColor}`,
-            backdropFilter: 'blur(8px)',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = `${secondaryColor}60`;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = `${secondaryColor}40`;
-          }}
-          aria-label="Close"
-        >
-          <X className="h-6 w-6" />
-        </button>
+        {/* Camera flash animation */}
+        <style>{`
+          @keyframes cameraFlash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; transform: scale(0.95); }
+          }
+        `}</style>
+
+        {/* Custom Close Button - Fixed (hidden during capture) */}
+        {screenshotStatus !== 'capturing' && (
+          <button
+            onClick={handleCloseTop}
+            className="absolute right-4 sm:right-4 max-sm:translate-x-5 top-4 z-[10001] rounded-lg p-2.5 transition-all duration-200 hover:scale-110 hover:rotate-90 shadow-lg bg-background ml-[43px] mr-[43px]"
+            style={{
+              backgroundColor: `${secondaryColor}40`,
+              color: secondaryColor,
+              border: `2px solid ${secondaryColor}`,
+              backdropFilter: 'blur(8px)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = `${secondaryColor}60`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = `${secondaryColor}40`;
+            }}
+            aria-label="Close"
+          >
+            <X className="h-6 w-6" />
+          </button>
+        )}
 
         {/* Scrollable content area */}
         <div
@@ -852,10 +874,10 @@ export function ScoreSummaryModal({
           </div>
           )}
 
-          {/* Watermark - bottom left corner (only visible during screenshot capture) */}
+          {/* Watermark - bottom right corner (only visible during screenshot capture) */}
           {showWatermark && (
             <div
-              className="absolute bottom-4 left-4 text-sm font-medium pointer-events-none z-10"
+              className="absolute bottom-4 right-4 text-sm font-medium pointer-events-none z-10"
               style={{
                 color: headerTextColor === 'white' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)',
               }}
@@ -944,7 +966,7 @@ export function ScoreSummaryModal({
                   >
                     {data.season} {data.teamName}
                   </h2>
-                  {onTeamInfoClick && (
+                  {onTeamInfoClick && screenshotStatus !== 'capturing' && (
                     <button
                       onClick={handleOpenTeamInfo}
                       className="p-1.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors"

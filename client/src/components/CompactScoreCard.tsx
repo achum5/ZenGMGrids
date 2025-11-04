@@ -281,7 +281,7 @@ export function CompactScoreCard({
         <button
           onClick={handleScreenshotClick}
           disabled={screenshotStatus === 'capturing' || screenshotStatus === 'uploading'}
-          className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 rounded-full p-2 transition-all hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 rounded-full p-2 transition-all duration-200 hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group"
           style={{
             backgroundColor: `${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`,
             color: textColor === 'white' ? '#ffffff' : '#000000',
@@ -293,11 +293,21 @@ export function CompactScoreCard({
           aria-label="Take screenshot and upload to ImgBB"
           title="Screenshot and upload to ImgBB"
         >
-          {screenshotStatus === 'idle' && <Camera className="h-5 w-5" />}
+          {screenshotStatus === 'idle' && (
+            <Camera className="h-5 w-5 transition-all duration-200 group-hover:scale-110 group-active:animate-[flash_0.3s_ease-in-out]" />
+          )}
           {screenshotStatus === 'success' && <Check className="h-5 w-5 text-green-500" />}
           {screenshotStatus === 'error' && <AlertCircle className="h-5 w-5 text-red-500" />}
         </button>
       )}
+
+      {/* Camera flash animation */}
+      <style>{`
+        @keyframes flash {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; transform: scale(0.95); }
+        }
+      `}</style>
 
       {/* Watermark - reduced opacity on mobile */}
       {data.teamLogo && (
