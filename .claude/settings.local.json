@@ -24,7 +24,8 @@
       "Bash(awk:*)",
       "Bash(git log:*)",
       "Bash(git stash:*)",
-      "Bash(1)"
+      "Bash(1)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []
