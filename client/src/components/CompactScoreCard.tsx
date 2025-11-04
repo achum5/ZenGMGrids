@@ -1,8 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import type { ReactNode, CSSProperties } from 'react';
 import { Button } from '@/components/ui/button';
-import { Home, Shuffle, X } from 'lucide-react';
+import { Home, Shuffle, X, Camera, Loader2, Check, AlertCircle } from 'lucide-react';
 import type { ScoreSummaryData } from '@/components/ScoreSummaryModal';
+import { captureElementAsBlob } from '@/lib/screenshot-utils';
+import { uploadToImgur, copyToClipboard } from '@/lib/imgur-upload';
 
 interface CompactScoreCardProps {
   data: ScoreSummaryData;
@@ -51,6 +53,15 @@ export function CompactScoreCard({
   onClose,
   variant = 'standalone',
 }: CompactScoreCardProps) {
+  // Reference to the card element for screenshot capture
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // State for managing screenshot upload process
+  const [screenshotStatus, setScreenshotStatus] = useState<'idle' | 'capturing' | 'uploading' | 'success' | 'error'>('idle');
+  const [screenshotUrl, setScreenshotUrl] = useState<string>('');
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [showWatermark, setShowWatermark] = useState<boolean>(false);
+
   const palette = useMemo(() => {
     if (teamColors && teamColors.length > 0) {
       return teamColors;
@@ -159,8 +170,91 @@ export function CompactScoreCard({
   // Darken background on mobile for better contrast
   const cardBackground = `linear-gradient(180deg, ${primaryColor}f0 0%, ${primaryColor}e8 100%)`;
 
+  // Handler for screenshot button click
+  const handleScreenshotClick = async () => {
+    // Guard against missing ref or concurrent operations
+    if (!cardRef.current || screenshotStatus === 'capturing' || screenshotStatus === 'uploading') {
+      return;
+    }
+
+    try {
+      // Begin capture process
+      setScreenshotStatus('capturing');
+      setErrorMessage('');
+      setScreenshotUrl('');
+
+      // Show watermark for screenshot
+      setShowWatermark(true);
+
+      // Small delay to allow UI state to update (hide button, show watermark, etc.)
+      await new Promise(resolve => setTimeout(resolve, 150));
+
+      // Capture the card element as a high-quality image
+      const imageBlob = await captureElementAsBlob(cardRef.current, {
+        pixelRatio: 2, // 2x resolution for high quality
+        quality: 0.95,
+      });
+
+      // Hide watermark immediately after capture
+      setShowWatermark(false);
+
+      // Upload to ImgBB
+      setScreenshotStatus('uploading');
+      const uploadResult = await uploadToImgur(
+        imageBlob,
+        `${data.season} ${data.teamName} - Score: ${data.finalScore}`,
+        `Team Trivia game results for ${data.season} ${data.teamName}`
+      );
+
+      // Handle upload result
+      if (uploadResult.success && uploadResult.data) {
+        // Success! Save the URL and update status
+        setScreenshotUrl(uploadResult.data.link);
+        setScreenshotStatus('success');
+
+        // Automatically copy link to clipboard
+        const wasCopied = await copyToClipboard(uploadResult.data.link);
+        if (!wasCopied) {
+          console.warn('Could not copy link to clipboard');
+        }
+
+        // Auto-reset to idle after 5 seconds
+        setTimeout(() => {
+          setScreenshotStatus('idle');
+          setScreenshotUrl('');
+        }, 5000);
+      } else {
+        // Upload failed
+        setErrorMessage(uploadResult.error || 'Upload to ImgBB failed');
+        setScreenshotStatus('error');
+
+        // Auto-reset to idle after 5 seconds
+        setTimeout(() => {
+          setScreenshotStatus('idle');
+          setErrorMessage('');
+        }, 5000);
+      }
+    } catch (error) {
+      // Hide watermark on error
+      setShowWatermark(false);
+
+      // Capture or upload error
+      console.error('Screenshot error:', error);
+      const message = error instanceof Error ? error.message : 'Failed to capture or upload screenshot';
+      setErrorMessage(message);
+      setScreenshotStatus('error');
+
+      // Auto-reset to idle after 5 seconds
+      setTimeout(() => {
+        setScreenshotStatus('idle');
+        setErrorMessage('');
+      }, 5000);
+    }
+  };
+
   const card = (
     <div
+      ref={cardRef}
       className="relative w-full max-w-[560px] rounded-xl sm:rounded-2xl shadow-2xl overflow-hidden"
       style={{
         background: cardBackground,
@@ -182,10 +276,90 @@ export function CompactScoreCard({
         </button>
       )}
 
+      {/* Screenshot button - only visible in embedded/spoiler-free view */}
+      {variant === 'embedded' && (
+        <button
+          onClick={handleScreenshotClick}
+          disabled={screenshotStatus === 'capturing' || screenshotStatus === 'uploading'}
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 rounded-full p-2 transition-all hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{
+            backgroundColor: `${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`,
+            color: textColor === 'white' ? '#ffffff' : '#000000',
+            // Hide button during capture/upload so it doesn't appear in screenshot
+            display: screenshotStatus === 'capturing' || screenshotStatus === 'uploading' ? 'none' : 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          aria-label="Take screenshot and upload to ImgBB"
+          title="Screenshot and upload to ImgBB"
+        >
+          {screenshotStatus === 'idle' && <Camera className="h-5 w-5" />}
+          {screenshotStatus === 'success' && <Check className="h-5 w-5 text-green-500" />}
+          {screenshotStatus === 'error' && <AlertCircle className="h-5 w-5 text-red-500" />}
+        </button>
+      )}
+
       {/* Watermark - reduced opacity on mobile */}
       {data.teamLogo && (
         <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] sm:opacity-[0.06] pointer-events-none">
           <img src={data.teamLogo} alt="" className="w-[80%] h-[80%] object-contain" />
+        </div>
+      )}
+
+      {/* URL Watermark - bottom left corner (only visible during screenshot capture) */}
+      {variant === 'embedded' && showWatermark && (
+        <div
+          className="absolute bottom-2 left-2 text-xs font-medium pointer-events-none z-10"
+          style={{
+            color: textColor === 'white' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)',
+          }}
+        >
+          zengmgrids.vercel.app
+        </div>
+      )}
+
+      {/* Status overlay - shows progress and results (hidden during capture) */}
+      {variant === 'embedded' && screenshotStatus !== 'idle' && screenshotStatus !== 'capturing' && (
+        <div
+          className="absolute bottom-3 left-3 right-3 z-20 rounded-lg p-3 text-sm font-medium text-center shadow-lg"
+          style={{
+            backgroundColor: `${textColor === 'white' ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.95)'}`,
+            color: textColor === 'white' ? '#000000' : '#ffffff',
+          }}
+        >
+          {screenshotStatus === 'uploading' && (
+            <div className="flex items-center justify-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Uploading to ImgBB...</span>
+            </div>
+          )}
+
+          {screenshotStatus === 'success' && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-center gap-2">
+                <Check className="h-4 w-4 text-green-500" />
+                <span>Link copied to clipboard!</span>
+              </div>
+              {screenshotUrl && (
+                <a
+                  href={screenshotUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs underline hover:no-underline break-all block"
+                  style={{ color: secondaryColor }}
+                >
+                  {screenshotUrl}
+                </a>
+              )}
+            </div>
+          )}
+
+          {screenshotStatus === 'error' && (
+            <div className="flex items-center justify-center gap-2">
+              <AlertCircle className="h-4 w-4 text-red-500" />
+              <span>{errorMessage || 'Failed to upload screenshot'}</span>
+            </div>
+          )}
         </div>
       )}
 

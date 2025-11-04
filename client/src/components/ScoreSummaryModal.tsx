@@ -1,10 +1,12 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Users as UsersIcon, TrendingUp, Target, Flag, X, Info } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { Users as UsersIcon, TrendingUp, Target, Flag, X, Info, Camera, Loader2, Check, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PlayerFace } from '@/components/PlayerFace';
 import { CompactScoreCard } from '@/components/CompactScoreCard';
 import { TeamInfoModal } from '@/components/TeamInfoModal';
 import type { Player, Team } from '@/types/bbgm';
+import { captureElementAsBlob } from '@/lib/screenshot-utils';
+import { uploadToImgur, copyToClipboard } from '@/lib/imgur-upload';
 
 interface ScoreCategory {
   name: string;
@@ -188,6 +190,14 @@ export function ScoreSummaryModal({
   const [viewMode, setViewMode] = useState<'detailed' | 'spoilerFree'>('detailed');
   const [cardsVisible, setCardsVisible] = useState(false);
 
+  // Screenshot state
+  const modalContentRef = useRef<HTMLDivElement>(null);
+  const scrollableRef = useRef<HTMLDivElement>(null);
+  const [screenshotStatus, setScreenshotStatus] = useState<'idle' | 'capturing' | 'uploading' | 'success' | 'error'>('idle');
+  const [screenshotUrl, setScreenshotUrl] = useState<string>('');
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [showWatermark, setShowWatermark] = useState<boolean>(false);
+
   useEffect(() => {
     if (open) {
       setCardsVisible(false);
@@ -203,6 +213,95 @@ export function ScoreSummaryModal({
   // Open team info modal via callback
   const handleOpenTeamInfo = () => {
     onTeamInfoClick?.();
+  };
+
+  // Screenshot handler - captures entire scrollable content
+  const handleScreenshotClick = async () => {
+    if (!modalContentRef.current || !scrollableRef.current || screenshotStatus === 'capturing' || screenshotStatus === 'uploading') {
+      return;
+    }
+
+    try {
+      setScreenshotStatus('capturing');
+      setErrorMessage('');
+      setScreenshotUrl('');
+      setShowWatermark(true);
+
+      // Store original styles
+      const scrollableElement = scrollableRef.current;
+      const originalOverflowY = scrollableElement.style.overflowY;
+      const originalMaxHeight = scrollableElement.style.maxHeight;
+      const originalMinHeight = scrollableElement.style.minHeight;
+
+      // Temporarily remove scrolling and height constraints to show all content
+      scrollableElement.style.overflowY = 'visible';
+      scrollableElement.style.maxHeight = 'none';
+      scrollableElement.style.minHeight = 'auto';
+
+      // Small delay to allow layout to update
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // Capture the entire modal content
+      const imageBlob = await captureElementAsBlob(modalContentRef.current, {
+        pixelRatio: 2,
+        quality: 0.95,
+      });
+
+      // Restore original styles
+      scrollableElement.style.overflowY = originalOverflowY;
+      scrollableElement.style.maxHeight = originalMaxHeight;
+      scrollableElement.style.minHeight = originalMinHeight;
+      setShowWatermark(false);
+
+      // Upload to ImgBB
+      setScreenshotStatus('uploading');
+      const uploadResult = await uploadToImgur(
+        imageBlob,
+        `${data.season} ${data.teamName} - Detailed Score Breakdown`,
+        `Complete score breakdown for ${data.season} ${data.teamName}`
+      );
+
+      if (uploadResult.success && uploadResult.data) {
+        setScreenshotUrl(uploadResult.data.link);
+        setScreenshotStatus('success');
+
+        const wasCopied = await copyToClipboard(uploadResult.data.link);
+        if (!wasCopied) {
+          console.warn('Could not copy link to clipboard');
+        }
+
+        setTimeout(() => {
+          setScreenshotStatus('idle');
+          setScreenshotUrl('');
+        }, 5000);
+      } else {
+        setErrorMessage(uploadResult.error || 'Upload to ImgBB failed');
+        setScreenshotStatus('error');
+
+        setTimeout(() => {
+          setScreenshotStatus('idle');
+          setErrorMessage('');
+        }, 5000);
+      }
+    } catch (error) {
+      // Restore styles on error
+      if (scrollableRef.current) {
+        scrollableRef.current.style.overflowY = '';
+        scrollableRef.current.style.maxHeight = '';
+        scrollableRef.current.style.minHeight = '';
+      }
+      setShowWatermark(false);
+
+      console.error('Screenshot error:', error);
+      const message = error instanceof Error ? error.message : 'Failed to capture or upload screenshot';
+      setErrorMessage(message);
+      setScreenshotStatus('error');
+
+      setTimeout(() => {
+        setScreenshotStatus('idle');
+        setErrorMessage('');
+      }, 5000);
+    }
   };
 
   // Team colors
@@ -631,6 +730,7 @@ export function ScoreSummaryModal({
     >
       {/* Modal Content */}
       <div
+        ref={modalContentRef}
         className="relative max-w-5xl max-h-[calc(100vh-8rem)] w-[calc(100vw-2rem)] rounded-2xl shadow-2xl overflow-hidden flex flex-col"
         style={{
           backgroundColor: primaryColor,
@@ -638,6 +738,36 @@ export function ScoreSummaryModal({
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Screenshot Button - Top Left (hidden during capture) */}
+        {viewMode === 'detailed' && screenshotStatus !== 'capturing' && (
+          <button
+            onClick={handleScreenshotClick}
+            disabled={screenshotStatus === 'uploading'}
+            className="absolute left-4 sm:left-4 top-4 sm:top-4 max-sm:-translate-x-[20px] max-sm:translate-y-[5px] z-[10001] rounded-lg p-2.5 transition-all duration-200 hover:scale-110 shadow-lg bg-background disabled:opacity-50 disabled:cursor-not-allowed ml-[22px] mr-[22px]"
+            style={{
+              backgroundColor: `${secondaryColor}40`,
+              color: secondaryColor,
+              border: `2px solid ${secondaryColor}`,
+              backdropFilter: 'blur(8px)',
+            }}
+            onMouseEnter={(e) => {
+              if (screenshotStatus !== 'uploading') {
+                e.currentTarget.style.backgroundColor = `${secondaryColor}60`;
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = `${secondaryColor}40`;
+            }}
+            aria-label="Take screenshot"
+            title="Screenshot and upload to ImgBB"
+          >
+            {screenshotStatus === 'idle' && <Camera className="h-6 w-6" />}
+            {screenshotStatus === 'uploading' && <Loader2 className="h-6 w-6 animate-spin" />}
+            {screenshotStatus === 'success' && <Check className="h-6 w-6 text-green-500" />}
+            {screenshotStatus === 'error' && <AlertCircle className="h-6 w-6 text-red-500" />}
+          </button>
+        )}
+
         {/* Custom Close Button - Fixed */}
         <button
           onClick={handleCloseTop}
@@ -661,6 +791,7 @@ export function ScoreSummaryModal({
 
         {/* Scrollable content area */}
         <div
+          ref={scrollableRef}
           className="overflow-y-auto overflow-x-hidden"
           style={{
             maxHeight: 'calc(100vh - 8rem)',
@@ -669,8 +800,9 @@ export function ScoreSummaryModal({
             flexDirection: 'column',
           }}
         >
-          {/* Fixed buttons at top */}
-          <div className="px-6 pt-6 flex flex-col sm:flex-row items-center justify-center gap-2 shrink-0">
+          {/* Fixed buttons at top - hidden during capture */}
+          {screenshotStatus !== 'capturing' && (
+            <div className="px-6 pt-6 flex flex-col sm:flex-row items-center justify-center gap-2 shrink-0">
             <Button
               variant="outline"
               size="sm"
@@ -718,6 +850,78 @@ export function ScoreSummaryModal({
               Spoiler-Free Card
             </Button>
           </div>
+          )}
+
+          {/* Watermark - bottom left corner (only visible during screenshot capture) */}
+          {showWatermark && (
+            <div
+              className="absolute bottom-4 left-4 text-sm font-medium pointer-events-none z-10"
+              style={{
+                color: headerTextColor === 'white' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)',
+              }}
+            >
+              zengmgrids.vercel.app
+            </div>
+          )}
+
+          {/* Status overlay for upload progress */}
+          {screenshotStatus === 'uploading' && (
+            <div
+              className="absolute top-20 left-1/2 transform -translate-x-1/2 rounded-lg p-3 text-sm font-medium shadow-lg z-[10002]"
+              style={{
+                backgroundColor: `${headerTextColor === 'white' ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.95)'}`,
+                color: headerTextColor === 'white' ? '#000000' : '#ffffff',
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Uploading to ImgBB...</span>
+              </div>
+            </div>
+          )}
+
+          {screenshotStatus === 'success' && (
+            <div
+              className="absolute top-20 left-1/2 transform -translate-x-1/2 rounded-lg p-3 text-sm font-medium shadow-lg z-[10002] max-w-md"
+              style={{
+                backgroundColor: `${headerTextColor === 'white' ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.95)'}`,
+                color: headerTextColor === 'white' ? '#000000' : '#ffffff',
+              }}
+            >
+              <div className="space-y-1">
+                <div className="flex items-center justify-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span>Link copied to clipboard!</span>
+                </div>
+                {screenshotUrl && (
+                  <a
+                    href={screenshotUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs underline hover:no-underline break-all block text-center"
+                    style={{ color: secondaryColor }}
+                  >
+                    {screenshotUrl}
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
+          {screenshotStatus === 'error' && (
+            <div
+              className="absolute top-20 left-1/2 transform -translate-x-1/2 rounded-lg p-3 text-sm font-medium shadow-lg z-[10002]"
+              style={{
+                backgroundColor: `${headerTextColor === 'white' ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.95)'}`,
+                color: headerTextColor === 'white' ? '#000000' : '#ffffff',
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-red-500" />
+                <span>{errorMessage || 'Failed to upload screenshot'}</span>
+              </div>
+            </div>
+          )}
 
           {/* Centered content area */}
           <div className="px-6 pb-6 flex-1 flex flex-col justify-center space-y-6">
