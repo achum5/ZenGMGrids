@@ -3190,13 +3190,26 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     return (
       <div className="h-full flex flex-col bg-background overflow-hidden">
           <>
-            {/* Main Header */}
-            <header
-                className="border-border shrink-0"
-                onMouseEnter={() => setIsHeaderHovered(true)}
-                onMouseLeave={() => setIsHeaderHovered(false)}
-                style={{ position: 'relative', backgroundColor: teamDisplayInfo.colors[0] || 'hsl(var(--card))' }}
-              >
+            {/* Fixed Header Container */}
+            <div
+              id="fixed-header-container"
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                zIndex: 1000
+              }}
+            >
+              {/* Main Header */}
+              <header
+                  className="border-border shrink-0"
+                  onMouseEnter={() => setIsHeaderHovered(true)}
+                  onMouseLeave={() => setIsHeaderHovered(false)}
+                  style={{
+                    backgroundColor: teamDisplayInfo.colors[0] || 'hsl(var(--card))'
+                  }}
+                >
           <div className="max-w-6xl mx-auto px-6 py-4">
             <div className="relative sm:grid sm:grid-cols-3 items-center gap-2 sm:gap-4 flex justify-between">
               {/* Left: Back button & Give Up button */}
@@ -3703,9 +3716,20 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
             </div>
           </div>
         )}
+      </div>
 
-        {/* Roster Grid */}
-        <div className="flex-1 overflow-y-auto min-h-0">
+      {/* Roster Grid - positioned between fixed header and footer */}
+        <div
+          className="overflow-y-auto bg-background"
+          style={{
+            position: 'fixed',
+            top: '115px',
+            bottom: '90px',
+            left: 0,
+            right: 0,
+            WebkitOverflowScrolling: 'touch'
+          }}
+        >
           <div className="max-w-6xl mx-auto px-1 sm:px-4 md:px-6 py-2 sm:py-4 md:py-6">
             <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 gap-1 sm:gap-3 md:gap-4">
               {roster.map((rp, index) => {
@@ -3998,7 +4022,18 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
 
         {/* Bottom Actions - Hide when breakdown modal is open */}
         {!modalStack.some(m => m.type === 'breakdown') && (
-          <div className="shrink-0 bg-background/95 border-t neon-border-subtle relative z-[100]">
+          <div
+            className="shrink-0 bg-background/95 border-t neon-border-subtle"
+            style={{
+              position: 'fixed',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              zIndex: 1000,
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)'
+            }}
+          >
           <div className="max-w-4xl mx-auto px-6 py-4">
             <div className="flex items-center gap-3">
               {/* Center: Search input (guess/hint rounds) OR Leader prompt (leader rounds) */}
