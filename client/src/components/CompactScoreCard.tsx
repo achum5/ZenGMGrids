@@ -1,10 +1,8 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import type { ReactNode, CSSProperties } from 'react';
 import { Button } from '@/components/ui/button';
-import { Home, Shuffle, X, Camera, Loader2, Check, AlertCircle } from 'lucide-react';
+import { Home, Shuffle, X } from 'lucide-react';
 import type { ScoreSummaryData } from '@/components/ScoreSummaryModal';
-import { captureElementAsBlob } from '@/lib/screenshot-utils';
-import { uploadToImgur, copyToClipboard } from '@/lib/imgur-upload';
 
 interface CompactScoreCardProps {
   data: ScoreSummaryData;
@@ -53,11 +51,6 @@ export function CompactScoreCard({
   onClose,
   variant = 'standalone',
 }: CompactScoreCardProps) {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [screenshotStatus, setScreenshotStatus] = useState<'idle' | 'capturing' | 'uploading' | 'success' | 'error'>('idle');
-  const [screenshotUrl, setScreenshotUrl] = useState<string>('');
-  const [errorMessage, setErrorMessage] = useState<string>('');
-
   const palette = useMemo(() => {
     if (teamColors && teamColors.length > 0) {
       return teamColors;
@@ -166,72 +159,8 @@ export function CompactScoreCard({
   // Darken background on mobile for better contrast
   const cardBackground = `linear-gradient(180deg, ${primaryColor}f0 0%, ${primaryColor}e8 100%)`;
 
-  const handleScreenshot = async () => {
-    if (!cardRef.current || screenshotStatus === 'capturing' || screenshotStatus === 'uploading') {
-      return;
-    }
-
-    try {
-      setScreenshotStatus('capturing');
-      setErrorMessage('');
-      setScreenshotUrl('');
-
-      // Wait a tiny bit to ensure the UI updates (button state changes)
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Capture the screenshot
-      const blob = await captureElementAsBlob(cardRef.current, {
-        pixelRatio: 2,
-        quality: 0.95,
-      });
-
-      setScreenshotStatus('uploading');
-
-      // Upload to Imgur
-      const result = await uploadToImgur(
-        blob,
-        `${data.season} ${data.teamName} - Score: ${data.finalScore}`,
-        `Team Trivia score card for ${data.season} ${data.teamName}`
-      );
-
-      if (result.success && result.data) {
-        setScreenshotUrl(result.data.link);
-        setScreenshotStatus('success');
-
-        // Copy to clipboard
-        const copied = await copyToClipboard(result.data.link);
-        if (!copied) {
-          console.warn('Failed to copy link to clipboard');
-        }
-
-        // Reset to idle after 5 seconds
-        setTimeout(() => {
-          setScreenshotStatus('idle');
-        }, 5000);
-      } else {
-        setErrorMessage(result.error || 'Failed to upload screenshot');
-        setScreenshotStatus('error');
-
-        // Reset to idle after 5 seconds
-        setTimeout(() => {
-          setScreenshotStatus('idle');
-        }, 5000);
-      }
-    } catch (error) {
-      console.error('Screenshot error:', error);
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to capture screenshot');
-      setScreenshotStatus('error');
-
-      // Reset to idle after 5 seconds
-      setTimeout(() => {
-        setScreenshotStatus('idle');
-      }, 5000);
-    }
-  };
-
   const card = (
     <div
-      ref={cardRef}
       className="relative w-full max-w-[560px] rounded-xl sm:rounded-2xl shadow-2xl overflow-hidden"
       style={{
         background: cardBackground,
@@ -257,79 +186,6 @@ export function CompactScoreCard({
       {data.teamLogo && (
         <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] sm:opacity-[0.06] pointer-events-none">
           <img src={data.teamLogo} alt="" className="w-[80%] h-[80%] object-contain" />
-        </div>
-      )}
-
-      {/* Screenshot button - only show in embedded variant and when not in capturing/uploading state */}
-      {variant === 'embedded' && (
-        <button
-          onClick={handleScreenshot}
-          disabled={screenshotStatus === 'capturing' || screenshotStatus === 'uploading'}
-          className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 rounded-full p-2 transition-all hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{
-            backgroundColor: `${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`,
-            color: textColor === 'white' ? '#ffffff' : '#000000',
-            display: screenshotStatus === 'capturing' || screenshotStatus === 'uploading' ? 'none' : 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-          aria-label="Screenshot and upload to Imgur"
-          title="Screenshot and upload to Imgur"
-        >
-          {screenshotStatus === 'idle' && <Camera className="h-5 w-5" />}
-          {screenshotStatus === 'capturing' && <Loader2 className="h-5 w-5 animate-spin" />}
-          {screenshotStatus === 'uploading' && <Loader2 className="h-5 w-5 animate-spin" />}
-          {screenshotStatus === 'success' && <Check className="h-5 w-5 text-green-500" />}
-          {screenshotStatus === 'error' && <AlertCircle className="h-5 w-5 text-red-500" />}
-        </button>
-      )}
-
-      {/* Status message overlay */}
-      {variant === 'embedded' && screenshotStatus !== 'idle' && (
-        <div
-          className="absolute bottom-3 left-3 right-3 z-20 rounded-lg p-3 text-sm font-medium text-center transition-all"
-          style={{
-            backgroundColor: `${textColor === 'white' ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.95)'}`,
-            color: textColor === 'white' ? '#000000' : '#ffffff',
-          }}
-        >
-          {screenshotStatus === 'capturing' && (
-            <div className="flex items-center justify-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Capturing screenshot...</span>
-            </div>
-          )}
-          {screenshotStatus === 'uploading' && (
-            <div className="flex items-center justify-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Uploading to Imgur...</span>
-            </div>
-          )}
-          {screenshotStatus === 'success' && (
-            <div>
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <Check className="h-4 w-4 text-green-500" />
-                <span>Link copied to clipboard!</span>
-              </div>
-              {screenshotUrl && (
-                <a
-                  href={screenshotUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs underline hover:no-underline break-all"
-                  style={{ color: secondaryColor }}
-                >
-                  {screenshotUrl}
-                </a>
-              )}
-            </div>
-          )}
-          {screenshotStatus === 'error' && (
-            <div className="flex items-center justify-center gap-2">
-              <AlertCircle className="h-4 w-4 text-red-500" />
-              <span>{errorMessage || 'Failed to upload screenshot'}</span>
-            </div>
-          )}
         </div>
       )}
 
