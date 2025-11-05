@@ -62,6 +62,12 @@ export async function captureElementAsBlob(
           return true;
         }
 
+        // Filter out broken images (no src or error state)
+        if (!node.src || node.src === '' || !node.complete || node.naturalHeight === 0) {
+          console.warn('Filtering out broken/incomplete image:', node.src);
+          return false;
+        }
+
         // Filter out ZENGM images (they don't support CORS)
         // All other external images (like Imgur) will work fine
         try {
@@ -135,6 +141,12 @@ export async function captureElementAsDataUrl(
         // Allow data URLs
         if (node.src.startsWith('data:')) {
           return true;
+        }
+
+        // Filter out broken images (no src or error state)
+        if (!node.src || node.src === '' || !node.complete || node.naturalHeight === 0) {
+          console.warn('Filtering out broken/incomplete image:', node.src);
+          return false;
         }
 
         // Filter out ZENGM images (they don't support CORS)

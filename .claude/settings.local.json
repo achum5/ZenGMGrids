@@ -24,7 +24,12 @@
       "Bash(awk:*)",
       "Bash(git log:*)",
       "Bash(git stash:*)",
-      "Bash(1)"
+      "Bash(1)",
+      "Bash(npm install:*)",
+      "Bash(git add:*)",
+      "Bash(git reset:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
