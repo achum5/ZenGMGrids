@@ -1399,7 +1399,7 @@ function getBasketballPositiveMessage(achievementId: string, player?: Player): s
 
 interface StatInfo {
   key: 'pts' | 'trb' | 'ast' | 'stl' | 'blk' | 'fg3' | 'ppg' | 'rpg' | 'apg' | 'spg' | 'bpg' | 'mpg' | 'gp' | // Basketball
-       'passTDs' | 'rushYds' | 'rushTDs' | 'recYds' | 'recTDs' | 'sacks' | 'ints' | 'pssYds' | 'pssTD' | 'defTck' | 'ff' | // Football
+       'passTDs' | 'rushYds' | 'rushTDs' | 'recYds' | 'recTDs' | 'sacks' | 'ints' | 'pssYds' | 'pssTD' | 'defTck' | 'defTckLoss' | 'ff' | // Football
        'g' | 'a' | 'pts' | 'w' | 'so' | 'svPct' | 'pm' | 's' | 'hit' | 'blk' | 'tk' | 'powerPlayPoints' | 'shG' | 'gwG' | 'faceoffPct' | 'toiPerGame' | 'pim' | 'savePct' | 'gaaRate' | 'gs' | // Hockey
        'h' | 'hr' | 'rbi' | 'sb' | 'r' | 'w' | 'sv' | 'so' | 'era'; // Baseball
   name: string;
@@ -1671,17 +1671,17 @@ function getStatInfoForAchievement(baseId: string): StatInfo | null {
         // Baseball Season (Averages/Percentages)
         // Football Season (Totals)
         FBSeason4kPassYds: { key: 'pssYds', name: 'passing yards', type: 'season' },
-        FBSeason1200RushYds: { key: 'rusYds', name: 'rushing yards', type: 'season' },
-        FBSeason100Receptions: { key: 'rec', name: 'receptions', type: 'season' },
-        FBSeason15Sacks: { key: 'defSk', name: 'sacks', type: 'season' },
-        FBSeason140Tackles: { key: 'defTckSolo', name: 'tackles', type: 'season' }, // Note: This will need aggregation for solo + ast
-        FBSeason5Interceptions: { key: 'defInt', name: 'interceptions', type: 'season' },
+        FBSeason1200RushYds: { key: 'rushYds', name: 'rushing yards', type: 'season' },
+        FBSeason100Receptions: { key: 'recYds', name: 'receptions', type: 'season' },
+        FBSeason15Sacks: { key: 'sacks', name: 'sacks', type: 'season' },
+        FBSeason140Tackles: { key: 'defTck', name: 'tackles', type: 'season' }, // Note: This will need aggregation for solo + ast
+        FBSeason5Interceptions: { key: 'ints', name: 'interceptions', type: 'season' },
         FBSeason30PassTD: { key: 'pssTD', name: 'passing touchdowns', type: 'season' },
         FBSeason1300RecYds: { key: 'recYds', name: 'receiving yards', type: 'season' },
-        FBSeason10RecTD: { key: 'recTD', name: 'receiving touchdowns', type: 'season' },
-        FBSeason12RushTD: { key: 'rusTD', name: 'rushing touchdowns', type: 'season' },
-        FBSeason1600Scrimmage: { key: 'rusYds', name: 'yards from scrimmage', type: 'season' }, // Note: This will need aggregation
-        FBSeason2000AllPurpose: { key: 'rusYds', name: 'all-purpose yards', type: 'season' }, // Note: This will need aggregation
+        FBSeason10RecTD: { key: 'recTDs', name: 'receiving touchdowns', type: 'season' },
+        FBSeason12RushTD: { key: 'rushTDs', name: 'rushing touchdowns', type: 'season' },
+        FBSeason1600Scrimmage: { key: 'rushYds', name: 'yards from scrimmage', type: 'season' }, // Note: This will need aggregation
+        FBSeason2000AllPurpose: { key: 'rushYds', name: 'all-purpose yards', type: 'season' }, // Note: This will need aggregation
         FBSeason15TFL: { key: 'defTckLoss', name: 'tackles for loss', type: 'season' }
     };
     return statMap[baseId] || null;
@@ -1734,8 +1734,8 @@ function getNegativeMessageForCustomAchievement(player: Player, achievementId: s
       if (statInfo.type === 'career') {
         actualValue = careerStats[statInfo.key as keyof typeof careerStats];
       } else if (statInfo.type === 'season_avg') {
-        const best = seasonBests[statInfo.key as keyof typeof seasonBests];
-        actualValue = best.max;
+        const best = seasonBests[statInfo.key as keyof typeof seasonBests] as any;
+        actualValue = 'max' in best ? best.max : best.min;
         year = best.year;
       } else if (statInfo.type === 'season') {
         // For season totals, we need to find the max total for that stat
@@ -1767,8 +1767,8 @@ function getNegativeMessageForCustomAchievement(player: Player, achievementId: s
       if (statInfo.type === 'career') {
         actualValue = careerStats[statInfo.key as keyof typeof careerStats];
       } else if (statInfo.type === 'season_avg') {
-        const best = seasonBests[statInfo.key as keyof typeof seasonBests];
-        actualValue = best.max;
+        const best = seasonBests[statInfo.key as keyof typeof seasonBests] as any;
+        actualValue = 'max' in best ? best.max : best.min;
         year = best.year;
       } else if (statInfo.type === 'season') {
         const maxSeasonTotal = player.stats?.reduce((max, s) => {

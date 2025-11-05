@@ -332,7 +332,7 @@ export const HOCKEY_ACHIEVEMENTS: Achievement[] = [
       if (!p.stats) return false;
       const totalShutouts = p.stats
         .filter(stat => !stat.playoffs && ((stat as any).gpGoalie || 0) > 0)
-        .reduce((sum, stat) => sum + ((stat as any).so || 0), 0);
+        .reduce((sum, stat) => sum + ((stat as any).shutouts || 0), 0);
       return totalShutouts >= 50;
     },
     minPlayers: 1
@@ -1916,11 +1916,11 @@ function calculateHockeyAchievements(player: Player, achievements: any): void {
     existing.ppA += season.ppA || 0;
     
     // Goalie stats - filter to goalies only
-    const isGoalie = player.pos === 'G' || season.svPct != null || season.so != null || season.gW != null;
+    const isGoalie = player.pos === 'G' || season.svPct != null || season.shutouts != null || season.gW != null;
     if (isGoalie) {
       existing.isGoalie = true;
       existing.wins += season.gW || 0;
-      existing.shutouts += season.so || 0;
+      existing.shutouts += season.shutouts || 0;
       
       // For save percentage calculation
       if (season.sa && season.svPct != null) {

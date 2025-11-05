@@ -308,12 +308,14 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
               }
             }
           } else if (currentArraySection === 'teamSeasons') {
-            const teamSeason = value.value;
-            const key = `${teamSeason.tid}-${teamSeason.season}-${teamSeason.playoffs || false}`;
-            if (!teamSeasonKeys.has(key)) {
-              teamSeasonKeys.add(key);
-              teamSeasonQueue.push(teamSeason);
-              teamSeasonCount++;
+            const teamSeason = value.value as any;
+            if (teamSeason && typeof teamSeason === 'object') {
+              const key = `${teamSeason.tid}-${teamSeason.season}-${teamSeason.playoffs || false}`;
+              if (!teamSeasonKeys.has(key)) {
+                teamSeasonKeys.add(key);
+                teamSeasonQueue.push(teamSeason);
+                teamSeasonCount++;
+              }
             }
             
             // Progress update every 100 team seasons
@@ -632,12 +634,14 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
               }
             }
           } else if (currentArraySection === 'teamSeasons') {
-            const teamSeason = value.value;
-            const key = `${teamSeason.tid}-${teamSeason.season}-${teamSeason.playoffs || false}`;
-            if (!teamSeasonKeys.has(key)) {
-              teamSeasonKeys.add(key);
-              teamSeasonQueue.push(teamSeason);
-              teamSeasonCount++;
+            const teamSeason = value.value as any;
+            if (teamSeason && typeof teamSeason === 'object') {
+              const key = `${teamSeason.tid}-${teamSeason.season}-${teamSeason.playoffs || false}`;
+              if (!teamSeasonKeys.has(key)) {
+                teamSeasonKeys.add(key);
+                teamSeasonQueue.push(teamSeason);
+                teamSeasonCount++;
+              }
             }
             
             // Progress update every 100 team seasons

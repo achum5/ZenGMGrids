@@ -1615,7 +1615,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
       const wins = seasonStats.gW ?? 0;
       const losses = seasonStats.gL ?? 0;
       const otl = seasonStats.gOTL;
-      const shutouts = seasonStats.so ?? 0;
+      const shutouts = seasonStats.shutouts ?? 0;
       const saves = seasonStats.sv ?? 0;
       const goalsAgainst = seasonStats.ga ?? 0;
       const minutesRaw = seasonStats.gMin ?? seasonStats.min ?? 0;
@@ -1807,7 +1807,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
               const ipRemainder = outs % 3;
               ip = ipWhole + (ipRemainder / 10); // Convert to decimal (e.g., 125.1)
             } else {
-              ip = seasonStats.ip; // IP already provided
+              ip = seasonStats.ip ?? 0; // IP already provided
             }
 
             // Baseball GM stores both batting and pitching stats in same object

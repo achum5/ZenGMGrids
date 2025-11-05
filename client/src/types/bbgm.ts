@@ -49,6 +49,7 @@ export interface Player {
   hgt?: number | null;
   tid: number; // current team
   awards?: Array<{ type: string; season: number }>;
+  salaries?: Array<{ season: number; amount: number }>;
   stats?: Array<{
     season: number;
     tid: number;
@@ -115,6 +116,9 @@ export interface Player {
     pssInt?: number;
     pss?: number; // pass attempts
     pssCmp?: number; // pass completions
+    qbWins?: number; // quarterback wins
+    qbLosses?: number; // quarterback losses
+    qbTies?: number; // quarterback ties
     rusYds?: number;
     rusTD?: number;
     rus?: number; // rush attempts
@@ -169,9 +173,9 @@ export interface Player {
     gL?: number; // Goalie losses
     gOTL?: number; // Goalie overtime losses
     gMin?: number; // Goalie minutes
-    so?: number; // Shutouts
+    shutouts?: number; // Shutouts (hockey goalie)
     sa?: number; // Shots against (for goalies)
-    sv?: number; // Saves (for goalies)
+    sv?: number; // Saves (for goalies and pitchers)
     gpGoalie?: number; // Games played as goalie
     gpSkater?: number; // Games played as skater
     g?: number; // Goals (total, alternative field)
@@ -190,15 +194,18 @@ export interface Player {
     // Baseball pitching stats
     w?: number; // Wins (pitcher)
     l?: number; // Losses (pitcher)
-    sv?: number; // Saves (pitcher)
     soPit?: number; // Strikeouts (pitcher) - alternative field
-    gs?: number; // Games started (pitcher)
+    gsPit?: number; // Games started (pitcher) - use gs for general games started
     outs?: number; // Outs recorded (innings pitched * 3)
+    ip?: number; // Innings pitched
     er?: number; // Earned runs
     ha?: number; // Hits allowed
+    hPit?: number; // Hits allowed (pitcher) - alternative field
     bba?: number; // Walks allowed (bases on balls)
+    bbPit?: number; // Walks allowed (pitcher) - alternative field
     soa?: number; // Strikeouts allowed/thrown
     hra?: number; // Home runs allowed
+    hrPit?: number; // Home runs allowed (pitcher) - alternative field
   }>;
   achievements?: Record<string, boolean | any>;
   // New: Season-specific data for same-season alignment
