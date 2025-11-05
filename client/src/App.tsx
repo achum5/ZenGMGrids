@@ -8,11 +8,13 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import Home from "@/pages/home";
 import NotFound from "@/pages/not-found";
+import { EnvDebug } from "@/pages/EnvDebug";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/env-debug" component={EnvDebug} />
       <Route component={NotFound} />
     </Switch>
   );
