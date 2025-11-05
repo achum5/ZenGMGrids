@@ -333,8 +333,8 @@ export function CompactScoreCard({
         <div
           className="absolute bottom-3 left-3 right-3 z-20 rounded-lg p-3 text-sm font-medium text-center shadow-lg"
           style={{
-            backgroundColor: `${textColor === 'white' ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.95)'}`,
-            color: textColor === 'white' ? '#000000' : '#ffffff',
+            backgroundColor: secondaryColor,
+            color: primaryColor,
           }}
         >
           {screenshotStatus === 'uploading' && (
@@ -347,7 +347,7 @@ export function CompactScoreCard({
           {screenshotStatus === 'success' && (
             <div className="space-y-1">
               <div className="flex items-center justify-center gap-2">
-                <Check className="h-4 w-4 text-green-500" />
+                <Check className="h-4 w-4" style={{ color: primaryColor }} />
                 <span>Link copied to clipboard!</span>
               </div>
               {screenshotUrl && (
@@ -356,7 +356,7 @@ export function CompactScoreCard({
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-xs underline hover:no-underline break-all block"
-                  style={{ color: secondaryColor }}
+                  style={{ color: primaryColor, opacity: 0.8 }}
                 >
                   {screenshotUrl}
                 </a>
@@ -366,7 +366,7 @@ export function CompactScoreCard({
 
           {screenshotStatus === 'error' && (
             <div className="flex items-center justify-center gap-2">
-              <AlertCircle className="h-4 w-4 text-red-500" />
+              <AlertCircle className="h-4 w-4" style={{ color: primaryColor }} />
               <span>{errorMessage || 'Failed to upload screenshot'}</span>
             </div>
           )}

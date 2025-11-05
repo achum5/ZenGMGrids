@@ -889,10 +889,10 @@ export function ScoreSummaryModal({
           {/* Status overlay for upload progress */}
           {screenshotStatus === 'uploading' && (
             <div
-              className="absolute top-20 left-1/2 transform -translate-x-1/2 rounded-lg p-3 text-sm font-medium shadow-lg z-[10002]"
+              className="absolute bottom-4 left-1/2 transform -translate-x-1/2 rounded-lg p-3 text-sm font-medium shadow-lg z-[10002]"
               style={{
-                backgroundColor: `${headerTextColor === 'white' ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.95)'}`,
-                color: headerTextColor === 'white' ? '#000000' : '#ffffff',
+                backgroundColor: secondaryColor,
+                color: primaryColor,
               }}
             >
               <div className="flex items-center gap-2">
@@ -904,15 +904,15 @@ export function ScoreSummaryModal({
 
           {screenshotStatus === 'success' && (
             <div
-              className="absolute top-20 left-1/2 transform -translate-x-1/2 rounded-lg p-3 text-sm font-medium shadow-lg z-[10002] max-w-md"
+              className="absolute bottom-4 left-1/2 transform -translate-x-1/2 rounded-lg p-3 text-sm font-medium shadow-lg z-[10002] max-w-md"
               style={{
-                backgroundColor: `${headerTextColor === 'white' ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.95)'}`,
-                color: headerTextColor === 'white' ? '#000000' : '#ffffff',
+                backgroundColor: secondaryColor,
+                color: primaryColor,
               }}
             >
               <div className="space-y-1">
                 <div className="flex items-center justify-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
+                  <Check className="h-4 w-4" style={{ color: primaryColor }} />
                   <span>Link copied to clipboard!</span>
                 </div>
                 {screenshotUrl && (
@@ -921,7 +921,7 @@ export function ScoreSummaryModal({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs underline hover:no-underline break-all block text-center"
-                    style={{ color: secondaryColor }}
+                    style={{ color: primaryColor, opacity: 0.8 }}
                   >
                     {screenshotUrl}
                   </a>
@@ -932,14 +932,14 @@ export function ScoreSummaryModal({
 
           {screenshotStatus === 'error' && (
             <div
-              className="absolute top-20 left-1/2 transform -translate-x-1/2 rounded-lg p-3 text-sm font-medium shadow-lg z-[10002]"
+              className="absolute bottom-4 left-1/2 transform -translate-x-1/2 rounded-lg p-3 text-sm font-medium shadow-lg z-[10002]"
               style={{
-                backgroundColor: `${headerTextColor === 'white' ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.95)'}`,
-                color: headerTextColor === 'white' ? '#000000' : '#ffffff',
+                backgroundColor: secondaryColor,
+                color: primaryColor,
               }}
             >
               <div className="flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-red-500" />
+                <AlertCircle className="h-4 w-4" style={{ color: primaryColor }} />
                 <span>{errorMessage || 'Failed to upload screenshot'}</span>
               </div>
             </div>

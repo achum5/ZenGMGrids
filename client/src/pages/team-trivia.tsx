@@ -476,84 +476,84 @@ function getTeamPlayoffResult(
 
   const seasonPlayoffs = leagueData.playoffSeries?.find(ps => ps.season === season);
 
-  if (seasonPlayoffs?.series) {
-    const rounds = seasonPlayoffs.series;
-    numRounds = rounds.length;
+  // If no playoff data exists for this specific season, return null to skip the round
+  if (!seasonPlayoffs?.series || seasonPlayoffs.series.length === 0) {
+    return null;
+  }
 
-    let lastRoundFound = -1;
-    let lastMatchup: any = null;
+  const rounds = seasonPlayoffs.series;
+  numRounds = rounds.length;
 
-    // Find the last round this team appeared in
-    for (let r = 0; r < numRounds; r++) {
-      const matchup = rounds[r]?.find(
-        m => m?.home?.tid === tid || m?.away?.tid === tid
-      );
+  let lastRoundFound = -1;
+  let lastMatchup: any = null;
 
-      if (matchup) {
-        lastRoundFound = r;
-        lastMatchup = matchup;
-      }
+  // Find the last round this team appeared in
+  for (let r = 0; r < numRounds; r++) {
+    const matchup = rounds[r]?.find(
+      m => m?.home?.tid === tid || m?.away?.tid === tid
+    );
+
+    if (matchup) {
+      lastRoundFound = r;
+      lastMatchup = matchup;
     }
+  }
 
-    if (lastRoundFound >= 0 && lastMatchup) {
-      const isHome = lastMatchup.home?.tid === tid;
-      const teamSide = isHome ? lastMatchup.home : lastMatchup.away;
-      const oppSide = isHome ? lastMatchup.away : lastMatchup.home;
-      const teamWins = teamSide?.won ?? 0;
-      const oppWins = oppSide?.won ?? 0;
+  if (lastRoundFound >= 0 && lastMatchup) {
+    const isHome = lastMatchup.home?.tid === tid;
+    const teamSide = isHome ? lastMatchup.home : lastMatchup.away;
+    const oppSide = isHome ? lastMatchup.away : lastMatchup.home;
+    const teamWins = teamSide?.won ?? 0;
+    const oppWins = oppSide?.won ?? 0;
 
-      // For single-game series, try to show the actual game score instead of 1-0
-      if (teamWins + oppWins === 1) {
-        // Check if we have game scores in the matchup
-        // BBGM sometimes stores scores as pts arrays in home/away
-        const teamPts = isHome ? lastMatchup.home?.pts : lastMatchup.away?.pts;
-        const oppPts = isHome ? lastMatchup.away?.pts : lastMatchup.home?.pts;
+    // For single-game series, try to show the actual game score instead of 1-0
+    if (teamWins + oppWins === 1) {
+      // Check if we have game scores in the matchup
+      // BBGM sometimes stores scores as pts arrays in home/away
+      const teamPts = isHome ? lastMatchup.home?.pts : lastMatchup.away?.pts;
+      const oppPts = isHome ? lastMatchup.away?.pts : lastMatchup.home?.pts;
 
-        if (Array.isArray(teamPts) && Array.isArray(oppPts) && teamPts.length > 0 && oppPts.length > 0) {
-          // Use the first (and only) game's score
-          seriesScore = `${teamPts[0]}–${oppPts[0]}`;
-        } else {
-          // Fallback to series record
-          seriesScore = `${teamWins}–${oppWins}`;
-        }
+      if (Array.isArray(teamPts) && Array.isArray(oppPts) && teamPts.length > 0 && oppPts.length > 0) {
+        // Use the first (and only) game's score
+        seriesScore = `${teamPts[0]}–${oppPts[0]}`;
       } else {
+        // Fallback to series record
         seriesScore = `${teamWins}–${oppWins}`;
       }
-
-      // If they won the championship round
-      if (lastRoundFound === numRounds - 1 && teamWins > oppWins) {
-        finishLabel = 'Won Championship';
-        finishValue = numRounds;
-      } else if (teamWins < oppWins) {
-        // They lost in this round
-        finishValue = lastRoundFound;
-
-        if (numRounds === 4) {
-          finishLabel =
-            lastRoundFound === 0
-              ? 'Lost First Round'
-              : lastRoundFound === 1
-              ? 'Lost Second Round'
-              : lastRoundFound === 2
-              ? 'Lost Conference Finals'
-              : 'Lost Finals';
-        } else if (numRounds === 3) {
-          finishLabel =
-            lastRoundFound === 0
-              ? 'Lost First Round'
-              : lastRoundFound === 1
-              ? 'Lost Second Round'
-              : 'Lost Finals';
-        } else if (numRounds === 2) {
-          finishLabel = lastRoundFound === 0 ? 'Lost First Round' : 'Lost Finals';
-        } else {
-          finishLabel = lastRoundFound === numRounds - 1 ? 'Lost Finals' : `Lost Round ${lastRoundFound + 1}`;
-        }
-      }
-
     } else {
+      seriesScore = `${teamWins}–${oppWins}`;
     }
-  } else {
+
+    // If they won the championship round
+    if (lastRoundFound === numRounds - 1 && teamWins > oppWins) {
+      finishLabel = 'Won Championship';
+      finishValue = numRounds;
+    } else if (teamWins < oppWins) {
+      // They lost in this round
+      finishValue = lastRoundFound;
+
+      if (numRounds === 4) {
+        finishLabel =
+          lastRoundFound === 0
+            ? 'Lost First Round'
+            : lastRoundFound === 1
+            ? 'Lost Second Round'
+            : lastRoundFound === 2
+            ? 'Lost Conference Finals'
+            : 'Lost Finals';
+      } else if (numRounds === 3) {
+        finishLabel =
+          lastRoundFound === 0
+            ? 'Lost First Round'
+            : lastRoundFound === 1
+            ? 'Lost Second Round'
+            : 'Lost Finals';
+      } else if (numRounds === 2) {
+        finishLabel = lastRoundFound === 0 ? 'Lost First Round' : 'Lost Finals';
+      } else {
+        finishLabel = lastRoundFound === numRounds - 1 ? 'Lost Finals' : `Lost Round ${lastRoundFound + 1}`;
+      }
+    }
   }
 
   return { label: finishLabel, value: finishValue, seriesScore, numRounds };
@@ -4319,7 +4319,15 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                           <p className={`text-sm sm:text-lg font-semibold ${playoffFinishGuess === playoffFinishData.finishValue ? 'text-green-400' : 'text-red-400'}`}>
                             {playoffFinishGuess === playoffFinishData.finishValue
                               ? `Correct! +10 points`
-                              : `Incorrect. The team ${playoffFinishData.finishLabel.toLowerCase()}.`
+                              : `Incorrect. ${
+                                  playoffFinishData.finishLabel === 'Won Championship'
+                                    ? 'They won the championship.'
+                                    : playoffFinishData.finishLabel === 'Missed Playoffs'
+                                    ? 'They missed the playoffs.'
+                                    : playoffFinishData.finishLabel.startsWith('Lost ')
+                                    ? `They lost in the ${playoffFinishData.finishLabel.substring(5).toLowerCase()}.`
+                                    : playoffFinishData.finishLabel
+                                }`
                             }
                           </p>
                         </div>

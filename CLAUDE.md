@@ -50,6 +50,16 @@ npm run db:push
 ```
 Pushes database schema changes using Drizzle Kit (though database functionality is not actively used in current implementation).
 
+## Git Workflow
+
+**IMPORTANT: Do NOT automatically commit or push changes**
+- **NEVER** create git commits automatically after making code changes
+- **NEVER** run `git commit` or `git push` unless the user explicitly requests it
+- The user will decide when to commit and what commit message to use
+- Only commit changes when the user specifically asks you to create a commit
+- If the user asks you to "save" changes, ask them if they want to commit to git or if they just want you to write the files
+- Exception: You may commit ONLY when the user uses phrases like "commit these changes", "create a commit", "git commit", or similar explicit requests
+
 ## Architecture
 
 ### Monorepo Structure
