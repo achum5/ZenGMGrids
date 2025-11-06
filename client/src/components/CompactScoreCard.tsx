@@ -1,7 +1,7 @@
 import { useMemo, useState, useRef } from 'react';
 import type { ReactNode, CSSProperties } from 'react';
 import { Button } from '@/components/ui/button';
-import { Home, Shuffle, X, Camera, Loader2, Check, AlertCircle } from 'lucide-react';
+import { Home, Shuffle, X, Camera, Loader2, Check, AlertCircle, Copy } from 'lucide-react';
 import type { ScoreSummaryData } from '@/components/ScoreSummaryModal';
 import { captureElementAsBlob } from '@/lib/screenshot-utils';
 import { uploadToImgur, copyToClipboard } from '@/lib/imgur-upload';
@@ -61,6 +61,7 @@ export function CompactScoreCard({
   const [screenshotUrl, setScreenshotUrl] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [showWatermark, setShowWatermark] = useState<boolean>(false);
+  const [copyButtonText, setCopyButtonText] = useState<string>('Copy Link');
 
   const palette = useMemo(() => {
     if (teamColors && teamColors.length > 0) {
@@ -212,17 +213,22 @@ export function CompactScoreCard({
         setScreenshotUrl(uploadResult.data.link);
         setScreenshotStatus('success');
 
-        // Automatically copy link to clipboard
+        // Try to automatically copy link to clipboard (works on desktop, may fail on mobile)
         const wasCopied = await copyToClipboard(uploadResult.data.link);
-        if (!wasCopied) {
-          console.warn('Could not copy link to clipboard');
+        if (wasCopied) {
+          console.log('✓ Link auto-copied to clipboard');
+          setCopyButtonText('Copied!');
+        } else {
+          console.warn('Auto-copy failed - user can use Copy button');
+          setCopyButtonText('Copy Link');
         }
 
-        // Auto-reset to idle after 5 seconds
+        // Auto-reset to idle after 10 seconds
         setTimeout(() => {
           setScreenshotStatus('idle');
           setScreenshotUrl('');
-        }, 5000);
+          setCopyButtonText('Copy Link');
+        }, 10000);
       } else {
         // Upload failed
         setErrorMessage(uploadResult.error || 'Upload to ImgBB failed');
@@ -232,6 +238,7 @@ export function CompactScoreCard({
         setTimeout(() => {
           setScreenshotStatus('idle');
           setErrorMessage('');
+          setCopyButtonText('Copy Link');
         }, 5000);
       }
     } catch (error) {
@@ -248,7 +255,26 @@ export function CompactScoreCard({
       setTimeout(() => {
         setScreenshotStatus('idle');
         setErrorMessage('');
+        setCopyButtonText('Copy Link');
       }, 5000);
+    }
+  };
+
+  // Handler for manual copy button click
+  const handleManualCopy = async () => {
+    if (!screenshotUrl) return;
+
+    const wasCopied = await copyToClipboard(screenshotUrl);
+    if (wasCopied) {
+      setCopyButtonText('Copied!');
+      setTimeout(() => {
+        setCopyButtonText('Copy Link');
+      }, 2000);
+    } else {
+      setCopyButtonText('Failed to copy');
+      setTimeout(() => {
+        setCopyButtonText('Copy Link');
+      }, 2000);
     }
   };
 
@@ -345,10 +371,22 @@ export function CompactScoreCard({
           )}
 
           {screenshotStatus === 'success' && (
-            <div className="space-y-1">
-              <div className="flex items-center justify-center gap-2">
+            <div className="space-y-2">
+              <div className="flex items-center justify-center gap-2 flex-wrap">
                 <Check className="h-4 w-4" style={{ color: primaryColor }} />
-                <span>Link copied to clipboard!</span>
+                <span>Screenshot uploaded!</span>
+                <button
+                  onClick={handleManualCopy}
+                  className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-all hover:opacity-80 active:scale-95"
+                  style={{
+                    backgroundColor: primaryColor,
+                    color: secondaryColor,
+                    border: `1px solid ${primaryColor}`,
+                  }}
+                >
+                  <Copy className="h-3 w-3" />
+                  <span>{copyButtonText}</span>
+                </button>
               </div>
               {screenshotUrl && (
                 <a

@@ -2,7 +2,8 @@ import { useState, useCallback, useEffect } from 'react';
 import { UploadSection } from '@/components/upload-section';
 import { GridSection } from '@/components/grid-section';
 import { PlayerSearchModal } from '@/components/player-search-modal';
-import { PlayerModal } from '@/components/PlayerModal';
+import { PlayerPageModal } from '@/components/PlayerPageModal';
+import { TeamInfoModal } from '@/components/TeamInfoModal';
 import { HintModal } from '@/components/HintModal';
 import { AccentLine } from '@/components/AccentLine';
 import { RulesModal } from '@/components/RulesModal';
@@ -32,6 +33,216 @@ import { debugIndividualAchievements, playerMeetsAchievement, setCachedLeagueYea
 import { clearHintCache } from '@/lib/hint-generation';
 import { useToast } from '@/lib/hooks/use-toast';
 import type { LeagueData, CatTeam, CellState, Player, SearchablePlayer } from '@/types/bbgm';
+
+// Helper functions copied from team-trivia for team modals
+function getAssetBaseUrl(sport: string): string {
+  const sportUrlMap: Record<string, string> = {
+    basketball: 'https://play.basketball-gm.com',
+    football: 'https://play.football-gm.com',
+    hockey: 'https://play.hockey-gm.com',
+    baseball: 'https://play.baseball-gm.com'
+  };
+  return sportUrlMap[sport] || sportUrlMap.basketball;
+}
+
+function getTeamLogoUrl(logoUrl: string | null | undefined, sport: string = 'basketball'): string | undefined {
+  if (!logoUrl) return undefined;
+  if (logoUrl.startsWith('/img/logos-')) {
+    const assetBase = getAssetBaseUrl(sport);
+    const cleanPath = logoUrl.startsWith('/') ? logoUrl.substring(1) : logoUrl;
+    return `${assetBase}/${cleanPath}`;
+  }
+  return logoUrl;
+}
+
+function calculateYearsWithTeam(player: Player, tid: number, season: number): number {
+  if (!player.stats || player.stats.length === 0) return 0;
+  const seasonsWithTeam = player.stats
+    .filter(stat => stat.tid === tid && stat.season <= season)
+    .map(stat => stat.season)
+    .sort((a, b) => a - b);
+  if (seasonsWithTeam.length === 0) return 0;
+  return season - seasonsWithTeam[0] + 1;
+}
+
+function getPlayerRating(player: Player, season: number, type: 'ovr' | 'pot'): number | undefined {
+  if (!player.ratings || player.ratings.length === 0) return undefined;
+  const seasonRating = player.ratings.find(r => r.season === season);
+  if (seasonRating) return type === 'ovr' ? seasonRating.ovr : seasonRating.pot;
+  const closestRating = player.ratings.reduce((closest, current) => {
+    const currentDiff = Math.abs(current.season - season);
+    const closestDiff = Math.abs(closest.season - season);
+    return currentDiff < closestDiff ? current : closest;
+  });
+  return type === 'ovr' ? closestRating.ovr : closestRating.pot;
+}
+
+function formatContract(player: Player, season: number): string | undefined {
+  if (!player.salaries || player.salaries.length === 0) return undefined;
+  const seasonSalary = player.salaries.find(s => s.season === season);
+  if (!seasonSalary) return undefined;
+  const salaryInMillions = seasonSalary.amount / 1000;
+  return `$${salaryInMillions.toFixed(2)}M`;
+}
+
+function getTeamPlayoffResult(
+  leagueData: LeagueData,
+  tid: number,
+  season: number
+): { label: string; value: number; seriesScore: string | null; numRounds: number } | null {
+  if (!leagueData.playoffSeries || leagueData.playoffSeries.length === 0) {
+    return null;
+  }
+
+  let finishLabel = 'Missed Playoffs';
+  let finishValue = -1;
+  let seriesScore: string | null = null;
+  let numRounds = 4;
+
+  const seasonPlayoffs = leagueData.playoffSeries?.find(ps => ps.season === season);
+  if (!seasonPlayoffs?.series || seasonPlayoffs.series.length === 0) {
+    return null;
+  }
+
+  const rounds = seasonPlayoffs.series;
+  numRounds = rounds.length;
+
+  let lastRoundFound = -1;
+  let lastMatchup: any = null;
+
+  for (let r = 0; r < numRounds; r++) {
+    const matchup = rounds[r]?.find(
+      m => m?.home?.tid === tid || m?.away?.tid === tid
+    );
+
+    if (matchup) {
+      lastRoundFound = r;
+      lastMatchup = matchup;
+    }
+  }
+
+  if (lastRoundFound >= 0 && lastMatchup) {
+    const isHome = lastMatchup.home?.tid === tid;
+    const teamSide = isHome ? lastMatchup.home : lastMatchup.away;
+    const oppSide = isHome ? lastMatchup.away : lastMatchup.home;
+    const teamWins = teamSide?.won ?? 0;
+    const oppWins = oppSide?.won ?? 0;
+
+    if (teamWins + oppWins === 1) {
+      const teamPts = isHome ? lastMatchup.home?.pts : lastMatchup.away?.pts;
+      const oppPts = isHome ? lastMatchup.away?.pts : lastMatchup.home?.pts;
+
+      if (Array.isArray(teamPts) && Array.isArray(oppPts) && teamPts.length > 0 && oppPts.length > 0) {
+        seriesScore = `${teamPts[0]}–${oppPts[0]}`;
+      } else {
+        seriesScore = `${teamWins}–${oppWins}`;
+      }
+    } else {
+      seriesScore = `${teamWins}–${oppWins}`;
+    }
+
+    if (lastRoundFound === numRounds - 1 && teamWins > oppWins) {
+      finishLabel = 'Won Championship';
+      finishValue = numRounds;
+    } else if (teamWins < oppWins) {
+      finishValue = lastRoundFound;
+
+      if (numRounds === 4) {
+        finishLabel =
+          lastRoundFound === 0
+            ? 'Lost First Round'
+            : lastRoundFound === 1
+            ? 'Lost Second Round'
+            : lastRoundFound === 2
+            ? 'Lost Conference Finals'
+            : 'Lost Finals';
+      } else if (numRounds === 3) {
+        finishLabel =
+          lastRoundFound === 0
+            ? 'Lost First Round'
+            : lastRoundFound === 1
+            ? 'Lost Second Round'
+            : 'Lost Finals';
+      } else if (numRounds === 2) {
+        finishLabel = lastRoundFound === 0 ? 'Lost First Round' : 'Lost Finals';
+      } else {
+        finishLabel = lastRoundFound === numRounds - 1 ? 'Lost Finals' : `Lost Round ${lastRoundFound + 1}`;
+      }
+    }
+  }
+
+  return { label: finishLabel, value: finishValue, seriesScore, numRounds };
+}
+
+function calculateTeamStats(
+  leagueData: LeagueData,
+  tid: number,
+  season: number,
+  roster: any[]
+): { wins: number; losses: number; teamRating: number; avgAge: number; playoffResult?: string } | undefined {
+  const teamSeason = leagueData.teamSeasons?.find(
+    ts => ts.tid === tid && ts.season === season && !ts.playoffs
+  );
+
+  if (!teamSeason) return undefined;
+
+  const wins = teamSeason.won || 0;
+  const losses = teamSeason.lost || 0;
+
+  let totalWeightedAge = 0;
+  let totalWeight = 0;
+
+  roster.forEach(rp => {
+    if (rp.age != null) {
+      let weight = 0;
+      const seasonStats = rp.rawSeasonStats || rp.stats;
+
+      if (seasonStats?.min != null && seasonStats.min > 0) {
+        weight = seasonStats.min;
+      } else if (rp.gamesPlayed != null && rp.gamesPlayed > 0) {
+        weight = rp.gamesPlayed;
+      }
+
+      if (weight > 0) {
+        totalWeightedAge += rp.age * weight;
+        totalWeight += weight;
+      }
+    }
+  });
+
+  const avgAge = totalWeight > 0 ? totalWeightedAge / totalWeight : 0;
+
+  const team = leagueData.teams.find(t => t.tid === tid);
+  let teamRating = 0;
+  if (team) {
+    const playerRatings: number[] = [];
+    leagueData.players.forEach(player => {
+      const seasonStats = player.stats?.find(
+        s => !s.playoffs && s.season === season && s.tid === tid
+      );
+      if (seasonStats && seasonStats.gp && seasonStats.gp > 0) {
+        const rating = player.ratings?.find(r => r.season === season);
+        if (rating?.ovr) {
+          playerRatings.push(rating.ovr);
+        }
+      }
+    });
+    if (playerRatings.length > 0) {
+      teamRating = Math.round(playerRatings.reduce((sum, r) => sum + r, 0) / playerRatings.length);
+    }
+  }
+
+  const playoffData = getTeamPlayoffResult(leagueData, tid, season);
+  const playoffResult = playoffData?.label;
+
+  return {
+    wins,
+    losses,
+    teamRating,
+    avgAge,
+    ...(playoffResult ? { playoffResult } : {}),
+  };
+}
 
 // Helper functions for attempt tracking
 function getAttemptCount(gridId: string): number {
@@ -130,7 +341,29 @@ export default function Home() {
   const [modalEligiblePlayers, setModalEligiblePlayers] = useState<Player[]>([]);
   const [modalPuzzleSeed, setModalPuzzleSeed] = useState<string>("");
   const [modalCellKey, setModalCellKey] = useState<string>("");
-  
+
+  // Modal stack for team modals
+  type ModalStackItem = { type: 'team'; tid: number; season: number };
+  const [modalStack, setModalStack] = useState<ModalStackItem[]>([]);
+  const pushModal = useCallback((modal: ModalStackItem) => {
+    setModalStack(prev => [...prev, modal]);
+  }, []);
+  const popModal = useCallback(() => {
+    setModalStack(prev => prev.slice(0, -1));
+  }, []);
+  const clearModals = useCallback(() => {
+    setModalStack([]);
+    setPlayerModalOpen(false);
+  }, []);
+
+  // Handler for opening team modals (only when grid is completed)
+  const handleTeamClick = useCallback((tid: number, season: number) => {
+    const isGridCompleted = Object.values(cells).length === 9 && Object.values(cells).every(cell => cell.locked);
+    if (isGridCompleted) {
+      pushModal({ type: 'team', tid, season });
+    }
+  }, [cells, pushModal]);
+
   // Attempt tracking state
   const [currentGridId, setCurrentGridId] = useState<string>('');
   const [attemptCount, setAttemptCount] = useState<number>(1);
@@ -1793,25 +2026,36 @@ export default function Home() {
           onHintGenerated={handleHintGenerated}
         />
         
-        <PlayerModal
-          open={playerModalOpen}
-          onOpenChange={setPlayerModalOpen}
-          player={modalPlayer}
-          teams={leagueData?.teams || []}
-          eligiblePlayers={modalEligiblePlayers}
-          puzzleSeed={modalPuzzleSeed}
-          rows={rows}
-          cols={cols}
-          currentCellKey={modalCellKey}
-          sport={leagueData?.sport}
-          isGridCompleted={(() => {
-            // Check if all cells have been filled (either guessed or auto-filled)
-            const allCellKeys = rows.flatMap((row, rowIndex) => 
-              cols.map((col, colIndex) => `${rowIndex}-${colIndex}`)
-            );
-            return allCellKeys.every(key => cells[key]?.name);
-          })()}
-        />
+        {playerModalOpen && modalPlayer && (
+          <PlayerPageModal
+            player={modalPlayer}
+            sport={(leagueData?.sport as 'basketball' | 'football' | 'hockey' | 'baseball') || 'basketball'}
+            teams={leagueData?.teams || []}
+            season={(() => {
+              // Find the player's peak overall season
+              if (modalPlayer.ratings && modalPlayer.ratings.length > 0) {
+                const peakRating = modalPlayer.ratings.reduce((peak, current) => {
+                  return (current.ovr || 0) > (peak.ovr || 0) ? current : peak;
+                });
+                return peakRating.season;
+              }
+              // Fallback: use most recent season from stats
+              if (modalPlayer.stats && modalPlayer.stats.length > 0) {
+                return Math.max(...modalPlayer.stats.map(s => s.season));
+              }
+              return undefined;
+            })()}
+            onClose={() => setPlayerModalOpen(false)}
+            onTeamClick={handleTeamClick}
+            eligiblePlayers={modalEligiblePlayers}
+            puzzleSeed={modalPuzzleSeed}
+            rows={rows}
+            cols={cols}
+            currentCellKey={modalCellKey}
+            isGridCompleted={Object.values(cells).length === 9 && Object.values(cells).every(cell => cell.locked)}
+            wasAutoFilled={modalCellKey ? cells[modalCellKey]?.autoFilled : false}
+          />
+        )}
         
         <GridSharingModal
           isOpen={gridSharingModalOpen}
@@ -1874,6 +2118,78 @@ export default function Home() {
           rows={rows}
           cols={cols}
         />
+
+        {/* Team modals */}
+        {modalStack.map((modal, index) => {
+          if (modal.type === 'team' && leagueData) {
+            const team = leagueData.teams.find(t => t.tid === modal.tid);
+            if (!team) return null;
+
+            // Build team roster
+            const rosterData: any[] = [];
+            leagueData.players.forEach(player => {
+              const seasonStats = player.stats?.find(s => !s.playoffs && s.season === modal.season && s.tid === modal.tid);
+              if (seasonStats && seasonStats.gp && seasonStats.gp > 0) {
+                const rating = player.ratings?.find(r => r.season === modal.season);
+                const position = rating?.pos || player.pos || 'F';
+                const age = player.born?.year ? modal.season - player.born.year : undefined;
+                rosterData.push({
+                  player,
+                  position,
+                  age,
+                  gamesPlayed: seasonStats.gp,
+                  stats: seasonStats,
+                  yearsWithTeam: calculateYearsWithTeam(player, modal.tid, modal.season),
+                  ovr: getPlayerRating(player, modal.season, 'ovr'),
+                  pot: getPlayerRating(player, modal.season, 'pot'),
+                  contract: formatContract(player, modal.season),
+                });
+              }
+            });
+
+            const seasonInfo = team.seasons?.find(s => s.season === modal.season);
+            const teamLogo = seasonInfo?.imgURL || team.imgURL;
+            const teamColors = seasonInfo?.colors || team.colors || ['#000000', '#ffffff'];
+            const teamRegion = seasonInfo?.region || team.region || '';
+            const teamNickname = seasonInfo?.name || team.name || `Team ${team.tid}`;
+            const teamName = teamRegion ? `${teamRegion} ${teamNickname}` : teamNickname;
+            const teamAbbrev = seasonInfo?.abbrev || team.abbrev || '';
+
+            // Calculate team stats
+            const teamStats = calculateTeamStats(leagueData, modal.tid, modal.season, rosterData);
+
+            // Get playoff series data for this season
+            const playoffSeriesData = leagueData.playoffSeries?.find(ps => ps.season === modal.season);
+
+            return (
+              <TeamInfoModal
+                key={`team-${index}`}
+                open={true}
+                onCloseTop={popModal}
+                onCloseAll={clearModals}
+                stackIndex={index}
+                season={modal.season}
+                teamName={teamName}
+                teamAbbrev={teamAbbrev}
+                teamLogo={teamLogo ? getTeamLogoUrl(teamLogo, leagueData.sport || 'basketball') : undefined}
+                teamColors={teamColors}
+                players={rosterData}
+                sport={leagueData.sport || 'basketball'}
+                teams={leagueData.teams}
+                teamStats={teamStats}
+                playoffSeriesData={playoffSeriesData}
+                teamTid={modal.tid}
+                onOpenOpponentTeam={handleTeamClick}
+                allPlayoffSeries={leagueData.playoffSeries}
+                onPlayerClick={(player) => {
+                  setModalPlayer(player);
+                  setPlayerModalOpen(true);
+                }}
+              />
+            );
+          }
+          return null;
+        })}
       </main>
     </div>
   );

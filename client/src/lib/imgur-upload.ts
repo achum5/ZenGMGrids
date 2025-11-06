@@ -155,32 +155,71 @@ export async function uploadToImgur(
 
 /**
  * Copies text to the user's clipboard.
- * Uses the modern Clipboard API with fallback for older browsers.
+ * Uses the modern Clipboard API with enhanced fallback for mobile browsers.
  *
  * @param text - The text to copy
  * @returns Promise resolving to true if successful, false otherwise
  */
 export async function copyToClipboard(text: string): Promise<boolean> {
   try {
-    // Try modern Clipboard API first
+    // Try modern Clipboard API first (works on desktop and some mobile browsers)
     if (navigator.clipboard && window.isSecureContext) {
       await navigator.clipboard.writeText(text);
+      console.log('✓ Copied to clipboard via navigator.clipboard');
       return true;
-    } else {
-      // Fallback for older browsers or non-secure contexts
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.style.position = 'fixed';
-      textarea.style.left = '-999999px';
-      textarea.style.top = '-999999px';
-      document.body.appendChild(textarea);
-      textarea.focus();
-      textarea.select();
-
-      const successful = document.execCommand('copy');
-      textarea.remove();
-      return successful;
     }
+
+    // Fallback for browsers without clipboard API or non-secure contexts
+    console.log('Attempting fallback clipboard method...');
+
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+
+    // Make textarea invisible but accessible
+    textarea.style.position = 'fixed';
+    textarea.style.top = '0';
+    textarea.style.left = '0';
+    textarea.style.width = '2em';
+    textarea.style.height = '2em';
+    textarea.style.padding = '0';
+    textarea.style.border = 'none';
+    textarea.style.outline = 'none';
+    textarea.style.boxShadow = 'none';
+    textarea.style.background = 'transparent';
+    textarea.style.opacity = '0';
+
+    // Add to DOM
+    document.body.appendChild(textarea);
+
+    // Select the text
+    textarea.focus();
+    textarea.select();
+
+    // For iOS - ensure selection is set
+    if (navigator.userAgent.match(/ipad|iphone/i)) {
+      const range = document.createRange();
+      range.selectNodeContents(textarea);
+      const selection = window.getSelection();
+      if (selection) {
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+      textarea.setSelectionRange(0, textarea.value.length);
+    }
+
+    // Try to copy
+    let successful = false;
+    try {
+      successful = document.execCommand('copy');
+      console.log(`Fallback copy result: ${successful}`);
+    } catch (err) {
+      console.error('execCommand copy failed:', err);
+    }
+
+    // Clean up
+    textarea.remove();
+
+    return successful;
   } catch (error) {
     console.error('Failed to copy to clipboard:', error);
     return false;

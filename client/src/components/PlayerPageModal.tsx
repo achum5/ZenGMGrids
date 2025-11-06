@@ -1,9 +1,13 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { X } from 'lucide-react';
+import { X, Users } from 'lucide-react';
 import { PlayerFaceShared } from '@/components/PlayerFaceShared';
-import type { Player, Team } from '@/types/bbgm';
+import type { Player, Team, CatTeam } from '@/types/bbgm';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
+import { generatePlayerGuessFeedback } from '@/lib/reason-bullets';
+import { computeRarityForGuess, playerToEligibleLite } from '@/lib/rarity';
+import { getCachedSeasonIndex } from '@/lib/season-index-cache';
 
 interface PlayerPageModalProps {
   player: Player | null;
@@ -17,6 +21,14 @@ interface PlayerPageModalProps {
   stackIndex?: number; // Position in modal stack for z-index layering
   onTeamClick?: (tid: number, season: number) => void;
   onSeasonClick?: (season: number) => void;
+  // Grids-specific props
+  eligiblePlayers?: Player[];
+  puzzleSeed?: string;
+  rows?: CatTeam[];
+  cols?: CatTeam[];
+  currentCellKey?: string;
+  isGridCompleted?: boolean;
+  wasAutoFilled?: boolean; // True if cell was filled via Give Up
 }
 
 // Helper to check contrast and adjust text color
@@ -29,6 +41,63 @@ function getContrastColor(hexColor: string): 'white' | 'black' {
   return luminance > 0.5 ? 'black' : 'white';
 }
 
+// Helper to determine rarity tier based on playerCount
+const getRarityTier = (count: number) => {
+  if (count >= 90) return 'mythic';
+  if (count >= 75) return 'legendary';
+  if (count >= 60) return 'epic';
+  if (count >= 40) return 'rare';
+  if (count >= 20) return 'uncommon';
+  if (count >= 10) return 'common';
+  return 'none';
+};
+
+// Define color and gradient for each rarity tier
+const rarityStyles: Record<string, { bgColor: string; gradient: string; textColor: string; borderColor: string }> = {
+  common: {
+    bgColor: '#3DB2FF',
+    gradient: 'linear-gradient(135deg, #69C8FF 0%, #2A8AE0 100%)',
+    textColor: 'white',
+    borderColor: '#2A8AE0',
+  },
+  uncommon: {
+    bgColor: '#00D68F',
+    gradient: 'linear-gradient(135deg, #3EF1B3 0%, #00A070 100%)',
+    textColor: 'white',
+    borderColor: '#00A070',
+  },
+  rare: {
+    bgColor: '#FFD93D',
+    gradient: 'linear-gradient(135deg, #FFE875 0%, #E3B900 100%)',
+    textColor: 'black',
+    borderColor: '#E3B900',
+  },
+  epic: {
+    bgColor: '#FF7A00',
+    gradient: 'linear-gradient(135deg, #FF9C40 0%, #E66000 100%)',
+    textColor: 'white',
+    borderColor: '#E66000',
+  },
+  legendary: {
+    bgColor: '#FF3D68',
+    gradient: 'linear-gradient(135deg, #FF6D8C 0%, #D82A4F 100%)',
+    textColor: 'white',
+    borderColor: '#D82A4F',
+  },
+  mythic: {
+    bgColor: '#B537F2',
+    gradient: 'linear-gradient(135deg, #D178FF 0%, #8B1BD1 100%)',
+    textColor: 'white',
+    borderColor: '#8B1BD1',
+  },
+  none: {
+    bgColor: 'transparent',
+    gradient: 'none',
+    textColor: 'white',
+    borderColor: '#ef4444',
+  }
+};
+
 export function PlayerPageModal({
   player,
   sport,
@@ -40,18 +109,67 @@ export function PlayerPageModal({
   onCloseAll,
   stackIndex = 0,
   onTeamClick,
-  onSeasonClick
+  onSeasonClick,
+  eligiblePlayers,
+  puzzleSeed,
+  rows,
+  cols,
+  currentCellKey,
+  isGridCompleted = true,
+  wasAutoFilled = false
 }: PlayerPageModalProps) {
   // Support backward compatibility: if onClose is provided but not onCloseTop/onCloseAll, use onClose for both
   const handleCloseTop = onCloseTop ?? onClose ?? (() => {});
   const handleCloseAll = onCloseAll ?? onClose ?? (() => {});
   // Internal state for the selected season in the player modal (independent from game state)
   const [modalSeason, setModalSeason] = useState<number | undefined>(initialSeason);
+  // State for eligible players modal
+  const [eligiblePlayersModalOpen, setEligiblePlayersModalOpen] = useState(false);
+  // State to detect if header content is overlapping with close button
+  const [headerOverflowing, setHeaderOverflowing] = useState(false);
+  const headerContentRef = React.useRef<HTMLDivElement>(null);
 
   // Update modal season when player changes
   useEffect(() => {
     setModalSeason(initialSeason);
   }, [player?.pid, initialSeason]);
+
+  // Check if header content is overflowing and overlapping with close button
+  // Only applies when eligible players button is showing (grids mode)
+  useEffect(() => {
+    const checkOverflow = () => {
+      // Only check for overflow if eligible players button is present
+      if (!eligiblePlayers || eligiblePlayers.length === 0) {
+        setHeaderOverflowing(false);
+        return;
+      }
+
+      if (headerContentRef.current) {
+        const rect = headerContentRef.current.getBoundingClientRect();
+        const parentRect = headerContentRef.current.parentElement?.getBoundingClientRect();
+
+        if (parentRect) {
+          // Check if the right edge of content is actually overlapping with X button area
+          // X button is at right-4 (16px) and is ~36px wide
+          // Only trigger when there's true overlap - very tight threshold so they can rest close together
+          const spaceOnRight = parentRect.right - rect.right;
+          // Trigger only when space is less than 40px (allowing content to get close without adjusting)
+          setHeaderOverflowing(spaceOnRight < 40);
+        }
+      }
+    };
+
+    checkOverflow();
+    window.addEventListener('resize', checkOverflow);
+
+    // Recheck after a short delay to account for dynamic content
+    const timeoutId = setTimeout(checkOverflow, 100);
+
+    return () => {
+      window.removeEventListener('resize', checkOverflow);
+      clearTimeout(timeoutId);
+    };
+  }, [player?.name, modalSeason, eligiblePlayers?.length]);
 
   // Use modalSeason for all internal rendering
   const season = modalSeason;
@@ -70,6 +188,122 @@ export function PlayerPageModal({
     const seasonStats = player.stats?.find(s => s.season === season && !s.playoffs);
     return seasonStats?.tid;
   }, [player, season, teamId]);
+
+  // Calculate reason bullets for grids mode
+  const reasonBullets = useMemo(() => {
+    if (!eligiblePlayers || !puzzleSeed || !rows || !cols || !currentCellKey || !player || !teams) {
+      return null;
+    }
+
+    // Get the row and column constraints for this cell
+    let rowConstraint: CatTeam | undefined;
+    let colConstraint: CatTeam | undefined;
+
+    if (currentCellKey.includes('|')) {
+      // Traditional format: "rowKey|colKey"
+      const [rowKey, colKey] = currentCellKey.split('|');
+      rowConstraint = rows.find(r => r.key === rowKey);
+      colConstraint = cols.find(c => c.key === colKey);
+    } else {
+      // Position-based format: "rowIndex-colIndex"
+      const [rowIndexStr, colIndexStr] = currentCellKey.split('-');
+      const rowIndex = parseInt(rowIndexStr, 10);
+      const colIndex = parseInt(colIndexStr, 10);
+      rowConstraint = rows[rowIndex];
+      colConstraint = cols[colIndex];
+    }
+
+    if (!rowConstraint || !colConstraint) {
+      return null;
+    }
+
+    // Get season index for achievements
+    const seasonIndex = getCachedSeasonIndex(eligiblePlayers, sport as 'basketball' | 'football' | 'hockey' | 'baseball');
+
+    // Generate feedback bullets
+    const bullets = generatePlayerGuessFeedback(player, rowConstraint, colConstraint, teams, sport, seasonIndex, true);
+
+    // Calculate rarity
+    const eligibleLite = eligiblePlayers.map(p => playerToEligibleLite(p));
+    const guessedPlayer = playerToEligibleLite(player);
+    const rarity = computeRarityForGuess({
+      guessed: guessedPlayer,
+      eligiblePool: eligibleLite,
+      puzzleSeed: puzzleSeed,
+      cellContext: {
+        rowConstraint: rowConstraint,
+        colConstraint: colConstraint
+      },
+      fullPlayers: eligiblePlayers,
+      teams: new Map(teams.map(t => [t.tid, t]))
+    });
+
+    return {
+      bullets,
+      rarity
+    };
+  }, [eligiblePlayers, puzzleSeed, rows, cols, currentCellKey, player, sport, teams]);
+
+  // Calculate eligible players with rarity scores for the modal
+  const eligiblePlayersWithRarity = useMemo(() => {
+    if (!eligiblePlayers || eligiblePlayers.length === 0 || !puzzleSeed) {
+      return [];
+    }
+
+    // Get constraints for cell-aware rarity
+    let rowConstraint: CatTeam | undefined;
+    let colConstraint: CatTeam | undefined;
+
+    if (currentCellKey && rows && cols) {
+      if (currentCellKey.includes('|')) {
+        const [rowKey, colKey] = currentCellKey.split('|');
+        rowConstraint = rows.find(r => r.key === rowKey);
+        colConstraint = cols.find(c => c.key === colKey);
+      } else {
+        const [rowIndexStr, colIndexStr] = currentCellKey.split('-');
+        const rowIndex = parseInt(rowIndexStr, 10);
+        const colIndex = parseInt(colIndexStr, 10);
+        rowConstraint = rows[rowIndex];
+        colConstraint = cols[colIndex];
+      }
+    }
+
+    const eligiblePool = eligiblePlayers.map(p => playerToEligibleLite(p));
+    const seasonIndex = getCachedSeasonIndex(eligiblePlayers, sport);
+
+    const playersWithRarity = eligiblePlayers.map(p => {
+      const guessedPlayer = playerToEligibleLite(p);
+
+      let rarity = computeRarityForGuess({
+        guessed: guessedPlayer,
+        eligiblePool: eligiblePool,
+        puzzleSeed: puzzleSeed
+      });
+
+      // If we have cell context, recalculate with cell-aware system
+      if (rowConstraint && colConstraint) {
+        rarity = computeRarityForGuess({
+          guessed: guessedPlayer,
+          eligiblePool: eligiblePool,
+          puzzleSeed: puzzleSeed,
+          cellContext: {
+            rowConstraint: rowConstraint,
+            colConstraint: colConstraint
+          },
+          fullPlayers: eligiblePlayers,
+          teams: new Map(teams.map(t => [t.tid, t])),
+          seasonIndex: seasonIndex
+        });
+      }
+
+      return { player: p, rarity };
+    });
+
+    // Sort by rarity (most common first = lowest rarity score)
+    playersWithRarity.sort((a, b) => a.rarity - b.rarity);
+
+    return playersWithRarity;
+  }, [eligiblePlayers, puzzleSeed, rows, cols, currentCellKey, teams, sport]);
 
   // Helper function to get season-aligned team name
   const getTeamNameForSeason = (team: Team | undefined, seasonYear: number): { region: string; name: string; abbrev: string } => {
@@ -238,7 +472,9 @@ export function PlayerPageModal({
         {/* Close Button */}
         <button
           onClick={handleCloseTop}
-          className="absolute top-4 right-4 z-20 rounded-full p-2 transition-all hover:scale-110 hover:rotate-90"
+          className={`absolute right-4 z-20 rounded-full p-2 transition-all hover:scale-110 hover:rotate-90 ${
+            headerOverflowing ? 'top-2' : 'top-6'
+          }`}
           style={{
             backgroundColor: `${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`,
             color: textColor === 'white' ? '#ffffff' : '#000000',
@@ -249,8 +485,11 @@ export function PlayerPageModal({
         </button>
 
         {/* Header */}
-        <div className="relative z-10 p-6 border-b" style={{ borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}` }}>
-          <div className="flex items-center gap-1 sm:gap-3">
+        <div
+          className={`relative z-10 border-b ${headerOverflowing ? 'pt-12 px-6 pb-6' : 'p-6'}`}
+          style={{ borderColor: `${textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}` }}
+        >
+          <div ref={headerContentRef} className="flex items-center flex-wrap gap-1 sm:gap-2">
             <h2 className="text-2xl font-bold tracking-tight" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>
               {player.name}
             </h2>
@@ -362,6 +601,27 @@ export function PlayerPageModal({
                 </>
               );
             })()}
+
+            {/* Other Eligible Players Button - Only show in grids mode */}
+            {eligiblePlayers && eligiblePlayers.length > 0 && (
+              <>
+                <span className="text-2xl font-bold" style={{ color: textColor === 'white' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }}>|</span>
+                <Button
+                  onClick={() => setEligiblePlayersModalOpen(true)}
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2 px-2 sm:px-3 py-1 h-auto"
+                  style={{
+                    backgroundColor: textColor === 'white' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                    color: textColor === 'white' ? '#ffffff' : '#000000',
+                    border: `1px solid ${textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'}`,
+                  }}
+                >
+                  <Users className="h-4 w-4" />
+                  <span className="hidden sm:inline text-sm font-semibold">Other Eligible Players</span>
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
@@ -449,11 +709,12 @@ export function PlayerPageModal({
                     {team && teamInfo && (
                       <button
                         type="button"
-                        className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer bg-transparent border-0 p-0 font-inherit"
+                        className={`${isGridCompleted ? 'text-blue-600 dark:text-blue-400 hover:underline cursor-pointer' : 'cursor-default'} bg-transparent border-0 p-0 font-inherit`}
+                        style={!isGridCompleted ? { color: textColor === 'white' ? '#ffffff' : '#000000' } : undefined}
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          if (onTeamClick && season) {
+                          if (onTeamClick && season && isGridCompleted) {
                             onTeamClick(team.tid, season);
                           }
                         }}
@@ -585,6 +846,22 @@ export function PlayerPageModal({
             </div>
             </div>
             </div>
+
+          {/* Reason Bullets for Grids Mode (Mobile) */}
+          {reasonBullets && (
+            <div className="sm:hidden mt-6 px-3 py-4 rounded-lg border" style={{
+              borderColor: textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
+              backgroundColor: textColor === 'white' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'
+            }}>
+              <div className="space-y-2 text-sm" style={{ color: statTextColor }}>
+                {reasonBullets.bullets.map((bullet: string, idx: number) => (
+                  <div key={idx} className="flex items-start gap-2">
+                    <span className="leading-5">{bullet}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Player Summary Stats Table */}
           {sport === 'basketball' && season && player.stats && (() => {
@@ -3748,6 +4025,23 @@ export function PlayerPageModal({
               </div>
             );
           })()}
+
+          {/* Reason Bullets for Grids Mode (Desktop) */}
+          {reasonBullets && (
+            <div className="hidden sm:block px-3 py-4 rounded-lg border w-fit" style={{
+              marginTop: '44px',
+              borderColor: textColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
+              backgroundColor: textColor === 'white' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'
+            }}>
+              <div className="space-y-2 text-sm" style={{ color: statTextColor }}>
+                {reasonBullets.bullets.map((bullet: string, idx: number) => (
+                  <div key={idx} className="flex items-start gap-2">
+                    <span className="leading-5">{bullet}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           </div>
         </div>
 
@@ -5774,6 +6068,100 @@ export function PlayerPageModal({
         )}
         </div>
       </div>
+
+      {/* Eligible Players Modal */}
+      {eligiblePlayersModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 100000 + ((stackIndex + 1) * 10) - 1,
+            backdropFilter: 'blur(4px)',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '4rem 1rem',
+          }}
+          onClick={() => setEligiblePlayersModalOpen(false)}
+        >
+          <div
+            className="max-w-2xl w-full max-h-full flex flex-col border-2 border-border rounded-lg shadow-lg bg-background relative"
+            style={{
+              zIndex: 100000 + ((stackIndex + 1) * 10),
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setEligiblePlayersModalOpen(false)}
+              className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none z-50"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </button>
+
+            <div className="px-6 pt-6 pb-4 border-b border-border flex-shrink-0">
+              <h2 className="text-lg font-semibold leading-none tracking-tight">
+                {player && eligiblePlayers?.some(p => p.pid === player.pid)
+                  ? "Other Eligible Answers"
+                  : "Eligible Answers"}
+              </h2>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
+              {!isGridCompleted ? (
+                <div className="text-sm text-muted-foreground text-center py-12">
+                  <p className="text-lg font-medium mb-2">Revealed upon grid completion...</p>
+                  <p className="text-xs">Complete all cells to see the full list of eligible players and their rarity scores.</p>
+                </div>
+              ) : eligiblePlayersWithRarity.length === 0 ? (
+                <div className="text-sm text-muted-foreground text-center py-12">
+                  <p>No eligible players data available.</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {eligiblePlayersWithRarity.map(({ player: eligiblePlayer, rarity }, idx) => {
+                    const isUserGuess = player && eligiblePlayer.pid === player.pid;
+                    const rarityTier = getRarityTier(rarity);
+                    const styles = rarityStyles[rarityTier];
+
+                    return (
+                      <div
+                        key={eligiblePlayer.pid}
+                        className={`flex justify-between items-center py-2 px-3 rounded transition-colors ${
+                          isUserGuess
+                            ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 font-medium border-2 border-blue-300 dark:border-blue-700"
+                            : "hover:bg-muted/50"
+                        }`}
+                      >
+                        <span className="flex-1 text-sm">
+                          {idx + 1}. {eligiblePlayer.name}
+                          {isUserGuess && !wasAutoFilled && <span className="ml-2 text-xs">(Your guess)</span>}
+                        </span>
+                        <span
+                          className="text-xs font-semibold ml-3 px-2.5 py-1 rounded-md border whitespace-nowrap"
+                          style={{
+                            background: styles.gradient !== 'none' ? styles.gradient : styles.bgColor,
+                            color: styles.textColor,
+                            borderColor: styles.borderColor,
+                          }}
+                        >
+                          {rarity}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
