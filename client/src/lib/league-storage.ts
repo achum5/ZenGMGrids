@@ -76,6 +76,7 @@ export async function saveLeague(
 
   // Generate fingerprint for this league
   const newFingerprint = generateLeagueFingerprint(leagueData);
+  console.log('[Storage] Generated fingerprint:', newFingerprint.id);
 
   // Get all existing fingerprints
   const allFingerprints = await db.getAll(FINGERPRINTS_STORE);
@@ -85,6 +86,7 @@ export async function saveLeague(
 
   // Check if this league matches an existing one
   const matchingFingerprintId = findMatchingLeague(newFingerprint, fingerprintMap);
+  console.log('[Storage] Matching fingerprint ID:', matchingFingerprintId);
 
   let id: string;
   let isUpdate = false;
@@ -212,6 +214,42 @@ export async function saveLeagueMetadata(
   
   await db.put(STORE_NAME, storedLeague);
   return id;
+}
+
+/**
+ * Update the fingerprintId for an existing league (for migration of old saves)
+ */
+export async function updateLeagueFingerprint(leagueId: string, fingerprintId: string): Promise<void> {
+  const db = await getDB();
+  const league = await db.get(STORE_NAME, leagueId);
+  if (league) {
+    league.fingerprintId = fingerprintId;
+    await db.put(STORE_NAME, league);
+    console.log('[Storage] Updated league with fingerprintId:', fingerprintId);
+  }
+}
+
+/**
+ * Get all stored fingerprints
+ */
+export async function getAllFingerprints(): Promise<StoredFingerprint[]> {
+  const db = await getDB();
+  return await db.getAll(FINGERPRINTS_STORE);
+}
+
+/**
+ * Save a fingerprint to the store
+ */
+export async function saveFingerprint(fingerprint: LeagueFingerprint): Promise<void> {
+  const db = await getDB();
+  const storedFingerprint: StoredFingerprint = {
+    id: fingerprint.id,
+    fingerprint,
+    createdAt: Date.now(),
+    lastSeenAt: Date.now(),
+  };
+  await db.put(FINGERPRINTS_STORE, storedFingerprint);
+  console.log('[Storage] Saved fingerprint:', fingerprint.id);
 }
 
 export async function getAllLeagues(): Promise<StoredLeague[]> {

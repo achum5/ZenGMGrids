@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { RefreshCw, Flag, Share2, Grid3x3, Lightbulb } from 'lucide-react';
+import { RefreshCw, Flag, Share2, Grid3x3, Lightbulb, Camera, Loader2, Check, AlertCircle, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { cellKey } from '@/lib/grid-generator';
 import type { CatTeam, CellState, Team } from '@/types/bbgm';
@@ -13,6 +13,9 @@ import { ResponsiveText } from '@/components/ResponsiveText';
 import { TeamLogo } from '@/components/TeamLogo';
 import { ScorePopup } from './ScorePopup';
 import { CellCelebration } from './CellCelebration';
+import { captureElementAsBlob } from '@/lib/screenshot-utils';
+import { uploadToImgur, copyToClipboard } from '@/lib/imgur-upload';
+import { getAssetBaseUrl } from '@/components/TeamLogo';
 import './score-popup.css';
 import {
   AlertDialog,
@@ -197,6 +200,15 @@ export function GridSection({
   const [celebratingCells, setCelebratingCells] = useState<Set<string>>(new Set());
   const celebrationQueue = useRef<string[]>([]);
 
+  // Screenshot state
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [screenshotStatus, setScreenshotStatus] = useState<'idle' | 'capturing' | 'uploading' | 'success' | 'error'>('idle');
+  const [hideLogos, setHideLogos] = useState(false);
+  const [screenshotUrl, setScreenshotUrl] = useState<string>('');
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [spoilerFreeMode, setSpoilerFreeMode] = useState(false);
+  const [copyButtonText, setCopyButtonText] = useState<string>('Copy Link');
+
   const processCelebrationQueue = useCallback(() => {
     if (celebratingCells.size >= 2 || celebrationQueue.current.length === 0) {
       return;
@@ -285,13 +297,138 @@ export function GridSection({
     prevCellsRef.current = cells;
   }, [cells, processCelebrationQueue]);
 
+  // Handler for manual copy button click
+  const handleManualCopy = async () => {
+    if (!screenshotUrl) return;
+
+    const wasCopied = await copyToClipboard(screenshotUrl);
+    if (wasCopied) {
+      setCopyButtonText('Copied!');
+      setTimeout(() => {
+        setCopyButtonText('Copy Link');
+      }, 2000);
+    } else {
+      setCopyButtonText('Failed to copy');
+      setTimeout(() => {
+        setCopyButtonText('Copy Link');
+      }, 2000);
+    }
+  };
+
+  // Helper function to check if any team logos are from zengm websites
+  const hasZengmLogos = useCallback(() => {
+    const zengmDomains = ['zengm.com', 'basketball-gm.com', 'football-gm.com'];
+
+    // Check all teams used in rows and cols
+    const allConstraints = [...rows, ...cols];
+
+    for (const constraint of allConstraints) {
+      if (constraint.type === 'team') {
+        const team = teams.find(t => t.tid === constraint.tid);
+        if (!team) continue;
+
+        // Check if team has imgURL
+        if (team.imgURL) {
+          // If it's a default relative path starting with '/img/logos-', it will use zengm domain
+          if (team.imgURL.startsWith('/img/logos-')) {
+            return true;
+          }
+        } else if (team.abbrev) {
+          // No imgURL means it will try to load from zengm domain using abbrev
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }, [rows, cols, teams]);
+
+  // Screenshot handler
+  const handleScreenshot = async () => {
+    if (!gridRef.current) return;
+
+    setScreenshotStatus('capturing');
+    setErrorMessage('');
+
+    try {
+      // Check if any logos are from zengm websites
+      const shouldHideLogos = hasZengmLogos();
+
+      if (shouldHideLogos) {
+        console.log('Detected zengm-hosted logos, using text for screenshot...');
+        setHideLogos(true);
+        await new Promise(resolve => setTimeout(resolve, 100)); // Wait for re-render
+      }
+
+      // Capture screenshot
+      let blob = await captureElementAsBlob(gridRef.current);
+
+      // Check if blob is too small (might indicate logo loading failure)
+      if (blob && blob.size < 10000 && !shouldHideLogos) {
+        console.log('Small screenshot detected, retrying with team names...');
+        setHideLogos(true);
+        await new Promise(resolve => setTimeout(resolve, 100)); // Wait for re-render
+        blob = await captureElementAsBlob(gridRef.current);
+      }
+
+      // Reset logo visibility
+      if (shouldHideLogos || hideLogos) {
+        await new Promise(resolve => setTimeout(resolve, 100)); // Show briefly
+        setHideLogos(false);
+      }
+
+      if (!blob) {
+        throw new Error('Failed to capture screenshot');
+      }
+
+      setScreenshotStatus('uploading');
+      const uploadResult = await uploadToImgur(blob);
+
+      if (uploadResult.success && uploadResult.data) {
+        setScreenshotUrl(uploadResult.data.link);
+        setScreenshotStatus('success');
+
+        // Try to automatically copy link to clipboard (works on desktop, may fail on mobile)
+        const wasCopied = await copyToClipboard(uploadResult.data.link);
+        if (wasCopied) {
+          console.log('✓ Link auto-copied to clipboard');
+          setCopyButtonText('Copied!');
+        } else {
+          console.warn('Auto-copy failed - user can use Copy button');
+          setCopyButtonText('Copy Link');
+        }
+
+        setTimeout(() => {
+          setScreenshotStatus('idle');
+          setScreenshotUrl('');
+          setSpoilerFreeMode(false); // Reset spoiler mode after screenshot
+          setCopyButtonText('Copy Link');
+        }, 10000);
+      } else {
+        throw new Error(uploadResult.error || 'Upload failed');
+      }
+    } catch (error) {
+      console.error('Screenshot error:', error);
+      setScreenshotStatus('error');
+      setErrorMessage(error instanceof Error ? error.message : 'Screenshot failed');
+      setHideLogos(false); // Reset if error occurred
+      setSpoilerFreeMode(false); // Reset spoiler mode on error
+
+      setTimeout(() => {
+        setScreenshotStatus('idle');
+        setErrorMessage('');
+        setCopyButtonText('Copy Link');
+      }, 5000);
+    }
+  };
+
   // Helper function for generating unique React keys
   const getReactKey = (type: 'header-row' | 'header-col' | 'cell', rowIndex?: number, colIndex?: number, rowKey?: string, colKey?: string) => {
     // Explicit duplicate detection
     const hasDupRows = rows.map(r => r.key).some((k, i, a) => a.indexOf(k) !== i);
     const hasDupCols = cols.map(c => c.key).some((k, i, a) => a.indexOf(k) !== i);
     const hasDuplicates = hasDupRows || hasDupCols;
-    
+
     if (hasDuplicates) {
       if (type === 'header-row') return `header-row-${rowIndex}`;
       if (type === 'header-col') return `header-col-${colIndex}`;
@@ -374,13 +511,11 @@ export function GridSection({
       borderColor = '#B91C1C';
       className = 'incorrect-answer font-medium transition-all duration-100 motion-reduce:transition-none cursor-pointer hover:brightness-110 hover:contrast-110 hover:shadow-md focus:ring-2 focus:ring-inset focus:ring-red-400';
     } else if (cellState.autoFilled) {
-      // Muted, "dead" appearance for given up cells
-      background = 'repeating-linear-gradient(45deg, #2a2e35, #2a2e35 10px, #32363f 10px, #32363f 20px)'; // Subtle diagonal hatch
-      color = '#9ca3af'; // Desaturated gray text
-      borderColor = '#5b6270'; // Neutral gray border
-      borderWidth = '1px';
-      borderStyle = 'dashed'; // Dashed border for "final" feel
-      className = 'revealed-answer font-medium transition-all duration-100 motion-reduce:transition-none cursor-pointer grayscale opacity-80 blur-[0.5px] focus:ring-2 focus:ring-inset focus:ring-gray-500';
+      // Exact same styling as incorrect guesses
+      background = '#EF4444'; // Red for incorrect
+      color = 'white';
+      borderColor = '#B91C1C';
+      className = 'incorrect-answer font-medium transition-all duration-100 motion-reduce:transition-none cursor-pointer hover:brightness-110 hover:contrast-110 hover:shadow-md focus:ring-2 focus:ring-inset focus:ring-red-400';
     }
 
     return {
@@ -417,7 +552,7 @@ export function GridSection({
     <div className="space-y-6">
       {/* Top buttons container - aligned with grid width */}
       <div className="max-w-6xl mx-auto px-3 md:px-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           {/* Left button: Give Up or Retry This Grid */}
           {isGridComplete || giveUpPressed ? (
             <Button
@@ -434,7 +569,59 @@ export function GridSection({
             <GiveUpDialog onGiveUp={onGiveUp} isGenerating={isGenerating} hasEmptyCells={hasEmptyCells} />
           )}
 
-          {/* Generate New Grid button on the right */}
+          {/* Center button: Screenshot (only when grid is complete) */}
+          {isGridComplete && (
+            <div className="flex flex-col items-center gap-1">
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={handleScreenshot}
+                  disabled={screenshotStatus !== 'idle'}
+                  variant="secondary"
+                  size="icon"
+                  className="neon-button dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white transition-all duration-150 active:scale-95 active:shadow-inner h-8 w-8 sm:h-10 sm:w-10"
+                  title={
+                    screenshotStatus === 'capturing' ? 'Capturing...' :
+                    screenshotStatus === 'uploading' ? 'Uploading...' :
+                    screenshotStatus === 'success' ? 'Link Copied!' :
+                    screenshotStatus === 'error' ? 'Error' :
+                    'Screenshot and upload to ImgBB'
+                  }
+                >
+                  {screenshotStatus === 'capturing' && <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />}
+                  {screenshotStatus === 'uploading' && <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />}
+                  {screenshotStatus === 'success' && <Check className="h-3 w-3 sm:h-4 sm:w-4" />}
+                  {screenshotStatus === 'error' && <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4" />}
+                  {screenshotStatus === 'idle' && <Camera className="h-3 w-3 sm:h-4 sm:w-4" />}
+                </Button>
+
+                {/* Spoiler-free toggle */}
+                <div className="flex items-center gap-1">
+                  <Switch
+                    id="spoiler-free"
+                    checked={spoilerFreeMode}
+                    onCheckedChange={setSpoilerFreeMode}
+                    className="scale-75 sm:scale-100"
+                  />
+                  <Label
+                    htmlFor="spoiler-free"
+                    className="text-[10px] sm:text-xs cursor-pointer whitespace-nowrap"
+                    title="Hide player names and faces in screenshot"
+                  >
+                    Spoiler Free
+                  </Label>
+                </div>
+              </div>
+
+              {/* Message when logos are hidden */}
+              {hideLogos && (
+                <div className="text-[9px] sm:text-[10px] text-muted-foreground text-center">
+                  (Can't screenshot images hosted by zengm)
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Right button: Generate New Grid */}
           <Button
             onClick={onGenerateNewGrid}
             disabled={isGenerating}
@@ -458,11 +645,11 @@ export function GridSection({
           </Button>
         </div>
       </div>
-      
+
       <Card className="border-0 shadow-none bg-transparent">
         <CardContent className="p-3 md:p-6">
           {/* Grid Container with expanded max-width */}
-          <div className="max-w-6xl mx-auto">
+          <div ref={gridRef} className="max-w-6xl mx-auto">
             {/* Complete 4x4 Grid - Board with Thin Separators */}
             <div className="rainbow-border rounded-2xl p-[2px] md:p-[3px] overflow-hidden grid-container-glow grid-divider">
               <div className="grid grid-cols-4 gap-[2px] md:gap-[2px] w-full relative z-10">
@@ -519,7 +706,7 @@ export function GridSection({
                     data-testid={`header-col-${col.key}`}
                     title={teamForHeader ? `${teamForHeader.region || ''} ${teamForHeader.name}`.trim() : col.label}
                   >
-                    {teamForHeader ? (
+                    {teamForHeader && !hideLogos ? (
                       <TeamLogo team={teamForHeader} sport={sport} />
                     ) : (
                       <ResponsiveText
@@ -556,7 +743,7 @@ export function GridSection({
                         data-testid={`header-row-${row.key}`}
                         title={teamForHeader ? `${teamForHeader.region || ''} ${teamForHeader.name}`.trim() : row.label}
                       >
-                        {teamForHeader ? (
+                        {teamForHeader && !hideLogos ? (
                           <TeamLogo team={teamForHeader} sport={sport} />
                         ) : (
                           <ResponsiveText
@@ -741,31 +928,59 @@ export function GridSection({
                         <div className="text-xs md:text-sm px-1 md:px-2 text-center w-full h-full flex items-center justify-center relative overflow-hidden">
                           {cellContent.showFace && cellContent.player ? (
                             <div className="relative w-full h-full flex items-center justify-center">
-                              <PlayerFace
-                                pid={cellContent.player.pid}
-                                name={cellContent.player.name}
-                                imgURL={cellContent.player.imgURL}
-                                face={cellContent.player.face}
-                                size={Math.min(80, typeof window !== 'undefined' ? Math.min(window.innerWidth / 10, window.innerHeight / 12) : 80)}
-                                player={cellContent.player}
-                                teams={teams}
-                                sport={sport}
-                                season={cellContent.season}
-                              />
+                              {/* Show PlayerFace only when NOT in spoiler-free mode */}
+                              {!spoilerFreeMode && (
+                                <PlayerFace
+                                  pid={cellContent.player.pid}
+                                  name={cellContent.player.name}
+                                  imgURL={cellContent.player.imgURL}
+                                  face={cellContent.player.face}
+                                  size={Math.min(80, typeof window !== 'undefined' ? Math.min(window.innerWidth / 10, window.innerHeight / 12) : 80)}
+                                  player={cellContent.player}
+                                  teams={teams}
+                                  sport={sport}
+                                  season={cellContent.season}
+                                />
+                              )}
                               {(() => {
                                 // Use positional key format like home.tsx uses
                                 const positionalKey = `${rowIndex}-${colIndex}`;
                                 const cellState = cells[positionalKey];
                                 const rarityTier = getRarityTier(cellState?.rarity || 0);
+                                const styles = rarityStyles[rarityTier];
 
                                 return (
                                   <>
-                                    {/* Rarity Chip (Scoring Badge) */}
-                                    {cellState?.correct && cellState?.rarity && (
-                                      <div className="absolute top-1 left-1 z-10">
-                                        <RarityChip value={cellState.rarity} />
+                                    {/* Spoiler-free mode: Big centered score or "Gave Up" text */}
+                                    {spoilerFreeMode && cellState?.autoFilled ? (
+                                      <div
+                                        className="absolute inset-0 flex items-center justify-center text-sm sm:text-base md:text-lg font-bold z-10"
+                                        style={{
+                                          color: 'white',
+                                          textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
+                                        }}
+                                      >
+                                        Gave Up
                                       </div>
+                                    ) : spoilerFreeMode && cellState?.correct && cellState?.rarity ? (
+                                      <div
+                                        className="absolute inset-0 flex items-center justify-center text-4xl sm:text-5xl md:text-6xl font-bold z-10"
+                                        style={{
+                                          color: styles.textColor,
+                                          textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
+                                        }}
+                                      >
+                                        {cellState.rarity}
+                                      </div>
+                                    ) : (
+                                      /* Normal mode: Rarity Chip (Scoring Badge) in corner */
+                                      cellState?.correct && cellState?.rarity && (
+                                        <div className="absolute top-1 left-1 z-10">
+                                          <RarityChip value={cellState.rarity} />
+                                        </div>
+                                      )
                                     )}
+                                    {/* Light bulb indicator: Shows if hint was used, regardless of spoiler-free mode */}
                                     {cellState?.usedHint && (
                                       <div className="absolute top-1 right-1 z-10 text-sm" data-testid={`hint-indicator-${rowIndex}-${colIndex}`}>
                                         💡
@@ -889,6 +1104,44 @@ export function GridSection({
         </div>
       </div>
       </div>
+
+      {/* Screenshot status overlays - success and error */}
+      {screenshotStatus === 'success' && (
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 rounded-lg p-3 text-sm font-medium shadow-lg z-[10002] max-w-md bg-green-600 text-white">
+          <div className="space-y-2">
+            <div className="flex items-center justify-center gap-2 flex-wrap">
+              <Check className="h-4 w-4" />
+              <span>Screenshot uploaded!</span>
+              <button
+                onClick={handleManualCopy}
+                className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-all hover:opacity-80 active:scale-95 bg-white text-green-600 border border-white"
+              >
+                <Copy className="h-3 w-3" />
+                <span>{copyButtonText}</span>
+              </button>
+            </div>
+            {screenshotUrl && (
+              <a
+                href={screenshotUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs underline hover:no-underline break-all block text-center opacity-90"
+              >
+                {screenshotUrl}
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
+      {screenshotStatus === 'error' && (
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 rounded-lg p-3 text-sm font-medium shadow-lg z-[10002] bg-red-600 text-white">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" />
+            <span>{errorMessage || 'Failed to upload screenshot'}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

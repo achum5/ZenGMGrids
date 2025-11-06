@@ -207,11 +207,11 @@ export function RulesModal({ sport, color }: RulesModalProps) {
           <span className="sr-only">Rules</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[85vh] sm:max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[85vh] sm:max-h-[80vh] flex flex-col">
         <DialogHeader>
         </DialogHeader>
-        
-        <div className="space-y-4 text-sm">
+
+        <div className="space-y-4 text-sm overflow-y-auto pr-2 flex-1">
           {isGeneralRules ? (
             <div className="space-y-6">
               {/* Welcome */}

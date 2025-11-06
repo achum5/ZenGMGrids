@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { UploadSection } from '@/components/upload-section';
 import { GridSection } from '@/components/grid-section';
 import { PlayerSearchModal } from '@/components/player-search-modal';
@@ -14,7 +14,9 @@ import ChooseGameMode from '@/pages/choose-game-mode';
 import TeamTrivia from '@/pages/team-trivia';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Home as HomeIcon, ArrowLeft } from 'lucide-react';
+import { Home as HomeIcon, ArrowLeft, History } from 'lucide-react';
+import { GridHistoryModal } from '@/components/GridHistoryModal';
+import { loadGridHistory, saveGridToHistory, deleteLeagueGridHistory, deleteLeagueGridHistoryBelowThreshold, type GridHistoryEntry } from '@/lib/grid-history';
 import { saveLeague, updateLastPlayed, type StoredLeague } from '@/lib/league-storage';
 // Import sport icon images  
 import zengmGridsLogo from '@/assets/zengm-grids-logo-mark.png';
@@ -341,9 +343,10 @@ export default function Home() {
   const [modalEligiblePlayers, setModalEligiblePlayers] = useState<Player[]>([]);
   const [modalPuzzleSeed, setModalPuzzleSeed] = useState<string>("");
   const [modalCellKey, setModalCellKey] = useState<string>("");
+  const [playerModalStackIndex, setPlayerModalStackIndex] = useState<number>(0);
 
-  // Modal stack for team modals
-  type ModalStackItem = { type: 'team'; tid: number; season: number };
+  // Modal stack for team and history modals
+  type ModalStackItem = { type: 'team'; tid: number; season: number } | { type: 'history' };
   const [modalStack, setModalStack] = useState<ModalStackItem[]>([]);
   const pushModal = useCallback((modal: ModalStackItem) => {
     setModalStack(prev => [...prev, modal]);
@@ -354,6 +357,7 @@ export default function Home() {
   const clearModals = useCallback(() => {
     setModalStack([]);
     setPlayerModalOpen(false);
+    setPlayerModalStackIndex(0);
   }, []);
 
   // Handler for opening team modals (only when grid is completed)
@@ -391,10 +395,117 @@ export default function Home() {
   const [currentFileName, setCurrentFileName] = useState<string>('');
   const [currentFileSize, setCurrentFileSize] = useState<number | undefined>(undefined);
 
+  // Grid history state
+  const [gridHistory, setGridHistory] = useState<GridHistoryEntry[]>([]);
+
+  // Track last saved grid to prevent duplicates
+  const lastSavedGridRef = useRef<string | null>(null);
+
   // Handle hint mode toggle
   const handleHintModeChange = useCallback((enabled: boolean) => {
     setHintMode(enabled);
   }, []);
+
+  // Load grid history on mount and filter by current league
+  useEffect(() => {
+    const allHistory = loadGridHistory();
+    console.log('[Grid History] Loading history. Current fingerprint:', currentFingerprintId);
+    console.log('[Grid History] All history entries:', allHistory.length);
+    console.log('[Grid History] Fingerprint IDs in history:', [...new Set(allHistory.map(h => h.leagueFingerprintId))]);
+
+    // Filter history by current league fingerprint
+    // Only show history if we have a valid fingerprint ID AND the entry matches
+    const filteredHistory = currentFingerprintId
+      ? allHistory.filter(entry => entry.leagueFingerprintId === currentFingerprintId)
+      : []; // Don't show any history if no fingerprint (to avoid showing wrong league's history)
+
+    console.log('[Grid History] Filtered history entries:', filteredHistory.length);
+    setGridHistory(filteredHistory);
+  }, [currentFingerprintId]);
+
+  // Save grid to history when completed
+  useEffect(() => {
+    if (!leagueData) return;
+
+    // Check if grid is complete (all 9 cells filled)
+    const allCellKeys = rows.flatMap((row, rowIndex) =>
+      cols.map((col, colIndex) => `${rowIndex}-${colIndex}`)
+    );
+    const filledCells = allCellKeys.filter(key => cells[key]?.name).length;
+    const isGridComplete = filledCells === 9 && allCellKeys.length === 9;
+
+    // Only save once when grid is newly completed
+    if (isGridComplete && rows.length > 0 && cols.length > 0) {
+      const totalScore = Object.values(cells).reduce((sum, cell) => sum + (cell.points || 0), 0);
+      const correctGuesses = Object.values(cells).filter(cell => cell.correct).length;
+
+      // Don't save if player gave up without making any guesses (creates broken/unclickable history entries)
+      if (giveUpPressed && correctGuesses === 0) {
+        return;
+      }
+
+      // Create a unique identifier for this specific grid completion
+      const gridCompletionId = `${rows.map(r => r.key).join('-')}_${cols.map(c => c.key).join('-')}_${totalScore}_${correctGuesses}_${attemptCount}_${giveUpPressed}`;
+
+      // Only save if we haven't already saved this exact completion
+      if (lastSavedGridRef.current !== gridCompletionId) {
+        // Save to history with full grid state
+        const simplifiedCells: Record<string, any> = {};
+        Object.entries(cells).forEach(([key, cell]) => {
+          simplifiedCells[key] = {
+            name: cell.name,
+            correct: cell.correct,
+            locked: cell.locked,
+            autoFilled: cell.autoFilled,
+            guessed: cell.guessed,
+            points: cell.points,
+            rarity: cell.rarity,
+            usedHint: cell.usedHint,
+            // Don't save full player object to keep storage small
+          };
+        });
+
+        console.log('[Grid History] Saving grid to history with fingerprintId:', currentFingerprintId);
+
+        saveGridToHistory({
+          sport: leagueData.sport || 'basketball',
+          score: totalScore,
+          correctGuesses,
+          totalCells: 9,
+          attemptCount,
+          usedGiveUp: giveUpPressed,
+          leagueFingerprintId: currentFingerprintId || undefined,
+          gridConfig: {
+            rows: rows.map(r => ({
+              type: r.type,
+              label: r.label,
+              tid: r.tid,
+              key: r.key,
+              achievementId: r.achievementId
+            })),
+            cols: cols.map(c => ({
+              type: c.type,
+              label: c.label,
+              tid: c.tid,
+              key: c.key,
+              achievementId: c.achievementId
+            })),
+          },
+          cells: simplifiedCells,
+        });
+
+        // Mark this grid completion as saved
+        lastSavedGridRef.current = gridCompletionId;
+
+        // Reload history after saving
+        const allHistory = loadGridHistory();
+        const filteredHistory = currentFingerprintId
+          ? allHistory.filter(entry => entry.leagueFingerprintId === currentFingerprintId)
+          : []; // Don't show any history if no fingerprint
+        setGridHistory(filteredHistory);
+      }
+    }
+  }, [cells, rows, cols, leagueData, attemptCount, giveUpPressed, currentFingerprintId]);
 
   // Handle parsing method change
   const handleParsingMethodChange = useCallback((method: ParsingMethod) => {
@@ -801,7 +912,42 @@ export default function Home() {
       setCurrentFileName(storedLeague.name);
       setCurrentFileSize(storedLeague.fileSize);
       setCurrentLeagueId(storedLeague.id);
-      setCurrentFingerprintId(storedLeague.fingerprintId || null);
+      console.log('[League Load] Loading saved league with fingerprintId:', storedLeague.fingerprintId);
+
+      // If league doesn't have a fingerprint (old save), generate one now
+      let fingerprintId = storedLeague.fingerprintId;
+      if (!fingerprintId && !storedLeague.isMetadataOnly) {
+        console.log('[League Load] No fingerprintId found, generating one...');
+        try {
+          const { generateLeagueFingerprint, findMatchingLeague } = await import('@/lib/league-fingerprint');
+          const { updateLeagueFingerprint, saveFingerprint, getAllFingerprints } = await import('@/lib/league-storage');
+
+          const fingerprint = generateLeagueFingerprint(storedLeague.leagueData);
+
+          // Check if this fingerprint already exists
+          const allFingerprints = await getAllFingerprints();
+          const fingerprintMap = new Map(allFingerprints.map(sf => [sf.id, sf.fingerprint]));
+          const matchingId = findMatchingLeague(fingerprint, fingerprintMap);
+
+          if (matchingId) {
+            // Use existing fingerprint ID
+            fingerprintId = matchingId;
+            console.log('[League Load] Found matching fingerprint:', fingerprintId);
+          } else {
+            // Save new fingerprint
+            fingerprintId = fingerprint.id;
+            await saveFingerprint(fingerprint);
+            console.log('[League Load] Saved new fingerprint:', fingerprintId);
+          }
+
+          await updateLeagueFingerprint(storedLeague.id, fingerprintId);
+          console.log('[League Load] Updated league with fingerprintId:', fingerprintId);
+        } catch (error) {
+          console.error('[League Load] Failed to generate fingerprint:', error);
+        }
+      }
+
+      setCurrentFingerprintId(fingerprintId || null);
       setSavedYearRange(storedLeague.yearRange || null);
 
       // Check if this is a metadata-only save (large file on mobile)
@@ -1123,6 +1269,7 @@ export default function Home() {
 
         // Set the current league ID and fingerprint so they're available
         setCurrentLeagueId(savedLeagueId);
+        console.log('[League Load] Setting fingerprintId:', fingerprintId);
         setCurrentFingerprintId(fingerprintId || null);
 
         toast({
@@ -1190,6 +1337,7 @@ export default function Home() {
       setUsedPids(new Set()); // Reset used players
       setRankCache({}); // Reset cached rankings for the old grid
       setGiveUpPressed(false); // Reset Give Up state
+      lastSavedGridRef.current = null; // Reset saved grid tracking
       clearHintCache(); // Clear hint cache for new grid
       setReshuffleCounts({}); // Reset reshuffle counts for new grid
       
@@ -1235,7 +1383,8 @@ export default function Home() {
       setUsedPids(new Set()); // Reset used players
       setRankCache({}); // Reset cached rankings
       setGiveUpPressed(false); // Reset Give Up state
-      
+      lastSavedGridRef.current = null; // Reset saved grid tracking
+
       // Initialize grid tracking for imported grid
       const gridId = `${importedRows.map(r => r.key).join('-')}_${importedCols.map(c => c.key).join('-')}`;
       setCurrentGridId(gridId);
@@ -1363,7 +1512,9 @@ export default function Home() {
       
       // Set the cell key for feedback generation
       setModalCellKey(positionalKey);
-      
+
+      // Set player modal stack index to be on top of current modal stack
+      setPlayerModalStackIndex(modalStack.length);
       setPlayerModalOpen(true);
       return;
     }
@@ -1483,7 +1634,7 @@ export default function Home() {
       setCurrentCellKey(positionalKey);
       setSearchModalOpen(true);
     }
-  }, [cells, rows, cols, intersections, leagueData, hintMode, toast]);
+  }, [cells, rows, cols, intersections, leagueData, hintMode, toast, modalStack]);
 
 
   const getCurrentCellDescription = () => {
@@ -1537,6 +1688,7 @@ export default function Home() {
     setModalEligiblePlayers([]);
     setModalPuzzleSeed("");
     setModalCellKey("");
+    setPlayerModalStackIndex(0);
     setRankCache({});
   }, [parsingMethodSetting]);
 
@@ -1585,7 +1737,8 @@ export default function Home() {
         const storedAttemptCount = getAttemptCount(gridId);
         setAttemptCount(storedAttemptCount);
         setGiveUpPressed(false);
-        
+        lastSavedGridRef.current = null; // Reset saved grid tracking
+
         setIsGenerating(false);
       }, 100); // 100ms delay to let browser render
       
@@ -1777,19 +1930,20 @@ export default function Home() {
 
   const handleRetryGrid = useCallback(() => {
     if (!currentGridId) return;
-    
+
     // Increment attempt count
     const newAttemptCount = attemptCount + 1;
     setAttemptCount(newAttemptCount);
     storeAttemptCount(currentGridId, newAttemptCount);
-    
+
     // Reset the grid state
     setCells({});
     setUsedPids(new Set());
     setRankCache({});
     setGiveUpPressed(false); // Reset Give Up state
+    lastSavedGridRef.current = null; // Reset saved grid tracking
     setReshuffleCounts({}); // Reset reshuffle counts for retry
-    
+
     // Keep the same rows, cols, and intersections (same puzzle)
   }, [currentGridId, attemptCount]);
 
@@ -1890,86 +2044,199 @@ export default function Home() {
         style={{ position: 'relative' }}
       >
         <div className="max-w-6xl mx-auto px-6 py-4">
-          <div className="relative flex items-center justify-center">
-            <div className="absolute left-0 flex items-center space-x-1 z-10">
-              {hasGuesses ? (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="sm" data-testid="button-back">
-                      <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
-                      <span className="sr-only">Go back</span>
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Go back to game selection?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        You have made guesses in this grid. Going back will lose your current progress. Are you sure?
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleBackToModeSelect}>Go Back</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              ) : (
-                <Button variant="ghost" size="sm" onClick={handleBackToModeSelect} data-testid="button-back">
-                  <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
-                  <span className="sr-only">Go back</span>
-                </Button>
-              )}
-            </div>
-            <div className="flex items-center space-x-2 sm:space-x-3 max-w-[calc(100%-8rem)] sm:max-w-none min-w-0">
-              <img
-                src={
-                  leagueData?.sport === 'basketball' ? basketballIcon :
-                  leagueData?.sport === 'football' ? footballIcon :
-                  leagueData?.sport === 'hockey' ? hockeyIcon :
-                  leagueData?.sport === 'baseball' ? baseballIcon :
-                  zengmGridsLogo
-                }
-                alt={`${leagueData?.sport || 'Sports'} icon`}
-                className="w-8 h-8 sm:w-10 sm:h-10 object-contain header-logo shrink-0"
-              />
-              <h1 className="text-sm sm:text-base md:text-lg lg:text-2xl header-title whitespace-nowrap overflow-hidden text-ellipsis min-w-0">
-                {leagueData?.sport === 'basketball' && 'Basketball GM Grids'}
-                {leagueData?.sport === 'football' && 'Football GM Grids'}
-                {leagueData?.sport === 'hockey' && 'ZenGM Hockey Grids'}
-                {leagueData?.sport === 'baseball' && 'ZenGM Baseball Grids'}
-              </h1>
-            </div>
-            <div className="absolute right-0 flex items-center space-x-1 z-10">
-              <div>
-                <RulesModal sport={leagueData?.sport} />
+          {/* Desktop: Centered layout with absolute positioning */}
+          <div className="hidden sm:block">
+            <div className="relative flex items-center justify-center">
+              <div className="absolute left-0 flex items-center space-x-1 z-10">
+                {hasGuesses ? (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="sm" data-testid="button-back">
+                        <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
+                        <span className="sr-only">Go back</span>
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Go back to game selection?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          You have made guesses in this grid. Going back will lose your current progress. Are you sure?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleBackToModeSelect}>Go Back</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                ) : (
+                  <Button variant="ghost" size="sm" onClick={handleBackToModeSelect} data-testid="button-back">
+                    <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
+                    <span className="sr-only">Go back</span>
+                  </Button>
+                )}
               </div>
-              {hasGuesses ? (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="sm" data-testid="button-home">
-                      <HomeIcon className="h-[1.2rem] w-[1.2rem]" />
-                      <span className="sr-only">Go home</span>
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Go back to file upload?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        You have made guesses in this grid. Going home will lose your current progress. Are you sure you want to continue?
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleGoHome}>Go Home</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              ) : (
-                <Button variant="ghost" size="sm" onClick={handleGoHome} data-testid="button-home">
-                  <HomeIcon className="h-[1.2rem] w-[1.2rem]" />
-                  <span className="sr-only">Go home</span>
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <img
+                  src={
+                    leagueData?.sport === 'basketball' ? basketballIcon :
+                    leagueData?.sport === 'football' ? footballIcon :
+                    leagueData?.sport === 'hockey' ? hockeyIcon :
+                    leagueData?.sport === 'baseball' ? baseballIcon :
+                    zengmGridsLogo
+                  }
+                  alt={`${leagueData?.sport || 'Sports'} icon`}
+                  className="w-10 h-10 object-contain header-logo shrink-0"
+                />
+                <h1 className="text-base md:text-lg lg:text-2xl header-title whitespace-nowrap">
+                  {leagueData?.sport === 'basketball' && 'Basketball GM Grids'}
+                  {leagueData?.sport === 'football' && 'Football GM Grids'}
+                  {leagueData?.sport === 'hockey' && 'ZenGM Hockey Grids'}
+                  {leagueData?.sport === 'baseball' && 'ZenGM Baseball Grids'}
+                </h1>
+              </div>
+              <div className="absolute right-0 flex items-center space-x-1 z-10">
+                {/* History button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => pushModal({ type: 'history' })}
+                  data-testid="button-history"
+                >
+                  <History className="h-[1.2rem] w-[1.2rem]" />
+                  <span className="sr-only">History</span>
                 </Button>
-              )}
+                <div>
+                  <RulesModal sport={leagueData?.sport} />
+                </div>
+                {hasGuesses ? (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="sm" data-testid="button-home">
+                        <HomeIcon className="h-[1.2rem] w-[1.2rem]" />
+                        <span className="sr-only">Go home</span>
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Go back to file upload?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          You have made guesses in this grid. Going home will lose your current progress. Are you sure you want to continue?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleGoHome}>Go Home</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                ) : (
+                  <Button variant="ghost" size="sm" onClick={handleGoHome} data-testid="button-home">
+                    <HomeIcon className="h-[1.2rem] w-[1.2rem]" />
+                    <span className="sr-only">Go home</span>
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile: Left-aligned layout with responsive text */}
+          <div className="block sm:hidden">
+            <div className="flex items-center justify-between gap-1">
+              {/* Left side: Back button + Title */}
+              <div className="flex items-center gap-1 min-w-0 flex-1">
+                {hasGuesses ? (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="sm" data-testid="button-back" className="shrink-0">
+                        <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
+                        <span className="sr-only">Go back</span>
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Go back to game selection?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          You have made guesses in this grid. Going back will lose your current progress. Are you sure?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleBackToModeSelect}>Go Back</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                ) : (
+                  <Button variant="ghost" size="sm" onClick={handleBackToModeSelect} data-testid="button-back" className="shrink-0">
+                    <ArrowLeft className="h-[1.2rem] w-[1.2rem]" />
+                    <span className="sr-only">Go back</span>
+                  </Button>
+                )}
+
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <img
+                    src={
+                      leagueData?.sport === 'basketball' ? basketballIcon :
+                      leagueData?.sport === 'football' ? footballIcon :
+                      leagueData?.sport === 'hockey' ? hockeyIcon :
+                      leagueData?.sport === 'baseball' ? baseballIcon :
+                      zengmGridsLogo
+                    }
+                    alt={`${leagueData?.sport || 'Sports'} icon`}
+                    className="w-7 h-7 object-contain header-logo shrink-0"
+                  />
+                  <h1 className="text-[11px] leading-tight header-title min-w-0" style={{ fontSize: 'clamp(9px, 2.5vw, 13px)' }}>
+                    {leagueData?.sport === 'basketball' && 'Basketball GM Grids'}
+                    {leagueData?.sport === 'football' && 'Football GM Grids'}
+                    {leagueData?.sport === 'hockey' && 'ZenGM Hockey Grids'}
+                    {leagueData?.sport === 'baseball' && 'ZenGM Baseball Grids'}
+                  </h1>
+                </div>
+              </div>
+
+              {/* Right side: History, Rules, Home buttons */}
+              <div className="flex items-center space-x-1 shrink-0">
+                {/* History button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => pushModal({ type: 'history' })}
+                  data-testid="button-history"
+                >
+                  <History className="h-[1.2rem] w-[1.2rem]" />
+                  <span className="sr-only">History</span>
+                </Button>
+                <div>
+                  <RulesModal sport={leagueData?.sport} />
+                </div>
+                {hasGuesses ? (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="sm" data-testid="button-home">
+                        <HomeIcon className="h-[1.2rem] w-[1.2rem]" />
+                        <span className="sr-only">Go home</span>
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Go back to file upload?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          You have made guesses in this grid. Going home will lose your current progress. Are you sure you want to continue?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleGoHome}>Go Home</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                ) : (
+                  <Button variant="ghost" size="sm" onClick={handleGoHome} data-testid="button-home">
+                    <HomeIcon className="h-[1.2rem] w-[1.2rem]" />
+                    <span className="sr-only">Go home</span>
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -2045,7 +2312,10 @@ export default function Home() {
               }
               return undefined;
             })()}
-            onClose={() => setPlayerModalOpen(false)}
+            onClose={() => {
+              setPlayerModalOpen(false);
+              setPlayerModalStackIndex(0);
+            }}
             onTeamClick={handleTeamClick}
             eligiblePlayers={modalEligiblePlayers}
             puzzleSeed={modalPuzzleSeed}
@@ -2054,6 +2324,7 @@ export default function Home() {
             currentCellKey={modalCellKey}
             isGridCompleted={Object.values(cells).length === 9 && Object.values(cells).every(cell => cell.locked)}
             wasAutoFilled={modalCellKey ? cells[modalCellKey]?.autoFilled : false}
+            stackIndex={playerModalStackIndex}
           />
         )}
         
@@ -2092,7 +2363,8 @@ export default function Home() {
             setUsedPids(new Set());
             setRankCache({});
             setGiveUpPressed(false); // Reset the "finished" state
-            
+            lastSavedGridRef.current = null; // Reset saved grid tracking
+
             // Calculate intersections directly from the test functions provided by the modal
             const newIntersections: Record<string, number[]> = {};
             for (let rowIndex = 0; rowIndex < customRows.length; rowIndex++) {
@@ -2183,7 +2455,175 @@ export default function Home() {
                 allPlayoffSeries={leagueData.playoffSeries}
                 onPlayerClick={(player) => {
                   setModalPlayer(player);
+                  // Set player modal to appear above this team modal
+                  setPlayerModalStackIndex(index + 1);
                   setPlayerModalOpen(true);
+                }}
+              />
+            );
+          } else if (modal.type === 'history') {
+            return (
+              <GridHistoryModal
+                key={`history-${index}`}
+                open={true}
+                onCloseTop={popModal}
+                onCloseAll={clearModals}
+                stackIndex={index}
+                history={gridHistory}
+                leagueFingerprintId={currentFingerprintId ?? undefined}
+                onGameClick={(entry) => {
+                  // Restore the grid from history
+                  console.log('Restoring grid from history:', entry);
+                  console.log('byName size:', Object.keys(byName).length);
+                  console.log('byPid size:', Object.keys(byPid).length);
+                  if (entry.gridConfig && entry.cells && leagueData) {
+                    // Reconstruct CatTeam objects from saved config
+                    const restoredRows: CatTeam[] = entry.gridConfig.rows.map(r => {
+                      if (r.type === 'team') {
+                        const team = leagueData.teams.find(t => t.tid === r.tid);
+                        return {
+                          type: 'team' as const,
+                          tid: r.tid!,
+                          label: r.label,
+                          key: r.key || `team-${r.tid}`,
+                          test: (player: Player) => {
+                            return player.stats?.some(s => !s.playoffs && s.tid === r.tid && s.gp && s.gp > 0) || false;
+                          }
+                        };
+                      } else {
+                        // Achievement type - we need to find the achievement definition
+                        // For now, just create a basic structure
+                        return {
+                          type: 'achievement' as const,
+                          achievementId: r.achievementId || 'unknown',
+                          label: r.label,
+                          key: r.key || `achv-${r.achievementId}`,
+                          test: () => false // Will be filled from intersections
+                        };
+                      }
+                    });
+
+                    const restoredCols: CatTeam[] = entry.gridConfig.cols.map(c => {
+                      if (c.type === 'team') {
+                        const team = leagueData.teams.find(t => t.tid === c.tid);
+                        return {
+                          type: 'team' as const,
+                          tid: c.tid!,
+                          label: c.label,
+                          key: c.key || `team-${c.tid}`,
+                          test: (player: Player) => {
+                            return player.stats?.some(s => !s.playoffs && s.tid === c.tid && s.gp && s.gp > 0) || false;
+                          }
+                        };
+                      } else {
+                        return {
+                          type: 'achievement' as const,
+                          achievementId: c.achievementId || 'unknown',
+                          label: c.label,
+                          key: c.key || `achv-${c.achievementId}`,
+                          test: () => false
+                        };
+                      }
+                    });
+
+                    // Restore cell states and look up player objects
+                    const restoredCells: Record<string, CellState> = {};
+                    Object.entries(entry.cells).forEach(([key, savedCell]) => {
+                      // Look up the player by name
+                      let player: Player | undefined = undefined;
+                      if (savedCell.name && savedCell.name !== '—') {
+                        const pid = byName[savedCell.name];
+                        if (pid !== undefined) {
+                          player = byPid[pid];
+                          if (!player) {
+                            console.warn(`Player not found in byPid for pid ${pid}, name: ${savedCell.name}`);
+                          } else {
+                            console.log(`Found player ${savedCell.name}:`, {
+                              pid: player.pid,
+                              name: player.name,
+                              hasImgURL: !!player.imgURL,
+                              hasFace: !!player.face,
+                              imgURL: player.imgURL,
+                            });
+                          }
+                        } else {
+                          console.warn(`Player name not found in byName index: ${savedCell.name}`);
+                          // Try to find by searching all players
+                          const foundPlayer = leagueData.players.find(p => p.name === savedCell.name);
+                          if (foundPlayer) {
+                            player = foundPlayer;
+                            console.log(`Found player via direct search: ${savedCell.name}`, {
+                              pid: player.pid,
+                              hasImgURL: !!player.imgURL,
+                              hasFace: !!player.face,
+                            });
+                          }
+                        }
+                      }
+
+                      restoredCells[key] = {
+                        name: savedCell.name,
+                        correct: savedCell.correct,
+                        locked: savedCell.locked || true,
+                        autoFilled: savedCell.autoFilled || false,
+                        guessed: savedCell.guessed || false,
+                        points: savedCell.points || 0,
+                        rarity: savedCell.rarity,
+                        usedHint: savedCell.usedHint || false,
+                        player: player, // Add the player object
+                      };
+                    });
+
+                    // Update grid state
+                    setRows(restoredRows);
+                    setCols(restoredCols);
+                    setCells(restoredCells);
+                    setIntersections({}); // Clear intersections since grid is already complete
+                    setGiveUpPressed(entry.usedGiveUp);
+                    setAttemptCount(entry.attemptCount);
+
+                    // Set grid ID for tracking
+                    const gridId = `${restoredRows.map(r => r.key).join('-')}_${restoredCols.map(c => c.key).join('-')}`;
+                    setCurrentGridId(gridId);
+
+                    // Mark as already saved so we don't re-save when viewing history
+                    const gridCompletionId = `${restoredRows.map(r => r.key).join('-')}_${restoredCols.map(c => c.key).join('-')}_${entry.score}_${entry.correctGuesses}_${entry.attemptCount}_${entry.usedGiveUp}`;
+                    lastSavedGridRef.current = gridCompletionId;
+
+                    // Clear any used players set for this restored grid
+                    const usedPlayerIds = new Set<number>();
+                    Object.values(restoredCells).forEach(cell => {
+                      if (cell.player?.pid) {
+                        usedPlayerIds.add(cell.player.pid);
+                      }
+                    });
+                    setUsedPids(usedPlayerIds);
+
+                    // Close the modal
+                    clearModals();
+                  }
+                }}
+                onDeleteHistory={() => {
+                  if (currentFingerprintId) {
+                    deleteLeagueGridHistory(currentFingerprintId);
+                    // Reload history after deletion
+                    const allHistory = loadGridHistory();
+                    const filteredHistory = allHistory.filter(
+                      entry => entry.leagueFingerprintId === currentFingerprintId
+                    );
+                    setGridHistory(filteredHistory);
+                  }
+                }}
+                onDeleteBelowThreshold={(threshold) => {
+                  if (currentFingerprintId) {
+                    deleteLeagueGridHistoryBelowThreshold(currentFingerprintId, threshold);
+                    // Reload history after deletion
+                    const allHistory = loadGridHistory();
+                    const filteredHistory = allHistory.filter(
+                      entry => entry.leagueFingerprintId === currentFingerprintId
+                    );
+                    setGridHistory(filteredHistory);
+                  }
                 }}
               />
             );

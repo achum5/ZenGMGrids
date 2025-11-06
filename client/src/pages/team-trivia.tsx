@@ -2343,10 +2343,12 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
       setActiveIndex(prev => prev > 0 ? prev - 1 : -1);
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      
+
       if (activeIndex >= 0 && autocompleteSuggestions[activeIndex]) {
+        // User has navigated to a specific suggestion with arrow keys
         handleSelectPlayer(autocompleteSuggestions[activeIndex]);
-      } else if (autocompleteSuggestions.length === 1) {
+      } else if (autocompleteSuggestions.length > 0) {
+        // Accept the first matching suggestion (e.g., "Taylor" matches "Taylor Jr.")
         handleSelectPlayer(autocompleteSuggestions[0]);
       } else {
         handleManualGuess();

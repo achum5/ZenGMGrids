@@ -11,32 +11,19 @@ const seasonLengthAchievements = new Set(['played15PlusSeasons']);
 
 /**
  * Randomly flip customizable achievement operators
- * 50% chance of staying >= (with +), 50% chance of flipping to ≤ (less than or equal)
- * Uses the same formatting logic as the custom grid modal
+ * For random generation: Never flip to ≤ (always use ≥)
+ * Custom grids still support ≤ operators through the custom grid modal
  */
 function maybeFlipAchievementOperator(achievement: Achievement): { achievement: Achievement; operator: '≥' | '≤' } {
   // Parse the achievement label to check if it's customizable
   const parsed = parseAchievementLabel(achievement.label, 'basketball');
-  
+
   if (!parsed.isEditable) {
     return { achievement, operator: '≥' }; // Not customizable, return as-is with default operator
   }
 
-  // 50% chance to flip to ≤ (less than or equal)
-  if (Math.random() < 0.5) {
-    // Use the same label formatting as the custom grid modal
-    const flippedLabel = generateUpdatedLabel(parsed, parsed.number, '≤');
-    
-    return {
-      achievement: {
-        ...achievement,
-        label: flippedLabel
-      },
-      operator: '≤'
-    };
-  }
-  
-  // 50% chance: return as-is with ≥ (greater than or equal)
+  // Never flip to ≤ in random generation (always use ≥)
+  // Custom grids can still use ≤ through the custom grid modal
   return { achievement, operator: '≥' };
 }
 

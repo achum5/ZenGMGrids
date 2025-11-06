@@ -449,7 +449,7 @@ export function PlayerPageModal({
           left: 0,
           right: 0,
           bottom: 0,
-          zIndex: 100000 + (stackIndex * 10),
+          zIndex: 100000 + (stackIndex * 10) - 1,
           backdropFilter: 'blur(10px) brightness(0.8)',
           WebkitBackdropFilter: 'blur(10px) brightness(0.8)',
           display: 'flex',
@@ -6086,15 +6086,21 @@ export function PlayerPageModal({
             justifyContent: 'center',
             padding: '4rem 1rem',
           }}
-          onClick={() => setEligiblePlayersModalOpen(false)}
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent click from reaching player modal backdrop
+            setEligiblePlayersModalOpen(false);
+          }}
         >
           <div
-            className="max-w-2xl w-full max-h-full flex flex-col border-2 border-border rounded-lg shadow-lg bg-background relative"
+            className="rainbow-border rounded-lg p-[2px] max-w-2xl w-full max-h-full"
             style={{
               zIndex: 100000 + ((stackIndex + 1) * 10),
             }}
-            onClick={(e) => e.stopPropagation()}
           >
+            <div
+              className="w-full h-full flex flex-col rounded-lg shadow-lg bg-background relative"
+              onClick={(e) => e.stopPropagation()}
+            >
             {/* Close Button */}
             <button
               onClick={() => setEligiblePlayersModalOpen(false)}
@@ -6158,6 +6164,7 @@ export function PlayerPageModal({
                   })}
                 </div>
               )}
+            </div>
             </div>
           </div>
         </div>
