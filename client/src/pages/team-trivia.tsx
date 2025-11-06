@@ -4552,12 +4552,24 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
 
         {/* Help Modal */}
         <Dialog open={showHelpModal} onOpenChange={setShowHelpModal}>
-          <DialogContent 
-            className="max-w-2xl max-h-[65vh] sm:max-h-[80vh] !z-[10000] top-[10vh] bottom-[10vh] sm:top-[50%] sm:bottom-auto translate-y-0 sm:translate-y-[-50%] mb-[10vh] sm:mb-0" 
+          <DialogContent
+            className="max-w-2xl max-h-[65vh] sm:max-h-[80vh] !z-[10000] top-[10vh] bottom-[10vh] sm:top-[50%] sm:bottom-auto translate-y-0 sm:translate-y-[-50%] mb-[10vh] sm:mb-0 [&>div]:!p-[2px] [&>div>div]:!p-6"
             style={{ zIndex: 10000 }}
             overlayClassName="!z-[9999]"
-            overlayStyle={{ zIndex: 9999 }}
+            overlayStyle={{
+              zIndex: 9999,
+              ['--team-color-bg' as string]: teamDisplayInfo.colors[0],
+              ['--team-color-border' as string]: teamDisplayInfo.colors[1]
+            }}
           >
+            <style>{`
+              [data-state="open"][role="dialog"] > div {
+                background: ${teamDisplayInfo.colors[1]} !important;
+              }
+              [data-state="open"][role="dialog"] > div > div {
+                background: ${teamDisplayInfo.colors[0]} !important;
+              }
+            `}</style>
             <DialogHeader>
               <DialogDescription className="sr-only">Learn how to play Team Trivia mode</DialogDescription>
             </DialogHeader>
