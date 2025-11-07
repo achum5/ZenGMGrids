@@ -226,19 +226,29 @@ export async function buildSearchIndex(players: Player[], teams: Team[]) {
     const teamAbbrevs = Array.from(player.teamsPlayed)
       .map(tid => teamsByTid[tid]?.abbrev)
       .filter(Boolean);
-    
+
     // Pre-calculate career years
     const careerYears = getCareerYears(player, currentSeason);
-    
+
+    // Extract first and last name, skipping common suffixes
+    const firstName = nameParts[0] || '';
+    const suffixes = ['jr', 'jr.', 'sr', 'sr.', 'ii', 'iii', 'iv', 'v'];
+    let lastName = nameParts[nameParts.length - 1] || '';
+
+    // If the last part is a suffix, use the second-to-last part as the last name
+    if (nameParts.length > 1 && suffixes.includes(lastName.toLowerCase().replace(/\./g, ''))) {
+      lastName = nameParts[nameParts.length - 2] || lastName;
+    }
+
     searchablePlayers.push({
       pid: player.pid,
       name: player.name,
       nameLower: player.name.toLowerCase(),
       nameFolded: fold(player.name),
-      firstLower: nameParts[0]?.toLowerCase() || '',
-      firstFolded: fold(nameParts[0] || ''),
-      lastLower: nameParts[nameParts.length - 1]?.toLowerCase() || '',
-      lastFolded: fold(nameParts[nameParts.length - 1] || ''),
+      firstLower: firstName.toLowerCase(),
+      firstFolded: fold(firstName),
+      lastLower: lastName.toLowerCase(),
+      lastFolded: fold(lastName),
       teamAbbrevs,
       careerYears,
     });

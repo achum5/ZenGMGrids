@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search, X } from 'lucide-react';
 import type { SearchablePlayer, Player } from '@/types/bbgm';
-import { useOptimizedSearch } from '@/lib/search-utils';
+import { buildSearchIndex, searchIndex, useDebounce, type SearchIndex } from '@/lib/search-utils';
 
 interface PlayerSearchModalProps {
   isOpen: boolean;
@@ -31,28 +31,27 @@ export function PlayerSearchModal({
   const [activeIndex, setActiveIndex] = useState(-1);
   const [inputRef, setInputRef] = useState<HTMLInputElement | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const debouncedQuery = useDebounce(searchQuery, 150);
 
-  // Use optimized search with debouncing and memoization
-  const {
-    searchQuery,
-    setSearchQuery,
-    searchResults,
-    isSearching
-  } = useOptimizedSearch(
-    searchablePlayers,
-    (player: SearchablePlayer) => [
-      player.name,
-      player.firstFolded,
-      player.lastFolded,
-      player.nameFolded
-    ],
-    (player: SearchablePlayer) => player.pid,
-    {
-      delay: 150, // Reduced debounce for faster response
-      maxResults: 50, // Reduced results for better performance
-      enableCache: true
-    }
-  );
+  // Build search index (memoized)
+  const builtIndex = useMemo(() => {
+    return buildSearchIndex(
+      searchablePlayers,
+      (player: SearchablePlayer) => [
+        player.name,
+        player.firstFolded,
+        player.lastFolded,
+        player.nameFolded
+      ],
+      (player: SearchablePlayer) => player.pid
+    );
+  }, [searchablePlayers]);
+
+  // Perform search with debounced query for display
+  const searchResults = useMemo(() => {
+    return searchIndex(builtIndex, debouncedQuery, 50);
+  }, [builtIndex, debouncedQuery]);
 
   // Extract just the SearchablePlayer items from search results
   const filteredPlayers = useMemo(() => {
@@ -95,7 +94,7 @@ export function PlayerSearchModal({
       onClose();
       return;
     }
-    
+
     if (event.key === 'ArrowDown') {
       event.preventDefault();
       const newIndex = Math.min(activeIndex + 1, filteredPlayers.length - 1);
@@ -108,16 +107,21 @@ export function PlayerSearchModal({
       scrollToActiveItem(newIndex);
     } else if (event.key === 'Enter') {
       event.preventDefault();
-      // If there's an active selection, use it
-      if (activeIndex >= 0 && filteredPlayers[activeIndex]) {
-        const selectedPlayer = filteredPlayers[activeIndex];
+
+      // Perform immediate search with current query (bypass debounce)
+      const immediateResults = searchIndex(builtIndex, searchQuery, 50);
+      const immediatePlayers = immediateResults.map((result: any) => result.item);
+
+      // If there's an active selection and it's in the immediate results, use it
+      if (activeIndex >= 0 && immediatePlayers[activeIndex]) {
+        const selectedPlayer = immediatePlayers[activeIndex];
         if (selectedPlayer && !usedPids.has(selectedPlayer.pid)) {
           handleSelectPlayer(selectedPlayer);
         }
       }
-      // If there's exactly one result and no active selection, select it
-      else if (filteredPlayers.length === 1) {
-        const selectedPlayer = filteredPlayers[0];
+      // Otherwise, if there are any immediate results, select the first one (best match)
+      else if (immediatePlayers.length > 0) {
+        const selectedPlayer = immediatePlayers[0];
         if (selectedPlayer && !usedPids.has(selectedPlayer.pid)) {
           handleSelectPlayer(selectedPlayer);
         }
@@ -189,7 +193,6 @@ export function PlayerSearchModal({
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
-                setActiveIndex(-1);
               }}
               className="pl-10"
               autoFocus
