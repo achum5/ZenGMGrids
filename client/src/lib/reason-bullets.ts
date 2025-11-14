@@ -85,8 +85,7 @@ const SEASON_ACHIEVEMENT_LABELS: Partial<Record<SeasonAchievementId, string>> = 
   HKAllLeague: 'All-League Team',
   HKAssistsLeader: 'League Assists Leader',
   HKPlayoffsMVP: 'Playoffs MVP',
-  HKChampion: 'Won Championship',
-  
+
   // Hockey GM Season Statistical Achievements (19 new achievements)
   HKSeason40Goals: '40+ Goals (Season)',
   HKSeason60Assists: '60+ Assists (Season)',
@@ -563,7 +562,6 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
     'HKAllRookie': ['All-Rookie Team'],
     'HKAllLeague': ['All-League Team'],
     'HKPlayoffsMVP': ['Playoffs MVP'],
-    'HKChampion': ['Won Championship'],
     'HKFinalsMVP': ['Finals MVP'],
     'BBAllStar': ['All-Star'],
     'BBMVP': ['MVP'],
@@ -1278,8 +1276,7 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
       'HKAssistsLeader': 'Was never the League Assists Leader',
       'HKPlayoffsMVP': 'Was never the Playoffs MVP',
       'HKFinalsMVP': 'Was never the Finals MVP',
-      'HKChampion': 'Never won a Championship',
-      
+
       // Baseball
       'BBAllStar': 'Was never an All-Star',
       'BBMVP': 'Was never the MVP',

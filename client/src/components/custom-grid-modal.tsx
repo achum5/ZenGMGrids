@@ -969,7 +969,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
         {
           title: "Honors & Awards",
           achievements: [
-            'HKAllStar', 'HKMVP', 'HKDefenseman', 'HKROY', 'HKChampion', 'HKPlayoffsMVP', 'HKFinalsMVP', 'HKAllRookie', 'HKAllLeague', 'HKAllStarMVP', 'HKAssistsLeader', 'isHallOfFamer'
+            'HKAllStar', 'HKMVP', 'HKDefenseman', 'HKROY', 'Champion', 'HKPlayoffsMVP', 'HKFinalsMVP', 'HKAllRookie', 'HKAllLeague', 'HKAllStarMVP', 'HKAssistsLeader', 'isHallOfFamer'
           ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
         },
         {

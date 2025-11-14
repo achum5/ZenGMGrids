@@ -78,7 +78,6 @@ export type SeasonAchievementId =
   | 'HKMVP'
   | 'HKDefenseman'
   | 'HKROY'
-  | 'HKChampion'
   | 'HKPlayoffsMVP'
   | 'HKFinalsMVP'
   | 'HKAllRookie'
@@ -227,7 +226,7 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId | null> = {
   'MVP': 'HKMVP',
   'Best Defenseman': 'HKDefenseman',
   'Rookie of the Year': 'HKROY',
-  'Championship': 'HKChampion',
+  'Championship': 'Champion',
   'Playoffs MVP': 'HKPlayoffsMVP',
   'Finals MVP': 'HKFinalsMVP',
   'All-Rookie Team': 'HKAllRookie',
@@ -293,12 +292,12 @@ function mapAwardToAchievement(awardType: string, sport?: 'basketball' | 'footba
     if (awardType === 'Finals MVP') return 'BBPlayoffsMVP';
     if (awardType === 'Playoffs MVP') return 'BBPlayoffsMVP';
   } else if (sport === 'hockey') {
-    // Hockey GM specific mappings  
+    // Hockey GM specific mappings
     if (awardType === 'All-Star Game') return 'HKAllStar';
     if (awardType === 'MVP') return 'HKMVP';
     if (awardType === 'Best Defenseman') return 'HKDefenseman';
     if (awardType === 'Rookie of the Year') return 'HKROY';
-    if (awardType === 'Championship') return 'HKChampion';
+    if (awardType === 'Championship') return 'Champion';
     if (awardType === 'Playoffs MVP') return 'HKPlayoffsMVP';
     if (awardType === 'Finals MVP') return 'HKFinalsMVP';
     if (awardType === 'All-Rookie Team') return 'HKAllRookie';
@@ -1867,12 +1866,6 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
     label: 'Rookie of the Year',
     isSeasonSpecific: true,
     minPlayers: 3
-  },
-  {
-    id: 'HKChampion',
-    label: 'Won Championship',
-    isSeasonSpecific: true,
-    minPlayers: 5
   },
   {
     id: 'HKPlayoffsMVP',

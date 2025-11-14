@@ -601,13 +601,7 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     verbTeam: 'won a Playoffs MVP',
     verbGeneric: 'won a Playoffs MVP'
   },
-  HKChampion: {
-    label: 'Won Championship',
-    short: 'Champion',
-    verbTeam: 'won a championship',
-    verbGeneric: 'won a championship'
-  },
-  
+
   // Hockey GM Season Statistical Achievements (19 new achievements)
   HKSeason40Goals: {
     label: '40+ Goals (Season)',
@@ -851,8 +845,7 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     HKAllLeague: ['All-League Team', 'all-league team', 'First Team All-League', 'Second Team All-League'],
     HKAssistsLeader: ['League Assists Leader', 'league assists leader'],
     HKPlayoffsMVP: ['Playoffs MVP', 'playoffs mvp'],
-    HKChampion: ['Won Championship', 'won championship'],
-    
+
     // Baseball GM achievements (case-sensitive matches from ZGMB)
     BBAllStar: ['All-Star'],
     BBMVP: ['Most Valuable Player'],
@@ -863,7 +856,7 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     BBChampion: ['Won Championship'],
 
     // Additional missing achievements
-    Champion: ['Won Championship', 'won championship'],
+    Champion: ['Won Championship', 'won championship', 'Championship'],
     HKDefenseman: ['Best Defenseman', 'best defenseman'],
     HKFinalsMVP: ['Finals MVP', 'finals mvp'],
 
@@ -934,7 +927,7 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
       seasons.push(award.season);
       
       // For Finals MVP and Conference Finals MVP (BBGM, FBGM, HKGM, and BBGM), include team abbreviation
-      if (achievementId === 'FinalsMVP' || achievementId === 'SFMVP' || achievementId === 'FBFinalsMVP' || achievementId === 'HKPlayoffsMVP' || achievementId === 'HKChampion' || achievementId === 'BBPlayoffsMVP' || achievementId === 'BBChampion') {
+      if (achievementId === 'FinalsMVP' || achievementId === 'SFMVP' || achievementId === 'FBFinalsMVP' || achievementId === 'HKPlayoffsMVP' || achievementId === 'Champion' || achievementId === 'BBPlayoffsMVP' || achievementId === 'BBChampion') {
         // Try to get team from playoffs stats for that season
         const playoffTeam = getPlayoffTeamForSeason(player, award.season);
         if (playoffTeam) {

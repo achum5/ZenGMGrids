@@ -168,8 +168,8 @@ function createSeasonAchievementTests(seasonIndex?: SeasonIndex, sport: 'basketb
       // Football: only FB* prefixed achievements, exclude basketball-specific ones
       return seasonAch.id.startsWith('FB');
     } else if (sport === 'hockey') {
-      // Hockey: only HK* prefixed achievements, exclude basketball-specific ones
-      return seasonAch.id.startsWith('HK');
+      // Hockey: HK* prefixed achievements + generic Champion
+      return seasonAch.id.startsWith('HK') || seasonAch.id === 'Champion';
     } else if (sport === 'baseball') {
       // Baseball: only BB* prefixed achievements, exclude basketball-specific ones
       return seasonAch.id.startsWith('BB');
@@ -1211,7 +1211,7 @@ export const SEASON_ALIGNED_ACHIEVEMENTS = new Set([
   'HKSeason20PowerPlay', 'HKSeason3SHGoals', 'HKSeason7GWGoals', 'HKSeason55FaceoffPct',
   'HKSeason70PIM', 'HKSeason920SavePct', 'HKSeason260GAA',
   'HKSeason6Shutouts', 'HKSeason2000Saves', 'HKSeason60Starts',
-  'Champion', 'FBChampion', 'HKChampion', 'BBChampion',
+  'Champion', 'FBChampion', 'BBChampion',
 ]);
 
 function getPlayerFranchiseCount(player: Player): number {
@@ -1463,13 +1463,6 @@ export function playerMeetsAchievement(
       });
     }
 
-    // For championship achievements, directly check player.achievementSeasons.champion if teamId is undefined
-    if (achievementId.includes('Champion') && teamId === undefined) {
-      return (player.achievementSeasons?.champion?.size || 0) > 0;
-    }
-
-
-
     return filteredAwards?.some(award => {
       const normalizedType = award.type.toLowerCase().trim();
       
@@ -1485,8 +1478,8 @@ export function playerMeetsAchievement(
       if (achievementId === 'AllDefAny' && normalizedType.includes('all-defensive')) return true;
       if (achievementId === 'AllRookieAny' && normalizedType.includes('all-rookie')) return true;
       
-      // Generic Champion achievement
-      if (achievementId === 'Champion' && award.type === 'Won Championship') return true;
+      // Generic Champion achievement (basketball uses 'Won Championship', hockey uses 'Championship')
+      if (achievementId === 'Champion' && (award.type === 'Won Championship' || award.type === 'Championship')) return true;
 
       // Football achievements (case-sensitive exact matches)
       if (achievementId === 'FBAllStar' && award.type === 'All-Star') return true;
@@ -1504,7 +1497,6 @@ export function playerMeetsAchievement(
       if (achievementId === 'HKMVP' && award.type === 'Most Valuable Player') return true;
       if (achievementId === 'HKDefenseman' && award.type === 'Best Defenseman') return true;
       if (achievementId === 'HKROY' && award.type === 'Rookie of the Year') return true;
-      if (achievementId === 'HKChampion' && award.type === 'Won Championship') return true;
       if (achievementId === 'HKPlayoffsMVP' && award.type === 'Playoffs MVP') return true;
       if (achievementId === 'HKFinalsMVP' && award.type === 'Finals MVP') return true;
       if (achievementId === 'HKAllRookie' && award.type === 'All-Rookie Team') return true;
