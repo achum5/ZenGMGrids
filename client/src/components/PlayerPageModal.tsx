@@ -6084,7 +6084,7 @@ export function PlayerPageModal({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '1rem',
+            padding: '4rem 1rem',
           }}
           onClick={(e) => {
             e.stopPropagation(); // Prevent click from reaching player modal backdrop
@@ -6095,12 +6095,12 @@ export function PlayerPageModal({
             className="rainbow-border rounded-lg p-[2px] max-w-2xl w-full"
             style={{
               zIndex: 100000 + ((stackIndex + 1) * 10),
-              maxHeight: 'calc(100vh - 2rem)',
+              maxHeight: 'calc(100vh - 8rem)',
             }}
           >
             <div
               className="w-full h-full flex flex-col rounded-lg shadow-lg bg-background relative"
-              style={{ maxHeight: 'calc(100vh - 2rem)' }}
+              style={{ maxHeight: 'calc(100vh - 8rem)' }}
               onClick={(e) => e.stopPropagation()}
             >
             {/* Close Button */}
