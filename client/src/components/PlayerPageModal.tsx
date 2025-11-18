@@ -6092,13 +6092,15 @@ export function PlayerPageModal({
           }}
         >
           <div
-            className="rainbow-border rounded-lg p-[2px] max-w-2xl w-full max-h-full"
+            className="rainbow-border rounded-lg p-[2px] max-w-2xl w-full"
             style={{
               zIndex: 100000 + ((stackIndex + 1) * 10),
+              maxHeight: 'calc(100vh - 8rem)',
             }}
           >
             <div
               className="w-full h-full flex flex-col rounded-lg shadow-lg bg-background relative"
+              style={{ maxHeight: 'calc(100vh - 8rem)' }}
               onClick={(e) => e.stopPropagation()}
             >
             {/* Close Button */}
