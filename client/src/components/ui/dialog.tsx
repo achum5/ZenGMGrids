@@ -48,7 +48,7 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       <div className="rainbow-border rounded-lg p-[2px] max-h-[85vh] flex flex-col">
-        <div className="grid gap-4 bg-background p-6 rounded-lg relative overflow-y-auto">
+        <div className="grid gap-4 bg-background p-6 rounded-lg relative overflow-y-auto flex-1 min-h-0">
           {children}
         </div>
       </div>

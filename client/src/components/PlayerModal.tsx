@@ -264,7 +264,7 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg w-[92vw] max-h-[85vh] sm:max-h-[80vh] overflow-y-auto" data-testid="modal-player-details">
+      <DialogContent className="max-w-lg w-[92vw] max-h-[78vh] sm:max-h-[72vh] overflow-y-auto" data-testid="modal-player-details">
         <button
           onClick={() => onOpenChange(false)}
           className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground z-50"
