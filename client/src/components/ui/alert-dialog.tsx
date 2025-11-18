@@ -28,7 +28,7 @@ AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName
 const AlertDialogContent = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+>(({ className, children, style, ...props }, ref) => (
   <AlertDialogPortal>
     <AlertDialogOverlay />
     <AlertDialogPrimitive.Content
@@ -39,8 +39,8 @@ const AlertDialogContent = React.forwardRef<
       )}
       {...props}
     >
-      <div className="rainbow-border rounded-lg p-[2px]">
-        <div className="grid gap-4 bg-background p-6 rounded-lg">
+      <div className="rainbow-border rounded-lg p-[2px]" style={style?.borderColor ? { borderColor: style.borderColor, borderWidth: '2px', borderStyle: 'solid' } : undefined}>
+        <div className="grid gap-4 bg-background p-6 rounded-lg" style={style?.backgroundColor ? { backgroundColor: style.backgroundColor } : undefined}>
           {children}
         </div>
       </div>

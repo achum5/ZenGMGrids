@@ -2348,8 +2348,18 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
         // User has navigated to a specific suggestion with arrow keys
         handleSelectPlayer(autocompleteSuggestions[activeIndex]);
       } else if (autocompleteSuggestions.length > 0) {
-        // Accept the first matching suggestion (e.g., "Taylor" matches "Taylor Jr.")
-        handleSelectPlayer(autocompleteSuggestions[0]);
+        // Find the first suggestion that's actually on the roster (if any)
+        const rosterMatch = autocompleteSuggestions.find(suggestion =>
+          roster.some(rp => rp.player.pid === suggestion.pid && !rp.revealed)
+        );
+
+        if (rosterMatch) {
+          // Use the roster player if found
+          handleSelectPlayer(rosterMatch);
+        } else {
+          // Fall back to first suggestion (will show error if not on roster)
+          handleSelectPlayer(autocompleteSuggestions[0]);
+        }
       } else {
         handleManualGuess();
       }
@@ -2357,7 +2367,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
       setAutocompleteOpen(false);
       setActiveIndex(-1);
     }
-  }, [autocompleteOpen, activeIndex, autocompleteSuggestions, handleSelectPlayer]);
+  }, [autocompleteOpen, activeIndex, autocompleteSuggestions, roster, handleSelectPlayer]);
 
   // Handle manual guess
   const handleManualGuess = useCallback(() => {
@@ -3211,7 +3221,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                         <span className="sr-only">Go back</span>
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent>
+                    <AlertDialogContent style={{ backgroundColor: teamDisplayInfo.colors[0] || 'hsl(var(--background))', borderColor: teamDisplayInfo.colors[1] || 'hsl(var(--border))' }}>
                       <AlertDialogHeader>
                         <AlertDialogTitle style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--foreground))' }}>Go back to game selection?</AlertDialogTitle>
                         <AlertDialogDescription style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--muted-foreground))' }}>
@@ -3346,7 +3356,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                         <span className="sr-only">Go home</span>
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent>
+                    <AlertDialogContent style={{ backgroundColor: teamDisplayInfo.colors[0] || 'hsl(var(--background))', borderColor: teamDisplayInfo.colors[1] || 'hsl(var(--border))' }}>
                       <AlertDialogHeader>
                         <AlertDialogTitle style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--foreground))' }}>Go home?</AlertDialogTitle>
                         <AlertDialogDescription style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--muted-foreground))' }}>
