@@ -289,7 +289,8 @@ export async function exportGameHistory(leagueFingerprintId?: string): Promise<s
       : history;
 
     const jsonString = JSON.stringify(exportData);
-    const base64 = btoa(jsonString);
+    // Use Unicode-safe base64 encoding
+    const base64 = btoa(unescape(encodeURIComponent(jsonString)));
     return base64;
   } catch (error) {
     console.error('Failed to export game history:', error);
@@ -310,8 +311,8 @@ export async function importGameHistory(base64Code: string): Promise<{
   error?: string;
 }> {
   try {
-    // Decode base64
-    const jsonString = atob(base64Code.trim());
+    // Decode base64 (Unicode-safe)
+    const jsonString = decodeURIComponent(escape(atob(base64Code.trim())));
     const importedEntries = JSON.parse(jsonString) as HistoryEntry[];
 
     // Validate that it's an array

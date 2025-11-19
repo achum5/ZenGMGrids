@@ -37,6 +37,7 @@ interface HistoryModalProps {
   onTeamInfoClick?: (season: number, sport: string) => void;
   onDeleteHistory?: () => void; // Callback to delete all history for current league
   onDeleteBelowThreshold?: (threshold: number) => void; // Callback to delete history below score threshold
+  onImportComplete?: () => void; // Callback after successful import to reload history
   leagueFingerprintId?: string; // League fingerprint ID for saving filter settings per league
 }
 
@@ -63,6 +64,7 @@ export function HistoryModal({
   onTeamInfoClick,
   onDeleteHistory,
   onDeleteBelowThreshold,
+  onImportComplete,
   leagueFingerprintId
 }: HistoryModalProps) {
   const [scoreThreshold, setScoreThreshold] = useState(0);
@@ -74,6 +76,8 @@ export function HistoryModal({
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [importCode, setImportCode] = useState('');
   const [importMessage, setImportMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [exportCode, setExportCode] = useState('');
 
   // Load saved filter threshold for this league on mount
   useEffect(() => {
@@ -110,10 +114,20 @@ export function HistoryModal({
   const handleExport = async () => {
     try {
       const code = await exportGameHistory(leagueFingerprintId);
-      navigator.clipboard.writeText(code);
-      setImportMessage({ type: 'success', text: 'Export code copied to clipboard!' });
-      setTimeout(() => setImportMessage(null), 3000);
+
+      // Try clipboard first
+      try {
+        await navigator.clipboard.writeText(code);
+        setImportMessage({ type: 'success', text: 'Export code copied to clipboard!' });
+        setTimeout(() => setImportMessage(null), 3000);
+      } catch (clipboardError) {
+        // Clipboard failed - show dialog with code instead
+        console.warn('Clipboard API failed, showing export dialog:', clipboardError);
+        setExportCode(code);
+        setShowExportDialog(true);
+      }
     } catch (error) {
+      console.error('Export failed:', error);
       setImportMessage({ type: 'error', text: 'Failed to export history' });
       setTimeout(() => setImportMessage(null), 3000);
     }
@@ -136,8 +150,10 @@ export function HistoryModal({
       setTimeout(() => {
         setShowImportDialog(false);
         setImportMessage(null);
-        // Reload history after import
-        window.location.reload();
+        // Notify parent to reload history
+        if (onImportComplete) {
+          onImportComplete();
+        }
       }, 2000);
     } else {
       setImportMessage({ type: 'error', text: result.error || 'Failed to import history' });
@@ -529,6 +545,47 @@ export function HistoryModal({
       </div>
 
       {/* Import Dialog */}
+      {showExportDialog && (
+        <div
+          className="absolute inset-0 flex items-center justify-center p-4"
+          style={{ zIndex: 100000 + (stackIndex * 10) + 50 }}
+          onClick={() => setShowExportDialog(false)}
+        >
+          <div
+            className="bg-card rounded-lg shadow-xl p-6 w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">Export Code</h3>
+              <button
+                onClick={() => setShowExportDialog(false)}
+                className="p-1 hover:bg-accent rounded transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Copy this code to import your history on another device. Click the text area and press Ctrl+A (Cmd+A on Mac) to select all, then Ctrl+C (Cmd+C) to copy.
+            </p>
+            <Textarea
+              value={exportCode}
+              readOnly
+              className="mb-4 min-h-[120px] font-mono text-xs"
+              onClick={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.select();
+              }}
+            />
+            <Button
+              onClick={() => setShowExportDialog(false)}
+              className="w-full"
+            >
+              Done
+            </Button>
+          </div>
+        </div>
+      )}
+
       {showImportDialog && (
         <div
           className="absolute inset-0 flex items-center justify-center p-4"
@@ -537,6 +594,7 @@ export function HistoryModal({
         >
           <div
             className="bg-card rounded-lg shadow-xl p-6 w-full max-w-md"
+            style={{ border: '3px solid #3b82f6' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">

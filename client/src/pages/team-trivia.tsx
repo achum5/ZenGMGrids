@@ -4683,6 +4683,14 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                     setGameHistory(filteredHistory);
                   }
                 }}
+                onImportComplete={async () => {
+                  // Reload history after import
+                  const allHistory = await loadGameHistory();
+                  const filteredHistory = leagueFingerprintId
+                    ? allHistory.filter(entry => entry.leagueFingerprintId === leagueFingerprintId)
+                    : allHistory;
+                  setGameHistory(filteredHistory);
+                }}
               />
             );
           }
