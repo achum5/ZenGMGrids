@@ -710,7 +710,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
   });
 
   // Track whether current game has been saved to prevent duplicate/missed saves
-  const hasBeenSavedRef = useRef(false);
+  // Stores unique game ID (season-tid-score-rounds) to prevent duplicate saves
+  const hasBeenSavedRef = useRef<string | null>(null);
 
   // Modal stack management functions
   const pushModal = useCallback((modal: ModalStackItem) => {
@@ -2872,7 +2873,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
   // New game - randomize both
   const handleNew = useCallback(() => {
     // Reset save tracking for new game
-    hasBeenSavedRef.current = false;
+    hasBeenSavedRef.current = null;
 
     pickRandomTeamAndSeason();
     setCurrentRound('guess');
@@ -2923,7 +2924,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     }
 
     // Reset save tracking for new game
-    hasBeenSavedRef.current = false;
+    hasBeenSavedRef.current = null;
 
     const randomTeam = validTeams[Math.floor(Math.random() * validTeams.length)];
     setSelectedTeam(randomTeam);
@@ -2982,7 +2983,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     }
 
     // Reset save tracking for new game
-    hasBeenSavedRef.current = false;
+    hasBeenSavedRef.current = null;
 
     const randomSeason = validSeasons[Math.floor(Math.random() * validSeasons.length)];
     setSelectedSeason(randomSeason);
@@ -3218,12 +3219,6 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     // Only trigger when currentRound becomes 'complete'
     if (currentRound !== 'complete') return;
 
-    // Skip if already saved this game
-    if (hasBeenSavedRef.current) {
-      console.log('[History] Already saved this game, skipping');
-      return;
-    }
-
     // Ensure we have the necessary data
     if (!selectedTeam || !selectedSeason) {
       console.error('[History] Cannot save: missing selectedTeam or selectedSeason');
@@ -3236,6 +3231,15 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
 
     if (!shouldSave) {
       console.log('[History] Not saving: no progress made');
+      return;
+    }
+
+    // Create unique identifier for this specific game completion
+    const gameId = `${selectedSeason}-${selectedTeam.tid}-${score}-${scoreBreakdown.length}`;
+
+    // Skip if we just saved this exact game (prevents duplicate saves from effect re-runs)
+    if (hasBeenSavedRef.current === gameId) {
+      console.log('[History] Already saved this exact game state, skipping');
       return;
     }
 
@@ -3317,8 +3321,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
             : allHistory;
           setGameHistory(filteredHistory);
 
-          // Mark as saved
-          hasBeenSavedRef.current = true;
+          // Mark as saved with the unique game ID
+          hasBeenSavedRef.current = gameId;
           console.log('[History] Game saved successfully');
         } else {
           console.error('[History] Failed to save game - IndexedDB may be full');
