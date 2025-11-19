@@ -16,7 +16,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from '@/components/ui/button';
 import { Home as HomeIcon, ArrowLeft, History } from 'lucide-react';
 import { GridHistoryModal } from '@/components/GridHistoryModal';
-import { loadGridHistory, saveGridToHistory, deleteLeagueGridHistory, deleteLeagueGridHistoryBelowThreshold, type GridHistoryEntry } from '@/lib/grid-history';
+import { loadGridHistory, saveGridToHistory, deleteLeagueGridHistory, deleteLeagueGridHistoryBelowThreshold, migrateGridsFromLocalStorage, type GridHistoryEntry } from '@/lib/grid-history-idb';
 import { saveLeague, updateLastPlayed, type StoredLeague } from '@/lib/league-storage';
 // Import sport icon images  
 import zengmGridsLogo from '@/assets/zengm-grids-logo-mark.png';
@@ -406,21 +406,60 @@ export default function Home() {
     setHintMode(enabled);
   }, []);
 
+  // One-time migration from localStorage to IndexedDB for grids
+  useEffect(() => {
+    let mounted = true;
+
+    async function runMigration() {
+      try {
+        const result = await migrateGridsFromLocalStorage();
+        if (mounted && result.migrated > 0) {
+          console.log(`[Grid History] Migrated ${result.migrated} entries from localStorage to IndexedDB`);
+        }
+      } catch (error) {
+        console.error('[Grid History] Migration failed:', error);
+      }
+    }
+
+    runMigration();
+
+    return () => {
+      mounted = false;
+    };
+  }, []); // Run once on mount
+
   // Load grid history on mount and filter by current league
   useEffect(() => {
-    const allHistory = loadGridHistory();
-    console.log('[Grid History] Loading history. Current fingerprint:', currentFingerprintId);
-    console.log('[Grid History] All history entries:', allHistory.length);
-    console.log('[Grid History] Fingerprint IDs in history:', [...new Set(allHistory.map(h => h.leagueFingerprintId))]);
+    let mounted = true;
 
-    // Filter history by current league fingerprint
-    // Only show history if we have a valid fingerprint ID AND the entry matches
-    const filteredHistory = currentFingerprintId
-      ? allHistory.filter(entry => entry.leagueFingerprintId === currentFingerprintId)
-      : []; // Don't show any history if no fingerprint (to avoid showing wrong league's history)
+    async function loadHistory() {
+      try {
+        const allHistory = await loadGridHistory();
+        console.log('[Grid History] Loading history. Current fingerprint:', currentFingerprintId);
+        console.log('[Grid History] All history entries:', allHistory.length);
+        console.log('[Grid History] Fingerprint IDs in history:', [...new Set(allHistory.map(h => h.leagueFingerprintId))]);
 
-    console.log('[Grid History] Filtered history entries:', filteredHistory.length);
-    setGridHistory(filteredHistory);
+        // Filter history by current league fingerprint
+        // Only show history if we have a valid fingerprint ID AND the entry matches
+        const filteredHistory = currentFingerprintId
+          ? allHistory.filter(entry => entry.leagueFingerprintId === currentFingerprintId)
+          : []; // Don't show any history if no fingerprint (to avoid showing wrong league's history)
+
+        console.log('[Grid History] Filtered history entries:', filteredHistory.length);
+
+        if (mounted) {
+          setGridHistory(filteredHistory);
+        }
+      } catch (error) {
+        console.error('[Grid History] Failed to load history:', error);
+      }
+    }
+
+    loadHistory();
+
+    return () => {
+      mounted = false;
+    };
   }, [currentFingerprintId]);
 
   // Save grid to history when completed
@@ -467,42 +506,49 @@ export default function Home() {
 
         console.log('[Grid History] Saving grid to history with fingerprintId:', currentFingerprintId);
 
-        saveGridToHistory({
-          sport: leagueData.sport || 'basketball',
-          score: totalScore,
-          correctGuesses,
-          totalCells: 9,
-          attemptCount,
-          usedGiveUp: giveUpPressed,
-          leagueFingerprintId: currentFingerprintId || undefined,
-          gridConfig: {
-            rows: rows.map(r => ({
-              type: r.type,
-              label: r.label,
-              tid: r.tid,
-              key: r.key,
-              achievementId: r.achievementId
-            })),
-            cols: cols.map(c => ({
-              type: c.type,
-              label: c.label,
-              tid: c.tid,
-              key: c.key,
-              achievementId: c.achievementId
-            })),
-          },
-          cells: simplifiedCells,
-        });
+        // Save to history (async)
+        (async () => {
+          try {
+            await saveGridToHistory({
+              sport: leagueData.sport || 'basketball',
+              score: totalScore,
+              correctGuesses,
+              totalCells: 9,
+              attemptCount,
+              usedGiveUp: giveUpPressed,
+              leagueFingerprintId: currentFingerprintId || undefined,
+              gridConfig: {
+                rows: rows.map(r => ({
+                  type: r.type,
+                  label: r.label,
+                  tid: r.tid,
+                  key: r.key,
+                  achievementId: r.achievementId
+                })),
+                cols: cols.map(c => ({
+                  type: c.type,
+                  label: c.label,
+                  tid: c.tid,
+                  key: c.key,
+                  achievementId: c.achievementId
+                })),
+              },
+              cells: simplifiedCells,
+            });
 
-        // Mark this grid completion as saved
-        lastSavedGridRef.current = gridCompletionId;
+            // Mark this grid completion as saved
+            lastSavedGridRef.current = gridCompletionId;
 
-        // Reload history after saving
-        const allHistory = loadGridHistory();
-        const filteredHistory = currentFingerprintId
-          ? allHistory.filter(entry => entry.leagueFingerprintId === currentFingerprintId)
-          : []; // Don't show any history if no fingerprint
-        setGridHistory(filteredHistory);
+            // Reload history after saving
+            const allHistory = await loadGridHistory();
+            const filteredHistory = currentFingerprintId
+              ? allHistory.filter(entry => entry.leagueFingerprintId === currentFingerprintId)
+              : []; // Don't show any history if no fingerprint
+            setGridHistory(filteredHistory);
+          } catch (error) {
+            console.error('[Grid History] Error saving grid:', error);
+          }
+        })();
       }
     }
   }, [cells, rows, cols, leagueData, attemptCount, giveUpPressed, currentFingerprintId]);
@@ -2603,22 +2649,22 @@ export default function Home() {
                     clearModals();
                   }
                 }}
-                onDeleteHistory={() => {
+                onDeleteHistory={async () => {
                   if (currentFingerprintId) {
-                    deleteLeagueGridHistory(currentFingerprintId);
+                    await deleteLeagueGridHistory(currentFingerprintId);
                     // Reload history after deletion
-                    const allHistory = loadGridHistory();
+                    const allHistory = await loadGridHistory();
                     const filteredHistory = allHistory.filter(
                       entry => entry.leagueFingerprintId === currentFingerprintId
                     );
                     setGridHistory(filteredHistory);
                   }
                 }}
-                onDeleteBelowThreshold={(threshold) => {
+                onDeleteBelowThreshold={async (threshold) => {
                   if (currentFingerprintId) {
-                    deleteLeagueGridHistoryBelowThreshold(currentFingerprintId, threshold);
+                    await deleteLeagueGridHistoryBelowThreshold(currentFingerprintId, threshold);
                     // Reload history after deletion
-                    const allHistory = loadGridHistory();
+                    const allHistory = await loadGridHistory();
                     const filteredHistory = allHistory.filter(
                       entry => entry.leagueFingerprintId === currentFingerprintId
                     );

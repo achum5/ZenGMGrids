@@ -54,7 +54,7 @@ import { TeamInfoModal } from '@/components/TeamInfoModal';
 import { ScoreSummaryModal, type ScoreSummaryData } from '@/components/ScoreSummaryModal';
 import { PlayerPageModal } from '@/components/PlayerPageModal';
 import { HistoryModal, type HistoryEntry } from '@/components/HistoryModal';
-import { loadGameHistory, saveGameToHistory, deleteLeagueHistory, deleteLeagueHistoryBelowThreshold } from '@/lib/game-history';
+import { loadGameHistory, saveGameToHistory, deleteLeagueHistory, deleteLeagueHistoryBelowThreshold, migrateFromLocalStorage } from '@/lib/game-history-idb';
 import type { LeagueData, Player, Team } from '@/types/bbgm';
 
 // Type for ScoreCategory
@@ -2011,14 +2011,53 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     setScore(0); // Reset score for new game
   }, [allSeasons, allTeams, buildRoster, leagueData.players, leagueData.teamSeasons, toast, yearRange]);
 
+  // One-time migration from localStorage to IndexedDB
+  useEffect(() => {
+    let mounted = true;
+
+    async function runMigration() {
+      try {
+        const result = await migrateFromLocalStorage();
+        if (mounted && result.migrated > 0) {
+          console.log(`[History] Migrated ${result.migrated} entries from localStorage to IndexedDB`);
+        }
+      } catch (error) {
+        console.error('[History] Migration failed:', error);
+      }
+    }
+
+    runMigration();
+
+    return () => {
+      mounted = false;
+    };
+  }, []); // Run once on mount
+
   // Load game history on mount and filter by current league
   useEffect(() => {
-    const allHistory = loadGameHistory();
-    // Filter to only show games from the current league
-    const filteredHistory = leagueFingerprintId
-      ? allHistory.filter(entry => entry.leagueFingerprintId === leagueFingerprintId)
-      : allHistory;
-    setGameHistory(filteredHistory);
+    let mounted = true;
+
+    async function loadHistory() {
+      try {
+        const allHistory = await loadGameHistory();
+        // Filter to only show games from the current league
+        const filteredHistory = leagueFingerprintId
+          ? allHistory.filter(entry => entry.leagueFingerprintId === leagueFingerprintId)
+          : allHistory;
+
+        if (mounted) {
+          setGameHistory(filteredHistory);
+        }
+      } catch (error) {
+        console.error('[History] Failed to load history:', error);
+      }
+    }
+
+    loadHistory();
+
+    return () => {
+      mounted = false;
+    };
   }, [leagueFingerprintId]);
 
   // Initialize on mount - wait for yearRange to be set first
@@ -3176,24 +3215,89 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
 
   // Save game to history when it completes
   useEffect(() => {
+    // Only trigger when currentRound becomes 'complete'
+    if (currentRound !== 'complete') return;
+
     // Skip if already saved this game
-    if (hasBeenSavedRef.current) return;
+    if (hasBeenSavedRef.current) {
+      console.log('[History] Already saved this game, skipping');
+      return;
+    }
 
-    if (currentRound === 'complete' && scoreSummaryData && selectedTeam && selectedSeason) {
-      // Only save if the user made meaningful progress:
-      // - Either earned at least some points (score > 0)
-      // - OR completed at least one round (scoreBreakdown.length > 0)
-      // This prevents saving when user clicks "Give Up" immediately with no progress
-      const hasCompletedRounds = scoreBreakdown.length > 0;
-      const shouldSave = score > 0 || hasCompletedRounds;
+    // Ensure we have the necessary data
+    if (!selectedTeam || !selectedSeason) {
+      console.error('[History] Cannot save: missing selectedTeam or selectedSeason');
+      return;
+    }
 
-      if (shouldSave) {
-        // Get small logo for history card (fallback to regular logo)
-        const seasonInfo = selectedTeam.seasons?.find(s => s.season === selectedSeason);
-        const smallLogo = seasonInfo?.imgURLSmall || seasonInfo?.imgURL || selectedTeam.imgURLSmall || selectedTeam.imgURL;
-        const smallLogoUrl = getTeamLogoUrl(smallLogo, leagueData.sport);
+    // Only save if the user made meaningful progress
+    const hasCompletedRounds = scoreBreakdown.length > 0;
+    const shouldSave = score > 0 || hasCompletedRounds;
 
-        saveGameToHistory({
+    if (!shouldSave) {
+      console.log('[History] Not saving: no progress made');
+      return;
+    }
+
+    // Build summary data inline to ensure it's fresh
+    const categories: ScoreCategory[] = [];
+    const categoryMap: Record<string, number> = {};
+    scoreBreakdown.forEach(round => {
+      const categoryName =
+        round.round === 'guess' ? 'Player Guesses' :
+        round.round === 'hint' ? 'Player Guesses (with hints)' :
+        round.round === 'wins-guess' ? 'Wins Guess' :
+        round.round === 'playoff-finish' ? 'Playoff Finish' :
+        'Leaders';
+      categoryMap[categoryName] = (categoryMap[categoryName] || 0) + round.points;
+    });
+    Object.entries(categoryMap).forEach(([name, points]) => {
+      categories.push({ name, points });
+    });
+
+    const summaryData: ScoreSummaryData = {
+      season: selectedSeason,
+      teamName: teamDisplayInfo.name,
+      teamAbbrev: teamDisplayInfo.abbrev,
+      teamLogo: teamDisplayInfo.logoUrl,
+      teamColors: teamDisplayInfo.colors,
+      sport: leagueData.sport || 'basketball',
+      finalScore: score,
+      categories,
+      playoffFinish: detailedGameData.playoffFinishData ? {
+        ...detailedGameData.playoffFinishData,
+        pointsPerCorrect: 10,
+      } : undefined,
+      // Convert full Player objects to lightweight versions to save space
+      playerGuesses: detailedGameData.playerGuesses.map(pg => ({
+        player: pg.player,
+        correct: pg.correct,
+        round: pg.round,
+      })),
+      leaders: detailedGameData.leaderResults.map(lr => ({
+        label: lr.label,
+        statLabel: lr.statLabel,
+        statValue: lr.statValue,
+        correctPlayer: lr.correctPlayer,
+        userCorrect: lr.userCorrect,
+        userSelectedPlayer: lr.userSelectedPlayer,
+        userStatValue: lr.userStatValue,
+        showTotalsNote: lr.showTotalsNote,
+      })),
+      winsGuess: detailedGameData.winsGuessData,
+    };
+
+    // Get small logo for history card
+    const seasonInfo = selectedTeam.seasons?.find(s => s.season === selectedSeason);
+    const smallLogo = seasonInfo?.imgURLSmall || seasonInfo?.imgURL || selectedTeam.imgURLSmall || selectedTeam.imgURL;
+    const smallLogoUrl = getTeamLogoUrl(smallLogo, leagueData.sport);
+
+    console.log('[History] Saving game:', { season: selectedSeason, team: teamDisplayInfo.name, score });
+
+    // Save to history (async)
+    (async () => {
+      try {
+        const saved = await saveGameToHistory({
           season: selectedSeason,
           teamName: teamDisplayInfo.name,
           teamAbbrev: teamDisplayInfo.abbrev,
@@ -3201,21 +3305,29 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
           teamColors: teamDisplayInfo.colors,
           sport: leagueData.sport || 'basketball',
           score,
-          summaryData: scoreSummaryData,
+          summaryData,
           leagueFingerprintId: leagueFingerprintId || undefined,
         });
-        // Reload history after saving and filter by current league
-        const allHistory = loadGameHistory();
-        const filteredHistory = leagueFingerprintId
-          ? allHistory.filter(entry => entry.leagueFingerprintId === leagueFingerprintId)
-          : allHistory;
-        setGameHistory(filteredHistory);
 
-        // Mark as saved to prevent duplicate saves
-        hasBeenSavedRef.current = true;
+        if (saved) {
+          // Reload history after saving
+          const allHistory = await loadGameHistory();
+          const filteredHistory = leagueFingerprintId
+            ? allHistory.filter(entry => entry.leagueFingerprintId === leagueFingerprintId)
+            : allHistory;
+          setGameHistory(filteredHistory);
+
+          // Mark as saved
+          hasBeenSavedRef.current = true;
+          console.log('[History] Game saved successfully');
+        } else {
+          console.error('[History] Failed to save game - IndexedDB may be full');
+        }
+      } catch (error) {
+        console.error('[History] Error saving game:', error);
       }
-    }
-  }, [currentRound, scoreSummaryData, selectedTeam, selectedSeason, teamDisplayInfo, leagueData.sport, score, leagueFingerprintId, scoreBreakdown]);
+    })();
+  }, [currentRound, selectedTeam, selectedSeason, teamDisplayInfo, leagueData.sport, score, leagueFingerprintId, scoreBreakdown, detailedGameData]);
 
     return (
       <div className="h-full flex flex-col bg-background overflow-hidden">
@@ -3278,7 +3390,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                           <span className="text-[10px] sm:text-xs">Up</span>
                         </Button>
                       </AlertDialogTrigger>
-                      <AlertDialogContent>
+                      <AlertDialogContent style={{ backgroundColor: teamDisplayInfo.colors[0] || 'hsl(var(--background))', borderColor: teamDisplayInfo.colors[1] || 'hsl(var(--border))' }}>
                         <AlertDialogHeader>
                           <AlertDialogTitle style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--foreground))' }}>Give up this game?</AlertDialogTitle>
                           <AlertDialogDescription style={{ color: teamDisplayInfo.colors[1] || 'hsl(var(--muted-foreground))' }}>
@@ -4556,17 +4668,17 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                     }
                   }
                 }}
-                onDeleteHistory={() => {
+                onDeleteHistory={async () => {
                   if (leagueFingerprintId) {
-                    deleteLeagueHistory(leagueFingerprintId);
+                    await deleteLeagueHistory(leagueFingerprintId);
                     setGameHistory([]);
                   }
                 }}
-                onDeleteBelowThreshold={(threshold) => {
+                onDeleteBelowThreshold={async (threshold) => {
                   if (leagueFingerprintId) {
-                    deleteLeagueHistoryBelowThreshold(leagueFingerprintId, threshold);
+                    await deleteLeagueHistoryBelowThreshold(leagueFingerprintId, threshold);
                     // Reload and filter history
-                    const allHistory = loadGameHistory();
+                    const allHistory = await loadGameHistory();
                     const filteredHistory = allHistory.filter(entry => entry.leagueFingerprintId === leagueFingerprintId);
                     setGameHistory(filteredHistory);
                   }

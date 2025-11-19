@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, History, Trophy, Filter, Trash2, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, History, Trophy, Filter, Trash2, Check, ChevronDown, ChevronUp, Download, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -7,9 +7,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { Textarea } from '@/components/ui/textarea';
 import type { ScoreSummaryData } from '@/components/ScoreSummaryModal';
 import type { Player } from '@/types/bbgm';
-import { loadLeagueFilterThreshold, saveLeagueFilterThreshold } from '@/lib/game-history';
+import { loadLeagueFilterThreshold, saveLeagueFilterThreshold, exportGameHistory, importGameHistory } from '@/lib/game-history-idb';
 
 export interface HistoryEntry {
   id: string; // Unique ID (timestamp)
@@ -70,13 +71,28 @@ export function HistoryModal({
   const [showExpandedDelete, setShowExpandedDelete] = useState(false);
   const [deleteThreshold, setDeleteThreshold] = useState(50);
   const [showThresholdDeleteConfirm, setShowThresholdDeleteConfirm] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [importCode, setImportCode] = useState('');
+  const [importMessage, setImportMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Load saved filter threshold for this league on mount
   useEffect(() => {
-    if (leagueFingerprintId) {
-      const savedThreshold = loadLeagueFilterThreshold(leagueFingerprintId);
-      setScoreThreshold(savedThreshold);
+    let mounted = true;
+
+    async function loadThreshold() {
+      if (leagueFingerprintId) {
+        const savedThreshold = await loadLeagueFilterThreshold(leagueFingerprintId);
+        if (mounted) {
+          setScoreThreshold(savedThreshold);
+        }
+      }
     }
+
+    loadThreshold();
+
+    return () => {
+      mounted = false;
+    };
   }, [leagueFingerprintId]);
 
   // Save filter threshold when it changes
@@ -89,6 +105,44 @@ export function HistoryModal({
   // Handle backward compatibility
   const handleCloseTop = onCloseTop || onClose || (() => {});
   const handleCloseAll = onCloseAll || onClose || (() => {});
+
+  // Export handler
+  const handleExport = async () => {
+    try {
+      const code = await exportGameHistory(leagueFingerprintId);
+      navigator.clipboard.writeText(code);
+      setImportMessage({ type: 'success', text: 'Export code copied to clipboard!' });
+      setTimeout(() => setImportMessage(null), 3000);
+    } catch (error) {
+      setImportMessage({ type: 'error', text: 'Failed to export history' });
+      setTimeout(() => setImportMessage(null), 3000);
+    }
+  };
+
+  // Import handler
+  const handleImport = async () => {
+    if (!importCode.trim()) {
+      setImportMessage({ type: 'error', text: 'Please enter an import code' });
+      return;
+    }
+
+    const result = await importGameHistory(importCode);
+    if (result.success) {
+      setImportMessage({
+        type: 'success',
+        text: `Imported ${result.imported} game${result.imported !== 1 ? 's' : ''}${result.skipped > 0 ? ` (${result.skipped} skipped as duplicates)` : ''}`
+      });
+      setImportCode('');
+      setTimeout(() => {
+        setShowImportDialog(false);
+        setImportMessage(null);
+        // Reload history after import
+        window.location.reload();
+      }, 2000);
+    } else {
+      setImportMessage({ type: 'error', text: result.error || 'Failed to import history' });
+    }
+  };
 
   if (!open) return null;
 
@@ -127,6 +181,26 @@ export function HistoryModal({
             <h2 className="text-2xl font-bold">Game History</h2>
           </div>
           <div className="flex items-center gap-2">
+            {/* Export Button */}
+            <button
+              onClick={handleExport}
+              className="p-2 hover:bg-accent rounded-lg transition-colors"
+              aria-label="Export history"
+              title="Export history to code"
+            >
+              <Download className="h-5 w-5" />
+            </button>
+
+            {/* Import Button */}
+            <button
+              onClick={() => setShowImportDialog(true)}
+              className="p-2 hover:bg-accent rounded-lg transition-colors"
+              aria-label="Import history"
+              title="Import history from code"
+            >
+              <Upload className="h-5 w-5" />
+            </button>
+
             {/* Filter Button */}
             <Popover open={filterOpen} onOpenChange={setFilterOpen}>
               <PopoverTrigger asChild>
@@ -440,7 +514,67 @@ export function HistoryModal({
             </div>
           )}
         </div>
+
+        {/* Success/Error Message */}
+        {importMessage && (
+          <div
+            className={`absolute bottom-6 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-lg shadow-lg ${
+              importMessage.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+            }`}
+            style={{ zIndex: 100000 + (stackIndex * 10) + 100 }}
+          >
+            {importMessage.text}
+          </div>
+        )}
       </div>
+
+      {/* Import Dialog */}
+      {showImportDialog && (
+        <div
+          className="absolute inset-0 flex items-center justify-center p-4"
+          style={{ zIndex: 100000 + (stackIndex * 10) + 50 }}
+          onClick={() => setShowImportDialog(false)}
+        >
+          <div
+            className="bg-card rounded-lg shadow-xl p-6 w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">Import History</h3>
+              <button
+                onClick={() => setShowImportDialog(false)}
+                className="p-1 hover:bg-accent rounded transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Paste the export code from another device to import game history.
+            </p>
+            <Textarea
+              value={importCode}
+              onChange={(e) => setImportCode(e.target.value)}
+              placeholder="Paste export code here..."
+              className="mb-4 min-h-[120px] font-mono text-xs"
+            />
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setShowImportDialog(false)}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleImport}
+                className="flex-1"
+              >
+                Import
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

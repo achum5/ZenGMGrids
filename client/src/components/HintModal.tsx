@@ -159,13 +159,31 @@ export function HintModal({
         return;
       }
       
+      // Filter out players already used elsewhere in the grid
+      const unusedEligiblePlayers = eligiblePlayers.filter(p => !usedPids.has(p.pid));
+
+      // If all eligible players have been used, show message
+      if (unusedEligiblePlayers.length === 0) {
+        setHintResult({
+          options: [],
+          hasLimitedOptions: true
+        });
+        setIsGenerating(false);
+        toast({
+          title: "No unused players available",
+          description: "All eligible players for this cell have already been used in the grid.",
+          variant: "default",
+        });
+        return;
+      }
+
       // Sort by commonality (total career games played as a proxy for how "common" they are)
-      const sortedByCommonality = eligiblePlayers.sort((a, b) => {
+      const sortedByCommonality = unusedEligiblePlayers.sort((a, b) => {
         const aGames = (a.stats || []).reduce((total, season) => total + (season.gp || 0), 0);
         const bGames = (b.stats || []).reduce((total, season) => total + (season.gp || 0), 0);
         return bGames - aGames; // Descending order
       });
-      
+
       // Pick from top 10th percentile (minimum 1 player)
       const topPercentileCount = Math.max(1, Math.floor(sortedByCommonality.length * 0.1));
       const topPercentilePlayers = sortedByCommonality.slice(0, topPercentileCount);

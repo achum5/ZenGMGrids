@@ -7,7 +7,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { loadLeagueGridFilterThreshold, saveLeagueGridFilterThreshold, type GridHistoryEntry } from '@/lib/grid-history';
+import { loadLeagueGridFilterThreshold, saveLeagueGridFilterThreshold, type GridHistoryEntry } from '@/lib/grid-history-idb';
 
 interface GridHistoryModalProps {
   open: boolean;
@@ -43,10 +43,22 @@ export function GridHistoryModal({
 
   // Load saved filter threshold for this league on mount
   useEffect(() => {
-    if (leagueFingerprintId) {
-      const savedThreshold = loadLeagueGridFilterThreshold(leagueFingerprintId);
-      setScoreThreshold(savedThreshold);
+    let mounted = true;
+
+    async function loadThreshold() {
+      if (leagueFingerprintId) {
+        const savedThreshold = await loadLeagueGridFilterThreshold(leagueFingerprintId);
+        if (mounted) {
+          setScoreThreshold(savedThreshold);
+        }
+      }
     }
+
+    loadThreshold();
+
+    return () => {
+      mounted = false;
+    };
   }, [leagueFingerprintId]);
 
   // Save filter threshold when it changes
