@@ -709,6 +709,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     leaderResults: [],
   });
 
+  // Track whether current game has been saved to prevent duplicate/missed saves
+  const hasBeenSavedRef = useRef(false);
+
   // Modal stack management functions
   const pushModal = useCallback((modal: ModalStackItem) => {
     setModalStack(prev => [...prev, modal]);
@@ -2829,79 +2832,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
 
   // New game - randomize both
   const handleNew = useCallback(() => {
-    // Save current game to history before starting new one
-    if (currentRound === 'complete' && selectedTeam && selectedSeason) {
-      const hasCompletedRounds = scoreBreakdown.length > 0;
-      const shouldSave = score > 0 || hasCompletedRounds;
-
-      if (shouldSave) {
-        const seasonInfo = selectedTeam.seasons?.find(s => s.season === selectedSeason);
-        const smallLogo = seasonInfo?.imgURLSmall || seasonInfo?.imgURL || selectedTeam.imgURLSmall || selectedTeam.imgURL;
-        const smallLogoUrl = getTeamLogoUrl(smallLogo, leagueData.sport);
-
-        // Build summary data inline
-        const categories: ScoreCategory[] = [];
-        const categoryMap: Record<string, number> = {};
-        scoreBreakdown.forEach(round => {
-          const categoryName =
-            round.round === 'guess' ? 'Player Guesses' :
-            round.round === 'hint' ? 'Player Guesses (with hints)' :
-            round.round === 'wins-guess' ? 'Wins Guess' :
-            round.round === 'playoff-finish' ? 'Playoff Finish' :
-            'Leaders';
-          categoryMap[categoryName] = (categoryMap[categoryName] || 0) + round.points;
-        });
-        Object.entries(categoryMap).forEach(([name, points]) => {
-          categories.push({ name, points });
-        });
-
-        const summaryData: ScoreSummaryData = {
-          season: selectedSeason,
-          teamName: teamDisplayInfo.name,
-          teamAbbrev: teamDisplayInfo.abbrev,
-          teamLogo: teamDisplayInfo.logoUrl,
-          teamColors: teamDisplayInfo.colors,
-          sport: leagueData.sport || 'basketball',
-          finalScore: score,
-          categories,
-          playoffFinish: detailedGameData.playoffFinishData ? {
-            ...detailedGameData.playoffFinishData,
-            pointsPerCorrect: 10,
-          } : undefined,
-          playerGuesses: detailedGameData.playerGuesses,
-          leaders: detailedGameData.leaderResults.map(lr => ({
-            label: lr.label,
-            statLabel: lr.statLabel,
-            statValue: lr.statValue,
-            correctPlayer: lr.correctPlayer,
-            userCorrect: lr.userCorrect,
-            userSelectedPlayer: lr.userSelectedPlayer,
-            userStatValue: lr.userStatValue,
-            showTotalsNote: lr.showTotalsNote,
-          })),
-          winsGuess: detailedGameData.winsGuessData,
-        };
-
-        saveGameToHistory({
-          season: selectedSeason,
-          teamName: teamDisplayInfo.name,
-          teamAbbrev: teamDisplayInfo.abbrev,
-          teamLogo: smallLogoUrl,
-          teamColors: teamDisplayInfo.colors,
-          sport: leagueData.sport || 'basketball',
-          score,
-          summaryData,
-          leagueFingerprintId: leagueFingerprintId || undefined,
-        });
-
-        // Reload history after saving
-        const allHistory = loadGameHistory();
-        const filteredHistory = leagueFingerprintId
-          ? allHistory.filter(entry => entry.leagueFingerprintId === leagueFingerprintId)
-          : allHistory;
-        setGameHistory(filteredHistory);
-      }
-    }
+    // Reset save tracking for new game
+    hasBeenSavedRef.current = false;
 
     pickRandomTeamAndSeason();
     setCurrentRound('guess');
@@ -2910,7 +2842,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     setScore(0); // Reset score for new game
     setScoreBreakdown([]); // Reset score breakdown
     setDetailedGameData({ playerGuesses: [], leaderResults: [] }); // Reset detailed game data
-  }, [pickRandomTeamAndSeason, currentRound, selectedTeam, selectedSeason, score, scoreBreakdown, teamDisplayInfo, leagueData.sport, leagueFingerprintId, detailedGameData]);
+  }, [pickRandomTeamAndSeason]);
 
   // Same Year, New Team
   const handleSameYearNewTeam = useCallback(() => {
@@ -2951,79 +2883,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
       return;
     }
 
-    // Save current game to history before starting new one
-    if (currentRound === 'complete' && selectedTeam && selectedSeason) {
-      const hasCompletedRounds = scoreBreakdown.length > 0;
-      const shouldSave = score > 0 || hasCompletedRounds;
-
-      if (shouldSave) {
-        const seasonInfo = selectedTeam.seasons?.find(s => s.season === selectedSeason);
-        const smallLogo = seasonInfo?.imgURLSmall || seasonInfo?.imgURL || selectedTeam.imgURLSmall || selectedTeam.imgURL;
-        const smallLogoUrl = getTeamLogoUrl(smallLogo, leagueData.sport);
-
-        // Build summary data inline
-        const categories: ScoreCategory[] = [];
-        const categoryMap: Record<string, number> = {};
-        scoreBreakdown.forEach(round => {
-          const categoryName =
-            round.round === 'guess' ? 'Player Guesses' :
-            round.round === 'hint' ? 'Player Guesses (with hints)' :
-            round.round === 'wins-guess' ? 'Wins Guess' :
-            round.round === 'playoff-finish' ? 'Playoff Finish' :
-            'Leaders';
-          categoryMap[categoryName] = (categoryMap[categoryName] || 0) + round.points;
-        });
-        Object.entries(categoryMap).forEach(([name, points]) => {
-          categories.push({ name, points });
-        });
-
-        const summaryData: ScoreSummaryData = {
-          season: selectedSeason,
-          teamName: teamDisplayInfo.name,
-          teamAbbrev: teamDisplayInfo.abbrev,
-          teamLogo: teamDisplayInfo.logoUrl,
-          teamColors: teamDisplayInfo.colors,
-          sport: leagueData.sport || 'basketball',
-          finalScore: score,
-          categories,
-          playoffFinish: detailedGameData.playoffFinishData ? {
-            ...detailedGameData.playoffFinishData,
-            pointsPerCorrect: 10,
-          } : undefined,
-          playerGuesses: detailedGameData.playerGuesses,
-          leaders: detailedGameData.leaderResults.map(lr => ({
-            label: lr.label,
-            statLabel: lr.statLabel,
-            statValue: lr.statValue,
-            correctPlayer: lr.correctPlayer,
-            userCorrect: lr.userCorrect,
-            userSelectedPlayer: lr.userSelectedPlayer,
-            userStatValue: lr.userStatValue,
-            showTotalsNote: lr.showTotalsNote,
-          })),
-          winsGuess: detailedGameData.winsGuessData,
-        };
-
-        saveGameToHistory({
-          season: selectedSeason,
-          teamName: teamDisplayInfo.name,
-          teamAbbrev: teamDisplayInfo.abbrev,
-          teamLogo: smallLogoUrl,
-          teamColors: teamDisplayInfo.colors,
-          sport: leagueData.sport || 'basketball',
-          score,
-          summaryData,
-          leagueFingerprintId: leagueFingerprintId || undefined,
-        });
-
-        // Reload history after saving
-        const allHistory = loadGameHistory();
-        const filteredHistory = leagueFingerprintId
-          ? allHistory.filter(entry => entry.leagueFingerprintId === leagueFingerprintId)
-          : allHistory;
-        setGameHistory(filteredHistory);
-      }
-    }
+    // Reset save tracking for new game
+    hasBeenSavedRef.current = false;
 
     const randomTeam = validTeams[Math.floor(Math.random() * validTeams.length)];
     setSelectedTeam(randomTeam);
@@ -3035,7 +2896,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     setGuess('');
     setScoreBreakdown([]); // Reset score breakdown
     setDetailedGameData({ playerGuesses: [], leaderResults: [] }); // Reset detailed game data
-  }, [selectedSeason, selectedTeam, allTeams, leagueData.players, leagueData.teamSeasons, buildRoster, toast, currentRound, score, scoreBreakdown, teamDisplayInfo, leagueData.sport, leagueFingerprintId, detailedGameData]);
+  }, [selectedSeason, selectedTeam, allTeams, leagueData.players, leagueData.teamSeasons, buildRoster, toast, leagueData.sport]);
 
   // New Year, Same Team
   const handleNewYearSameTeam = useCallback(() => {
@@ -3081,79 +2942,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
       return;
     }
 
-    // Save current game to history before starting new one
-    if (currentRound === 'complete' && selectedTeam && selectedSeason) {
-      const hasCompletedRounds = scoreBreakdown.length > 0;
-      const shouldSave = score > 0 || hasCompletedRounds;
-
-      if (shouldSave) {
-        const seasonInfo = selectedTeam.seasons?.find(s => s.season === selectedSeason);
-        const smallLogo = seasonInfo?.imgURLSmall || seasonInfo?.imgURL || selectedTeam.imgURLSmall || selectedTeam.imgURL;
-        const smallLogoUrl = getTeamLogoUrl(smallLogo, leagueData.sport);
-
-        // Build summary data inline
-        const categories: ScoreCategory[] = [];
-        const categoryMap: Record<string, number> = {};
-        scoreBreakdown.forEach(round => {
-          const categoryName =
-            round.round === 'guess' ? 'Player Guesses' :
-            round.round === 'hint' ? 'Player Guesses (with hints)' :
-            round.round === 'wins-guess' ? 'Wins Guess' :
-            round.round === 'playoff-finish' ? 'Playoff Finish' :
-            'Leaders';
-          categoryMap[categoryName] = (categoryMap[categoryName] || 0) + round.points;
-        });
-        Object.entries(categoryMap).forEach(([name, points]) => {
-          categories.push({ name, points });
-        });
-
-        const summaryData: ScoreSummaryData = {
-          season: selectedSeason,
-          teamName: teamDisplayInfo.name,
-          teamAbbrev: teamDisplayInfo.abbrev,
-          teamLogo: teamDisplayInfo.logoUrl,
-          teamColors: teamDisplayInfo.colors,
-          sport: leagueData.sport || 'basketball',
-          finalScore: score,
-          categories,
-          playoffFinish: detailedGameData.playoffFinishData ? {
-            ...detailedGameData.playoffFinishData,
-            pointsPerCorrect: 10,
-          } : undefined,
-          playerGuesses: detailedGameData.playerGuesses,
-          leaders: detailedGameData.leaderResults.map(lr => ({
-            label: lr.label,
-            statLabel: lr.statLabel,
-            statValue: lr.statValue,
-            correctPlayer: lr.correctPlayer,
-            userCorrect: lr.userCorrect,
-            userSelectedPlayer: lr.userSelectedPlayer,
-            userStatValue: lr.userStatValue,
-            showTotalsNote: lr.showTotalsNote,
-          })),
-          winsGuess: detailedGameData.winsGuessData,
-        };
-
-        saveGameToHistory({
-          season: selectedSeason,
-          teamName: teamDisplayInfo.name,
-          teamAbbrev: teamDisplayInfo.abbrev,
-          teamLogo: smallLogoUrl,
-          teamColors: teamDisplayInfo.colors,
-          sport: leagueData.sport || 'basketball',
-          score,
-          summaryData,
-          leagueFingerprintId: leagueFingerprintId || undefined,
-        });
-
-        // Reload history after saving
-        const allHistory = loadGameHistory();
-        const filteredHistory = leagueFingerprintId
-          ? allHistory.filter(entry => entry.leagueFingerprintId === leagueFingerprintId)
-          : allHistory;
-        setGameHistory(filteredHistory);
-      }
-    }
+    // Reset save tracking for new game
+    hasBeenSavedRef.current = false;
 
     const randomSeason = validSeasons[Math.floor(Math.random() * validSeasons.length)];
     setSelectedSeason(randomSeason);
@@ -3165,7 +2955,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     setGuess('');
     setScoreBreakdown([]); // Reset score breakdown
     setDetailedGameData({ playerGuesses: [], leaderResults: [] }); // Reset detailed game data
-  }, [selectedSeason, selectedTeam, allSeasons, leagueData.players, leagueData.teamSeasons, buildRoster, toast, yearRange, currentRound, score, scoreBreakdown, teamDisplayInfo, leagueData.sport, leagueFingerprintId, detailedGameData]);
+  }, [selectedSeason, selectedTeam, allSeasons, leagueData.players, leagueData.teamSeasons, buildRoster, toast, yearRange, leagueData.sport]);
 
   // Give Up - skip to complete with current score
   const handleGiveUp = useCallback(() => {
@@ -3386,6 +3176,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
 
   // Save game to history when it completes
   useEffect(() => {
+    // Skip if already saved this game
+    if (hasBeenSavedRef.current) return;
+
     if (currentRound === 'complete' && scoreSummaryData && selectedTeam && selectedSeason) {
       // Only save if the user made meaningful progress:
       // - Either earned at least some points (score > 0)
@@ -3417,6 +3210,9 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
           ? allHistory.filter(entry => entry.leagueFingerprintId === leagueFingerprintId)
           : allHistory;
         setGameHistory(filteredHistory);
+
+        // Mark as saved to prevent duplicate saves
+        hasBeenSavedRef.current = true;
       }
     }
   }, [currentRound, scoreSummaryData, selectedTeam, selectedSeason, teamDisplayInfo, leagueData.sport, score, leagueFingerprintId, scoreBreakdown]);
