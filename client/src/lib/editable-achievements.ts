@@ -63,6 +63,8 @@ export interface ParsedAchievement {
 // Order matters! Decimal-aware patterns must come BEFORE comma-separated patterns
 // Hockey save percentage (e.g., ".920+ Save Percentage (Season)")
 const PATTERN_SAVE_PERCENTAGE = /^\.(\d{3})\+\s+(Save Percentage)\s*\(Season\)(.*)$/i;
+// Hockey GAA with ≤ symbol (e.g., "≤2.60 GAA (Season)")
+const PATTERN_GAA_LESS_THAN = /^≤(\d+\.\d+)\s+(GAA)\s*\(Season\)(.*)$/i;
 // Hockey GAA with "or less" (e.g., "2.60 or less GAA (Season)")
 const PATTERN_GAA = /^(\d+\.\d+)\s+or less\s+(GAA)\s*\(Season\)(.*)$/i;
 // Percentage achievements (e.g., "60%+ TS on 20+ PPG (Season)", "90%+ FT (Season)", "40%+ 3PT (Season)")
@@ -74,6 +76,7 @@ const PATTERN_PERCENTAGE_OR_LESS = /^([^.\d]*?)(\d+(?:\.\d+)?)(%?)\s*or less\s*(
 
 const ACHIEVEMENT_PATTERNS = [
   PATTERN_SAVE_PERCENTAGE,
+  PATTERN_GAA_LESS_THAN,
   PATTERN_GAA,
   PATTERN_PERCENTAGE,
   PATTERN_SEASON_STATS,
@@ -111,11 +114,12 @@ export function parseAchievementLabel(label: string, sport?: string): ParsedAchi
       
       // Handle different capture group patterns
       // Hockey-specific patterns (Save Percentage and GAA)
-      if (match.length === 4 && (pattern === PATTERN_SAVE_PERCENTAGE || pattern === PATTERN_GAA)) {
+      if (match.length === 4 && (pattern === PATTERN_SAVE_PERCENTAGE || pattern === PATTERN_GAA || pattern === PATTERN_GAA_LESS_THAN)) {
         // Save Percentage: [full, number, "Save Percentage", suffix]
         // GAA: [full, number, "GAA", suffix]
+        // GAA Less Than: [full, number, "GAA", suffix]
         const [, numberStrMatch, unitMatch, suffixMatch] = match;
-        prefix = pattern === PATTERN_SAVE_PERCENTAGE ? '.' : '';
+        prefix = pattern === PATTERN_SAVE_PERCENTAGE ? '.' : (pattern === PATTERN_GAA_LESS_THAN ? '≤' : '');
         numberStr = numberStrMatch;
         suffix = ` ${unitMatch} (Season)${suffixMatch}`;
         statUnit = unitMatch;
@@ -787,35 +791,27 @@ function checkSeasonAverage(player: Player, statField: string, newThreshold: num
 
 
 
-  if (sport === 'hockey' && player.achievements?.seasonStatsComputed) {
-    for (const seasonYearStr in player.achievements.seasonStatsComputed) {
-      const seasonYear = parseInt(seasonYearStr);
-      const computedStats = player.achievements.seasonStatsComputed[seasonYear];
+  for (const stat of player.stats) {
+    if (!stat.playoffs && (stat.gp || 0) >= minGames) {
+      let average = 0;
 
-      // Find the raw stat for this season to get gp
-      const rawStat = player.stats.find(s => s.season === seasonYear && !s.playoffs);
-      const gp = rawStat?.gp || 0;
-      
-      if (gp >= minGames) {
-        const average = (computedStats as any)[statField] || 0;
-        if (operator === '≤' && average <= newThreshold) {
-          return true;
-        } else if (operator === '≥' && average >= newThreshold) {
-          return true;
-        }
-      }
-    }
-  } else {
-    for (const stat of player.stats) {
-      if (!stat.playoffs && (stat.gp || 0) >= minGames) {
+      // Special handling for hockey GAA (Goals Against Average)
+      // GAA = goals against / (minutes / 60)
+      if (sport === 'hockey' && statField === 'gaa') {
+        const min = (stat as any).min || (stat as any).gMin || 0;
+        const ga = (stat as any).ga || 0;
+        average = min > 0 ? (ga / (min / 60)) : 0;
+      } else {
+        // Standard average calculation (total / games)
         const total = (stat as any)[statField] || 0;
         const games = stat.gp || 1;
-        const average = games > 0 ? total / games : 0;
-        if (operator === '≤' && average <= newThreshold) {
-          return true;
-        } else if (operator === '≥' && average >= newThreshold) {
-          return true;
-        }
+        average = games > 0 ? total / games : 0;
+      }
+
+      if (operator === '≤' && average <= newThreshold) {
+        return true;
+      } else if (operator === '≥' && average >= newThreshold) {
+        return true;
       }
     }
   }

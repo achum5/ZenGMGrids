@@ -415,6 +415,15 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                       case "League Blocks Leader":
                         condensedAwards.push({ text: count > 1 ? `${count}x Blocks Leader` : "Blocks Leader" });
                         break;
+                      case "Goalie of the Year":
+                        condensedAwards.push({ text: count > 1 ? `${count}x Goalie of the Year` : "Goalie of the Year" });
+                        break;
+                      case "Defensive Player of the Year":
+                        condensedAwards.push({ text: count > 1 ? `${count}x Defensive Player of the Year` : "Defensive Player of the Year" });
+                        break;
+                      case "Defensive Forward of the Year":
+                        condensedAwards.push({ text: count > 1 ? `${count}x Defensive Forward of the Year` : "Defensive Forward of the Year" });
+                        break;
                       default:
                         // Handle dynamic decade achievements
                         if (type.includes('playedIn') && type.endsWith('s')) {

@@ -199,12 +199,14 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
           }
 
           const parsedOriginal = parseAchievementLabel(catTeam.label, sport);
+          // Determine operator from the parsed prefix or label
+          const detectedOperator: '≥' | '≤' = parsedOriginal.prefix === '≤' || catTeam.label.toLowerCase().includes('or less') || catTeam.label.toLowerCase().includes('or fewer') ? '≤' : '≥';
           return {
             type: 'achievement',
             value: catTeam.achievementId,
             label: catTeam.label,
             baseAchievementId: catTeam.achievementId, // For non-custom, base ID is its own ID
-            operator: '≥',
+            operator: detectedOperator,
             customAchievement: null,
             customNumber: parsedOriginal.isEditable ? parsedOriginal.number : undefined, // Initialize with default number if editable
           };
@@ -399,6 +401,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
       const originalAchievement = achievementOptions.find(ach => ach.id === value);
       if (originalAchievement) {
         const parsedOriginal = parseAchievementLabel(originalAchievement.label, sport);
+        // Determine operator from the parsed prefix or label
+        operator = parsedOriginal.prefix === '≤' || originalAchievement.label.toLowerCase().includes('or less') || originalAchievement.label.toLowerCase().includes('or fewer') ? '≤' : '≥';
         if (parsedOriginal.isEditable) {
           // Initialize custom number with the parsed number from the original label
           customNumber = parsedOriginal.number;
@@ -969,7 +973,7 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
         {
           title: "Honors & Awards",
           achievements: [
-            'HKAllStar', 'HKMVP', 'HKDefenseman', 'HKROY', 'Champion', 'HKPlayoffsMVP', 'HKFinalsMVP', 'HKAllRookie', 'HKAllLeague', 'HKAllStarMVP', 'HKAssistsLeader', 'isHallOfFamer'
+            'HKAllStar', 'HKMVP', 'HKDefensivePlayer', 'HKDefensiveForward', 'HKGOY', 'HKROY', 'Champion', 'HKFinalsMVP', 'HKAllRookie', 'HKAllLeague', 'HKAllStarMVP', 'isHallOfFamer'
           ].filter(id => achievementMap.has(id)).map(id => ({id, name: achievementMap.get(id)!}))
         },
         {
@@ -1220,9 +1224,9 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
                           
                           let displayLabelParts: string[] = [];
 
-                          // Add prefix if it exists and is not just whitespace or a decimal point
-                          // (decimal is shown before the input box for save percentage)
-                          if (parsedOriginal.prefix.trim() && parsedOriginal.prefix.trim() !== '.') {
+                          // Add prefix if it exists and is not just whitespace, a decimal point, or an operator
+                          // (decimal is shown before the input box for save percentage, operators are shown as buttons)
+                          if (parsedOriginal.prefix.trim() && parsedOriginal.prefix.trim() !== '.' && parsedOriginal.prefix.trim() !== '≤') {
                               displayLabelParts.push(parsedOriginal.prefix.trim());
                           }
 

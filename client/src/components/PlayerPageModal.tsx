@@ -3054,24 +3054,39 @@ export function PlayerPageModal({
             if (!seasonStats) {
               const seasonStatsArray = filteredStats.filter(s => s.season === season && s.tid !== -1);
               if (seasonStatsArray.length > 0) {
-                seasonStats = seasonStatsArray.reduce((acc, stat) => ({
-                  ...acc,
-                  season: stat.season,
-                  tid: -1,
-                  gp: (acc.gp || 0) + (stat.gp || 0),
-                  min: (acc.min || 0) + (stat.min || 0),
-                  g: (acc.g || 0) + (stat.g || 0),
-                  a: (acc.a || 0) + (stat.a || 0),
-                  pm: (acc.pm || 0) + (stat.pm || 0),
-                  pim: (acc.pim || 0) + (stat.pim || 0),
-                  hit: ((acc as any).hit || 0) + ((stat as any).hit || 0),
-                  blk: ((acc as any).blk || 0) + ((stat as any).blk || 0),
-                  ows: ((acc as any).ows || 0) + ((stat as any).ows || 0),
-                  dws: ((acc as any).dws || 0) + ((stat as any).dws || 0),
-                  gws: ((acc as any).gws || 0) + ((stat as any).gws || 0),
-                  dps: ((acc as any).dps || 0) + ((stat as any).dps || 0),
-                  ps: ((acc as any).ps || 0) + ((stat as any).ps || 0),
-                }), { season, tid: -1, gp: 0, min: 0, g: 0, a: 0, pm: 0, pim: 0, hit: 0, blk: 0, ows: 0, dws: 0, gws: 0, dps: 0, ps: 0 });
+                seasonStats = seasonStatsArray.reduce((acc, stat) => {
+                  // Calculate goals from component fields if needed
+                  const evG = (stat as any).evG ?? 0;
+                  const ppG = (stat as any).ppG ?? 0;
+                  const shG = (stat as any).shG ?? 0;
+                  const goals = (stat as any).g ?? (evG + ppG + shG);
+
+                  // Calculate assists from component fields if needed
+                  const evA = (stat as any).evA ?? 0;
+                  const ppA = (stat as any).ppA ?? 0;
+                  const shA = (stat as any).shA ?? 0;
+                  const assists = (stat as any).a ?? (stat as any).asts ?? (evA + ppA + shA);
+
+                  return {
+                    ...acc,
+                    season: stat.season,
+                    tid: -1,
+                    gp: (acc.gp || 0) + (stat.gp || 0),
+                    min: (acc.min || 0) + (stat.min || 0),
+                    g: (acc.g || 0) + goals,
+                    a: (acc.a || 0) + assists,
+                    pm: (acc.pm || 0) + (stat.pm || 0),
+                    pim: (acc.pim || 0) + (stat.pim || 0),
+                    hit: ((acc as any).hit || 0) + ((stat as any).hit || 0),
+                    blk: ((acc as any).blk || 0) + ((stat as any).blk || 0),
+                    ows: ((acc as any).ows || 0) + ((stat as any).ows || 0),
+                    dws: ((acc as any).dws || 0) + ((stat as any).dws || 0),
+                    gws: ((acc as any).gws || 0) + ((stat as any).gws || 0),
+                    ops: ((acc as any).ops || 0) + ((stat as any).ops || 0),
+                    dps: ((acc as any).dps || 0) + ((stat as any).dps || 0),
+                    ps: ((acc as any).ps || 0) + ((stat as any).ps || 0),
+                  };
+                }, { season, tid: -1, gp: 0, min: 0, g: 0, a: 0, pm: 0, pim: 0, hit: 0, blk: 0, ows: 0, dws: 0, gws: 0, ops: 0, dps: 0, ps: 0 });
               }
             }
 
@@ -3081,21 +3096,36 @@ export function PlayerPageModal({
               ? filteredStats.filter(s => s.tid === -1)
               : filteredStats.filter(s => s.tid !== -1);
 
-            const careerStats = careerStatsArray.length > 0 ? careerStatsArray.reduce((acc, stat) => ({
-              gp: (acc.gp || 0) + (stat.gp || 0),
-              min: (acc.min || 0) + (stat.min || 0),
-              g: (acc.g || 0) + (stat.g || 0),
-              a: (acc.a || 0) + (stat.a || 0),
-              pm: (acc.pm || 0) + (stat.pm || 0),
-              pim: (acc.pim || 0) + (stat.pim || 0),
-              hit: ((acc as any).hit || 0) + ((stat as any).hit || 0),
-              blk: ((acc as any).blk || 0) + ((stat as any).blk || 0),
-              ows: ((acc as any).ows || 0) + ((stat as any).ows || 0),
-              dws: ((acc as any).dws || 0) + ((stat as any).dws || 0),
-              gws: ((acc as any).gws || 0) + ((stat as any).gws || 0),
-              dps: ((acc as any).dps || 0) + ((stat as any).dps || 0),
-              ps: ((acc as any).ps || 0) + ((stat as any).ps || 0),
-            }), { gp: 0, min: 0, g: 0, a: 0, pm: 0, pim: 0, hit: 0, blk: 0, ows: 0, dws: 0, gws: 0, dps: 0, ps: 0 }) : null;
+            const careerStats = careerStatsArray.length > 0 ? careerStatsArray.reduce((acc, stat) => {
+              // Calculate goals from component fields if needed
+              const evG = (stat as any).evG ?? 0;
+              const ppG = (stat as any).ppG ?? 0;
+              const shG = (stat as any).shG ?? 0;
+              const goals = (stat as any).g ?? (evG + ppG + shG);
+
+              // Calculate assists from component fields if needed
+              const evA = (stat as any).evA ?? 0;
+              const ppA = (stat as any).ppA ?? 0;
+              const shA = (stat as any).shA ?? 0;
+              const assists = (stat as any).a ?? (stat as any).asts ?? (evA + ppA + shA);
+
+              return {
+                gp: (acc.gp || 0) + (stat.gp || 0),
+                min: (acc.min || 0) + (stat.min || 0),
+                g: (acc.g || 0) + goals,
+                a: (acc.a || 0) + assists,
+                pm: (acc.pm || 0) + (stat.pm || 0),
+                pim: (acc.pim || 0) + (stat.pim || 0),
+                hit: ((acc as any).hit || 0) + ((stat as any).hit || 0),
+                blk: ((acc as any).blk || 0) + ((stat as any).blk || 0),
+                ows: ((acc as any).ows || 0) + ((stat as any).ows || 0),
+                dws: ((acc as any).dws || 0) + ((stat as any).dws || 0),
+                gws: ((acc as any).gws || 0) + ((stat as any).gws || 0),
+                ops: ((acc as any).ops || 0) + ((stat as any).ops || 0),
+                dps: ((acc as any).dps || 0) + ((stat as any).dps || 0),
+                ps: ((acc as any).ps || 0) + ((stat as any).ps || 0),
+              };
+            }, { gp: 0, min: 0, g: 0, a: 0, pm: 0, pim: 0, hit: 0, blk: 0, ows: 0, dws: 0, gws: 0, ops: 0, dps: 0, ps: 0 }) : null;
 
             // Peak stats (for retired players)
             const isRetired = player.tid === -2 || player.tid === -3 || (player.retiredYear && player.retiredYear > 0);
@@ -3116,24 +3146,39 @@ export function PlayerPageModal({
                 if (!peakSeasonStats) {
                   const peakSeasonStatsArray = filteredStats.filter(s => s.season === peakSeason && s.tid !== -1);
                   if (peakSeasonStatsArray.length > 0) {
-                    peakSeasonStats = peakSeasonStatsArray.reduce((acc, stat) => ({
-                      ...acc,
-                      season: stat.season,
-                      tid: -1,
-                      gp: (acc.gp || 0) + (stat.gp || 0),
-                      min: (acc.min || 0) + (stat.min || 0),
-                      g: (acc.g || 0) + (stat.g || 0),
-                      a: (acc.a || 0) + (stat.a || 0),
-                      pm: (acc.pm || 0) + (stat.pm || 0),
-                      pim: (acc.pim || 0) + (stat.pim || 0),
-                      hit: ((acc as any).hit || 0) + ((stat as any).hit || 0),
-                      blk: ((acc as any).blk || 0) + ((stat as any).blk || 0),
-                      ows: ((acc as any).ows || 0) + ((stat as any).ows || 0),
-                      dws: ((acc as any).dws || 0) + ((stat as any).dws || 0),
-                      gws: ((acc as any).gws || 0) + ((stat as any).gws || 0),
-                      dps: ((acc as any).dps || 0) + ((stat as any).dps || 0),
-                      ps: ((acc as any).ps || 0) + ((stat as any).ps || 0),
-                    }), { season: peakSeason, tid: -1, gp: 0, min: 0, g: 0, a: 0, pm: 0, pim: 0, hit: 0, blk: 0, ows: 0, dws: 0, gws: 0, dps: 0, ps: 0 });
+                    peakSeasonStats = peakSeasonStatsArray.reduce((acc, stat) => {
+                      // Calculate goals from component fields if needed
+                      const evG = (stat as any).evG ?? 0;
+                      const ppG = (stat as any).ppG ?? 0;
+                      const shG = (stat as any).shG ?? 0;
+                      const goals = (stat as any).g ?? (evG + ppG + shG);
+
+                      // Calculate assists from component fields if needed
+                      const evA = (stat as any).evA ?? 0;
+                      const ppA = (stat as any).ppA ?? 0;
+                      const shA = (stat as any).shA ?? 0;
+                      const assists = (stat as any).a ?? (stat as any).asts ?? (evA + ppA + shA);
+
+                      return {
+                        ...acc,
+                        season: stat.season,
+                        tid: -1,
+                        gp: (acc.gp || 0) + (stat.gp || 0),
+                        min: (acc.min || 0) + (stat.min || 0),
+                        g: (acc.g || 0) + goals,
+                        a: (acc.a || 0) + assists,
+                        pm: (acc.pm || 0) + (stat.pm || 0),
+                        pim: (acc.pim || 0) + (stat.pim || 0),
+                        hit: ((acc as any).hit || 0) + ((stat as any).hit || 0),
+                        blk: ((acc as any).blk || 0) + ((stat as any).blk || 0),
+                        ows: ((acc as any).ows || 0) + ((stat as any).ows || 0),
+                        dws: ((acc as any).dws || 0) + ((stat as any).dws || 0),
+                        gws: ((acc as any).gws || 0) + ((stat as any).gws || 0),
+                        ops: ((acc as any).ops || 0) + ((stat as any).ops || 0),
+                        dps: ((acc as any).dps || 0) + ((stat as any).dps || 0),
+                        ps: ((acc as any).ps || 0) + ((stat as any).ps || 0),
+                      };
+                    }, { season: peakSeason, tid: -1, gp: 0, min: 0, g: 0, a: 0, pm: 0, pim: 0, hit: 0, blk: 0, ows: 0, dws: 0, gws: 0, ops: 0, dps: 0, ps: 0 });
                   }
                 }
                 if (peakSeasonStats && peakSeasonStats.gp && peakSeasonStats.gp > 0) {
@@ -3152,7 +3197,7 @@ export function PlayerPageModal({
                 a: seasonStats.a || 0,
                 pts: (seasonStats.g || 0) + (seasonStats.a || 0),
                 pm: seasonStats.pm != null ? (seasonStats.pm >= 0 ? `+${seasonStats.pm}` : seasonStats.pm.toString()) : '—',
-                ops: ((seasonStats as any).ows || 0) + ((seasonStats as any).dws || 0) + ((seasonStats as any).gws || 0),
+                ops: ((seasonStats as any).ops || 0) || (((seasonStats as any).ows || 0) + ((seasonStats as any).dws || 0) + ((seasonStats as any).gws || 0)),
                 dps: ((seasonStats as any).dps || 0),
                 ps: ((seasonStats as any).ps || 0),
               });
@@ -3165,7 +3210,7 @@ export function PlayerPageModal({
                 a: peakStats.a || 0,
                 pts: (peakStats.g || 0) + (peakStats.a || 0),
                 pm: peakStats.pm != null ? (peakStats.pm >= 0 ? `+${peakStats.pm}` : peakStats.pm.toString()) : '—',
-                ops: ((peakStats as any).ows || 0) + ((peakStats as any).dws || 0) + ((peakStats as any).gws || 0),
+                ops: ((peakStats as any).ops || 0) || (((peakStats as any).ows || 0) + ((peakStats as any).dws || 0) + ((peakStats as any).gws || 0)),
                 dps: ((peakStats as any).dps || 0),
                 ps: ((peakStats as any).ps || 0),
               });
@@ -3178,7 +3223,7 @@ export function PlayerPageModal({
                 a: careerStats.a || 0,
                 pts: (careerStats.g || 0) + (careerStats.a || 0),
                 pm: careerStats.pm != null ? (careerStats.pm >= 0 ? `+${careerStats.pm}` : careerStats.pm.toString()) : '—',
-                ops: ((careerStats as any).ows || 0) + ((careerStats as any).dws || 0) + ((careerStats as any).gws || 0),
+                ops: ((careerStats as any).ops || 0) || (((careerStats as any).ows || 0) + ((careerStats as any).dws || 0) + ((careerStats as any).gws || 0)),
                 dps: ((careerStats as any).dps || 0),
                 ps: ((careerStats as any).ps || 0),
               });

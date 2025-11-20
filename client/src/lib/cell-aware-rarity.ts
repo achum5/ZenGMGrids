@@ -129,7 +129,7 @@ const SEASON_ALIGNED = new Set([
   'FBAllStar', 'FBMVP', 'FBDPOY', 'FBOffROY', 'FBDefROY', 'FBChampion', 'FBAllRookie', 'FBAllLeague', 'FBFinalsMVP',
   
   // Hockey GM season-specific achievements (uses generic 'Champion' instead of 'HKChampion')
-  'HKAllStar', 'HKMVP', 'HKDefenseman', 'HKROY', 'HKPlayoffsMVP', 'HKFinalsMVP', 'HKAllRookie', 'HKAllLeague', 'HKAllStarMVP', 'HKAssistsLeader',
+  'HKAllStar', 'HKMVP', 'HKDefensivePlayer', 'HKDefensiveForward', 'HKGOY', 'HKROY', 'HKFinalsMVP', 'HKAllRookie', 'HKAllLeague', 'HKAllStarMVP',
   
   // Baseball GM season-specific achievements
   'BBAllStar', 'BBMVP', 'BBROY', 'BBChampion', 'BBAllRookie', 'BBAllLeague', 'BBPlayoffsMVP',

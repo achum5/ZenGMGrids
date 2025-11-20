@@ -76,14 +76,14 @@ export type SeasonAchievementId =
   // Hockey achievements
   | 'HKAllStar'
   | 'HKMVP'
-  | 'HKDefenseman'
+  | 'HKDefensivePlayer'
+  | 'HKDefensiveForward'
+  | 'HKGOY'
   | 'HKROY'
-  | 'HKPlayoffsMVP'
   | 'HKFinalsMVP'
   | 'HKAllRookie'
   | 'HKAllLeague'
   | 'HKAllStarMVP'
-  | 'HKAssistsLeader'
   // Hockey GM season statistical achievements (19 new achievements)
   | 'HKSeason40Goals'
   | 'HKSeason60Assists'
@@ -221,18 +221,22 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId | null> = {
   'FB Second Team All-League': 'FBAllLeague',
   'FB Finals MVP': 'FBFinalsMVP',
   
-  // Hockey GM (ZGMH) awards
+  // Hockey GM (ZGMH) awards (with variations)
   'All-Star Game': 'HKAllStar',
+  'All-Star': 'HKAllStar', // Variation
   'MVP': 'HKMVP',
-  'Best Defenseman': 'HKDefenseman',
+  'Most Valuable Player': 'HKMVP', // Variation
+  'Defensive Player of the Year': 'HKDefensivePlayer',
+  'Defensive Forward of the Year': 'HKDefensiveForward',
+  'Goalie of the Year': 'HKGOY',
   'Rookie of the Year': 'HKROY',
   'Championship': 'Champion',
-  'Playoffs MVP': 'HKPlayoffsMVP',
+  'Playoffs MVP': 'HKFinalsMVP', // Map to Finals MVP
   'Finals MVP': 'HKFinalsMVP',
   'All-Rookie Team': 'HKAllRookie',
   'All-League Team': 'HKAllLeague',
   'All-Star Game MVP': 'HKAllStarMVP',
-  'Assists Leader': 'HKAssistsLeader',
+  'All-Star MVP': 'HKAllStarMVP',
   
   // Common variants for Basketball GM
   'roy': 'ROY',
@@ -292,18 +296,18 @@ function mapAwardToAchievement(awardType: string, sport?: 'basketball' | 'footba
     if (awardType === 'Finals MVP') return 'BBPlayoffsMVP';
     if (awardType === 'Playoffs MVP') return 'BBPlayoffsMVP';
   } else if (sport === 'hockey') {
-    // Hockey GM specific mappings
-    if (awardType === 'All-Star Game') return 'HKAllStar';
-    if (awardType === 'MVP') return 'HKMVP';
-    if (awardType === 'Best Defenseman') return 'HKDefenseman';
+    // Hockey GM specific mappings (with variations)
+    if (awardType === 'All-Star Game' || awardType === 'All-Star') return 'HKAllStar';
+    if (awardType === 'MVP' || awardType === 'Most Valuable Player') return 'HKMVP';
+    if (awardType === 'Defensive Player of the Year') return 'HKDefensivePlayer';
+    if (awardType === 'Defensive Forward of the Year') return 'HKDefensiveForward';
+    if (awardType === 'Goalie of the Year') return 'HKGOY';
     if (awardType === 'Rookie of the Year') return 'HKROY';
     if (awardType === 'Championship') return 'Champion';
-    if (awardType === 'Playoffs MVP') return 'HKPlayoffsMVP';
-    if (awardType === 'Finals MVP') return 'HKFinalsMVP';
+    if (awardType === 'Playoffs MVP' || awardType === 'Finals MVP') return 'HKFinalsMVP';
     if (awardType === 'All-Rookie Team') return 'HKAllRookie';
-    if (awardType === 'All-League Team') return 'HKAllLeague';
-    if (awardType === 'All-Star Game MVP') return 'HKAllStarMVP';
-    if (awardType === 'Assists Leader') return 'HKAssistsLeader';
+    if (awardType === 'First Team All-League' || awardType === 'Second Team All-League' || awardType === 'Third Team All-League' || awardType === 'All-League Team') return 'HKAllLeague';
+    if (awardType === 'All-Star Game MVP' || awardType === 'All-Star MVP') return 'HKAllStarMVP';
   }
   
   // Try normalized version for Basketball GM
@@ -615,22 +619,24 @@ function resolvePrimaryTeamForSeason(player: Player, season: number): number | n
   if (seasonStats.length === 0) return null;
   
   // Find team with most minutes played
+  // Check both regular minutes (min) and goalie minutes (gMin) for hockey
   let maxMinutes = 0;
   let primaryTeam: number | null = null;
-  
+
   for (const stat of seasonStats) {
-    const minutes = stat.min || 0;
+    const minutes = (stat.min || 0) + ((stat as any).gMin || 0);
     if (minutes > maxMinutes) {
       maxMinutes = minutes;
       primaryTeam = stat.tid;
     }
   }
-  
+
   // Fallback to games played if no minutes data
+  // Check both regular gp and goalie-specific gpGoalie for hockey
   if (primaryTeam === null) {
     let maxGames = 0;
     for (const stat of seasonStats) {
-      const games = stat.gp || 0;
+      const games = (stat.gp || 0) + ((stat as any).gpGoalie || 0);
       if (games > maxGames) {
         maxGames = games;
         primaryTeam = stat.tid;
@@ -1856,20 +1862,26 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
     minPlayers: 3
   },
   {
-    id: 'HKDefenseman',
-    label: 'Best Defenseman',
+    id: 'HKDefensivePlayer',
+    label: 'Defensive Player of the Year',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKDefensiveForward',
+    label: 'Defensive Forward of the Year',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKGOY',
+    label: 'Goalie of the Year',
     isSeasonSpecific: true,
     minPlayers: 3
   },
   {
     id: 'HKROY',
     label: 'Rookie of the Year',
-    isSeasonSpecific: true,
-    minPlayers: 3
-  },
-  {
-    id: 'HKPlayoffsMVP',
-    label: 'Playoffs MVP',
     isSeasonSpecific: true,
     minPlayers: 3
   },
@@ -1894,12 +1906,6 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
   {
     id: 'HKAllStarMVP',
     label: 'All-Star MVP',
-    isSeasonSpecific: true,
-    minPlayers: 3
-  },
-  {
-    id: 'HKAssistsLeader',
-    label: 'Assists Leader',
     isSeasonSpecific: true,
     minPlayers: 3
   },

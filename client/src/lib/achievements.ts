@@ -214,7 +214,19 @@ function createSeasonAchievementTests(seasonIndex?: SeasonIndex, sport: 'basketb
         return false;
       }
       
-      // For traditional award-based achievements, check player awards
+      // For traditional award-based achievements, check seasonIndex first (more reliable)
+      if (seasonIndex) {
+        for (const seasonStr of Object.keys(seasonIndex)) {
+          const seasonData = seasonIndex[parseInt(seasonStr)];
+          for (const teamData of Object.values(seasonData)) {
+            if (teamData[seasonAch.id as keyof typeof teamData]?.has(player.pid)) {
+              return true;
+            }
+          }
+        }
+      }
+
+      // Fallback: check player awards with normalized type matching (for backwards compatibility)
       return player.awards?.some(award => {
         const normalizedType = award.type.toLowerCase().trim();
         return seasonAch.id === 'AllStar' && normalizedType.includes('all-star') ||
@@ -1474,18 +1486,18 @@ export function playerMeetsAchievement(
       if (achievementId === 'FBAllLeague' && (award.type === 'First Team All-League' || award.type === 'Second Team All-League')) return true;
       if (achievementId === 'FBFinalsMVP' && award.type === 'Finals MVP') return true;
       
-      // Hockey achievements (case-sensitive exact matches)
-      if (achievementId === 'HKAllStar' && award.type === 'All-Star') return true;
-      if (achievementId === 'HKMVP' && award.type === 'Most Valuable Player') return true;
-      if (achievementId === 'HKDefenseman' && award.type === 'Best Defenseman') return true;
+      // Hockey achievements (case-sensitive exact matches, with variations)
+      if (achievementId === 'HKAllStar' && (award.type === 'All-Star Game' || award.type === 'All-Star')) return true;
+      if (achievementId === 'HKMVP' && (award.type === 'MVP' || award.type === 'Most Valuable Player')) return true;
+      if (achievementId === 'HKDefensivePlayer' && award.type === 'Defensive Player of the Year') return true;
+      if (achievementId === 'HKDefensiveForward' && award.type === 'Defensive Forward of the Year') return true;
+      if (achievementId === 'HKGOY' && award.type === 'Goalie of the Year') return true;
       if (achievementId === 'HKROY' && award.type === 'Rookie of the Year') return true;
-      if (achievementId === 'HKPlayoffsMVP' && award.type === 'Playoffs MVP') return true;
-      if (achievementId === 'HKFinalsMVP' && award.type === 'Finals MVP') return true;
+      if (achievementId === 'HKFinalsMVP' && (award.type === 'Playoffs MVP' || award.type === 'Finals MVP')) return true;
       if (achievementId === 'HKAllRookie' && award.type === 'All-Rookie Team') return true;
-      if (achievementId === 'HKAllLeague' && (award.type === 'First Team All-League' || award.type === 'Second Team All-League' || award.type === 'Third Team All-League')) return true;
-      if (achievementId === 'HKAllStarMVP' && award.type === 'All-Star MVP') return true;
-      if (achievementId === 'HKAssistsLeader' && award.type === 'League Assists Leader') return true;
-      
+      if (achievementId === 'HKAllLeague' && (award.type === 'First Team All-League' || award.type === 'Second Team All-League' || award.type === 'Third Team All-League' || award.type === 'All-League Team')) return true;
+      if (achievementId === 'HKAllStarMVP' && (award.type === 'All-Star MVP' || award.type === 'All-Star Game MVP')) return true;
+
       // Baseball achievements
       if (achievementId === 'BBAllStar' && award.type === 'All-Star') return true;
       if (achievementId === 'BBMVP' && award.type === 'Most Valuable Player') return true;

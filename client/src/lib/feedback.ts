@@ -589,18 +589,6 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     verbTeam: 'made an All-League Team',
     verbGeneric: 'made an All-League Team'
   },
-  HKAssistsLeader: {
-    label: 'League Assists Leader',
-    short: 'Assists Leader',
-    verbTeam: 'led the league in assists',
-    verbGeneric: 'led the league in assists'
-  },
-  HKPlayoffsMVP: {
-    label: 'Playoffs MVP',
-    short: 'Playoffs MVP',
-    verbTeam: 'won a Playoffs MVP',
-    verbGeneric: 'won a Playoffs MVP'
-  },
 
   // Hockey GM Season Statistical Achievements (19 new achievements)
   HKSeason40Goals: {
@@ -763,11 +751,23 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     verbTeam: 'won a championship',
     verbGeneric: 'won a championship'
   },
-  HKDefenseman: {
-    label: 'Best Defenseman',
-    short: 'Best Defenseman',
-    verbTeam: 'won Best Defenseman',
-    verbGeneric: 'won Best Defenseman'
+  HKDefensivePlayer: {
+    label: 'Defensive Player of the Year',
+    short: 'Defensive Player of the Year',
+    verbTeam: 'won Defensive Player of the Year',
+    verbGeneric: 'won Defensive Player of the Year'
+  },
+  HKDefensiveForward: {
+    label: 'Defensive Forward of the Year',
+    short: 'Defensive Forward of the Year',
+    verbTeam: 'won Defensive Forward of the Year',
+    verbGeneric: 'won Defensive Forward of the Year'
+  },
+  HKGOY: {
+    label: 'Goalie of the Year',
+    short: 'Goalie of the Year',
+    verbTeam: 'won Goalie of the Year',
+    verbGeneric: 'won Goalie of the Year'
   },
   HKFinalsMVP: {
     label: 'Finals MVP',
@@ -843,8 +843,7 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     HKROY: ['Rookie of the Year', 'rookie of the year'],
     HKAllRookie: ['All-Rookie Team', 'all-rookie team'],
     HKAllLeague: ['All-League Team', 'all-league team', 'First Team All-League', 'Second Team All-League'],
-    HKAssistsLeader: ['League Assists Leader', 'league assists leader'],
-    HKPlayoffsMVP: ['Playoffs MVP', 'playoffs mvp'],
+    HKFinalsMVP: ['Playoffs MVP', 'playoffs mvp', 'Finals MVP', 'finals mvp'],
 
     // Baseball GM achievements (case-sensitive matches from ZGMB)
     BBAllStar: ['All-Star'],
@@ -857,8 +856,9 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
 
     // Additional missing achievements
     Champion: ['Won Championship', 'won championship', 'Championship'],
-    HKDefenseman: ['Best Defenseman', 'best defenseman'],
-    HKFinalsMVP: ['Finals MVP', 'finals mvp'],
+    HKDefensivePlayer: ['Defensive Player of the Year', 'defensive player of the year'],
+    HKDefensiveForward: ['Defensive Forward of the Year', 'defensive forward of the year'],
+    HKGOY: ['Goalie of the Year', 'goalie of the year'],
 
     // All missing Season achievements from LSP errors
     Season30PPG: ['30+ PPG', '30 points per game'],
@@ -927,7 +927,7 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
       seasons.push(award.season);
       
       // For Finals MVP and Conference Finals MVP (BBGM, FBGM, HKGM, and BBGM), include team abbreviation
-      if (achievementId === 'FinalsMVP' || achievementId === 'SFMVP' || achievementId === 'FBFinalsMVP' || achievementId === 'HKPlayoffsMVP' || achievementId === 'Champion' || achievementId === 'BBPlayoffsMVP' || achievementId === 'BBChampion') {
+      if (achievementId === 'FinalsMVP' || achievementId === 'SFMVP' || achievementId === 'FBFinalsMVP' || achievementId === 'HKFinalsMVP' || achievementId === 'Champion' || achievementId === 'BBPlayoffsMVP' || achievementId === 'BBChampion') {
         // Try to get team from playoffs stats for that season
         const playoffTeam = getPlayoffTeamForSeason(player, award.season);
         if (playoffTeam) {
