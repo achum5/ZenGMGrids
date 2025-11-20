@@ -254,8 +254,20 @@ export function calculateOptimizedIntersection(
   } else if (rowConstraint.type === 'team' && colConstraint.type === 'achievement' && !colIsSeasonAchievement) {
     // Team × career achievement
     const teamPlayers = buildPlayersByTeam(players).get(rowConstraint.id as number) || new Set();
-    const achievementPlayers = buildPlayersByAchievement(players, seasonIndex).get(colConstraint.id as string) || new Set();
-    
+
+    // Custom achievements need to be calculated on-the-fly
+    let achievementPlayers: Set<number>;
+    if ((colConstraint.id as string).includes('_custom_')) {
+      achievementPlayers = new Set();
+      for (const player of players) {
+        if (playerMeetsAchievement(player, colConstraint.id as string, seasonIndex)) {
+          achievementPlayers.add(player.pid);
+        }
+      }
+    } else {
+      achievementPlayers = buildPlayersByAchievement(players, seasonIndex).get(colConstraint.id as string) || new Set();
+    }
+
     if (returnCount) {
       result = intersectSetsCount(teamPlayers, achievementPlayers);
     } else {
@@ -263,9 +275,21 @@ export function calculateOptimizedIntersection(
     }
   } else if (rowConstraint.type === 'achievement' && !rowIsSeasonAchievement && colConstraint.type === 'team') {
     // Career achievement × team
-    const achievementPlayers = buildPlayersByAchievement(players, seasonIndex).get(rowConstraint.id as string) || new Set();
     const teamPlayers = buildPlayersByTeam(players).get(colConstraint.id as number) || new Set();
-    
+
+    // Custom achievements need to be calculated on-the-fly
+    let achievementPlayers: Set<number>;
+    if ((rowConstraint.id as string).includes('_custom_')) {
+      achievementPlayers = new Set();
+      for (const player of players) {
+        if (playerMeetsAchievement(player, rowConstraint.id as string, seasonIndex)) {
+          achievementPlayers.add(player.pid);
+        }
+      }
+    } else {
+      achievementPlayers = buildPlayersByAchievement(players, seasonIndex).get(rowConstraint.id as string) || new Set();
+    }
+
     if (returnCount) {
       result = intersectSetsCount(achievementPlayers, teamPlayers);
     } else {

@@ -751,7 +751,7 @@ export function getPlayerCareerTotal(player: Player, statField: string | string[
         break; // Break after finding a valid rebound field
       } else if ((stat as any)[field] !== undefined) {
         total += (stat as any)[field];
-        break; // Break after finding a valid generic field
+        // Don't break - continue to check remaining fields in array for component stats like evG, ppG, shG
       }
     }
   }
@@ -777,10 +777,15 @@ function checkSeasonTotal(player: Player, statField: string | string[], newThres
     if (!stat.playoffs && (stat.gp || 0) >= minGames) {
       let value = 0;
       if (Array.isArray(statField)) {
-        for (const field of statField) {
-          if ((stat as any)[field] !== undefined) {
-            value = (stat as any)[field];
-            break; // Use the first valid field found
+        // Special case: three-pointers are alternatives (tpm OR tp), not components to sum
+        if (statField.length === 2 && statField.includes('tpm') && statField.includes('tp')) {
+          value = (stat as any).tpm || (stat as any).tp || 0;
+        } else {
+          // Sum all component fields (e.g., evG + ppG + shG for hockey goals)
+          for (const field of statField) {
+            if ((stat as any)[field] !== undefined) {
+              value += (stat as any)[field];
+            }
           }
         }
       } else {
