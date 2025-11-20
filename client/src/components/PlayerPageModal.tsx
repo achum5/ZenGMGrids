@@ -3199,7 +3199,7 @@ export function PlayerPageModal({
                 pm: seasonStats.pm != null ? (seasonStats.pm >= 0 ? `+${seasonStats.pm}` : seasonStats.pm.toString()) : '—',
                 ops: ((seasonStats as any).ops || 0) || (((seasonStats as any).ows || 0) + ((seasonStats as any).dws || 0) + ((seasonStats as any).gws || 0)),
                 dps: ((seasonStats as any).dps || 0),
-                ps: ((seasonStats as any).ps || 0),
+                ps: ((seasonStats as any).ps || 0) || (((seasonStats as any).ows || 0) + ((seasonStats as any).dws || 0)),
               });
             }
             if (peakStats && peakStats.gp && peakStats.gp > 0) {
