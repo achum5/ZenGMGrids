@@ -717,6 +717,17 @@ export function getPlayerCareerTotal(player: Player, statField: string | string[
         const fallbackAssists = seasonAssists || (stat as any).a || (stat as any).ast || (stat as any).assists || 0;
         total += fallbackAssists;
         break; // Break after finding a valid assist field
+      } else if (field === 'g') {
+        // Hockey goals are the sum of even-strength, power-play, and short-handed goals
+        const evG = (stat as any).evG || 0;
+        const ppG = (stat as any).ppG || 0;
+        const shG = (stat as any).shG || 0;
+        const seasonGoals = evG + ppG + shG;
+        
+        // Fallback to direct field if components not available
+        const fallbackGoals = seasonGoals || (stat as any).g || 0;
+        total += fallbackGoals;
+        break; // Break after finding a valid goals field
       } else if (field === 'ast') {
         total += (stat as any).ast || 0;
         break; // Break after finding a valid assist field
