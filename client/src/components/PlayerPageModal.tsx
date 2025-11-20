@@ -3263,7 +3263,7 @@ export function PlayerPageModal({
                         <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{seasonRow.pm}</td>
                         <td className="text-right px-2 py-1">{seasonRow.ops.toFixed(1)}</td>
                         <td className="text-right px-2 py-1">{seasonRow.dps.toFixed(1)}</td>
-                        <td className="text-right px-2 py-1">{seasonRow.ps.toFixed(1)}</td>
+                        <td className="text-right px-2 py-1">{(seasonRow.ops + seasonRow.dps).toFixed(1)}</td>
                       </tr>
                     )}
                     {peakRow && (
@@ -3276,7 +3276,7 @@ export function PlayerPageModal({
                         <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{peakRow.pm}</td>
                         <td className="text-right px-2 py-1">{peakRow.ops.toFixed(1)}</td>
                         <td className="text-right px-2 py-1">{peakRow.dps.toFixed(1)}</td>
-                        <td className="text-right px-2 py-1">{peakRow.ps.toFixed(1)}</td>
+                        <td className="text-right px-2 py-1">{(peakRow.ops + peakRow.dps).toFixed(1)}</td>
                       </tr>
                     )}
                     {careerRow && (
@@ -3289,7 +3289,7 @@ export function PlayerPageModal({
                         <td className="text-right px-2 py-1 border-r-2" style={{ borderColor: textColor === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}>{careerRow.pm}</td>
                         <td className="text-right px-2 py-1">{careerRow.ops.toFixed(1)}</td>
                         <td className="text-right px-2 py-1">{careerRow.dps.toFixed(1)}</td>
-                        <td className="text-right px-2 py-1">{careerRow.ps.toFixed(1)}</td>
+                        <td className="text-right px-2 py-1">{(careerRow.ops + careerRow.dps).toFixed(1)}</td>
                       </tr>
                     )}
                   </tbody>
