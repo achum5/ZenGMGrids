@@ -53,8 +53,8 @@ import { CompactScoreCard } from '@/components/CompactScoreCard';
 import { TeamInfoModal } from '@/components/TeamInfoModal';
 import { ScoreSummaryModal, type ScoreSummaryData } from '@/components/ScoreSummaryModal';
 import { PlayerPageModal } from '@/components/PlayerPageModal';
-import { HistoryModal, type HistoryEntry } from '@/components/HistoryModal';
-import { loadGameHistory, saveGameToHistory, deleteLeagueHistory, deleteLeagueHistoryBelowThreshold, migrateFromLocalStorage } from '@/lib/game-history-idb';
+import { HistoryModal } from '@/components/HistoryModal';
+import { loadGameHistory, saveGameToHistory, deleteLeagueHistory, deleteLeagueHistoryBelowThreshold, migrateFromLocalStorage, hydrateCompactSummaryData, type HistoryEntry } from '@/lib/game-history-idb';
 import type { LeagueData, Player, Team } from '@/types/bbgm';
 
 // Type for ScoreCategory
@@ -795,6 +795,15 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
 
     return teams;
   }, [leagueData.teams]);
+
+  // Create playersByPid map for hydrating history entries
+  const playersByPid = useMemo(() => {
+    const map = new Map<number, Player>();
+    leagueData.players.forEach(player => {
+      map.set(player.pid, player);
+    });
+    return map;
+  }, [leagueData.players]);
 
   // Get teams that have players in the selected season (sorted alphabetically)
   const teamsInSelectedSeason = useMemo(() => {
@@ -2372,57 +2381,22 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     }, 100);
   }, [roster, toast, selectedSeason, teamDisplayInfo.name, currentRound, addToScoreBreakdown, foundCount, ROUND_ORDER]);
 
-  // Handle keyboard navigation
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (!autocompleteOpen) return;
-
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setActiveIndex(prev => 
-        prev < autocompleteSuggestions.length - 1 ? prev + 1 : prev
-      );
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setActiveIndex(prev => prev > 0 ? prev - 1 : -1);
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-
-      if (activeIndex >= 0 && autocompleteSuggestions[activeIndex]) {
-        // User has navigated to a specific suggestion with arrow keys
-        handleSelectPlayer(autocompleteSuggestions[activeIndex]);
-      } else if (autocompleteSuggestions.length > 0) {
-        // Find the first suggestion that's actually on the roster (if any)
-        const rosterMatch = autocompleteSuggestions.find(suggestion =>
-          roster.some(rp => rp.player.pid === suggestion.pid && !rp.revealed)
-        );
-
-        if (rosterMatch) {
-          // Use the roster player if found
-          handleSelectPlayer(rosterMatch);
-        } else {
-          // Fall back to first suggestion (will show error if not on roster)
-          handleSelectPlayer(autocompleteSuggestions[0]);
-        }
-      } else {
-        handleManualGuess();
-      }
-    } else if (e.key === 'Escape') {
-      setAutocompleteOpen(false);
-      setActiveIndex(-1);
-    }
-  }, [autocompleteOpen, activeIndex, autocompleteSuggestions, roster, handleSelectPlayer]);
-
   // Handle manual guess
   const handleManualGuess = useCallback(() => {
     if (!guess.trim()) return;
 
     const normalizedGuess = normalizeName(guess);
     const unrevealedPlayers = roster.filter(rp => !rp.revealed);
-    
+
     // Find exact full name match
-    const matchedPlayer = unrevealedPlayers.find(rp => 
+    const matchedPlayer = unrevealedPlayers.find(rp =>
       normalizeName(rp.player.name) === normalizedGuess
     );
+
+    if (matchedPlayer) {
+      handleSelectPlayer(matchedPlayer.player);
+      return;
+    }
 
     // Find all last name matches
     const lastNameMatches = unrevealedPlayers.filter(rp => {
@@ -2430,24 +2404,29 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
       return playerLastName === normalizedGuess;
     });
 
-    if (matchedPlayer) {
-      handleSelectPlayer(matchedPlayer.player);
-      return;
-    }
-
-    if (lastNameMatches.length === 1) {
-      handleSelectPlayer(lastNameMatches[0].player);
-      return;
-    }
-
-    if (lastNameMatches.length > 1) {
-      toast({
-        description: 'Multiple players with that last name — type the full name.',
+    if (lastNameMatches.length >= 1) {
+      // Reveal all players with matching last name
+      lastNameMatches.forEach(match => {
+        handleSelectPlayer(match.player);
       });
       return;
     }
 
-    const isValidLeaguePlayer = leagueData.players.some(p => 
+    // Find all first name matches
+    const firstNameMatches = unrevealedPlayers.filter(rp => {
+      const playerFirstName = normalizeName(rp.player.name.split(' ')[0] || '');
+      return playerFirstName === normalizedGuess;
+    });
+
+    if (firstNameMatches.length >= 1) {
+      // Reveal all players with matching first name
+      firstNameMatches.forEach(match => {
+        handleSelectPlayer(match.player);
+      });
+      return;
+    }
+
+    const isValidLeaguePlayer = leagueData.players.some(p =>
       normalizeName(p.name) === normalizedGuess
     );
 
@@ -2461,6 +2440,47 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
       });
     }
   }, [guess, roster, leagueData.players, selectedSeason, teamDisplayInfo.name, toast, handleSelectPlayer]);
+
+  // Handle keyboard navigation
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!autocompleteOpen) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIndex(prev =>
+        prev < autocompleteSuggestions.length - 1 ? prev + 1 : prev
+      );
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIndex(prev => prev > 0 ? prev - 1 : -1);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+
+      if (activeIndex >= 0 && autocompleteSuggestions[activeIndex]) {
+        // User has navigated to a specific suggestion with arrow keys
+        handleSelectPlayer(autocompleteSuggestions[activeIndex]);
+      } else if (autocompleteSuggestions.length > 0) {
+        // Check if any autocomplete suggestion is on the roster
+        const rosterMatch = autocompleteSuggestions.find(suggestion =>
+          roster.some(rp => rp.player.pid === suggestion.pid && !rp.revealed)
+        );
+
+        if (rosterMatch) {
+          // Use the first roster player found in suggestions
+          handleSelectPlayer(rosterMatch);
+        } else {
+          // No roster match in suggestions - try exact name matching
+          handleManualGuess();
+        }
+      } else {
+        // No suggestions - try exact name matching
+        handleManualGuess();
+      }
+    } else if (e.key === 'Escape') {
+      setAutocompleteOpen(false);
+      setActiveIndex(-1);
+    }
+  }, [autocompleteOpen, activeIndex, autocompleteSuggestions, roster, handleSelectPlayer, handleManualGuess]);
 
   // Scroll active item
   useEffect(() => {
@@ -3309,9 +3329,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
           teamColors: teamDisplayInfo.colors,
           sport: leagueData.sport || 'basketball',
           score,
-          summaryData,
           leagueFingerprintId: leagueFingerprintId || undefined,
-        });
+        }, summaryData);
 
         if (saved) {
           // Reload history after saving
@@ -4616,7 +4635,38 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
             }
           } else if (modal.type === 'breakdown') {
             // Use history entry data if available, otherwise use current game data
-            const breakdownData = modal.historyEntry?.summaryData || scoreSummaryData;
+            let breakdownData: ScoreSummaryData | null = null;
+
+            if (modal.historyEntry?.summaryData) {
+              // History entry has compact data - hydrate it
+              breakdownData = hydrateCompactSummaryData(modal.historyEntry.summaryData, playersByPid);
+
+              if (!breakdownData) {
+                // Couldn't hydrate - league doesn't match
+                return (
+                  <div
+                    key={`breakdown-error-${index}`}
+                    className="fixed inset-0 bg-black/50 flex items-center justify-center p-4"
+                    style={{ zIndex: 1000 + index * 10 }}
+                    onClick={clearModals}
+                  >
+                    <div
+                      className="bg-card rounded-lg p-6 max-w-md w-full text-center"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <h3 className="text-lg font-semibold mb-2">League Mismatch</h3>
+                      <p className="text-muted-foreground mb-4">
+                        This game was played with a different league file. Upload the matching league file to view full details.
+                      </p>
+                      <Button onClick={clearModals}>Close</Button>
+                    </div>
+                  </div>
+                );
+              }
+            } else {
+              breakdownData = scoreSummaryData;
+            }
+
             const breakdownSeason = modal.historyEntry?.season || selectedSeason;
             const breakdownTeam = modal.historyEntry
               ? leagueData.teams.find(t => t.abbrev === modal.historyEntry!.teamAbbrev)

@@ -1,7 +1,55 @@
 import type { ScoreSummaryData } from '@/components/ScoreSummaryModal';
+import type { Player } from '@/types/bbgm';
 
 const HISTORY_KEY = 'team-trivia-history';
 const MAX_HISTORY_ENTRIES = 100; // Limit to prevent localStorage overflow
+
+// Compact storage format - stores PIDs instead of full Player objects
+interface CompactPlayerGuess {
+  pid: number;
+  correct: boolean;
+  round?: 'guess' | 'hint';
+}
+
+interface CompactLeaderRound {
+  label: string;
+  statLabel: string;
+  statValue: string | number;
+  correctPlayerPid: number;
+  userCorrect: boolean;
+  userSelectedPlayerPid?: number;
+  userStatValue?: string | number;
+  showTotalsNote?: boolean;
+}
+
+interface CompactScoreSummaryData {
+  season: number;
+  teamName: string;
+  teamAbbrev: string;
+  teamLogo?: string;
+  teamColors?: string[];
+  sport: string;
+  finalScore: number;
+  categories: { name: string; points: number }[];
+  playoffFinish?: {
+    userGuess: string;
+    correctOutcome: string;
+    correct: boolean;
+    seriesScore?: string;
+    pointsAwarded: number;
+    pointsPerCorrect: number;
+  };
+  playerGuesses: CompactPlayerGuess[];
+  leaders: CompactLeaderRound[];
+  winsGuess?: {
+    G: number;
+    L: number;
+    R: number;
+    A: number;
+    awarded: boolean;
+  };
+  timeElapsed?: number;
+}
 
 export interface HistoryEntry {
   id: string; // Unique ID (timestamp)
@@ -13,8 +61,149 @@ export interface HistoryEntry {
   teamColors?: string[];
   sport: string;
   score: number;
-  summaryData: ScoreSummaryData; // Full breakdown data
+  summaryData: CompactScoreSummaryData; // Compact breakdown data (PIDs only)
   leagueFingerprintId?: string; // Stable league fingerprint ID for matching across uploads
+}
+
+/**
+ * Convert full ScoreSummaryData to compact format (PIDs only)
+ */
+function toCompactSummaryData(data: ScoreSummaryData): CompactScoreSummaryData {
+  // Validate and convert player guesses
+  const playerGuesses = data.playerGuesses.map(pg => {
+    if (!pg.player || typeof pg.player.pid !== 'number') {
+      console.error('[History] Invalid player in playerGuesses:', pg);
+      throw new Error('Cannot save history: player missing PID');
+    }
+    return {
+      pid: pg.player.pid,
+      correct: pg.correct,
+      round: pg.round,
+    };
+  });
+
+  // Validate and convert leaders
+  const leaders = data.leaders.map(lr => {
+    if (!lr.correctPlayer || typeof lr.correctPlayer.pid !== 'number') {
+      console.error('[History] Invalid correctPlayer in leaders:', lr);
+      throw new Error('Cannot save history: leader player missing PID');
+    }
+
+    const userSelectedPlayerPid = lr.userSelectedPlayer
+      ? (typeof lr.userSelectedPlayer.pid === 'number' ? lr.userSelectedPlayer.pid : undefined)
+      : undefined;
+
+    return {
+      label: lr.label,
+      statLabel: lr.statLabel,
+      statValue: lr.statValue,
+      correctPlayerPid: lr.correctPlayer.pid,
+      userCorrect: lr.userCorrect,
+      userSelectedPlayerPid,
+      userStatValue: lr.userStatValue,
+      showTotalsNote: lr.showTotalsNote,
+    };
+  });
+
+  return {
+    season: data.season,
+    teamName: data.teamName,
+    teamAbbrev: data.teamAbbrev,
+    teamLogo: data.teamLogo,
+    teamColors: data.teamColors,
+    sport: data.sport,
+    finalScore: data.finalScore,
+    categories: data.categories,
+    playoffFinish: data.playoffFinish,
+    playerGuesses,
+    leaders,
+    winsGuess: data.winsGuess,
+    timeElapsed: data.timeElapsed,
+  };
+}
+
+/**
+ * Hydrate compact summary data back to full format using current league players
+ * Returns full ScoreSummaryData if league matches, or null if players can't be found
+ */
+export function hydrateCompactSummaryData(
+  compact: CompactScoreSummaryData,
+  playersByPid: Map<number, Player>
+): ScoreSummaryData | null {
+  // Check if we can find all required players
+  const missingPids: (number | undefined)[] = [];
+
+  // Check player guesses
+  for (const pg of compact.playerGuesses) {
+    if (typeof pg.pid !== 'number') {
+      console.error('[History] Invalid PID in playerGuesses:', pg);
+      missingPids.push(pg.pid);
+    } else if (!playersByPid.has(pg.pid)) {
+      missingPids.push(pg.pid);
+    }
+  }
+
+  // Check leaders
+  for (const lr of compact.leaders) {
+    if (typeof lr.correctPlayerPid !== 'number') {
+      console.error('[History] Invalid correctPlayerPid in leaders:', lr);
+      missingPids.push(lr.correctPlayerPid);
+    } else if (!playersByPid.has(lr.correctPlayerPid)) {
+      missingPids.push(lr.correctPlayerPid);
+    }
+
+    if (lr.userSelectedPlayerPid !== undefined) {
+      if (typeof lr.userSelectedPlayerPid !== 'number') {
+        console.error('[History] Invalid userSelectedPlayerPid in leaders:', lr);
+        missingPids.push(lr.userSelectedPlayerPid);
+      } else if (!playersByPid.has(lr.userSelectedPlayerPid)) {
+        missingPids.push(lr.userSelectedPlayerPid);
+      }
+    }
+  }
+
+  // If any players are missing, we can't hydrate
+  if (missingPids.length > 0) {
+    const validPids = missingPids.filter(pid => typeof pid === 'number');
+    const invalidCount = missingPids.length - validPids.length;
+
+    if (invalidCount > 0) {
+      console.warn(`[History] Cannot hydrate: ${invalidCount} invalid PIDs (undefined/null), ${validPids.length} missing PIDs: ${validPids.join(', ')}`);
+    } else {
+      console.warn(`[History] Cannot hydrate: missing players with PIDs: ${validPids.join(', ')}`);
+    }
+    return null;
+  }
+
+  // Hydrate to full format
+  return {
+    season: compact.season,
+    teamName: compact.teamName,
+    teamAbbrev: compact.teamAbbrev,
+    teamLogo: compact.teamLogo,
+    teamColors: compact.teamColors,
+    sport: compact.sport,
+    finalScore: compact.finalScore,
+    categories: compact.categories,
+    playoffFinish: compact.playoffFinish,
+    playerGuesses: compact.playerGuesses.map(pg => ({
+      player: playersByPid.get(pg.pid)!,
+      correct: pg.correct,
+      round: pg.round,
+    })),
+    leaders: compact.leaders.map(lr => ({
+      label: lr.label,
+      statLabel: lr.statLabel,
+      statValue: lr.statValue,
+      correctPlayer: playersByPid.get(lr.correctPlayerPid)!,
+      userCorrect: lr.userCorrect,
+      userSelectedPlayer: lr.userSelectedPlayerPid ? playersByPid.get(lr.userSelectedPlayerPid) : undefined,
+      userStatValue: lr.userStatValue,
+      showTotalsNote: lr.showTotalsNote,
+    })),
+    winsGuess: compact.winsGuess,
+    timeElapsed: compact.timeElapsed,
+  };
 }
 
 /**
@@ -35,15 +224,24 @@ export function loadGameHistory(): HistoryEntry[] {
 
 /**
  * Save a completed game to history
+ * @param entry Entry with full ScoreSummaryData
+ * @param fullSummaryData The original full ScoreSummaryData (before compact conversion)
  * @returns true if saved successfully, false otherwise
  */
-export function saveGameToHistory(entry: Omit<HistoryEntry, 'id' | 'date'>): boolean {
+export function saveGameToHistory(
+  entry: Omit<HistoryEntry, 'id' | 'date' | 'summaryData'>,
+  fullSummaryData: ScoreSummaryData
+): boolean {
   try {
     const history = loadGameHistory();
+
+    // Convert full summary data to compact format (PIDs only)
+    const compactSummaryData = toCompactSummaryData(fullSummaryData);
 
     // Create new entry with ID and date
     const newEntry: HistoryEntry = {
       ...entry,
+      summaryData: compactSummaryData,
       id: Date.now().toString(),
       date: new Date().toISOString(),
     };

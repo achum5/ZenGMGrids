@@ -8,22 +8,8 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
-import type { ScoreSummaryData } from '@/components/ScoreSummaryModal';
 import type { Player } from '@/types/bbgm';
-import { loadLeagueFilterThreshold, saveLeagueFilterThreshold, exportGameHistory, importGameHistory } from '@/lib/game-history-idb';
-
-export interface HistoryEntry {
-  id: string; // Unique ID (timestamp)
-  date: string; // ISO date string
-  season: number;
-  teamName: string;
-  teamAbbrev: string;
-  teamLogo?: string;
-  teamColors?: string[];
-  sport: string;
-  score: number;
-  summaryData: ScoreSummaryData; // Full breakdown data
-}
+import { loadLeagueFilterThreshold, saveLeagueFilterThreshold, exportGameHistory, importGameHistory, type HistoryEntry } from '@/lib/game-history-idb';
 
 interface HistoryModalProps {
   open: boolean;
