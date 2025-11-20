@@ -61,17 +61,27 @@ export interface ParsedAchievement {
 
 // Regex patterns for different numerical achievement formats
 // Order matters! Decimal-aware patterns must come BEFORE comma-separated patterns
+// Hockey save percentage (e.g., ".920+ Save Percentage (Season)")
+const PATTERN_SAVE_PERCENTAGE = /^\.(\d{3})\+\s+(Save Percentage)\s*\(Season\)(.*)$/i;
+// Hockey GAA with "or less" (e.g., "2.60 or less GAA (Season)")
+const PATTERN_GAA = /^(\d+\.\d+)\s+or less\s+(GAA)\s*\(Season\)(.*)$/i;
+// Percentage achievements (e.g., "60%+ TS on 20+ PPG (Season)", "90%+ FT (Season)", "40%+ 3PT (Season)")
+const PATTERN_PERCENTAGE = /^([^.\d]*?)(\d+(?:\.\d+)?)(%?\+?)\s*(TS on \d+\+ PPG|eFG|FT|3PT|FG)\s*\(Season\)(.*)$/i;
+// "1 PPG (Season)" or "30 PPG (Season)" or "2.5 BPG (Season)" - season stats without +
+const PATTERN_SEASON_STATS = /^([^.\d]*?)(\d+(?:\.\d+)?)\s*(PPG|RPG|APG|SPG|BPG|FG%|3P%|FT%|eFG%|TS%|PER|WS|BPM|VORP|USG%|TOV%|ORB%|DRB%|AST%|STL%|BLK%)\s*\(Season\)(.*)$/i;
+// Percentage achievements with "or less" (e.g., "50% or less FG (Season)")
+const PATTERN_PERCENTAGE_OR_LESS = /^([^.\d]*?)(\d+(?:\.\d+)?)(%?)\s*or less\s*(TS on \d+\+ PPG|eFG|FT|3PT|FG)\s*\(Season\)(.*)$/i;
+
 const ACHIEVEMENT_PATTERNS = [
-  // Percentage achievements (e.g., "60%+ TS on 20+ PPG (Season)", "90%+ FT (Season)", "40%+ 3PT (Season)")
-  /^([^.\d]*?)(\d+(?:\.\d+)?)(%?\+?)\s*(TS on \d+\+ PPG|eFG|FT|3PT|FG)\s*\(Season\)(.*)$/i,
-  // "1 PPG (Season)" or "30 PPG (Season)" or "2.5 BPG (Season)" - season stats without +
-  /^([^.\d]*?)(\d+(?:\.\d+)?)\s*(PPG|RPG|APG|SPG|BPG|FG%|3P%|FT%|eFG%|TS%|PER|WS|BPM|VORP|USG%|TOV%|ORB%|DRB%|AST%|STL%|BLK%)\s*\(Season\)(.*)$/i,
+  PATTERN_SAVE_PERCENTAGE,
+  PATTERN_GAA,
+  PATTERN_PERCENTAGE,
+  PATTERN_SEASON_STATS,
   // "Played in X+ Decades"
   /^([^.\d]*?)(\d+(?:\.\d+)?)\+\s*Decades(.*)$/i,
-  // "Age 40+" 
+  // "Age 40+"
   /^(.* )(\d+(?:\.\d+)?)\+(.*)$/i,
-  // Percentage achievements with "or less" (e.g., "50% or less FG (Season)")
-  /^([^.\d]*?)(\d+(?:\.\d+)?)(%?)\s*or less\s*(TS on \d+\+ PPG|eFG|FT|3PT|FG)\s*\(Season\)(.*)$/i,
+  PATTERN_PERCENTAGE_OR_LESS,
   // "15+ Seasons" or "30+ PPG" or "2.5+ BPG"
   /^([^.\d]*?)(\d+(?:\.\d+)?)\+(.*)$/,
   // "Played at Age 40+"
@@ -100,7 +110,17 @@ export function parseAchievementLabel(label: string, sport?: string): ParsedAchi
       let unit: string = '';
       
       // Handle different capture group patterns
-      if (match.length === 7 && match[3] && match[4] && match[5] && match[6]) {
+      // Hockey-specific patterns (Save Percentage and GAA)
+      if (match.length === 4 && (pattern === PATTERN_SAVE_PERCENTAGE || pattern === PATTERN_GAA)) {
+        // Save Percentage: [full, number, "Save Percentage", suffix]
+        // GAA: [full, number, "GAA", suffix]
+        const [, numberStrMatch, unitMatch, suffixMatch] = match;
+        prefix = pattern === PATTERN_SAVE_PERCENTAGE ? '.' : '';
+        numberStr = numberStrMatch;
+        suffix = ` ${unitMatch} (Season)${suffixMatch}`;
+        statUnit = unitMatch;
+        operatorPart = pattern === PATTERN_SAVE_PERCENTAGE ? '+' : '';
+      } else if (match.length === 7 && match[3] && match[4] && match[5] && match[6]) {
         // New "or less" percentage patterns: [full, prefix, number, percentSign, "or less", unit, seasonLiteral, suffixEnd]
         const [, prefixMatch, numberStrMatch, percentSignMatch, , unitMatch, seasonLiteralMatch, suffixEndMatch] = match;
         prefix = prefixMatch;
@@ -108,7 +128,7 @@ export function parseAchievementLabel(label: string, sport?: string): ParsedAchi
         operatorPart = percentSignMatch; // Store the '%' part
         suffix = `${unitMatch}${seasonLiteralMatch}${suffixEndMatch}`;
         statUnit = unitMatch; // Store the stat unit
-      } else if (match.length === 6 && (pattern === ACHIEVEMENT_PATTERNS[0] || pattern === ACHIEVEMENT_PATTERNS[4])) {
+      } else if (match.length === 6 && (pattern === PATTERN_PERCENTAGE || pattern === PATTERN_PERCENTAGE_OR_LESS)) {
         // Specific handling for percentage patterns (e.g., "90%+ FT (Season)")
         // Match: [full, prefix, number, operatorPart, statUnit, suffixEnd]
         const [, prefixMatch, numberStrMatch, operatorPartMatch, statUnitMatch, suffixEndMatch] = match;
@@ -194,7 +214,18 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
 
   // Handle 'less than or equal to' cases
   if (operator === '≤') {
-    if (parsed.originalLabel.toLowerCase().includes('age')) {
+    // Special case for save percentage
+    if (parsed.statUnit === 'Save Percentage') {
+      const result = `.${formattedNumber} or less Save Percentage (Season)`;
+      return result;
+    }
+    // Special case for GAA (already in "or less" format)
+    if (parsed.statUnit === 'GAA') {
+      const result = `${formattedNumber} or less GAA (Season)`;
+      return result;
+    }
+    // Use word boundary check to avoid matching "percentage" which contains "age"
+    if (/\bage\b/i.test(parsed.originalLabel)) {
       const result = `Played at Age ${formattedNumber} or younger`;
       // console.log('[DEBUG generateUpdatedLabel] Result (age <=):', result);
       return result;
@@ -243,6 +274,16 @@ export function generateUpdatedLabel(parsed: ParsedAchievement, newNumber: numbe
 
   // Handle 'greater than or equal to' cases (default)
   // This block is reached if operator is '≥'
+  // Special case for save percentage
+  if (parsed.statUnit === 'Save Percentage') {
+    const result = `.${formattedNumber}+ Save Percentage (Season)`;
+    return result;
+  }
+  // Special case for GAA
+  if (parsed.statUnit === 'GAA') {
+    const result = `${formattedNumber}+ GAA (Season)`;
+    return result;
+  }
   if (parsed.operatorPart === '%+' || parsed.operatorPart === '%') {
     const statPart = parsed.statUnit || '';
     const operatorSymbol = parsed.operatorPart === '%+' ? '%+' : '%';
@@ -853,6 +894,22 @@ function checkSeasonPercentage(player: Player, percentageType: string, newThresh
             if (tsDenominator > 0) {
               percentage = (stat.pts || 0) / tsDenominator;
             }
+            break;
+          case 'savePct':
+            // Hockey save percentage: saves / (saves + goals against)
+            const sv = (stat as any).sv || 0;
+            const ga = (stat as any).ga || 0;
+            const shotsAgainst = sv + ga;
+            attempts = shotsAgainst;
+            percentage = shotsAgainst > 0 ? (sv / shotsAgainst) : 0;
+            break;
+          case 'faceoffPct':
+            // Hockey faceoff percentage: faceoffs won / total faceoffs
+            const fow = (stat as any).fow || 0;
+            const fol = (stat as any).fol || 0;
+            const faceoffTotal = fow + fol;
+            attempts = faceoffTotal;
+            percentage = faceoffTotal > 0 ? (fow / faceoffTotal) : 0;
             break;
           default:
             percentage = 0;

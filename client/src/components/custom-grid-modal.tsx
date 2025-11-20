@@ -1220,8 +1220,9 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
                           
                           let displayLabelParts: string[] = [];
 
-                          // Add prefix if it exists and is not just whitespace
-                          if (parsedOriginal.prefix.trim()) {
+                          // Add prefix if it exists and is not just whitespace or a decimal point
+                          // (decimal is shown before the input box for save percentage)
+                          if (parsedOriginal.prefix.trim() && parsedOriginal.prefix.trim() !== '.') {
                               displayLabelParts.push(parsedOriginal.prefix.trim());
                           }
 
@@ -1247,7 +1248,8 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
                           displayLabel = displayLabelParts.join(' ').trim();
 
                           // Special handling for 'Age' if it's the primary descriptor
-                          if (originalLabelLower.includes('age') && displayLabel.toLowerCase().includes('age')) {
+                          // Use word boundary check to avoid matching "percentage" which contains "age"
+                          if (/\bage\b/i.test(originalLabelLower) && /\bage\b/i.test(displayLabel.toLowerCase())) {
                               displayLabel = 'Age';
                           }
 
@@ -1270,6 +1272,9 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
                                   {selector.operator}
                                 </Button>
                                 <div className="relative w-16 sm:w-20 lg:w-24 flex-shrink-0"> {/* Increased width for more digits */}
+                                  {parsedOriginal.statUnit === 'Save Percentage' && (
+                                    <span className="absolute left-0.5 sm:left-1 top-1/2 -translate-y-1/2 text-[8px] sm:text-xs text-muted-foreground">.</span>
+                                  )}
                                   <Input
                                     type="number"
                                     value={selector.customNumber === undefined ? '' : selector.customNumber}
@@ -1277,20 +1282,20 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
                                       e.stopPropagation();
                                       const inputValue = e.target.value;
                                       const newNumber = parseFloat(inputValue);
-                                      
+
                                       if (inputValue === '') {
                                         handleAchievementNumberChange(
-                                          isRow ? 'row' : 'col', 
-                                          index, 
-                                          undefined, 
+                                          isRow ? 'row' : 'col',
+                                          index,
+                                          undefined,
                                           generateUpdatedLabel(parsedOriginal, 0, selector.operator),
                                           selector.operator
                                         );
                                       } else if (!isNaN(newNumber)) {
                                         handleAchievementNumberChange(
-                                          isRow ? 'row' : 'col', 
-                                          index, 
-                                          newNumber, 
+                                          isRow ? 'row' : 'col',
+                                          index,
+                                          newNumber,
                                           generateUpdatedLabel(parsedOriginal, newNumber, selector.operator),
                                           selector.operator
                                         );
@@ -1302,11 +1307,11 @@ export function CustomGridModal({ isOpen, onClose, onPlayGrid, leagueData, rows,
                                       }
                                     }}
                                     onClick={(e) => e.stopPropagation()}
-                                    className="h-5 sm:h-6 text-xs text-center pr-3 sm:pr-4 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" // Adjusted padding and height
+                                    className={`h-5 sm:h-6 text-xs text-center ${parsedOriginal.statUnit === 'Save Percentage' ? 'pl-3 sm:pl-4' : ''} pr-3 sm:pr-4 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
                                     step={isPercentage ? 1 : 100}
                                   />
                                   {isPercentage && (
-                                    <span className="absolute right-0.5 sm:right-1 top-1/2 -translate-y-1/2 text-[8px] sm:text-xs text-muted-foreground">%</span> // Adjusted position and size
+                                    <span className="absolute right-0.5 sm:right-1 top-1/2 -translate-y-1/2 text-[8px] sm:text-xs text-muted-foreground">%</span>
                                   )}
                                 </div>
                               </div>

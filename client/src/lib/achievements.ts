@@ -1378,65 +1378,17 @@ export function playerMeetsAchievement(
 
   // First, check if it's ANY achievement that needs season index (statistical leaders AND season achievements)
   const statisticalLeaders = ['PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader', 'Season30PPG', 'Season2000Points', 'Season200_3PM', 'Season12RPG', 'Season10APG', 'Season800Rebounds', 'Season700Assists', 'Season2SPG', 'Season2_5BPG', 'Season150Steals', 'Season150Blocks', 'Season200Stocks', 'Season50_40_90', 'Season70Games', 'Season36MPG', 'Season25_10', 'Season25_5_5', 'Season20_10_5', 'Season1_1_1', 'FBSeason4kPassYds', 'FBSeason1200RushYds', 'FBSeason100Receptions', 'FBSeason15Sacks', 'FBSeason140Tackles', 'FBSeason5Interceptions', 'FBSeason30PassTD', 'FBSeason1300RecYds', 'FBSeason10RecTD', 'FBSeason12RushTD', 'FBSeason1600Scrimmage', 'FBSeason2000AllPurpose', 'FBSeason15TFL'];
-  const hockeyStatisticalLeaders = ['HKSeason40Goals', 'HKSeason60Assists', 'HKSeason90Points', 'HKSeason25Plus', 'HKSeason250Shots', 'HKSeason150Hits', 'HKSeason100Blocks', 'HKSeason60Takeaways', 'HKSeason20PowerPlay', 'HKSeason3SHGoals', 'HKSeason7GWGoals', 'HKSeason55FaceoffPct', 'HKSeason70PIM', 'HKSeason920SavePct', 'HKSeason260GAA', 'HKSeason6Shutouts', 'HKSeason2000Saves', 'HKSeason60Starts'];
 
   // Goalie-only achievements that require isGoalie check
   const goalieOnlyAchievements = ['HKSeason920SavePct', 'HKSeason260GAA', 'HKSeason6Shutouts', 'HKSeason2000Saves', 'HKSeason60Starts'];
 
-  if (hockeyStatisticalLeaders.includes(achievementId)) {
-    const seasonStats = player.achievements?.seasonStatsComputed;
-    if (!seasonStats) return false;
-
-    // For goalie-only achievements, check if player is a goalie first
-    if (goalieOnlyAchievements.includes(achievementId) && !isGoalie(player)) {
+  if (statisticalLeaders.includes(achievementId)) {
+    if (!seasonIndex) {
       return false;
     }
 
-    const threshold = parseFloat(achievementId.match(/(\d+(\.\d+)?)/)?.[0] || '0');
-    const statField = achievementId.replace(/HKSeason(\d+)/, '').charAt(0).toLowerCase() + achievementId.replace(/HKSeason(\d+)/, '').slice(1);
-
-    for (const year in seasonStats) {
-      const data = (seasonStats as any)[year];
-
-      // For goalie-only achievements, skip seasons where player was not a goalie
-      if (goalieOnlyAchievements.includes(achievementId) && !data.isGoalie) {
-        continue;
-      }
-
-      let value;
-      switch (achievementId) {
-        case 'HKSeason40Goals': value = data.goals; break;
-        case 'HKSeason60Assists': value = data.assists; break;
-        case 'HKSeason90Points': value = data.points; break;
-        case 'HKSeason25Plus': value = data.pm; break;
-        case 'HKSeason250Shots': value = data.s; break;
-        case 'HKSeason150Hits': value = data.hit; break;
-        case 'HKSeason100Blocks': value = data.blk; break;
-        case 'HKSeason60Takeaways': value = data.tk; break;
-        case 'HKSeason20PowerPlay': value = data.powerPlayPoints; break;
-        case 'HKSeason3SHGoals': value = data.shG; break;
-        case 'HKSeason7GWGoals': value = data.gwG; break;
-        case 'HKSeason55FaceoffPct': value = data.faceoffPct; break;
-        case 'HKSeason70PIM': value = data.pim; break;
-        case 'HKSeason920SavePct': value = data.savePct; break;
-        case 'HKSeason260GAA': value = data.gaaRate; break;
-        case 'HKSeason6Shutouts': value = data.so; break;
-        case 'HKSeason2000Saves': value = data.sv; break;
-        case 'HKSeason60Starts': value = data.gs; break;
-        default: continue;
-      }
-
-      if (achievementId === 'HKSeason260GAA') {
-        if (value <= threshold) return true;
-      } else {
-        if (value >= threshold) return true;
-      }
-    }
-    return false;
-  }
-
-  if (statisticalLeaders.includes(achievementId)) {
-    if (!seasonIndex) {
+    // For goalie-only achievements, check if player is a goalie first
+    if (goalieOnlyAchievements.includes(achievementId) && !isGoalie(player)) {
       return false;
     }
 
