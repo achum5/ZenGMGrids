@@ -22,6 +22,7 @@ interface HistoryModalProps {
   onPlayerClick?: (player: Player) => void;
   onTeamInfoClick?: (season: number, sport: string) => void;
   onDeleteHistory?: () => void; // Callback to delete all history for current league
+  onDeleteGame?: (id: string) => void; // Callback to delete a single game entry
   onDeleteBelowThreshold?: (threshold: number) => void; // Callback to delete history below score threshold
   onImportComplete?: () => void; // Callback after successful import to reload history
   leagueFingerprintId?: string; // League fingerprint ID for saving filter settings per league
@@ -48,6 +49,7 @@ export function HistoryModal({
   onGameClick,
   onPlayerClick,
   onTeamInfoClick,
+  onDeleteGame,
   onDeleteHistory,
   onDeleteBelowThreshold,
   onImportComplete,
@@ -64,6 +66,7 @@ export function HistoryModal({
   const [importMessage, setImportMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [exportCode, setExportCode] = useState('');
+  const [deleteGameId, setDeleteGameId] = useState<string | null>(null); // Track which game is being deleted
 
   // Load saved filter threshold for this league on mount
   useEffect(() => {
@@ -474,6 +477,48 @@ export function HistoryModal({
                             <span className="font-bold text-lg" style={{ color: secondaryColor }}>
                               {teamNickname}
                             </span>
+
+                            {/* Delete button next to team name */}
+                            {onDeleteGame && (
+                              <>
+                                {deleteGameId === entry.id ? (
+                                  <div className="flex gap-1 ml-2">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDeleteGameId(null);
+                                      }}
+                                      className="p-1 rounded bg-gray-600 hover:bg-gray-700 transition-colors"
+                                      title="Cancel"
+                                    >
+                                      <X className="h-3 w-3 text-white" />
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onDeleteGame(entry.id);
+                                        setDeleteGameId(null);
+                                      }}
+                                      className="p-1 rounded bg-red-600 hover:bg-red-700 transition-colors"
+                                      title="Confirm delete"
+                                    >
+                                      <Check className="h-3 w-3 text-white" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setDeleteGameId(entry.id);
+                                    }}
+                                    className="p-1 rounded hover:bg-black/20 transition-colors ml-1"
+                                    title="Delete game"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" style={{ color: secondaryColor, opacity: 0.6 }} />
+                                  </button>
+                                )}
+                              </>
+                            )}
                           </div>
                           <p
                             className="text-sm"
@@ -592,15 +637,34 @@ export function HistoryModal({
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-sm text-muted-foreground mb-2">
               Paste the export code from another device to import game history.
             </p>
-            <Textarea
-              value={importCode}
-              onChange={(e) => setImportCode(e.target.value)}
-              placeholder="Paste export code here..."
-              className="mb-4 min-h-[120px] font-mono text-xs"
-            />
+            <div className="relative mb-4">
+              <Textarea
+                value={importCode}
+                onChange={(e) => setImportCode(e.target.value)}
+                placeholder="Paste export code here..."
+                className="min-h-[120px] font-mono text-xs pr-20"
+              />
+              <Button
+                onClick={async () => {
+                  try {
+                    const text = await navigator.clipboard.readText();
+                    setImportCode(text);
+                  } catch (err) {
+                    console.error('Failed to read clipboard:', err);
+                  }
+                }}
+                size="sm"
+                variant="secondary"
+                className="absolute top-2 right-2"
+                title="Paste from clipboard"
+              >
+                <Upload className="h-4 w-4 mr-1" />
+                Paste
+              </Button>
+            </div>
             <div className="flex gap-2">
               <Button
                 onClick={() => setShowImportDialog(false)}

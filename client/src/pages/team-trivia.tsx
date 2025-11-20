@@ -54,7 +54,7 @@ import { TeamInfoModal } from '@/components/TeamInfoModal';
 import { ScoreSummaryModal, type ScoreSummaryData } from '@/components/ScoreSummaryModal';
 import { PlayerPageModal } from '@/components/PlayerPageModal';
 import { HistoryModal } from '@/components/HistoryModal';
-import { loadGameHistory, saveGameToHistory, deleteLeagueHistory, deleteLeagueHistoryBelowThreshold, migrateFromLocalStorage, hydrateCompactSummaryData, type HistoryEntry } from '@/lib/game-history-idb';
+import { loadGameHistory, saveGameToHistory, deleteGameFromHistory, deleteLeagueHistory, deleteLeagueHistoryBelowThreshold, migrateFromLocalStorage, hydrateCompactSummaryData, type HistoryEntry } from '@/lib/game-history-idb';
 import type { LeagueData, Player, Team } from '@/types/bbgm';
 
 // Type for ScoreCategory
@@ -4721,6 +4721,15 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                       pushModal({ type: 'team', tid: team.tid, season });
                     }
                   }
+                }}
+                onDeleteGame={async (id) => {
+                  await deleteGameFromHistory(id);
+                  // Reload history
+                  const allHistory = await loadGameHistory();
+                  const filteredHistory = leagueFingerprintId
+                    ? allHistory.filter(entry => entry.leagueFingerprintId === leagueFingerprintId)
+                    : allHistory;
+                  setGameHistory(filteredHistory);
                 }}
                 onDeleteHistory={async () => {
                   if (leagueFingerprintId) {
