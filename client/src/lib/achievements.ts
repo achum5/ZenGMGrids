@@ -5,6 +5,20 @@ import { createCustomNumericalAchievement, parseAchievementLabel, parseCustomAch
 
 import { Achv } from "./types";
 
+// Helper function to check if a player is a goalie
+export function isGoalie(player: Player): boolean {
+  // Check position OR check if they actually played goalie games
+  if (player.pos === 'G') return true;
+  if (!player.stats) return false;
+
+  // Check if player actually played games as a goalie (gpGoalie > 0)
+  return player.stats.some(stat =>
+    ((stat as any).gpGoalie || 0) > 0 ||
+    ((stat as any).gW || 0) > 0 ||
+    ((stat as any).shutouts || 0) > 0
+  );
+}
+
 export interface Achievement {
   id: string;
   label: string;
@@ -317,6 +331,7 @@ export const HOCKEY_ACHIEVEMENTS: Achievement[] = [
     id: 'career200Wins',
     label: '200+ Career Wins (G)',
     test: (p: Player) => {
+      if (!isGoalie(p)) return false;
       if (!p.stats) return false;
       const totalWins = p.stats
         .filter(stat => !stat.playoffs && ((stat as any).gpGoalie || 0) > 0)
@@ -329,6 +344,7 @@ export const HOCKEY_ACHIEVEMENTS: Achievement[] = [
     id: 'career50Shutouts',
     label: '50+ Career Shutouts (G)',
     test: (p: Player) => {
+      if (!isGoalie(p)) return false;
       if (!p.stats) return false;
       const totalShutouts = p.stats
         .filter(stat => !stat.playoffs && ((stat as any).gpGoalie || 0) > 0)
@@ -1364,15 +1380,29 @@ export function playerMeetsAchievement(
   const statisticalLeaders = ['PointsLeader', 'ReboundsLeader', 'AssistsLeader', 'StealsLeader', 'BlocksLeader', 'Season30PPG', 'Season2000Points', 'Season200_3PM', 'Season12RPG', 'Season10APG', 'Season800Rebounds', 'Season700Assists', 'Season2SPG', 'Season2_5BPG', 'Season150Steals', 'Season150Blocks', 'Season200Stocks', 'Season50_40_90', 'Season70Games', 'Season36MPG', 'Season25_10', 'Season25_5_5', 'Season20_10_5', 'Season1_1_1', 'FBSeason4kPassYds', 'FBSeason1200RushYds', 'FBSeason100Receptions', 'FBSeason15Sacks', 'FBSeason140Tackles', 'FBSeason5Interceptions', 'FBSeason30PassTD', 'FBSeason1300RecYds', 'FBSeason10RecTD', 'FBSeason12RushTD', 'FBSeason1600Scrimmage', 'FBSeason2000AllPurpose', 'FBSeason15TFL'];
   const hockeyStatisticalLeaders = ['HKSeason40Goals', 'HKSeason60Assists', 'HKSeason90Points', 'HKSeason25Plus', 'HKSeason250Shots', 'HKSeason150Hits', 'HKSeason100Blocks', 'HKSeason60Takeaways', 'HKSeason20PowerPlay', 'HKSeason3SHGoals', 'HKSeason7GWGoals', 'HKSeason55FaceoffPct', 'HKSeason70PIM', 'HKSeason920SavePct', 'HKSeason260GAA', 'HKSeason6Shutouts', 'HKSeason2000Saves', 'HKSeason60Starts'];
 
+  // Goalie-only achievements that require isGoalie check
+  const goalieOnlyAchievements = ['HKSeason920SavePct', 'HKSeason260GAA', 'HKSeason6Shutouts', 'HKSeason2000Saves', 'HKSeason60Starts'];
+
   if (hockeyStatisticalLeaders.includes(achievementId)) {
     const seasonStats = player.achievements?.seasonStatsComputed;
     if (!seasonStats) return false;
 
+    // For goalie-only achievements, check if player is a goalie first
+    if (goalieOnlyAchievements.includes(achievementId) && !isGoalie(player)) {
+      return false;
+    }
+
     const threshold = parseFloat(achievementId.match(/(\d+(\.\d+)?)/)?.[0] || '0');
     const statField = achievementId.replace(/HKSeason(\d+)/, '').charAt(0).toLowerCase() + achievementId.replace(/HKSeason(\d+)/, '').slice(1);
-    
+
     for (const year in seasonStats) {
       const data = (seasonStats as any)[year];
+
+      // For goalie-only achievements, skip seasons where player was not a goalie
+      if (goalieOnlyAchievements.includes(achievementId) && !data.isGoalie) {
+        continue;
+      }
+
       let value;
       switch (achievementId) {
         case 'HKSeason40Goals': value = data.goals; break;
@@ -1395,7 +1425,7 @@ export function playerMeetsAchievement(
         case 'HKSeason60Starts': value = data.gs; break;
         default: continue;
       }
-      
+
       if (achievementId === 'HKSeason260GAA') {
         if (value <= threshold) return true;
       } else {
@@ -1974,6 +2004,7 @@ function calculateHockeyAchievements(player: Player, achievements: any): void {
           so: seasonData.shutouts,
           sv: seasonData.saves,
           gs: seasonData.gs,
+          isGoalie: seasonData.isGoalie || false,
         };
       }  });
   

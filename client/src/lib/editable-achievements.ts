@@ -1,5 +1,5 @@
 import type { Achievement } from './achievements';
-import { getPlayerCareerAttemptsTotal } from './achievements';
+import { getPlayerCareerAttemptsTotal, isGoalie } from './achievements';
 import type { Player } from '@/types/bbgm';
 
 // Helper function to singularize stat words
@@ -402,10 +402,10 @@ function generateTestFunction(
         return (player: Player) => checkCareerTotal(player, ['evA', 'ppA', 'shA'], newThreshold, operator);
       }
       if (baseAchievement.id === 'career200Wins') {
-        return (player: Player) => checkCareerTotal(player, 'gW', newThreshold, operator);
+        return (player: Player) => isGoalie(player) && checkCareerTotal(player, 'gW', newThreshold, operator);
       }
       if (baseAchievement.id === 'career50Shutouts') {
-        return (player: Player) => checkCareerTotal(player, 'so', newThreshold, operator);
+        return (player: Player) => isGoalie(player) && checkCareerTotal(player, 'so', newThreshold, operator);
       }
   
       // Season achievements for hockey
@@ -451,19 +451,19 @@ function generateTestFunction(
       }
       if (baseAchievement.id === 'HKSeason920SavePct') {
         const thresholdDecimal = newThreshold / 1000; // Save percentage is usually .920, so divide by 1000
-        return (player: Player) => checkSeasonPercentage(player, 'savePct', thresholdDecimal, operator, 1, 1, sport);
+        return (player: Player) => isGoalie(player) && checkSeasonPercentage(player, 'savePct', thresholdDecimal, operator, 1, 1, sport);
       }
       if (baseAchievement.id === 'HKSeason260GAA') {
-        return (player: Player) => checkSeasonAverage(player, 'gaa', newThreshold, operator, 1, sport);
+        return (player: Player) => isGoalie(player) && checkSeasonAverage(player, 'gaa', newThreshold, operator, 1, sport);
       }
       if (baseAchievement.id === 'HKSeason6Shutouts') {
-        return (player: Player) => checkSeasonTotal(player, 'so', newThreshold, operator, 1);
+        return (player: Player) => isGoalie(player) && checkSeasonTotal(player, 'so', newThreshold, operator, 1);
       }
       if (baseAchievement.id === 'HKSeason2000Saves') {
-        return (player: Player) => checkSeasonTotal(player, 'sv', newThreshold, operator, 1);
+        return (player: Player) => isGoalie(player) && checkSeasonTotal(player, 'sv', newThreshold, operator, 1);
       }
       if (baseAchievement.id === 'HKSeason60Starts') {
-        return (player: Player) => checkSeasonTotal(player, 'gs', newThreshold, operator, 1);
+        return (player: Player) => isGoalie(player) && checkSeasonTotal(player, 'gs', newThreshold, operator, 1);
       }
     } else if (sport === 'baseball') {
     // Career achievements for baseball
