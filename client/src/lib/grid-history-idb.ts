@@ -1,10 +1,23 @@
 import { openDB, type IDBPDatabase } from 'idb';
+import type { Player } from '@/types/bbgm';
 
 const DB_NAME = 'grids-history';
 const DB_VERSION = 1;
 const HISTORY_STORE = 'grids';
 const THRESHOLDS_STORE = 'thresholds';
 const MAX_HISTORY_ENTRIES = 1000; // Much higher limit than localStorage
+
+// Compact cell data (PIDs only)
+interface CompactCellData {
+  pid: number;  // Player ID instead of name
+  correct: boolean;
+  locked?: boolean;
+  autoFilled?: boolean;
+  guessed?: boolean;
+  points?: number;
+  rarity?: number;
+  usedHint?: boolean;
+}
 
 export interface GridHistoryEntry {
   id: string; // Unique ID (timestamp)
@@ -21,17 +34,102 @@ export interface GridHistoryEntry {
     rows: Array<{ type: string; label: string; tid?: number; key?: string; achievementId?: string }>;
     cols: Array<{ type: string; label: string; tid?: number; key?: string; achievementId?: string }>;
   };
-  // Cell states for restoration
-  cells?: Record<string, {
-    name: string;
-    correct: boolean;
-    locked?: boolean;
-    autoFilled?: boolean;
-    guessed?: boolean;
-    points?: number;
-    rarity?: number;
-    usedHint?: boolean;
-  }>;
+  // Cell states for restoration (compact - PIDs only)
+  cells?: Record<string, CompactCellData>;
+}
+
+// Full cell data for display (with player info)
+export interface HydratedCellData {
+  name: string;
+  pid: number;
+  correct: boolean;
+  locked?: boolean;
+  autoFilled?: boolean;
+  guessed?: boolean;
+  points?: number;
+  rarity?: number;
+  usedHint?: boolean;
+}
+
+/**
+ * Convert cell data with player names to compact format (PIDs only)
+ */
+export function convertCellsToPIDs(
+  cells: Record<string, { name: string; [key: string]: any }> | undefined,
+  playersByName: Map<string, Player>
+): Record<string, CompactCellData> | undefined {
+  if (!cells) return undefined;
+
+  const compactCells: Record<string, CompactCellData> = {};
+
+  for (const [key, cell] of Object.entries(cells)) {
+    const player = playersByName.get(cell.name);
+
+    if (!player || typeof player.pid !== 'number') {
+      console.error(`[Grid History] Cannot find player PID for: ${cell.name}`);
+      continue; // Skip cells with missing players
+    }
+
+    compactCells[key] = {
+      pid: player.pid,
+      correct: cell.correct,
+      locked: cell.locked,
+      autoFilled: cell.autoFilled,
+      guessed: cell.guessed,
+      points: cell.points,
+      rarity: cell.rarity,
+      usedHint: cell.usedHint,
+    };
+  }
+
+  return compactCells;
+}
+
+/**
+ * Hydrate compact cell data back to full format using current league players
+ */
+export function hydrateCellData(
+  cells: Record<string, CompactCellData> | undefined,
+  playersByPid: Map<number, Player>
+): Record<string, HydratedCellData> | undefined {
+  if (!cells) return undefined;
+
+  const hydratedCells: Record<string, HydratedCellData> = {};
+
+  for (const [key, cell] of Object.entries(cells)) {
+    const player = playersByPid.get(cell.pid);
+
+    if (!player) {
+      console.warn(`[Grid History] Cannot find player for PID: ${cell.pid}`);
+      // Still include the cell but with placeholder name
+      hydratedCells[key] = {
+        name: `Player #${cell.pid}`,
+        pid: cell.pid,
+        correct: cell.correct,
+        locked: cell.locked,
+        autoFilled: cell.autoFilled,
+        guessed: cell.guessed,
+        points: cell.points,
+        rarity: cell.rarity,
+        usedHint: cell.usedHint,
+      };
+      continue;
+    }
+
+    hydratedCells[key] = {
+      name: player.name,
+      pid: player.pid,
+      correct: cell.correct,
+      locked: cell.locked,
+      autoFilled: cell.autoFilled,
+      guessed: cell.guessed,
+      points: cell.points,
+      rarity: cell.rarity,
+      usedHint: cell.usedHint,
+    };
+  }
+
+  return hydratedCells;
 }
 
 /**
@@ -355,5 +453,98 @@ export async function migrateGridsFromLocalStorage(): Promise<{ migrated: number
   } catch (error) {
     console.error('[Grid Migration] Failed to migrate from localStorage:', error);
     return { migrated, errors: errors + 1 };
+  }
+}
+
+/**
+ * Export grid history to a base64-encoded string
+ * @param leagueFingerprintId Optional - export only history for specific league
+ * @returns Base64-encoded history string
+ */
+export async function exportGridHistory(leagueFingerprintId?: string): Promise<string> {
+  try {
+    const history = await loadGridHistory();
+    const exportData = leagueFingerprintId
+      ? history.filter(entry => entry.leagueFingerprintId === leagueFingerprintId)
+      : history;
+
+    const jsonString = JSON.stringify(exportData);
+    // Use Unicode-safe base64 encoding
+    const base64 = btoa(unescape(encodeURIComponent(jsonString)));
+    return base64;
+  } catch (error) {
+    console.error('Failed to export grid history:', error);
+    throw new Error('Failed to export grid history');
+  }
+}
+
+/**
+ * Import grid history from a base64-encoded string
+ * Merges with existing history, avoiding duplicates by ID
+ * @param base64Code Base64-encoded history string
+ * @returns Object with success status and counts
+ */
+export async function importGridHistory(base64Code: string): Promise<{
+  success: boolean;
+  imported: number;
+  skipped: number;
+  error?: string;
+}> {
+  try {
+    // Decode base64 (Unicode-safe)
+    const jsonString = decodeURIComponent(escape(atob(base64Code.trim())));
+    const importedEntries = JSON.parse(jsonString) as GridHistoryEntry[];
+
+    // Validate that it's an array
+    if (!Array.isArray(importedEntries)) {
+      return { success: false, imported: 0, skipped: 0, error: 'Invalid format: expected array' };
+    }
+
+    // Validate entries have required fields
+    for (const entry of importedEntries) {
+      if (!entry.id || !entry.date || entry.score === undefined) {
+        return { success: false, imported: 0, skipped: 0, error: 'Invalid entry format' };
+      }
+    }
+
+    // Load existing history
+    const existingHistory = await loadGridHistory();
+    const existingIds = new Set(existingHistory.map(e => e.id));
+
+    // Filter out duplicates
+    const newEntries = importedEntries.filter(entry => !existingIds.has(entry.id));
+    const skippedCount = importedEntries.length - newEntries.length;
+
+    // Save new entries to IndexedDB
+    const db = await openGridHistoryDB();
+    try {
+      const tx = db.transaction(HISTORY_STORE, 'readwrite');
+      const store = tx.objectStore(HISTORY_STORE);
+
+      for (const entry of newEntries) {
+        await store.add(entry);
+      }
+
+      await tx.done;
+
+      // Cleanup if needed
+      await cleanupOldEntries(db);
+    } finally {
+      db.close();
+    }
+
+    return {
+      success: true,
+      imported: newEntries.length,
+      skipped: skippedCount
+    };
+  } catch (error) {
+    console.error('Failed to import grid history:', error);
+    return {
+      success: false,
+      imported: 0,
+      skipped: 0,
+      error: error instanceof Error ? error.message : 'Invalid import code'
+    };
   }
 }

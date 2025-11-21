@@ -47,7 +47,9 @@ export function PlayerFace({ pid, name, imgURL, face, size = 110, hideName = fal
         name: player.name,
         imgURL: player.imgURL,
         face: player.face,
-        jerseyInfo
+        jerseyInfo,
+        season,
+        sport
       });
 
       if (ok) { setKind(res.type); setData(res.data); }

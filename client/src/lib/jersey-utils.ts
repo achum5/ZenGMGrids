@@ -43,9 +43,9 @@ export function getPlayerJerseyInfo(player: Player, teams: Team[], sport?: strin
   // Sport-specific default jersey styles
   const defaultJerseyStyle = sport === 'baseball' ? 'baseball2' : 'modern';
 
-  // Default fallback (Free Agent colors: same as draft prospects - black, grey, white)
+  // Default fallback (Free Agent colors: same as draft prospects - black, light grey, white)
   const defaultJersey: JerseyInfo = {
-    colors: ['#000000', '#6b7280', '#ffffff'], // black, grey, white
+    colors: ['#000000', '#CCCCCC', '#ffffff'], // black, light grey, white
     jersey: normalizeJerseyStyle(defaultJerseyStyle, sport),
     sport
   };
@@ -56,10 +56,10 @@ export function getPlayerJerseyInfo(player: Player, teams: Team[], sport?: strin
     : null;
   const isDraftProspect = firstRatingYear !== null && season !== undefined && season !== null && season === firstRatingYear;
 
-  // Draft prospects should use hardcoded grey/black/white colors
+  // Draft prospects should use hardcoded black/light grey/white colors
   if (isDraftProspect) {
     return {
-      colors: ['#000000', '#6b7280', '#ffffff'], // black, grey, white
+      colors: ['#000000', '#CCCCCC', '#ffffff'], // black, light grey, white
       jersey: normalizeJerseyStyle(defaultJerseyStyle, sport),
       sport
     };

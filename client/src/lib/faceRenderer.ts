@@ -123,23 +123,37 @@ export async function getPlayerImage(p: PlayerLite): Promise<{type: "url" | "svg
               p.jerseyInfo.colors[2] || p.jerseyInfo.colors[0] || "#07364f" // Third color or fallback
             ];
 
-        // Always use the team's jersey style from jerseyInfo for season-alignment
-        // This ensures players wear the correct team jersey for the specific season
-        let jerseyToUse = p.jerseyInfo.jersey
-          ? { id: p.jerseyInfo.jersey }
-          : (p.face.jersey || { id: "modern" });
+        // Use the team's jersey style from jerseyInfo for season-alignment
+        // BUT: Keep the player's original jersey style if jerseyInfo specifies 'modern'
+        // (because 'modern' doesn't render properly in faces.js)
+        let jerseyToUse = p.face.jersey || { id: "modern" };
+
+        // Only override jersey ID if jerseyInfo provides a specific non-modern style
+        if (p.jerseyInfo.jersey && p.jerseyInfo.jersey !== 'modern') {
+          jerseyToUse = { ...(p.face.jersey || {}), id: p.jerseyInfo.jersey };
+        }
 
         // Simple approach: spread the original face and only override what we need
         faceToRender = {
           ...p.face,
           teamColors: teamColorsToApply,
           jersey: jerseyToUse,
-          // CRITICAL: Also update accessories if it exists, since faces.js might read jersey from there
-          accessories: p.face.accessories ? {
-            ...p.face.accessories,
-            jersey: jerseyToUse
-          } : undefined
+          // Preserve accessories as-is (jersey is a separate top-level property in faces.js, not part of accessories)
+          ...(p.face.accessories && { accessories: p.face.accessories })
           // Keep body and all other properties as-is
+        };
+      } else {
+        // Fallback: Apply default jersey colors when jerseyInfo is missing/invalid
+        // This prevents players from appearing "naked" (without jerseys)
+        // Uses draft prospect/free agent colors: black, light grey, white
+        const defaultColors = ['#000000', '#CCCCCC', '#ffffff'];
+        const defaultJersey = { ...(p.face.jersey || {}), id: p.face.jersey?.id || "modern" };
+
+        faceToRender = {
+          ...p.face,
+          teamColors: defaultColors,
+          jersey: defaultJersey,
+          ...(p.face.accessories && { accessories: p.face.accessories })
         };
       }
 

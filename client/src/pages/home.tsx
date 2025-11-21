@@ -16,7 +16,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from '@/components/ui/button';
 import { Home as HomeIcon, ArrowLeft, History } from 'lucide-react';
 import { GridHistoryModal } from '@/components/GridHistoryModal';
-import { loadGridHistory, saveGridToHistory, deleteLeagueGridHistory, deleteLeagueGridHistoryBelowThreshold, migrateGridsFromLocalStorage, type GridHistoryEntry } from '@/lib/grid-history-idb';
+import { loadGridHistory, saveGridToHistory, deleteGridFromHistory, deleteLeagueGridHistory, deleteLeagueGridHistoryBelowThreshold, migrateGridsFromLocalStorage, convertCellsToPIDs, hydrateCellData, type GridHistoryEntry } from '@/lib/grid-history-idb';
 import { saveLeague, updateLastPlayed, type StoredLeague } from '@/lib/league-storage';
 // Import sport icon images  
 import zengmGridsLogo from '@/assets/zengm-grids-logo-mark.png';
@@ -509,6 +509,12 @@ export default function Home() {
         // Save to history (async)
         (async () => {
           try {
+            // Create playersByName map for PID conversion
+            const playersByName = new Map(leagueData.players.map(p => [p.name, p]));
+
+            // Convert cell data from names to PIDs for compact storage
+            const compactCells = convertCellsToPIDs(simplifiedCells, playersByName);
+
             await saveGridToHistory({
               sport: leagueData.sport || 'basketball',
               score: totalScore,
@@ -533,7 +539,7 @@ export default function Home() {
                   achievementId: c.achievementId
                 })),
               },
-              cells: simplifiedCells,
+              cells: compactCells,
             });
 
             // Mark this grid completion as saved
@@ -2574,51 +2580,47 @@ export default function Home() {
 
                     // Restore cell states and look up player objects
                     const restoredCells: Record<string, CellState> = {};
-                    Object.entries(entry.cells).forEach(([key, savedCell]) => {
-                      // Look up the player by name
-                      let player: Player | undefined = undefined;
-                      if (savedCell.name && savedCell.name !== '—') {
-                        const pid = byName[savedCell.name];
-                        if (pid !== undefined) {
-                          player = byPid[pid];
-                          if (!player) {
-                            console.warn(`Player not found in byPid for pid ${pid}, name: ${savedCell.name}`);
-                          } else {
-                            console.log(`Found player ${savedCell.name}:`, {
-                              pid: player.pid,
-                              name: player.name,
-                              hasImgURL: !!player.imgURL,
-                              hasFace: !!player.face,
-                              imgURL: player.imgURL,
-                            });
-                          }
-                        } else {
-                          console.warn(`Player name not found in byName index: ${savedCell.name}`);
-                          // Try to find by searching all players
-                          const foundPlayer = leagueData.players.find(p => p.name === savedCell.name);
-                          if (foundPlayer) {
-                            player = foundPlayer;
-                            console.log(`Found player via direct search: ${savedCell.name}`, {
-                              pid: player.pid,
-                              hasImgURL: !!player.imgURL,
-                              hasFace: !!player.face,
-                            });
-                          }
-                        }
-                      }
 
-                      restoredCells[key] = {
-                        name: savedCell.name,
-                        correct: savedCell.correct,
-                        locked: savedCell.locked || true,
-                        autoFilled: savedCell.autoFilled || false,
-                        guessed: savedCell.guessed || false,
-                        points: savedCell.points || 0,
-                        rarity: savedCell.rarity,
-                        usedHint: savedCell.usedHint || false,
-                        player: player, // Add the player object
-                      };
-                    });
+                    // Create playersByPid map for hydration
+                    const playersByPid = new Map(leagueData.players.map(p => [p.pid, p]));
+
+                    // Hydrate cell data from PIDs to names
+                    const hydratedCells = hydrateCellData(entry.cells, playersByPid);
+
+                    if (!hydratedCells) {
+                      console.error('[Grid History] Failed to hydrate cell data - league mismatch?');
+                      // Fallback to empty cells
+                      Object.keys(entry.cells).forEach(key => {
+                        restoredCells[key] = {
+                          name: '—',
+                          correct: false,
+                          locked: false,
+                          autoFilled: false,
+                          guessed: false,
+                          points: 0,
+                          rarity: undefined,
+                          usedHint: false,
+                          player: undefined,
+                        };
+                      });
+                    } else {
+                      // Successfully hydrated - now look up full player objects
+                      Object.entries(hydratedCells).forEach(([key, hydratedCell]) => {
+                        const player = playersByPid.get(hydratedCell.pid);
+
+                        restoredCells[key] = {
+                          name: hydratedCell.name,
+                          correct: hydratedCell.correct,
+                          locked: hydratedCell.locked || true,
+                          autoFilled: hydratedCell.autoFilled || false,
+                          guessed: hydratedCell.guessed || false,
+                          points: hydratedCell.points || 0,
+                          rarity: hydratedCell.rarity,
+                          usedHint: hydratedCell.usedHint || false,
+                          player: player, // Add the player object
+                        };
+                      });
+                    }
 
                     // Update grid state
                     setRows(restoredRows);
@@ -2670,6 +2672,23 @@ export default function Home() {
                     );
                     setGridHistory(filteredHistory);
                   }
+                }}
+                onDeleteGrid={async (id) => {
+                  await deleteGridFromHistory(id);
+                  // Reload history after deletion
+                  const allHistory = await loadGridHistory();
+                  const filteredHistory = currentFingerprintId
+                    ? allHistory.filter(entry => entry.leagueFingerprintId === currentFingerprintId)
+                    : [];
+                  setGridHistory(filteredHistory);
+                }}
+                onImportComplete={async () => {
+                  // Reload history after import
+                  const allHistory = await loadGridHistory();
+                  const filteredHistory = currentFingerprintId
+                    ? allHistory.filter(entry => entry.leagueFingerprintId === currentFingerprintId)
+                    : [];
+                  setGridHistory(filteredHistory);
                 }}
               />
             );

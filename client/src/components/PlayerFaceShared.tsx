@@ -39,7 +39,9 @@ export function PlayerFaceShared({ player, teams, sport, season, teamId, classNa
         name: player.name,
         imgURL: player.imgURL,
         face: player.face,
-        jerseyInfo
+        jerseyInfo,
+        season,
+        sport
       });
 
       if (ok) {

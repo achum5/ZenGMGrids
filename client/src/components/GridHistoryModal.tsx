@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
-import { X, History, Trophy, Filter, Trash2, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, History, Trophy, Filter, Trash2, Check, ChevronDown, ChevronUp, Download, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { loadLeagueGridFilterThreshold, saveLeagueGridFilterThreshold, type GridHistoryEntry } from '@/lib/grid-history-idb';
+import { loadLeagueGridFilterThreshold, saveLeagueGridFilterThreshold, exportGridHistory, importGridHistory, type GridHistoryEntry } from '@/lib/grid-history-idb';
 
 interface GridHistoryModalProps {
   open: boolean;
@@ -17,8 +18,10 @@ interface GridHistoryModalProps {
   stackIndex?: number; // Position in modal stack for z-index layering
   history: GridHistoryEntry[];
   onGameClick?: (entry: GridHistoryEntry) => void; // Callback when a grid is selected
+  onDeleteGrid?: (id: string) => void; // Callback to delete a single grid
   onDeleteHistory?: () => void; // Callback to delete all history for current league
   onDeleteBelowThreshold?: (threshold: number) => void; // Callback to delete history below score threshold
+  onImportComplete?: () => void; // Callback after successful import to reload history
   leagueFingerprintId?: string; // League fingerprint ID for saving filter settings per league
 }
 
@@ -30,8 +33,10 @@ export function GridHistoryModal({
   stackIndex = 0,
   history,
   onGameClick,
+  onDeleteGrid,
   onDeleteHistory,
   onDeleteBelowThreshold,
+  onImportComplete,
   leagueFingerprintId
 }: GridHistoryModalProps) {
   const [scoreThreshold, setScoreThreshold] = useState(0);
@@ -40,6 +45,12 @@ export function GridHistoryModal({
   const [showExpandedDelete, setShowExpandedDelete] = useState(false);
   const [deleteThreshold, setDeleteThreshold] = useState(50);
   const [showThresholdDeleteConfirm, setShowThresholdDeleteConfirm] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [importCode, setImportCode] = useState('');
+  const [importMessage, setImportMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [exportCode, setExportCode] = useState('');
+  const [deleteGridId, setDeleteGridId] = useState<string | null>(null); // Track which grid is being deleted
 
   // Load saved filter threshold for this league on mount
   useEffect(() => {
@@ -67,6 +78,56 @@ export function GridHistoryModal({
       saveLeagueGridFilterThreshold(leagueFingerprintId, scoreThreshold);
     }
   }, [scoreThreshold, leagueFingerprintId]);
+
+  // Export handler
+  const handleExport = async () => {
+    try {
+      const code = await exportGridHistory(leagueFingerprintId);
+
+      // Try clipboard first
+      try {
+        await navigator.clipboard.writeText(code);
+        setImportMessage({ type: 'success', text: 'Export code copied to clipboard!' });
+        setTimeout(() => setImportMessage(null), 3000);
+      } catch (clipboardError) {
+        // Clipboard failed - show dialog with code instead
+        console.warn('Clipboard API failed, showing export dialog:', clipboardError);
+        setExportCode(code);
+        setShowExportDialog(true);
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+      setImportMessage({ type: 'error', text: 'Failed to export history' });
+      setTimeout(() => setImportMessage(null), 3000);
+    }
+  };
+
+  // Import handler
+  const handleImport = async () => {
+    if (!importCode.trim()) {
+      setImportMessage({ type: 'error', text: 'Please enter an import code' });
+      return;
+    }
+
+    const result = await importGridHistory(importCode);
+    if (result.success) {
+      setImportMessage({
+        type: 'success',
+        text: `Imported ${result.imported} grid${result.imported !== 1 ? 's' : ''}${result.skipped > 0 ? ` (${result.skipped} skipped as duplicates)` : ''}`
+      });
+      setImportCode('');
+      setTimeout(() => {
+        setShowImportDialog(false);
+        setImportMessage(null);
+        // Notify parent to reload history
+        if (onImportComplete) {
+          onImportComplete();
+        }
+      }, 2000);
+    } else {
+      setImportMessage({ type: 'error', text: result.error || 'Failed to import history' });
+    }
+  };
 
   // Handle backward compatibility
   const handleCloseTop = onCloseTop || onClose || (() => {});
@@ -128,6 +189,26 @@ export function GridHistoryModal({
             <h2 className="text-2xl font-bold">Grid History</h2>
           </div>
           <div className="flex items-center gap-2">
+            {/* Export Button */}
+            <button
+              onClick={handleExport}
+              className="p-2 hover:bg-accent rounded-lg transition-colors"
+              aria-label="Export history"
+              title="Export history to code"
+            >
+              <Download className="h-5 w-5" />
+            </button>
+
+            {/* Import Button */}
+            <button
+              onClick={() => setShowImportDialog(true)}
+              className="p-2 hover:bg-accent rounded-lg transition-colors"
+              aria-label="Import history"
+              title="Import history from code"
+            >
+              <Upload className="h-5 w-5" />
+            </button>
+
             {/* Filter Button */}
             <Popover open={filterOpen} onOpenChange={setFilterOpen}>
               <PopoverTrigger asChild>
@@ -366,38 +447,202 @@ export function GridHistoryModal({
             <div className="space-y-3">
               {sortedHistory.map((entry) => {
                 return (
-                  <button
-                    key={entry.id}
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      console.log('History entry clicked:', entry);
-                      onGameClick?.(entry);
-                    }}
-                    className="w-full text-center rounded-xl border-2 p-4 transition-all hover:scale-[1.01] hover:shadow-lg bg-card hover:bg-accent/50 cursor-pointer"
-                  >
-                    <div className="flex flex-col items-center gap-2">
-                      <span className="text-3xl font-bold text-primary">
-                        Score: {entry.score}
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        {new Date(entry.date).toLocaleDateString(undefined, {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </span>
-                    </div>
-                  </button>
+                  <div key={entry.id} className="relative">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('History entry clicked:', entry);
+                        onGameClick?.(entry);
+                      }}
+                      className="w-full text-center rounded-xl border-2 p-4 transition-all hover:scale-[1.01] hover:shadow-lg bg-card hover:bg-accent/50 cursor-pointer"
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-3xl font-bold text-primary">
+                            Score: {entry.score}
+                          </span>
+                          {/* Delete button */}
+                          {onDeleteGrid && (
+                            <>
+                              {deleteGridId === entry.id ? (
+                                <div className="flex gap-1 ml-2">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setDeleteGridId(null);
+                                    }}
+                                    className="p-1 rounded bg-gray-600 hover:bg-gray-700"
+                                  >
+                                    <X className="h-3 w-3 text-white" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onDeleteGrid(entry.id);
+                                      setDeleteGridId(null);
+                                    }}
+                                    className="p-1 rounded bg-red-600 hover:bg-red-700"
+                                  >
+                                    <Check className="h-3 w-3 text-white" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeleteGridId(entry.id);
+                                  }}
+                                  className="p-1 rounded hover:bg-black/20"
+                                  title="Delete grid"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 opacity-60" />
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                        <span className="text-sm text-muted-foreground">
+                          {new Date(entry.date).toLocaleDateString(undefined, {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      </div>
+                    </button>
+                  </div>
                 );
               })}
             </div>
           )}
         </div>
+
+        {/* Success/Error Message */}
+        {importMessage && (
+          <div
+            className={`absolute bottom-6 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-lg shadow-lg ${
+              importMessage.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+            }`}
+            style={{ zIndex: 100000 + (stackIndex * 10) + 100 }}
+          >
+            {importMessage.text}
+          </div>
+        )}
         </div>
+
+      {/* Export Dialog */}
+      {showExportDialog && (
+        <div
+          className="absolute inset-0 flex items-center justify-center p-4"
+          style={{ zIndex: 100000 + (stackIndex * 10) + 50 }}
+          onClick={() => setShowExportDialog(false)}
+        >
+          <div
+            className="bg-card rounded-lg shadow-xl p-6 w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">Export Code</h3>
+              <button
+                onClick={() => setShowExportDialog(false)}
+                className="p-1 hover:bg-accent rounded transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Copy this code to import your history on another device. Click the text area and press Ctrl+A (Cmd+A on Mac) to select all, then Ctrl+C (Cmd+C) to copy.
+            </p>
+            <Textarea
+              value={exportCode}
+              readOnly
+              className="mb-4 min-h-[120px] font-mono text-xs"
+              onClick={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.select();
+              }}
+            />
+            <Button
+              onClick={() => setShowExportDialog(false)}
+              className="w-full"
+            >
+              Close
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Import Dialog */}
+      {showImportDialog && (
+        <div
+          className="absolute inset-0 flex items-center justify-center p-4"
+          style={{ zIndex: 100000 + (stackIndex * 10) + 50 }}
+          onClick={() => setShowImportDialog(false)}
+        >
+          <div
+            className="bg-card rounded-lg shadow-xl p-6 w-full max-w-md"
+            style={{ border: '3px solid #3b82f6' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">Import History</h3>
+              <button
+                onClick={() => setShowImportDialog(false)}
+                className="p-1 hover:bg-accent rounded transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="text-sm text-muted-foreground mb-2">
+              Paste the export code from another device to import grid history.
+            </p>
+            <div className="relative mb-4">
+              <Textarea
+                value={importCode}
+                onChange={(e) => setImportCode(e.target.value)}
+                placeholder="Paste export code here..."
+                className="min-h-[120px] font-mono text-xs pr-20"
+              />
+              <Button
+                onClick={async () => {
+                  try {
+                    const text = await navigator.clipboard.readText();
+                    setImportCode(text);
+                  } catch (err) {
+                    console.error('Failed to read clipboard:', err);
+                  }
+                }}
+                size="sm"
+                variant="secondary"
+                className="absolute top-2 right-2"
+                title="Paste from clipboard"
+              >
+                <Upload className="h-4 w-4 mr-1" />
+                Paste
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setShowImportDialog(false)}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleImport}
+                className="flex-1"
+              >
+                Import
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );
