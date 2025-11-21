@@ -7,7 +7,7 @@ import { PlayerFace } from '@/components/PlayerFace';
 import { PlayerFaceTile } from '@/components/PlayerFaceTile';
 import { useToast } from '@/lib/hooks/use-toast';
 import { Shuffle, Home as HomeIcon, ArrowLeft, ChevronDown, ArrowRight, Info, Settings, Save, HelpCircle, History } from 'lucide-react';
-import { updateYearRange } from '@/lib/league-storage';
+import { updateYearRange, updateTeamFilter } from '@/lib/league-storage';
 
 
 import {
@@ -47,6 +47,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { RulesModal } from '@/components/RulesModal';
 import { AccentLine } from '@/components/AccentLine';
 import { CompactScoreCard } from '@/components/CompactScoreCard';
@@ -89,6 +96,7 @@ interface TeamTriviaProps {
   leagueId: string | null;
   leagueFingerprintId?: string | null;
   initialYearRange?: [number, number] | null;
+  initialTeamFilter?: number | null;
 }
 
 interface RoundScore {
@@ -639,7 +647,7 @@ function calculateTeamStats(
   };
 }
 
-export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, leagueId, leagueFingerprintId, initialYearRange }: TeamTriviaProps) {
+export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, leagueId, leagueFingerprintId, initialYearRange, initialTeamFilter }: TeamTriviaProps) {
   const { toast } = useToast();
   const [guess, setGuess] = useState('');
   const [roster, setRoster] = useState<RosterPlayer[]>([]);
@@ -673,6 +681,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
   const [yearToInput, setYearToInput] = useState<string>(''); // Local state for "To" input
   const [isSavingYearRange, setIsSavingYearRange] = useState(false); // Loading state for saving year range
   const [lastSavedYearRange, setLastSavedYearRange] = useState<[number, number] | null>(null); // Track last saved year range
+  const [teamFilter, setTeamFilter] = useState<number | null>(null); // Team filter for randomizer (tid), null = all teams
+  const [lastSavedTeamFilter, setLastSavedTeamFilter] = useState<number | null>(null); // Track last saved team filter
   const [showHelpModal, setShowHelpModal] = useState(false); // Help modal state
   const [gameHistory, setGameHistory] = useState<HistoryEntry[]>([]); // Game history
 
@@ -1999,27 +2009,34 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     }
 
     // Filter to teams that have BOTH player stats AND wins data
-    const validTeams = allTeams.filter(team => 
+    let validTeams = allTeams.filter(team =>
       teamsInSeason.has(team.tid) && teamsWithWinsData.has(team.tid)
     );
-    
+
+    // Apply team filter if set
+    if (teamFilter !== null) {
+      validTeams = validTeams.filter(team => team.tid === teamFilter);
+    }
+
     if (validTeams.length === 0) {
       toast({
         title: 'Error',
-        description: 'No teams found for the selected season.',
+        description: teamFilter !== null
+          ? 'No valid seasons found for the selected team in the year range.'
+          : 'No teams found for the selected season.',
         variant: 'destructive',
       });
       return;
     }
 
     const randomTeam = validTeams[Math.floor(Math.random() * validTeams.length)];
-    
+
     setSelectedSeason(randomSeason);
     setSelectedTeam(randomTeam);
     buildRoster(randomSeason, randomTeam);
     setGuess('');
     setScore(0); // Reset score for new game
-  }, [allSeasons, allTeams, buildRoster, leagueData.players, leagueData.teamSeasons, toast, yearRange]);
+  }, [allSeasons, allTeams, buildRoster, leagueData.players, leagueData.teamSeasons, toast, yearRange, teamFilter]);
 
   // One-time migration from localStorage to IndexedDB
   useEffect(() => {
@@ -2114,6 +2131,14 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     }
   }, [allSeasons, yearRange, initialYearRange]);
 
+  // Initialize team filter from saved value
+  useEffect(() => {
+    if (initialTeamFilter !== undefined && teamFilter === null && lastSavedTeamFilter === null) {
+      setTeamFilter(initialTeamFilter);
+      setLastSavedTeamFilter(initialTeamFilter);
+    }
+  }, [initialTeamFilter, teamFilter, lastSavedTeamFilter]);
+
   // Sync input states with yearRange when it changes or popover opens
   useEffect(() => {
     if (yearRange && yearRangeOpen) {
@@ -2153,22 +2178,29 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     }
   }, [yearToInput, yearRange, allSeasons]);
 
-  // Save year range to storage when popover closes
+  // Save year range and team filter to storage when popover closes
   const handleYearRangePopoverChange = useCallback(async (open: boolean) => {
-    // If closing and we have a valid year range, check if it changed before saving
-    if (!open && yearRange && leagueId) {
-      // Check if year range has actually changed
-      const hasChanged = !lastSavedYearRange ||
+    // If closing, check if year range or team filter changed before saving
+    if (!open && leagueId) {
+      const yearRangeChanged = yearRange && (!lastSavedYearRange ||
         yearRange[0] !== lastSavedYearRange[0] ||
-        yearRange[1] !== lastSavedYearRange[1];
+        yearRange[1] !== lastSavedYearRange[1]);
 
-      if (hasChanged) {
+      const teamFilterChanged = teamFilter !== lastSavedTeamFilter;
+
+      if (yearRangeChanged || teamFilterChanged) {
         setIsSavingYearRange(true);
         try {
-          await updateYearRange(leagueId, yearRange);
-          setLastSavedYearRange(yearRange);
+          if (yearRangeChanged && yearRange) {
+            await updateYearRange(leagueId, yearRange);
+            setLastSavedYearRange(yearRange);
+          }
+          if (teamFilterChanged) {
+            await updateTeamFilter(leagueId, teamFilter);
+            setLastSavedTeamFilter(teamFilter);
+          }
         } catch (err) {
-          console.error('Failed to save year range:', err);
+          console.error('Failed to save settings:', err);
         } finally {
           setIsSavingYearRange(false);
           setYearRangeOpen(open);
@@ -2180,7 +2212,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     } else {
       setYearRangeOpen(open);
     }
-  }, [yearRange, leagueId, lastSavedYearRange]);
+  }, [yearRange, leagueId, lastSavedYearRange, teamFilter, lastSavedTeamFilter]);
 
   // Team display info (season-aligned)
   const teamDisplayInfo = useMemo(() => {
@@ -3615,6 +3647,52 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
                                 />
                               </div>
                             </div>
+                          </div>
+
+                          {/* Team Filter */}
+                          <div className="space-y-2 pt-4 border-t">
+                            <h4 className="font-medium text-sm">Team Filter</h4>
+                            <p className="text-xs text-muted-foreground">
+                              Randomize from a specific team only
+                            </p>
+                            <Select
+                              value={teamFilter?.toString() || 'all'}
+                              onValueChange={(value) => {
+                                setTeamFilter(value === 'all' ? null : parseInt(value));
+                              }}
+                            >
+                              <SelectTrigger className="h-9 text-sm">
+                                <SelectValue placeholder="All teams" />
+                              </SelectTrigger>
+                              <SelectContent className="max-h-[300px] overflow-y-auto">
+                                <SelectItem value="all">All teams</SelectItem>
+                                {allTeams
+                                  .sort((a, b) => {
+                                    const aRegion = a.region || '';
+                                    const aName = a.name || '';
+                                    const bRegion = b.region || '';
+                                    const bName = b.name || '';
+                                    return `${aRegion} ${aName}`.localeCompare(`${bRegion} ${bName}`);
+                                  })
+                                  .map((team) => (
+                                    <SelectItem key={team.tid} value={team.tid.toString()}>
+                                      <div className="flex items-center gap-2">
+                                        {(team.imgURLSmall || team.imgURL) && (
+                                          <img
+                                            src={team.imgURLSmall || team.imgURL || ''}
+                                            alt={`${team.region} ${team.name}`}
+                                            className="w-4 h-4 object-contain"
+                                            onError={(e) => {
+                                              e.currentTarget.style.display = 'none';
+                                            }}
+                                          />
+                                        )}
+                                        <span>{team.region} {team.name}</span>
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                         </>
                       )}

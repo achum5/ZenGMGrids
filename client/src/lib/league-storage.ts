@@ -22,6 +22,7 @@ export interface StoredLeague {
   idbName?: string; // Name of the IndexedDB database storing the actual data (for metadata-only saves)
   starred?: boolean; // Flag for favorited/starred leagues
   yearRange?: [number, number]; // Year range setting for team trivia randomizer
+  teamFilter?: number | null; // Team filter setting for team trivia randomizer
   fingerprintId?: string; // Stable fingerprint ID for league matching
 }
 
@@ -327,6 +328,15 @@ export async function updateYearRange(id: string, yearRange: [number, number]): 
   const league = await db.get(STORE_NAME, id);
   if (league) {
     league.yearRange = yearRange;
+    await db.put(STORE_NAME, league);
+  }
+}
+
+export async function updateTeamFilter(id: string, teamFilter: number | null): Promise<void> {
+  const db = await getDB();
+  const league = await db.get(STORE_NAME, id);
+  if (league) {
+    league.teamFilter = teamFilter;
     await db.put(STORE_NAME, league);
   }
 }

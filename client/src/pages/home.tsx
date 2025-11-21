@@ -336,6 +336,7 @@ export default function Home() {
   const [currentLeagueId, setCurrentLeagueId] = useState<string | null>(null); // Track currently loaded league ID
   const [currentFingerprintId, setCurrentFingerprintId] = useState<string | null>(null); // Track league fingerprint ID for history
   const [savedYearRange, setSavedYearRange] = useState<[number, number] | null>(null); // Saved year range from loaded league
+  const [savedTeamFilter, setSavedTeamFilter] = useState<number | null>(null); // Saved team filter from loaded league
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [currentCellKey, setCurrentCellKey] = useState<string | null>(null);
   const [playerModalOpen, setPlayerModalOpen] = useState(false);
@@ -1001,6 +1002,7 @@ export default function Home() {
 
       setCurrentFingerprintId(fingerprintId || null);
       setSavedYearRange(storedLeague.yearRange || null);
+      setSavedTeamFilter(storedLeague.teamFilter || null);
 
       // Check if this is a metadata-only save (large file on mobile)
       if (storedLeague.isMetadataOnly && storedLeague.idbName) {
@@ -2082,6 +2084,7 @@ export default function Home() {
         leagueId={currentLeagueId}
         leagueFingerprintId={currentFingerprintId}
         initialYearRange={savedYearRange}
+        initialTeamFilter={savedTeamFilter}
       />
     );
   }
