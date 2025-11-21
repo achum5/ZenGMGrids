@@ -67,7 +67,7 @@ export function detectSport(raw: any): Sport {
       
       // Check for hockey awards
       const awards = player.awards || [];
-      if (awards.some((a: any) => a.type?.includes('Goalie of the Year') || a.type?.includes('Hart Trophy'))) {
+      if (awards.some((a: any) => a.type?.includes('Goalie of the Year'))) {
         return 'hockey';
       }
     }

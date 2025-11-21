@@ -365,6 +365,7 @@ export function PlayerModal({ open, onOpenChange, player, teams, eligiblePlayers
                         condensedAwards.push({ text: count > 1 ? `${count}x MVP` : "MVP" });
                         break;
                       case "Finals MVP":
+                      case "Playoffs MVP":
                         condensedAwards.push({ text: count > 1 ? `${count}x FMVP` : "FMVP" });
                         break;
                       case "Won Championship":

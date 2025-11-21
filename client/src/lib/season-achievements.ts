@@ -221,11 +221,10 @@ const AWARD_TYPE_MAPPING: Record<string, SeasonAchievementId | null> = {
   'FB Second Team All-League': 'FBAllLeague',
   'FB Finals MVP': 'FBFinalsMVP',
   
-  // Hockey GM (ZGMH) awards (with variations)
+  // Hockey GM (ZGMH) awards
   'All-Star Game': 'HKAllStar',
   'All-Star': 'HKAllStar', // Variation
-  'MVP': 'HKMVP',
-  'Most Valuable Player': 'HKMVP', // Variation
+  'Most Valuable Player': 'HKMVP', // Hockey uses full string, not "MVP"
   'Defensive Player of the Year': 'HKDefensivePlayer',
   'Defensive Forward of the Year': 'HKDefensiveForward',
   'Goalie of the Year': 'HKGOY',
@@ -296,9 +295,9 @@ function mapAwardToAchievement(awardType: string, sport?: 'basketball' | 'footba
     if (awardType === 'Finals MVP') return 'BBPlayoffsMVP';
     if (awardType === 'Playoffs MVP') return 'BBPlayoffsMVP';
   } else if (sport === 'hockey') {
-    // Hockey GM specific mappings (with variations)
+    // Hockey GM specific mappings - Hockey uses full award names, not shorthands
     if (awardType === 'All-Star Game' || awardType === 'All-Star') return 'HKAllStar';
-    if (awardType === 'MVP' || awardType === 'Most Valuable Player') return 'HKMVP';
+    if (awardType === 'Most Valuable Player') return 'HKMVP';
     if (awardType === 'Defensive Player of the Year') return 'HKDefensivePlayer';
     if (awardType === 'Defensive Forward of the Year') return 'HKDefensiveForward';
     if (awardType === 'Goalie of the Year') return 'HKGOY';

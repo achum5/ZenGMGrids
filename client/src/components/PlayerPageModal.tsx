@@ -4137,6 +4137,7 @@ export function PlayerPageModal({
                       condensedAwards.push({ text: count > 1 ? `${count}x MVP` : "MVP", years });
                       break;
                     case "Finals MVP":
+                    case "Playoffs MVP":
                       condensedAwards.push({ text: count > 1 ? `${count}x FMVP` : "FMVP", years });
                       break;
                     case "Won Championship":

@@ -230,12 +230,12 @@ function createSeasonAchievementTests(seasonIndex?: SeasonIndex, sport: 'basketb
       return player.awards?.some(award => {
         const normalizedType = award.type.toLowerCase().trim();
         return seasonAch.id === 'AllStar' && normalizedType.includes('all-star') ||
-               seasonAch.id === 'MVP' && normalizedType.includes('most valuable player') ||
+               (seasonAch.id === 'MVP' || seasonAch.id === 'FBMVP' || seasonAch.id === 'HKMVP' || seasonAch.id === 'BBMVP') && normalizedType.includes('most valuable player') ||
                seasonAch.id === 'DPOY' && normalizedType.includes('defensive player') ||
-               seasonAch.id === 'ROY' && normalizedType.includes('rookie of the year') ||
+               (seasonAch.id === 'ROY' || seasonAch.id === 'HKROY' || seasonAch.id === 'BBROY') && normalizedType.includes('rookie of the year') ||
                seasonAch.id === 'SMOY' && normalizedType.includes('sixth man') ||
                seasonAch.id === 'MIP' && normalizedType.includes('most improved') ||
-               seasonAch.id === 'FinalsMVP' && normalizedType.includes('finals mvp') ||
+               (seasonAch.id === 'FinalsMVP' || seasonAch.id === 'FBFinalsMVP' || seasonAch.id === 'HKFinalsMVP' || seasonAch.id === 'BBPlayoffsMVP') && normalizedType.includes('finals mvp') ||
                seasonAch.id === 'AllLeagueAny' && (normalizedType.includes('all-league') || normalizedType.includes('allleague')) ||
                seasonAch.id === 'AllDefAny' && normalizedType.includes('all-defensive') ||
                seasonAch.id === 'AllRookieAny' && normalizedType.includes('all-rookie');
@@ -1488,7 +1488,7 @@ export function playerMeetsAchievement(
       
       // Hockey achievements (case-sensitive exact matches, with variations)
       if (achievementId === 'HKAllStar' && (award.type === 'All-Star Game' || award.type === 'All-Star')) return true;
-      if (achievementId === 'HKMVP' && (award.type === 'MVP' || award.type === 'Most Valuable Player')) return true;
+      if (achievementId === 'HKMVP' && award.type === 'Most Valuable Player') return true;
       if (achievementId === 'HKDefensivePlayer' && award.type === 'Defensive Player of the Year') return true;
       if (achievementId === 'HKDefensiveForward' && award.type === 'Defensive Forward of the Year') return true;
       if (achievementId === 'HKGOY' && award.type === 'Goalie of the Year') return true;
