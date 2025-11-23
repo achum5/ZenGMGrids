@@ -2961,15 +2961,23 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     }
 
     // Filter to teams that have BOTH player stats AND wins data
-    const validTeams = allTeams.filter(team => 
-      teamsInSeason.has(team.tid) && 
-      teamsWithWinsData.has(team.tid) && 
+    let validTeams = allTeams.filter(team =>
+      teamsInSeason.has(team.tid) &&
+      teamsWithWinsData.has(team.tid) &&
       team.tid !== selectedTeam?.tid
     );
+
+    // Apply team filter if set
+    if (teamFilter !== null) {
+      validTeams = validTeams.filter(team => team.tid === teamFilter);
+    }
+
     if (validTeams.length === 0) {
       toast({
         title: 'No other teams available',
-        description: 'No other teams found for this season.',
+        description: teamFilter !== null
+          ? 'No other seasons found for the selected team in this year.'
+          : 'No other teams found for this season.',
         variant: 'destructive',
       });
       return;
@@ -2988,11 +2996,17 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     setGuess('');
     setScoreBreakdown([]); // Reset score breakdown
     setDetailedGameData({ playerGuesses: [], leaderResults: [] }); // Reset detailed game data
-  }, [selectedSeason, selectedTeam, allTeams, leagueData.players, leagueData.teamSeasons, buildRoster, toast, leagueData.sport]);
+  }, [selectedSeason, selectedTeam, allTeams, leagueData.players, leagueData.teamSeasons, buildRoster, toast, teamFilter, leagueData.sport]);
 
   // New Year, Same Team
   const handleNewYearSameTeam = useCallback(() => {
     if (!selectedTeam || allSeasons.length === 0) return;
+
+    // If team filter is set and doesn't match current team, generate completely new game
+    if (teamFilter !== null && teamFilter !== selectedTeam.tid) {
+      pickRandomTeamAndSeason();
+      return;
+    }
 
     // Find seasons where this team has players
     const seasonsForTeam = new Set<number>();
@@ -3047,7 +3061,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     setGuess('');
     setScoreBreakdown([]); // Reset score breakdown
     setDetailedGameData({ playerGuesses: [], leaderResults: [] }); // Reset detailed game data
-  }, [selectedSeason, selectedTeam, allSeasons, leagueData.players, leagueData.teamSeasons, buildRoster, toast, yearRange, leagueData.sport]);
+  }, [selectedSeason, selectedTeam, allSeasons, leagueData.players, leagueData.teamSeasons, buildRoster, toast, yearRange, teamFilter, pickRandomTeamAndSeason, leagueData.sport]);
 
   // Give Up - skip to complete with current score
   const handleGiveUp = useCallback(() => {
