@@ -742,6 +742,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
   const autocompleteRef = useRef<HTMLDivElement>(null);
   const tileRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const hasInitialized = useRef(false);
+  const hasInitializedTeamFilter = useRef(false);
 
   // Get sport-specific round order
   const baseRoundOrder = leagueData.sport === 'football'
@@ -2229,13 +2230,14 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     }
   }, [allSeasons, yearRange, initialYearRange]);
 
-  // Initialize team filter from saved value
+  // Initialize team filter from saved value (only once on mount)
   useEffect(() => {
-    if (initialTeamFilter !== undefined && teamFilter === null && lastSavedTeamFilter === null) {
+    if (!hasInitializedTeamFilter.current && initialTeamFilter !== undefined) {
+      hasInitializedTeamFilter.current = true;
       setTeamFilter(initialTeamFilter);
       setLastSavedTeamFilter(initialTeamFilter);
     }
-  }, [initialTeamFilter, teamFilter, lastSavedTeamFilter]);
+  }, [initialTeamFilter]);
 
   // Sync input states with yearRange when it changes or popover opens
   useEffect(() => {
