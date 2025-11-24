@@ -87,6 +87,8 @@ interface RosterPlayer {
   jerseyNumber?: string;
   teamColors?: string[];
   age?: number; // Age during the season
+  ovr?: number; // Overall rating for the season
+  minutesPlayed?: number; // Total minutes played (for basketball sorting)
 }
 
 interface TeamTriviaProps {
@@ -623,7 +625,7 @@ function calculateTeamStats(
       const seasonStats = player.stats?.find(
         s => !s.playoffs && s.season === season && s.tid === tid
       );
-      if (seasonStats && seasonStats.gp && seasonStats.gp > 0) {
+      if (seasonStats && seasonStats.gp !== undefined) {
         const rating = player.ratings?.find(r => r.season === season);
         if (rating?.ovr) {
           playerRatings.push(rating.ovr);
@@ -822,7 +824,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     const teamsWithPlayers = new Set<number>();
     leagueData.players.forEach(player => {
       player.stats?.forEach(stat => {
-        if (!stat.playoffs && stat.season === selectedSeason && stat.gp && stat.gp > 0) {
+        if (!stat.playoffs && stat.season === selectedSeason && stat.gp !== undefined) {
           teamsWithPlayers.add(stat.tid);
         }
       });
@@ -1722,8 +1724,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
       const seasonStats = player.stats?.find(
         s => !s.playoffs && s.season === season && s.tid === team.tid
       );
-      
-      if (seasonStats && seasonStats.gp && seasonStats.gp > 0) {
+
+      if (seasonStats && seasonStats.gp !== undefined) {
         // Get position for this season
         const rating = player.ratings?.find(r => r.season === season);
         const position = rating?.pos || player.pos || 'F';
@@ -1752,16 +1754,16 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
           stats = calculateBaseballStats(seasonStats, position);
         } else if (leagueData.sport === 'basketball') {
           // Basketball stats
-          const gp = seasonStats.gp;
-          const mpg = seasonStats.min ? seasonStats.min / gp : 0;
-          const ppg = seasonStats.pts ? seasonStats.pts / gp : 0;
+          const gp = seasonStats.gp || 0;
+          const mpg = (gp > 0 && seasonStats.min) ? seasonStats.min / gp : 0;
+          const ppg = (gp > 0 && seasonStats.pts) ? seasonStats.pts / gp : 0;
           const totalReb = seasonStats.trb || ((seasonStats.orb || 0) + (seasonStats.drb || 0));
-          const rpg = totalReb / gp;
-          const apg = seasonStats.ast ? seasonStats.ast / gp : 0;
+          const rpg = gp > 0 ? totalReb / gp : 0;
+          const apg = (gp > 0 && seasonStats.ast) ? seasonStats.ast / gp : 0;
           const stl = seasonStats.stl || 0;
           const blk = seasonStats.blk || 0;
-          const spg = stl / gp;
-          const bpg = blk / gp;
+          const spg = gp > 0 ? stl / gp : 0;
+          const bpg = gp > 0 ? blk / gp : 0;
 
           const fg = seasonStats.fg || 0;
           const fga = seasonStats.fga || 0;
@@ -1780,7 +1782,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
 
           const missedFG = fga - fg;
           const missedFT = fta - ft;
-          const per = ((seasonStats.pts || 0) + totalReb + (seasonStats.ast || 0) + stl + blk - missedFG - missedFT) / gp;
+          const per = gp > 0 ? ((seasonStats.pts || 0) + totalReb + (seasonStats.ast || 0) + stl + blk - missedFG - missedFT) / gp : 0;
 
           stats = { mpg, ppg, rpg, apg, spg, bpg, per };
           advancedStats = { fgp, tpp, ftp, ts, per };
@@ -1854,6 +1856,12 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
           }
         }
 
+        // Get overall rating for the season
+        const ovr = rating?.ovr;
+
+        // Get total minutes played (for basketball sorting)
+        const minutesPlayed = seasonStats.min;
+
         rosterPlayers.push({
           player,
           revealed: false,
@@ -1866,6 +1874,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
           jerseyNumber,
           teamColors,
           age,
+          ovr,
+          minutesPlayed,
         });
       }
     });
@@ -1881,8 +1891,21 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
 
     const positionOrder = sportPositionOrder[leagueData.sport || 'basketball'] || [];
 
-    // Sort by position, then games played, then alphabetically
+    // Sort based on sport and whether there are stats
     rosterPlayers.sort((a, b) => {
+      // For basketball: check if this is preseason (no games played)
+      if (leagueData.sport === 'basketball' && a.gamesPlayed === 0 && b.gamesPlayed === 0) {
+        // Preseason: sort by overall rating (descending), ignore position
+        const ovrA = a.ovr ?? 0;
+        const ovrB = b.ovr ?? 0;
+        if (ovrB !== ovrA) {
+          return ovrB - ovrA;
+        }
+        // If same ovr, sort alphabetically
+        return a.player.name.localeCompare(b.player.name);
+      }
+
+      // Regular season or non-basketball: sort by position first
       const posA = positionOrder.indexOf(a.position);
       const posB = positionOrder.indexOf(b.position);
 
@@ -1892,15 +1915,37 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
       if (posA !== posB) {
         return posA - posB;
       }
-      if (b.gamesPlayed !== a.gamesPlayed) {
-        return b.gamesPlayed - a.gamesPlayed;
+
+      // Within same position: sort by secondary criteria
+      if (leagueData.sport === 'basketball') {
+        // Basketball regular season: sort by minutes played (descending)
+        const minA = a.minutesPlayed ?? 0;
+        const minB = b.minutesPlayed ?? 0;
+        if (minB !== minA) {
+          return minB - minA;
+        }
+      } else {
+        // For other sports: sort by games played
+        if (b.gamesPlayed !== a.gamesPlayed) {
+          return b.gamesPlayed - a.gamesPlayed;
+        }
       }
+
       return a.player.name.localeCompare(b.player.name);
     });
 
+    // Debug logging after sort
+    if (leagueData.sport === 'basketball' && rosterPlayers.length > 0) {
+      console.log('First 5 players after sort:');
+      rosterPlayers.slice(0, 5).forEach(p => {
+        console.log(`${p.player.name}: gp=${p.gamesPlayed}, ovr=${p.ovr}, min=${p.minutesPlayed}, pos=${p.position}`);
+      });
+      console.log('=== END DEBUG ===');
+    }
+
     setRoster(rosterPlayers);
     setFoundCount(0);
-  }, [leagueData.players]);
+  }, [leagueData.players, leagueData.sport]);
 
   // Handler for opening opponent team modal
   const handleOpenOpponentTeam = useCallback((opponentTid: number, season: number) => {
@@ -1915,7 +1960,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
         s => !s.playoffs && s.season === season && s.tid === tid
       );
 
-      if (seasonStats && seasonStats.gp && seasonStats.gp > 0) {
+      if (seasonStats && seasonStats.gp !== undefined) {
         const rating = player.ratings?.find(r => r.season === season);
         const position = rating?.pos || player.pos || 'F';
         const age = player.born?.year ? season - player.born.year : undefined;
@@ -1958,6 +2003,59 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
         });
       }
     });
+
+    // Sort the roster data
+    const sportPositionOrder: Record<string, string[]> = {
+      basketball: ['PG', 'SG', 'G', 'GF', 'SF', 'PF', 'F', 'FC', 'C'],
+      football: ['QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S', 'K', 'P'],
+      hockey: ['C', 'W', 'D', 'G'],
+      baseball: ['SP', 'RP', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'DH'],
+    };
+
+    const positionOrder = sportPositionOrder[leagueData.sport || 'basketball'] || [];
+
+    rosterData.sort((a, b) => {
+      // For basketball: check if this is preseason (no games played)
+      if (leagueData.sport === 'basketball' && a.gamesPlayed === 0 && b.gamesPlayed === 0) {
+        // Preseason: sort by overall rating (descending), ignore position
+        const ovrA = a.ovr ?? 0;
+        const ovrB = b.ovr ?? 0;
+        if (ovrB !== ovrA) {
+          return ovrB - ovrA;
+        }
+        // If same ovr, sort alphabetically
+        return a.player.name.localeCompare(b.player.name);
+      }
+
+      // Regular season or non-basketball: sort by position first
+      const posA = positionOrder.indexOf(a.position);
+      const posB = positionOrder.indexOf(b.position);
+
+      // Handle positions not found in the defined order (e.g., -1), placing them at the end
+      if (posA === -1 && posB !== -1) return 1;
+      if (posB === -1 && posA !== -1) return -1;
+      if (posA !== posB) {
+        return posA - posB;
+      }
+
+      // Within same position: sort by secondary criteria
+      if (leagueData.sport === 'basketball') {
+        // Basketball regular season: sort by minutes played (descending)
+        const minA = a.stats?.min ?? 0;
+        const minB = b.stats?.min ?? 0;
+        if (minB !== minA) {
+          return minB - minA;
+        }
+      } else {
+        // For other sports: sort by games played
+        if (b.gamesPlayed !== a.gamesPlayed) {
+          return b.gamesPlayed - a.gamesPlayed;
+        }
+      }
+
+      return a.player.name.localeCompare(b.player.name);
+    });
+
     return rosterData;
   }, [leagueData.players, leagueData.sport]);
 
@@ -1992,7 +2090,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     const teamsInSeason = new Set<number>();
     leagueData.players.forEach(player => {
       player.stats?.forEach(stat => {
-        if (!stat.playoffs && stat.season === randomSeason && stat.gp && stat.gp > 0) {
+        if (!stat.playoffs && stat.season === randomSeason && stat.gp !== undefined) {
           teamsInSeason.add(stat.tid);
         }
       });
@@ -2944,7 +3042,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     const teamsInSeason = new Set<number>();
     leagueData.players.forEach(player => {
       player.stats?.forEach(stat => {
-        if (!stat.playoffs && stat.season === selectedSeason && stat.gp && stat.gp > 0) {
+        if (!stat.playoffs && stat.season === selectedSeason && stat.gp !== undefined) {
           teamsInSeason.add(stat.tid);
         }
       });
@@ -3012,7 +3110,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     const seasonsForTeam = new Set<number>();
     leagueData.players.forEach(player => {
       player.stats?.forEach(stat => {
-        if (!stat.playoffs && stat.tid === selectedTeam.tid && stat.gp && stat.gp > 0) {
+        if (!stat.playoffs && stat.tid === selectedTeam.tid && stat.gp !== undefined) {
           seasonsForTeam.add(stat.season);
         }
       });
