@@ -317,9 +317,11 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
             stats: rawPlayer.stats || [],
             ratings: rawPlayer.ratings || [],
             retiredYear: rawPlayer.retiredYear,
-            diedYear: (rawPlayer as any).diedYear,
-            deathYear: (rawPlayer as any).deathYear,
-            died: (rawPlayer as any).died,
+            diedYear: deathYear ?? null,
+            deathYear: deathYear ?? null,
+            died: deathYear
+              ? { year: deathYear, loc: rawPlayer.died?.loc ?? null }
+              : rawPlayer.died,
             contract: rawPlayer.contract,
             college: rawPlayer.college,
             injury: raw.injury,

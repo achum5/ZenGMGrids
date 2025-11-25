@@ -762,7 +762,8 @@ export function PlayerPageModal({
                 const isDeceased = Number.isFinite(deathYear) && deathYear > 0;
                 const ageAtDeath = isDeceased && player.born?.year ? deathYear - player.born.year : undefined;
 
-                if (isDeceased && ageAtDeath !== undefined) {
+                // Only show death info if viewing a season at or after the death year
+                if (isDeceased && ageAtDeath !== undefined && season && season >= deathYear) {
                   return (
                     <div className="whitespace-nowrap">
                       <span className="font-semibold" style={{ color: textColor === 'white' ? '#ffffff' : '#000000' }}>Died:</span> {deathYear} ({Math.max(0, ageAtDeath)} years old)

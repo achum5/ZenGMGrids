@@ -176,7 +176,10 @@ export async function readAndNormalizePlayers(
           seasons.forEach(s => {
             if (s.season > 0) decadesPlayed.add(Math.floor(s.season / 10) * 10);
           });
-          
+
+          // Check for death data from raw player
+          const deathYear = rawPlayer.diedYear ?? rawPlayer.deathYear ?? rawPlayer.died?.year;
+
           players.push({
             pid: rawPlayer.pid,
             name: `${rawPlayer.firstName || ''} ${rawPlayer.lastName || ''}`.trim() || 'Unknown Player',
@@ -196,6 +199,11 @@ export async function readAndNormalizePlayers(
             stats: rawPlayer.stats || [],
             ratings: rawPlayer.ratings || [],
             retiredYear: rawPlayer.retiredYear,
+            diedYear: deathYear ?? null,
+            deathYear: deathYear ?? null,
+            died: deathYear
+              ? { year: deathYear, loc: rawPlayer.died?.loc ?? null }
+              : rawPlayer.died,
             contract: rawPlayer.contract,
             college: rawPlayer.college,
             injury: rawPlayer.injury,

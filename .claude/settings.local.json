@@ -33,7 +33,9 @@
       "WebFetch(domain:zengm.com)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "WebFetch(domain:hockey.zengm.com)"
+      "WebFetch(domain:hockey.zengm.com)",
+      "Bash(timeout 60 npm run check:*)",
+      "Bash(echo:*)"
     ],
     "deny": [],
     "ask": []

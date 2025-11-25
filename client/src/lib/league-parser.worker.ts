@@ -271,9 +271,23 @@ async function parseFileStreaming(file: File, dbName: string = 'grids-league'): 
           
           if (currentArraySection === 'players') {
             detectSportFromPlayer(value.value);
-            playerQueue.push(value.value);
+
+            // Extract death year data and normalize player object
+            const player = value.value;
+            if (player && typeof player === 'object') {
+              const deathYear = player.diedYear ?? player.deathYear ?? player.died?.year;
+              if (deathYear !== undefined && deathYear !== null) {
+                player.diedYear = deathYear;
+                player.deathYear = deathYear;
+                if (!player.died) {
+                  player.died = { year: deathYear, loc: null };
+                }
+              }
+            }
+
+            playerQueue.push(player);
             playerCount++;
-            
+
             // Progress update every 1000 players
             if (playerCount % 1000 === 0) {
               const pct = Math.min(65, 25 + (playerCount / 1000) * 2);
@@ -597,9 +611,23 @@ async function parseUrlStreaming(url: string, dbName: string = 'grids-league'): 
           
           if (currentArraySection === 'players') {
             detectSportFromPlayer(value.value);
-            playerQueue.push(value.value);
+
+            // Extract death year data and normalize player object
+            const player = value.value;
+            if (player && typeof player === 'object') {
+              const deathYear = player.diedYear ?? player.deathYear ?? player.died?.year;
+              if (deathYear !== undefined && deathYear !== null) {
+                player.diedYear = deathYear;
+                player.deathYear = deathYear;
+                if (!player.died) {
+                  player.died = { year: deathYear, loc: null };
+                }
+              }
+            }
+
+            playerQueue.push(player);
             playerCount++;
-            
+
             // Progress update every 1000 players
             if (playerCount % 1000 === 0) {
               const pct = Math.min(65, 25 + (playerCount / 1000) * 2);
