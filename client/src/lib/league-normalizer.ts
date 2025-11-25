@@ -280,7 +280,11 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
 
         const teamsPlayed = new Set<number>();
         regularSeasonStats.forEach((stat: any) => {
-          if ((stat.gp || 0) > 0) teamsPlayed.add(stat.tid);
+          // For current season: include players even with 0 GP (preseason rosters)
+          // For past seasons: only include players who played games
+          const isCurrentSeason = stat.season === currentSeason;
+          const shouldInclude = isCurrentSeason ? true : ((stat.gp || 0) > 0);
+          if (shouldInclude) teamsPlayed.add(stat.tid);
         });
 
         if (teamsPlayed.size > 0) {
@@ -475,7 +479,7 @@ export async function normalizeLeague(raw: any, postProgress: (message: string) 
       }
     }
 
-    return { players, teams, sport, teamOverlaps, seasonIndex, leagueYears, teamSeasons, playoffSeries: playoffSeries || undefined, meta: raw.meta };
+    return { players, teams, sport, teamOverlaps, seasonIndex, leagueYears, currentSeason, teamSeasons, playoffSeries: playoffSeries || undefined, meta: raw.meta };
 
   } catch (error) {
     console.error('Error in normalizeLeague:', error);

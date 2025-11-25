@@ -1357,12 +1357,13 @@ export function getPlayerCareerAttemptsTotal(player: Player, percentageType: str
 
 // Check if a player meets a specific achievement criteria
 export function playerMeetsAchievement(
-  player: Player, 
-  achievementId: string, 
+  player: Player,
+  achievementId: string,
   seasonIndex?: SeasonIndex,
   operator: '>=' | '<=' = '>=',
   teamId?: number,
   season?: number,
+  currentSeason?: number,
 ): boolean {
   const DEBUG = import.meta.env.VITE_DEBUG === 'true';
   
@@ -1453,7 +1454,13 @@ export function playerMeetsAchievement(
       // Further filter awards to ensure the player was on the team during that season
       filteredAwards = filteredAwards?.filter(award => {
         // Check if player played for teamId in the award's season
-        return player.stats?.some(s => s.season === award.season && s.tid === teamId && !s.playoffs && (s.gp || 0) > 0);
+        return player.stats?.some(s => {
+          if (s.season !== award.season || s.tid !== teamId || s.playoffs) return false;
+          // For current season: allow players even with 0 GP
+          // For past seasons: require GP > 0
+          const isCurrentSeason = currentSeason !== undefined && s.season === currentSeason;
+          return isCurrentSeason ? true : (s.gp || 0) > 0;
+        });
       });
     }
 

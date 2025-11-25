@@ -341,6 +341,7 @@ export interface LeagueData {
   seasonIndex?: any; // SeasonIndex from season-achievements
   // League year bounds for dynamic decade achievements
   leagueYears?: { minSeason: number; maxSeason: number };
+  currentSeason?: number; // The current season of the league (from gameAttributes.season)
   gameAttributes?: any; // Add gameAttributes here
   playoffSeries?: PlayoffSeasonData[]; // Playoff bracket data by season
   meta?: any; // League metadata from the raw file (includes name, etc.)

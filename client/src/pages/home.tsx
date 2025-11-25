@@ -2454,9 +2454,16 @@ export default function Home() {
 
             // Build team roster
             const rosterData: any[] = [];
+            const isCurrentSeason = modal.season === leagueData.currentSeason;
             leagueData.players.forEach(player => {
               const seasonStats = player.stats?.find(s => !s.playoffs && s.season === modal.season && s.tid === modal.tid);
-              if (seasonStats && seasonStats.gp && seasonStats.gp > 0) {
+              // For current season: show all players on roster (even with 0 GP)
+              // For past seasons: only show players who actually played games
+              const shouldInclude = isCurrentSeason
+                ? seasonStats // Just need stats for that team/season
+                : (seasonStats && seasonStats.gp && seasonStats.gp > 0); // Need stats AND games played
+
+              if (shouldInclude) {
                 const rating = player.ratings?.find(r => r.season === modal.season);
                 const position = rating?.pos || player.pos || 'F';
                 const age = player.born?.year ? modal.season - player.born.year : undefined;
@@ -2464,7 +2471,7 @@ export default function Home() {
                   player,
                   position,
                   age,
-                  gamesPlayed: seasonStats.gp,
+                  gamesPlayed: seasonStats?.gp || 0,
                   stats: seasonStats,
                   yearsWithTeam: calculateYearsWithTeam(player, modal.tid, modal.season),
                   ovr: getPlayerRating(player, modal.season, 'ovr'),
@@ -2542,7 +2549,13 @@ export default function Home() {
                           label: r.label,
                           key: r.key || `team-${r.tid}`,
                           test: (player: Player) => {
-                            return player.stats?.some(s => !s.playoffs && s.tid === r.tid && s.gp && s.gp > 0) || false;
+                            return player.stats?.some(s => {
+                              if (s.playoffs || s.tid !== r.tid) return false;
+                              // For current season: allow players even with 0 GP
+                              // For past seasons: require GP > 0
+                              const isCurrentSeason = s.season === leagueData.currentSeason;
+                              return isCurrentSeason ? true : (s.gp && s.gp > 0);
+                            }) || false;
                           }
                         };
                       } else {
@@ -2567,7 +2580,13 @@ export default function Home() {
                           label: c.label,
                           key: c.key || `team-${c.tid}`,
                           test: (player: Player) => {
-                            return player.stats?.some(s => !s.playoffs && s.tid === c.tid && s.gp && s.gp > 0) || false;
+                            return player.stats?.some(s => {
+                              if (s.playoffs || s.tid !== c.tid) return false;
+                              // For current season: allow players even with 0 GP
+                              // For past seasons: require GP > 0
+                              const isCurrentSeason = s.season === leagueData.currentSeason;
+                              return isCurrentSeason ? true : (s.gp && s.gp > 0);
+                            }) || false;
                           }
                         };
                       } else {
