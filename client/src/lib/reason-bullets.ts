@@ -117,7 +117,8 @@ const SEASON_ACHIEVEMENT_LABELS: Partial<Record<SeasonAchievementId, string>> = 
 
   // Additional missing achievements
   Champion: 'Won Championship',
-  HKFinalsMVP: 'Finals MVP'
+  HKFinalsMVP: 'Finals MVP',
+  HKChampion: 'Won Championship'
 };
 
 export interface ReasonBullet {
@@ -475,7 +476,7 @@ function getStatFieldForCareerAchievement(achievementId: string): string | strin
     case 'career2kSteals': return 'stl';
     case 'career1500Blocks': return 'blk';
     case 'career2kThrees': return ['tpm', 'tp'];
-    case 'FBCareer50kPassYds': return 'pssYds';
+    case 'career50kPassYds': return 'pssYds';
     case 'career300PassTDs': return 'pssTD';
     case 'career12kRushYds': return 'rusYds';
     case 'career100RushTDs': return 'rusTD';
@@ -483,11 +484,11 @@ function getStatFieldForCareerAchievement(achievementId: string): string | strin
     case 'career100RecTDs': return 'recTD';
     case 'career100Sacks': return ['sks', 'defSk'];
     case 'career20Ints': return 'defInt';
-    case 'career500Goals': return 'goals';
+    case 'career500Goals': return 'g';
     case 'career1000Points': return 'points';
-    case 'career500Assists': return 'assists';
-    case 'career200Wins': return 'wins';
-    case 'career50Shutouts': return 'shutouts';
+    case 'career500Assists': return 'a';
+    case 'career200Wins': return 'gW';
+    case 'career50Shutouts': return 'so';
     case 'career3000Hits': return 'h';
     case 'career500HRs': return 'hr';
     case 'career1500RBIs': return 'rbi';
@@ -565,6 +566,8 @@ function getSeasonAchievementSeasons(player: Player, achievementId: SeasonAchiev
     'HKAllRookie': ['All-Rookie Team'],
     'HKAllLeague': ['All-League Team'],
     'HKFinalsMVP': ['Finals MVP', 'Playoffs MVP'],
+    'HKAllStarMVP': ['All-Star MVP', 'All-Star Game MVP'],
+    'HKChampion': ['Championship'],
     'BBAllStar': ['All-Star'],
     'BBMVP': ['Most Valuable Player'],
     'BBROY': ['Rookie of the Year'],
@@ -1278,6 +1281,7 @@ function generateSeasonAchievementBullet(player: Player, achievementId: SeasonAc
       'HKAllRookie': 'Never made an All-Rookie Team',
       'HKAllLeague': 'Never made an All-League Team',
       'HKFinalsMVP': 'Was never the Finals MVP',
+      'HKChampion': 'Never won a Championship',
 
       // Baseball
       'BBAllStar': 'Was never an All-Star',
@@ -1523,7 +1527,8 @@ function getCareerStatInfo(player: Player, achievementId: string): { value: numb
     // Hockey
     'careerGoals': { field: 'g', label: 'Goals' },
     'careerHockeyPoints': { field: 'points', label: 'Points' },
-    'careerWinsG': { field: 'gw', label: 'Wins (G)' },
+    'careerHockeyAssists': { field: 'a', label: 'Assists' },
+    'careerWinsG': { field: 'gW', label: 'Wins (G)' },
     'careerShutoutsG': { field: 'so', label: 'Shutouts (G)' },
     
     // Football
@@ -1566,7 +1571,7 @@ function getCareerStatInfo(player: Player, achievementId: string): { value: numb
     'career300Saves': 'careerSavesP',
     'career500Goals': 'careerGoals',
     'career1000Points': 'careerHockeyPoints',
-    'career500Assists': 'careerAssists',
+    'career500Assists': 'careerHockeyAssists',
     'career200Wins': 'careerWinsG',
     'career50Shutouts': 'careerShutoutsG',
     'career300PassTDs': 'careerPassTDs',

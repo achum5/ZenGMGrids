@@ -424,7 +424,7 @@ function generateTestFunction(
         return (player: Player) => checkSeasonTotal(player, 'defInt', newThreshold, operator, 1);
       }
       if (baseAchievement.id === 'FBSeason15TFL') {
-        return (player: Player) => checkSeasonTotal(player, 'defTFL', newThreshold, operator, 1);
+        return (player: Player) => checkSeasonTotal(player, 'defTckLoss', newThreshold, operator, 1);
       }
   
       // Single-Season — Combined
@@ -953,7 +953,7 @@ function checkSeasonCombo(player: Player, statThresholds: Record<string, number>
         let value = (stat as any)[statField] || 0;
 
         // Special handling for trb (total rebounds) if orb/drb are present
-        if (statField === 'trb' && (stat as any).drb !== undefined || (stat as any).orb !== undefined) {
+        if (statField === 'trb' && ((stat as any).drb !== undefined || (stat as any).orb !== undefined)) {
           value = ((stat as any).drb || 0) + ((stat as any).orb || 0);
         }
 

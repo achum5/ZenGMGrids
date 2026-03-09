@@ -450,7 +450,7 @@ export function GridSection({
     let borderColor = 'var(--border)';
     let borderWidth = '1px';
     let borderStyle = 'solid';
-    let className = 'hover:bg-accent/30 dark:hover:bg-accent/20 hover:border-accent/40 dark:hover:border-accent/30 transition-all duration-100 motion-reduce:transition-none cursor-pointer focus:ring-2 focus:ring-inset focus:ring-blue-500 dark:focus:ring-blue-400';
+    let className = 'hover:bg-accent/30 dark:hover:bg-accent/20 hover:border-accent/40 dark:hover:border-accent/30 transition-all duration-100 motion-reduce:transition-none cursor-pointer focus:ring-2 focus:ring-inset focus:ring-blue-500 dark:focus:ring-blue-400 shadow-[inset_0_2px_6px_rgba(0,0,0,0.15)] dark:shadow-[inset_0_2px_8px_rgba(0,0,0,0.3)]';
     let disabled = false;
     let showFace = false;
     let player = undefined;
@@ -504,7 +504,7 @@ export function GridSection({
       background = styles.gradient !== 'none' ? styles.gradient : styles.bgColor;
       color = styles.textColor;
       borderColor = styles.borderColor;
-      className = 'correct-answer font-medium transition-all duration-100 motion-reduce:transition-none cursor-pointer hover:brightness-110 hover:contrast-110 hover:shadow-md focus:ring-2 focus:ring-inset focus:ring-green-400';
+      className = 'correct-answer font-medium transition-all duration-100 motion-reduce:transition-none cursor-pointer hover:brightness-110 hover:contrast-110 hover:shadow-md focus:ring-2 focus:ring-inset focus:ring-green-400 shadow-[inset_0_1px_3px_rgba(0,0,0,0.2)]';
     } else if (cellState.correct === false) {
       background = '#EF4444'; // Red for incorrect
       color = 'white';
@@ -652,9 +652,9 @@ export function GridSection({
           <div ref={gridRef} className="max-w-6xl mx-auto">
             {/* Complete 4x4 Grid - Board with Thin Separators */}
             <div className="rainbow-border rounded-2xl p-[2px] md:p-[3px] overflow-hidden grid-container-glow grid-divider">
-              <div className="grid grid-cols-4 gap-[2px] md:gap-[2px] w-full relative z-10">
+              <div className="grid grid-cols-4 gap-[3px] md:gap-[4px] w-full relative z-10">
               {/* Score in top-left corner */}
-              <div className={cn("relative aspect-square flex flex-col items-center justify-center bg-secondary dark:bg-slate-700 rounded-tl-2xl overflow-hidden score-tile", isFlaring && "score-tile-flare")}>
+              <div className={cn("relative aspect-square flex flex-col items-center justify-center bg-gradient-to-br from-secondary to-secondary/80 dark:from-slate-700 dark:to-slate-800 rounded-tl-2xl overflow-hidden score-tile", isFlaring && "score-tile-flare")}>
                 <div className="score-tile-ring"></div>
                 <div className="text-xs sm:text-sm md:text-base font-medium text-muted-foreground dark:text-gray-400">
                   {isGridComplete ? 'Final Score:' : 'Score:'}
@@ -698,7 +698,7 @@ export function GridSection({
                   <div 
                     key={getReactKey('header-col', undefined, colIndex, undefined, col.key)} 
                     className={cn(
-                      "aspect-square bg-secondary dark:bg-slate-700 p-2 md:p-3 overflow-hidden",
+                      "aspect-square bg-gradient-to-b from-secondary to-secondary/80 dark:from-slate-700 dark:to-slate-800 backdrop-blur-sm p-2 md:p-3 overflow-hidden",
                       headerRadius,
                       teamForHeader ? 'header-logo-glow' : 'header-text-glow',
                       isHovered && 'header-hover'
@@ -711,7 +711,7 @@ export function GridSection({
                     ) : (
                       <ResponsiveText
                         text={col.label}
-                        className="text-[10px] xs:text-xs md:text-sm font-bold text-secondary-foreground dark:text-white"
+                        className="text-[10px] xs:text-xs md:text-sm font-bold text-secondary-foreground dark:text-white drop-shadow-sm"
                       />
                     )}
                   </div>
@@ -735,7 +735,7 @@ export function GridSection({
                       <div 
                         key={getReactKey('header-row', rowIndex, undefined, row.key)}
                         className={cn(
-                          "aspect-square bg-secondary dark:bg-slate-700 p-2 md:p-3 overflow-hidden",
+                          "aspect-square bg-gradient-to-r from-secondary to-secondary/80 dark:from-slate-700 dark:to-slate-800 backdrop-blur-sm p-2 md:p-3 overflow-hidden",
                           rowIndex === rows.length - 1 ? 'rounded-bl-2xl' : '',
                           teamForHeader ? 'header-logo-glow' : 'header-text-glow',
                           isHovered && 'header-hover'
@@ -748,7 +748,7 @@ export function GridSection({
                         ) : (
                           <ResponsiveText
                             text={fullName}
-                            className="text-[10px] xs:text-xs md:text-sm font-bold text-secondary-foreground dark:text-white"
+                            className="text-[10px] xs:text-xs md:text-sm font-bold text-secondary-foreground dark:text-white drop-shadow-sm"
                           />
                         )}
                       </div>
@@ -1030,9 +1030,9 @@ export function GridSection({
                                 );
                               })()}
                             </div>
-                          ) : (
+                          ) : cellContent.content ? (
                             <span className="leading-tight break-words">{cellContent.content}</span>
-                          )}
+                          ) : null}
                         </div>
                       </button>
                     );

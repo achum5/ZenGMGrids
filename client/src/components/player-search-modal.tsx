@@ -1,9 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, X } from 'lucide-react';
+import { Search } from 'lucide-react';
 import type { SearchablePlayer, Player } from '@/types/bbgm';
 import { buildSearchIndex, searchIndex, useDebounce, type SearchIndex } from '@/lib/search-utils';
 
@@ -201,24 +200,22 @@ export function PlayerSearchModal({
           </div>
         </div>
 
-        <ScrollArea 
-          className="h-48 overflow-y-auto" 
+        <ScrollArea
+          className="flex-1 overflow-y-auto"
           ref={scrollAreaRef}
           style={{
-            // Prevent momentum scrolling issues on mobile
             WebkitOverflowScrolling: 'touch',
             overscrollBehavior: 'contain',
-            // Prevent scrolling interference with keyboard
             touchAction: 'pan-y',
           }}
         >
-          <div 
-            className="p-2 space-y-1"
+          <div
+            className="p-1.5"
             role="listbox"
             aria-activedescendant={activeIndex >= 0 ? `player-option-${filteredPlayers[activeIndex]?.pid}` : undefined}
           >
             {filteredPlayers.length === 0 ? (
-              <div className="text-center py-4 text-muted-foreground" data-testid="text-no-results">
+              <div className="text-center py-8 text-muted-foreground" data-testid="text-no-results">
                 {searchQuery.trim() ? 'No matching players found' : 'No players found'}
               </div>
             ) : (
@@ -226,16 +223,15 @@ export function PlayerSearchModal({
                 const player = byPid[searchablePlayer.pid];
                 const isUsed = usedPids.has(searchablePlayer.pid);
                 const isActive = index === activeIndex;
-                
+
                 return (
-                  <Button
+                  <button
                     key={searchablePlayer.pid}
                     id={`player-option-${searchablePlayer.pid}`}
-                    variant="ghost"
-                    className={`w-full justify-start px-3 py-2 h-auto ${
-                      isUsed 
-                        ? 'opacity-60 cursor-not-allowed bg-muted/50 text-muted-foreground' 
-                        : 'hover:bg-accent hover:text-accent-foreground'
+                    className={`w-full text-left px-3 py-2 rounded-md flex items-center gap-3 transition-colors ${
+                      isUsed
+                        ? 'opacity-40 cursor-not-allowed'
+                        : 'hover:bg-accent hover:text-accent-foreground cursor-pointer'
                     } ${
                       isActive && !isUsed ? 'bg-accent text-accent-foreground ring-2 ring-ring' : ''
                     }`}
@@ -246,33 +242,25 @@ export function PlayerSearchModal({
                     aria-selected={isActive}
                     data-testid={`button-select-player-${searchablePlayer.pid}`}
                   >
-                    <div className="text-left flex-1">
-                      <div className="font-medium flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span>{player.name}</span>
-                          {searchablePlayer.careerYears && (
-                            <span className="text-xs text-muted-foreground font-normal">
-                              {searchablePlayer.careerYears}
-                            </span>
-                          )}
-                        </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm truncate">{player.name}</span>
+                        {searchablePlayer.careerYears && (
+                          <span className="text-[11px] text-muted-foreground font-normal flex-shrink-0">
+                            {searchablePlayer.careerYears}
+                          </span>
+                        )}
                         {isUsed && (
-                          <span className="text-xs text-muted-foreground ml-2 font-normal">Already used</span>
+                          <span className="text-[10px] text-muted-foreground ml-auto flex-shrink-0 italic">Used</span>
                         )}
                       </div>
                     </div>
-                  </Button>
+                  </button>
                 );
               })
             )}
           </div>
         </ScrollArea>
-
-        <div className="border-t border-border p-4">
-          <div className="text-xs text-muted-foreground text-center">
-            Click a player to submit your answer
-          </div>
-        </div>
       </DialogContent>
     </Dialog>
   );

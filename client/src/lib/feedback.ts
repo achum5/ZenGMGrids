@@ -774,6 +774,12 @@ const SEASON_ACHIEVEMENT_LABELS: Record<SeasonAchievementId, {
     short: 'Finals MVP',
     verbTeam: 'won a Finals MVP',
     verbGeneric: 'won a Finals MVP'
+  },
+  HKChampion: {
+    label: 'Won Championship',
+    short: 'Champion',
+    verbTeam: 'won a championship',
+    verbGeneric: 'won a championship'
   }
 };
 
@@ -844,6 +850,7 @@ function getPlayerSeasonAchievementData(player: Player, achievementId: SeasonAch
     HKAllRookie: ['All-Rookie Team', 'all-rookie team'],
     HKAllLeague: ['All-League Team', 'all-league team', 'First Team All-League', 'Second Team All-League'],
     HKFinalsMVP: ['Playoffs MVP', 'playoffs mvp', 'Finals MVP', 'finals mvp'],
+    HKChampion: ['Championship', 'championship'],
 
     // Baseball GM achievements (case-sensitive matches from ZGMB)
     BBAllStar: ['All-Star'],

@@ -1232,8 +1232,8 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
           s => !s.playoffs && s.season === selectedSeason && s.tid === selectedTeam?.tid
         );
 
-        const leaderTrb = leaderSeasonStats?.trb || ((leaderSeasonStats?.orb || 0) + (leaderSeasonStats?.drb || 0));
-        const rpTrb = rpSeasonStats?.trb || ((rpSeasonStats?.orb || 0) + (rpSeasonStats?.drb || 0));
+        const leaderTrb = leaderSeasonStats?.trb != null ? leaderSeasonStats.trb : ((leaderSeasonStats?.orb || 0) + (leaderSeasonStats?.drb || 0));
+        const rpTrb = rpSeasonStats?.trb != null ? rpSeasonStats.trb : ((rpSeasonStats?.orb || 0) + (rpSeasonStats?.drb || 0));
 
         return rpTrb > leaderTrb ? rp : leader;
       });
@@ -1758,7 +1758,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
           const gp = seasonStats.gp || 0;
           const mpg = (gp > 0 && seasonStats.min) ? seasonStats.min / gp : 0;
           const ppg = (gp > 0 && seasonStats.pts) ? seasonStats.pts / gp : 0;
-          const totalReb = seasonStats.trb || ((seasonStats.orb || 0) + (seasonStats.drb || 0));
+          const totalReb = seasonStats.trb != null ? seasonStats.trb : ((seasonStats.orb || 0) + (seasonStats.drb || 0));
           const rpg = gp > 0 ? totalReb / gp : 0;
           const apg = (gp > 0 && seasonStats.ast) ? seasonStats.ast / gp : 0;
           const stl = seasonStats.stl || 0;
@@ -1770,7 +1770,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
           const fga = seasonStats.fga || 0;
           const fgp = fga > 0 ? (fg / fga) * 100 : 0;
 
-          const tp = seasonStats.tpm || seasonStats.tp || 0;
+          const tp = seasonStats.tpm != null ? seasonStats.tpm : (seasonStats.tp || 0);
           const tpa = seasonStats.tpa || 0;
           const tpp = tpa > 0 ? (tp / tpa) * 100 : 0;
 
@@ -2688,12 +2688,20 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
     const stats = rosterPlayer.stats;
 
     switch (round) {
-      // Basketball rounds - display per game stats (prettier), but leader is determined by totals
+      // Points and assists are shared round names between basketball and hockey
       case 'points-leader':
+        if (leagueData.sport === 'hockey') {
+          const hkPoints = ((seasonStats as any)?.evG || 0) + ((seasonStats as any)?.ppG || 0) + ((seasonStats as any)?.shG || 0) + ((seasonStats as any)?.evA || 0) + ((seasonStats as any)?.ppA || 0) + ((seasonStats as any)?.shA || 0);
+          return hkPoints > 0 ? `${hkPoints} PTS` : 'N/A';
+        }
         return stats?.ppg ? `${stats.ppg.toFixed(1)} PPG` : 'N/A';
       case 'rebounds-leader':
         return stats?.rpg ? `${stats.rpg.toFixed(1)} RPG` : 'N/A';
       case 'assists-leader':
+        if (leagueData.sport === 'hockey') {
+          const hkAssists = ((seasonStats as any)?.evA || 0) + ((seasonStats as any)?.ppA || 0) + ((seasonStats as any)?.shA || 0);
+          return hkAssists > 0 ? `${hkAssists} A` : 'N/A';
+        }
         return stats?.apg ? `${stats.apg.toFixed(1)} APG` : 'N/A';
       case 'steals-leader':
         return stats?.spg ? `${stats.spg.toFixed(1)} SPG` : 'N/A';
@@ -2729,22 +2737,16 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
         return strikeouts > 0 ? `${strikeouts} K` : 'N/A';
       case 'wins-leader':
         return seasonStats?.w ? `${seasonStats.w} W` : 'N/A';
-      // Hockey rounds
-      case 'points-leader':
-        const points = ((seasonStats as any)?.evG || 0) + ((seasonStats as any)?.ppG || 0) + ((seasonStats as any)?.shG || 0) + ((seasonStats as any)?.evA || 0) + ((seasonStats as any)?.ppA || 0) + ((seasonStats as any)?.shA || 0);
-        return points > 0 ? `${points} PTS` : 'N/A';
-      case 'goals-leader':
+      case 'goals-leader': {
         const goals = ((seasonStats as any)?.evG || 0) + ((seasonStats as any)?.ppG || 0) + ((seasonStats as any)?.shG || 0);
         return goals > 0 ? `${goals} G` : 'N/A';
-      case 'assists-leader':
-        const assists = ((seasonStats as any)?.evA || 0) + ((seasonStats as any)?.ppA || 0) + ((seasonStats as any)?.shA || 0);
-        return assists > 0 ? `${assists} A` : 'N/A';
+      }
       case 'goalie-wins-leader':
         return (seasonStats as any)?.gW ? `${(seasonStats as any).gW} W` : 'N/A';
       default:
         return 'N/A';
     }
-  }, [roster, selectedSeason, selectedTeam]);
+  }, [roster, selectedSeason, selectedTeam, leagueData.sport]);
 
   // Helper function to check if user's player had better per-game stat than correct player (for basketball)
   const shouldShowTotalsNote = useCallback((userPlayer: Player, correctPlayer: Player, round: RoundType): boolean => {
@@ -2867,15 +2869,25 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
       let statValue = '';
       const stats = correctRosterPlayer.stats;
       switch (currentRound) {
-        // Basketball rounds
+        // Points and assists are shared round names between basketball and hockey
         case 'points-leader':
-          statValue = stats?.ppg ? `${stats.ppg.toFixed(1)} PPG` : 'N/A';
+          if (leagueData.sport === 'hockey') {
+            const hkPts = ((seasonStats as any)?.evG || 0) + ((seasonStats as any)?.ppG || 0) + ((seasonStats as any)?.shG || 0) + ((seasonStats as any)?.evA || 0) + ((seasonStats as any)?.ppA || 0) + ((seasonStats as any)?.shA || 0);
+            statValue = hkPts > 0 ? `${hkPts} PTS` : 'N/A';
+          } else {
+            statValue = stats?.ppg ? `${stats.ppg.toFixed(1)} PPG` : 'N/A';
+          }
           break;
         case 'rebounds-leader':
           statValue = stats?.rpg ? `${stats.rpg.toFixed(1)} RPG` : 'N/A';
           break;
         case 'assists-leader':
-          statValue = stats?.apg ? `${stats.apg.toFixed(1)} APG` : 'N/A';
+          if (leagueData.sport === 'hockey') {
+            const hkAst = ((seasonStats as any)?.evA || 0) + ((seasonStats as any)?.ppA || 0) + ((seasonStats as any)?.shA || 0);
+            statValue = hkAst > 0 ? `${hkAst} A` : 'N/A';
+          } else {
+            statValue = stats?.apg ? `${stats.apg.toFixed(1)} APG` : 'N/A';
+          }
           break;
         case 'steals-leader':
           statValue = stats?.spg ? `${stats.spg.toFixed(1)} SPG` : 'N/A';
@@ -3020,7 +3032,7 @@ export default function TeamTrivia({ leagueData, onBackToModeSelect, onGoHome, l
         }
       }, 500); // Shake animation duration
     }
-  }, [currentRound, statLeaders, toast, handleNextRound, roster, selectedSeason, selectedTeam, getRoundInstruction, leaderGuessLocked]);
+  }, [currentRound, statLeaders, toast, handleNextRound, roster, selectedSeason, selectedTeam, getRoundInstruction, leaderGuessLocked, leagueData.sport]);
 
   // New game - randomize both
   const handleNew = useCallback(() => {

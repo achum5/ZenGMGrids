@@ -291,7 +291,7 @@ export function headerConfigToCatTeam(
             }
       
             return {
-              key: `achievement-${achievementId}-${config.customAchievement ? 'custom' : 'original'} `,
+              key: `achievement-${achievementId}-${config.customAchievement ? 'custom' : 'original'}`,
               label: achievementLabel,
               achievementId: achievementId as string,
               type: 'achievement',

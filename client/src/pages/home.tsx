@@ -1688,7 +1688,7 @@ export default function Home() {
       setCurrentCellKey(positionalKey);
       setSearchModalOpen(true);
     }
-  }, [cells, rows, cols, intersections, leagueData, hintMode, toast, modalStack]);
+  }, [cells, rows, cols, intersections, leagueData, hintMode, toast, modalStack, byPid]);
 
 
   const getCurrentCellDescription = () => {
@@ -2009,10 +2009,9 @@ export default function Home() {
     return (
       <div>
         <header
-          className="bg-card border-border"
+          className="bg-card border-border sticky top-0 z-50"
           onMouseEnter={() => setIsHeaderHovered(true)}
           onMouseLeave={() => setIsHeaderHovered(false)}
-          style={{ position: 'relative' }}
         >
           <div className="max-w-6xl mx-auto px-6 py-4">
             <div className="relative flex items-center justify-start md:justify-center">
@@ -2092,11 +2091,10 @@ export default function Home() {
   // Show grid section if Grids mode is selected
   return (
     <div>
-      <header 
-        className="bg-card border-border"
+      <header
+        className="bg-card border-border sticky top-0 z-50"
         onMouseEnter={() => setIsHeaderHovered(true)}
         onMouseLeave={() => setIsHeaderHovered(false)}
-        style={{ position: 'relative' }}
       >
         <div className="max-w-6xl mx-auto px-6 py-4">
           {/* Desktop: Centered layout with absolute positioning */}
@@ -2380,6 +2378,7 @@ export default function Home() {
             isGridCompleted={Object.values(cells).length === 9 && Object.values(cells).every(cell => cell.locked)}
             wasAutoFilled={modalCellKey ? cells[modalCellKey]?.autoFilled : false}
             stackIndex={playerModalStackIndex}
+            onPlayerClick={(p) => setModalPlayer(p)}
           />
         )}
         

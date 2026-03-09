@@ -83,6 +83,7 @@ export type SeasonAchievementId =
   | 'HKFinalsMVP'
   | 'HKAllRookie'
   | 'HKAllLeague'
+  | 'HKChampion'
   | 'HKAllStarMVP'
   // Hockey GM season statistical achievements (19 new achievements)
   | 'HKSeason40Goals'
@@ -302,7 +303,7 @@ function mapAwardToAchievement(awardType: string, sport?: 'basketball' | 'footba
     if (awardType === 'Defensive Forward of the Year') return 'HKDefensiveForward';
     if (awardType === 'Goalie of the Year') return 'HKGOY';
     if (awardType === 'Rookie of the Year') return 'HKROY';
-    if (awardType === 'Championship') return 'Champion';
+    if (awardType === 'Championship') return 'HKChampion';
     if (awardType === 'Playoffs MVP' || awardType === 'Finals MVP') return 'HKFinalsMVP';
     if (awardType === 'All-Rookie Team') return 'HKAllRookie';
     if (awardType === 'First Team All-League' || awardType === 'Second Team All-League' || awardType === 'Third Team All-League' || awardType === 'All-League Team') return 'HKAllLeague';
@@ -898,15 +899,15 @@ export function buildSeasonIndex(
 
         for (const stat of seasonStats) {
           aggregatedStats.pts += stat.pts || 0;
-          aggregatedStats.trb += stat.trb || ((stat as any).orb || 0) + ((stat as any).drb || 0) || 0;
+          aggregatedStats.trb += stat.trb != null ? stat.trb : (((stat as any).orb || 0) + ((stat as any).drb || 0));
           aggregatedStats.ast += stat.ast || 0;
           aggregatedStats.stl += stat.stl || 0;
           aggregatedStats.blk += stat.blk || 0;
           aggregatedStats.fg += stat.fg || 0;
           aggregatedStats.fga += stat.fga || 0;
-          aggregatedStats.tp += stat.tp || (stat as any).tpm || 0;
+          aggregatedStats.tp += stat.tp != null ? stat.tp : ((stat as any).tpm || 0);
           aggregatedStats.tpa += stat.tpa || (stat as any).tpat || 0;
-          aggregatedStats.ft += stat.ft || (stat as any).ftm || 0;
+          aggregatedStats.ft += stat.ft != null ? stat.ft : ((stat as any).ftm || 0);
           aggregatedStats.fta += stat.fta || 0;
           aggregatedStats.gp += stat.gp || 0;
           aggregatedStats.min += stat.min || 0;
@@ -1029,8 +1030,8 @@ export function buildSeasonIndex(
         if (ftPct >= 0.900 && fta >= 250) {
           addAchievement('Season90FT250FTA');
         }
-        // For SeasonFGPercent: FG% >= 0.400 on >= 300 FGA
-        if (fgPct >= 0.400 && fga >= 300) {
+        // For SeasonFGPercent: FG% >= 0.500 on >= 300 FGA
+        if (fgPct >= 0.500 && fga >= 300) {
           addAchievement('SeasonFGPercent');
         }
         // For Season3PPercent: 3PT% >= 0.400 on >= 100 3PA
@@ -1905,6 +1906,12 @@ export const SEASON_ACHIEVEMENTS: SeasonAchievement[] = [
   {
     id: 'HKAllStarMVP',
     label: 'All-Star MVP',
+    isSeasonSpecific: true,
+    minPlayers: 3
+  },
+  {
+    id: 'HKChampion',
+    label: 'Won Championship',
     isSeasonSpecific: true,
     minPlayers: 3
   },

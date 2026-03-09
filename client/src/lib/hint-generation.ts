@@ -481,9 +481,9 @@ export function generateHintOptions(
   // If we still need more players, use sophisticated fallback system
   const stillNeeded = 5 - distractors.length;
   if (stillNeeded > 0) {
-    const usedPids = new Set(distractors.map(d => d.pid));
+    const localUsedPids = new Set([...usedPids, ...distractors.map(d => d.pid)]);
     const allSingleConstraint = [...rowOnlyProminent, ...colOnlyProminent].filter(
-      p => !usedPids.has(p.pid)
+      p => !localUsedPids.has(p.pid)
     );
     
     if (allSingleConstraint.length >= stillNeeded) {
@@ -509,12 +509,12 @@ export function generateHintOptions(
           allPlayers,
           rowConstraint,
           colConstraint,
-          usedPids,
+          localUsedPids,
           correctPlayer.pid,
           leagueData?.seasonIndex
         );
-        
-        const availableNearMiss = nearMissPlayers.filter(p => !usedPids.has(p.pid));
+
+        const availableNearMiss = nearMissPlayers.filter(p => !localUsedPids.has(p.pid));
         
         if (availableNearMiss.length > 0) {
           const count = Math.min(remainingNeeded, availableNearMiss.length);

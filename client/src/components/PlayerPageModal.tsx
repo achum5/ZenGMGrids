@@ -29,6 +29,7 @@ interface PlayerPageModalProps {
   currentCellKey?: string;
   isGridCompleted?: boolean;
   wasAutoFilled?: boolean; // True if cell was filled via Give Up
+  onPlayerClick?: (player: Player) => void;
 }
 
 // Helper to check contrast and adjust text color
@@ -116,7 +117,8 @@ export function PlayerPageModal({
   cols,
   currentCellKey,
   isGridCompleted = true,
-  wasAutoFilled = false
+  wasAutoFilled = false,
+  onPlayerClick
 }: PlayerPageModalProps) {
   // Support backward compatibility: if onClose is provided but not onCloseTop/onCloseAll, use onClose for both
   const handleCloseTop = onCloseTop ?? onClose ?? (() => {});
@@ -6147,7 +6149,7 @@ export function PlayerPageModal({
           >
             <div
               className="w-full h-full flex flex-col rounded-lg shadow-lg bg-background relative"
-              style={{ maxHeight: 'calc(100vh - 8rem)' }}
+              style={{ maxHeight: 'calc(100vh - 8rem - 4px)' }}
               onClick={(e) => e.stopPropagation()}
             >
             {/* Close Button */}
@@ -6160,15 +6162,20 @@ export function PlayerPageModal({
               <span className="sr-only">Close</span>
             </button>
 
-            <div className="px-6 pt-6 pb-4 border-b border-border flex-shrink-0">
+            <div className="px-6 pt-5 pb-3 border-b border-border flex-shrink-0">
               <h2 className="text-lg font-semibold leading-none tracking-tight">
                 {player && eligiblePlayers?.some(p => p.pid === player.pid)
                   ? "Other Eligible Answers"
                   : "Eligible Answers"}
               </h2>
+              {isGridCompleted && eligiblePlayersWithRarity.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  {eligiblePlayersWithRarity.length} eligible player{eligiblePlayersWithRarity.length !== 1 ? 's' : ''}
+                </p>
+              )}
             </div>
 
-            <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
+            <div className="flex-1 overflow-y-auto px-4 py-2 min-h-0">
               {!isGridCompleted ? (
                 <div className="text-sm text-muted-foreground text-center py-12">
                   <p className="text-lg font-medium mb-2">Revealed upon grid completion...</p>
@@ -6179,31 +6186,53 @@ export function PlayerPageModal({
                   <p>No eligible players data available.</p>
                 </div>
               ) : (
-                <div className="space-y-1">
+                <div>
                   {eligiblePlayersWithRarity.map(({ player: eligiblePlayer, rarity }, idx) => {
                     const isUserGuess = player && eligiblePlayer.pid === player.pid;
                     const rarityTier = getRarityTier(rarity);
                     const styles = rarityStyles[rarityTier];
+                    const rank = idx + 1;
 
                     return (
                       <div
                         key={eligiblePlayer.pid}
-                        className={`flex justify-between items-center py-2 px-3 rounded transition-colors ${
+                        className={`flex items-center py-1.5 px-2 rounded-md transition-colors ${
                           isUserGuess
-                            ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 font-medium border-2 border-blue-300 dark:border-blue-700"
-                            : "hover:bg-muted/50"
+                            ? "border-l-[3px] border-l-blue-500 bg-blue-500/8"
+                            : idx % 2 === 0
+                              ? "bg-muted/30"
+                              : ""
                         }`}
                       >
-                        <span className="flex-1 text-sm">
-                          {idx + 1}. {eligiblePlayer.name}
-                          {isUserGuess && !wasAutoFilled && <span className="ml-2 text-xs">(Your guess)</span>}
-                        </span>
+                        {/* Rank */}
+                        <div className="w-8 flex-shrink-0 flex items-center justify-center">
+                            <span className="text-xs text-muted-foreground tabular-nums">{rank}</span>
+                        </div>
+
+                        {/* Player name */}
+                        <button
+                          className={`flex-1 text-sm ml-2 truncate text-left hover:underline cursor-pointer ${isUserGuess ? 'font-medium text-blue-700 dark:text-blue-300' : ''}`}
+                          onClick={() => {
+                            if (onPlayerClick) {
+                              setEligiblePlayersModalOpen(false);
+                              onPlayerClick(eligiblePlayer);
+                            }
+                          }}
+                          disabled={!onPlayerClick}
+                        >
+                          {eligiblePlayer.name}
+                          {isUserGuess && !wasAutoFilled && (
+                            <span className="ml-1.5 text-[10px] uppercase tracking-wider text-blue-500 dark:text-blue-400 font-semibold">You</span>
+                          )}
+                        </button>
+
+                        {/* Rarity badge */}
                         <span
-                          className="text-xs font-semibold ml-3 px-2.5 py-1 rounded-md border whitespace-nowrap"
+                          className="text-[11px] font-bold ml-2 w-9 h-6 rounded-full flex items-center justify-center flex-shrink-0"
                           style={{
                             background: styles.gradient !== 'none' ? styles.gradient : styles.bgColor,
                             color: styles.textColor,
-                            borderColor: styles.borderColor,
+                            boxShadow: `0 1px 4px ${styles.borderColor}55`,
                           }}
                         >
                           {rarity}

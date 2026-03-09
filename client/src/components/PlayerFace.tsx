@@ -70,7 +70,7 @@ export function PlayerFace({ pid, name, imgURL, face, size = 110, hideName = fal
             className="block w-full h-full object-contain"
             draggable={false}
             style={{
-              transform: `translateX(${isMobile ? '2px' : '-7px'}) translateY(15%)`,
+              transform: 'translateY(15%)',
               objectPosition: 'center'
             }}
           />
@@ -79,7 +79,7 @@ export function PlayerFace({ pid, name, imgURL, face, size = 110, hideName = fal
         {kind === "svg" && (
           <div
             className="w-full h-full flex items-center justify-center"
-            style={{ transform: `translateX(${isMobile ? '0px' : '-7px'}) scale(${scale})` }}
+            style={{ transform: `scale(${scale})` }}
           >
             <div
               className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
