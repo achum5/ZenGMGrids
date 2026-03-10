@@ -12,6 +12,7 @@ import { CustomGridModal } from '@/components/custom-grid-modal';
 import { SavedLeagues } from '@/components/SavedLeagues';
 import ChooseGameMode from '@/pages/choose-game-mode';
 import TeamTrivia from '@/pages/team-trivia';
+import HigherOrLower from '@/pages/higher-or-lower';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Home as HomeIcon, ArrowLeft, History } from 'lucide-react';
@@ -292,7 +293,7 @@ export default function Home() {
   
   // Core state
   const [leagueData, setLeagueData] = useState<LeagueData | null>(null);
-  const [gameMode, setGameMode] = useState<'choose' | 'grids' | 'team-trivia' | null>(null);
+  const [gameMode, setGameMode] = useState<'choose' | 'grids' | 'team-trivia' | 'higher-or-lower' | null>(null);
   const [rows, setRows] = useState<CatTeam[]>([]);
   const [cols, setCols] = useState<CatTeam[]>([]);
   const [cells, setCells] = useState<Record<string, CellState>>({});
@@ -1747,7 +1748,7 @@ export default function Home() {
   }, [parsingMethodSetting]);
 
   // Handle game mode selection
-  const handleSelectGameMode = useCallback((mode: 'grids' | 'team-trivia') => {
+  const handleSelectGameMode = useCallback((mode: 'grids' | 'team-trivia' | 'higher-or-lower') => {
     if (mode === 'grids') {
       // Generate grid for Grids mode
       if (!leagueData) return;
@@ -2084,6 +2085,16 @@ export default function Home() {
         leagueFingerprintId={currentFingerprintId}
         initialYearRange={savedYearRange}
         initialTeamFilter={savedTeamFilter}
+      />
+    );
+  }
+
+  if (gameMode === 'higher-or-lower' && leagueData) {
+    return (
+      <HigherOrLower
+        leagueData={leagueData}
+        onBackToModeSelect={handleBackToModeSelect}
+        onGoHome={handleGoHome}
       />
     );
   }

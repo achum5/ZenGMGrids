@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Grid3x3, Users } from 'lucide-react';
+import { Grid3x3, Users, ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 
-type GameMode = 'grids' | 'team-trivia';
+type GameMode = 'grids' | 'team-trivia' | 'higher-or-lower';
 
 interface ChooseGameModeProps {
   onSelectMode: (mode: GameMode) => void;
@@ -16,7 +16,7 @@ export default function ChooseGameMode({ onSelectMode, onBackToUpload }: ChooseG
   // Load last selected mode from localStorage
   useEffect(() => {
     const lastMode = localStorage.getItem('lastGameMode') as GameMode | null;
-    if (lastMode === 'grids' || lastMode === 'team-trivia') {
+    if (lastMode === 'grids' || lastMode === 'team-trivia' || lastMode === 'higher-or-lower') {
       setSelectedMode(lastMode);
     } else {
       // Default to grids if no preference
@@ -38,12 +38,14 @@ export default function ChooseGameMode({ onSelectMode, onBackToUpload }: ChooseG
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const modes: GameMode[] = ['grids', 'team-trivia', 'higher-or-lower'];
+      const currentIndex = selectedMode ? modes.indexOf(selectedMode) : 0;
       if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
         e.preventDefault();
-        setSelectedMode('grids');
+        setSelectedMode(modes[(currentIndex - 1 + modes.length) % modes.length]);
       } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
         e.preventDefault();
-        setSelectedMode('team-trivia');
+        setSelectedMode(modes[(currentIndex + 1) % modes.length]);
       } else if (e.key === 'Enter' && selectedMode) {
         e.preventDefault();
         handleStart();
@@ -69,7 +71,7 @@ export default function ChooseGameMode({ onSelectMode, onBackToUpload }: ChooseG
 
         {/* Mode Cards */}
         <div 
-          className="grid md:grid-cols-2 gap-6"
+          className="grid md:grid-cols-3 gap-6"
           role="radiogroup"
           aria-label="Game mode selection"
         >
@@ -142,6 +144,41 @@ export default function ChooseGameMode({ onSelectMode, onBackToUpload }: ChooseG
               </div>
             </CardHeader>
           </Card>
+
+          {/* Higher or Lower Card */}
+          <Card
+            className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
+              selectedMode === 'higher-or-lower'
+                ? 'ring-2 ring-primary shadow-lg scale-[1.02]'
+                : 'hover:scale-[1.01]'
+            }`}
+            onClick={() => handleSelectMode('higher-or-lower')}
+            data-testid="card-mode-higher-or-lower"
+            role="radio"
+            aria-checked={selectedMode === 'higher-or-lower'}
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleSelectMode('higher-or-lower');
+              }
+            }}
+          >
+            <CardHeader>
+              <div className="flex items-center justify-center gap-3">
+                <div className={`p-3 rounded-lg ${
+                  selectedMode === 'higher-or-lower'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted'
+                }`}>
+                  <ArrowUpDown className="h-8 w-8" />
+                </div>
+                <div>
+                  <CardTitle className="text-2xl">Higher or Lower</CardTitle>
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
         </div>
 
         {/* Action Buttons */}
@@ -153,7 +190,7 @@ export default function ChooseGameMode({ onSelectMode, onBackToUpload }: ChooseG
             className="w-full sm:w-auto text-lg px-8 py-6"
             data-testid="button-start-game"
           >
-            {selectedMode === 'grids' ? 'Start Grids' : 'Start Team Trivia'}
+            {selectedMode === 'grids' ? 'Start Grids' : selectedMode === 'team-trivia' ? 'Start Team Trivia' : 'Start Higher or Lower'}
           </Button>
           
           <Button
